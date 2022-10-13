@@ -291,8 +291,10 @@ class TestGetSatPos:
                 (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
-                    (lon, lat, alt),
-                    (119.39533705010592, -1.1491628298731498, 35803.19986408156))
+                (lon, lat, alt),
+                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                rtol=1e-4,
+            )
 
 
 def test_make_fake_scene():
