@@ -18,6 +18,8 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for autogenerating reader table from config files."""
 
+from yaml import BaseLoader
+
 from satpy.readers import available_readers
 
 
@@ -72,7 +74,7 @@ def generate_reader_table():
     table = [rst_table_header("Satpy Readers", header=["Description", "Reader name", "Status", "fsspec support"],
                               widths=[45, 25, 30, 30])]
 
-    reader_configs = available_readers(as_dict=True)
+    reader_configs = available_readers(as_dict=True, yaml_loader=BaseLoader)
     for rc in reader_configs:
         table.append(rst_table_row([rc.get("long_name", "").rstrip("\n"), rc.get("name", ""),
                                     rc.get("status", ""), rc.get("supports_fsspec", "false")]))

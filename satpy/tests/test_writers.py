@@ -241,6 +241,19 @@ enhancements:
         # alphabetically first
         np.testing.assert_allclose(img.data.values[0], ds.data / 20.0)
 
+    def test_enhance_bad_query_value(self):
+        """Test Enhancer doesn't fail when query includes bad values."""
+        from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(name=["I", "am", "invalid"], sensor='test_sensor2', mode='L'),
+                       dims=['y', 'x'])
+        e = Enhancer()
+        assert e.enhancement_tree is not None
+        with pytest.raises(KeyError, match="No .* found for None"):
+            get_enhanced_image(ds, enhance=e)
+
 
 class TestEnhancerUserConfigs(_BaseCustomEnhancementConfigTests):
     """Test `Enhancer` functionality when user's custom configurations are present."""
