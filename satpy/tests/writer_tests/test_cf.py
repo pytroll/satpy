@@ -1132,6 +1132,30 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
 
+def test_lonlat(tmp_path):
+    """Test correct storage for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from satpy import Scene
+    scn = Scene()
+    scn["ketolysis"] = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": create_area_def("mavas", 4326, shape=(5, 5),
+                                       center=(0, 0), resolution=(1, 1))})
+    filename = os.fspath(tmp_path / "test.nc")
+    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
+    with xr.open_dataset(filename) as ds:
+        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
+        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
+        assert ds[ds["ketolysis"].dims[0]].attrs["units"] == "degrees_east"
+        assert ds[ds["ketolysis"].dims[1]].attrs["units"] == "degrees_north"
+        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
+        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
+        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
 class TestCFWriterData(unittest.TestCase):
     """Test case for CF writer where data arrays are needed."""
 
