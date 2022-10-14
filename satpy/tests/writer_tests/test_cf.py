@@ -1149,8 +1149,8 @@ def test_lonlat_storage(tmp_path):
     with xr.open_dataset(filename) as ds:
         assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
         assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
-        assert ds[ds["ketolysis"].dims[0]].attrs["units"] == "degrees_east"
-        assert ds[ds["ketolysis"].dims[1]].attrs["units"] == "degrees_north"
+        assert ds["x"].attrs["units"] == "degrees_east"
+        assert ds["y"].attrs["units"] == "degrees_north"
         assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
         np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
         np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)

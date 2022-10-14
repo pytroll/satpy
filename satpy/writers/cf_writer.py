@@ -640,6 +640,9 @@ class CFWriter(Writer):
 
         CFWriter._remove_satpy_attributes(new_data)
 
+        new_data = CFWriter._encode_time(new_data, epoch)
+        new_data = CFWriter._encode_coords(new_data)
+
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
             new_data.attrs.pop(key, None)
@@ -654,9 +657,6 @@ class CFWriter(Writer):
 
         if compression is not None:
             new_data.encoding.update(compression)
-
-        new_data = CFWriter._encode_time(new_data, epoch)
-        new_data = CFWriter._encode_coords(new_data)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -685,14 +685,70 @@ class CFWriter(Writer):
 
     @staticmethod
     def _encode_coords(new_data):
+        """Encode coordinates."""
+        if not new_data.coords.keys() & {"x", "y", "crs"}:
+            # there are no coordinates
+            return new_data
+        is_projected = CFWriter._is_projected(new_data)
+        if is_projected:
+            new_data = CFWriter._encode_xy_coords_projected(new_data)
+        else:
+            new_data = CFWriter._encode_xy_coords_geographic(new_data)
+        if 'crs' in new_data.coords:
+            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _is_projected(new_data):
+        """Guess whether data are projected or not."""
+        if "area" in new_data.attrs:
+            if isinstance(new_data.attrs["area"], AreaDefinition):
+                crs = new_data.attrs["area"].crs
+            else:
+                # at least one test case passes an area of type str
+                logger.warning(
+                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                    "Assuming projected CRS.")
+                return True
+        elif "crs" in new_data.coords:
+            crs = new_data.coords["crs"].item()
+        elif "x" in new_data.coords:
+            if "units" in new_data.coords["x"]:
+                if new_data.coords["x"].endswith("m"):
+                    return True
+                elif new_data.coords["x"].startswith("degrees"):
+                    return False
+                else:
+                    raise ValueError("Missing area or CRS and unknown "
+                                     "units for x-coordinate.")
+            else:
+                logger.warning("Missing area or CRS and undefined units for x-coordinate. "
+                               "Assuming coordinates are projected and in meter.")
+                return True
+        else:
+            raise ValueError("No area or coordinates, cannot tell if data are projected")
+        return crs.is_projected
+
+    @staticmethod
+    def _encode_xy_coords_projected(new_data):
+        """Encode coordinates, assuming projected CRS."""
         if 'x' in new_data.coords:
             new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
             new_data['x'].attrs['units'] = 'm'
         if 'y' in new_data.coords:
             new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
             new_data['y'].attrs['units'] = 'm'
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _encode_xy_coords_geographic(new_data):
+        """Encode coordinates, assuming geographic CRS."""
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'longitude'
+            new_data['x'].attrs['units'] = 'degrees_east'
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'latitude'
+            new_data['y'].attrs['units'] = 'degrees_north'
         return new_data
 
     @staticmethod
