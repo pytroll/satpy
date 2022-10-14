@@ -34,6 +34,11 @@ format:
 * You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
   :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
+  If the area has a projected CRS, units are assumed to be in metre.  If the
+  area has a geographic CRS, units are assumed to be in degrees.  The writer
+  does not verify that the CRS is supported by the CF conventions.  One
+  commonly used projected CRS not supported by the CF conventions is the
+  equirectangular projection, such as EPSG 4087.
 * By default non-dimensional coordinates (such as scanline timestamps) are prefixed with the corresponding
   dataset name. This is because they are likely to be different for each dataset. If a non-dimensional
   coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
