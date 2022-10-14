@@ -325,9 +325,9 @@ def make_fake_scene(content_dict, daskify=False, area=True,
         area (bool or BaseDefinition): Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
-            the default, automatically generate areas.  If ``False``, values
-            will not have assigned areas.  If an instance of
-            ``pyresample.geometry.BaseDefinition``, those instances will be
+            the default, automatically generate areas with the name "test-area".
+            If ``False``, values will not have assigned areas.  If an instance
+            of ``pyresample.geometry.BaseDefinition``, those instances will be
             used for all generated fake datasets.  Warning: Passing an area as
             a string (``area="germ"``) is not supported.
         common_attrs (Mapping): optional, additional attributes that will
@@ -336,6 +336,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     Returns:
         Scene object with datasets corresponding to content_dict.
     """
+    from satpy.resample import add_crs_xy_coords
     if common_attrs is None:
         common_attrs = {}
     sc = Scene()
@@ -363,6 +364,8 @@ def make_fake_scene(content_dict, daskify=False, area=True,
                     arr,
                     dims=("y", "x"),
                     attrs=extra_attrs)
+        if area:
+            sc[did] = add_crs_xy_coords(sc[did], extra_attrs["area"])
     return sc
 
 

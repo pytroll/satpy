@@ -1137,13 +1137,13 @@ def test_lonlat(tmp_path):
     import xarray as xr
     from pyresample import create_area_def
 
-    from satpy import Scene
-    scn = Scene()
-    scn["ketolysis"] = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        attrs={"area": create_area_def("mavas", 4326, shape=(5, 5),
-                                       center=(0, 0), resolution=(1, 1))})
+    from ..utils import make_fake_scene
+    scn = make_fake_scene(
+            {"ketolysis": np.arange(25).reshape(5, 5)},
+            daskify=True,
+            area=create_area_def("mavas", 4326, shape=(5, 5),
+                                 center=(0, 0), resolution=(1, 1)))
+
     filename = os.fspath(tmp_path / "test.nc")
     scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
     with xr.open_dataset(filename) as ds:
