@@ -701,33 +701,36 @@ class CFWriter(Writer):
     @staticmethod
     def _is_projected(new_data):
         """Guess whether data are projected or not."""
+        crs = CFWriter._try_to_get_crs(new_data)
+        if crs:
+            return crs.is_projected
+        units = CFWriter._try_get_units_from_coords(new_data)
+        if units:
+            if units.endswith("m"):
+                return True
+            if units.startswith("degrees"):
+                return False
+        logger.warning("Failed to tell if data are projected. Assuming yes.")
+        return True
+
+    @staticmethod
+    def _try_to_get_crs(new_data):
+        """Try to get a CRS from attributes."""
         if "area" in new_data.attrs:
             if isinstance(new_data.attrs["area"], AreaDefinition):
-                crs = new_data.attrs["area"].crs
-            else:
-                # at least one test case passes an area of type str
-                logger.warning(
-                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
-                    "Assuming projected CRS.")
-                return True
-        elif "crs" in new_data.coords:
-            crs = new_data.coords["crs"].item()
-        elif "x" in new_data.coords:
-            if "units" in new_data.coords["x"]:
-                if new_data.coords["x"].endswith("m"):
-                    return True
-                elif new_data.coords["x"].startswith("degrees"):
-                    return False
-                else:
-                    raise ValueError("Missing area or CRS and unknown "
-                                     "units for x-coordinate.")
-            else:
-                logger.warning("Missing area or CRS and undefined units for x-coordinate. "
-                               "Assuming coordinates are projected and in meter.")
-                return True
-        else:
-            raise ValueError("No area or coordinates, cannot tell if data are projected")
-        return crs.is_projected
+                return new_data.attrs["area"].crs
+            # at least one test case passes an area of type str
+            logger.warning(
+                f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                "Assuming projected CRS.")
+        if "crs" in new_data.coords:
+            return new_data.coords["crs"].item()
+
+    @staticmethod
+    def _try_get_units_from_coords(new_data):
+        for c in "xy":
+            if "units" in new_data.coords[c].attrs:
+                return new_data.coords[c].attrs["units"]
 
     @staticmethod
     def _encode_xy_coords_projected(new_data):
