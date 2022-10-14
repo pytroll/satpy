@@ -341,7 +341,8 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     sc = Scene()
     for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        extra_attrs["area"] = _get_fake_scene_area(arr, area)
+        if area:
+            extra_attrs["area"] = _get_fake_scene_area(arr, area)
         sc[did] = _get_did_for_fake_scene(area, arr, extra_attrs, daskify)
     return sc
 
