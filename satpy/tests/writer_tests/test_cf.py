@@ -1132,7 +1132,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
 
-def test_lonlat(tmp_path):
+def test_lonlat_storage(tmp_path):
     """Test correct storage for area with lon/lat units."""
     import xarray as xr
     from pyresample import create_area_def
@@ -1154,6 +1154,26 @@ def test_lonlat(tmp_path):
         assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
         np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
         np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
+def test_da2cf_lonlat():
+    """Test correct da2cf encoding for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf_writer import CFWriter
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = CFWriter.da2cf(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
 
 
 class TestCFWriterData(unittest.TestCase):
