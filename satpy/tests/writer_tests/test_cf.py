@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
+import logging
 import os
 import tempfile
 import unittest
@@ -1174,6 +1175,35 @@ def test_da2cf_lonlat():
     new_da = CFWriter.da2cf(da)
     assert new_da["x"].attrs["units"] == "degrees_east"
     assert new_da["y"].attrs["units"] == "degrees_north"
+
+
+def test_is_projected(caplog):
+    """Tests for private _is_projected function."""
+    import xarray as xr
+
+    from satpy.writers.cf_writer import CFWriter
+
+    # test case with units but no area
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+    assert CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+    assert not CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"))
+    with caplog.at_level(logging.WARNING):
+        assert CFWriter._is_projected(da)
+    assert "Failed to tell if data are projected." in caplog.text
 
 
 class TestCFWriterData(unittest.TestCase):
