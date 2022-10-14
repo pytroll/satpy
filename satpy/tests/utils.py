@@ -336,37 +336,47 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     Returns:
         Scene object with datasets corresponding to content_dict.
     """
-    from satpy.resample import add_crs_xy_coords
     if common_attrs is None:
         common_attrs = {}
     sc = Scene()
     for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        if isinstance(area, BaseDefinition):
-            extra_attrs["area"] = area
-        elif area:
-            extra_attrs["area"] = create_area_def(
-                    "test-area",
-                    {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
-                     "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
-                     "no_defs": None, "type": "crs"},
-                    units="m",
-                    shape=arr.shape,
-                    resolution=1000,
-                    center=(0, 0))
-        if isinstance(arr, DataArray):
-            sc[did] = arr.copy()  # don't change attributes of input
-            sc[did].attrs.update(extra_attrs)
-        else:
-            if daskify:
-                arr = da.from_array(arr)
-            sc[did] = DataArray(
-                    arr,
-                    dims=("y", "x"),
-                    attrs=extra_attrs)
-        if area:
-            sc[did] = add_crs_xy_coords(sc[did], extra_attrs["area"])
+        extra_attrs["area"] = _get_fake_scene_area(arr, area)
+        sc[did] = _get_did_for_fake_scene(area, arr, extra_attrs, daskify)
     return sc
+
+
+def _get_fake_scene_area(arr, area):
+    """Get area for fake scene.  Helper for make_fake_scene."""
+    if isinstance(area, BaseDefinition):
+        return area
+    return create_area_def(
+        "test-area",
+        {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
+         "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
+         "no_defs": None, "type": "crs"},
+        units="m",
+        shape=arr.shape,
+        resolution=1000,
+        center=(0, 0))
+
+
+def _get_did_for_fake_scene(area, arr, extra_attrs, daskify):
+    """Add instance to fake scene.  Helper for make_fake_scene."""
+    from satpy.resample import add_crs_xy_coords
+    if isinstance(arr, DataArray):
+        new = arr.copy()  # don't change attributes of input
+        new.attrs.update(extra_attrs)
+    else:
+        if daskify:
+            arr = da.from_array(arr)
+        new = DataArray(
+                arr,
+                dims=("y", "x"),
+                attrs=extra_attrs)
+    if area:
+        new = add_crs_xy_coords(new, extra_attrs["area"])
+    return new
 
 
 def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
