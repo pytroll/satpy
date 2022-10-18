@@ -186,7 +186,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
-                         cache_var_size=10000,
+                         cache_var_size=0,
                          cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
@@ -210,15 +210,15 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
         segment_position_info = {
-            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
-                    self['data/vis_04/measured/start_position_row'].item() + 1,
+            '1km': {'start_position_row': self.get_and_cache_npxr("data/vis_04/measured/start_position_row").item(),
+                    'end_position_row': self.get_and_cache_npxr('data/vis_04/measured/end_position_row').item(),
+                    'segment_height': self.get_and_cache_npxr('data/vis_04/measured/end_position_row').item() -
+                    self.get_and_cache_npxr('data/vis_04/measured/start_position_row').item() + 1,
                     'segment_width': 11136},
-            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
-                    self['data/ir_105/measured/start_position_row'].item() + 1,
+            '2km': {'start_position_row': self.get_and_cache_npxr('data/ir_105/measured/start_position_row').item(),
+                    'end_position_row': self.get_and_cache_npxr('data/ir_105/measured/end_position_row').item(),
+                    'segment_height': self.get_and_cache_npxr('data/ir_105/measured/end_position_row').item() -
+                    self.get_and_cache_npxr('data/ir_105/measured/start_position_row').item() + 1,
                     'segment_width': 5568}
         }
 
@@ -356,7 +356,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
-        lut = self[AUX_DATA[aux_data_name]]
+        lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
@@ -479,7 +479,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
-        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        sweep = str(self["data/mtg_geos_projection/attr/sweep_angle_axis"])
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
@@ -552,8 +552,8 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                     data.attrs.get("add_offset", 0))
 
         measured = self.get_channel_measured_group_path(key['name'])
-        data.attrs.update({'radiance_unit_conversion_coefficient': self[measured +
-                                                                        '/radiance_unit_conversion_coefficient']})
+        data.attrs.update({'radiance_unit_conversion_coefficient':
+                          self.get_and_cache_npxr(measured + '/radiance_unit_conversion_coefficient')})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
@@ -562,13 +562,13 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         measured = self.get_channel_measured_group_path(key['name'])
 
-        vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
+        vc = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_wavenumber")
 
-        a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
-        b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
+        a = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_a")
+        b = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_b")
 
-        c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
-        c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
+        c1 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c1")
+        c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2")
 
         for v in (vc, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
@@ -591,7 +591,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """VIS channel calibration."""
         measured = self.get_channel_measured_group_path(key['name'])
 
-        cesi = self[measured + "/channel_effective_solar_irradiance"]
+        cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance")
 
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
@@ -600,7 +600,8 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.nan
 
-        sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
+        sun_earth_distance = np.mean(
+            self.get_and_cache_npxr("state/celestial/earth_sun_distance")) / 149597870.7  # [AU]
 
         # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
         if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:

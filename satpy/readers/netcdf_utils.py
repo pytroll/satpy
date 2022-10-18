@@ -102,7 +102,6 @@ class NetCDF4FileHandler(BaseFileHandler):
             LOG.exception(
                 'Failed reading file %s. Possibly corrupted file', self.filename)
             raise
-
         self.auto_maskandscale = auto_maskandscale
         if hasattr(file_handle, "set_auto_maskandscale"):
             file_handle.set_auto_maskandscale(auto_maskandscale)
@@ -287,3 +286,15 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self[item]
         else:
             return default
+
+    def get_and_cache_npxr(self, var_name):
+        """Get item as numpy-xarray and keep in cache."""
+        if var_name in self.cached_file_content:
+            return self.cached_file_content[var_name]
+
+        v = self.file_content[var_name]
+
+        self.cached_file_content[var_name] = xr.DataArray(
+            v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+
+        return self.cached_file_content[var_name]
