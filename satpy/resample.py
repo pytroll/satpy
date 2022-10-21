@@ -1415,6 +1415,7 @@ def resample_dataset(dataset, destination_area, **kwargs):
         return dataset
 
     fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
+    print(fill_value)
     new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()

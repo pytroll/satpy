@@ -945,9 +945,16 @@ class RatioSharpenedRGB(GenericCompositor):
             raise IncompatibleAreas('RatioSharpening requires datasets of '
                                     'the same size. Must resample first.')
 
-        new_attrs = {}
         optional_datasets = tuple() if optional_datasets is None else optional_datasets
         datasets = self.match_data_arrays(datasets + optional_datasets)
+        red, green, blue, new_attrs = self._get_and_sharpen_rgb_data_arrays_and_meta(datasets, optional_datasets)
+        combined_info = self._combined_sharpened_info(info, new_attrs)
+        res = super(RatioSharpenedRGB, self).__call__((red, green, blue,), **combined_info)
+        res.attrs.pop("units", None)
+        return res
+
+    def _get_and_sharpen_rgb_data_arrays_and_meta(self, datasets, optional_datasets):
+        new_attrs = {}
         red = datasets[0]
         green = datasets[1]
         blue = datasets[2]
@@ -974,32 +981,26 @@ class RatioSharpenedRGB(GenericCompositor):
                 dtype=high_res.dtype,
                 chunks=high_res.chunks,
             )
+            old_red = red
+            old_green = green
+            old_blue = blue
             red = high_res if low_resolution_index == 0 else red * ratio
             green = high_res if low_resolution_index == 1 else green * ratio
             blue = high_res if low_resolution_index == 2 else blue * ratio
+            red.attrs = old_red.attrs
+            green.attrs = old_green.attrs
+            blue.attrs = old_blue.attrs
+        return red, green, blue, new_attrs
 
-        # Collect information that is the same between the projectables
-        # we want to use the metadata from the original datasets since the
-        # new r, g, b arrays may have lost their metadata during calculations
-        combined_info = combine_metadata(*datasets)
+    def _combined_sharpened_info(self, info, new_attrs):
+        combined_info = {}
         combined_info.update(info)
         combined_info.update(new_attrs)
         # Update that information with configured information (including name)
         combined_info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         combined_info.setdefault("standard_name", "true_color")
-        combined_info["mode"] = "RGB"
-
-        rgb_data_arr = xr.DataArray(
-            np.stack((red.data, green.data, blue.data)),
-            dims=("bands",) + red.dims,
-            coords={"bands": ["R", "G", "B"]},
-            attrs=combined_info
-        )
-
-        res = super(RatioSharpenedRGB, self).__call__((rgb_data_arr,), **combined_info)
-        res.attrs.pop("units", None)
-        return res
+        return combined_info
 
 
 def _get_sharpening_ratio(high_res, low_res):
