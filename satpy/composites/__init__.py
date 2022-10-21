@@ -488,7 +488,7 @@ class Filler(GenericCompositor):
         return super(Filler, self).__call__([filled_projectable], **info)
 
 
-class MultiFiller(GenericCompositor):
+class MultiFiller(SingleBandCompositor):
     """Fix holes in projectable 1 with data from the next projectables."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
@@ -501,7 +501,7 @@ class MultiFiller(GenericCompositor):
             for next_projectable in info['optional_datasets']:
                 filled_projectable = filled_projectable.fillna(next_projectable)
 
-        return super(MultiFiller, self).__call__([filled_projectable], **info)
+        return super().__call__([filled_projectable], **info)
 
 
 class RGBCompositor(GenericCompositor):
@@ -1561,7 +1561,7 @@ def _get_flag_value(mask, val):
     return flag_values[index]
 
 
-class LongitudeMaskingCompositor(GenericCompositor):
+class LongitudeMaskingCompositor(SingleBandCompositor):
     """Masks areas outside defined longitudes."""
 
     def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
@@ -1580,7 +1580,7 @@ class LongitudeMaskingCompositor(GenericCompositor):
             self.lon_min = -180.
         if not self.lon_max:
             self.lon_max = 180.
-        super(LongitudeMaskingCompositor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
@@ -1593,4 +1593,4 @@ class LongitudeMaskingCompositor(GenericCompositor):
             lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
 
         masked_projectable = projectable.where(lon_min_max)
-        return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)
+        return super().__call__([masked_projectable], **info)
