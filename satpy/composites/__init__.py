@@ -948,9 +948,9 @@ class RatioSharpenedRGB(GenericCompositor):
         new_attrs = {}
         optional_datasets = tuple() if optional_datasets is None else optional_datasets
         datasets = self.match_data_arrays(datasets + optional_datasets)
-        r = datasets[0]
-        g = datasets[1]
-        b = datasets[2]
+        red = datasets[0]
+        green = datasets[1]
+        blue = datasets[2]
         if optional_datasets and self.high_resolution_band is not None:
             LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
             high_res = datasets[3]
@@ -958,22 +958,25 @@ class RatioSharpenedRGB(GenericCompositor):
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
             colors = ['red', 'green', 'blue']
-            low_res_idx = colors.index(self.high_resolution_band)
+            low_resolution_index = colors.index(self.high_resolution_band)
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
-            low_res_idx = 0
+            low_resolution_index = 0
 
-        rgb = da.map_blocks(
-            _ratio_sharpened_rgb,
-            r.data, g.data, b.data,
-            high_res.data if high_res is not None else high_res,
-            low_resolution_index=low_res_idx,
-            new_axis=[0],
-            meta=np.array((), dtype=r.dtype),
-            dtype=r.dtype,
-            chunks=((3,),) + r.chunks,
-        )
+        if high_res is not None:
+            low_res = (red, green, blue)[low_resolution_index]
+            ratio = da.map_blocks(
+                _get_sharpening_ratio,
+                high_res.data,
+                low_res.data,
+                meta=np.array((), dtype=high_res.dtype),
+                dtype=high_res.dtype,
+                chunks=high_res.chunks,
+            )
+            red = high_res if low_resolution_index == 0 else red * ratio
+            green = high_res if low_resolution_index == 1 else green * ratio
+            blue = high_res if low_resolution_index == 2 else blue * ratio
 
         # Collect information that is the same between the projectables
         # we want to use the metadata from the original datasets since the
@@ -988,8 +991,8 @@ class RatioSharpenedRGB(GenericCompositor):
         combined_info["mode"] = "RGB"
 
         rgb_data_arr = xr.DataArray(
-            rgb,
-            dims=("bands",) + r.dims,
+            np.stack((red.data, green.data, blue.data)),
+            dims=("bands",) + red.dims,
             coords={"bands": ["R", "G", "B"]},
             attrs=combined_info
         )
@@ -999,25 +1002,14 @@ class RatioSharpenedRGB(GenericCompositor):
         return res
 
 
-def _ratio_sharpened_rgb(red, green, blue, high_res=None, low_resolution_index=0):
-    if high_res is not None:
-        low_res = (red, green, blue)[low_resolution_index]
-        ratio = high_res / low_res
-        # make ratio a no-op (multiply by 1) where the ratio is NaN or
-        # infinity or it is negative.
-        ratio[~np.isfinite(ratio) | (ratio < 0)] = 1.0
-        # we don't need ridiculously high ratios, they just make bright pixels
-        np.clip(ratio, 0, 1.5, out=ratio)
-
-        red = high_res if low_resolution_index == 0 else red * ratio
-        green = high_res if low_resolution_index == 1 else green * ratio
-        blue = high_res if low_resolution_index == 2 else blue * ratio
-
-    # combine the masks
-    mask = np.isnan(red) | np.isnan(green) | np.isnan(blue)
-    rgb = np.stack((red, green, blue))
-    rgb[:, mask] = np.nan
-    return rgb
+def _get_sharpening_ratio(high_res, low_res):
+    ratio = high_res / low_res
+    # make ratio a no-op (multiply by 1) where the ratio is NaN, infinity,
+    # or it is negative.
+    ratio[~np.isfinite(ratio) | (ratio < 0)] = 1.0
+    # we don't need ridiculously high ratios, they just make bright pixels
+    np.clip(ratio, 0, 1.5, out=ratio)
+    return ratio
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
@@ -1040,7 +1032,8 @@ def _mean4(data, offset=(0, 0), block_id=None):
 
     av_data = np.pad(data, pad, 'edge')
     new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-    data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
+    with np.errstate(invalid='ignore'):
+        data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
     data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
     data_mean = data_mean[row_offset:row_offset + rows, col_offset:col_offset + cols]
     return data_mean
