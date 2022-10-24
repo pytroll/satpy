@@ -924,11 +924,11 @@ class RatioSharpenedRGB(GenericCompositor):
 
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
-        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        if self.high_resolution_band not in ['red', 'green', 'blue', None]:
+        self.high_resolution_color_name = kwargs.pop("high_resolution_band", "red")
+        if self.high_resolution_color_name not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
-                             "'{}'".format(self.high_resolution_band))
+                             "'{}'".format(self.high_resolution_color_name))
         kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
@@ -955,24 +955,24 @@ class RatioSharpenedRGB(GenericCompositor):
 
     def _get_and_sharpen_rgb_data_arrays_and_meta(self, datasets, optional_datasets):
         new_attrs = {}
-        red = datasets[0]
-        green = datasets[1]
-        blue = datasets[2]
-        if optional_datasets and self.high_resolution_band is not None:
-            LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
+        low_res_red = datasets[0]
+        low_res_green = datasets[1]
+        low_res_blue = datasets[2]
+        if optional_datasets and self.high_resolution_color_name is not None:
+            LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_color_name))
             high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            colors = ['red', 'green', 'blue']
-            low_resolution_index = colors.index(self.high_resolution_band)
+            low_res_colors = ['red', 'green', 'blue']
+            low_resolution_index = low_res_colors.index(self.high_resolution_color_name)
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
             low_resolution_index = 0
 
         if high_res is not None:
-            low_res = (red, green, blue)[low_resolution_index]
+            low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
             ratio = da.map_blocks(
                 _get_sharpening_ratio,
                 high_res.data,
@@ -981,16 +981,11 @@ class RatioSharpenedRGB(GenericCompositor):
                 dtype=high_res.dtype,
                 chunks=high_res.chunks,
             )
-            old_red = red
-            old_green = green
-            old_blue = blue
-            red = high_res if low_resolution_index == 0 else red * ratio
-            green = high_res if low_resolution_index == 1 else green * ratio
-            blue = high_res if low_resolution_index == 2 else blue * ratio
-            red.attrs = old_red.attrs
-            green.attrs = old_green.attrs
-            blue.attrs = old_blue.attrs
-        return red, green, blue, new_attrs
+            with xr.set_options(keep_attrs=True):
+                low_res_red = high_res if low_resolution_index == 0 else low_res_red * ratio
+                low_res_green = high_res if low_resolution_index == 1 else low_res_green * ratio
+                low_res_blue = high_res if low_resolution_index == 2 else low_res_blue * ratio
+        return low_res_red, low_res_green, low_res_blue, new_attrs
 
     def _combined_sharpened_info(self, info, new_attrs):
         combined_info = {}
@@ -1070,15 +1065,15 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
     def __call__(self, datasets, optional_datasets=None, **attrs):
         """Generate the composite."""
         colors = ['red', 'green', 'blue']
-        if self.high_resolution_band not in colors:
+        if self.high_resolution_color_name not in colors:
             raise ValueError("SelfSharpenedRGB requires at least one high resolution band, not "
-                             "'{}'".format(self.high_resolution_band))
+                             "'{}'".format(self.high_resolution_color_name))
 
-        high_res = datasets[colors.index(self.high_resolution_band)]
+        high_res = datasets[colors.index(self.high_resolution_color_name)]
         high_mean = self.four_element_average_dask(high_res)
-        red = high_mean if self.high_resolution_band == 'red' else datasets[0]
-        green = high_mean if self.high_resolution_band == 'green' else datasets[1]
-        blue = high_mean if self.high_resolution_band == 'blue' else datasets[2]
+        red = high_mean if self.high_resolution_color_name == 'red' else datasets[0]
+        green = high_mean if self.high_resolution_color_name == 'green' else datasets[1]
+        blue = high_mean if self.high_resolution_color_name == 'blue' else datasets[2]
         return super(SelfSharpenedRGB, self).__call__((red, green, blue), optional_datasets=(high_res,), **attrs)
 
 
