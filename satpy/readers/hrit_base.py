@@ -43,6 +43,7 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
+from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -372,7 +373,6 @@ class HRITSegment:
         return self._read_data_from_disk()
 
     def _is_file_like(self):
-        from satpy.readers import FSFile
         return isinstance(self.filename, FSFile)
 
     def _read_data_from_disk(self):
