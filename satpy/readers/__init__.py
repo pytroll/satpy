@@ -711,6 +711,12 @@ class FSFile(os.PathLike):
         except AttributeError:
             return open(self._file, *args, **kwargs)
 
+    def _update_with_fs_open_kwargs(self, user_kwargs):
+        """Complement keyword arguments for opening a file via file system."""
+        kwargs = user_kwargs.copy()
+        kwargs.update(self._fs_open_kwargs)
+        return kwargs
+
     def __lt__(self, other):
         """Implement ordering.
 
@@ -747,12 +753,6 @@ class FSFile(os.PathLike):
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
             fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
-
-    def _update_with_fs_open_kwargs(self, user_kwargs):
-        """Complement keyword arguments for opening a file via file system."""
-        kwargs = user_kwargs.copy()
-        kwargs.update(self._fs_open_kwargs)
-        return kwargs
 
 
 def _get_fs_open_kwargs(file):
