@@ -1187,7 +1187,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
     """
 
     def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
-                 **kwargs):
+                 sensor=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1241,6 +1241,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
         cache_keys = self.register_data_files([])
+        self.attrs['sensor'] = sensor
         self._cache_key = cache_keys[0]
 
     @staticmethod
@@ -1300,7 +1301,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs['area'] = self.area
-        img.attrs['sensor'] = None
+        img.attrs['sensor'] = self.attrs['sensor']
         img.attrs['mode'] = ''.join(img.bands.data)
         img.attrs.pop('modifiers', None)
         img.attrs.pop('calibration', None)

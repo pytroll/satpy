@@ -419,12 +419,14 @@ composites:
   _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background
+    sensor: 'viirs'
     url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_01deg_geo.tif"
     known_hash: "sha256:146c116962677ae113d9233374715686737ff97141a77cc5da69a9451315a685"  # optional
 
   _night_background_hires:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background
+    sensor: 'viirs'
     url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_3km_geo.tif"
     known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
 
@@ -505,3 +507,12 @@ composites:
       - wavelength: 0.64
       - wavelength: 1.61
     standard_name: cimss_cloud_type
+
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
