@@ -536,6 +536,23 @@ the file) as::
           kwargs:
             gamma: [1.7, 1.7, 1.7]
 
+.. warning::
+   If you define a composite with no matching enhancement, Satpy will by
+   default apply a crude stretch enhancement.  If you want no enhancement
+   at all (maybe you are enhancing a composite based on
+   :class:`DayNightCompositor` where the components have their own
+   enhancements defined), you need to define an enhancement that does
+   nothing::
+
+      enhancements:
+        day_x:
+          standard_name: day_x
+          operations: []
+
+   It is recommended to define an enhancement even if you intend to use
+   the default, in case the default should change in future versions of
+   Satpy.
+
 More examples can be found in SatPy source code directory
 ``satpy/etc/enhancements/generic.yaml``.
 
