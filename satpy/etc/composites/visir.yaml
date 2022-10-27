@@ -526,7 +526,7 @@ composites:
     day_night: day_only
     prerequisites:
     - name: essl_low_level_moisture
-    standard_name: essl_low_level_moisture
+    standard_name: day_essl_low_level_moisture
 
   essl_colorized_low_level_moisture:
     description: >
@@ -548,4 +548,4 @@ composites:
     day_night: day_only
     prerequisites:
     - name: essl_colorized_low_level_moisture
-    standard_name: essl_colorized_low_level_moisture
+    standard_name: day_essl_colorized_low_level_moisture
