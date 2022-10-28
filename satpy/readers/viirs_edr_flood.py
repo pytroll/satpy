@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS flood product."""
 
-from satpy.readers.hdf4_utils import HDF4FileHandler
-from pyresample import geometry
 import numpy as np
+from pyresample import geometry
+
+from satpy.readers.hdf4_utils import HDF4FileHandler
 
 
 class VIIRSEDRFlood(HDF4FileHandler):
@@ -67,7 +68,7 @@ class VIIRSEDRFlood(HDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        data = self[ds_id.name]
+        data = self[ds_id['name']]
 
         data.attrs = self.get_metadata(data, ds_info)
 
@@ -84,7 +85,7 @@ class VIIRSEDRFlood(HDF4FileHandler):
 
     def get_area_def(self, ds_id):
         """Get area definition."""
-        data = self[ds_id.name]
+        data = self[ds_id['name']]
 
         proj_dict = {
             'proj': 'latlong',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017 Satpy developers
+# Copyright (c) 2016-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,11 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
-import netCDF4
 import logging
+
+import dask.array as da
+import netCDF4
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -51,6 +52,10 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attr/platform_short_name"]
 
+    Or for all of global attributes:
+
+        wrapper["/attrs"]
+
     Note that loading datasets requires reopening the original file
     (unless those datasets are cached, see below), but to get just the
     shape of the dataset append "/shape" to the item string:
@@ -78,6 +83,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
+
     """
 
     file_handle = None
@@ -85,6 +91,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=False):
+        """Initialize object."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -119,21 +126,36 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def __del__(self):
+        """Delete the file handler."""
         if self.file_handle is not None:
             try:
                 self.file_handle.close()
             except RuntimeError:  # presumably closed already
                 pass
 
+    def _collect_global_attrs(self, obj):
+        """Collect all the global attributes for the provided file object."""
+        global_attrs = {}
+        for key in obj.ncattrs():
+            fc_key = f"/attr/{key}"
+            value = self._get_attr_value(obj, key)
+            self.file_content[fc_key] = global_attrs[key] = value
+        self.file_content["/attrs"] = global_attrs
+
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
         for key in obj.ncattrs():
-            value = getattr(obj, key)
-            fc_key = "{}/attr/{}".format(name, key)
-            try:
-                self.file_content[fc_key] = np2str(value)
-            except ValueError:
-                self.file_content[fc_key] = value
+            fc_key = f"{name}/attr/{key}"
+            value = self._get_attr_value(obj, key)
+            self.file_content[fc_key] = value
+
+    def _get_attr_value(self, obj, key):
+        value = getattr(obj, key)
+        try:
+            value = np2str(value)
+        except ValueError:
+            pass
+        return value
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -142,15 +164,28 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         # Look through each subgroup
         base_name = name + "/" if name else ""
+        self._collect_groups_info(base_name, obj)
+        self._collect_variables_info(base_name, obj)
+        if not name:
+            self._collect_global_attrs(obj)
+        else:
+            self._collect_attrs(name, obj)
+
+    def _collect_groups_info(self, base_name, obj):
         for group_name, group_obj in obj.groups.items():
-            self.collect_metadata(base_name + group_name, group_obj)
+            full_group_name = base_name + group_name
+            self.file_content[full_group_name] = group_obj
+            self._collect_attrs(full_group_name, group_obj)
+            self.collect_metadata(full_group_name, group_obj)
+
+    def _collect_variables_info(self, base_name, obj):
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
             self.file_content[var_name] = var_obj
             self.file_content[var_name + "/dtype"] = var_obj.dtype
             self.file_content[var_name + "/shape"] = var_obj.shape
+            self.file_content[var_name + "/dimensions"] = var_obj.dimensions
             self._collect_attrs(var_name, var_obj)
-        self._collect_attrs(name, obj)
 
     def collect_dimensions(self, name, obj):
         """Collect dimensions."""
@@ -171,6 +206,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         Args:
             cache_vars (List[str]): Names of data variables to be cached.
             obj (netCDF4.Dataset): Dataset object from which to read them.
+
         """
         for var_name in cache_vars:
             v = self.file_content[var_name]
@@ -181,20 +217,35 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Get item for given key."""
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
-            if key in self.cached_file_content:
-                return self.cached_file_content[key]
-            # these datasets are closed and inaccessible when the file is
-            # closed, need to reopen
-            # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
-            parts = key.rsplit('/', 1)
-            if len(parts) == 2:
-                group, key = parts
-            else:
-                group = None
-            if self.file_handle is not None:
-                val = self._get_var_from_filehandle(group, key)
-            else:
-                val = self._get_var_from_xr(group, key)
+            return self._get_variable(key, val)
+        if isinstance(val, netCDF4.Group):
+            return self._get_group(key, val)
+        return val
+
+    def _get_variable(self, key, val):
+        """Get a variable from the netcdf file."""
+        if key in self.cached_file_content:
+            return self.cached_file_content[key]
+        # these datasets are closed and inaccessible when the file is
+        # closed, need to reopen
+        # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
+        parts = key.rsplit('/', 1)
+        if len(parts) == 2:
+            group, key = parts
+        else:
+            group = None
+        if self.file_handle is not None:
+            val = self._get_var_from_filehandle(group, key)
+        else:
+            val = self._get_var_from_xr(group, key)
+        return val
+
+    def _get_group(self, key, val):
+        """Get a group from the netcdf file."""
+        # Full groups are conveniently read with xr even if file_handle is available
+        with xr.open_dataset(self.filename, group=key,
+                             **self._xarray_kwargs) as nc:
+            val = nc
         return val
 
     def _get_var_from_xr(self, group, key):
@@ -216,7 +267,10 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _get_var_from_filehandle(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
-        g = self.file_handle[group]
+        if group is None:
+            g = self.file_handle
+        else:
+            g = self.file_handle[group]
         v = g[key]
         x = xr.DataArray(
                 da.from_array(v), dims=v.dimensions, attrs=v.__dict__,

@@ -15,16 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.amsr2_l1b module.
-"""
+"""Module for testing the satpy.readers.amsr2_l1b module."""
 
 import os
-import numpy as np
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
-
 import unittest
 from unittest import mock
+
+import numpy as np
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -38,9 +38,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/PlatformShortName': 'GCOM-W1',
             '/attr/SensorShortName': 'AMSR2',
@@ -98,12 +99,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 
 class TestAMSR2L1BReader(unittest.TestCase):
-    """Test AMSR2 L1B Reader"""
+    """Test AMSR2 L1B Reader."""
+
     yaml_file = "amsr2_l1b.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        """Wrap HDF5 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.amsr2_l1b import AMSR2L1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -112,7 +114,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -122,19 +124,19 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
     def test_load_basic(self):
-        """Test loading of basic channels"""
+        """Test loading of basic channels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load([
             'btemp_10.7v',
@@ -160,15 +162,17 @@ class TestAMSR2L1BReader(unittest.TestCase):
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
             self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
+            assert d.attrs['sensor'] == 'amsr2'
+            assert d.attrs['platform_name'] == 'GCOM-W1'
 
     def test_load_89ghz(self):
-        """Test loading of 89GHz channels"""
+        """Test loading of 89GHz channels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load([
             'btemp_89.0av',

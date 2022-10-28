@@ -1,0 +1,207 @@
+reader:
+    name: avhrr_l1c_eum_gac_fdr_nc
+    short_name: EUMETSAT_GAC_FDR
+    long_name: EUMETCSAT GAC FDR NetCDF4
+    description: NetCDF4 reader for EUMETCSAT GAC FDR AVHRR L1c
+    status: Defunct
+    supports_fsspec: false
+    sensors: [avhrr-3, avhrr-2, avhrr-1]
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+    eumetsat_gac_fdr:
+        file_reader: !!python/name:satpy.readers.satpy_cf_nc.SatpyCFFileHandler
+        file_patterns: ['AVHRR-GAC_FDR_1C_{platform}_{start_time:%Y%m%dT%H%M%SZ}_{end_time:%Y%m%dT%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc']
+
+
+datasets:
+    'reflectance_channel_1':
+        name: 'reflectance_channel_1'
+        wavelength: [0.58, 0.63, 0.68]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'reflectance_channel_1'
+
+    'reflectance_channel_2':
+        name: 'reflectance_channel_2'
+        wavelength: [0.725, 0.8625, 1.0]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'reflectance_channel_2'
+
+    'reflectance_channel_3':
+        name: 'reflectance_channel_3'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_brightness_temperature
+            units: 'K'
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'reflectance_channel_3'
+
+    'reflectance_channel_3a':
+        name: 'reflectance_channel_3a'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_brightness_temperature
+            units: 'K'
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'reflectance_channel_3a'
+
+    'brightness_temperature_channel_3':
+        name: 'brightness_temperature_channel_3'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'brightness_temperature_channel_3'
+
+    'brightness_temperature_channel_3b':
+        name: 'brightness_temperature_channel_3b'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'brightness_temperature_channel_3b'
+
+    'brightness_temperature_channel_4':
+        name: 'brightness_temperature_channel_4'
+        wavelength: [10.3, 10.8, 11.3]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+        coordinates: [longitude, latitude]
+        file_type: fiduceo_avhrr_fcdr_nc
+        nc_key: 'brightness_temperature_channel_4'
+
+    'brightness_temperature_channel_5':
+        name: 'brightness_temperature_channel_5'
+        wavelength: [11.5, 12.0, 12.5]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        nc_key: 'brightness_temperature_channel_'
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        standard_name: solar_zenith_angle
+        resolution: 1050
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        units: degrees
+        nc_key: 'solar_zenith_angle'
+
+    sensor_zenith_angle:
+        name: sensor_zenith_angle
+        standard_name: sensor_zenith_angle
+        resolution: 1050
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        units: degrees
+        nc_key: 'satellite_zenith_angle'
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        resolution: 1050
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        units: degrees
+        nc_key: 'solar_azimuth_angle'
+
+    sun_azimuth_angle:
+        name: sensor_azimuth_angle
+        standard_name: sensor_azimuth_angle
+        resolution: 1050
+        file_type: eumetsat_gac_fdr
+        coordinates: [longitude, latitude]
+        units: degrees
+        nc_key: 'satellite_azimuth_angle'
+
+    sun_sensor_azimuth_difference_angle:
+        name: sun_sensor_azimuth_difference_angle
+        standard_name: angle_of_rotation_from_solar_azimuth_to_platform_azimuth
+        resolution: 1050
+        file_type: fiduceo_avhrr_fcdr_nc
+        coordinates: [longitude, latitude]
+        units: degrees
+        nc_key: 'relative_azimuth_angle'
+
+    qual_flags:
+        name: qual_flags
+        file_type: eumetsat_gac_fdr
+        nc_key: 'qual_flags'
+
+    acq_time:
+        name: qual_flags
+        file_type: eumetsat_gac_fdr
+        nc_key: 'qual_flags'
+
+    latitude:
+        name: latitude
+        file_type: eumetsat_gac_fdr
+        standard_name: latitude
+        units: degrees_north
+        nc_key: 'latitude'
+
+    longitude:
+        name: longitude
+        file_type: eumetsat_gac_fdr
+        standard_name: longitude
+        units: degrees_east
+        nc_key: 'longitude'
+
+    overlap_free_end:
+        name: overlap_free_end
+        file_type: eumetsat_gac_fdr
+        nc_key: 'overlap_free_end'
+
+    overlap_free_start:
+        name: overlap_free_start
+        file_type: eumetsat_gac_fdr
+        nc_key: 'overlap_free_start'
+
+    midnight_line:
+        name: midnight_line
+        file_type: eumetsat_gac_fdr
+        nc_key: 'midnight_line'
+
+    equator_crossing_longitude:
+        name: equator_crossing_longitude
+        file_type: eumetsat_gac_fdr
+        nc_key: 'equator_crossing_longitude'
+
+    equator_crossing_time:
+        name: equator_crossing_time
+        file_type: eumetsat_gac_fdr
+        nc_key: 'equator_crossing_time'

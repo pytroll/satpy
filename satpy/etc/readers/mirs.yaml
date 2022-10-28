@@ -1,0 +1,116 @@
+reader:
+  name: mirs
+  short_name: MiRS Level 2 NetCDF4
+  long_name: MiRS Level 2 Precipitation and Surface Swath Product Reader in netCDF4 format
+  description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
+  data_files:
+     - url: "https://zenodo.org/record/4472664/files/limbcoef_atmsland_noaa20.txt"
+       known_hash: "08a3b7c1594a963610dd864b7ecd12f0ab486412d35185c2371d924dd92c5779"
+     - url: "https://zenodo.org/record/4472664/files/limbcoef_atmsland_snpp.txt"
+       known_hash: "4b01543699792306711ef1699244e96186487e8a869e4ae42bf1f0e4d00fd063"
+     - url: "https://zenodo.org/record/4472664/files/limbcoef_atmssea_noaa20.txt"
+       known_hash: "6853d0536b11c31dc130ab12c61fa322a76d3823a4b8ff9a18a0ecedbf269a88"
+     - url: "https://zenodo.org/record/4472664/files/limbcoef_atmssea_snpp.txt"
+       known_hash: "d0f806051b80320e046bdae6a9b68616152bbf8c2dbf3667b9834459259c0d72"
+
+file_types:
+  mirs_atms:
+    file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
+    file_patterns:
+      - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+  metop_amsu:
+    file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
+    file_patterns:
+      - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: metop_amsu
+    file_key: Longitude
+    units: degrees
+    valid_range: [ -180., 180. ]
+    standard_name: longitude
+  latitude:
+    name: latitude
+    file_type: metop_amsu
+    file_key: Latitude
+    valid_range: [-90., 90.]
+    units: degrees
+    standard_name: latitude
+  rain_rate:
+    name: RR
+    description: Rain Rate
+    file_key: RR
+    file_type: metop_amsu
+    units: mm/hr
+    coordinates: [longitude, latitude]
+  mask:
+    name: Sfc_type
+    file_key:  Sfc_type
+    file_type:  metop_amsu
+    description: Surface Type:0-ocean,1-sea ice,2-land,3-snow
+    units: "1"
+    coordinates: [longitude, latitude]
+  sea_ice:
+    name: SIce
+    description: Sea Ice
+    file_key: SIce
+    file_type: metop_amsu
+    units: "%"
+    coordinates: [longitude, latitude]
+  snow_cover:
+    name: Snow
+    description: Snow Cover
+    long_name: snow_cover
+    file_key: Snow
+    file_type: metop_amsu
+    units: '1'
+    coordinates: [longitude, latitude]
+  total_precipitable_water:
+    name: TPW
+    description: Total Precipitable Water
+    file_key: TPW
+    file_type: metop_amsu
+    units: mm
+    coordinates: [longitude, latitude]
+  swe:
+    name: SWE
+    description: Snow Water Equivalence
+    file_key: SWE
+    file_type: metop_amsu
+    units: cm
+    coordinates: [longitude, latitude]
+  cloud_liquid_water:
+    name: CLW
+    description: Cloud Liquid Water
+    file_key: CLW
+    file_type: metop_amsu
+    units: mm
+    coordinates: [longitude, latitude]
+  skin_temperature:
+    name: TSkin
+    description: skin temperature
+    file_key: TSkin
+    file_type: metop_amsu
+    units: K
+    coordinates: [longitude, latitude]
+  snow_fall_rate:
+    name: SFR
+    description: snow fall rate
+    file_key: SFR
+    file_type: metop_amsu
+    units: mm/hr
+    coordinates: [longitude, latitude]
+  bt:
+    name: BT
+    file_type: metop_amsu
+    description: Channel Brightness Temperature for every channel
+    long_name: Channel Temperature (K)
+    units: K
+    valid_range: [0, 50000]
+    standard_name: brightness_temperature

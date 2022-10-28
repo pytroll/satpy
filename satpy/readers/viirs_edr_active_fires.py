@@ -21,10 +21,11 @@ This module implements readers for VIIRS Active Fires NetCDF and
 ASCII files.
 """
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
 import dask.dataframe as dd
 import xarray as xr
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {
@@ -56,7 +57,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             Dask DataArray: Data
 
         """
-        key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
+        key = dsinfo.get('file_key', dsid['name']).format(variable_prefix=self.prefix)
         data = self[key]
         # rename "phoney dims"
         data = data.rename(dict(zip(data.dims, ['y', 'x'])))
@@ -74,7 +75,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             data.attrs['units'] = 'K'
 
         data.attrs["platform_name"] = PLATFORM_MAP.get(self.filename_info['satellite_name'].upper(), "unknown")
-        data.attrs["sensor"] = "VIIRS"
+        data.attrs["sensor"] = self.sensor_name
 
         return data
 
@@ -91,12 +92,12 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Name of sensor for this file."""
-        return self["sensor"]
+        return self["/attr/instrument_name"].lower()
 
     @property
     def platform_name(self):
         """Name of platform/satellite for this file."""
-        return self["platform_name"]
+        return self["/attr/satellite_name"]
 
 
 class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
@@ -119,7 +120,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
 
     def get_dataset(self, dsid, dsinfo):
         """Get requested data as DataArray."""
-        ds = self[dsid.name].to_dask_array(lengths=True)
+        ds = self[dsid['name']].to_dask_array(lengths=True)
         data = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
         for key in ('units', 'standard_name', 'flag_meanings', 'flag_values', '_FillValue'):
             # we only want to add information that isn't present already

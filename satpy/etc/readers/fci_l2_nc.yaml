@@ -1,0 +1,2736 @@
+reader:
+  name: fci_l2_nc
+  short_name: FCI L2 NetCDF4
+  long_name: MTG FCI L2 data in netCDF4 format
+  description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
+  status: Alpha
+  supports_fsspec: false
+  sensors: [fci]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+  nc_fci_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CLM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_ct:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CT-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_ctth:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CTTH-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_oca:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-OCA-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_fir:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-FIR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_olr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-OLR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_crm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CRM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_gii:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-GII-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_toz:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-TOZ-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_test_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-PAD-CLMTest-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_asr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+datasets:
+
+# CLM
+  cloud_state:
+    name: cloud_state
+    resolution: 2000
+    file_type: nc_fci_clm
+    file_key: cloud_state
+    long_name: cloud_mask_classification
+
+  quality_illumination_clm:
+    name: quality_illumination_clm
+    resolution: 2000
+    file_type: nc_fci_clm
+    file_key: quality_illumination
+    long_name: illumination_classification
+
+  quality_nwp_parameters_clm:
+    name: quality_nwp_parameters_clm
+    resolution: 2000
+    file_type: nc_fci_clm
+    file_key: quality_nwp_parameters
+    long_name: quality_index
+
+  quality_MTG_parameters_clm:
+    name: quality_MTG_parameters_clm
+    resolution: 2000
+    file_type: nc_fci_clm
+    file_key: quality_MTG_parameters
+    long_name: quality_index
+    fill_value: -127
+
+  quality_overall_processing_clm:
+    name: quality_overall_processing_clm
+    resolution: 2000
+    file_type: nc_fci_clm
+    file_key: quality_overall_processing
+    long_name: quality_index
+
+  product_quality_clm:
+    name: product_quality_clm
+    file_type: nc_fci_clm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_clm:
+    name: product_completeness_clm
+    file_type: nc_fci_clm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_clm:
+    name: product_timeliness_clm
+    file_type: nc_fci_clm
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+# FCI CT L2
+  cloud_phase:
+    name: cloud_phase
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: cloud_phase
+    long_name: cloud_phase
+
+  cloud_type:
+    name: cloud_type
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: cloud_type
+    long_name: cloud_type
+
+  quality_illumination_ct:
+    name: quality_illumination_ct
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: quality_illumination
+    long_name: illumination_classification
+
+  quality_nwp_parameters_ct:
+    name: quality_nwp_parameters_ct
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: quality_nwp_parameters
+    long_name: quality_index
+
+  quality_MTG_parameters_ct:
+    name: quality_MTG_parameters_ct
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: quality_MTG_parameters
+    long_name: quality_index
+
+  quality_overall_processing_ct:
+    name: quality_overall_processing_ct
+    resolution: 2000
+    file_type: nc_fci_ct
+    file_key: quality_overall_processing
+    long_name: quality_index
+
+  product_quality_ct:
+    name: product_quality_ct
+    file_type: nc_fci_ct
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_ct:
+    name: product_completeness_ct
+    file_type: nc_fci_ct
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_ct:
+    name: product_timeliness_ct
+    file_type: nc_fci_ct
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # FCI CTTH Product
+  cloud_top_aviation_height:
+    name: cloud_top_aviation_height
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: cloud_top_aviation_height
+
+  cloud_top_height:
+    name: cloud_top_height
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: cloud_top_height
+    fill_value: 32769
+
+  cloud_top_pressure:
+    name: cloud_top_pressure
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: cloud_top_pressure
+    fill_value: 3276.9001
+
+  cloud_top_temperature:
+    name: cloud_top_temperature
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: cloud_top_temperature
+    fill_value: 327.69
+
+  effective_cloudiness:
+    name: effective_cloudiness
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: effective_cloudiness
+
+  quality_status_ctth:
+    name: quality_status_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_status
+
+  quality_rtm_ctth:
+    name: quality_rtm_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_rtm
+
+  quality_method_ctth:
+    name: quality_method_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_method
+
+  quality_nwp_parameters_ctth:
+    name: quality_nwp_parameters_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_nwp_parameters
+
+  quality_MTG_parameters_ctth:
+    name: quality_MTG_parameters_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_MTG_parameters
+    fill_value: -127
+
+  quality_overall_processing_ctth:
+    name: quality_overall_processing_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_overall_processing
+
+  quality_overall_processing_aviation_ctth:
+    name: quality_overall_processing_aviation_ctth
+    resolution: 2000
+    file_type: nc_fci_ctth
+    file_key: quality_overall_processing_aviation
+
+  product_quality_ctth:
+    name: product_quality_ctth
+    file_type: nc_fci_ctth
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_ctth:
+    name: product_completeness_ctth
+    file_type: nc_fci_ctth
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_ctth:
+    name: product_timeliness_ctth
+    file_type: nc_fci_ctth
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # OCA
+  retrieved_cloud_phase:
+    name: retrieved_cloud_phase
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_phase
+    standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
+
+  retrieved_cloud_optical_thickness:
+    name: retrieved_cloud_optical_thickness
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    long_name: cloud_optical_depth
+
+  retrieved_cloud_optical_thickness_upper_layer:
+    name: retrieved_cloud_optical_thickness_upper_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 0
+    long_name: cloud_optical_depth
+
+  retrieved_cloud_optical_thickness_lower_layer:
+    name: retrieved_cloud_optical_thickness_lower_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 1
+    long_name: cloud_optical_depth
+
+  retrieved_cloud_particle_effective_radius:
+    name: retrieved_cloud_particle_effective_radius
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+
+  retrieved_cloud_top_temperature:
+    name: retrieved_cloud_top_temperature
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_temperature
+    standard_name: air_temperature_at_cloud_top
+
+  retrieved_cloud_top_pressure_upper_layer:
+    name: retrieved_cloud_top_pressure_upper_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top
+
+  retrieved_cloud_top_pressure_lower_layer:
+    name: retrieved_cloud_top_pressure_lower_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top
+
+  retrieved_cloud_top_height:
+    name: retrieved_cloud_top_height
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_height
+    standard_name: height_at_cloud_top
+
+  retrieval_error_cloud_optical_thickness_upper_layer:
+    name: retrieval_error_cloud_optical_thickness_upper_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_optical_thickness
+    layer: 0
+    long_name: cloud_optical_depth
+
+  retrieval_error_cloud_optical_thickness_lower_layer:
+    name: retrieval_error_cloud_optical_thickness_lower_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_optical_thickness
+    layer: 1
+    long_name: cloud_optical_depth
+
+  retrieval_error_cloud_particle_effective_radius:
+    name: retrieval_error_cloud_particle_effective_radius
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
+
+  retrieval_error_cloud_top_pressure_upper_layer:
+    name: retrieval_error_cloud_top_pressure_upper_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top_standard_error
+
+  retrieval_error_cloud_top_pressure_lower_layer:
+    name: retrieval_error_cloud_top_pressure_lower_layer
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top_standard_error
+
+  quality_jmeas:
+    name: quality_jmeas
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: quality_jmeas
+    long_name: cost_function
+
+  product_quality_oca:
+    name: product_quality_oca
+    file_type: nc_fci_oca
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_oca:
+    name: product_completeness_oca
+    file_type: nc_fci_oca
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_oca:
+    name: product_timeliness_oca
+    file_type: nc_fci_oca
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # FIR
+  fire_probability:
+    name: fire_probability
+    resolution: 2000
+    file_type: nc_fci_fir
+    file_key: fire_probability
+
+  fire_result:
+    name: fire_result
+    resolution: 2000
+    file_type: nc_fci_fir
+    file_key: fire_result
+
+  product_quality_fir:
+    name: product_quality_fir
+    file_type: nc_fci_fir
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_fir:
+    name: product_completeness_fir
+    file_type: nc_fci_fir
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_fir:
+    name: product_timeliness_fir
+    file_type: nc_fci_fir
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # OLR
+  olr:
+    name: olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: olr_value
+    long_name: outgoing_longwave_radiation
+
+  cloud_type_olr:
+    name: cloud_type_olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: cloud_type
+    long_name: cloud_type_olr
+
+  quality_overall_processing_olr:
+    name: quality_overall_processing_olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: quality_overall_processing
+    long_name: quality_index
+
+  product_quality_olr:
+    name: product_quality_olr
+    file_type: nc_fci_olr
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_olr:
+    name: product_completeness_olr
+    file_type: nc_fci_olr
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_olr:
+    name: product_timeliness_olr
+    file_type: nc_fci_olr
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # CRM
+  crm:
+    name: crm
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance
+
+  crm_vis04:
+    name: crm_vis04
+    resolution: 1000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis04
+    vis_channel_id: 0
+
+  crm_vis05:
+    name: crm_vis05
+    resolution: 1000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis05
+    vis_channel_id: 1
+
+  crm_vis06:
+    name: crm_vis06
+    resolution: 1000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis06
+    vis_channel_id: 2
+
+  crm_vis08:
+    name: crm_vis08
+    resolution: 1000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis08
+    vis_channel_id: 3
+
+  crm_vis09:
+    name: crm_vis09
+    resolution: 1000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis09
+    vis_channel_id: 4
+
+  crm_nir13:
+    name: crm_nir13
+    resolution: 1000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir13
+    vis_channel_id: 5
+
+  crm_nir16:
+    name: crm_nir16
+    resolution: 1000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir16
+    vis_channel_id: 6
+
+  crm_nir22:
+    name: crm_nir22
+    resolution: 1000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir22
+    vis_channel_id: 7
+
+  mean_sza:
+    name: mean_sza
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_solar_zenith
+    long_name: mean_solar_zenith_angle
+
+  mean_rel_azi:
+    name: mean_rel_azi
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_rel_solar_sat_azimuth
+    long_name: mean_relative_solar_satellite_azimuth_angle
+
+  n_acc:
+    name: n_acc
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: number_of_accumulations
+    long_name: number_of_accumulations
+
+  historical_data:
+    name: historical_data
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: historical_data
+    long_name: historical_data
+
+  product_quality_crm:
+    name: product_quality_crm
+    file_type: nc_fci_crm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_crm:
+    name: product_completeness_crm
+    file_type: nc_fci_crm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_crm:
+    name: product_timeliness_crm
+    file_type: nc_fci_crm
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+
+  # LAT/LON FOR SEGMENTED PRODUCTS
+  latitude:
+    name: latitude
+    file_key: latitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    standard_name: latitude
+    units: degree_north
+
+  longitude:
+    name: longitude
+    file_key: longitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    standard_name: longitude
+    units: degree_east
+
+
+  # GII
+  k_index:
+    name: k_index
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: k_index
+    long_name: k_index
+    coordinates:
+    - longitude
+    - latitude
+
+  lifted_index:
+    name: lifted_index
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: lifted_index
+    long_name: lifted_index
+    coordinates:
+    - longitude
+    - latitude
+
+  prec_water_high:
+    name: prec_water_high
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: prec_water_high
+    long_name: prec_water_high
+    coordinates:
+    - longitude
+    - latitude
+
+  prec_water_low:
+    name: prec_water_low
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: prec_water_low
+    long_name: prec_water_low
+    coordinates:
+    - longitude
+    - latitude
+
+  prec_water_mid:
+    name: prec_water_mid
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: prec_water_mid
+    long_name: prec_water_mid
+    coordinates:
+    - longitude
+    - latitude
+
+  prec_water_total:
+    name: prec_water_total
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: prec_water_total
+    long_name: prec_water_total
+    coordinates:
+    - longitude
+    - latitude
+
+  percent_cloud_free_gii:
+    name: percent_cloud_free_gii
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: percent_cloud_free
+    long_name: percent_cloud_free
+    coordinates:
+    - longitude
+    - latitude
+
+  number_of_iterations_gii:
+    name: number_of_iterations_gii
+    resolution: 6000
+    file_type: nc_fci_gii
+    file_key: number_of_iterations
+    long_name: number_of_iterations
+    coordinates:
+    - longitude
+    - latitude
+
+  product_quality_gii:
+    name: product_quality_gii
+    file_type: nc_fci_gii
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_gii:
+    name: product_completeness_gii
+    file_type: nc_fci_gii
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_gii:
+    name: product_timeliness_gii
+    file_type: nc_fci_gii
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+
+# TOZ
+  total_ozone:
+    name: total_ozone
+    resolution: 6000
+    file_type: nc_fci_toz
+    file_key: total_ozone
+    long_name: total_ozone
+    coordinates:
+    - longitude
+    - latitude
+
+  percent_pixels_toz:
+    name: percent_pixels_toz
+    resolution: 6000
+    file_type: nc_fci_toz
+    file_key: percent_pixels
+    long_name: percent_pixels
+    coordinates:
+    - longitude
+    - latitude
+
+  number_of_iterations_toz:
+    name: number_of_iterations_toz
+    resolution: 6000
+    file_type: nc_fci_toz
+    file_key: number_of_iterations
+    long_name: number_of_iterations
+    coordinates:
+    - longitude
+    - latitude
+
+  retrieval_type_toz:
+    name: retrieval_type_toz
+    resolution: 6000
+    file_type: nc_fci_toz
+    file_key: retrieval_type
+    long_name: retrieval_type
+    coordinates:
+    - longitude
+    - latitude
+
+  product_quality_toz:
+    name: product_quality_toz
+    file_type: nc_fci_toz
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_toz:
+    name: product_completeness_toz
+    file_type: nc_fci_toz
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_toz:
+    name: product_timeliness_toz
+    file_type: nc_fci_toz
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+
+
+  # CLM Test
+  cloud_test_sit1_flag:
+    name: cloud_test_sit1_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_sit1_flag
+    extract_byte: 0
+
+  cloud_test_cmt1_flag:
+    name: cloud_test_cmt1_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt1_flag
+    extract_byte: 1
+
+  cloud_test_cmt2_flag:
+    name: cloud_test_cmt2_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt2_flag
+    extract_byte: 2
+
+  cloud_test_cmt3_flag:
+    name: cloud_test_cmt3_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt3_flag
+    extract_byte: 3
+
+  cloud_test_cmt4_flag:
+    name: cloud_test_cmt4_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt4_flag
+    extract_byte: 4
+
+  cloud_test_cmt5_flag:
+    name: cloud_test_cmt5_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt5_flag
+    extract_byte: 5
+
+  cloud_test_cmt6_flag:
+    name: cloud_test_cmt6_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt6_flag
+    extract_byte: 6
+
+  cloud_test_cmt7_flag:
+    name: cloud_test_cmt7_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt7_flag
+    extract_byte: 7
+
+  cloud_test_cmt8_flag:
+    name: cloud_test_cmt8_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt8_flag
+    extract_byte: 8
+
+  cloud_test_cmt9_flag:
+    name: cloud_test_cmt9_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt9_flag
+    extract_byte: 9
+
+  cloud_test_cmt10_flag:
+    name: cloud_test_cmt10_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt0_flag
+    extract_byte: 10
+
+  cloud_test_cmt11_flag:
+    name: cloud_test_cmt11_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt11_flag
+    extract_byte: 11
+
+  cloud_test_cmt12_flag:
+    name: cloud_test_cmt12_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt12_flag
+    extract_byte: 12
+
+  cloud_test_cmt13_flag:
+    name: cloud_test_cmt13_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt13_flag
+    extract_byte: 13
+
+  cloud_test_cmt14_flag:
+    name: cloud_test_cmt14_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmt14_flag
+    extract_byte: 14
+
+  cloud_test_opqt_flag:
+    name: cloud_test_opqt_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_opqt_flag
+    extract_byte: 15
+
+  cloud_test_cmrt1_flag:
+    name: cloud_test_cmrt1_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt1_flag
+    extract_byte: 16
+
+  cloud_test_cmrt2_flag:
+    name: cloud_test_cmrt2_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt2_flag
+    extract_byte: 17
+
+  cloud_test_cmrt3_flag:
+    name: cloud_test_cmrt3_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt3_flag
+    extract_byte: 18
+
+  cloud_test_cmrt4_flag:
+    name: cloud_test_cmrt4_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt4_flag
+    extract_byte: 19
+
+  cloud_test_cmrt5_flag:
+    name: cloud_test_cmrt5_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt5_flag
+    extract_byte: 20
+
+  cloud_test_cmrt6_flag:
+    name: cloud_test_cmrt6_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_cmrt6_flag
+    extract_byte: 21
+
+  cloud_test_dust_flag:
+    name: cloud_test_dust_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_dust_flag
+    extract_byte: 22
+
+  cloud_test_ash_flag:
+    name: cloud_test_ash_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_ash_flag
+    extract_byte: 23
+
+  cloud_test_dust_ash_flag:
+    name: cloud_test_dust_ash_flag
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    long_name: cloud_mask_test_dust_ash_flag
+    extract_byte: 24
+
+  cloud_test_sit1:
+    name: cloud_test_sit1
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_sit1
+    extract_byte: 0
+
+  cloud_test_cmt1:
+    name: cloud_test_cmt1
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt1
+    extract_byte: 1
+
+  cloud_test_cmt2:
+    name: cloud_test_cmt2
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt2
+    extract_byte: 2
+
+  cloud_test_cmt3:
+    name: cloud_test_cmt3
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt3
+    extract_byte: 3
+
+  cloud_test_cmt4:
+    name: cloud_test_cmt4
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt4
+    extract_byte: 4
+
+  cloud_test_cmt5:
+    name: cloud_test_cmt5
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt5
+    extract_byte: 5
+
+  cloud_test_cmt6:
+    name: cloud_test_cmt6
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt6
+    extract_byte: 6
+
+  cloud_test_cmt7:
+    name: cloud_test_cmt7
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt7
+    extract_byte: 7
+  cloud_test_cmt8:
+    name: cloud_test_cmt8
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt8
+    extract_byte: 8
+
+  cloud_test_cmt9:
+    name: cloud_test_cmt9
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt9
+    extract_byte: 9
+
+  cloud_test_cmt10:
+    name: cloud_test_cmt10
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt10
+    extract_byte: 10
+
+  cloud_test_cmt11:
+    name: cloud_test_cmt11
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt11
+    extract_byte: 11
+
+  cloud_test_cmt12:
+    name: cloud_test_cmt12
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt12
+    extract_byte: 12
+
+  cloud_test_cmt13:
+    name: cloud_test_cmt13
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt13
+    extract_byte: 13
+
+  cloud_test_cmt14:
+    name: cloud_test_cmt14
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmt14
+    extract_byte: 14
+
+  cloud_test_opqt:
+    name: cloud_test_opqt
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_opqt
+    extract_byte: 15
+
+  cloud_test_cmrt1:
+    name: cloud_test_cmrt1
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmrt1
+    extract_byte: 16
+
+  cloud_test_cmrt2:
+    name: cloud_test_cmrt2
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmrt2
+    extract_byte: 17
+
+  cloud_test_cmrt3:
+    name: cloud_test_cmrt3
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmrt3
+    extract_byte: 18
+
+  cloud_test_cmrt4:
+    name: cloud_test_cmrt4
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmrt4
+    extract_byte: 19
+
+  cloud_test_cmrt5:
+    name: cloud_test_cmrt5
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_cmrt5
+    extract_byte: 20
+
+  cloud_test_dust:
+    name: cloud_test_dust
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_dust
+    extract_byte: 21
+
+  cloud_test_ash:
+    name: cloud_test_ash
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_ash
+    extract_byte: 22
+
+  cloud_test_dust_ash:
+    name: cloud_test_dust_ash
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    long_name: cloud_mask_test_dust_ash
+    extract_byte: 23
+
+  cloud_test_cmrt6:
+    name: cloud_test_cmrt6
+    resolution: 2000
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_cmrt6_test_result
+    long_name: cloud_mask_cmrt6_result
+
+  product_quality_clmtest:
+    name: product_quality_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_clmtest:
+    name: product_completeness_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_clmtest:
+    name: product_timeliness_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+
+  # ASR
+  bt_max:
+    name: bt_max
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: bt_max
+    long_name: maximum_brightness_temperature_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean:
+    name: bt_mean
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: mean_brightness_temperature_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_min:
+    name: bt_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: bt_min
+    long_name: minimum_brightness_temperature_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_std:
+    name: bt_std
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: bt_std
+    long_name: brightness_temperature_standard_deviation_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_max:
+    name: radiance_max
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_max
+    long_name: maximum_radiance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_mean:
+    name: radiance_mean
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_mean
+    long_name: mean_radiance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_min:
+    name: radiance_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_min
+    long_name: minimum_radiance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_std:
+    name: radiance_std
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_std
+    long_name: radiance_standard_deviation_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_max:
+    name: reflectance_max
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_max
+    long_name: maximum_reflectance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean:
+    name: reflectance_mean
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: mean_reflectance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_min:
+    name: reflectance_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_min
+    long_name: minimum_reflectance_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_std:
+    name: reflectance_std
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_std
+    long_name: reflectance_standard_deviation_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt:
+    name: quality_bt
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: brightness_temperature_quality
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance:
+    name: quality_reflectance
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: reflectance_quality
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_radiance:
+    name: quality_radiance
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: quality_radiance
+    long_name: radiance_quality
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  land_pixel_percent:
+    name: land_pixel_percent
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: land_pixel_percent
+    long_name: land_pixel_percentage_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  water_pixel_percent:
+    name: water_pixel_percent
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: water_pixel_percent
+    long_name: water_pixel_percentage_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage:
+    name: pixel_percentage
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_used_in_segment
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis04:
+    name: reflectance_mean_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 0
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis04:
+    name: reflectance_mean_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 0
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis04:
+    name: reflectance_mean_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 0
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis05:
+    name: reflectance_mean_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 1
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis05:
+    name: reflectance_mean_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 1
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis05:
+    name: reflectance_mean_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 1
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis06:
+    name: reflectance_mean_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 2
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis06:
+    name: reflectance_mean_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 2
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis06:
+    name: reflectance_mean_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 2
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis08:
+    name: reflectance_mean_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 3
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis08:
+    name: reflectance_mean_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 3
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis08:
+    name: reflectance_mean_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 3
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis09:
+    name: reflectance_mean_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 4
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis09:
+    name: reflectance_mean_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 4
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis09:
+    name: reflectance_mean_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 4
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir13:
+    name: reflectance_mean_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 5
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir13:
+    name: reflectance_mean_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 5
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir13:
+    name: reflectance_mean_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 5
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir16:
+    name: reflectance_mean_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 6
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir16:
+    name: reflectance_mean_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 6
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir16:
+    name: reflectance_mean_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 6
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir22:
+    name: reflectance_mean_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 7
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir22:
+    name: reflectance_mean_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 7
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir22:
+    name: reflectance_mean_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 7
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir38:
+    name: bt_mean_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 0
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir38:
+    name: bt_mean_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 0
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir38:
+    name: bt_mean_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 0
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_wv63:
+    name: bt_mean_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 1
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_wv63:
+    name: bt_mean_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 1
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_wv63:
+    name: bt_mean_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 1
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_wv73:
+    name: bt_mean_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 2
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_wv73:
+    name: bt_mean_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 2
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_wv73:
+    name: bt_mean_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 2
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir87:
+    name: bt_mean_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 3
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir87:
+    name: bt_mean_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 3
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir87:
+    name: bt_mean_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 3
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir97:
+    name: bt_mean_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 4
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir97:
+    name: bt_mean_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 4
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir97:
+    name: bt_mean_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 4
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir105:
+    name: bt_mean_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 5
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir105:
+    name: bt_mean_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 5
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir105:
+    name: bt_mean_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 5
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir123:
+    name: bt_mean_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 6
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir123:
+    name: bt_mean_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 6
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir123:
+    name: bt_mean_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 6
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir133:
+    name: bt_mean_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 7
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir133:
+    name: bt_mean_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 7
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir133:
+    name: bt_mean_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 7
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis04:
+    name: quality_reflectance_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 0
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis04:
+    name: quality_reflectance_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 0
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis04:
+    name: quality_reflectance_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 0
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis05:
+    name: quality_reflectance_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 1
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis05:
+    name: quality_reflectance_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 1
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis05:
+    name: quality_reflectance_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 1
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis06:
+    name: quality_reflectance_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 2
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis06:
+    name: quality_reflectance_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 2
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis06:
+    name: quality_reflectance_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 2
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis08:
+    name: quality_reflectance_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 3
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis08:
+    name: quality_reflectance_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 3
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis08:
+    name: quality_reflectance_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 3
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis09:
+    name: quality_reflectance_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 4
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis09:
+    name: quality_reflectance_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 4
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis09:
+    name: quality_reflectance_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 4
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir13:
+    name: quality_reflectance_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 5
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir13:
+    name: quality_reflectance_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 5
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir13:
+    name: quality_reflectance_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 5
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir16:
+    name: quality_reflectance_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 6
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir16:
+    name: quality_reflectance_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 6
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir16:
+    name: quality_reflectance_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 6
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir22:
+    name: quality_reflectance_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 7
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir22:
+    name: quality_reflectance_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 7
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir22:
+    name: quality_reflectance_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 7
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir38:
+    name: quality_bt_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 0
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir38:
+    name: quality_bt_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 0
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir38:
+    name: quality_bt_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 0
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_wv63:
+    name: quality_bt_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 1
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_wv63:
+    name: quality_bt_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 1
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_wv63:
+    name: quality_bt_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 1
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_wv73:
+    name: quality_bt_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 2
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_wv73:
+    name: quality_bt_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 2
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_wv73:
+    name: quality_bt_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 2
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir87:
+    name: quality_bt_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 3
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir87:
+    name: quality_bt_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 3
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir87:
+    name: quality_bt_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 3
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir97:
+    name: quality_bt_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 4
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir97:
+    name: quality_bt_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 4
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir97:
+    name: quality_bt_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 4
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir105:
+    name: quality_bt_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 5
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir105:
+    name: quality_bt_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 5
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir105:
+    name: quality_bt_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 5
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir123:
+    name: quality_bt_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 6
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir123:
+    name: quality_bt_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 6
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir123:
+    name: quality_bt_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 6
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir133:
+    name: quality_bt_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 7
+    category_id: 0
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir133:
+    name: quality_bt_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 7
+    category_id: 1
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir133:
+    name: quality_bt_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 7
+    category_id: 2
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_all:
+    name: pixel_percentage_all
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_all
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_clear
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_cloudy:
+    name: pixel_percentage_cloudy
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_cloudy
+    category_id: 2
+    coordinates:
+    - longitude
+    - latitude
+
+  product_quality_asr:
+    name: product_quality_asr
+    file_type: nc_fci_asr
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_asr:
+    name: product_completeness_asr
+    file_type: nc_fci_asr
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_asr:
+    name: product_timeliness_asr
+    file_type: nc_fci_asr
+    file_key: product_timeliness
+    long_name: product_timeliness_index

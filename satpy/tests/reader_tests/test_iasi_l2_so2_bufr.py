@@ -19,8 +19,9 @@
 
 import os
 import sys
-import numpy as np
 import unittest
+
+import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -53,7 +54,7 @@ msg = {
         1007,   1031,  25060,   2019,   2020,   4001,   4002,   4003,   4004,   4005,
         4006,   5040, 201133,   5041, 201000,   5001,   6001,   5043,   7024,   5021,
         7025,   5022,   7007,  40068,   7002,  15045,  12080, 102000,  31001,   7007,
-        15045], dtype=np.int),
+        15045], dtype=int),
     '#1#satelliteIdentifier': 4,
     '#1#centre': 254,
     '#1#softwareIdentification': 605,
@@ -315,7 +316,7 @@ def save_test_data(path):
 
             buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
 
-            for key in m.keys():
+            for key in m:
                 val = m[key]
 
                 if np.isscalar(val):
@@ -331,9 +332,11 @@ def save_test_data(path):
 
 class TestIasiL2So2Bufr(unittest.TestCase):
     """Test IASI l2 SO2 loader."""
+
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
+
         from satpy.readers.iasi_l2_so2_bufr import IASIL2SO2BUFR
 
         self.base_dir = tempfile.mkdtemp()
@@ -360,10 +363,10 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
         scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
 
-        self.assertTrue('start_time' in scn.attrs)
-        self.assertTrue('end_time' in scn.attrs)
-        self.assertTrue('sensor' in scn.attrs)
-        self.assertTrue('iasi' in scn.attrs['sensor'])
+        assert scn.start_time is not None
+        assert scn.end_time is not None
+        assert scn.sensor_names
+        assert 'iasi' in scn.sensor_names
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):
@@ -386,15 +389,15 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
             scn.load([name])
 
-            loaded_values = scn.datasets[name].values
+            loaded_values = scn[name].values
 
-            fill_value = scn.datasets[name].attrs['fill_value']
+            fill_value = scn[name].attrs['fill_value']
 
             # replace nans in data loaded from file with the fill value defined in the .yaml
             # to make them comparable
             loaded_values_nan_filled = np.nan_to_num(loaded_values, nan=fill_value)
 
-            key = scn.datasets[name].attrs['key']
+            key = scn[name].attrs['key']
 
             original_values = msg[key]
 

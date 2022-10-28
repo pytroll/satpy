@@ -23,26 +23,22 @@ For now, this includes enhancement configuration utilities.
 import logging
 import os
 import warnings
+from typing import Optional
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 import yaml
+from trollimage.xrimage import XRImage
+from trollsift import parser
+from yaml import UnsafeLoader
 
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
-from satpy.config import (config_search_paths, glob_config,
-                          get_environ_config_dir, recursive_dict_update)
 from satpy import CHUNK_SIZE
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
+from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-
-from trollsift import parser
-
-from trollimage.xrimage import XRImage
+from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)
 
@@ -65,8 +61,7 @@ def read_writer_config(config_files, loader=UnsafeLoader):
     return writer_info
 
 
-def load_writer_configs(writer_configs, ppp_config_dir,
-                        **writer_kwargs):
+def load_writer_configs(writer_configs, **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
     try:
         writer_info = read_writer_config(writer_configs)
@@ -75,59 +70,53 @@ def load_writer_configs(writer_configs, ppp_config_dir,
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
     init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
-    writer = writer_class(ppp_config_dir=ppp_config_dir,
-                          config_files=writer_configs,
+    writer = writer_class(config_files=writer_configs,
                           **init_kwargs)
     return writer, kwargs
 
 
-def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+def load_writer(writer, **writer_kwargs):
     """Find and load writer `writer` in the available configuration files."""
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     config_fn = writer + ".yaml" if "." not in writer else writer
-    config_files = config_search_paths(
-        os.path.join("writers", config_fn), ppp_config_dir)
+    config_files = config_search_paths(os.path.join("writers", config_fn))
     writer_kwargs.setdefault("config_files", config_files)
     if not writer_kwargs['config_files']:
         raise ValueError("Unknown writer '{}'".format(writer))
 
     try:
         return load_writer_configs(writer_kwargs['config_files'],
-                                   ppp_config_dir=ppp_config_dir,
                                    **writer_kwargs)
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
                          "loaded".format(writer))
 
 
-def configs_for_writer(writer=None, ppp_config_dir=None):
+def configs_for_writer(writer=None):
     """Generate writer configuration files for one or more writers.
 
     Args:
         writer (Optional[str]): Yield configs only for this writer
-        ppp_config_dir (Optional[str]): Additional configuration directory
-            to search for writer configuration files.
 
     Returns: Generator of lists of configuration files
 
     """
-    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if writer is not None:
         if not isinstance(writer, (list, tuple)):
             writer = [writer]
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
-                                     *search_paths)
+        paths = get_entry_points_config_dirs('satpy.writers')
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'), search_dirs=paths)
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        paths = get_entry_points_config_dirs('satpy.writers')
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename), *search_paths)
+            os.path.join("writers", config_basename),
+            search_dirs=paths,
+        )
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)
@@ -166,15 +155,14 @@ def _determine_mode(dataset):
 
     if dataset.ndim == 2:
         return "L"
-    elif dataset.shape[0] == 2:
+    if dataset.shape[0] == 2:
         return "LA"
-    elif dataset.shape[0] == 3:
+    if dataset.shape[0] == 3:
         return "RGB"
-    elif dataset.shape[0] == 4:
+    if dataset.shape[0] == 4:
         return "RGBA"
-    else:
-        raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           str(dataset))
+    raise RuntimeError("Can't determine 'mode' of dataset: %s" %
+                       str(dataset))
 
 
 def _burn_overlay(img, image_metadata, area, cw_, overlays):
@@ -250,34 +238,39 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                            "overlays/decorations to non-RGB data.")
 
     if overlays is None:
-        overlays = dict()
-        # fill with sensible defaults
-        general_params = {'outline': color or (0, 0, 0),
-                          'width': width or 0.5}
-        for key, val in general_params.items():
-            if val is not None:
-                overlays.setdefault('coasts', {}).setdefault(key, val)
-                overlays.setdefault('borders', {}).setdefault(key, val)
-        if level_coast is None:
-            level_coast = 1
-        overlays.setdefault('coasts', {}).setdefault('level', level_coast)
-        if level_borders is None:
-            level_borders = 1
-        overlays.setdefault('borders', {}).setdefault('level', level_borders)
-
-        if grid is not None:
-            if 'major_lonlat' in grid and grid['major_lonlat']:
-                major_lonlat = grid.pop('major_lonlat')
-                minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-                grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
-            for key, val in grid.items():
-                overlays.setdefault('grid', {}).setdefault(key, val)
+        overlays = _create_overlays_dict(color, width, grid, level_coast, level_borders)
 
     cw_ = ContourWriterAGG(coast_dir)
     new_image = orig_img.apply_pil(_burn_overlay, res_mode,
                                    None, {'fill_value': fill_value},
                                    (area, cw_, overlays), None)
     return new_image
+
+
+def _create_overlays_dict(color, width, grid, level_coast, level_borders):
+    """Fill in the overlays dict."""
+    overlays = dict()
+    # fill with sensible defaults
+    general_params = {'outline': color or (0, 0, 0),
+                      'width': width or 0.5}
+    for key, val in general_params.items():
+        if val is not None:
+            overlays.setdefault('coasts', {}).setdefault(key, val)
+            overlays.setdefault('borders', {}).setdefault(key, val)
+    if level_coast is None:
+        level_coast = 1
+    overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+    if level_borders is None:
+        level_borders = 1
+    overlays.setdefault('borders', {}).setdefault('level', level_borders)
+    if grid is not None:
+        if 'major_lonlat' in grid and grid['major_lonlat']:
+            major_lonlat = grid.pop('major_lonlat')
+            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+            grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+        for key, val in grid.items():
+            overlays.setdefault('grid', {}).setdefault(key, val)
+    return overlays
 
 
 def add_text(orig, dc, img, text):
@@ -402,22 +395,20 @@ def add_decorate(orig, fill_value=None, **decorate):
     return img
 
 
-def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
-                       overlay=None, decorate=None, fill_value=None):
+def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
+                       fill_value=None):
     """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
 
     Args:
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
-        ppp_config_dir (str): Root configuration directory.
         enhance (bool or Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
-            format being saved to. By default this will default to using
+            format being saved to. By default, this will default to using
             the enhancement configuration files found using the default
             :class:`~satpy.writers.Enhancer` class. This can be set to
             `False` so that no enhancments are performed. This can also
             be an instance of the :class:`~satpy.writers.Enhancer` class
             if further custom enhancement is needed.
-        enhancement_config_file (str): Deprecated.
         overlay (dict): Options for image overlays. See :func:`add_overlay`
             for available options.
         decorate (dict): Options for decorating the image. See
@@ -437,19 +428,12 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         instead.
 
     """
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
-    if enhancement_config_file is not None:
-        warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
-                      "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
-
     if enhance is False:
         # no enhancement
         enhancer = None
     elif enhance is None or enhance is True:
         # default enhancement
-        enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+        enhancer = Enhancer()
     else:
         # custom enhancer
         enhancer = enhance
@@ -499,8 +483,7 @@ def to_image(dataset):
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
-    else:
-        return XRImage(dataset)
+    return XRImage(dataset)
 
 
 def split_results(results):
@@ -558,7 +541,7 @@ def compute_writer_results(results):
                 target.close()
 
 
-class Writer(Plugin):
+class Writer(Plugin, DataDownloadMixin):
     """Base Writer class for all other writers.
 
     A minimal writer subclass should implement the `save_dataset` method.
@@ -610,6 +593,7 @@ class Writer(Plugin):
             raise ValueError("Writer 'name' not provided")
 
         self.filename_parser = self.create_filename_parser(base_dir)
+        self.register_data_files()
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
@@ -645,6 +629,11 @@ class Writer(Plugin):
             file_pattern = self.file_pattern
         return parser.Parser(file_pattern) if file_pattern else None
 
+    @staticmethod
+    def _prepare_metadata_for_filename_formatting(attrs):
+        if isinstance(attrs.get('sensor'), set):
+            attrs['sensor'] = '-'.join(sorted(attrs['sensor']))
+
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.
 
@@ -655,6 +644,7 @@ class Writer(Plugin):
         """
         if self.filename_parser is None:
             raise RuntimeError("No filename pattern or specific filename provided")
+        self._prepare_metadata_for_filename_formatting(kwargs)
         output_filename = self.filename_parser.compose(kwargs)
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
@@ -672,7 +662,7 @@ class Writer(Plugin):
         Args:
             datasets (iterable): Iterable of `xarray.DataArray` objects to
                                  save using this writer.
-            compute (bool): If `True` (default), compute all of the saves to
+            compute (bool): If `True` (default), compute all the saves to
                             disk. If `False` then the return value is either
                             a :doc:`dask:delayed` object or two lists to
                             be passed to a :func:`dask.array.store` call.
@@ -682,7 +672,7 @@ class Writer(Plugin):
 
         Returns:
             Value returned depends on `compute` keyword argument. If
-            `compute` is `True` the value is the result of a either a
+            `compute` is `True` the value is the result of either a
             :func:`dask.array.store` operation or a :doc:`dask:delayed`
             compute, typically this is `None`. If `compute` is `False` then
             the result is either a :doc:`dask:delayed` object that can be
@@ -735,7 +725,7 @@ class Writer(Plugin):
             If `compute` is `False` then the returned value is either a
             :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to :func:`dask.array.store`. If target is provided the the
+            passed to :func:`dask.array.store`. If target is provided the
             caller is responsible for calling `target.close()` if the target
             has this method.
 
@@ -747,7 +737,7 @@ class Writer(Plugin):
 class ImageWriter(Writer):
     """Base writer for image file formats."""
 
-    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, enhancement_config=None, **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, **kwargs):
         """Initialize image writer object.
 
         Args:
@@ -770,13 +760,12 @@ class ImageWriter(Writer):
                 Base destination directories for all created files.
             enhance (bool or Enhancer): Whether to automatically enhance
                 data to be more visually useful and to fit inside the file
-                format being saved to. By default this will default to using
+                format being saved to. By default, this will default to using
                 the enhancement configuration files found using the default
                 :class:`~satpy.writers.Enhancer` class. This can be set to
                 `False` so that no enhancments are performed. This can also
                 be an instance of the :class:`~satpy.writers.Enhancer` class
                 if further custom enhancement is needed.
-            enhancement_config (str): Deprecated.
 
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.writer.Writer` base class.
@@ -789,18 +778,13 @@ class ImageWriter(Writer):
 
         """
         super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
-        if enhancement_config is not None:
-            warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
-                          "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
-        else:
-            enhancement_config = self.info.get("enhancement_config", None)
-
         if enhance is False:
             # No enhancement
             self.enhancer = False
         elif enhance is None or enhance is True:
             # default enhancement
-            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+            enhancement_config = self.info.get("enhancement_config", None)
+            self.enhancer = Enhancer(enhancement_config_file=enhancement_config)
         else:
             # custom enhancer
             self.enhancer = enhance
@@ -828,7 +812,13 @@ class ImageWriter(Writer):
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
-    def save_image(self, img, filename=None, compute=True, **kwargs):
+    def save_image(
+            self,
+            img: XRImage,
+            filename: Optional[str] = None,
+            compute: bool = True,
+            **kwargs
+    ):
         """Save Image object to a given ``filename``.
 
         Args:
@@ -859,14 +849,79 @@ class ImageWriter(Writer):
 
 
 class DecisionTree(object):
-    """The decision tree."""
+    """Structure to search for nearest match from a set of parameters.
+
+    This class is used to find the best configuration section by matching
+    a set of attributes. The provided dictionary contains a mapping of
+    "section name" to "decision" dictionaries. Each decision dictionary
+    contains the attributes that will be used for matching plus any
+    additional keys that could be useful when matched. This class will
+    search these decisions and return the one with the most matching
+    parameters to the attributes passed to the
+    :meth:`~satpy.writers.DecisionTree.find_match` method.
+
+    Note that decision sections are provided as a dict instead of a list
+    so that they can be overwritten or updated by doing the equivalent
+    of a ``current_dicts.update(new_dicts)``.
+
+    Examples:
+        Decision sections are provided as a dictionary of dictionaries.
+        The returned match will be the first result found by searching
+        provided `match_keys` in order.
+
+        ::
+
+            decisions = {
+                'first_section': {
+                    'a': 1,
+                    'b': 2,
+                    'useful_key': 'useful_value',
+                },
+                'second_section': {
+                    'a': 5,
+                    'useful_key': 'other_useful_value1',
+                },
+                'third_section': {
+                    'b': 4,
+                    'useful_key': 'other_useful_value2',
+                },
+            }
+            tree = DecisionTree(decisions, ('a', 'b'))
+            tree.find_match(a=5, b=2)  # second_section dict
+            tree.find_match(a=1, b=2)  # first_section dict
+            tree.find_match(a=5, b=4)  # second_section dict
+            tree.find_match(a=3, b=2)  # no match
+
+    """
 
     any_key = None
 
-    def __init__(self, decision_dicts, attrs, **kwargs):
-        """Init the decision tree."""
-        self.attrs = attrs
-        self.tree = {}
+    def __init__(self, decision_dicts, match_keys, multival_keys=None):
+        """Init the decision tree.
+
+        Args:
+            decision_dicts (dict): Dictionary of dictionaries. Each
+                sub-dictionary contains key/value pairs that can be
+                matched from the `find_match` method. Sub-dictionaries
+                can include additional keys outside the ``match_keys``
+                provided to act as the "result" of a query. The keys of
+                the root dict are arbitrary.
+            match_keys (list): Keys of the provided dictionary to use for
+                matching.
+            multival_keys (list): Keys of `match_keys` that can be provided
+                as multiple values.
+                A multi-value key can be specified as a single value
+                (typically a string) or a set. If a set, it will be sorted
+                and converted to a tuple and then used for matching.
+                When querying the tree, these keys will
+                be searched for exact multi-value results (the sorted tuple)
+                and if not found then each of the values will be searched
+                individually in alphabetical order.
+
+        """
+        self._match_keys = match_keys
+        self._multival_keys = multival_keys or []
+        self._tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
             decision_dicts = [decision_dicts]
         self.add_config_to_tree(*decision_dicts)
@@ -879,60 +934,104 @@ class DecisionTree(object):
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        """Build the tree."""
-        for _section_name, attrs in conf.items():
-            # Set a path in the tree for each section in the configuration
-            # files
-            curr_level = self.tree
-            for attr in self.attrs:
+        """Build the tree.
+
+        Create a tree structure of dicts where each level represents the
+        possible matches for a specific ``match_key``. When finding matches
+        we will iterate through the tree matching each key that we know about.
+        The last dict in the "tree" will contain the configure section whose
+        match values led down that path in the tree.
+
+        See :meth:`DecisionTree.find_match` for more information.
+
+        """
+        for _section_name, sect_attrs in conf.items():
+            # Set a path in the tree for each section in the config files
+            curr_level = self._tree
+            for match_key in self._match_keys:
                 # or None is necessary if they have empty strings
-                this_attr = attrs.get(attr, self.any_key) or None
-                if attr == self.attrs[-1]:
+                this_attr_val = sect_attrs.get(match_key, self.any_key) or None
+                if match_key in self._multival_keys and isinstance(this_attr_val, list):
+                    this_attr_val = tuple(sorted(this_attr_val))
+                is_last_key = match_key == self._match_keys[-1]
+                level_needs_init = this_attr_val not in curr_level
+                if is_last_key:
                     # if we are at the last attribute, then assign the value
                     # set the dictionary of attributes because the config is
                     # not persistent
-                    curr_level[this_attr] = attrs
-                elif this_attr not in curr_level:
-                    curr_level[this_attr] = {}
-                curr_level = curr_level[this_attr]
+                    curr_level[this_attr_val] = sect_attrs
+                elif level_needs_init:
+                    curr_level[this_attr_val] = {}
+                curr_level = curr_level[this_attr_val]
 
-    def _find_match(self, curr_level, attrs, kwargs):
+    @staticmethod
+    def _convert_query_val_to_hashable(query_val):
+        _sorted_query_val = sorted(query_val)
+        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
+        query_vals += query_val
+        return query_vals
+
+    def _get_query_values(self, query_dict, curr_match_key):
+        query_val = query_dict[curr_match_key]
+        if curr_match_key in self._multival_keys and isinstance(query_val, set):
+            query_vals = self._convert_query_val_to_hashable(query_val)
+        else:
+            query_vals = [query_val]
+        return query_vals
+
+    def _find_match_if_known(self, curr_level, remaining_match_keys, query_dict):
+        match = None
+        curr_match_key = remaining_match_keys[0]
+        if curr_match_key not in query_dict:
+            return match
+
+        query_vals = self._get_query_values(query_dict, curr_match_key)
+        for query_val in query_vals:
+            if query_val not in curr_level:
+                continue
+            match = self._find_match(curr_level[query_val],
+                                     remaining_match_keys[1:],
+                                     query_dict)
+            if match is not None:
+                break
+        return match
+
+    def _find_match(self, curr_level, remaining_match_keys, query_dict):
         """Find a match."""
-        if len(attrs) == 0:
+        if len(remaining_match_keys) == 0:
             # we're at the bottom level, we must have found something
             return curr_level
 
-        match = None
-        try:
-            if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
-                # we know what we're searching for, try to find a pattern
-                # that uses this attribute
-                match = self._find_match(curr_level[kwargs[attrs[0]]],
-                                         attrs[1:], kwargs)
-        except TypeError:
-            # we don't handle multiple values (for example sensor) atm.
-            LOG.debug("Strange stuff happening in decision tree for %s: %s",
-                      attrs[0], kwargs[attrs[0]])
+        match = self._find_match_if_known(
+            curr_level, remaining_match_keys, query_dict)
 
         if match is None and self.any_key in curr_level:
             # if we couldn't find it using the attribute then continue with
             # the other attributes down the 'any' path
-            match = self._find_match(curr_level[self.any_key], attrs[1:],
-                                     kwargs)
+            match = self._find_match(
+                curr_level[self.any_key],
+                remaining_match_keys[1:],
+                query_dict)
         return match
 
-    def find_match(self, **kwargs):
-        """Find a match."""
+    def find_match(self, **query_dict):
+        """Find a match.
+
+        Recursively search through the tree structure for a path that matches
+        the provided match parameters.
+
+        """
         try:
-            match = self._find_match(self.tree, self.attrs, kwargs)
-        except (KeyError, IndexError, ValueError):
+            match = self._find_match(self._tree, self._match_keys, query_dict)
+        except (KeyError, IndexError, ValueError, TypeError):
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching decision section")
+            match = None
 
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No decision section found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
         return match
 
 
@@ -941,14 +1040,18 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         """Init the decision tree."""
-        attrs = kwargs.pop("attrs", ("name",
-                                     "platform_name",
-                                     "sensor",
-                                     "standard_name",
-                                     "units",))
+        match_keys = kwargs.pop("match_keys",
+                                ("name",
+                                 "reader",
+                                 "platform_name",
+                                 "sensor",
+                                 "standard_name",
+                                 "units",
+                                 ))
         self.prefix = kwargs.pop("config_section", "enhancements")
+        multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
-            decision_dicts, attrs, **kwargs)
+            decision_dicts, match_keys, multival_keys)
 
     def add_config_to_tree(self, *decision_dict):
         """Add configuration to tree."""
@@ -965,6 +1068,7 @@ class EnhancementDecisionTree(DecisionTree):
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
+                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
                     conf = recursive_dict_update(conf, enhancement_section)
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
@@ -978,34 +1082,33 @@ class EnhancementDecisionTree(DecisionTree):
 
         self._build_tree(conf)
 
-    def find_match(self, **kwargs):
+    def find_match(self, **query_dict):
         """Find a match."""
         try:
-            return super(EnhancementDecisionTree, self).find_match(**kwargs)
+            return super(EnhancementDecisionTree, self).find_match(**query_dict)
         except KeyError:
             # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
 
 
 class Enhancer(object):
     """Helper class to get enhancement information for images."""
 
-    def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
+    def __init__(self, enhancement_config_file=None):
         """Initialize an Enhancer instance.
 
         Args:
-            ppp_config_dir: Points to the base configuration directory
             enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
-        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
         # Set enhancement_config_file to False for no enhancements
         if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
+            paths = get_entry_points_config_dirs('satpy.enhancements')
+            self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1024,9 +1127,10 @@ class Enhancer(object):
             # one single sensor
             sensor = [sensor]
 
+        paths = get_entry_points_config_dirs('satpy.enhancements')
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn, self.ppp_config_dir)
+            config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
@@ -1048,11 +1152,11 @@ class Enhancer(object):
         """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
-        LOG.debug("Enhancement configuration options: %s" %
-                  (str(enh_kwargs['operations']), ))
+        backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
+        data_id = info.get("_satpy_id", backup_id)
+        LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
         for operation in enh_kwargs['operations']:
             fun = operation['method']
             args = operation.get('args', [])
             kwargs = operation.get('kwargs', {})
             fun(img, *args, **kwargs)
-        # img.enhance(**enh_kwargs)

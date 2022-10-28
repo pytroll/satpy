@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -16,216 +14,39 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes for composite objects."""
+from __future__ import annotations
 
 import logging
 import os
-import time
 import warnings
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
 import xarray as xr
-import yaml
 
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
-from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
-from satpy.config import get_environ_ancpath
-from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
-from satpy.readers import DatasetDict
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
+import satpy
+from satpy.aux_download import DataDownloadMixin
+from satpy.dataset import DataID, combine_metadata
+from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.utils import unify_chunks
 from satpy.writers import get_enhanced_image
-
-try:
-    from pyspectral.near_infrared_reflectance import Calculator
-except ImportError:
-    Calculator = None
-try:
-    from pyorbital.astronomy import sun_zenith_angle
-except ImportError:
-    sun_zenith_angle = None
-
 
 LOG = logging.getLogger(__name__)
 
-NEGLIBLE_COORDS = ['time']
+NEGLIGIBLE_COORDS = ['time']
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
+
+MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
+                              'greater', 'not_equal', 'isnan', 'isfinite',
+                              'isneginf', 'isposinf']
 
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
 
-    pass
-
 
 class IncompatibleTimes(Exception):
     """Error raised upon compositing things from different times."""
-
-    pass
-
-
-class CompositorLoader(object):
-    """Read composites using the configuration files on disk."""
-
-    def __init__(self, ppp_config_dir=None):
-        """Initialize the compositor loader."""
-        if ppp_config_dir is None:
-            ppp_config_dir = CONFIG_PATH
-        self.modifiers = {}
-        self.compositors = {}
-        self.ppp_config_dir = ppp_config_dir
-
-    def load_sensor_composites(self, sensor_name):
-        """Load all compositor configs for the provided sensor."""
-        config_filename = sensor_name + ".yaml"
-        LOG.debug("Looking for composites config file %s", config_filename)
-        composite_configs = config_search_paths(
-            os.path.join("composites", config_filename),
-            self.ppp_config_dir, check_exists=True)
-        if not composite_configs:
-            LOG.debug("No composite config found called {}".format(
-                config_filename))
-            return
-        self._load_config(composite_configs)
-
-    def get_compositor(self, key, sensor_names):
-        """Get the modifier for *sensor_names*."""
-        for sensor_name in sensor_names:
-            try:
-                return self.compositors[sensor_name][key]
-            except KeyError:
-                continue
-        raise KeyError("Could not find compositor '{}'".format(key))
-
-    def get_modifier(self, key, sensor_names):
-        """Get the modifier for *sensor_names*."""
-        for sensor_name in sensor_names:
-            try:
-                return self.modifiers[sensor_name][key]
-            except KeyError:
-                continue
-        raise KeyError("Could not find modifier '{}'".format(key))
-
-    def load_compositors(self, sensor_names):
-        """Load all compositor configs for the provided sensors.
-
-        Args:
-            sensor_names (list of strings): Sensor names that have matching
-                                            ``sensor_name.yaml`` config files.
-
-        Returns:
-            (comps, mods): Where `comps` is a dictionary:
-
-                    sensor_name -> composite ID -> compositor object
-
-                And `mods` is a dictionary:
-
-                    sensor_name -> modifier name -> (modifier class,
-                    modifiers options)
-
-                Note that these dictionaries are copies of those cached in
-                this object.
-
-        """
-        comps = {}
-        mods = {}
-        for sensor_name in sensor_names:
-            if sensor_name not in self.compositors:
-                self.load_sensor_composites(sensor_name)
-            if sensor_name in self.compositors:
-                comps[sensor_name] = DatasetDict(
-                    self.compositors[sensor_name].copy())
-                mods[sensor_name] = self.modifiers[sensor_name].copy()
-        return comps, mods
-
-    def _process_composite_config(self, composite_name, conf,
-                                  composite_type, sensor_id, composite_config, **kwargs):
-
-        compositors = self.compositors[sensor_id]
-        modifiers = self.modifiers[sensor_id]
-        try:
-            options = conf[composite_type][composite_name]
-            loader = options.pop('compositor')
-        except KeyError:
-            if composite_name in compositors or composite_name in modifiers:
-                return conf
-            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
-                composite_config, str(options.keys())))
-
-        options['name'] = composite_name
-        for prereq_type in ['prerequisites', 'optional_prerequisites']:
-            prereqs = []
-            dep_num = 0
-            for item in options.get(prereq_type, []):
-                if isinstance(item, dict):
-                    # Handle in-line composites
-                    if 'compositor' in item:
-                        # Create an unique temporary name for the composite
-                        sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
-                        dep_num += 1
-                        # Minimal composite config
-                        sub_conf = {composite_type: {sub_comp_name: item}}
-                        self._process_composite_config(
-                            sub_comp_name, sub_conf, composite_type, sensor_id,
-                            composite_config, **kwargs)
-                    else:
-                        # we want this prerequisite to act as a query with
-                        # 'modifiers' being None otherwise it will be an empty
-                        # tuple
-                        item.setdefault('modifiers', None)
-                    key = DatasetID.from_dict(item)
-                    prereqs.append(key)
-                else:
-                    prereqs.append(item)
-            options[prereq_type] = prereqs
-
-        if composite_type == 'composites':
-            options.update(**kwargs)
-            key = DatasetID.from_dict(options)
-            comp = loader(**options)
-            compositors[key] = comp
-        elif composite_type == 'modifiers':
-            modifiers[composite_name] = loader, options
-
-    def _load_config(self, composite_configs, **kwargs):
-        if not isinstance(composite_configs, (list, tuple)):
-            composite_configs = [composite_configs]
-
-        conf = {}
-        for composite_config in composite_configs:
-            with open(composite_config) as conf_file:
-                conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
-        try:
-            sensor_name = conf['sensor_name']
-        except KeyError:
-            LOG.debug('No "sensor_name" tag found in %s, skipping.',
-                      composite_config)
-            return
-
-        sensor_id = sensor_name.split('/')[-1]
-        sensor_deps = sensor_name.split('/')[:-1]
-
-        compositors = self.compositors.setdefault(sensor_id, DatasetDict())
-        modifiers = self.modifiers.setdefault(sensor_id, {})
-
-        for sensor_dep in reversed(sensor_deps):
-            if sensor_dep not in self.compositors or sensor_dep not in self.modifiers:
-                self.load_sensor_composites(sensor_dep)
-
-        if sensor_deps:
-            compositors.update(self.compositors[sensor_deps[-1]])
-            modifiers.update(self.modifiers[sensor_deps[-1]])
-
-        for composite_type in ['modifiers', 'composites']:
-            if composite_type not in conf:
-                continue
-            for composite_name in conf[composite_type]:
-                self._process_composite_config(composite_name, conf,
-                                               composite_type, sensor_id, composite_config, **kwargs)
 
 
 def check_times(projectables):
@@ -250,8 +71,7 @@ def check_times(projectables):
         # Is there a more gracious way to handle this ?
         if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
             raise IncompatibleTimes
-        else:
-            mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+        mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
         return mid_time
 
 
@@ -267,8 +87,19 @@ def sub_arrays(proj1, proj2):
     return res
 
 
-class CompositeBase(MetadataObject):
-    """Base class for all compositors and modifiers."""
+class CompositeBase:
+    """Base class for all compositors and modifiers.
+
+    A compositor in Satpy is a class that takes in zero or more input
+    DataArrays and produces a new DataArray with its own identifier (name).
+    The result of a compositor is typically a brand new "product" that
+    represents something different than the inputs that went into the
+    operation.
+
+    See the :class:`~satpy.composites.ModifierBase` class for information
+    on the similar concept of "modifiers".
+
+    """
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
         """Initialise the compositor."""
@@ -276,7 +107,16 @@ class CompositeBase(MetadataObject):
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
         kwargs["optional_prerequisites"] = optional_prerequisites or []
-        super(CompositeBase, self).__init__(**kwargs)
+        self.attrs = kwargs
+
+    @property
+    def id(self):
+        """Return the DataID of the object."""
+        try:
+            return self.attrs['_satpy_id']
+        except KeyError:
+            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
+            return DataID(id_keys, **self.attrs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
         """Generate a composite."""
@@ -296,8 +136,13 @@ class CompositeBase(MetadataObject):
         """Apply the modifier info from *origin* to *destination*."""
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
-        for k in DATASET_KEYS:
-            if k == 'modifiers':
+
+        try:
+            dataset_keys = self.attrs['_satpy_id'].id_keys.keys()
+        except KeyError:
+            dataset_keys = ['name', 'modifiers']
+        for k in dataset_keys:
+            if k == 'modifiers' and k in self.attrs:
                 d[k] = self.attrs[k]
             elif d.get(k) is None:
                 if self.attrs.get(k) is not None:
@@ -306,16 +151,51 @@ class CompositeBase(MetadataObject):
                     d[k] = o[k]
 
     def match_data_arrays(self, data_arrays):
-        """Match data arrays so that they can be used together in a composite."""
+        """Match data arrays so that they can be used together in a composite.
+
+        For the purpose of this method, "can be used together" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        In addition, negligible non-dimensional coordinates are dropped (see
+        :meth:`drop_coordinates`) and dask chunks are unified (see
+        :func:`satpy.utils.unify_chunks`).
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Returns:
+            data_arrays (List[arrays]):
+                Arrays with negligible non-dimensional coordinates removed.
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         self.check_geolocation(data_arrays)
-        return self.drop_coordinates(data_arrays)
+        new_arrays = self.drop_coordinates(data_arrays)
+        new_arrays = list(unify_chunks(*new_arrays))
+        return new_arrays
 
     def drop_coordinates(self, data_arrays):
-        """Drop neglible non-dimensional coordinates."""
+        """Drop negligible non-dimensional coordinates.
+
+        Drops negligible coordinates if they do not correspond to any
+        dimension.  Negligible coordinates are defined in the
+        :attr:`NEGLIGIBLE_COORDS` module attribute.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+        """
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+                    if coord not in ds.dims and
+                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
                 new_arrays.append(ds.drop(drop))
             else:
@@ -324,7 +204,23 @@ class CompositeBase(MetadataObject):
         return new_arrays
 
     def check_geolocation(self, data_arrays):
-        """Check that the geolocations of the *data_arrays* are compatible."""
+        """Check that the geolocations of the *data_arrays* are compatible.
+
+        For the purpose of this method, "compatible" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         if len(data_arrays) == 1:
             return
 
@@ -340,7 +236,7 @@ class CompositeBase(MetadataObject):
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
             return
-        elif any(a is None for a in areas):
+        if any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
@@ -348,393 +244,27 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
-        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
-                      'satpy.composites.CompositeBase.match_data_arrays instead')
-        return self.match_data_arrays(data_arrays)
-
-
-class SunZenithCorrectorBase(CompositeBase):
-    """Base class for sun zenith correction."""
-
-    coszen = WeakValueDictionary()
-
-    def __init__(self, max_sza=95.0, **kwargs):
-        """Collect custom configuration values.
-
-        Args:
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
-
-        """
-        self.max_sza = max_sza
-        self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
-        super(SunZenithCorrectorBase, self).__init__(**kwargs)
-
-    def __call__(self, projectables, **info):
-        """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
-        vis = projectables[0]
-        if vis.attrs.get("sunz_corrected"):
-            LOG.debug("Sun zen correction already applied")
-            return vis
-
-        area_name = hash(vis.attrs['area'])
-        key = (vis.attrs["start_time"], area_name)
-        tic = time.time()
-        LOG.debug("Applying sun zen correction")
-        coszen = self.coszen.get(key)
-        if coszen is None and len(projectables) == 1:
-            # we were not given SZA, generate SZA then calculate cos(SZA)
-            from pyorbital.astronomy import cos_zen
-            LOG.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
-
-            coords = {}
-            if 'y' in vis.coords and 'x' in vis.coords:
-                coords['y'] = vis['y']
-                coords['x'] = vis['x']
-            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                  dims=['y', 'x'], coords=coords)
-            if self.max_sza is not None:
-                coszen = coszen.where(coszen >= self.max_sza_cos)
-            self.coszen[key] = coszen
-        elif coszen is None:
-            # we were given the SZA, calculate the cos(SZA)
-            coszen = np.cos(np.deg2rad(projectables[1]))
-            self.coszen[key] = coszen
-
-        proj = self._apply_correction(vis, coszen)
-        proj.attrs = vis.attrs.copy()
-        self.apply_modifier_info(vis, proj)
-        LOG.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
-        return proj
-
-    def _apply_correction(self, proj, coszen):
-        raise NotImplementedError("Correction method shall be defined!")
-
-
-class SunZenithCorrector(SunZenithCorrectorBase):
-    """Standard sun zenith correction using ``1 / cos(sunz)``.
-
-    In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier forces all reflectances beyond a
-    solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
-    amount of correction done between ``correction_limit`` and ``max_sza``. If
-    ``max_sza`` is ``None`` then a constant correction is applied to zenith
-    angles beyond ``correction_limit``.
-
-    To set ``max_sza`` to ``None`` in a YAML configuration file use:
-
-    .. code-block:: yaml
-
-      sunz_corrected:
-        compositor: !!python/name:satpy.composites.SunZenithCorrector
-        max_sza: !!null
-        optional_prerequisites:
-        - solar_zenith_angle
-
-    """
-
-    def __init__(self, correction_limit=88., **kwargs):
-        """Collect custom configuration values.
-
-        Args:
-            correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
-
-        """
-        self.correction_limit = correction_limit
-        super(SunZenithCorrector, self).__init__(**kwargs)
-
-    def _apply_correction(self, proj, coszen):
-        LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
-
-
-class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
-    """Special sun zenith correction with the method proposed by Li and Shibata.
-
-    (2006): https://doi.org/10.1175/JAS3682.1
-
-    In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier forces all reflectances beyond a
-    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
-    It also gradually reduces the amount of correction done between
-    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
-    constant correction is applied to zenith angles beyond
-    ``correction_limit``.
-
-    To set ``max_sza`` to ``None`` in a YAML configuration file use:
-
-    .. code-block:: yaml
-
-      effective_solar_pathlength_corrected:
-        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
-        max_sza: !!null
-        optional_prerequisites:
-        - solar_zenith_angle
-
-    """
-
-    def __init__(self, correction_limit=88., **kwargs):
-        """Collect custom configuration values.
-
-        Args:
-            correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
-
-        """
-        self.correction_limit = correction_limit
-        super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
-
-    def _apply_correction(self, proj, coszen):
-        LOG.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
-
-
-class PSPRayleighReflectance(CompositeBase):
-    """Pyspectral-based rayleigh corrector for visible channels."""
-
-    _rayleigh_cache = WeakValueDictionary()
-
-    def get_angles(self, vis):
-        """Get the sun and satellite angles from the current dataarray."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
-
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
-
-    def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the corrected reflectance when removing Rayleigh scattering.
-
-        Uses pyspectral.
-        """
-        from pyspectral.rayleigh import Rayleigh
-        if not optional_datasets or len(optional_datasets) != 4:
-            vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = self.get_angles(vis)
-            red.data = da.rechunk(red.data, vis.data.chunks)
-        else:
-            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
-                projectables + optional_datasets)
-            sata, satz, suna, sunz = optional_datasets
-            # get the dask array underneath
-            sata = sata.data
-            satz = satz.data
-            suna = suna.data
-            sunz = sunz.data
-
-        # First make sure the two azimuth angles are in the range 0-360:
-        sata = sata % 360.
-        suna = suna % 360.
-        ssadiff = da.absolute(suna - sata)
-        ssadiff = da.minimum(ssadiff, 360 - ssadiff)
-        del sata, suna
-
-        atmosphere = self.attrs.get('atmosphere', 'us-standard')
-        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        rayleigh_key = (vis.attrs['platform_name'],
-                        vis.attrs['sensor'], atmosphere, aerosol_type)
-        LOG.info("Removing Rayleigh scattering with atmosphere '{}' and aerosol type '{}' for '{}'".format(
-            atmosphere, aerosol_type, vis.attrs['name']))
-        if rayleigh_key not in self._rayleigh_cache:
-            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                                 atmosphere=atmosphere,
-                                 aerosol_type=aerosol_type)
-            self._rayleigh_cache[rayleigh_key] = corrector
-        else:
-            corrector = self._rayleigh_cache[rayleigh_key]
-
-        try:
-            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['name'],
-                                                      red.data)
-        except (KeyError, IOError):
-            LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
-            LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['wavelength'][1],
-                                                      red.data)
-        proj = vis - refl_cor_band
-        proj.attrs = vis.attrs
-        self.apply_modifier_info(vis, proj)
-        return proj
-
-
-class NIRReflectance(CompositeBase):
-    """Get the reflective part of NIR bands."""
-
-    def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the reflectance part of an NIR channel.
-
-        Not supposed to be used for wavelength outside [3, 4] µm.
-
-        """
-        self._init_refl3x(projectables)
-        _nir, _ = projectables
-        refl = self._get_reflectance(projectables, optional_datasets) * 100
-        proj = xr.DataArray(refl, dims=_nir.dims,
-                            coords=_nir.coords, attrs=_nir.attrs)
-
-        proj.attrs['units'] = '%'
-        self.apply_modifier_info(_nir, proj)
-
-        return proj
-
-    def _init_refl3x(self, projectables):
-        """Initialize the 3.x reflectance derivations."""
-        if not Calculator:
-            LOG.info("Couldn't load pyspectral")
-            raise ImportError("No module named pyspectral.near_infrared_reflectance")
-        _nir, _tb11 = projectables
-        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
-
-    def _get_reflectance(self, projectables, optional_datasets):
-        """Calculate 3.x reflectance with pyspectral."""
-        _nir, _tb11 = projectables
-        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        sun_zenith = None
-        tb13_4 = None
-
-        for dataset in optional_datasets:
-            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
-            if (dataset.attrs.get('units') == 'K' and
-                    wavelengths[0] <= 13.4 <= wavelengths[2]):
-                tb13_4 = dataset.data
-            elif ("standard_name" in dataset.attrs and
-                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
-                sun_zenith = dataset.data
-
-        # Check if the sun-zenith angle was provided:
-        if sun_zenith is None:
-            if sun_zenith_angle is None:
-                raise ImportError("No module named pyorbital.astronomy")
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
-            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
-
-        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
-
-
-class NIREmissivePartFromReflectance(NIRReflectance):
-    """Get the emissive par of NIR bands."""
-
-    def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the emissive part an NIR channel after having derived the reflectance.
-
-        Not supposed to be used for wavelength outside [3, 4] µm.
-
-        """
-        self._init_refl3x(projectables)
-        # Derive the sun-zenith angles, and use the nir and thermal ir
-        # brightness tempertures and derive the reflectance using
-        # PySpectral. The reflectance is stored internally in PySpectral and
-        # needs to be derived first in order to get the emissive part.
-        _ = self._get_reflectance(projectables, optional_datasets)
-        _nir, _ = projectables
-        proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
-                            dims=_nir.dims, coords=_nir.coords)
-
-        proj.attrs['units'] = 'K'
-        self.apply_modifier_info(_nir, proj)
-
-        return proj
-
-
-class PSPAtmosphericalCorrection(CompositeBase):
-    """Correct for atmospheric effects."""
-
-    def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the atmospherical correction.
-
-        Uses pyspectral.
-        """
-        from pyspectral.atm_correction_ir import AtmosphericalCorrection
-
-        band = projectables[0]
-
-        if optional_datasets:
-            satz = optional_datasets[0]
-        else:
-            from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
-            sat_lon, sat_lat, sat_alt = get_satpos(band)
-            try:
-                dummy, satel = get_observer_look(sat_lon,
-                                                 sat_lat,
-                                                 sat_alt / 1000.0,  # km
-                                                 band.attrs['start_time'],
-                                                 lons, lats, 0)
-            except KeyError:
-                raise KeyError(
-                    'Band info is missing some meta data!')
-            satz = 90 - satel
-            del satel
-
-        LOG.info('Correction for limb cooling')
-        corrector = AtmosphericalCorrection(band.attrs['platform_name'],
-                                            band.attrs['sensor'])
-
-        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
-        proj = band - atm_corr
-        proj.attrs = band.attrs
-        self.apply_modifier_info(band, proj)
-
-        return proj
-
-
-class CO2Corrector(CompositeBase):
-    """Correct for CO2."""
-
-    def __call__(self, projectables, optional_datasets=None, **info):
-        """CO2 correction of the brightness temperature of the MSG 3.9um channel.
-
-        .. math::
-
-          T4_CO2corr = (BT(IR3.9)^4 + Rcorr)^0.25
-          Rcorr = BT(IR10.8)^4 - (BT(IR10.8)-dt_CO2)^4
-          dt_CO2 = (BT(IR10.8)-BT(IR13.4))/4.0
-
-        """
-        (ir_039, ir_108, ir_134) = projectables
-        LOG.info('Applying CO2 correction')
-        dt_co2 = (ir_108 - ir_134) / 4.0
-        rcorr = ir_108**4 - (ir_108 - dt_co2)**4
-        t4_co2corr = (ir_039**4 + rcorr).clip(0.0) ** 0.25
-
-        t4_co2corr.attrs = ir_039.attrs.copy()
-
-        self.apply_modifier_info(ir_039, t4_co2corr)
-
-        return t4_co2corr
-
 
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Generate the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
+        info.update(self.attrs)  # attrs from YAML/__init__
+        info.update(attrs)  # overwriting of DataID properties
+
+        proj = projectables[0] - projectables[1]
+        proj.attrs = info
+        return proj
+
+
+class RatioCompositor(CompositeBase):
+    """Make the ratio of two data arrays."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
@@ -744,7 +274,23 @@ class DifferenceCompositor(CompositeBase):
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
-        proj = projectables[0] - projectables[1]
+        proj = projectables[0] / projectables[1]
+        proj.attrs = info
+        return proj
+
+
+class SumCompositor(CompositeBase):
+    """Make the sum of two data arrays."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
+
+        proj = projectables[0] + projectables[1]
         proj.attrs = info
         return proj
 
@@ -755,6 +301,12 @@ class SingleBandCompositor(CompositeBase):
     This preserves all the attributes of the dataset it is derived from.
     """
 
+    @staticmethod
+    def _update_missing_metadata(existing_attrs, new_attrs):
+        for key, val in new_attrs.items():
+            if key not in existing_attrs and val is not None:
+                existing_attrs[key] = val
+
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         if len(projectables) != 1:
@@ -762,10 +314,7 @@ class SingleBandCompositor(CompositeBase):
 
         data = projectables[0]
         new_attrs = data.attrs.copy()
-
-        new_attrs.update({key: val
-                          for (key, val) in attrs.items()
-                          if val is not None})
+        self._update_missing_metadata(new_attrs, attrs)
         resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
         if resolution is not None:
@@ -773,6 +322,51 @@ class SingleBandCompositor(CompositeBase):
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
                             dims=data.dims, coords=data.coords)
+
+
+class CategoricalDataCompositor(CompositeBase):
+    """Compositor used to recategorize categorical data using a look-up-table.
+
+    Each value in the data array will be recategorized to a new category defined in
+    the look-up-table using the original value as an index for that look-up-table.
+
+    Example:
+        data = [[1, 3, 2], [4, 2, 0]]
+        lut = [10, 20, 30, 40, 50]
+        res = [[20, 40, 30], [50, 30, 10]]
+    """
+
+    def __init__(self, name, lut=None, **kwargs):
+        """Get look-up-table used to recategorize data.
+
+        Args:
+            lut (list): a list of new categories. The lenght must be greater than the
+                        maximum value in the data array that should be recategorized.
+        """
+        self.lut = np.array(lut)
+        super(CategoricalDataCompositor, self).__init__(name, **kwargs)
+
+    def _update_attrs(self, new_attrs):
+        """Modify name and add LUT."""
+        new_attrs['name'] = self.attrs['name']
+        new_attrs['composite_lut'] = list(self.lut)
+
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
+    def __call__(self, projectables, **kwargs):
+        """Recategorize the data."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one dataset for a categorical data composite")
+
+        data = projectables[0].astype(int)
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+
+        new_attrs = data.attrs.copy()
+        self._update_attrs(new_attrs)
+
+        return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
 
 class GenericCompositor(CompositeBase):
@@ -798,7 +392,7 @@ class GenericCompositor(CompositeBase):
             return data_arr.attrs['mode']
         if 'bands' not in data_arr.dims:
             return cls.modes[1]
-        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0], str):
+        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0].item(), str):
             return ''.join(data_arr.coords['bands'].values)
         return cls.modes[data_arr.sizes['bands']]
 
@@ -894,6 +488,22 @@ class Filler(GenericCompositor):
         return super(Filler, self).__call__([filled_projectable], **info)
 
 
+class MultiFiller(SingleBandCompositor):
+    """Fix holes in projectable 1 with data from the next projectables."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        filled_projectable = projectables[0]
+        for next_projectable in projectables[1:]:
+            filled_projectable = filled_projectable.fillna(next_projectable)
+        if 'optional_datasets' in info.keys():
+            for next_projectable in info['optional_datasets']:
+                filled_projectable = filled_projectable.fillna(next_projectable)
+
+        return super().__call__([filled_projectable], **info)
+
+
 class RGBCompositor(GenericCompositor):
     """Make a composite from three color bands (deprecated)."""
 
@@ -910,14 +520,28 @@ class ColormapCompositor(GenericCompositor):
 
     @staticmethod
     def build_colormap(palette, dtype, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
+        """Create the colormap from the `raw_palette` and the valid_range.
+
+        Colormaps come in different forms, but they are all supposed to have
+        color values between 0 and 255. The following cases are considered:
+
+        - Palettes comprised of only a list of colors. If *dtype* is uint8,
+          the values of the colormap are the enumeration of the colors.
+          Otherwise, the colormap values will be spread evenly from the min
+          to the max of the valid_range provided in `info`.
+        - Palettes that have a palette_meanings attribute. The palette meanings
+          will be used as values of the colormap.
+
+        """
         from trollimage.colormap import Colormap
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
+        set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            set_range = False
             meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, sqpalette)
+            iterator = zip(meanings, squeezed_palette)
         else:
-            iterator = enumerate(sqpalette[:-1])
+            iterator = enumerate(squeezed_palette[:-1])
 
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
@@ -929,84 +553,86 @@ class ColormapCompositor(GenericCompositor):
                     for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
-            sf = info.get('scale_factor', np.array(1))
-            colormap.set_range(
-                *info['valid_range'] * sf + info.get('add_offset', 0))
+            if set_range:
+                sf = info.get('scale_factor', np.array(1))
+                colormap.set_range(
+                    *(np.array(info['valid_range']) * sf
+                      + info.get('add_offset', 0)))
         else:
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
 
-        return colormap, sqpalette
-
-
-class ColorizeCompositor(ColormapCompositor):
-    """A compositor colorizing the data, interpolating the palette colors when needed."""
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-
         data, palette = projectables
+
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
-        r, g, b = colormap.colorize(np.asanyarray(data))
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        channels = self._apply_colormap(colormap, data, palette)
+        return self._create_composite_from_channels(channels, data)
 
-        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
-        #
-        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+    def _create_composite_from_channels(self, channels, template):
+        mask = self._get_mask_from_data(template)
+        channels = [self._create_masked_dataarray_like(channel, template, mask) for channel in channels]
+        res = super(ColormapCompositor, self).__call__(channels, **template.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
-
-class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
-
-    def __call__(self, projectables, **info):
-        """Generate the composite."""
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-
-        data, palette = projectables
-        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
-
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
+    @staticmethod
+    def _get_mask_from_data(data):
         fill_value = data.attrs.get('_FillValue', np.nan)
         if np.isnan(fill_value):
             mask = data.notnull()
         else:
             mask = data != data.attrs['_FillValue']
-        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
+        return mask
 
-        res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
-        res.attrs['_FillValue'] = np.nan
-        return res
+    @staticmethod
+    def _create_masked_dataarray_like(array, template, mask):
+        return xr.DataArray(array.reshape(template.shape),
+                            dims=template.dims, coords=template.coords,
+                            attrs=template.attrs).where(mask)
+
+
+class ColorizeCompositor(ColormapCompositor):
+    """A compositor colorizing the data, interpolating the palette colors when needed."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        del palette
+        return colormap.colorize(data.data.squeeze())
+
+
+class PaletteCompositor(ColormapCompositor):
+    """A compositor colorizing the data, not interpolating the palette colors."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        channels, colors = colormap.palettize(data.data.squeeze())
+        channels = channels.map_blocks(_insert_palette_colors, palette, dtype=palette.dtype,
+                                       new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
+        return [channels[:, :, i] for i in range(channels.shape[2])]
+
+
+def _insert_palette_colors(channels, palette):
+    channels = palette[channels]
+    return channels
 
 
 class DayNightCompositor(GenericCompositor):
-    """A compositor that blends a day data with night data."""
+    """A compositor that blends day data with night data.
 
-    def __init__(self, name, lim_low=85., lim_high=88., **kwargs):
+    Using the `day_night` flag it is also possible to provide only a day product
+    or only a night product and mask out (make transparent) the opposite portion
+    of the image (night or day). See the documentation below for more details.
+    """
+
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1014,61 +640,83 @@ class DayNightCompositor(GenericCompositor):
                              blending of the given channels
             lim_high (float): upper limit of Sun zenith angle for the
                              blending of the given channels
+            day_night (string): "day_night" means both day and night portions will be kept
+                                "day_only" means only day portion will be kept
+                                "night_only" means only night portion will be kept
 
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
+        self.day_night = day_night
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
-
-        day_data = projectables[0]
-        night_data = projectables[1]
+        # At least one composite is requested.
+        foreground_data = projectables[0]
 
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = np.cos(np.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
-            from pyorbital.astronomy import cos_zen
+            from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
-            try:
-                chunks = day_data.sel(bands=day_data['bands'][0]).chunks
-            except KeyError:
-                chunks = day_data.chunks
-            lons, lats = day_data.attrs["area"].get_lonlats(chunks=chunks)
-            coszen = xr.DataArray(cos_zen(day_data.attrs["start_time"],
-                                          lons, lats),
-                                  dims=['y', 'x'],
-                                  coords=[day_data['y'], day_data['x']])
+            coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
         coszen = coszen.clip(0, 1)
 
-        # Apply enhancements to get images
-        day_data = enhance2dataset(day_data)
-        night_data = enhance2dataset(night_data)
+        # Apply enhancements
+        foreground_data = enhance2dataset(foreground_data)
 
-        # Adjust bands so that they match
-        # L/RGB -> RGB/RGB
-        # LA/RGB -> RGBA/RGBA
-        # RGB/RGBA -> RGBA/RGBA
-        day_data = add_bands(day_data, night_data['bands'])
-        night_data = add_bands(night_data, day_data['bands'])
+        if "only" in self.day_night:
+            # Only one portion (day or night) is selected. One composite is requested.
+            # Add alpha band to single L/RGB composite to make the masked-out portion transparent
+            # L -> LA
+            # RGB -> RGBA
+            foreground_data = add_alpha_bands(foreground_data)
 
-        # Replace missing channel data with zeros
-        day_data = zero_missing_data(day_data, night_data)
-        night_data = zero_missing_data(night_data, day_data)
+            # No need to replace missing channel data with zeros
+            # Get metadata
+            attrs = foreground_data.attrs.copy()
 
-        # Get merged metadata
-        attrs = combine_metadata(day_data, night_data)
+            # Determine the composite position
+            day_data = foreground_data if "day" in self.day_night else 0
+            night_data = foreground_data if "night" in self.day_night else 0
+
+        else:
+            # Both day and night portions are selected. Two composites are requested. Get the second one merged.
+            background_data = projectables[1]
+
+            # Apply enhancements
+            background_data = enhance2dataset(background_data)
+
+            # Adjust bands so that they match
+            # L/RGB -> RGB/RGB
+            # LA/RGB -> RGBA/RGBA
+            # RGB/RGBA -> RGBA/RGBA
+            foreground_data = add_bands(foreground_data, background_data['bands'])
+            background_data = add_bands(background_data, foreground_data['bands'])
+
+            # Replace missing channel data with zeros
+            foreground_data = zero_missing_data(foreground_data, background_data)
+            background_data = zero_missing_data(background_data, foreground_data)
+
+            # Get merged metadata
+            attrs = combine_metadata(foreground_data, background_data)
+
+            # Determine the composite position
+            day_data = foreground_data
+            night_data = background_data
 
         # Blend the two images together
-        data = (1 - coszen) * night_data + coszen * day_data
+        day_portion = coszen * day_data
+        night_portion = (1 - coszen) * night_data
+        data = night_portion + day_portion
         data.attrs = attrs
 
         # Split to separate bands so the mode is correct
@@ -1077,12 +725,35 @@ class DayNightCompositor(GenericCompositor):
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
 
-def enhance2dataset(dset):
-    """Return the enhancemened to dataset *dset* as an array."""
+def add_alpha_bands(data):
+    """Only used for DayNightCompositor.
+
+    Add an alpha band to L or RGB composite as prerequisites for the following band matching
+    to make the masked-out area transparent.
+    """
+    if 'A' not in data['bands'].data:
+        new_data = [data.sel(bands=band) for band in data['bands'].data]
+        # Create alpha band based on a copy of the first "real" band
+        alpha = new_data[0].copy()
+        alpha.data = da.ones((data.sizes['y'],
+                              data.sizes['x']),
+                             chunks=new_data[0].chunks)
+        # Rename band to indicate it's alpha
+        alpha['bands'] = 'A'
+        new_data.append(alpha)
+        new_data = xr.concat(new_data, dim='bands')
+        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
+        data = new_data
+    return data
+
+
+def enhance2dataset(dset, convert_p=False):
+    """Return the enhancement dataset *dset* as an array.
+
+    If `convert_p` is True, enhancements generating a P mode will be converted to RGB or RGBA.
+    """
     attrs = dset.attrs
-    img = get_enhanced_image(dset)
-    # Clip image data to interval [0.0, 1.0]
-    data = img.data.clip(0.0, 1.0)
+    data = _get_data_from_enhanced_image(dset, convert_p)
     data.attrs = attrs
     # remove 'mode' if it is specified since it may have been updated
     data.attrs.pop('mode', None)
@@ -1091,9 +762,31 @@ def enhance2dataset(dset):
     return data
 
 
+def _get_data_from_enhanced_image(dset, convert_p):
+    img = get_enhanced_image(dset)
+    if convert_p and img.mode == 'P':
+        img = _apply_palette_to_image(img)
+    if img.mode != 'P':
+        data = img.data.clip(0.0, 1.0)
+    else:
+        data = img.data
+    return data
+
+
+def _apply_palette_to_image(img):
+    if len(img.palette[0]) == 3:
+        img = img.convert('RGB')
+    elif len(img.palette[0]) == 4:
+        img = img.convert('RGBA')
+    return img
+
+
 def add_bands(data, bands):
     """Add bands so that they match *bands*."""
     # Add R, G and B bands, remove L band
+    bands = bands.compute()
+    if 'P' in data['bands'].data or 'P' in bands.data:
+        raise NotImplementedError('Cannot mix datasets of mode P with other datasets at the moment.')
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
         # Keep 'A' if it was present
@@ -1123,7 +816,6 @@ def add_bands(data, bands):
         new_data = xr.concat(new_data, dim='bands')
         new_data.attrs['mode'] = data.attrs['mode'] + 'A'
         data = new_data
-
     return data
 
 
@@ -1232,25 +924,19 @@ class RatioSharpenedRGB(GenericCompositor):
 
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
-        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        if self.high_resolution_band not in ['red', 'green', 'blue', None]:
+        self.high_resolution_color = kwargs.pop("high_resolution_band", "red")
+        if self.high_resolution_color not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
-                             "'{}'".format(self.high_resolution_band))
+                             "'{}'".format(self.high_resolution_color))
         kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
-    def _get_band(self, high_res, low_res, color, ratio):
-        """Figure out what data should represent this color."""
-        if self.high_resolution_band == color:
-            ret = high_res
-        else:
-            ret = low_res * ratio
-            ret.attrs = low_res.attrs.copy()
-        return ret
-
     def __call__(self, datasets, optional_datasets=None, **info):
-        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``."""
+        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``.
+
+        The resulting RGB has the units attribute removed.
+        """
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
@@ -1259,53 +945,67 @@ class RatioSharpenedRGB(GenericCompositor):
             raise IncompatibleAreas('RatioSharpening requires datasets of '
                                     'the same size. Must resample first.')
 
+        optional_datasets = tuple() if optional_datasets is None else optional_datasets
+        datasets = self.match_data_arrays(datasets + optional_datasets)
+        red, green, blue, new_attrs = self._get_and_sharpen_rgb_data_arrays_and_meta(datasets, optional_datasets)
+        combined_info = self._combined_sharpened_info(info, new_attrs)
+        res = super(RatioSharpenedRGB, self).__call__((red, green, blue,), **combined_info)
+        res.attrs.pop("units", None)
+        return res
+
+    def _get_and_sharpen_rgb_data_arrays_and_meta(self, datasets, optional_datasets):
         new_attrs = {}
-        if optional_datasets:
-            datasets = self.match_data_arrays(datasets + optional_datasets)
-            high_res = datasets[-1]
-            p1, p2, p3 = datasets[:3]
+        low_res_red = datasets[0]
+        low_res_green = datasets[1]
+        low_res_blue = datasets[2]
+        if optional_datasets and self.high_resolution_color is not None:
+            LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_color))
+            high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            colors = ['red', 'green', 'blue']
-
-            if self.high_resolution_band in colors:
-                LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
-                low_res = datasets[:3][colors.index(self.high_resolution_band)]
-                ratio = high_res / low_res
-                # make ratio a no-op (multiply by 1) where the ratio is NaN or
-                # infinity or it is negative.
-                ratio = ratio.where(np.isfinite(ratio) & (ratio >= 0), 1.)
-                # we don't need ridiculously high ratios, they just make bright pixels
-                ratio = ratio.clip(0, 1.5)
-            else:
-                LOG.debug("No sharpening band specified for ratio sharpening")
-                high_res = None
-                ratio = 1.
-
-            r = self._get_band(high_res, p1, 'red', ratio)
-            g = self._get_band(high_res, p2, 'green', ratio)
-            b = self._get_band(high_res, p3, 'blue', ratio)
+            low_res_colors = ['red', 'green', 'blue']
+            low_resolution_index = low_res_colors.index(self.high_resolution_color)
         else:
-            datasets = self.match_data_arrays(datasets)
-            r, g, b = datasets[:3]
+            LOG.debug("No sharpening band specified for ratio sharpening")
+            high_res = None
+            low_resolution_index = 0
 
-        # combine the masks
-        mask = ~(r.isnull() | g.isnull() | b.isnull())
-        r = r.where(mask)
-        g = g.where(mask)
-        b = b.where(mask)
+        if high_res is not None:
+            low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
+            ratio = da.map_blocks(
+                _get_sharpening_ratio,
+                high_res.data,
+                low_res.data,
+                meta=np.array((), dtype=high_res.dtype),
+                dtype=high_res.dtype,
+                chunks=high_res.chunks,
+            )
+            with xr.set_options(keep_attrs=True):
+                low_res_red = high_res if low_resolution_index == 0 else low_res_red * ratio
+                low_res_green = high_res if low_resolution_index == 1 else low_res_green * ratio
+                low_res_blue = high_res if low_resolution_index == 2 else low_res_blue * ratio
+        return low_res_red, low_res_green, low_res_blue, new_attrs
 
-        # Collect information that is the same between the projectables
-        # we want to use the metadata from the original datasets since the
-        # new r, g, b arrays may have lost their metadata during calculations
-        info = combine_metadata(*datasets)
-        info.update(new_attrs)
+    def _combined_sharpened_info(self, info, new_attrs):
+        combined_info = {}
+        combined_info.update(info)
+        combined_info.update(new_attrs)
         # Update that information with configured information (including name)
-        info.update(self.attrs)
+        combined_info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
-        info.setdefault("standard_name", "true_color")
-        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        combined_info.setdefault("standard_name", "true_color")
+        return combined_info
+
+
+def _get_sharpening_ratio(high_res, low_res):
+    ratio = high_res / low_res
+    # make ratio a no-op (multiply by 1) where the ratio is NaN, infinity,
+    # or it is negative.
+    ratio[~np.isfinite(ratio) | (ratio < 0)] = 1.0
+    # we don't need ridiculously high ratios, they just make bright pixels
+    np.clip(ratio, 0, 1.5, out=ratio)
+    return ratio
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
@@ -1328,7 +1028,8 @@ def _mean4(data, offset=(0, 0), block_id=None):
 
     av_data = np.pad(data, pad, 'edge')
     new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-    data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
+    with np.errstate(invalid='ignore'):
+        data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
     data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
     data_mean = data_mean[row_offset:row_offset + rows, col_offset:col_offset + cols]
     return data_mean
@@ -1364,15 +1065,15 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
     def __call__(self, datasets, optional_datasets=None, **attrs):
         """Generate the composite."""
         colors = ['red', 'green', 'blue']
-        if self.high_resolution_band not in colors:
+        if self.high_resolution_color not in colors:
             raise ValueError("SelfSharpenedRGB requires at least one high resolution band, not "
-                             "'{}'".format(self.high_resolution_band))
+                             "'{}'".format(self.high_resolution_color))
 
-        high_res = datasets[colors.index(self.high_resolution_band)]
+        high_res = datasets[colors.index(self.high_resolution_color)]
         high_mean = self.four_element_average_dask(high_res)
-        red = high_mean if self.high_resolution_band == 'red' else datasets[0]
-        green = high_mean if self.high_resolution_band == 'green' else datasets[1]
-        blue = high_mean if self.high_resolution_band == 'blue' else datasets[2]
+        red = high_mean if self.high_resolution_color == 'red' else datasets[0]
+        green = high_mean if self.high_resolution_color == 'green' else datasets[1]
+        blue = high_mean if self.high_resolution_color == 'blue' else datasets[2]
         return super(SelfSharpenedRGB, self).__call__((red, green, blue), optional_datasets=(high_res,), **attrs)
 
 
@@ -1421,52 +1122,162 @@ class SandwichCompositor(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
-        luminance /= 100.
+        luminance = luminance / 100.
         # Limit between min(luminance) ... 1.0
         luminance = luminance.clip(max=1.)
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-        rgb_img *= luminance
+        # Ignore alpha band when applying luminance
+        rgb_img = rgb_img.where(rgb_img.bands == 'A', rgb_img * luminance)
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
-class StaticImageCompositor(GenericCompositor):
-    """A compositor that loads a static image from disk.
+# TODO: Turn this into a weighted RGB compositor
+class NaturalEnh(GenericCompositor):
+    """Enhanced version of natural color composite by Simon Proud.
 
-    If the filename passed to this compositor is not valid then
-    the SATPY_ANCPATH environment variable will be checked to see
-    if the image is located there
+    Args:
+        ch16_w (float): weight for red channel (1.6 um). Default: 1.3
+        ch08_w (float): weight for green channel (0.8 um). Default: 2.5
+        ch06_w (float): weight for blue channel (0.6 um). Default: 2.2
+
     """
 
-    def __init__(self, name, filename=None, area=None, **kwargs):
+    def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
+                 *args, **kwargs):
+        """Initialize the class."""
+        self.ch06_w = ch06_w
+        self.ch08_w = ch08_w
+        self.ch16_w = ch16_w
+        super(NaturalEnh, self).__init__(name, *args, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        ch16 = projectables[0]
+        ch08 = projectables[1]
+        ch06 = projectables[2]
+
+        ch1 = self.ch16_w * ch16 + self.ch08_w * ch08 + self.ch06_w * ch06
+        ch1.attrs = ch16.attrs
+        ch2 = ch08
+        ch3 = ch06
+
+        return super(NaturalEnh, self).__call__((ch1, ch2, ch3),
+                                                *args, **kwargs)
+
+
+class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
+    """A compositor that loads a static image from disk.
+
+    Environment variables in the filename are automatically expanded.
+
+    """
+
+    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
+                 **kwargs):
         """Collect custom configuration values.
 
         Args:
-            filename (str): Filename of the image to load
+            filename (str): Name to use when storing and referring to the file
+                in the ``data_dir`` cache. If ``url`` is provided (preferred),
+                then this is used as the filename in the cache and will be
+                appended to ``<data_dir>/composites/<class_name>/``. If
+                ``url`` is provided and ``filename`` is not then the
+                ``filename`` will be guessed from the ``url``.
+                If ``url`` is not provided, then it is assumed ``filename``
+                refers to a local file. If the ``filename`` does not come with
+                an absolute path, ``data_dir`` will be used as the directory path.
+                Environment variables are expanded.
+            url (str): URL to remote file. When the composite is created the
+                file will be downloaded and cached in Satpy's ``data_dir``.
+                Environment variables are expanded.
+            known_hash (str or None): Hash of the remote file used to verify
+                a successful download. If not provided then the download will
+                not be verified. See :func:`satpy.aux_download.register_file`
+                for more information.
             area (str): Name of area definition for the image.  Optional
-                        for images with built-in area definitions (geotiff)
+                for images with built-in area definitions (geotiff).
 
+        Use cases:
+            1. url + no filename:
+               Satpy determines the filename based on the filename in the URL,
+               then downloads the URL, and saves it to <data_dir>/<filename>.
+               If the file already exists and known_hash is also provided, then the pooch
+               library compares the hash of the file to the known_hash. If it does not
+               match, then the URL is re-downloaded. If it matches then no download.
+            2. url + relative filename:
+               Same as case 1 but filename is already provided so download goes to
+               <data_dir>/<filename>. Same hashing behavior. This does not check for an
+               absolute path.
+            3. No url + absolute filename:
+               No download, filename is passed directly to generic_image reader. No hashing
+               is done.
+            4. No url + relative filename:
+               Check if <data_dir>/<filename> exists. If it does then make filename an
+               absolute path. If it doesn't, then keep it as is and let the exception at
+               the bottom of the method get raised.
         """
-        if filename is None:
-            raise ValueError("No image configured for static image compositor")
-        self.filename = filename
+        filename, url = self._get_cache_filename_and_url(filename, url)
+        self._cache_filename = filename
+        self._url = url
+        self._known_hash = known_hash
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
+        cache_keys = self.register_data_files([])
+        self._cache_key = cache_keys[0]
+
+    @staticmethod
+    def _check_relative_filename(filename):
+        data_dir = satpy.config.get('data_dir')
+        path = os.path.join(data_dir, filename)
+
+        return path if os.path.exists(path) else filename
+
+    def _get_cache_filename_and_url(self, filename, url):
+        if filename:
+            filename = os.path.expanduser(os.path.expandvars(filename))
+
+            if not os.path.isabs(filename) and not url:
+                filename = self._check_relative_filename(filename)
+
+        if url:
+            url = os.path.expandvars(url)
+            if not filename:
+                filename = os.path.basename(url)
+        elif not filename or not os.path.isabs(filename):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
+
+        return filename, url
+
+    def register_data_files(self, data_files):
+        """Tell Satpy about files we may want to download."""
+        if os.path.isabs(self._cache_filename):
+            return [None]
+        return super().register_data_files([{
+            'url': self._url,
+            'known_hash': self._known_hash,
+            'filename': self._cache_filename,
+        }])
+
+    def _retrieve_data_file(self):
+        from satpy.aux_download import retrieve
+        if os.path.isabs(self._cache_filename):
+            return self._cache_filename
+        return retrieve(self._cache_key)
 
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
-        # Check if filename exists, if not then try from SATPY_ANCPATH
-        if not os.path.isfile(self.filename):
-            tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
-            if os.path.isfile(tmp_filename):
-                self.filename = tmp_filename
-        scn = Scene(reader='generic_image', filenames=[self.filename])
+        local_file = self._retrieve_data_file()
+        scn = Scene(reader='generic_image', filenames=[local_file])
         scn.load(['image'])
         img = scn['image']
         # use compositor parameters as extra metadata
@@ -1499,11 +1310,9 @@ class BackgroundCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
-
         # Get enhanced datasets
-        foreground = enhance2dataset(projectables[0])
-        background = enhance2dataset(projectables[1])
-
+        foreground = enhance2dataset(projectables[0], convert_p=True)
+        background = enhance2dataset(projectables[1], convert_p=True)
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA
@@ -1511,13 +1320,30 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
+        attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
+        data = self._get_merged_image_data(foreground, background)
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs.update(attrs)
+        return res
+
+    def _combine_metadata_with_mode_and_sensor(self,
+                                               foreground: xr.DataArray,
+                                               background: xr.DataArray
+                                               ) -> dict:
         # Get merged metadata
         attrs = combine_metadata(foreground, background)
+        # 'mode' is no longer valid after we've remove the 'A'
+        # let the base class __call__ determine mode
+        attrs.pop("mode", None)
         if attrs.get('sensor') is None:
             # sensor can be a set
-            attrs['sensor'] = self._get_sensors(projectables)
+            attrs['sensor'] = self._get_sensors([foreground, background])
+        return attrs
 
-        # Stack the images
+    @staticmethod
+    def _get_merged_image_data(foreground: xr.DataArray,
+                               background: xr.DataArray
+                               ) -> list[xr.DataArray]:
         if 'A' in foreground.attrs['mode']:
             # Use alpha channel as weight and blend the two composites
             alpha = foreground.sel(bands='A')
@@ -1531,61 +1357,95 @@ class BackgroundCompositor(GenericCompositor):
                 chan = xr.where(chan.isnull(), bg_band, chan)
                 data.append(chan)
         else:
-            data = xr.where(foreground.isnull(), background, foreground)
+            data_arr = xr.where(foreground.isnull(), background, foreground)
             # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
+            data = [data_arr.sel(bands=b) for b in data_arr['bands']]
 
-        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
-        return res
+        return data
 
 
 class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
-    def __init__(self, name, transparency=None, **kwargs):
+    _supported_modes = {"LA", "RGBA"}
+
+    def __init__(self, name, transparency=None, conditions=None, mode="LA",
+                 **kwargs):
         """Collect custom configuration values.
 
-        Args:
-            transparency: transparency for each cloud type as key-value pairs
-                          in a dictionary
+        Kwargs:
+            transparency (dict): transparency for each cloud type as
+                                 key-value pairs in a dictionary.
+                                 Will be converted to `conditions`.
+                                 DEPRECATED.
+            conditions (list): list of three items determining the masking
+                               settings.
+            mode (str, optional): Image mode to return.  For single-band input,
+                                  this shall be "LA" (default) or "RGBA".  For
+                                  multi-band input, this argument is ignored
+                                  as the result is always RGBA.
 
-        The `transparencies` can be either the numerical values in the
-        data used as a mask with the corresponding transparency
-        (0...100 %) as the value, or, for NWC SAF products, the flag
-        names in the dataset `flag_meanings` attribute.
+        Each condition in *conditions* consists of three items:
 
-        Transparency value of `0` means that the composite being
-        masked will be fully visible, and `100` means it will be
-        completely transparent and not visible in the resulting image.
-
-        For the mask values not listed in `transparencies`, the data will
-        be completely opaque (transparency = 0).
+        - `method`: Numpy method name.  The following are supported
+            operations: `less`, `less_equal`, `equal`, `greater_equal`,
+            `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
+            `isneginf`, or `isposinf`.
+        - `value`: threshold value of the *mask* applied with the
+            operator.  Can be a string, in which case the corresponding
+            value will be determined from `flag_meanings` and
+            `flag_values` attributes of the mask.
+            NOTE: the `value` should not be given to 'is*` methods.
+        - `transparency`: transparency from interval [0 ... 100] used
+            for the method/threshold. Value of 100 is fully transparent.
 
         Example::
 
-          >>> transparency = {0: 100,
-                              1: 80,
-                              2: 0}
+          >>> conditions = [{'method': 'greater_equal', 'value': 0,
+                             'transparency': 100},
+                            {'method': 'greater_equal', 'value': 1,
+                             'transparency': 80},
+                            {'method': 'greater_equal', 'value': 2,
+                             'transparency': 0},
+                            {'method': 'isnan',
+                             'transparency': 100}]
           >>> compositor = MaskingCompositor("masking compositor",
                                              transparency=transparency)
           >>> result = compositor([data, mask])
+
 
         This will set transparency of `data` based on the values in
         the `mask` dataset.  Locations where `mask` has values of `0`
         will be fully transparent, locations with `1` will be
         semi-transparent and locations with `2` will be fully visible
-        in the resulting image.  All the unlisted locations will be
+        in the resulting image.  In the end all `NaN` areas in the mask are
+        set to full transparency.  All the unlisted locations will be
         visible.
 
         The transparency is implemented by adding an alpha layer to
-        the composite.  If the input `data` contains an alpha channel,
-        it will be discarded.
+        the composite.  The locations with transparency of `100` will
+        be set to NaN in the data.  If the input `data` contains an
+        alpha channel, it will be discarded.
 
         """
-        if transparency is None:
-            raise ValueError("No transparency configured for simple masking compositor")
-        self.transparency = transparency
+        if transparency:
+            LOG.warning("Using 'transparency' is deprecated in "
+                        "MaskingCompositor, use 'conditions' instead.")
+            self.conditions = []
+            for key, transp in transparency.items():
+                self.conditions.append({'method': 'equal',
+                                        'value': key,
+                                        'transparency': transp})
+            LOG.info("Converted 'transparency' to 'conditions': %s",
+                     str(self.conditions))
+        else:
+            self.conditions = conditions
+        if self.conditions is None:
+            raise ValueError("Masking conditions not defined.")
+        if mode not in self._supported_modes:
+            raise ValueError(f"Invalid mode {mode!s}.  Supported modes: " +
+                             ", ".join(self._supported_modes))
+        self.mode = mode
 
         super(MaskingCompositor, self).__init__(name, **kwargs)
 
@@ -1594,35 +1454,132 @@ class MaskingCompositor(GenericCompositor):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
-        cloud_mask = projectables[1]
-        cloud_mask_data = cloud_mask.data
-        data = projectables[0]
-        alpha_attrs = data.attrs.copy()
-        if 'bands' in data.dims:
-            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
-        else:
-            data = [data]
+        data_in = projectables[0]
+        mask_in = projectables[1]
 
+        alpha_attrs = data_in.attrs.copy()
+        data = self._select_data_bands(data_in)
+
+        alpha = self._get_alpha_bands(data, mask_in, alpha_attrs)
+        data.append(alpha)
+
+        res = super(MaskingCompositor, self).__call__(data, **kwargs)
+        return res
+
+    def _get_mask(self, method, value, mask_data):
+        """Get mask array from *mask_data* using *method* and threshold *value*.
+
+        The *method* is the name of a numpy function.
+
+        """
+        if method not in MASKING_COMPOSITOR_METHODS:
+            raise AttributeError("Unsupported Numpy method %s, use one of %s",
+                                 method, str(MASKING_COMPOSITOR_METHODS))
+
+        func = getattr(np, method)
+
+        if value is None:
+            return func(mask_data)
+        return func(mask_data, value)
+
+    def _set_data_nans(self, data, mask, attrs):
+        """Set *data* to nans where *mask* is True.
+
+        The attributes *attrs** will be written to each band in *data*.
+
+        """
+        for i, dat in enumerate(data):
+            data[i] = xr.where(mask, np.nan, dat)
+            data[i].attrs = attrs
+
+        return data
+
+    def _select_data_bands(self, data_in):
+        """Select data to be composited from input data.
+
+        From input data, select the bands that need to have masking applied.
+        """
+        if 'bands' in data_in.dims:
+            return [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
+        if self.mode == "RGBA":
+            return [data_in, data_in, data_in]
+        return [data_in]
+
+    def _get_alpha_bands(self, data, mask_in, alpha_attrs):
+        """Get alpha bands.
+
+        From input data, masks, and attributes, get alpha band.
+        """
         # Create alpha band
+        mask_data = mask_in.data
         alpha = da.ones((data[0].sizes['y'],
                          data[0].sizes['x']),
                         chunks=data[0].chunks)
 
-        # Modify alpha based on transparency per class from yaml
-        flag_meanings = cloud_mask.attrs['flag_meanings']
-        flag_values = cloud_mask.attrs['flag_values']
+        for condition in self.conditions:
+            method = condition['method']
+            value = condition.get('value', None)
+            if isinstance(value, str):
+                value = _get_flag_value(mask_in, value)
+            transparency = condition['transparency']
+            mask = self._get_mask(method, value, mask_data)
 
-        if isinstance(flag_meanings, str):
-            flag_meanings = flag_meanings.split()
+            if transparency == 100.0:
+                data = self._set_data_nans(data, mask, alpha_attrs)
+            alpha_val = 1. - transparency / 100.
+            alpha = da.where(mask, alpha_val, alpha)
 
-        for key, val in self.transparency.items():
-            if isinstance(key, str):
-                key_index = flag_meanings.index(key)
-                key = flag_values[key_index]
-            alpha_val = 1. - val / 100.
-            alpha = da.where(cloud_mask_data == key, alpha_val, alpha)
-        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
-                             dims=data[0].dims, coords=data[0].coords)
-        data.append(alpha)
-        res = super(MaskingCompositor, self).__call__(data, **kwargs)
-        return res
+        return xr.DataArray(data=alpha, attrs=alpha_attrs,
+                            dims=data[0].dims, coords=data[0].coords)
+
+
+def _get_flag_value(mask, val):
+    """Get a numerical value of the named flag.
+
+    This function assumes the naming used in product generated with
+    NWC SAF GEO/PPS softwares.
+
+    """
+    flag_meanings = mask.attrs['flag_meanings']
+    flag_values = mask.attrs['flag_values']
+    if isinstance(flag_meanings, str):
+        flag_meanings = flag_meanings.split()
+
+    index = flag_meanings.index(val)
+
+    return flag_values[index]
+
+
+class LongitudeMaskingCompositor(SingleBandCompositor):
+    """Masks areas outside defined longitudes."""
+
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lon_min (float): lower longitude limit
+            lon_max (float): upper longitude limit
+        """
+        self.lon_min = lon_min
+        self.lon_max = lon_max
+        if self.lon_min is None and self.lon_max is None:
+            raise ValueError("Masking conditions not defined. \
+                At least lon_min or lon_max has to be specified.")
+        if not self.lon_min:
+            self.lon_min = -180.
+        if not self.lon_max:
+            self.lon_max = 180.
+        super().__init__(name, **kwargs)
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectable = projectables[0]
+        lons, lats = projectable.attrs["area"].get_lonlats()
+
+        if self.lon_max > self.lon_min:
+            lon_min_max = np.logical_and(lons >= self.lon_min, lons <= self.lon_max)
+        else:
+            lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
+
+        masked_projectable = projectable.where(lon_min_max)
+        return super().__call__([masked_projectable], **info)

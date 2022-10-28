@@ -17,15 +17,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
-from collections import OrderedDict
+import logging
 import os
-import unittest
-from unittest import mock
-from datetime import datetime
 import tempfile
-from satpy import DatasetID
+import unittest
+from collections import OrderedDict
+from datetime import datetime
+from unittest import mock
 
 import numpy as np
+
+from satpy.tests.utils import make_dsq
 
 try:
     from pyproj import CRS
@@ -36,13 +38,14 @@ except ImportError:
 class TempFile(object):
     """A temporary filename class."""
 
-    def __init__(self):
+    def __init__(self, suffix=".nc"):
         """Initialize."""
         self.filename = None
+        self.suffix = suffix
 
     def __enter__(self):
         """Enter."""
-        self.handle, self.filename = tempfile.mkstemp()
+        self.handle, self.filename = tempfile.mkstemp(suffix=self.suffix)
         os.close(self.handle)
         return self.filename
 
@@ -56,36 +59,35 @@ class TestCFWriter(unittest.TestCase):
 
     def test_init(self):
         """Test initializing the CFWriter class."""
+        from satpy.writers import configs_for_writer
         from satpy.writers.cf_writer import CFWriter
-        import satpy.config
-        CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH,
-                                            'writers', 'cf.yaml')])
+        CFWriter(config_files=list(configs_for_writer('cf'))[0])
 
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[DatasetID('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
-                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
-                                   "resolution=None, polarization=None, "
-                                   "calibration=None, level=None, modifiers=())")
+                np.testing.assert_array_equal(f['test-array'][:], [1, 2, 3])
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
     def test_save_with_compression(self):
         """Test saving an array with compression."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -94,7 +96,7 @@ class TestCFWriter(unittest.TestCase):
             scn['test-array'] = xr.DataArray([1, 2, 3],
                                              attrs=dict(start_time=start_time,
                                                         end_time=end_time,
-                                                        prerequisites=[DatasetID('hej')]))
+                                                        prerequisites=[make_dsq(name='hej')]))
 
             comp = {'zlib': True, 'complevel': 9}
             scn.save_datasets(filename='bla', writer='cf', compression=comp)
@@ -103,9 +105,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
-        from satpy import Scene
-        import xarray as xr
         import numpy as np
+        import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -123,25 +126,99 @@ class TestCFWriter(unittest.TestCase):
                                          coords=coords,
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[DatasetID('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
-                self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
-                self.assertTrue(np.all(f['y'][:] == [0]))
+                np.testing.assert_array_equal(f['test-array'][:], [[1, 2, 3]])
+                np.testing.assert_array_equal(f['x'][:], [0, 1, 2])
+                np.testing.assert_array_equal(f['y'][:], [0])
                 self.assertNotIn('crs', f)
                 self.assertNotIn('_FillValue', f['x'].attrs)
                 self.assertNotIn('_FillValue', f['y'].attrs)
-                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
-                                   "resolution=None, polarization=None, "
-                                   "calibration=None, level=None, modifiers=())")
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
+
+    def test_save_dataset_a_digit(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                np.testing.assert_array_equal(f['CHANNEL_1'][:], [1, 2, 3])
+
+    def test_save_dataset_a_digit_prefix(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', numeric_name_prefix='TEST')
+            with xr.open_dataset(filename) as f:
+                np.testing.assert_array_equal(f['TEST1'][:], [1, 2, 3])
+
+    def test_save_dataset_a_digit_prefix_include_attr(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='TEST')
+            with xr.open_dataset(filename) as f:
+                np.testing.assert_array_equal(f['TEST1'][:], [1, 2, 3])
+                self.assertEqual(f['TEST1'].attrs['original_name'], '1')
+
+    def test_save_dataset_a_digit_no_prefix_include_attr(self):
+        """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='')
+            with xr.open_dataset(filename) as f:
+                np.testing.assert_array_equal(f['1'][:], [1, 2, 3])
+                self.assertNotIn('original_name', f['1'].attrs)
+
+    def test_ancillary_variables(self):
+        """Test ancillary_variables cited each other."""
+        import xarray as xr
+
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        da = xr.DataArray([1, 2, 3],
+                          attrs=dict(start_time=start_time,
+                          end_time=end_time,
+                          prerequisites=[make_dataid(name='hej')]))
+        scn['test-array-1'] = da
+        scn['test-array-2'] = da.copy()
+        scn['test-array-1'].attrs['ancillary_variables'] = [scn['test-array-2']]
+        scn['test-array-2'].attrs['ancillary_variables'] = [scn['test-array-1']]
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f['test-array-1'].attrs['ancillary_variables'],
+                                 'test-array-2')
+                self.assertEqual(f['test-array-2'].attrs['ancillary_variables'],
+                                 'test-array-1')
 
     def test_groups(self):
         """Test creating a file with groups."""
         import xarray as xr
+
         from satpy import Scene
 
         tstart = datetime(2019, 4, 1, 12, 0)
@@ -187,7 +264,7 @@ class TestCFWriter(unittest.TestCase):
             self.assertSetEqual(set(nc_hrv.variables.keys()), {'HRV', 'y', 'x', 'acq_time'})
             for tst, ref in zip([nc_visir['VIS006'], nc_visir['IR_108'], nc_hrv['HRV']],
                                 [scn['VIS006'], scn['IR_108'], scn['HRV']]):
-                self.assertTrue(np.all(tst.data == ref.data))
+                np.testing.assert_array_equal(tst.data, ref.data)
             nc_root.close()
             nc_visir.close()
             nc_hrv.close()
@@ -198,8 +275,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_single_time_value(self):
         """Test setting a single time value."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -216,10 +294,29 @@ class TestCFWriter(unittest.TestCase):
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
+    def test_time_coordinate_on_a_swath(self):
+        """Test that time dimension is not added on swath data with time already as a coordinate."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
+                          '2018-05-30T10:05:02', '2018-05-30T10:05:03'], dtype=np.datetime64)
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['y', 'x'],
+                                         coords={'time': ('y', times)},
+                                         attrs=dict(start_time=times[0], end_time=times[-1]))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', pretty=True)
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
+
     def test_bounds(self):
         """Test setting time bounds."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -251,8 +348,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_minimum(self):
         """Test minimum bounds."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
         end_timeA = datetime(2018, 5, 30, 10, 20)
@@ -278,8 +376,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)
         end_timeA = datetime(2018, 5, 30, 10, 15)
@@ -301,8 +400,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_encoding_kwarg(self):
         """Test 'encoding' keyword argument."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -316,16 +416,17 @@ class TestCFWriter(unittest.TestCase):
                                        '_FillValue': 3}}
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             with xr.open_dataset(filename, mask_and_scale=False) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
-                self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
-                self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
+                np.testing.assert_array_equal(f['test-array'][:], [10, 20, 30])
+                self.assertEqual(f['test-array'].attrs['scale_factor'], 0.1)
+                self.assertEqual(f['test-array'].attrs['_FillValue'], 3)
                 # check that dtype behave as int8
-                self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+                self.assertEqual(np.iinfo(f['test-array'][:].dtype).max, 127)
 
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -341,9 +442,10 @@ class TestCFWriter(unittest.TestCase):
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
     def test_header_attrs(self):
-        """Check master attributes are set."""
-        from satpy import Scene
+        """Check global attributes are set."""
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -393,7 +495,7 @@ class TestCFWriter(unittest.TestCase):
                  'none': None,  # should be dropped
                  'numpy_int': np.uint8(1),
                  'numpy_float': np.float32(1),
-                 'numpy_bool': np.bool(True),
+                 'numpy_bool': True,
                  'numpy_void': np.void(0),
                  'numpy_bytes': np.bytes_('test'),
                  'numpy_string': np.string_('test'),
@@ -466,7 +568,7 @@ class TestCFWriter(unittest.TestCase):
         for key, val1 in d1.items():
             val2 = d2[key]
             if isinstance(val1, np.ndarray):
-                self.assertTrue(np.all(val1 == val2))
+                np.testing.assert_array_equal(val1, val2)
                 self.assertEqual(val1.dtype, val2.dtype)
             else:
                 self.assertEqual(val1, val2)
@@ -476,8 +578,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
-        from satpy.writers.cf_writer import encode_attrs_nc
         import json
+
+        from satpy.writers.cf_writer import encode_attrs_nc
 
         attrs, expected, _ = self.get_test_attrs()
 
@@ -496,17 +599,18 @@ class TestCFWriter(unittest.TestCase):
 
     def test_da2cf(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
-        from satpy.writers.cf_writer import CFWriter
         import xarray as xr
+
+        from satpy.writers.cf_writer import CFWriter
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
         attrs['area'] = 'some_area'
-        attrs['prerequisites'] = [DatasetID('hej')]
+        attrs['prerequisites'] = [make_dsq(name='hej')]
+        attrs['_satpy_id_name'] = 'myname'
 
         # Adjust expected attributes
-        expected_prereq = ("DatasetID(name='hej', wavelength=None, resolution=None, polarization=None, "
-                           "calibration=None, level=None, modifiers=())")
+        expected_prereq = ("DataQuery(name='hej')")
         update = {'prerequisites': [expected_prereq], 'long_name': attrs['name']}
 
         attrs_expected.update(update)
@@ -521,9 +625,9 @@ class TestCFWriter(unittest.TestCase):
 
         # Test conversion to something cf-compliant
         res = CFWriter.da2cf(arr)
-        self.assertTrue(np.all(res['x'] == arr['x']))
-        self.assertTrue(np.all(res['y'] == arr['y']))
-        self.assertTrue(np.all(res['acq_time'] == arr['acq_time']))
+        np.testing.assert_array_equal(res['x'], arr['x'])
+        np.testing.assert_array_equal(res['y'], arr['y'])
+        np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
         self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
         self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
         self.assertDictWithArraysEqual(res.attrs, attrs_expected)
@@ -534,26 +638,19 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
-    @mock.patch('satpy.writers.cf_writer.area2cf')
-    @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
-    @mock.patch('satpy.writers.cf_writer.make_alt_coords_unique')
-    @mock.patch('satpy.writers.cf_writer.assert_xy_unique')
-    @mock.patch('satpy.writers.cf_writer.link_coords')
-    def test_collect_datasets(self, link_coords, assert_xy_unique, make_alt_coords_unique, da2cf, area2cf, *mocks):
+    def test_collect_datasets(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
-        from satpy.writers.cf_writer import CFWriter
+        import pyresample.geometry
         import xarray as xr
 
-        # Patch methods
-        def identity(arg, **kwargs):
-            return arg
-
-        def raise_key_error(arg, **kwargs):
-            raise KeyError
-
-        da2cf.side_effect = identity
-        area2cf.side_effect = raise_key_error
-        make_alt_coords_unique.return_value = 'unique_coords'
+        from satpy.writers.cf_writer import CFWriter
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
 
         # Define test datasets
         data = [[1, 2], [3, 4]]
@@ -563,36 +660,34 @@ class TestCFWriter(unittest.TestCase):
         tstart = datetime(2019, 4, 1, 12, 0)
         tend = datetime(2019, 4, 1, 12, 15)
         datasets = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend}),
+                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
                     xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var2'})]
-        expected = {'var1': datasets[0], 'var2': datasets[1]}
+                                 attrs={'name': 'var2', 'long_name': 'variable 2'})]
 
         # Collect datasets
         writer = CFWriter()
         datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
-        self.assertEqual(datas, 'unique_coords')
-        self.assertListEqual(start_times, [tstart, None])
-        self.assertListEqual(end_times, [tend, None])
-
-        # Test method calls
-        self.assertEqual(len(area2cf.call_args_list), 2)
-        for call_args, ds in zip(area2cf.call_args_list, datasets):
-            self.assertEqual(call_args, mock.call(ds, strict=True))
-
-        for func in (assert_xy_unique, link_coords, make_alt_coords_unique):
-            func.assert_called()
-            call_arg = func.call_args[0][0]
-            self.assertIsInstance(call_arg, dict)
-            self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
-            for key, ds in expected.items():
-                self.assertTrue(call_arg[key].identical(ds))
+        self.assertEqual(len(datas), 3)
+        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
+        self.assertListEqual(start_times, [None, tstart, None])
+        self.assertListEqual(end_times, [None, tend, None])
+        var1 = datas['var1']
+        var2 = datas['var2']
+        self.assertEqual(var1.name, 'var1')
+        self.assertEqual(var1.attrs['grid_mapping'], 'geos')
+        self.assertEqual(var1.attrs['start_time'], '2019-04-01 12:00:00')
+        self.assertEqual(var1.attrs['end_time'], '2019-04-01 12:15:00')
+        self.assertEqual(var1.attrs['long_name'], 'var1')
+        # variable 2
+        self.assertNotIn('grid_mapping', var2.attrs)
+        self.assertEqual(var2.attrs['long_name'], 'variable 2')
 
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
         import xarray as xr
+
         from satpy.writers.cf_writer import assert_xy_unique
 
         dummy = [[1, 2], [3, 4]]
@@ -606,17 +701,22 @@ class TestCFWriter(unittest.TestCase):
 
     def test_link_coords(self):
         """Check that coordinates link has been established correctly."""
-        import xarray as xr
-        from satpy.writers.cf_writer import link_coords
         import numpy as np
+        import xarray as xr
+
+        from satpy.writers.cf_writer import link_coords
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
+        lon2 = np.zeros((1, 2, 2))
         lat = np.ones((2, 2))
         datasets = {
             'var1': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon lat'}),
             'var2': xr.DataArray(data=data, dims=('y', 'x')),
+            'var3': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon2 lat'}),
+            'var4': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'not_exist lon lat'}),
             'lon': xr.DataArray(data=lon, dims=('y', 'x')),
+            'lon2': xr.DataArray(data=lon2, dims=('time', 'y', 'x')),
             'lat': xr.DataArray(data=lat, dims=('y', 'x'))
         }
 
@@ -625,17 +725,22 @@ class TestCFWriter(unittest.TestCase):
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
         self.assertIn('lon', datasets['var1'].coords)
         self.assertIn('lat', datasets['var1'].coords)
-        self.assertTrue(np.all(datasets['var1']['lon'].data == lon))
-        self.assertTrue(np.all(datasets['var1']['lat'].data == lat))
+        np.testing.assert_array_equal(datasets['var1']['lon'].data, lon)
+        np.testing.assert_array_equal(datasets['var1']['lat'].data, lat)
         self.assertNotIn('coordinates', datasets['var1'].attrs)
 
         # There should be no link if there was no 'coordinate' attribute
         self.assertNotIn('lon', datasets['var2'].coords)
         self.assertNotIn('lat', datasets['var2'].coords)
 
+        # The non-existant dimension or coordinate should be dropped
+        self.assertNotIn('time', datasets['var3'].coords)
+        self.assertNotIn('not_exist', datasets['var4'].coords)
+
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
         import xarray as xr
+
         from satpy.writers.cf_writer import make_alt_coords_unique
 
         data = [[1, 2], [3, 4]]
@@ -652,44 +757,41 @@ class TestCFWriter(unittest.TestCase):
 
         # Test that dataset names are prepended to alternative coordinates
         res = make_alt_coords_unique(datasets)
-        self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
-        self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+        np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
+        np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
         self.assertNotIn('acq_time', res['var1'].coords)
         self.assertNotIn('acq_time', res['var2'].coords)
 
         # Make sure nothing else is modified
-        self.assertTrue(np.all(res['var1']['x'] == x))
-        self.assertTrue(np.all(res['var1']['y'] == y))
-        self.assertTrue(np.all(res['var2']['x'] == x))
-        self.assertTrue(np.all(res['var2']['y'] == y))
+        np.testing.assert_array_equal(res['var1']['x'], x)
+        np.testing.assert_array_equal(res['var1']['y'], y)
+        np.testing.assert_array_equal(res['var2']['x'], x)
+        np.testing.assert_array_equal(res['var2']['y'], y)
 
         # Coords not unique -> Dataset names must be prepended, even if pretty=True
         with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
             res = make_alt_coords_unique(datasets, pretty=True)
             warn.assert_called()
-            self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
-            self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+            np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
+            np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
             self.assertNotIn('acq_time', res['var1'].coords)
             self.assertNotIn('acq_time', res['var2'].coords)
 
         # Coords unique and pretty=True -> Don't modify coordinate names
         datasets['var2']['acq_time'] = ('y', time1)
         res = make_alt_coords_unique(datasets, pretty=True)
-        self.assertTrue(np.all(res['var1']['acq_time'] == time1))
-        self.assertTrue(np.all(res['var2']['acq_time'] == time1))
+        np.testing.assert_array_equal(res['var1']['acq_time'], time1)
+        np.testing.assert_array_equal(res['var2']['acq_time'], time1)
         self.assertNotIn('var1_acq_time', res['var1'].coords)
         self.assertNotIn('var2_acq_time', res['var2'].coords)
 
-    @mock.patch('satpy.writers.cf_writer.area2lonlat')
-    @mock.patch('satpy.writers.cf_writer.area2gridmapping')
-    def test_area2cf(self, area2gridmapping, area2lonlat):
+    def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
+
         from satpy.writers.cf_writer import area2cf
 
-        area2gridmapping.side_effect = lambda x: [1, 2, 3]
-        area2lonlat.side_effect = lambda x: [4, 5, 6]
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
                                attrs={'name': 'var1'})
 
@@ -705,13 +807,21 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
 
         res = area2cf(ds)
-        self.assertEqual(len(res), 4)
-        self.assertListEqual(res[0:3], [1, 2, 3])
-        self.assertTrue(ds.identical(res[3]))
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].size, 1)  # grid mapping variable
+        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
 
         # b) Area Definition and strict=False
-        area2cf(ds, strict=True)
-        area2lonlat.assert_called()
+        ds = ds_base.copy(deep=True)
+        ds.attrs['area'] = geos
+        res = area2cf(ds, strict=True)
+        # same as above
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].size, 1)  # grid mapping variable
+        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
+        # but now also have the lon/lats
+        self.assertIn('longitude', res[1].coords)
+        self.assertIn('latitude', res[1].coords)
 
         # c) Swath Definition
         swath = pyresample.geometry.SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
@@ -719,14 +829,16 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = swath
 
         res = area2cf(ds)
-        self.assertEqual(len(res), 4)
-        self.assertListEqual(res[0:3], [4, 5, 6])
-        self.assertTrue(ds.identical(res[3]))
+        self.assertEqual(len(res), 1)
+        self.assertIn('longitude', res[0].coords)
+        self.assertIn('latitude', res[0].coords)
+        self.assertNotIn('grid_mapping', res[0].attrs)
 
     def test_area2gridmapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
+
         from satpy.writers.cf_writer import area2gridmapping
 
         def _gm_matches(gmapping, expected):
@@ -749,7 +861,8 @@ class TestCFWriter(unittest.TestCase):
             area_id='geos',
             description='geos',
             proj_id='geos',
-            projection={'proj': 'geos', 'h': h, 'a': a, 'b': b},
+            projection={'proj': 'geos', 'h': h, 'a': a, 'b': b,
+                        'lat_0': 0, 'lon_0': 0},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
         geos_expected = xr.DataArray(data=0,
@@ -759,15 +872,20 @@ class TestCFWriter(unittest.TestCase):
                                             'grid_mapping_name': 'geostationary',
                                             'semi_major_axis': a,
                                             'semi_minor_axis': b,
-                                            'sweep_axis': None,
-                                            'name': 'geos'})
+                                            # 'sweep_angle_axis': None,
+                                            })
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
+        if 'sweep_angle_axis' in grid_mapping.attrs:
+            # older versions of pyproj might not include this
+            self.assertEqual(grid_mapping.attrs['sweep_angle_axis'], 'y')
 
-        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
+        # should not have been modified
+        self.assertNotIn('grid_mapping', ds.attrs)
 
         # b) Projection does not have a corresponding CF representation (COSMO)
         cosmo7 = pyresample.geometry.AreaDefinition(
@@ -783,18 +901,15 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = cosmo7
 
-        with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
-            res, grid_mapping = area2gridmapping(ds)
-            warn.assert_called()
-            proj_dict = pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])
-            self.assertEqual(proj_dict['lon_0'], 4.535)
-            self.assertEqual(proj_dict['lat_0'], 46.0)
-            self.assertEqual(proj_dict['o_lon_p'], -5.465)
-            self.assertEqual(proj_dict['o_lat_p'], 90.0)
-            self.assertEqual(proj_dict['proj'], 'ob_tran')
-            self.assertEqual(proj_dict['o_proj'], 'stere')
-            self.assertEqual(proj_dict['ellps'], 'WGS84')
-            self.assertEqual(grid_mapping.attrs['name'], 'proj4')
+        new_ds, grid_mapping = area2gridmapping(ds)
+        self.assertIn('crs_wkt', grid_mapping.attrs)
+        wkt = grid_mapping.attrs['crs_wkt']
+        self.assertIn('ELLIPSOID["WGS 84"', wkt)
+        self.assertIn('PARAMETER["lat_0",46', wkt)
+        self.assertIn('PARAMETER["lon_0",4.535', wkt)
+        self.assertIn('PARAMETER["o_lat_p",90', wkt)
+        self.assertIn('PARAMETER["o_lon_p",-5.465', wkt)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'cosmo7')
 
         # c) Projection Transverse Mercator
         lat_0 = 36.5
@@ -812,15 +927,15 @@ class TestCFWriter(unittest.TestCase):
                                       attrs={'latitude_of_projection_origin': lat_0,
                                              'longitude_of_central_meridian': lon_0,
                                              'grid_mapping_name': 'transverse_mercator',
-                                             'reference_ellipsoid_name': 'WGS84',
+                                             'reference_ellipsoid_name': 'WGS 84',
                                              'false_easting': 0.,
                                              'false_northing': 0.,
-                                             'name': 'tmerc'})
+                                             })
 
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
-        res, grid_mapping = area2gridmapping(ds)
-        self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
+        new_ds, grid_mapping = area2gridmapping(ds)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'tmerc')
         _gm_matches(grid_mapping, tmerc_expected)
 
         # d) Projection that has a representation but no explicit a/b
@@ -829,7 +944,8 @@ class TestCFWriter(unittest.TestCase):
             area_id='geos',
             description='geos',
             proj_id='geos',
-            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80'},
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80',
+                        'lat_0': 0, 'lon_0': 0},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
         geos_expected = xr.DataArray(data=0,
@@ -837,16 +953,16 @@ class TestCFWriter(unittest.TestCase):
                                             'latitude_of_projection_origin': 0,
                                             'longitude_of_projection_origin': 0,
                                             'grid_mapping_name': 'geostationary',
-                                            'semi_major_axis': 6378137.0,
-                                            'semi_minor_axis': 6356752.314,
-                                            'sweep_axis': None,
-                                            'name': 'geos'})
+                                            # 'semi_major_axis': 6378137.0,
+                                            # 'semi_minor_axis': 6356752.314,
+                                            # 'sweep_angle_axis': None,
+                                            })
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
 
         # e) oblique Mercator
@@ -862,31 +978,55 @@ class TestCFWriter(unittest.TestCase):
             area_extent=[-1460463.0893, 3455291.3877, 1538407.1158, 9615788.8787]
         )
 
-        omerc_dict = {'name': 'omerc',
-                      'azimuth_of_central_line': 9.02638777018478,
+        omerc_dict = {'azimuth_of_central_line': 9.02638777018478,
                       'false_easting': 0.,
                       'false_northing': 0.,
-                      'gamma': 0,
-                      'geographic_crs_name': "unknown",
+                      # 'gamma': 0,  # this is not CF compliant
                       'grid_mapping_name': "oblique_mercator",
-                      'horizontal_datum_name': "unknown",
                       'latitude_of_projection_origin': -0.256794486098476,
                       'longitude_of_projection_origin': 13.7888658224205,
-                      'prime_meridian_name': "Greenwich",
-                      'reference_ellipsoid_name': "WGS84"}
+                      # 'prime_meridian_name': "Greenwich",
+                      'reference_ellipsoid_name': "WGS 84"}
         omerc_expected = xr.DataArray(data=0, attrs=omerc_dict)
 
         ds = ds_base.copy()
         ds.attrs['area'] = area
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(res.attrs['grid_mapping'], 'omerc')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'omerc_otf')
         _gm_matches(grid_mapping, omerc_expected)
+
+        # f) Projection that has a representation but no explicit a/b
+        h = 35785831.
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80',
+                        'lat_0': 0, 'lon_0': 0},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        geos_expected = xr.DataArray(data=0,
+                                     attrs={'perspective_point_height': h,
+                                            'latitude_of_projection_origin': 0,
+                                            'longitude_of_projection_origin': 0,
+                                            'grid_mapping_name': 'geostationary',
+                                            'reference_ellipsoid_name': 'WGS 84',
+                                            })
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = geos
+        new_ds, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
+        _gm_matches(grid_mapping, geos_expected)
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
+        import dask.array as da
         import pyresample.geometry
         import xarray as xr
+
         from satpy.writers.cf_writer import area2lonlat
 
         area = pyresample.geometry.AreaDefinition(
@@ -902,25 +1042,324 @@ class TestCFWriter(unittest.TestCase):
 
         res = area2lonlat(dataarray)
 
-        self.assertEqual(len(res), 1)
-        self.assertEqual(set(res[0].coords), {'longitude', 'latitude'})
-        lat = res[0]['latitude']
-        lon = res[0]['longitude']
-        self.assertTrue(np.all(lat.data == lats_ref))
-        self.assertTrue(np.all(lon.data == lons_ref))
-        self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},
-                                      lat.attrs)
-        self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
-                                      lon.attrs)
+        # original should be unmodified
+        self.assertNotIn('longitude', dataarray.coords)
+        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        lat = res['latitude']
+        lon = res['longitude']
+        np.testing.assert_array_equal(lat.data, lats_ref)
+        np.testing.assert_array_equal(lon.data, lons_ref)
+        assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
+        assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
+
+        area = pyresample.geometry.AreaDefinition(
+            'seviri',
+            'Native SEVIRI grid',
+            'geos',
+            "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+            10, 10,
+            [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
+        )
+        lons_ref, lats_ref = area.get_lonlats()
+        dataarray = xr.DataArray(data=da.from_array(np.arange(3*10*10).reshape(3, 10, 10), chunks=(1, 5, 5)),
+                                 dims=('bands', 'y', 'x'), attrs={'area': area})
+        res = area2lonlat(dataarray)
+
+        # original should be unmodified
+        self.assertNotIn('longitude', dataarray.coords)
+        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        lat = res['latitude']
+        lon = res['longitude']
+        np.testing.assert_array_equal(lat.data, lats_ref)
+        np.testing.assert_array_equal(lon.data, lons_ref)
+        assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
+        assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
+
+    def test_load_module_with_old_pyproj(self):
+        """Test that cf_writer can still be loaded with pyproj 1.9.6."""
+        import importlib
+        import sys
+
+        import pyproj  # noqa 401
+        old_version = sys.modules['pyproj'].__version__
+        sys.modules['pyproj'].__version__ = "1.9.6"
+        try:
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
+        finally:
+            # Tear down
+            sys.modules['pyproj'].__version__ = old_version
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
+
+    def test_global_attr_default_history_and_Conventions(self):
+        """Test saving global attributes history and Conventions."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        scn['test-array'] = xr.DataArray([[1, 2, 3]],
+                                         dims=('y', 'x'),
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time,
+                                                    prerequisites=[make_dsq(name='hej')]))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f.attrs['Conventions'], 'CF-1.7')
+                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+
+    def test_global_attr_history_and_Conventions(self):
+        """Test saving global attributes history and Conventions."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        scn['test-array'] = xr.DataArray([[1, 2, 3]],
+                                         dims=('y', 'x'),
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time,
+                                                    prerequisites=[make_dsq(name='hej')]))
+        header_attrs = {}
+        header_attrs['history'] = ('TEST add history',)
+        header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f.attrs['Conventions'], 'CF-1.7, ACDD-1.3')
+                self.assertIn('TEST add history\n', f.attrs['history'])
+                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
 
-def suite():
-    """Test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCFWriter))
-    return mysuite
+def test_lonlat_storage(tmp_path):
+    """Test correct storage for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from ..utils import make_fake_scene
+    scn = make_fake_scene(
+            {"ketolysis": np.arange(25).reshape(5, 5)},
+            daskify=True,
+            area=create_area_def("mavas", 4326, shape=(5, 5),
+                                 center=(0, 0), resolution=(1, 1)))
+
+    filename = os.fspath(tmp_path / "test.nc")
+    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
+    with xr.open_dataset(filename) as ds:
+        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
+        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
+        assert ds["x"].attrs["units"] == "degrees_east"
+        assert ds["y"].attrs["units"] == "degrees_north"
+        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
+        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
+        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_da2cf_lonlat():
+    """Test correct da2cf encoding for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf_writer import CFWriter
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = CFWriter.da2cf(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
+
+
+def test_is_projected(caplog):
+    """Tests for private _is_projected function."""
+    import xarray as xr
+
+    from satpy.writers.cf_writer import CFWriter
+
+    # test case with units but no area
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+    assert CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+    assert not CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"))
+    with caplog.at_level(logging.WARNING):
+        assert CFWriter._is_projected(da)
+    assert "Failed to tell if data are projected." in caplog.text
+
+
+class TestCFWriterData(unittest.TestCase):
+    """Test case for CF writer where data arrays are needed."""
+
+    def setUp(self):
+        """Create some test data."""
+        import pyresample.geometry
+        import xarray as xr
+        data = [[75, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        self.datasets = {'var1': xr.DataArray(data=data,
+                                              dims=('y', 'x'),
+                                              coords={'y': y, 'x': x}),
+                         'var2': xr.DataArray(data=data,
+                                              dims=('y', 'x'),
+                                              coords={'y': y, 'x': x}),
+                         'lat': xr.DataArray(data=data,
+                                             dims=('y', 'x'),
+                                             coords={'y': y, 'x': x}),
+                         'lon': xr.DataArray(data=data,
+                                             dims=('y', 'x'),
+                                             coords={'y': y, 'x': x})}
+        self.datasets['lat'].attrs['standard_name'] = 'latitude'
+        self.datasets['var1'].attrs['standard_name'] = 'dummy'
+        self.datasets['var2'].attrs['standard_name'] = 'dummy'
+        self.datasets['var2'].attrs['area'] = geos
+        self.datasets['var1'].attrs['area'] = geos
+        self.datasets['lat'].attrs['name'] = 'lat'
+        self.datasets['var1'].attrs['name'] = 'var1'
+        self.datasets['var2'].attrs['name'] = 'var2'
+        self.datasets['lon'].attrs['name'] = 'lon'
+
+    def test_dataset_is_projection_coords(self):
+        """Test the dataset_is_projection_coords function."""
+        from satpy.writers.cf_writer import dataset_is_projection_coords
+        self.assertTrue(dataset_is_projection_coords(self.datasets['lat']))
+        self.assertFalse(dataset_is_projection_coords(self.datasets['var1']))
+
+    def test_has_projection_coords(self):
+        """Test the has_projection_coords function."""
+        from satpy.writers.cf_writer import has_projection_coords
+        self.assertTrue(has_projection_coords(self.datasets))
+        self.datasets['lat'].attrs['standard_name'] = 'dummy'
+        self.assertFalse(has_projection_coords(self.datasets))
+
+    @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
+    def test_collect_datasets_with_latitude_named_lat(self, *mocks):
+        """Test collecting CF datasets with latitude named lat."""
+        from operator import getitem
+
+        from satpy.writers.cf_writer import CFWriter
+        self.datasets_list = [self.datasets[key] for key in self.datasets]
+        self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
+
+        # Collect datasets
+        writer = CFWriter()
+        datas, start_times, end_times = writer._collect_datasets(self.datasets_list, include_lonlats=True)
+        datas2, start_times, end_times = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
+        # Test results
+
+        self.assertEqual(len(datas), 5)
+        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'lon', 'lat', 'geos'})
+        self.assertRaises(KeyError, getitem, datas['var1'], 'latitude')
+        self.assertRaises(KeyError, getitem, datas['var1'], 'longitude')
+        self.assertEqual(datas2['var1']['latitude'].attrs['name'], 'latitude')
+        self.assertEqual(datas2['var1']['longitude'].attrs['name'], 'longitude')
+
+
+class EncodingUpdateTest(unittest.TestCase):
+    """Test update of netCDF encoding."""
+
+    def setUp(self):
+        """Create fake data for testing."""
+        import xarray as xr
+        self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
+                              'bar': (('y', 'x'), [[3, 4], [5, 6]])},
+                             coords={'y': [1, 2],
+                                     'x': [3, 4],
+                                     'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+        self.ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]]),
+                                    'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]])},
+                                   coords={'y': [1, 2],
+                                           'x': [3, 4],
+                                           'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+
+    def test_dataset_name_digit(self):
+        """Test data with dataset name staring with a digit."""
+        from satpy.writers.cf_writer import update_encoding
+
+        # Dataset with name staring with digit
+        ds = self.ds_digit
+        kwargs = {'encoding': {'1': {'dtype': 'float32'},
+                               '2': {'dtype': 'float32'}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL_')
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'CHANNEL_1': {'dtype': 'float32'},
+                                   'CHANNEL_2': {'dtype': 'float32'}})
+        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+
+    def test_without_time(self):
+        """Test data with no time dimension."""
+        from satpy.writers.cf_writer import update_encoding
+
+        # Without time dimension
+        ds = self.ds.chunk(2)
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (1, 1)}})
+        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+
+        # Chunksize may not exceed shape
+        ds = self.ds.chunk(8)
+        kwargs = {'encoding': {}, 'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (2, 2)}})
+
+    def test_with_time(self):
+        """Test data with a time dimension."""
+        from satpy.writers.cf_writer import update_encoding
+
+        # With time dimension
+        ds = self.ds.chunk(8).expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (1, 2, 2)},
+                                   'bar': {'chunksizes': (1, 1, 1)},
+                                   'time': {'_FillValue': None,
+                                            'calendar': 'proleptic_gregorian',
+                                            'units': 'days since 2009-07-01 12:15:00'},
+                                   'time_bnds': {'_FillValue': None,
+                                                 'calendar': 'proleptic_gregorian',
+                                                 'units': 'days since 2009-07-01 12:15:00'}})
+
+        # User-defined encoding may not be altered
+        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})

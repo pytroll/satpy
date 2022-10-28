@@ -6,6 +6,8 @@ reader:
     NetCDF4 reader for GOES-R series GLM data. Currently only gridded L2 files
     output from `gltmtools <https://github.com/deeplycloudy/glmtools>`_ are
     supported.
+  status: Beta
+  supports_fsspec: false
   sensors: [glm]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
@@ -19,10 +21,11 @@ reader:
 file_types:
   glm_l2_imagery:
     file_reader: !!python/name:satpy.readers.glm_l2.NCGriddedGLML2
-    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-GLM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    file_patterns: ['{system_environment:s}_{mission_id:3s}-L2-GLM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 # glm_l2_lcfa - add this with glmtools
 
 datasets:
+  # Additional datasets discovered dynamically in satpy/readers/glm_l2.py
   flash_extent_density:
     name: flash_extent_density
     file_type: glm_l2_imagery

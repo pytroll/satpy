@@ -16,12 +16,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittests for NWC SAF MSG (2013) reader."""
 
-import unittest
-import numpy as np
-import tempfile
 import os
-import h5py
+import tempfile
+import unittest
 from collections import OrderedDict
+
+import h5py
+import numpy as np
+
+from satpy.tests.reader_tests.utils import fill_h5
 
 CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
@@ -449,32 +452,19 @@ class TestH5NWCSAF(unittest.TestCase):
             "SAFNWC_MSG3_CTTH_201611090800_MSG-N_______.PLAX.CTTH.0.h5",
         )
 
-        def fill_h5(root, stuff):
-            for key, val in stuff.items():
-                if key in ["value", "attrs"]:
-                    continue
-                if "value" in val:
-                    root[key] = val["value"]
-                else:
-                    grp = root.create_group(key)
-                    fill_h5(grp, stuff[key])
-                if "attrs" in val:
-                    for attrs, val in val["attrs"].items():
-                        if isinstance(val, str) and val.startswith(
-                            "<HDF5 object reference>"
-                        ):
-                            root[key].attrs[attrs] = root[val[24:]].ref
-                        else:
-                            root[key].attrs[attrs] = val
+        def cut_h5_object_ref(root, attr):
+            if isinstance(attr, str) and attr.startswith("<HDF5 object reference>"):
+                return root[attr[24:]].ref
+            return attr
 
         h5f = h5py.File(self.filename_ct, mode="w")
-        fill_h5(h5f, fake_ct)
+        fill_h5(h5f, fake_ct, attr_processor=cut_h5_object_ref)
         for attr, val in fake_ct["attrs"].items():
             h5f.attrs[attr] = val
         h5f.close()
 
         h5f = h5py.File(self.filename_ctth, mode="w")
-        fill_h5(h5f, fake_ctth)
+        fill_h5(h5f, fake_ctth, attr_processor=cut_h5_object_ref)
         for attr, val in fake_ctth["attrs"].items():
             h5f.attrs[attr] = val
         h5f.close()
@@ -482,11 +472,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_area_def(self):
         """Get the area definition."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dataid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
 
         area_def = test.get_area_def(dsid)
@@ -509,11 +499,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dataid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -522,7 +512,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_alti")
+        dsid = make_dataid(name="ctth_alti")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -531,7 +521,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_pres")
+        dsid = make_dataid(name="ctth_pres")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_PRESS"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -540,7 +530,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_tempe")
+        dsid = make_dataid(name="ctth_tempe")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_TEMPER"})
         self.assertEqual(ds.shape, (1856, 3712))

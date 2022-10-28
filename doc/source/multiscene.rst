@@ -13,6 +13,51 @@ examples will walk through some basic use cases of the MultiScene.
     These features are still early in development and may change overtime as
     more user feedback is received and more features added.
 
+MultiScene Creation
+-------------------
+There are two ways to create a ``MultiScene``. Either by manually creating and
+providing the scene objects,
+
+    >>> from satpy import Scene, MultiScene
+    >>> from glob import glob
+    >>> scenes = [
+    ...    Scene(reader='viirs_sdr', filenames=glob('/data/viirs/day_1/*t180*.h5')),
+    ...    Scene(reader='viirs_sdr', filenames=glob('/data/viirs/day_2/*t180*.h5'))
+    ... ]
+    >>> mscn = MultiScene(scenes)
+    >>> mscn.load(['I04'])
+
+or by using the :meth:`MultiScene.from_files <satpy.multiscene.MultiScene.from_files>`
+class method to create a ``MultiScene`` from a series of files. This uses the
+:func:`~satpy.readers.group_files` utility function to group files by start
+time or other filenames parameters.
+
+   >>> from satpy import MultiScene
+   >>> from glob import glob
+   >>> mscn = MultiScene.from_files(glob('/data/abi/day_1/*C0[12]*.nc'), reader='abi_l1b')
+   >>> mscn.load(['C01', 'C02'])
+
+.. versionadded:: 0.12
+
+    The ``from_files`` and ``group_files`` functions were added in Satpy 0.12.
+    See below for an alternative solution.
+
+For older versions of Satpy we can manually create the `Scene` objects used.
+The :func:`~glob.glob` function and for loops are used to group files into
+Scene objects that, if used individually, could load the data we want. The
+code below is equivalent to the ``from_files`` code above:
+
+    >>> from satpy import Scene, MultiScene
+    >>> from glob import glob
+    >>> scene_files = []
+    >>> for time_step in ['1800', '1810', '1820', '1830']:
+    ...     scene_files.append(glob('/data/abi/day_1/*C0[12]*s???????{}*.nc'.format(time_step)))
+    >>> scenes = [
+    ...     Scene(reader='abi_l1b', filenames=files) for files in sorted(scene_files)
+    ... ]
+    >>> mscn = MultiScene(scenes)
+    >>> mscn.load(['C01', 'C02'])
+
 Blending Scenes in MultiScene
 -----------------------------
 Scenes contained in a MultiScene can be combined in different ways.
@@ -39,6 +84,46 @@ iteratively overlays the remaining datasets on top.
     >>> new_mscn = mscn.resample(my_area)
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
+
+Grouping Similar Datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, ``MultiScene`` only operates on datasets shared by all scenes.
+Use the :meth:`~satpy.multiscene.MultiScene.group` method to specify groups
+of datasets that shall be treated equally by ``MultiScene``, even if their
+names or wavelengths are different.
+
+Example: Stacking scenes from multiple geostationary satellites acquired at
+roughly the same time. First, create scenes and load datasets individually:
+
+    >>> from satpy import Scene
+    >>> from glob import glob
+    >>> h8_scene = satpy.Scene(filenames=glob('/data/HS_H08_20200101_1200*'),
+    ...                        reader='ahi_hsd')
+    >>> h8_scene.load(['B13'])
+    >>> g16_scene = satpy.Scene(filenames=glob('/data/OR_ABI*s20200011200*.nc'),
+    ...                         reader='abi_l1b')
+    >>> g16_scene.load(['C13'])
+    >>> met10_scene = satpy.Scene(filenames=glob('/data/H-000-MSG4*-202001011200-__'),
+    ...                           reader='seviri_l1b_hrit')
+    >>> met10_scene.load(['IR_108'])
+
+Now create a ``MultiScene`` and group the three similar IR channels together:
+
+    >>> from satpy import MultiScene, DataQuery
+    >>> mscn = MultiScene([h8_scene, g16_scene, met10_scene])
+    >>> groups = {DataQuery('IR_group', wavelength=(10, 11, 12)): ['B13', 'C13', 'IR_108']}
+    >>> mscn.group(groups)
+
+Finally, resample the datasets to a common grid and blend them together:
+
+    >>> from pyresample.geometry import AreaDefinition
+    >>> my_area = AreaDefinition(...)
+    >>> resampled = mscn.resample(my_area, reduce_data=False)
+    >>> blended = resampled.blend()  # you can also use a custom blend function
+
+You can access the results via ``blended['IR_group']``.
+
 
 Timeseries
 **********
@@ -77,11 +162,7 @@ The MultiScene can take "frames" of data and join them together in a single
 animation movie file. Saving animations requires the `imageio` python library
 and for most available formats the ``ffmpeg`` command line tool suite should
 also be installed. The below example saves a series of GOES-EAST ABI channel
-1 and channel 2 frames to MP4 movie files. We can use the
-:meth:`MultiScene.from_files <satpy.multiscene.MultiScene.from_files>` class
-method to create a `MultiScene` from a series of files. This uses the
-:func:`~satpy.readers.group_files` utility function to group files by start
-time.
+1 and channel 2 frames to MP4 movie files.
 
     >>> from satpy import Scene, MultiScene
     >>> from glob import glob
@@ -89,36 +170,43 @@ time.
     >>> mscn.load(['C01', 'C02'])
     >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
 
-.. versionadded:: 0.12
-
-    The ``from_files`` and ``group_files`` functions were added in Satpy 0.12.
-    See below for an alternative solution.
-
 This will compute one video frame (image) at a time and write it to the MPEG-4
 video file. For users with more powerful systems it is possible to use
 the ``client`` and ``batch_size`` keyword arguments to compute multiple frames
 in parallel using the dask ``distributed`` library (if installed).
-See the :doc:`dask distributed <dask:setup/single-distributed>` documentation
+See the :doc:`dask distributed <dask:deploying-python>` documentation
 for information on creating a ``Client`` object. If working on a cluster
 you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
 of multiple nodes at a time.
 
-For older versions of Satpy we can manually create the `Scene` objects used.
-The :func:`~glob.glob` function and for loops are used to group files into
-Scene objects that, if used individually, could load the data we want. The
-code below is equivalent to the ``from_files`` code above:
+It is possible to add an overlay or decoration to each frame of an
+animation.  For text added as a decoration, string substitution will be
+applied based on the attributes of the dataset, for example:
 
-    >>> from satpy import Scene, MultiScene
-    >>> from glob import glob
-    >>> scene_files = []
-    >>> for time_step in ['1800', '1810', '1820', '1830']:
-    ...     scene_files.append(glob('/data/abi/day_1/*C0[12]*s???????{}*.nc'.format(time_step)))
-    >>> scenes = [
-    ...     Scene(reader='abi_l1b', filenames=files) for files in sorted(scene_files)
-    ... ]
-    >>> mscn = MultiScene(scenes)
-    >>> mscn.load(['C01', 'C02'])
-    >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
+    >>> mscn.save_animation(
+    ...     "{name:s}_{start_time:%Y%m%d_%H%M}.mp4",
+    ...     enh_args={
+    ...     "decorate": {
+    ...         "decorate": [
+    ...             {"text": {
+    ...                 "txt": "time {start_time:%Y-%m-%d %H:%M}",
+    ...                 "align": {
+    ...                     "top_bottom": "bottom",
+    ...                     "left_right": "right"},
+    ...                 "font": '/usr/share/fonts/truetype/arial.ttf',
+    ...                 "font_size": 20,
+    ...                 "height": 30,
+    ...                 "bg": "black",
+    ...                 "bg_opacity": 255,
+    ...                 "line": "white"}}]}})
+
+If your file covers ABI MESO data for an hour for channel 2 lasting
+from 2020-04-12 01:00-01:59, then the output file will be called
+``C02_20200412_0100.mp4`` (because the first dataset/frame corresponds to
+an image that started to be taken at 01:00), consist of sixty frames (one
+per minute for MESO data), and each frame will have the start time for
+that frame floored to the minute blended into the frame.  Note that this
+text is "burned" into the video and cannot be switched on or off later.
 
 .. warning::
 
@@ -143,3 +231,51 @@ multiple Scenes use:
     >>> mscn = MultiScene.from_files(glob('/data/abi/day_1/*C0[12]*.nc'), reader='abi_l1b')
     >>> mscn.load(['C01', 'C02'])
     >>> mscn.save_datasets(base_dir='/path/for/output')
+
+Combining multiple readers
+--------------------------
+
+.. versionadded:: 0.23
+
+The :meth:`~satpy.multiscene.MultiScene.from_files` constructor allows to
+automatically combine multiple readers into a single MultiScene.  It is no
+longer necessary for the user to create the :class:`~satpy.scene.Scene`
+objects themselves.  For example, you can combine Advanced Baseline
+Imager (ABI) and Global Lightning Mapper (GLM) measurements.
+Constructing a multi-reader MultiScene requires more parameters than a
+single-reader MultiScene, because Satpy can poorly guess how to group
+files belonging to different instruments.  For an example creating
+a video with lightning superimposed on ABI channel 14 (11.2 µm)
+using the built-in composite ``C14_flash_extent_density``,
+which superimposes flash extent density from GLM (read with the
+:class:`~satpy.readers.glm_l2.NCGriddedGLML2` or ``glm_l2`` reader) on ABI
+channel 14 data (read with the :class:`~satpy.readers.abi_l1b.NC_ABI_L1B`
+or ``abi_l1b`` reader), and therefore needs Scene objects that combine
+both readers:
+
+    >>> glm_dir = "/path/to/GLMC/"
+    >>> abi_dir = "/path/to/ABI/"
+    >>> ms = satpy.MultiScene.from_files(
+    ...        glob.glob(glm_dir + "OR_GLM-L2-GLMC-M3_G16_s202010418*.nc") +
+    ...        glob.glob(abi_dir + "C*/OR_ABI-L1b-RadC-M6C*_G16_s202010418*_e*_c*.nc"),
+    ...        reader=["glm_l2", "abi_l1b"],
+    ...        ensure_all_readers=True,
+    ...        group_keys=["start_time"],
+    ...        time_threshold=30)
+    >>> ms.load(["C14_flash_extent_density"])
+    >>> ms = ms.resample(ms.first_scene["C14"].attrs["area"])
+    >>> ms.save_animation("/path/for/output/{name:s}_{start_time:%Y%m%d_%H%M}.mp4")
+
+In this example, we pass to
+:meth:`~satpy.multiscene.MultiScene.from_files` the additional parameters
+``ensure_all_readers=True, group_keys=["start_time"], time_threshold=30``
+so we only get scenes at times that both ABI and GLM have a file starting
+within 30 seconds from each other, and ignore all other differences for
+the purposes of grouping the two.  For this example, the ABI files occur
+every 5 minutes but the GLM files (processed with glmtools) every minute.
+Scenes where there is a GLM file without an ABI file starting within at
+most ±30 seconds are skipped.  The ``group_keys`` and ``time_threshold``
+keyword arguments are processed by the :func:`~satpy.readers.group_files`
+function.  The heavy work of blending the two instruments together is
+performed by the :class:`~satpy.composites.BackgroundCompositor` class
+through the `"C14_flash_extent_density"` composite.

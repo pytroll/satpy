@@ -15,11 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
+# type: ignore
 """An OSISAF SST reader for the netCDF GHRSST format."""
 
 import logging
 from datetime import datetime
+
 import numpy as np
 
 from satpy.dataset import Dataset
@@ -44,7 +45,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info, out=None):
         """Load a dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
             # loading a scalar value
@@ -68,24 +69,10 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
         if out is None:
             out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
+            out.mask = np.zeros(shape, dtype=bool)
 
         out.data[:] = np.require(self[var_path][0][::-1], dtype=dtype)
-        valid_min = self[var_path + '/attr/valid_min']
-        valid_max = self[var_path + '/attr/valid_max']
-        try:
-            scale_factor = self[var_path + '/attr/scale_factor']
-            scale_offset = self[var_path + '/attr/add_offset']
-        except KeyError:
-            scale_factor = scale_offset = None
-
-        if valid_min is not None and valid_max is not None:
-            out.mask[:] |= (out.data < valid_min) | (out.data > valid_max)
-
-        factors = (scale_factor, scale_offset)
-        if factors[0] != 1 or factors[1] != 0:
-            out.data[:] *= factors[0]
-            out.data[:] += factors[1]
+        self._scale_and_mask_data(out, var_path)
 
         ds_info.update({
             "units": ds_info.get("units", file_units),
@@ -95,6 +82,21 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
+
+    def _scale_and_mask_data(self, out, var_path):
+        valid_min = self[var_path + '/attr/valid_min']
+        valid_max = self[var_path + '/attr/valid_max']
+        try:
+            scale_factor = self[var_path + '/attr/scale_factor']
+            scale_offset = self[var_path + '/attr/add_offset']
+        except KeyError:
+            scale_factor = scale_offset = None
+        if valid_min is not None and valid_max is not None:
+            out.mask[:] |= (out.data < valid_min) | (out.data > valid_max)
+        factors = (scale_factor, scale_offset)
+        if factors[0] != 1 or factors[1] != 0:
+            out.data[:] *= factors[0]
+            out.data[:] += factors[1]
 
     def get_lonlats(self, navid, nav_info, lon_out=None, lat_out=None):
         """Load an area."""

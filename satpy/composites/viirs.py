@@ -18,155 +18,16 @@
 """Composite classes for the VIIRS instrument."""
 
 import logging
-import os
 
-import numpy as np
 import dask
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.composites import CompositeBase, GenericCompositor
-from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
-from satpy.utils import get_satpos
 
 LOG = logging.getLogger(__name__)
-
-
-class VIIRSFog(CompositeBase):
-    """A simple temperature difference composite for showing fog."""
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        """Create the temperature difference DataArray."""
-        import warnings
-        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
-                      "instead.", DeprecationWarning)
-
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
-
-        p1, p2 = projectables
-        fog = p1 - p2
-        fog.attrs.update(self.attrs)
-        fog.attrs["area"] = p1.attrs["area"]
-        fog.attrs["start_time"] = p1.attrs["start_time"]
-        fog.attrs["end_time"] = p1.attrs["end_time"]
-        fog.attrs["name"] = self.attrs["name"]
-        fog.attrs["wavelength"] = None
-        fog.attrs.setdefault("mode", "L")
-        return fog
-
-
-class ReflectanceCorrector(CompositeBase):
-    """Corrected Reflectance (crefl) modifier.
-
-    Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the compositor with values from the user or from the configuration file.
-
-        If `dem_filename` can't be found or opened then correction is done
-        assuming TOA or sealevel options.
-
-        :param dem_filename: path to the ancillary 'averaged heights' file
-                             default: CMGDEM.hdf
-                             environment override: os.path.join(<SATPY_ANCPATH>, <CREFL_ANCFILENAME>)
-        :param dem_sds: variable name to load from the ancillary file
-        """
-        dem_filename = kwargs.pop("dem_filename",
-                                  os.environ.get("CREFL_ANCFILENAME",
-                                                 "CMGDEM.hdf"))
-        if os.path.exists(dem_filename):
-            self.dem_file = dem_filename
-        else:
-            self.dem_file = os.path.join(get_environ_ancpath(), dem_filename)
-        self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
-        super(ReflectanceCorrector, self).__init__(*args, **kwargs)
-
-    def __call__(self, datasets, optional_datasets, **info):
-        """Create modified DataArray object by applying the crefl algorithm."""
-        if not optional_datasets or len(optional_datasets) != 4:
-            vis = self.match_data_arrays([datasets[0]])[0]
-            sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
-        else:
-            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.match_data_arrays(
-                datasets + optional_datasets)
-            # get the dask array underneath
-            sensor_aa = sensor_aa.data
-            sensor_za = sensor_za.data
-            solar_aa = solar_aa.data
-            solar_za = solar_za.data
-        # angles must be xarrays
-        sensor_aa = xr.DataArray(sensor_aa, dims=['y', 'x'])
-        sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
-        solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
-        solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
-        refl_data = datasets[0]
-        if refl_data.attrs.get("rayleigh_corrected"):
-            return refl_data
-        if os.path.isfile(self.dem_file):
-            LOG.debug("Loading CREFL averaged elevation information from: %s",
-                      self.dem_file)
-            from netCDF4 import Dataset as NCDataset
-            # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = NCDataset(self.dem_file, "r")
-            # average elevation is stored as a 16-bit signed integer but with
-            # scale factor 1 and offset 0, convert it to float here
-            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float)
-            if isinstance(avg_elevation, np.ma.MaskedArray):
-                avg_elevation = avg_elevation.filled(np.nan)
-        else:
-            avg_elevation = None
-
-        from satpy.composites.crefl_utils import run_crefl, get_coefficients
-
-        percent = refl_data.attrs["units"] == "%"
-
-        coefficients = get_coefficients(refl_data.attrs["sensor"],
-                                        refl_data.attrs["wavelength"],
-                                        refl_data.attrs["resolution"])
-        use_abi = vis.attrs['sensor'] == 'abi'
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.chunks)
-        results = run_crefl(refl_data,
-                            coefficients,
-                            lons,
-                            lats,
-                            sensor_aa,
-                            sensor_za,
-                            solar_aa,
-                            solar_za,
-                            avg_elevation=avg_elevation,
-                            percent=percent,
-                            use_abi=use_abi)
-        info.update(refl_data.attrs)
-        info["rayleigh_corrected"] = True
-        factor = 100. if percent else 1.
-        results = results * factor
-        results.attrs = info
-        self.apply_modifier_info(refl_data, results)
-        return results
-
-    def get_angles(self, vis):
-        """Get sun and satellite angles to use in crefl calculations."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
 
 
 class HistogramDNB(CompositeBase):
@@ -407,7 +268,7 @@ class ERFDNB(CompositeBase):
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
         while saturation_pct > 0.005:
-            max_val *= 1.1 * unit_factor
+            max_val *= 1.1
             saturation_pct = float(np.count_nonzero(
                 dnb_data > max_val)) / dnb_data.size
             LOG.debug("Dynamic DNB saturation percentage: %f",
@@ -479,7 +340,7 @@ class ERFDNB(CompositeBase):
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
-            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            inner_sqrt.data = np.clip(inner_sqrt.data, 0, None)
             output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
@@ -619,8 +480,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     Returns: The equalized data
     """
     out = out if out is not None else np.zeros_like(data)
-    # if we don't have a valid mask, use the mask of what we should be
-    # equalizing
+    # if we don't have a valid mask, use the mask of what we should be equalizing
     if valid_data_mask is None:
         valid_data_mask = mask_to_equalize
 
@@ -634,77 +494,20 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
         (total_cols % tile_size) == 0) else int(total_cols / tile_size) + 1
 
     # an array of our distribution functions for equalization
-    all_cumulative_dist_functions = [[]]
+    all_cumulative_dist_functions = [[] for _ in range(row_tiles)]
     # an array of our bin information for equalization
-    all_bin_information = [[]]
+    all_bin_information = [[] for _ in range(row_tiles)]
 
-    # loop through our tiles and create the histogram equalizations for each
-    # one
+    # loop through our tiles and create the histogram equalizations for each one
     for num_row_tile in range(row_tiles):
-
-        # make sure we have enough rows available to store info on this next
-        # row of tiles
-        if len(all_cumulative_dist_functions) <= num_row_tile:
-            all_cumulative_dist_functions.append([])
-        if len(all_bin_information) <= num_row_tile:
-            all_bin_information.append([])
-
-        # go through each tile in this row and calculate the equalization
         for num_col_tile in range(col_tiles):
-
-            # calculate the range for this tile (min is inclusive, max is
-            # exclusive)
-            min_row = num_row_tile * tile_size
-            max_row = min_row + tile_size
-            min_col = num_col_tile * tile_size
-            max_col = min_col + tile_size
-
-            # for speed of calculation, pull out the mask of pixels that should
-            # be used to calculate the histogram
-            mask_valid_data_in_tile = valid_data_mask[min_row:max_row, min_col:
-                                                      max_col]
-
-            # if we have any valid data in this tile, calculate a histogram equalization for this tile
-            # (note: even if this tile does no fall in the mask_to_equalize, it's histogram may be used by other tiles)
-            cumulative_dist_function, temp_bins = None, None
-            if mask_valid_data_in_tile.any():
-
-                # use all valid data in the tile, so separate sections will
-                # blend cleanly
-                temp_valid_data = data[min_row:max_row, min_col:max_col][
-                    mask_valid_data_in_tile]
-                temp_valid_data = temp_valid_data[
-                    temp_valid_data >= 0
-                ]  # TEMP, testing to see if negative data is messing everything up
-                # limit the contrast by only considering data within a certain
-                # range of the average
-                if std_mult_cutoff is not None:
-                    avg = np.mean(temp_valid_data)
-                    std = np.std(temp_valid_data)
-                    # limit our range to avg +/- std_mult_cutoff*std; e.g. the
-                    # default std_mult_cutoff is 4.0 so about 99.8% of the data
-                    concervative_mask = (
-                        temp_valid_data < (avg + std * std_mult_cutoff)) & (
-                            temp_valid_data > (avg - std * std_mult_cutoff))
-                    temp_valid_data = temp_valid_data[concervative_mask]
-
-                # if we are taking the log of our data, do so now
-                if do_log_scale:
-                    temp_valid_data = np.log(temp_valid_data + log_offset)
-
-                # do the histogram equalization and get the resulting
-                # distribution function and bin information
-                if temp_valid_data.size > 0:
-                    cumulative_dist_function, temp_bins = _histogram_equalization_helper(
-                        temp_valid_data,
-                        number_of_bins,
-                        clip_limit=clip_limit,
-                        slope_limit=slope_limit)
-
-            # hang on to our equalization related information for use later
-            all_cumulative_dist_functions[num_row_tile].append(
-                cumulative_dist_function)
-            all_bin_information[num_row_tile].append(temp_bins)
+            tile_dist_func, tile_bin_info = _histogram_equalize_one_tile(
+                data, valid_data_mask, std_mult_cutoff, do_log_scale, log_offset,
+                clip_limit, slope_limit, number_of_bins, num_row_tile, num_col_tile,
+                tile_size
+            )
+            all_cumulative_dist_functions[num_row_tile].append(tile_dist_func)
+            all_bin_information[num_row_tile].append(tile_bin_info)
 
     # get the tile weight array so we can use it to interpolate our data
     tile_weights = _calculate_weights(tile_size)
@@ -713,99 +516,11 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     # versions of the data
     for num_row_tile in range(row_tiles):
         for num_col_tile in range(col_tiles):
-
-            # calculate the range for this tile (min is inclusive, max is
-            # exclusive)
-            min_row = num_row_tile * tile_size
-            max_row = min_row + tile_size
-            min_col = num_col_tile * tile_size
-            max_col = min_col + tile_size
-
-            # for convenience, pull some of these tile sized chunks out
-            temp_all_data = data[min_row:max_row, min_col:max_col].copy()
-            temp_mask_to_equalize = mask_to_equalize[min_row:max_row, min_col:
-                                                     max_col]
-            temp_all_valid_data_mask = valid_data_mask[min_row:max_row,
-                                                       min_col:max_col]
-
-            # if we have any data in this tile, calculate our weighted sum
-            if temp_mask_to_equalize.any():
-                if do_log_scale:
-                    temp_all_data[temp_all_valid_data_mask] = np.log(
-                        temp_all_data[temp_all_valid_data_mask] + log_offset)
-                temp_data_to_equalize = temp_all_data[temp_mask_to_equalize]
-                temp_all_valid_data = temp_all_data[temp_all_valid_data_mask]
-
-                # a place to hold our weighted sum that represents the interpolated contributions
-                # of the histogram equalizations from the surrounding tiles
-                temp_sum = np.zeros_like(temp_data_to_equalize)
-
-                # how much weight were we unable to use because those tiles
-                # fell off the edge of the image?
-                unused_weight = np.zeros(temp_data_to_equalize.shape,
-                                         dtype=tile_weights.dtype)
-
-                # loop through all the surrounding tiles and process their
-                # contributions to this tile
-                for weight_row in range(3):
-                    for weight_col in range(3):
-                        # figure out which adjacent tile we're processing (in
-                        # overall tile coordinates instead of relative to our
-                        # current tile)
-                        calculated_row = num_row_tile - 1 + weight_row
-                        calculated_col = num_col_tile - 1 + weight_col
-                        tmp_tile_weights = tile_weights[
-                            weight_row, weight_col][np.where(
-                                temp_mask_to_equalize)]
-
-                        # if we're inside the tile array and the tile we're
-                        # processing has a histogram equalization for us to
-                        # use, process it
-                        if ((calculated_row >= 0) and
-                            (calculated_row < row_tiles) and
-                            (calculated_col >= 0) and
-                            (calculated_col < col_tiles) and (
-                                all_bin_information[calculated_row][
-                                    calculated_col] is not None) and
-                            (all_cumulative_dist_functions[calculated_row][
-                                calculated_col] is not None)):
-
-                            # equalize our current tile using the histogram
-                            # equalization from the tile we're processing
-                            temp_equalized_data = np.interp(
-                                temp_all_valid_data, all_bin_information[
-                                    calculated_row][calculated_col][:-1],
-                                all_cumulative_dist_functions[calculated_row][
-                                    calculated_col])
-                            temp_equalized_data = temp_equalized_data[np.where(
-                                temp_mask_to_equalize[
-                                    temp_all_valid_data_mask])]
-
-                            # add the contribution for the tile we're
-                            # processing to our weighted sum
-                            temp_sum += (temp_equalized_data *
-                                         tmp_tile_weights)
-
-                        # if the tile we're processing doesn't exist, hang onto the weight we
-                        # would have used for it so we can correct that later
-                        else:
-                            unused_weight -= tmp_tile_weights
-
-                # if we have unused weights, scale our values to correct for
-                # that
-                if unused_weight.any():
-                    # TODO, if the mask masks everything out this will be a
-                    # zero!
-                    temp_sum /= unused_weight + 1
-
-                # now that we've calculated the weighted sum for this tile, set
-                # it in our data array
-                out[min_row:max_row, min_col:max_col][
-                    temp_mask_to_equalize] = temp_sum
-                # TEMP, test without using weights
-                # data[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = \
-                #     np.interp(temp_data_to_equalize, all_bin_information[num_row_tile][num_col_tile][:-1],
-                #               all_cumulative_dist_functions[num_row_tile][num_col_tile])
+            _interpolate_local_equalized_tiles(
+                data, out, mask_to_equalize, valid_data_mask, do_log_scale, log_offset,
+                tile_weights, all_bin_information, all_cumulative_dist_functions,
+                num_row_tile, num_col_tile, row_tiles, col_tiles, tile_size,
+            )
 
     # if we were asked to, normalize our data to be between zero and one,
     # rather than zero and number_of_bins
@@ -813,6 +528,155 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
         _linear_normalization_from_0to1(out, mask_to_equalize, number_of_bins)
 
     return out
+
+
+def _histogram_equalize_one_tile(
+        data, valid_data_mask, std_mult_cutoff, do_log_scale, log_offset,
+        clip_limit, slope_limit, number_of_bins, num_row_tile, num_col_tile,
+        tile_size):
+    # calculate the range for this tile (min is inclusive, max is
+    # exclusive)
+    min_row = num_row_tile * tile_size
+    max_row = min_row + tile_size
+    min_col = num_col_tile * tile_size
+    max_col = min_col + tile_size
+
+    # for speed of calculation, pull out the mask of pixels that should
+    # be used to calculate the histogram
+    mask_valid_data_in_tile = valid_data_mask[min_row:max_row, min_col:max_col]
+
+    # if we have any valid data in this tile, calculate a histogram equalization for this tile
+    # (note: even if this tile does no fall in the mask_to_equalize, it's histogram may be used by other tiles)
+    if not mask_valid_data_in_tile.any():
+        return None, None
+
+    # use all valid data in the tile, so separate sections will
+    # blend cleanly
+    temp_valid_data = data[min_row:max_row, min_col:max_col][
+        mask_valid_data_in_tile]
+    temp_valid_data = temp_valid_data[
+        temp_valid_data >= 0
+        ]  # TEMP, testing to see if negative data is messing everything up
+    # limit the contrast by only considering data within a certain
+    # range of the average
+    if std_mult_cutoff is not None:
+        avg = np.mean(temp_valid_data)
+        std = np.std(temp_valid_data)
+        # limit our range to avg +/- std_mult_cutoff*std; e.g. the
+        # default std_mult_cutoff is 4.0 so about 99.8% of the data
+        concervative_mask = (
+                                    temp_valid_data < (avg + std * std_mult_cutoff)) & (
+                                    temp_valid_data > (avg - std * std_mult_cutoff))
+        temp_valid_data = temp_valid_data[concervative_mask]
+
+    # if we are taking the log of our data, do so now
+    if do_log_scale:
+        temp_valid_data = np.log(temp_valid_data + log_offset)
+
+    # do the histogram equalization and get the resulting
+    # distribution function and bin information
+    if not temp_valid_data.size:
+        return None, None
+
+    cumulative_dist_function, temp_bins = _histogram_equalization_helper(
+        temp_valid_data,
+        number_of_bins,
+        clip_limit=clip_limit,
+        slope_limit=slope_limit)
+    return cumulative_dist_function, temp_bins
+
+
+def _interpolate_local_equalized_tiles(
+        data, out, mask_to_equalize, valid_data_mask, do_log_scale, log_offset,
+        tile_weights, all_bin_information, all_cumulative_dist_functions,
+        row_idx, col_idx, row_tiles, col_tiles, tile_size):
+    # calculate the range for this tile (min is inclusive, max is
+    # exclusive)
+    num_row_tile = row_idx
+    num_col_tile = col_idx
+    min_row = num_row_tile * tile_size
+    max_row = min_row + tile_size
+    min_col = num_col_tile * tile_size
+    max_col = min_col + tile_size
+
+    # for convenience, pull some of these tile sized chunks out
+    temp_all_data = data[min_row:max_row, min_col:max_col].copy()
+    temp_mask_to_equalize = mask_to_equalize[min_row:max_row, min_col:max_col]
+    temp_all_valid_data_mask = valid_data_mask[min_row:max_row, min_col:max_col]
+
+    # if we have any data in this tile, calculate our weighted sum
+    if not temp_mask_to_equalize.any():
+        return
+
+    if do_log_scale:
+        temp_all_data[temp_all_valid_data_mask] = np.log(
+            temp_all_data[temp_all_valid_data_mask] + log_offset)
+    temp_data_to_equalize = temp_all_data[temp_mask_to_equalize]
+    temp_all_valid_data = temp_all_data[temp_all_valid_data_mask]
+
+    # a place to hold our weighted sum that represents the interpolated contributions
+    # of the histogram equalizations from the surrounding tiles
+    temp_sum = np.zeros_like(temp_data_to_equalize)
+
+    # how much weight were we unable to use because those tiles
+    # fell off the edge of the image?
+    unused_weight = np.zeros(temp_data_to_equalize.shape, dtype=tile_weights.dtype)
+
+    # loop through all the surrounding tiles and process their
+    # contributions to this tile
+    for weight_row in range(3):
+        for weight_col in range(3):
+            # figure out which adjacent tile we're processing (in
+            # overall tile coordinates instead of relative to our
+            # current tile)
+            calculated_row = num_row_tile - 1 + weight_row
+            calculated_col = num_col_tile - 1 + weight_col
+            tmp_tile_weights = tile_weights[
+                weight_row, weight_col][np.where(temp_mask_to_equalize)]
+
+            # if we're inside the tile array and the tile we're
+            # processing has a histogram equalization for us to
+            # use, process it
+            if ((calculated_row >= 0) and
+                    (calculated_row < row_tiles) and
+                    (calculated_col >= 0) and
+                    (calculated_col < col_tiles) and (
+                            all_bin_information[calculated_row][
+                                calculated_col] is not None) and
+                    (all_cumulative_dist_functions[calculated_row][
+                         calculated_col] is not None)):
+
+                # equalize our current tile using the histogram
+                # equalization from the tile we're processing
+                temp_equalized_data = np.interp(
+                    temp_all_valid_data, all_bin_information[calculated_row][calculated_col][:-1],
+                    all_cumulative_dist_functions[calculated_row][
+                        calculated_col])
+                temp_equalized_data = temp_equalized_data[np.where(
+                    temp_mask_to_equalize[temp_all_valid_data_mask])]
+
+                # add the contribution for the tile we're
+                # processing to our weighted sum
+                temp_sum += temp_equalized_data * tmp_tile_weights
+
+            # if the tile we're processing doesn't exist, hang onto the weight we
+            # would have used for it so we can correct that later
+            else:
+                unused_weight -= tmp_tile_weights
+
+    # if we have unused weights, scale our values to correct for that
+    if unused_weight.any():
+        # TODO: if the mask masks everything out this will be a zero!
+        temp_sum /= unused_weight + 1
+
+    # now that we've calculated the weighted sum for this tile, set
+    # it in our data array
+    out[min_row:max_row, min_col:max_col][
+        temp_mask_to_equalize] = temp_sum
+    # TEMP, test without using weights
+    # data[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = \
+    #     np.interp(temp_data_to_equalize, all_bin_information[num_row_tile][num_col_tile][:-1],
+    #               all_cumulative_dist_functions[num_row_tile][num_col_tile])
 
 
 def _histogram_equalization_helper(valid_data, number_of_bins, clip_limit=None, slope_limit=None):
@@ -884,10 +748,8 @@ def _calculate_weights(tile_size):
     # that has all 8 surrounding tiles available
     # create our empty template tiles
     template_tile = np.zeros((3, 3, tile_size, tile_size), dtype=np.float32)
-    """
     # TEMP FOR TESTING, create a weight tile that does no interpolation
-    template_tile[1,1] = template_tile[1,1] + 1.0
-    """
+    # template_tile[1,1] = template_tile[1,1] + 1.0
 
     # for ease of calculation, figure out the index of the center pixel in a tile
     # and how far that pixel is from the edge of the tile (in pixel units)
@@ -1091,18 +953,19 @@ class SnowAge(GenericCompositor):
     Product is based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
 
-    # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
-    # These Look-up Tables allow you to create the RGB snow product
-    # for SUOMI-NPP VIIRS Imager according to the algorithm
-    # presented at the second CSPP/IMAPP users' meeting at Eumetsat
-    # in Darmstadt on 14-16 April 2015
-    # The algorithm and the product are described in this
-    # presentation :
-    # http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
-    # For further information you may contact
-    # Bernard Bellec at Bernard.Bellec@meteo.fr
-    # or
-    # Pascale Roquet at Pascale.Roquet@meteo.fr
+    Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
+    These Look-up Tables allow you to create the RGB snow product
+    for SUOMI-NPP VIIRS Imager according to the algorithm
+    presented at the second CSPP/IMAPP users' meeting at Eumetsat
+    in Darmstadt on 14-16 April 2015
+    The algorithm and the product are described in this
+    presentation :
+    http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+    as well as in the paper http://dx.doi.org/10.1016/j.rse.2017.04.028
+    For further information you may contact
+    Bernard Bellec at Bernard.Bellec@meteo.fr
+    or
+    Pascale Roquet at Pascale.Roquet@meteo.fr
     """
 
     def __call__(self, projectables, nonprojectables=None, **info):
@@ -1111,11 +974,13 @@ class SnowAge(GenericCompositor):
         The algorithm and the product are described in this
         presentation :
         http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        as well as in the paper http://dx.doi.org/10.1016/j.rse.2017.04.028
         For further information you may contact
         Bernard Bellec at Bernard.Bellec@meteo.fr
         or
         Pascale Roquet at Pascale.Roquet@meteo.fr
 
+        The resulting RGB has the units attribute removed.
         """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
@@ -1144,4 +1009,6 @@ class SnowAge(GenericCompositor):
         ch2.attrs = info
         ch3.attrs = info
 
-        return super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res = super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res.attrs.pop("units", None)
+        return res

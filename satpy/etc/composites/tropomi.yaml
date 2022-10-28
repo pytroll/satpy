@@ -1,0 +1,15 @@
+sensor_name: tropomi
+
+composites:
+
+  no2_tropospheric_clean:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - nitrogendioxide_tropospheric_column
+    standard_name: no2_tropospheric_clean
+
+  no2_tropospheric_polluted:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - nitrogendioxide_tropospheric_column
+    standard_name: no2_tropospheric_polluted

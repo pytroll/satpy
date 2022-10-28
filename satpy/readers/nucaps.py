@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Satpy developers
+# Copyright (c) 2016-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -33,14 +33,15 @@ onboard Joint Polar Satellite System spacecraft.
 
 """
 
-from datetime import datetime
-import xarray as xr
-import numpy as np
 import logging
 from collections import defaultdict
 
-from satpy.readers.yaml_reader import FileYAMLReader
+import numpy as np
+import pandas as pd
+import xarray as xr
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.yaml_reader import FileYAMLReader
 
 LOG = logging.getLogger(__name__)
 
@@ -68,6 +69,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def __init__(self, *args, **kwargs):
         """Initialize file handler."""
+        # remove kwargs that reader instance used that file handler does not
+        kwargs.pop('mask_surface', None)
+        kwargs.pop('mask_quality', None)
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'decode_times', False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
@@ -78,7 +82,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def _parse_datetime(self, datestr):
         """Parse NUCAPS datetime string."""
-        return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return pd.to_datetime(datestr).to_pydatetime()
 
     @property
     def start_time(self):
@@ -121,8 +125,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             res = self['/attr/platform_name']
             if isinstance(res, np.ndarray):
                 return str(res.astype(str))
-            else:
-                return res
+            return res
         except KeyError:
             return self.filename_info['platform_shortname']
 
@@ -131,18 +134,16 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Return standard sensor or instrument name for the file's data."""
         try:
             res = self['/attr/instrument_name']
-            if isinstance(res, np.ndarray):
-                res = str(res.astype(str))
             res = [x.strip() for x in res.split(',')]
             if len(res) == 1:
-                return res[0]
-            return res
+                return res[0].lower()
         except KeyError:
-            return ['CrIS', 'ATMS', 'VIIRS']
+            res = ['CrIS', 'ATMS', 'VIIRS']
+        return set(name.lower() for name in res)
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
-        var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(ds_id['name']))
         if var_path + '/shape' not in self:
             # loading a scalar value
             shape = 1
@@ -156,7 +157,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get('file_units',
                                  self.get(var_path + '/attr/units'))
@@ -178,7 +179,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if 'standard_name' not in info:
             sname_path = var_path + '/attr/standard_name'
             info['standard_name'] = self.get(sname_path)
-        if dataset_id.name != 'Quality_Flag':
+        if dataset_id['name'] != 'Quality_Flag':
             anc_vars = info.get('ancillary_variables', [])
             if 'Quality_Flag' not in anc_vars:
                 anc_vars.append('Quality_Flag')
@@ -187,7 +188,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata for specified dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self[var_path + '/attr/valid_range']
         fill_value = self.get(var_path + '/attr/_FillValue')
@@ -207,7 +208,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             if 'Number_of_CrIS_FORs' in sp.dims:
                 sp = sp.rename({'Number_of_CrIS_FORs': 'y'})
             if 'surface_pressure' in ds_info:
-                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
+                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp), dim='y')
             else:
                 ds_info['surface_pressure'] = sp
             # include all the pressure levels
@@ -219,6 +220,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where((data <= valid_max))  # | (data >= valid_min))
         if fill_value is not None:
             data = data.where(data != fill_value)
+            # this _FillValue is no longer valid
+            metadata.pop('_FillValue', None)
+            data.attrs.pop('_FillValue', None)
 
         data.attrs.update(metadata)
         # Older format
@@ -248,7 +252,7 @@ class NUCAPSReader(FileYAMLReader):
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
     def load_ds_ids_from_config(self):
-        """Convert config dataset entries to DatasetIDs.
+        """Convert config dataset entries to DataIDs.
 
         Special handling is done to provide level specific datasets
         for any pressured based datasets. For example, a dataset is
@@ -269,12 +273,12 @@ class NUCAPSReader(FileYAMLReader):
                     new_info = ds_info.copy()
                     new_info['pressure_level'] = lvl_num
                     new_info['pressure_index'] = idx
-                    new_info['file_key'] = '{}'.format(ds_id.name)
-                    new_info['name'] = ds_id.name + suffix
+                    new_info['file_key'] = '{}'.format(ds_id['name'])
+                    new_info['name'] = ds_id['name'] + suffix
                     new_ds_id = ds_id._replace(name=new_info['name'])
                     new_info['id'] = new_ds_id
                     self.all_ids[new_ds_id] = new_info
-                    self.pressure_dataset_names[ds_id.name].append(new_info['name'])
+                    self.pressure_dataset_names[ds_id['name']].append(new_info['name'])
 
     def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
         """Load data from one or more set of files.
@@ -286,25 +290,7 @@ class NUCAPSReader(FileYAMLReader):
         """
         dataset_keys = set(self.get_dataset_key(x) for x in dataset_keys)
         if pressure_levels is not None:
-            # Filter out datasets that don't fit in the correct pressure level
-            for ds_id in dataset_keys.copy():
-                ds_info = self.all_ids[ds_id]
-                ds_level = ds_info.get("pressure_level")
-                if ds_level is not None:
-                    if pressure_levels is True:
-                        # they want all pressure levels
-                        continue
-                    elif len(pressure_levels) == 2 and pressure_levels[0] <= ds_level <= pressure_levels[1]:
-                        # given a min and a max pressure level
-                        continue
-                    elif np.isclose(pressure_levels, ds_level).any():
-                        # they asked for this specific pressure level
-                        continue
-                    else:
-                        # they don't want this dataset at this pressure level
-                        LOG.debug("Removing dataset to load: %s", ds_id)
-                        dataset_keys.remove(ds_id)
-                        continue
+            self._filter_dataset_keys_outside_pressure_levels(dataset_keys, pressure_levels)
 
             # Add pressure levels to the datasets to load if needed so
             # we can do further filtering after loading
@@ -323,66 +309,101 @@ class NUCAPSReader(FileYAMLReader):
                 dataset_keys.remove(plevels_ds_id)
             else:
                 plevels_ds = datasets_loaded[plevels_ds_id]
-
-            if pressure_levels is True:
-                cond = None
-            elif len(pressure_levels) == 2:
-                cond = (plevels_ds >= pressure_levels[0]) & (plevels_ds <= pressure_levels[1])
-            else:
-                cond = plevels_ds == pressure_levels
-            if cond is not None:
-                new_plevels = plevels_ds.where(cond, drop=True)
-            else:
-                new_plevels = plevels_ds
-
-            for ds_id in datasets_loaded.keys():
-                ds_obj = datasets_loaded[ds_id]
-                if plevels_ds.dims[0] not in ds_obj.dims:
-                    continue
-
-                if cond is not None:
-                    datasets_loaded[ds_id] = ds_obj.where(cond, drop=True)
-                datasets_loaded[ds_id].attrs['pressure_levels'] = new_plevels
+            _remove_data_at_pressure_levels(datasets_loaded, plevels_ds, pressure_levels)
 
         if self.mask_surface:
-            LOG.debug("Filtering pressure levels at or below the surface pressure")
-            for ds_id in sorted(dataset_keys):
-                ds = datasets_loaded[ds_id]
-                if "surface_pressure" not in ds.attrs or "pressure_levels" not in ds.attrs:
-                    continue
-                data_pressure = ds.attrs["pressure_levels"]
-                surface_pressure = ds.attrs["surface_pressure"]
-                if isinstance(surface_pressure, float):
-                    # scalar needs to become array for each record
-                    surface_pressure = np.repeat(surface_pressure, ds.shape[0])
-                if surface_pressure.ndim == 1 and surface_pressure.shape[0] == ds.shape[0]:
-                    # surface is one element per record
-                    LOG.debug("Filtering %s at and below the surface pressure", ds_id)
-                    if ds.ndim == 2:
-                        surface_pressure = np.repeat(surface_pressure[:, None], data_pressure.shape[0], axis=1)
-                        data_pressure = np.repeat(data_pressure[None, :], surface_pressure.shape[0], axis=0)
-                        datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
-                    else:
-                        # entire dataset represents one pressure level
-                        data_pressure = ds.attrs["pressure_level"]
-                        datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
-                else:
-                    LOG.warning("Not sure how to handle shape of 'surface_pressure' metadata")
+            _mask_data_below_surface_pressure(datasets_loaded, dataset_keys)
 
         if self.mask_quality:
-            LOG.debug("Filtering data based on quality flags")
-            for ds_id in sorted(dataset_keys):
-                ds = datasets_loaded[ds_id]
-                quality_flag = [
-                    x for x in ds.attrs.get('ancillary_variables', [])
-                    if x.attrs.get('name') == 'Quality_Flag']
-                if not quality_flag:
-                    continue
-
-                quality_flag = quality_flag[0]
-                if quality_flag.dims[0] not in ds.dims:
-                    continue
-                LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
-                datasets_loaded[ds_id] = ds.where(quality_flag == 0)
+            _mask_data_with_quality_flag(datasets_loaded, dataset_keys)
 
         return datasets_loaded
+
+    def _filter_dataset_keys_outside_pressure_levels(self, dataset_keys, pressure_levels):
+        for ds_id in dataset_keys.copy():
+            ds_info = self.all_ids[ds_id]
+            ds_level = ds_info.get("pressure_level")
+            if ds_level is not None:
+                if pressure_levels is True:
+                    # they want all pressure levels
+                    continue
+                elif len(pressure_levels) == 2 and pressure_levels[0] <= ds_level <= pressure_levels[1]:
+                    # given a min and a max pressure level
+                    continue
+                elif np.isclose(pressure_levels, ds_level).any():
+                    # they asked for this specific pressure level
+                    continue
+                else:
+                    # they don't want this dataset at this pressure level
+                    LOG.debug("Removing dataset to load: %s", ds_id)
+                    dataset_keys.remove(ds_id)
+                    continue
+
+
+def _remove_data_at_pressure_levels(datasets_loaded, plevels_ds, pressure_levels):
+    cond = _get_pressure_level_condition(plevels_ds, pressure_levels)
+    if cond is not None:
+        new_plevels = plevels_ds.where(cond, drop=True)
+    else:
+        new_plevels = plevels_ds
+    for ds_id in datasets_loaded.keys():
+        ds_obj = datasets_loaded[ds_id]
+        if plevels_ds.dims[0] not in ds_obj.dims:
+            continue
+
+        if cond is not None:
+            datasets_loaded[ds_id] = ds_obj.where(cond, drop=True)
+        datasets_loaded[ds_id].attrs['pressure_levels'] = new_plevels
+
+
+def _get_pressure_level_condition(plevels_ds, pressure_levels):
+    if pressure_levels is True:
+        cond = None
+    elif len(pressure_levels) == 2:
+        cond = (plevels_ds >= pressure_levels[0]) & (plevels_ds <= pressure_levels[1])
+    else:
+        cond = plevels_ds == pressure_levels
+    return cond
+
+
+def _mask_data_below_surface_pressure(datasets_loaded, dataset_keys):
+    LOG.debug("Filtering pressure levels at or below the surface pressure")
+    for ds_id in sorted(dataset_keys):
+        ds = datasets_loaded[ds_id]
+        if "surface_pressure" not in ds.attrs or "pressure_levels" not in ds.attrs:
+            continue
+        data_pressure = ds.attrs["pressure_levels"]
+        surface_pressure = ds.attrs["surface_pressure"]
+        if isinstance(surface_pressure, float):
+            # scalar needs to become array for each record
+            surface_pressure = np.repeat(surface_pressure, ds.shape[0])
+        if surface_pressure.ndim == 1 and surface_pressure.shape[0] == ds.shape[0]:
+            # surface is one element per record
+            LOG.debug("Filtering %s at and below the surface pressure", ds_id)
+            if ds.ndim == 2:
+                surface_pressure = np.repeat(surface_pressure[:, None], data_pressure.shape[0], axis=1)
+                data_pressure = np.repeat(data_pressure[None, :], surface_pressure.shape[0], axis=0)
+                datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
+            else:
+                # entire dataset represents one pressure level
+                data_pressure = ds.attrs["pressure_level"]
+                datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
+        else:
+            LOG.warning("Not sure how to handle shape of 'surface_pressure' metadata")
+
+
+def _mask_data_with_quality_flag(datasets_loaded, dataset_keys):
+    LOG.debug("Filtering data based on quality flags")
+    for ds_id in sorted(dataset_keys):
+        ds = datasets_loaded[ds_id]
+        quality_flag = [
+            x for x in ds.attrs.get('ancillary_variables', [])
+            if x.attrs.get('name') == 'Quality_Flag']
+        if not quality_flag:
+            continue
+
+        quality_flag = quality_flag[0]
+        if quality_flag.dims[0] not in ds.dims:
+            continue
+        LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
+        datasets_loaded[ds_id] = ds.where(quality_flag == 0)

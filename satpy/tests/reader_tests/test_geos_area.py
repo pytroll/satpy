@@ -18,11 +18,17 @@
 """Geostationary project utility module tests package."""
 
 import unittest
-from satpy.readers._geos_area import (get_xy_from_linecol,
-                                      get_area_extent,
-                                      get_area_definition)
 
 import numpy as np
+
+from satpy.readers._geos_area import (
+    get_area_definition,
+    get_area_extent,
+    get_geos_area_naming,
+    get_resolution_and_unit_strings,
+    get_xy_from_linecol,
+    sampling_to_lfac_cfac,
+)
 
 
 class TestGEOSProjectionUtil(unittest.TestCase):
@@ -132,6 +138,7 @@ class TestGEOSProjectionUtil(unittest.TestCase):
 
     def test_get_area_definition(self):
         """Test the retrieval of the area definition."""
+        from pyresample.utils import proj4_radius_parameters
         pdict, extent = self.make_pdict_ext(1, 'N2S')
         good_res = (-3000.4032785810186, -3000.4032785810186)
 
@@ -140,6 +147,39 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.assertEqual(a_def.resolution, good_res)
         self.assertEqual(a_def.proj_dict['proj'], 'geos')
         self.assertEqual(a_def.proj_dict['units'], 'm')
-        self.assertEqual(a_def.proj_dict['a'], 6378169)
-        self.assertEqual(a_def.proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(a_def.proj_dict)
+        self.assertEqual(a, 6378169)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(a_def.proj_dict['h'], 35785831)
+
+    def test_sampling_to_lfac_cfac(self):
+        """Test conversion from angular sampling to line/column offset."""
+        lfac = 13642337  # SEVIRI LFAC
+        sampling = np.deg2rad(2 ** 16 / lfac)
+        np.testing.assert_allclose(sampling_to_lfac_cfac(sampling), lfac)
+
+    def test_get_geos_area_naming(self):
+        """Test the geos area naming function."""
+        input_dict = {'platform_name': 'testplatform',
+                      'instrument_name': 'testinstrument',
+                      'resolution': 1000,
+                      'service_name': 'testservicename',
+                      'service_desc': 'testdesc'}
+
+        output_dict = get_geos_area_naming(input_dict)
+
+        self.assertEqual(output_dict['area_id'], 'testplatform_testinstrument_testservicename_1km')
+        self.assertEqual(output_dict['description'], 'TESTPLATFORM TESTINSTRUMENT testdesc area definition'
+                                                     ' with 1 km resolution')
+
+    def test_get_resolution_and_unit_strings_in_km(self):
+        """Test the resolution and unit strings function for a km resolution."""
+        out = get_resolution_and_unit_strings(1000)
+        self.assertEqual(out['value'], '1')
+        self.assertEqual(out['unit'], 'km')
+
+    def test_get_resolution_and_unit_strings_in_m(self):
+        """Test the resolution and unit strings function for a m resolution."""
+        out = get_resolution_and_unit_strings(500)
+        self.assertEqual(out['value'], '500')
+        self.assertEqual(out['unit'], 'm')
