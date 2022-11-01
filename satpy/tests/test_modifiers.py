@@ -169,10 +169,10 @@ class TestNIRReflectance(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case for the NIRReflectance compositor."""
-        self.get_lonlats = mock.MagicMock()
+        get_lonlats = mock.MagicMock()
         self.lons, self.lats = 1, 2
-        self.get_lonlats.return_value = (self.lons, self.lats)
-        area = mock.MagicMock(get_lonlats=self.get_lonlats)
+        get_lonlats.return_value = (self.lons, self.lats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
 
         self.start_time = 1
         self.metadata = {'platform_name': 'Meteosat-11',
@@ -241,7 +241,9 @@ class TestNIRReflectance(unittest.TestCase):
         info = {'modifiers': None}
         res = comp([self.nir, self.ir_], optional_datasets=[], **info)
 
-        self.get_lonlats.assert_called()
+        # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
+        # we must used the area from the final result DataArray
+        res.attrs["area"].get_lonlats.assert_called()
         sza.assert_called_with(self.start_time, self.lons, self.lats)
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()
