@@ -129,6 +129,12 @@ templates:
           physical_element:
             raw_value: CLAVR-x Cloud Type
           units: {}
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
@@ -153,6 +159,12 @@ templates:
           units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Phase
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_opd_dcomp:
         reader: clavrx
         name: cld_opd_dcomp
