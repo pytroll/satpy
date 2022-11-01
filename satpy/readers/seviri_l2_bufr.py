@@ -105,8 +105,8 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['RectificationLongitude'] = f'E{int(rectification_longitude * 10):04d}'
 
         self.with_adef = with_area_definition
-        if filetype_info['file_type'] == 'seviri_l2_bufr_amv':
-            logging.info("AMV BUFR data cannot be loaded with an area definition. Setting self.with_def = False.")
+        if self.with_adef and filetype_info['file_type'] == 'seviri_l2_bufr_amv':
+            logging.warning("AMV BUFR data cannot be loaded with an area definition. Setting self.with_def = False.")
             self.with_adef = False
 
         self.seg_size = seg_size_dict[filetype_info['file_type']]
