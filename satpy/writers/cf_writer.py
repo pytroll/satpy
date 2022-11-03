@@ -696,11 +696,17 @@ def collect_cf_datasets(list_dataarrays,
 
     # TODO REFACTOR: remove root usage
     # Update header_attrs with 'history' and 'Conventions'
+    # - If 'Conventions' already in header_attrs, do not overwrite
+    # - If 'history' already in header_attres, _set_history decide what to do
+
     # - Add "Created by pytroll/satpy ..."
+    if "history" in header_attrs:
+        root.attrs["history"] = header_attrs["history"]
     _set_history(root)
     header_attrs['history'] = root.attrs["history"]
-    # - Add CF conventions
-    if not is_grouped:
+
+    # - Add CF conventions if not grouped
+    if "Conventions" not in header_attrs and not is_grouped:
         header_attrs['Conventions'] = root.attrs["Conventions"]
 
     # TODO REFACTOR
@@ -1046,8 +1052,6 @@ class CFWriter(Writer):
         # - All groups will be appended in the for loop below
         if groups is not None:
             root = xr.Dataset({}, attrs=header_attrs)
-            # - Add history attribute: "Created by pytroll/satpy ..."
-            _set_history(root)
             # - Define init kwargs
             init_nc_kwargs = to_netcdf_kwargs.copy()
             init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
