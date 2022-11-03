@@ -100,7 +100,7 @@ class TestCFWriter(unittest.TestCase):
 
             comp = {'zlib': True, 'complevel': 9}
             scn.save_datasets(filename='bla', writer='cf', compression=comp)
-            ars, kws = xrdataset.call_args_list[1]
+            ars, kws = xrdataset.call_args_list[1]  # TODO: this does not fail if [0] !!!!
             self.assertDictEqual(ars[0]['test-array'].encoding, comp)
 
     def test_save_array_coords(self):

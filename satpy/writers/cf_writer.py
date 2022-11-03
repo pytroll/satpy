@@ -584,32 +584,31 @@ def _get_compression(compression):
     return compression
 
 
-def _set_history(root):
+def _set_history(attrs):
+    """Add 'history' attribute to the header_attrs."""
     _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
-    if 'history' in root.attrs:
-        if isinstance(root.attrs['history'], list):
-            root.attrs['history'] = ''.join(root.attrs['history'])
-        root.attrs['history'] += '\n' + _history_create
+    if 'history' in attrs:
+        if isinstance(attrs['history'], list):
+            attrs['history'] = ''.join(attrs['history'])
+        attrs['history'] += '\n' + _history_create
     else:
-        root.attrs['history'] = _history_create
+        attrs['history'] = _history_create
 
 
-def _get_groups(groups, datasets, root):
+def _get_groups(groups, list_datarrays):
+    """Return a dictionary with the list of xr.DataArray associated to each group."""
+    # If no groups, return all DataArray attached to a single None key
     if groups is None:
-        # Groups are not CF-1.7 compliant
-        if 'Conventions' not in root.attrs:
-            root.attrs['Conventions'] = CF_VERSION
-        # Write all datasets to the file root without creating a group
-        groups_ = {None: datasets}
+        grouped_dataarrays = {None: list_datarrays}
+    # Else, collect the DataArrays associated to each group
     else:
-        # User specified a group assignment using dataset names. Collect the corresponding datasets.
-        groups_ = defaultdict(list)
-        for dataset in datasets:
+        grouped_dataarrays = defaultdict(list)
+        for datarray in list_datarrays:
             for group_name, group_members in groups.items():
-                if dataset.attrs['name'] in group_members:
-                    groups_[group_name].append(dataset)
+                if datarray.attrs['name'] in group_members:
+                    grouped_dataarrays[group_name].append(datarray)
                     break
-    return groups_
+    return grouped_dataarrays
 
 
 def collect_cf_datasets(list_dataarrays,
@@ -682,32 +681,19 @@ def collect_cf_datasets(list_dataarrays,
     else:
         header_attrs = {}
 
-    # TODO REFACTOR
-    # - _get_groups should not input 'root'
-    # - 'groups_' --> rename to 'grouped_dataarrays'
-    # - 'conventions' attribute should be added outside _get_groups
-    # - If group_name all or wrong, currently behave like groups = None
     # Retrieve groups
     # - If groups is None: {None: list_dataarrays}
     # - if groups not None: {group_name: [xr.DataArray, xr.DataArray ,..], ...}
-    root = xr.Dataset({}, attrs={})  # TODO: this just to not to refactor _get_groups
-    groups_ = _get_groups(groups, list_dataarrays, root)  # TODO: this add attr "Conventions" to root if no groups
-    is_grouped = len(groups_) >= 2
+    # - TODO: if all dataset names are wrong, currently and before the PR behave like groups = None !
+    grouped_dataarrays = _get_groups(groups, list_dataarrays)
+    is_grouped = len(grouped_dataarrays) >= 2
 
-    # TODO REFACTOR: remove root usage
     # Update header_attrs with 'history' and 'Conventions'
-    # - If 'Conventions' already in header_attrs, do not overwrite
-    # - If 'history' already in header_attres, _set_history decide what to do
-
-    # - Add "Created by pytroll/satpy ..."
-    if "history" in header_attrs:
-        root.attrs["history"] = header_attrs["history"]
-    _set_history(root)
-    header_attrs['history'] = root.attrs["history"]
-
-    # - Add CF conventions if not grouped
+    # - Add "Created by pytroll/satpy ..." to history attribute
+    _set_history(header_attrs)
+    # - Add CF conventions if not grouped. If 'Conventions' key already present, do not overwrite
     if "Conventions" not in header_attrs and not is_grouped:
-        header_attrs['Conventions'] = root.attrs["Conventions"]
+        header_attrs['Conventions'] = CF_VERSION
 
     # TODO REFACTOR
     # Temporary create CF writer instance to acces to CFWriter._collect_datasets
@@ -720,7 +706,7 @@ def collect_cf_datasets(list_dataarrays,
     # Create dictionary of group xr.Datasets
     # --> If no groups (groups=None) --> group_name=None
     grouped_datasets = {}
-    for group_name, group_dataarrays in groups_.items():
+    for group_name, group_dataarrays in grouped_dataarrays.items():
         # XXX: Should we combine the info of all datasets?
         dict_datarrays, start_times, end_times = cf_writer._collect_datasets(
             datasets=group_dataarrays,
@@ -799,6 +785,7 @@ class CFWriter(Writer):
                for ds in new_data.attrs.get('ancillary_variables', [])]
         if anc:
             new_data.attrs['ancillary_variables'] = ' '.join(anc)
+
         # TODO: make this a grid mapping or lon/lats
         # new_data.attrs['area'] = str(new_data.attrs.get('area'))
         CFWriter._cleanup_attrs(new_data)
