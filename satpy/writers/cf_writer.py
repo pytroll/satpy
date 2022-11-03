@@ -690,8 +690,6 @@ def collect_cf_datasets(list_dataarrays,
     # Retrieve groups
     # - If groups is None: {None: list_dataarrays}
     # - if groups not None: {group_name: [xr.DataArray, xr.DataArray ,..], ...}
-    groups = {'group_name': ['IR_108', 'VIS8006'], 'group_name2': ["HRV"]}
-    groups = None
     root = xr.Dataset({}, attrs={})  # TODO: this just to not to refactor _get_groups
     groups_ = _get_groups(groups, list_dataarrays, root)  # TODO: this add attr "Conventions" to root if no groups
     is_grouped = len(groups_) >= 2
@@ -731,7 +729,7 @@ def collect_cf_datasets(list_dataarrays,
         ds = xr.Dataset(dict_datarrays)
 
         # If no groups, add global header to xr.Dataset
-        if group_name is None:
+        if not is_grouped:
             ds.attrs = header_attrs
 
         # Add time_bnds
