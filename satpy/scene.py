@@ -1070,6 +1070,97 @@ class Scene:
         ds.attrs = mdata
         return ds
 
+    def to_xarray(self,
+                  datasets=None,  # DataID
+                  header_attrs=None,
+                  exclude_attrs=None,
+                  flatten_attrs=False,
+                  pretty=True,
+                  include_lonlats=True,
+                  epoch=None,
+                  include_orig_name=True,
+                  numeric_name_prefix='CHANNEL_'):
+        """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xr.Dataset.
+
+        Parameters
+        ----------
+        datasets (iterable):
+            List of Satpy Scene datasets to include in the output xr.Dataset.
+            Elements can be string name, a wavelength as a number, a DataID,
+            or DataQuery object.
+            If None (the default), it include all loaded Scene datasets.
+        header_attrs:
+            Global attributes of the output xr.Dataset.
+        epoch (str):
+            Reference time for encoding the time coordinates (if available).
+            Example format: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is retrieved using "from satpy.cf_writer import EPOCH"
+        flatten_attrs (bool):
+            If True, flatten dict-type attributes.
+        exclude_attrs (list):
+            List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool):
+            If True, it includes 'latitude' and 'longitude' coordinates.
+            If the 'area' attribute is a SwathDefinition, it always includes
+            latitude and longitude coordinates.
+        pretty (bool):
+            Don't modify coordinate names, if possible. Makes the file prettier,
+            but possibly less consistent.
+        include_orig_name (bool).
+            Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str):
+            Prefix to add the each variable with name starting with a digit.
+            Use '' or None to leave this out.
+
+        Returns
+        -------
+        ds, xr.Dataset
+            A CF-compliant xr.Dataset
+
+        """
+        from satpy.writers.cf_writer import EPOCH, collect_cf_datasets
+
+        # Retrieve epoch
+        if epoch is None:
+            epoch = EPOCH
+
+        # Check datasets
+        # - If None, retrieve all loaded datasets
+        if isinstance(datasets, str):
+            datasets = [datasets]
+        if datasets is None:
+            datasets = list(self.keys())  # list DataIDs
+
+        # Get list of DataArrays
+        list_dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        # Check that some DataArray could be returned
+        # TODO: DECIDE BEHAVIOUR
+        if len(list_dataarrays) == 0:
+            return xr.Dataset()
+        if not list_dataarrays:
+            raise RuntimeError("None of the requested datasets have been "
+                               "generated or could not be loaded. Requested "
+                               "composite inputs may need to have matching "
+                               "dimensions (eg. through resampling).")
+        # Collect xr.Dataset for each group
+        grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=list_dataarrays,
+                                                             header_attrs=header_attrs,
+                                                             exclude_attrs=exclude_attrs,
+                                                             flatten_attrs=flatten_attrs,
+                                                             pretty=pretty,
+                                                             include_lonlats=include_lonlats,
+                                                             epoch=epoch,
+                                                             include_orig_name=include_orig_name,
+                                                             numeric_name_prefix=numeric_name_prefix,
+                                                             groups=None)
+        if len(grouped_datasets) == 1:
+            ds = grouped_datasets[None]
+            return ds
+        else:
+            msg = """The Scene object contains datasets with different dimensions.
+                      Resample the Scene to have matching dimensions using i.e. scn.resample("native") """
+            raise NotImplementedError(msg)
+
     def _get_dataarrays_from_identifiers(self, identifiers):
         if identifiers is not None:
             dataarrays = [self[ds] for ds in identifiers]

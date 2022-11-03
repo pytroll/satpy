@@ -186,6 +186,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.string_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
+# Note: Unsigned and int64 are CF 1.9 compatible
 CF_DTYPES = [np.dtype('int8'),
              np.dtype('int16'),
              np.dtype('int32'),
@@ -611,6 +612,144 @@ def _get_groups(groups, datasets, root):
     return groups_
 
 
+def collect_cf_datasets(list_dataarrays,
+                        header_attrs=None,
+                        exclude_attrs=None,
+                        flatten_attrs=False,
+                        pretty=True,
+                        include_lonlats=True,
+                        epoch=EPOCH,
+                        include_orig_name=True,
+                        numeric_name_prefix='CHANNEL_',
+                        compression=None,  # TODO  [DEPRECATED]
+                        groups=None):
+    """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Datasets.
+
+    If the xr.DataArrays does not share the same dimensions, it creates a collection
+    of xr.Datasets sharing the same dimensions.
+
+    Parameters
+    ----------
+    datasets (list):
+        List of Satpy Scene datasets to include in the output xr.Dataset.
+        The list must include either dataset names or DataIDs.
+        If None (the default), it include all loaded Scene datasets.
+    header_attrs:
+        Global attributes of the output xr.Dataset.
+    epoch (str):
+        Reference time for encoding the time coordinates (if available).
+        Example format: "seconds since 1970-01-01 00:00:00".
+        If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
+    flatten_attrs (bool):
+        If True, flatten dict-type attributes.
+    exclude_attrs (list):
+        List of xr.DataArray attribute names to be excluded.
+    include_lonlats (bool):
+        If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
+        If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
+    pretty (bool):
+        Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+    include_orig_name (bool).
+        Include the original dataset name as a variable attribute in the xr.Dataset.
+    numeric_name_prefix (str):
+        Prefix to add the each variable with name starting with a digit.
+        Use '' or None to leave this out.
+    groups (dict):
+        Group datasets according to the given assignment:
+            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`.
+        It is used to create grouped netCDFs using the CF_Writer.
+        If None (the default), no groups will be created.
+
+    Returns
+    -------
+    grouped_datasets : dict
+        A dictionary of CF-compliant xr.Dataset: {group_name: xr.Dataset}
+    header_attrs : dict
+        Global attributes to be attached to the xr.Dataset / netCDF4.
+    """
+    # Check some DataArray have been provided
+    if not list_dataarrays:
+        raise RuntimeError("None of the requested datasets have been "
+                           "generated or could not be loaded. Requested "
+                           "composite inputs may need to have matching "
+                           "dimensions (eg. through resampling).")
+
+    # Define file header attributes
+    if header_attrs is not None:
+        if flatten_attrs:
+            header_attrs = flatten_dict(header_attrs)
+        header_attrs = encode_attrs_nc(header_attrs)  # OrderedDict
+    else:
+        header_attrs = {}
+
+    # TODO REFACTOR
+    # - _get_groups should not input 'root'
+    # - 'groups_' --> rename to 'grouped_dataarrays'
+    # - 'conventions' attribute should be added outside _get_groups
+    # - If group_name all or wrong, currently behave like groups = None
+    # Retrieve groups
+    # - If groups is None: {None: list_dataarrays}
+    # - if groups not None: {group_name: [xr.DataArray, xr.DataArray ,..], ...}
+    groups = {'group_name': ['IR_108', 'VIS8006'], 'group_name2': ["HRV"]}
+    groups = None
+    root = xr.Dataset({}, attrs={})  # TODO: this just to not to refactor _get_groups
+    groups_ = _get_groups(groups, list_dataarrays, root)  # TODO: this add attr "Conventions" to root if no groups
+    is_grouped = len(groups_) >= 2
+
+    # TODO REFACTOR: remove root usage
+    # Update header_attrs with 'history' and 'Conventions'
+    # - Add "Created by pytroll/satpy ..."
+    _set_history(root)
+    header_attrs['history'] = root.attrs["history"]
+    # - Add CF conventions
+    if not is_grouped:
+        header_attrs['Conventions'] = root.attrs["Conventions"]
+
+    # TODO REFACTOR
+    # Temporary create CF writer instance to acces to CFWriter._collect_datasets
+    # Requires refactor of CFWriter to define CFWriter._collect_datasets, and CFWriter.da2cf as generic functions
+    # CFWriter.da2cf is a static method and could be put outside
+    # CFWriter._collect_datasets(self, ...) could be put outside
+    from satpy.writers import load_writer
+    cf_writer, save_kwargs = load_writer(writer="cf", filename="")
+
+    # Create dictionary of group xr.Datasets
+    # --> If no groups (groups=None) --> group_name=None
+    grouped_datasets = {}
+    for group_name, group_dataarrays in groups_.items():
+        # XXX: Should we combine the info of all datasets?
+        dict_datarrays, start_times, end_times = cf_writer._collect_datasets(
+            datasets=group_dataarrays,
+            epoch=epoch,
+            flatten_attrs=flatten_attrs,
+            exclude_attrs=exclude_attrs,
+            include_lonlats=include_lonlats,
+            pretty=pretty,
+            compression=compression,
+            include_orig_name=include_orig_name,
+            numeric_name_prefix=numeric_name_prefix)
+        ds = xr.Dataset(dict_datarrays)
+
+        # If no groups, add global header to xr.Dataset
+        if group_name is None:
+            ds.attrs = header_attrs
+
+        # Add time_bnds
+        if 'time' in ds:
+            ds['time_bnds'] = make_time_bounds(start_times, end_times)
+            ds['time'].attrs['bounds'] = "time_bnds"
+            ds['time'].attrs['standard_name'] = "time"
+        else:
+            grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
+            logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
+
+        # Add xr.Dataset to dictionary
+        grouped_datasets[group_name] = ds
+
+    # Return dictionary with xr.Dataset
+    return grouped_datasets, header_attrs
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
@@ -840,27 +979,27 @@ class CFWriter(Writer):
 
         Args:
             datasets (list):
-                Datasets to be saved
+                List of xr.DataArray to be saved.
             filename (str):
                 Output file
             groups (dict):
                 Group datasets according to the given assignment: `{'group_name': ['dataset1', 'dataset2', ...]}`.
-                Group name `None` corresponds to the root of the file, i.e. no group will be created. Warning: The
-                results will not be fully CF compliant!
+                Group name `None` corresponds to the root of the file, i.e. no group will be created.
+                Warning: The results will not be fully CF compliant!
             header_attrs:
-                Global attributes to be included
+                Global attributes to be included.
             engine (str):
                 Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a
                 preference for 'netcdf4'.
             epoch (str):
-                Reference time for encoding of time coordinates
+                Reference time for encoding of time coordinates.
             flatten_attrs (bool):
-                If True, flatten dict-type attributes
+                If True, flatten dict-type attributes.
             exclude_attrs (list):
-                List of dataset attributes to be excluded
+                List of dataset attributes to be excluded.
             include_lonlats (bool):
-                Always include latitude and longitude coordinates, even for datasets with area definition
+                Always include latitude and longitude coordinates, even for datasets with area definition.
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
             compression (dict):
@@ -869,59 +1008,72 @@ class CFWriter(Writer):
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
                 (This parameter is now being deprecated, please use the DataArrays's `encoding` from now on.)
             include_orig_name (bool).
-                Include the original dataset name as an varaibel attribute in the final netcdf
+                Include the original dataset name as a variable attribute in the final netCDF.
             numeric_name_prefix (str):
                 Prefix to add the each variable with name starting with a digit. Use '' or None to leave this out.
 
         """
+        # Note: datasets is a list of xr.DataArray
         logger.info('Saving datasets to NetCDF4/CF.')
+
+        # Retrieve compression [Deprecated]
         compression = _get_compression(compression)
 
-        # Write global attributes to file root (creates the file)
+        # Define netCDF filename if not provided
+        # - It infers the name from the first DataArray
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={})
-        if header_attrs is not None:
-            if flatten_attrs:
-                header_attrs = flatten_dict(header_attrs)
-            root.attrs = encode_attrs_nc(header_attrs)
-
-        _set_history(root)
-
+        # Collect xr.Dataset for each group
+        grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=datasets,  # list of xr.DataArray
+                                                             header_attrs=header_attrs,
+                                                             exclude_attrs=exclude_attrs,
+                                                             flatten_attrs=flatten_attrs,
+                                                             pretty=pretty,
+                                                             include_lonlats=include_lonlats,
+                                                             epoch=epoch,
+                                                             include_orig_name=include_orig_name,
+                                                             numeric_name_prefix=numeric_name_prefix,
+                                                             groups=groups,
+                                                             compression=compression,  # [DEPRECATED]
+                                                             )
         # Remove satpy-specific kwargs
-        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
+        # - This kwargs can contain encoding dictionary
+        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
 
-        init_nc_kwargs = to_netcdf_kwargs.copy()
-        init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
-        init_nc_kwargs.pop('unlimited_dims', None)
+        # If writing grouped netCDF, create an empty "root" netCDF file
+        # - Add the global attributes
+        # - All groups will be appended in the for loop below
+        if groups is not None:
+            root = xr.Dataset({}, attrs=header_attrs)
+            # - Add history attribute: "Created by pytroll/satpy ..."
+            _set_history(root)
+            # - Define init kwargs
+            init_nc_kwargs = to_netcdf_kwargs.copy()
+            init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+            init_nc_kwargs.pop('unlimited_dims', None)
+            written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+            mode = "a"
+        else:
+            mode = "w"
+            written = []
 
-        groups_ = _get_groups(groups, datasets, root)
-
-        written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
-
-        # Write datasets to groups (appending to the file; group=None means no group)
-        for group_name, group_datasets in groups_.items():
-            # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
-                include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
-            dataset = xr.Dataset(datas)
-            if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
-                dataset['time'].attrs['standard_name'] = "time"
-            else:
-                grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
-                logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
-
-            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
-            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
-                                    **other_to_netcdf_kwargs)
+        # Write the netCDF
+        # - If grouped netCDF, it appends to the root file
+        # - If single netCDF, it write directly
+        for group_name, ds in grouped_datasets.items():
+            # Update encoding
+            encoding, other_to_netcdf_kwargs = update_encoding(ds,
+                                                               to_netcdf_kwargs,
+                                                               numeric_name_prefix)
+            # Write (append) dataset
+            res = ds.to_netcdf(filename, engine=engine,
+                               group=group_name, mode=mode,
+                               encoding=encoding,
+                               **other_to_netcdf_kwargs)
             written.append(res)
 
+        # Return list of writing results
         return written
