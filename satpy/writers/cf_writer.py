@@ -611,6 +611,86 @@ def _get_groups(groups, list_datarrays):
     return grouped_dataarrays
 
 
+def make_cf_dataarray(dataarray, epoch=EPOCH, flatten_attrs=False,
+                      exclude_attrs=None, compression=None,
+                      include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+    """
+    Make the xr.DataArray CF-compliant.
+
+    Parameters
+    ----------
+    dataarray : xr.DataArray
+        The data array to be made CF-compliant.
+    epoch : str, optional
+        Reference time for encoding of time coordinates.
+    flatten_attrs : bool, optional
+        If True, flatten dict-type attributes.
+        The default is False.
+    exclude_attrs : list, optional
+        List of dataset attributes to be excluded.
+        The default is None.
+    include_orig_name : bool, optional
+        Include the original dataset name in the netcdf variable attributes.
+        The default is True.
+    numeric_name_prefix : TYPE, optional
+        Prepend dataset name with this if starting with a digit.
+        The default is 'CHANNEL_'.
+
+    Returns
+    -------
+    new_data : xr.DataArray
+        CF-compliant xr.DataArray.
+
+    """
+    if exclude_attrs is None:
+        exclude_attrs = []
+
+    original_name = None
+    new_data = dataarray.copy()
+    if 'name' in new_data.attrs:
+        name = new_data.attrs.pop('name')
+        original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
+        new_data = new_data.rename(name)
+
+    CFWriter._remove_satpy_attributes(new_data)
+
+    new_data = CFWriter._encode_time(new_data, epoch)
+    new_data = CFWriter._encode_coords(new_data)
+
+    # Remove area as well as user-defined attributes
+    for key in ['area'] + exclude_attrs:
+        new_data.attrs.pop(key, None)
+
+    anc = [ds.attrs['name']
+           for ds in new_data.attrs.get('ancillary_variables', [])]
+    if anc:
+        new_data.attrs['ancillary_variables'] = ' '.join(anc)
+
+    # TODO: make this a grid mapping or lon/lats
+    # new_data.attrs['area'] = str(new_data.attrs.get('area'))
+    CFWriter._cleanup_attrs(new_data)
+
+    if compression is not None:
+        new_data.encoding.update(compression)
+
+    if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
+        new_data.attrs['long_name'] = new_data.name
+    if 'prerequisites' in new_data.attrs:
+        new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
+
+    if include_orig_name and numeric_name_prefix and original_name and original_name != name:
+        new_data.attrs['original_name'] = original_name
+
+    # Flatten dict-type attributes, if desired
+    if flatten_attrs:
+        new_data.attrs = flatten_dict(new_data.attrs)
+
+    # Encode attributes to netcdf-compatible datatype
+    new_data.attrs = encode_attrs_nc(new_data.attrs)
+
+    return new_data
+
+
 def collect_cf_datasets(list_dataarrays,
                         header_attrs=None,
                         exclude_attrs=None,
@@ -695,20 +775,12 @@ def collect_cf_datasets(list_dataarrays,
     if "Conventions" not in header_attrs and not is_grouped:
         header_attrs['Conventions'] = CF_VERSION
 
-    # TODO REFACTOR
-    # Temporary create CF writer instance to acces to CFWriter._collect_datasets
-    # Requires refactor of CFWriter to define CFWriter._collect_datasets, and CFWriter.da2cf as generic functions
-    # CFWriter.da2cf is a static method and could be put outside
-    # CFWriter._collect_datasets(self, ...) could be put outside
-    from satpy.writers import load_writer
-    cf_writer, save_kwargs = load_writer(writer="cf", filename="")
-
     # Create dictionary of group xr.Datasets
     # --> If no groups (groups=None) --> group_name=None
     grouped_datasets = {}
     for group_name, group_dataarrays in grouped_dataarrays.items():
         # XXX: Should we combine the info of all datasets?
-        dict_datarrays, start_times, end_times = cf_writer._collect_datasets(
+        dict_datarrays, start_times, end_times = CFWriter._collect_datasets(
             datasets=group_dataarrays,
             epoch=epoch,
             flatten_attrs=flatten_attrs,
@@ -762,53 +834,16 @@ class CFWriter(Writer):
             numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit
         """
-        if exclude_attrs is None:
-            exclude_attrs = []
-
-        original_name = None
-        new_data = dataarray.copy()
-        if 'name' in new_data.attrs:
-            name = new_data.attrs.pop('name')
-            original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
-            new_data = new_data.rename(name)
-
-        CFWriter._remove_satpy_attributes(new_data)
-
-        new_data = CFWriter._encode_time(new_data, epoch)
-        new_data = CFWriter._encode_coords(new_data)
-
-        # Remove area as well as user-defined attributes
-        for key in ['area'] + exclude_attrs:
-            new_data.attrs.pop(key, None)
-
-        anc = [ds.attrs['name']
-               for ds in new_data.attrs.get('ancillary_variables', [])]
-        if anc:
-            new_data.attrs['ancillary_variables'] = ' '.join(anc)
-
-        # TODO: make this a grid mapping or lon/lats
-        # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-        CFWriter._cleanup_attrs(new_data)
-
-        if compression is not None:
-            new_data.encoding.update(compression)
-
-        if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
-            new_data.attrs['long_name'] = new_data.name
-        if 'prerequisites' in new_data.attrs:
-            new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
-
-        if include_orig_name and numeric_name_prefix and original_name and original_name != name:
-            new_data.attrs['original_name'] = original_name
-
-        # Flatten dict-type attributes, if desired
-        if flatten_attrs:
-            new_data.attrs = flatten_dict(new_data.attrs)
-
-        # Encode attributes to netcdf-compatible datatype
-        new_data.attrs = encode_attrs_nc(new_data.attrs)
-
-        return new_data
+        warnings.warn('CFWriter.da2cf is deprecated.'
+                      'Use satpy.writers.cf_writer.make_cf_dataarray instead.',
+                      DeprecationWarning)
+        return make_cf_dataarray(dataarray=dataarray,
+                                 epoch=epoch,
+                                 flatten_attrs=flatten_attrs,
+                                 exclude_attrs=exclude_attrs,
+                                 compression=compression,
+                                 include_orig_name=include_orig_name,
+                                 numeric_name_prefix=numeric_name_prefix)
 
     @staticmethod
     def _cleanup_attrs(new_data):
@@ -920,12 +955,11 @@ class CFWriter(Writer):
                       DeprecationWarning)
         return update_encoding(dataset, to_netcdf_kwargs)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
-        """Save the *dataset* to a given *filename*."""
-        return self.save_datasets([dataset], filename, **kwargs)
-
-    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+    @staticmethod
+    def _collect_datasets(datasets, epoch=EPOCH, flatten_attrs=False,
+                          exclude_attrs=None, include_lonlats=True,
+                          pretty=False, compression=None,
+                          include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -948,10 +982,10 @@ class CFWriter(Writer):
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
-                new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                     exclude_attrs=exclude_attrs, compression=compression,
-                                     include_orig_name=include_orig_name,
-                                     numeric_name_prefix=numeric_name_prefix)
+                new_var = make_cf_dataarray(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
+                                            exclude_attrs=exclude_attrs, compression=compression,
+                                            include_orig_name=include_orig_name,
+                                            numeric_name_prefix=numeric_name_prefix)
                 datas[new_var.name] = new_var
 
         # Check and prepare coordinates
@@ -960,6 +994,10 @@ class CFWriter(Writer):
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
+
+    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+        """Save the *dataset* to a given *filename*."""
+        return self.save_datasets([dataset], filename, **kwargs)
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
