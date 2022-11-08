@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2020 Satpy developers
 #
 # This file is part of satpy.
@@ -29,14 +27,19 @@ https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_
 
 """
 
-from satpy.readers.file_handlers import BaseFileHandler
+import logging
 from datetime import datetime
-from satpy import CHUNK_SIZE
-import xarray as xr
+
 import dask.array as da
 import h5py
-import logging
 import numpy as np
+import xarray as xr
+from xarray import Dataset, Variable
+from xarray.backends import BackendArray, BackendEntrypoint
+from xarray.core import indexing
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +72,7 @@ class HDF5SGLI(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the filehandler."""
-        super(HDF5SGLI, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
         self.resolution = resolutions[self.filename_info['resolution']]
         self.fh = h5py.File(self.filename, 'r')
 
@@ -87,12 +90,12 @@ class HDF5SGLI(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
-        if key.resolution != self.resolution:
+        if key["resolution"] != self.resolution:
             return
 
-        if key.polarization is not None:
+        if key["polarization"] is not None:
             pols = {0: '0', -60: 'm60', 60: 'p60'}
-            file_key = info['file_key'].format(pol=pols[key.polarization])
+            file_key = info['file_key'].format(pol=pols[key["polarization"]])
         else:
             file_key = info['file_key']
 
@@ -100,7 +103,7 @@ class HDF5SGLI(BaseFileHandler):
 
         resampling_interval = h5dataset.attrs.get('Resampling_interval', 1)
         if resampling_interval != 1:
-            logger.debug('Interpolating %s.', key.name)
+            logger.debug('Interpolating %s.', key["name"])
             full_shape = (self.fh['Image_data'].attrs['Number_of_lines'],
                           self.fh['Image_data'].attrs['Number_of_pixels'])
             dataset = interpolate(h5dataset, resampling_interval, full_shape)
@@ -108,6 +111,12 @@ class HDF5SGLI(BaseFileHandler):
             dataset = da.from_array(h5dataset[:].astype('<u2'), chunks=h5dataset.chunks)
         dataset = xr.DataArray(dataset, attrs=h5dataset.attrs, dims=['y', 'x'])
         dataset.attrs.update(info)
+        dataset = self._mask_and_scale(dataset, h5dataset, key)
+
+        dataset.attrs['platform_name'] = 'GCOM-C1'
+        return dataset
+
+    def _mask_and_scale(self, dataset, h5dataset, key):
         with xr.set_options(keep_attrs=True):
             if 'Mask' in h5dataset.attrs:
                 mask_value = h5dataset.attrs['Mask'].item()
@@ -121,12 +130,12 @@ class HDF5SGLI(BaseFileHandler):
             if 'Maximum_valid_DN' in h5dataset.attrs:
                 # dataset = dataset.where(dataset <= h5dataset.attrs['Maximum_valid_DN'].item())
                 pass
-            if key.name[:2] in ['VN', 'SW', 'P1', 'P2']:
-                if key.calibration == 'counts':
+            if key["name"][:2] in ['VN', 'SW', 'P1', 'P2']:
+                if key["calibration"] == 'counts':
                     pass
-                if key.calibration == 'radiance':
+                if key["calibration"] == 'radiance':
                     dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
-                if key.calibration == 'reflectance':
+                if key["calibration"] == 'reflectance':
                     # dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
                     # dataset *= np.pi / h5dataset.attrs['Band_weighted_TOA_solar_irradiance'] * 100
                     # equivalent to the two lines above
@@ -134,6 +143,38 @@ class HDF5SGLI(BaseFileHandler):
                                + h5dataset.attrs['Offset_reflectance']) * 100
             else:
                 dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
-
-        dataset.attrs['platform_name'] = 'GCOM-C1'
         return dataset
+
+
+class H5Array(BackendArray):
+    """An Hdf5-based array."""
+
+    def __init__(self, array):
+        """Initialize the array."""
+        self.shape = array.shape
+        self.dtype = array.dtype
+        self.array = array
+
+    def __getitem__(self, key):
+        """Get a slice of the array."""
+        return indexing.explicit_indexing_adapter(
+            key, self.shape, indexing.IndexingSupport.BASIC, self._getitem
+        )
+
+    def _getitem(self, key):
+        return self.array[key]
+
+
+class SGLIBackend(BackendEntrypoint):
+    """The SGLI backend."""
+
+    def open_dataset(self, filename, *, drop_variables=None):
+        """Open the dataset."""
+        ds = Dataset()
+        h5f = h5py.File(filename)
+        h5_arr = h5f["Image_data"]["Lt_VN01"]
+        chunks = dict(zip(("y", "x"), h5_arr.chunks))
+        ds["Lt_VN01"] = Variable(["y", "x"],
+                                 indexing.LazilyIndexedArray(H5Array(h5_arr)),
+                                 encoding={"preferred_chunks": chunks})
+        return ds
