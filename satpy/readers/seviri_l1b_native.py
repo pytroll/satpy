@@ -26,6 +26,7 @@ References:
 """
 
 import logging
+import warnings
 from datetime import datetime
 
 import dask.array as da
@@ -126,16 +127,38 @@ class NativeMSGFileHandler(BaseFileHandler):
             return istream.read(36) == ascii_startswith
 
     @property
-    def start_time(self):
-        """Read the repeat cycle start time from metadata."""
+    def nominal_start_time(self):
+        """Read the repeat cycle nominal start time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
     @property
-    def end_time(self):
-        """Read the repeat cycle end time from metadata."""
+    def nominal_end_time(self):
+        """Read the repeat cycle nominal end time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+
+    @property
+    def observation_start_time(self):
+        """Read the repeat cycle sensing start time from metadata."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanStart']
+
+    @property
+    def observation_end_time(self):
+        """Read the repeat cycle sensing end time from metadata."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanEnd']
+
+    @property
+    def start_time(self):
+        """Get general start time for this file."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
@@ -272,6 +295,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.mda['number_of_columns'] = cols_visir
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
         self.mda['hrv_number_of_columns'] = cols_hrv
+
+        if self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
+            warnings.warn("The quality flag for this file indicates not OK. Use this data with caution!", UserWarning)
 
     def _read_trailer(self):
 
@@ -577,6 +603,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs['sensor'] = 'seviri'
         dataset.attrs['georef_offset_corrected'] = self.mda[
             'offset_corrected']
+        dataset.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+        }
+        dataset.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        if self.include_raw_metadata:
+            dataset.attrs['raw_metadata'] = reduce_mda(
+                self.header, max_size=self.mda_max_array_size
+            )
+
+    def _get_orbital_parameters(self):
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -596,11 +635,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             })
         except NoValidOrbitParams as err:
             logger.warning(err)
-        dataset.attrs['orbital_parameters'] = orbital_parameters
-        if self.include_raw_metadata:
-            dataset.attrs['raw_metadata'] = reduce_mda(
-                self.header, max_size=self.mda_max_array_size
-            )
+        return orbital_parameters
 
     @cached_property
     def satpos(self):
@@ -615,7 +650,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=self.start_time,
+            time=self.observation_start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
             semi_minor_axis=self.mda['projection_parameters']['b']
         )

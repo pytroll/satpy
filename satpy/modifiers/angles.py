@@ -505,7 +505,8 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
         # gradually fall off for larger zenith angle
         grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
         # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
+        with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+            grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
         # make sure we don't make anything negative
         grad_factor = grad_factor.clip(0.)
     else:

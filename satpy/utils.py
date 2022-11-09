@@ -31,14 +31,9 @@ from urllib.parse import urlparse
 import numpy as np
 import xarray as xr
 import yaml
-from yaml import BaseLoader
+from yaml import BaseLoader, UnsafeLoader
 
 from satpy import CHUNK_SIZE
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
 
 _is_logging_on = False
 TRACE_LEVEL = 5

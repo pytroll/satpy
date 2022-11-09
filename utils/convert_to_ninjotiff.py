@@ -30,16 +30,11 @@ import argparse
 import os
 
 import yaml
+from yaml import UnsafeLoader
 
 from satpy import Scene
 from satpy.pyresample import get_area_def
 from satpy.utils import debug_on
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
 
 debug_on()
 
