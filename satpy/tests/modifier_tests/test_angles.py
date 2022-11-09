@@ -324,6 +324,19 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
             _get_sensor_angles_from_sat_pos.cache_clear()
 
+    def test_relative_azimuth_calculation(self):
+        """Test relative azimuth calculation."""
+        from satpy.modifiers.angles import compute_relative_azimuth
+
+        saa = xr.DataArray(np.array([-120, 40., 0.04, 179.4, 94.2, 12.1]))
+        vaa = xr.DataArray(np.array([60., 57.7, 175.1, 234.18, 355.4, 12.1]))
+
+        expected_raa = xr.DataArray(np.array([180., 17.7, 175.06, 54.78, 98.8, 0.]))
+
+        raa = compute_relative_azimuth(vaa, saa)
+        assert isinstance(raa, xr.DataArray)
+        np.testing.assert_allclose(expected_raa, raa)
+
     def test_solazi_correction(self):
         """Test that solar azimuth angles are corrected into the right range."""
         from datetime import datetime
