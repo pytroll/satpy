@@ -324,7 +324,7 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
             _get_sensor_angles_from_sat_pos.cache_clear()
 
-    def test_get_relazi(self):
+    def test_relative_azimuth_calculation(self):
         """Test relative azimuth calculation."""
         from satpy.modifiers.angles import compute_relative_azimuth
 
