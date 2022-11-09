@@ -141,7 +141,9 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                  'calibration': 'reflectance',
                  'units': '%',
                  'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+        low_res_data = np.ones((2, 2), dtype=np.float64) + 4
+        low_res_data[1, 1] = 0.0  # produces infinite ratio
+        ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         self.ds1 = ds1
@@ -155,15 +157,19 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds3.attrs['name'] += '3'
         self.ds3 = ds3
-        ds4 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 4,
+
+        # high resolution version
+        high_res_data = np.ones((2, 2), dtype=np.float64)
+        high_res_data[1, 0] = np.nan  # invalid value in one band
+        ds4 = xr.DataArray(da.from_array(high_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds4.attrs['name'] += '4'
         ds4.attrs['resolution'] = 500
         self.ds4 = ds4
 
-        # high res version
-        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
+        # high resolution version - but too big
+        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
                            attrs=attrs.copy(), dims=('y', 'x'),
                            coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
         ds4.attrs['name'] += '4'
@@ -180,7 +186,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
 
     def test_match_data_arrays(self):
-        """Test that all of the areas have to be the same resolution."""
+        """Test that all areas have to be the same resolution."""
         from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
@@ -214,8 +220,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds4.values)
-        np.testing.assert_allclose(res[1], np.array([[4.5, 4.5], [4.5, 4.5]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[6, 6], [6, 6]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[0.6, 0.6], [np.nan, 3.0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high res band is specified."""
@@ -231,8 +237,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds1.values)
-        np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[4, 4], [4, 0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[5.333333, 5.333333], [5.333333, 0]], dtype=np.float64))
 
     def test_no_units(self):
         """Test that the computed RGB has no units attribute."""

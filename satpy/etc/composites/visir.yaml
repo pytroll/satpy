@@ -505,3 +505,47 @@ composites:
       - wavelength: 0.64
       - wavelength: 1.61
     standard_name: cimss_cloud_type
+
+  essl_low_level_moisture:
+    description: >
+      Greyscale low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  For a color version,
+      see essl_colorized_low_level_moisture.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.905
+    - wavelength: 0.86
+    standard_name: essl_low_level_moisture
+
+  day_essl_low_level_moisture:
+    description: >
+      Daytime only version of essl_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_low_level_moisture
+    standard_name: day_essl_low_level_moisture
+
+  essl_colorized_low_level_moisture:
+    description: >
+      Colorized low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  The colorization
+      is still under development and may be subject to change.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.86
+    - wavelength: 0.905
+    standard_name: essl_colorized_low_level_moisture
+
+  day_essl_colorized_low_level_moisture:
+    description: >
+      Daytime only version of essl_colorized_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_colorized_low_level_moisture
+    standard_name: day_essl_colorized_low_level_moisture
