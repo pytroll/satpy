@@ -431,6 +431,12 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
+
+        # The get_alt_az function returns values in the range -180 to 180 degrees.
+        # Satpy expects values in the 0 - 360 range, which is what is returned for the
+        # satellite azimuth angles.
+        # Here this is corrected so both sun and sat azimuths are in the same range.
+        suna = suna % 360.
     return suna
 
 
@@ -518,7 +524,8 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
         # gradually fall off for larger zenith angle
         grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
         # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
+        with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+            grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
         # make sure we don't make anything negative
         grad_factor = grad_factor.clip(0.)
     else:

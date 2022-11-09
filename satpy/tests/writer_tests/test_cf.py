@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
+import logging
 import os
 import tempfile
 import unittest
@@ -1130,6 +1131,79 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f.attrs['Conventions'], 'CF-1.7, ACDD-1.3')
                 self.assertIn('TEST add history\n', f.attrs['history'])
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+
+
+def test_lonlat_storage(tmp_path):
+    """Test correct storage for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from ..utils import make_fake_scene
+    scn = make_fake_scene(
+            {"ketolysis": np.arange(25).reshape(5, 5)},
+            daskify=True,
+            area=create_area_def("mavas", 4326, shape=(5, 5),
+                                 center=(0, 0), resolution=(1, 1)))
+
+    filename = os.fspath(tmp_path / "test.nc")
+    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
+    with xr.open_dataset(filename) as ds:
+        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
+        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
+        assert ds["x"].attrs["units"] == "degrees_east"
+        assert ds["y"].attrs["units"] == "degrees_north"
+        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
+        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
+        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
+def test_da2cf_lonlat():
+    """Test correct da2cf encoding for area with lon/lat units."""
+    import xarray as xr
+    from pyresample import create_area_def
+
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf_writer import CFWriter
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = CFWriter.da2cf(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
+
+
+def test_is_projected(caplog):
+    """Tests for private _is_projected function."""
+    import xarray as xr
+
+    from satpy.writers.cf_writer import CFWriter
+
+    # test case with units but no area
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+    assert CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+    assert not CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"))
+    with caplog.at_level(logging.WARNING):
+        assert CFWriter._is_projected(da)
+    assert "Failed to tell if data are projected." in caplog.text
 
 
 class TestCFWriterData(unittest.TestCase):

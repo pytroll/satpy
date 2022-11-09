@@ -336,3 +336,19 @@ class TestAngleGeneration:
         raa = compute_relative_azimuth(vaa, saa)
         assert isinstance(raa, xr.DataArray)
         np.testing.assert_allclose(expected_raa, raa)
+
+    def test_solazi_correction(self):
+        """Test that solar azimuth angles are corrected into the right range."""
+        from datetime import datetime
+
+        from satpy.modifiers.angles import _get_sun_azimuth_ndarray
+
+        lats = np.array([-80, 40, 0, 40, 80])
+        lons = np.array([-80, 40, 0, 40, 80])
+
+        dt = datetime(2022, 1, 5, 12, 50, 0)
+
+        azi = _get_sun_azimuth_ndarray(lats, lons, dt)
+
+        assert np.all(azi > 0)
+

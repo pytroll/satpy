@@ -2,7 +2,7 @@ name: test-environment
 channels:
   - conda-forge
 dependencies:
-  - xarray
+  - xarray!=2022.9.0
   - dask
   - distributed
   - donfig

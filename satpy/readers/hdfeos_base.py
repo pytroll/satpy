@@ -243,7 +243,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
             if add_offset is not None and add_offset != 0:
-                data = data - add_offset
+                data = data - np.float32(add_offset)
             data = data * np.float32(scale_factor)
 
         if good_mask is not None:
