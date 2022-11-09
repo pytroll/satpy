@@ -457,8 +457,15 @@ class TestUnzipping(unittest.TestCase):
         except OSError:
             pass
 
-    def test_unzip_file(self):
+    @mock.patch('satpy.readers.utils.Popen')
+    def test_unzip_file(self, mock_popen):
         """Test the bz2 file unzipping techniques."""
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': (b'output', b'error'),
+                 'returncode': 0}
+        process_mock.configure_mock(**attrs)
+        mock_popen.return_value = process_mock
+
         whichstr = 'satpy.readers.utils.which'
         segment = 3
         segmentstr = str(segment).zfill(2)
