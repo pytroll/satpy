@@ -351,4 +351,3 @@ class TestAngleGeneration:
         azi = _get_sun_azimuth_ndarray(lats, lons, dt)
 
         assert np.all(azi > 0)
-
