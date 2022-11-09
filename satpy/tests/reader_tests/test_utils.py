@@ -265,61 +265,6 @@ class TestHelpers(unittest.TestCase):
         self.assertIn('c', mda['d'])
         self.assertIn('c', mda['d']['d'])
 
-    @mock.patch('satpy.readers.utils.bz2.BZ2File')
-    @mock.patch('satpy.readers.utils.Popen')
-    def test_unzip_file(self, mock_popen, mock_bz2):
-        """Test the bz2 file unzipping techniques."""
-        process_mock = mock.Mock()
-        attrs = {'communicate.return_value': (b'output', b'error'),
-                 'returncode': 0}
-        process_mock.configure_mock(**attrs)
-        mock_popen.return_value = process_mock
-
-        bz2_mock = mock.MagicMock()
-        bz2_mock.read.return_value = b'TEST'
-        mock_bz2.return_value = bz2_mock
-
-        filename = 'tester.DAT.bz2'
-        whichstr = 'satpy.readers.utils.which'
-        segment = 3
-        segmentstr = str(segment).zfill(2)
-        # no pbzip2 installed with prefix
-        with mock.patch(whichstr) as whichmock:
-            whichmock.return_value = None
-            new_fname = hf.unzip_file(filename, prefix=segmentstr)
-            self.assertTrue(bz2_mock.read.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
-            if os.path.exists(new_fname):
-                os.remove(new_fname)
-        # pbzip2 installed without prefix
-        with mock.patch(whichstr) as whichmock:
-            whichmock.return_value = '/usr/bin/pbzip2'
-            new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
-            if os.path.exists(new_fname):
-                os.remove(new_fname)
-
-        filename = 'tester.DAT'
-        new_fname = hf.unzip_file(filename)
-        self.assertIsNone(new_fname)
-
-    @mock.patch('bz2.BZ2File')
-    def test_generic_open_BZ2File(self, bz2_mock):
-        """Test the generic_open method with bz2 filename input."""
-        mock_bz2_open = mock.MagicMock()
-        mock_bz2_open.read.return_value = b'TEST'
-        bz2_mock.return_value = mock_bz2_open
-
-        filename = 'tester.DAT.bz2'
-        with hf.generic_open(filename) as file_object:
-            data = file_object.read()
-            assert data == b'TEST'
-
-        assert mock_bz2_open.read.called
-
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
         mem_fs = MemoryFileSystem()
@@ -489,3 +434,59 @@ class TestSunEarthDistanceCorrection:
         np.testing.assert_allclose(out_refl, self.raw_refl)
         assert not out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
+
+
+class TestUnzipping(unittest.TestCase):
+    """Test that files can be unzipped successfully."""
+
+    def setUp(self):
+        """Create temporary data to test on."""
+        import bz2
+        import tempfile
+
+        self.base_dir = tempfile.mkdtemp()
+        self.filename = self.base_dir + '/test.DAT.bz2'
+        with bz2.open(self.filename, "wt") as bz_file:
+            bz_file.write("TEST")
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test."""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_unzip_file(self):
+        """Test the bz2 file unzipping techniques."""
+        whichstr = 'satpy.readers.utils.which'
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+        # no pbzip2 installed with prefix
+        with mock.patch(whichstr) as whichmock:
+            whichmock.return_value = None
+            new_fname = hf.unzip_file(self.filename, prefix=segmentstr)
+            self.assertTrue(os.path.exists(new_fname))
+            with open(new_fname) as fid:
+                assert fid.readline() == 'TEST'
+            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            if os.path.exists(new_fname):
+                os.remove(new_fname)
+        # pbzip2 installed without prefix
+        with mock.patch(whichstr) as whichmock:
+            whichmock.return_value = '/usr/bin/pbzip2'
+            new_fname = hf.unzip_file(self.filename)
+            self.assertTrue(os.path.exists(new_fname))
+            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            if os.path.exists(new_fname):
+                os.remove(new_fname)
+
+        filename = 'tester.DAT'
+        new_fname = hf.unzip_file(filename)
+        self.assertIsNone(new_fname)
+
+    def test_generic_open_BZ2File(self):
+        """Test the generic_open method with bz2 filename input."""
+        with hf.generic_open(self.filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
