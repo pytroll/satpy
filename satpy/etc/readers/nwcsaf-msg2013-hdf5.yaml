@@ -1,0 +1,193 @@
+reader:
+  name: nwcsaf-msg2013-hdf5
+  short_name: NWCSAF Geo
+  long_name: NWCSAF GEO 2013 products in HDF5 format (limited to SEVIRI)
+  description: HDF5 reader for the NWCSAF/Geo Seviri 2013 format
+  status: Defunct
+  supports_fsspec: false
+  sensors: [seviri]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    h5_nwcsaf_cma:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG4_CMa__201908271145_MSG-N_______.PLAX.CTTH.0.h5
+        file_patterns: ['SAFNWC_{platform_id}_CMa__{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
+
+    h5_nwcsaf_ct:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG4_CT___201906241245_MSG-N_______.PLAX.CTTH.0.h5
+        file_patterns: ['SAFNWC_{platform_id}_CT___{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
+
+    h5_nwcsaf_ctth:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG4_CTTH_201906241245_MSG-N_______.PLAX.CTTH.0.h5
+        file_patterns: ['SAFNWC_{platform_id}_CTTH_{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
+
+
+datasets:
+
+# ---- CMA products ------------
+
+  cma:
+    name: cma
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_pal:
+    name: cma_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_cloudsnow:
+    name: cma_cloudsnow
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_cloudsnow_pal:
+    name: cma_cloudsnow_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_dust:
+    name: cma_dust
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_dust_pal:
+    name: cma_dust_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_volcanic:
+    name: cma_volcanic
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_volcanic_pal:
+    name: cma_volcanic_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_conditions:
+    name: cma_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+  cma_status_flag:
+    name: cma_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_cma
+
+# ---- CT products ------------
+
+  ct:
+    name: ct
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ct
+    file_key: CT
+
+  ct_pal:
+    name: ct_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ct
+    file_key: 01-PALETTE
+
+  ct_quality:
+    name: ct_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ct
+    file_key: CT_QUALITY
+
+  ct_phase:
+    name: ct_phase
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ct
+    file_key: CT_PHASE
+
+  ct_phase_pal:
+    name: ct_phase_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ct
+    file_key: 02-PALETTE
+
+# ---- CTTH products ------------
+
+  ctth_alti:
+    name: ctth_alti
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_HEIGHT
+
+  ctth_alti_pal:
+    name: ctth_alti_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: 02-PALETTE
+
+  ctth_pres:
+    name: ctth_pres
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_PRESS
+
+  ctth_pres_pal:
+    name: ctth_pres_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: 01-PALETTE
+
+  ctth_tempe:
+    name: ctth_tempe
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_TEMPER
+
+  ctth_tempe_pal:
+    name: ctth_tempe_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: 03-PALETTE
+
+  ctth_effective_cloudiness:
+    name: ctth_effective_cloudiness
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_EFFECT
+
+  ctth_effective_cloudiness_pal:
+    name: ctth_eff_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: 04-PALETTE
+
+  ctth_quality:
+    name: ctth_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_QUALITY

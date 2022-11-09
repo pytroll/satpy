@@ -2,9 +2,10 @@ sensor_name: visir/viirs
 
 modifiers:
   rayleigh_corrected_crefl:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
-    dem_filename: CMGDEM.hdf
-    optional_prerequisites:
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
+    url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
+    known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
+    prerequisites:
     - name: satellite_azimuth_angle
       resolution: 742
     - name: satellite_zenith_angle
@@ -15,9 +16,10 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_crefl_iband:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
-    dem_filename: CMGDEM.hdf
-    optional_prerequisites:
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
+    url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
+    known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
+    prerequisites:
     - name: satellite_azimuth_angle
       resolution: 371
     - name: satellite_zenith_angle
@@ -28,7 +30,7 @@ modifiers:
       resolution: 371
 
   rayleigh_corrected_iband:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -46,7 +48,7 @@ modifiers:
       resolution: 371
 
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -64,7 +66,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_marine_tropical:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: marine_tropical_aerosol
     prerequisites:
@@ -82,7 +84,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_land:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: continental_average_aerosol
     prerequisites:
@@ -100,19 +102,19 @@ modifiers:
       resolution: 742
 
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 742
 
   sunz_corrected_iband:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 371
 
   nir_emissive_lowres:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - M15
     optional_prerequisites:
@@ -120,7 +122,7 @@ modifiers:
       resolution: 742
 
   nir_emissive_hires:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - I05
     optional_prerequisites:
@@ -128,7 +130,7 @@ modifiers:
       resolution: 371
 
   nir_reflectance_lowres:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - M15
     optional_prerequisites:
@@ -136,7 +138,7 @@ modifiers:
       resolution: 742
 
   nir_reflectance_hires:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - I05
     optional_prerequisites:
@@ -157,6 +159,21 @@ composites:
     optional_prerequisites:
     - name: I01
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+    standard_name: true_color
+    high_resolution_band: red
+
+  true_color_crefl:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: M05
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      - name: M04
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      - name: M03
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    optional_prerequisites:
+      - name: I01
+        modifiers: [sunz_corrected_iband, rayleigh_corrected_crefl_iband]
     standard_name: true_color
     high_resolution_band: red
 
@@ -446,6 +463,17 @@ composites:
       modifiers: [nir_reflectance_hires]
     standard_name: snow
 
+  snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I02
+        modifiers: [sunz_corrected_iband]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+      - name: I04
+        modifiers: [nir_reflectance_hires]
+    standard_name: snow
+
   histogram_dnb:
     compositor: !!python/name:satpy.composites.viirs.HistogramDNB
     prerequisites:
@@ -519,3 +547,81 @@ composites:
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: ocean_color
     high_resolution_band: red
+
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M15
+      - name: I01
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M15
+      - name: I01
+      - name: I03
+    standard_name: cloud_phase_distinction
+
+  cloud_phase:
+    description: >
+      EUMETSAT Cloud Phase RGB product
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+      - name: M11
+        modifiers: [sunz_corrected]
+      - name: M05
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: cloud_phase
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase RGB product, without modifiers
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I03
+      - name: M11
+      - name: M05
+    standard_name: cloud_phase
+
+  cimss_cloud_type:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB
+    references:
+      EUMETRAIN Quick Guide: http://eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M09
+        modifiers: [sunz_corrected]
+      - name: I01
+        modifiers: [sunz_corrected_iband]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+    standard_name: cimss_cloud_type
+
+  cimss_cloud_type_raw:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M09
+      - name: I01
+      - name: I03
+    standard_name: cimss_cloud_type

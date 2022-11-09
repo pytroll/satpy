@@ -1,0 +1,53 @@
+reader:
+  name: ascat_l2_soilmoisture_bufr
+  short_name: ASCAT L2 SOILMOISTURE BUFR
+  long_name: METOP ASCAT Level 2 SOILMOISTURE BUFR
+  description: >
+    Reader for ASCAT L2 SOIL MOISUTRE FILES
+  status: Defunct
+  supports_fsspec: false
+  sensors: [scatterometer]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  default_datasets:
+
+file_types:
+  ascat_l2_soilmoisture_bufr:
+    file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.AscatSoilMoistureBufr
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_{header}_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_ssm_l2.bin"]
+
+datasets:
+
+  latitude:
+    name: latitude
+    file_type: ascat_l2_soilmoisture_bufr
+    standard_name: latitude
+    units: "degrees"
+    resolution: 12000
+    key: 'latitude'
+    fill_value: -1.e+100
+
+  longitude:
+    name: longitude
+    file_type: ascat_l2_soilmoisture_bufr
+    standard_name: longitude
+    units: "degrees"
+    resolution: 12000
+    key: 'longitude'
+    fill_value: -1.e+100
+
+  surface_soil_moisture:
+    name: surface_soil_moisture
+    file_type: ascat_l2_soilmoisture_bufr
+    units: 'percent'
+    coordinates: [longitude, latitude]
+    key: surfaceSoilMoisture
+    fill_value: -1.e+100
+    sensor: scatterometer
+
+
+  soil_moisture_quality:
+    name: soil_moisture_quality
+    file_type: ascat_l2_soilmoisture_bufr
+    coordinates: [longitude, latitude]
+    key: soilMoistureQuality
+    fill_value: -1.e+100

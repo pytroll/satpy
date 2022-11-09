@@ -15,26 +15,20 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The scmi_abi_l1b reader tests package.
-"""
+"""The scmi_abi_l1b reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
+
 import numpy as np
 import xarray as xr
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 class FakeDataset(object):
+    """Fake dataset."""
+
     def __init__(self, info, attrs, dims=None):
+        """Init the dataset."""
         for var_name, var_data in list(info.items()):
             if isinstance(var_data, np.ndarray):
                 info[var_name] = xr.DataArray(var_data)
@@ -43,15 +37,19 @@ class FakeDataset(object):
         self.dims = dims or {}
 
     def __getitem__(self, key):
+        """Get item."""
         return self.info.get(key, self.dims.get(key))
 
     def __contains__(self, key):
+        """Check contains."""
         return key in self.info or key in self.dims
 
     def rename(self, *args, **kwargs):
+        """Rename the dataset."""
         return self
 
     def close(self):
+        """Close the dataset."""
         return
 
 
@@ -60,7 +58,7 @@ class TestSCMIFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.scmi.xr')
     def setUp(self, xr_):
-        """Setup for test."""
+        """Set up for test."""
         from satpy.readers.scmi import SCMIFileHandler
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
         rad_data = (rad_data + 1.) / 0.5
@@ -105,25 +103,31 @@ class TestSCMIFileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        from satpy import DatasetID
+
+        from satpy.tests.utils import make_dataid
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
+        self.assertEqual(self.reader.get_shape(make_dataid(name='C05'), {}),
                          (2, 5))
 
     def test_data_load(self):
         """Test data loading."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            DatasetID(name='C05', calibration='reflectance'), {})
+            make_dataid(name='C05', calibration='reflectance'), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         self.assertNotIn('scale_factor', res.attrs)
         self.assertNotIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'toa_bidirectional_reflectance')
+        assert 'orbital_parameters' in res.attrs
+        orb_params = res.attrs['orbital_parameters']
+        assert orb_params['projection_longitude'] == -90.0
+        assert orb_params['projection_latitude'] == 0.0
+        assert orb_params['projection_altitude'] == 35785831.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):
@@ -161,7 +165,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
                                {'platform_shortname': 'G16'},
                                {'filetype': 'info'})
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_geos(self, adef):
         """Test the area generation for geos projection."""
         reader = self.create_reader(
@@ -186,7 +190,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_lcc(self, adef):
         """Test the area generation for lcc projection."""
         reader = self.create_reader(
@@ -211,7 +215,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_stere(self, adef):
         """Test the area generation for stere projection."""
         reader = self.create_reader(
@@ -236,7 +240,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_merc(self, adef):
         """Test the area generation for merc projection."""
         reader = self.create_reader(
@@ -260,7 +264,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_bad(self, adef):
         """Test the area generation for bad projection."""
         reader = self.create_reader(
@@ -274,13 +278,3 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
             }
         )
         self.assertRaises(ValueError, reader.get_area_def, None)
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandlerArea))
-    return mysuite

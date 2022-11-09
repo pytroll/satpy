@@ -1,0 +1,63 @@
+reader:
+  name: slstr_l2
+  short_name: SLSTR l2
+  long_name: Sentinel-3 SLSTR Level 2 data in netCDF format
+  description: NC Reader for Sentinel-3 SLSTR Level 2 data
+  status: defunct
+  supports_fsspec: false
+  sensors: [slstr_l2]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    SLSTRB:
+        file_reader: !!python/name:satpy.readers.slstr_l2.SLSTRL2FileHandler
+        file_patterns: ['{start_time:%Y%m%d%H%M%S}-{generating_centre:3s}-{type_id:3s}_GHRSST-SSTskin-SLSTR{something:1s}-{end_time:%Y%m%d%H%M%S}-{version}.nc',
+        '{mission_id:3s}_SL_{processing_level:1s}_WST____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3.tar']
+
+datasets:
+  longitude:
+    name: longitude
+    resolution: 1000
+    view: nadir
+    file_type: SLSTRB
+    standard_name: lon
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 1000
+    view: nadir
+    file_type: SLSTRB
+    standard_name: lat
+    units: degree
+
+  sea_surface_temperature:
+    name: sea_surface_temperature
+    sensor: slstr_l2
+    coordinates: [longitude, latitude]
+    file_type: SLSTRB
+    resolution: 1000
+    view: nadir
+    units: kelvin
+    standard_name: sea_surface_temperature
+
+  sea_ice_fraction:
+    name: sea_ice_fraction
+    sensor: slstr_l2
+    coordinates: [longitude, latitude]
+    file_type: SLSTRB
+    resolution: 1000
+    view: nadir
+    units: "%"
+    standard_name: sea_ice_fraction
+
+  # Quality estimation 0-5: no data, cloud, worst, low, acceptable, best
+  quality_level:
+    name: quality_level
+    sensor: slstr_l2
+    coordinates: [longitude, latitude]
+    file_type: SLSTRB
+    resolution: 1000
+    view: nadir
+    standard_name: quality_level

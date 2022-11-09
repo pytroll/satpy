@@ -1,0 +1,63 @@
+sensor_name: visir/fci
+
+
+composites:
+  corrected_green:
+    description: >
+      The FCI green band at 0.51 µm deliberately misses the chlorophyl band, such that
+      the signal comes rather from aerosols and ash rather than vegetation.  An effect
+      is that vegetation in a true colour RGB looks rather brown than green.  Mixing in
+      some part of the NIR 0.8 channel reduced this effect.  Note that the fractions
+      currently implemented are experimental and may change in future versions of Satpy.
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    fractions: [0.93, 0.07]
+    prerequisites:
+      - name: vis_05
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: vis_08
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: toa_bidirectional_reflectance
+
+  corrected_green_raw:
+    description: >
+      Alternative to corrected_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    fractions: [0.93, 0.07]
+    prerequisites:
+      - name: vis_05
+      - name: vis_08
+    standard_name: toa_bidirectional_reflectance
+
+  binary_cloud_mask:
+    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
+    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
+    prerequisites:
+      - name: 'cloud_state'
+    lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
+    standard_name: binary_cloud_mask
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color composite.  The green band is simulated based on a combination of
+      channels.  This simulation may change in future versions of Satpy.  See the description
+      of the corrected_green composites for details.
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: corrected_green
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_raw_with_corrected_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color without solar zenith or rayleigh corrections, but with the
+      corrected green composite.
+    prerequisites:
+      - name: vis_06
+      - name: corrected_green_raw
+      - name: vis_04
+    standard_name: true_color_raw

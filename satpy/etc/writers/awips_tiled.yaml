@@ -1,0 +1,869 @@
+# Originally converted from the CSPP Polar2Grid SCMI Writer
+# Some datasets are named differently and have not been converted to
+# Satpy-style naming yet. These config entries are commented out.
+writer:
+  name: awips_tiled
+  description: AWIPS-compatible Tiled NetCDF4 Writer
+  writer: !!python/name:satpy.writers.awips_tiled.AWIPSTiledWriter
+  compress: True
+sectors:
+  LCC:
+    lower_left_lonlat: [-135, 20]
+    upper_right_lonlat: [-60, 60]
+    resolution: [1300000, 1300000]  # y, x
+    projection: '+proj=lcc +datum=WGS84 +ellps=WGS84 +lat_0=25 +lat_1=25 +lon_0=-95 +units=m +no_defs'
+  Polar:
+    lower_left_lonlat: [-180, 33]
+    upper_right_lonlat: [-40.5, 78]
+    resolution: [1400000, 1400000]
+    projection: '+proj=stere +datum=WGS84 +ellps=WGS84 +lat_0=90 +lat_ts=60.0 +lon_0=-150 +units=m'
+  Mercator:
+    lower_left_lonlat: [-135, 0]
+    upper_right_lonlat: [-30, 50]
+    resolution: [2150000, 2150000]
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=-95 +lat_0=0 +units=m +no_defs'
+  Pacific:
+    lower_left_lonlat: [120, 0]
+    upper_right_lonlat: [-135, 50]
+    resolution: [2150000, 2150000]
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=170 +lat_0=0 +units=m +no_defs'
+  GOES_TEST:
+    lower_left_xy: [-5434894.8851, -5434894.8851]
+    upper_right_xy: [5434894.8851, 5434894.8851]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-89.5 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_EAST:
+    lower_left_xy: [-5434894.8851, -5434894.8851]
+    upper_right_xy: [5434894.8851, 5434894.8851]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-75.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_WEST:
+    lower_left_xy: [-5434894.8851, -5434894.8851]
+    upper_right_xy: [5434894.8851, 5434894.8851]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-137.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_STORE:
+    lower_left_xy: [-5434894.8851, -5434894.8851]
+    upper_right_xy: [5434894.8851, 5434894.8851]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-105.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  AHI Full Disk:
+    lower_left_xy: [-5499999.901174725, -5499999.901174725]
+    upper_right_xy: [5499999.901174725, 5499999.901174725]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=140.7 +h=35785863.0 +a=6378137.0 +b=6356752.3 +sweep=y +units=m +no_defs'
+templates:
+  polar:
+    single_variable: true
+    add_sector_id_global: true
+    filename: '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+    global_attributes:
+      start_date_time: {}  # special handler for debugging in awips_tiled.py
+#        value: "{start_time:%Y-%m-%dT%H:%M:%S}"
+      product_name:
+        value: "{name}"
+      production_location: {}
+#        value: "${ORGANIZATION}"
+      awips_id: {}
+#        value: "{awips_id}"  # special variable created by awips_tiled.py
+      physical_element: {}
+#        value: "{physical_element}"   #special variable created by awips_tiled.py
+      satellite_id:
+        value: "{platform_name!u}-{sensor!u}"
+
+    coordinates:
+      x:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+          _Unsigned: "true"
+      y:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+          _Unsigned: "true"
+
+    # XXX: Variable attributes *CAN NOT* be tile-specific.
+    variables:
+      # if no other section matches, we use this
+      default:
+        var_name: 'data'
+        attributes:
+          physical_element:
+            value: '{name}'
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+
+
+      # ACSPO Products
+      acspo_sst:
+        reader: acspo
+        name: sst
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: ACSPO SST
+          units: {}
+
+      # CLAVR-x Products
+      default_clavrx:
+        reader: clavrx
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            value: 'CLAVR-x {name}'
+      clavrx_cloud_type:
+        reader: clavrx
+        name: cloud_type
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Type
+          units: {}
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
+      clavrx_cld_temp_acha:
+        reader: clavrx
+        name: cld_temp_acha
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Top Temperature (ACHA)
+      clavrx_cld_height_acha:
+        reader: clavrx
+        name: cld_height_acha
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Top Height (ACHA)
+      clavrx_cloud_phase:
+        reader: clavrx
+        name: cloud_phase
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Phase
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
+      clavrx_cld_opd_dcomp:
+        reader: clavrx
+        name: cld_opd_dcomp
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Optical Depth (dcomp)
+      clavrx_clld_opd_nlcomp:
+        reader: clavrx
+        name: cloud_opd_nlcomp
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Optical Depth (nlcomp)
+      clavrx_cld_reff_dcomp:
+        reader: clavrx
+        name: cld_reff_dcomp
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Effective Radius (dcomp)
+      clavrx_cld_reff_nlcomp:
+        reader: clavrx
+        name: cld_reff_nlcomp
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Effective Radius (nlcomp)
+      clavrx_cld_emiss_acha:
+        reader: clavrx
+        name: cld_emiss_acha
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Emissivity (ACHA)
+      clavrx_refl_lunar_dnb_nom:
+        reader: clavrx
+        name: refl_lunar_dnb_nom
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Cloud Lunar Reflectance
+      clavrx_rain_rate:
+        reader: clavrx
+        name: rain_rate
+        var_name: data
+        attributes:
+          units: {}
+          physical_element:
+            raw_value: CLAVR-x Rain Rate
+
+      # AVHRR L1B products
+      avhrr_band1_vis:
+        name: band1_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.63 um
+          units: {}
+      avhrr_band2_vis:
+        name: band2_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.86 um
+          units: {}
+      avhrr_band3a_vis:
+        name: band3a_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+          units: {}
+      avhrr_band3b_bt:
+        name: band3b_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.74 um
+          units: {}
+      avhrr_band4_bt:
+        name: band4_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 10.8 um
+          units: {}
+      avhrr_band5_bt:
+        name: band5_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 12.0 um
+          units: {}
+
+      # VIIRS SDRs
+      viirs_i01:
+        name: I01
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.64 um
+          units: {}
+      viirs_i02:
+        name: I02
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.87 um
+          units: {}
+      viirs_i03:
+        name: I03
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+          units: {}
+      viirs_i04:
+        name: I04
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.74 um
+          units: {}
+      viirs_i05:
+        name: I05
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 11.5 um
+          units: {}
+      viirs_histogram_dnb:
+        name: histogram_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Histogram DNB
+          units: {}
+      viirs_adaptive_dnb:
+        name: adaptive_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Adaptive DNB
+          units: {}
+      viirs_dynamic_dnb:
+        name: dynamic_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Dynamic DNB
+          units: {}
+      viirs_hncc_dnb:
+        name: hncc_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: HNCC DNB
+          units: {}
+      viirs_ifog:
+        name: ssec_fog
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Fog
+          units: {}
+      viirs_m01:
+        name: M01
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.41 um
+          units: {}
+      viirs_m02:
+        name: M02
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.45 um
+          units: {}
+      viirs_m03:
+        name: M03
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.49 um
+          units: {}
+      viirs_m04:
+        name: M04
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.56 um
+          units: {}
+      viirs_m05:
+        name: M05
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.67 um
+          units: {}
+      viirs_m06:
+        name: M06
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.75 um
+          units: {}
+      viirs_m07:
+        name: M07
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.86 um
+          units: {}
+      viirs_m08:
+        name: M08
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.24 um
+          units: {}
+      viirs_m09:
+        name: M09
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.38 um
+          units: {}
+      viirs_m10:
+        name: M10
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+          units: {}
+      viirs_m11:
+        name: M11
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 2.25 um
+          units: {}
+      viirs_m12:
+        name: M12
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.70 um
+          units: {}
+      viirs_m13:
+        name: M13
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 4.05 um
+          units: {}
+      viirs_m14:
+        name: M14
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 8.6 um
+          units: {}
+      viirs_m15:
+        name: M15
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 10.8 um
+          units: {}
+      viirs_m16:
+        name: M16
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 12.0 um
+          units: {}
+
+      # AMSR-2 L1B
+      amsr2_btemp_36.5h:
+        name: btemp_36.5h
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 36.5 GHz H
+          units: {}
+      amsr2_btemp_36.5v:
+        name: btemp_36.5v
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 36.5 GHz V
+          units: {}
+      amsr2_btemp_89.0ah:
+        name: btemp_89.0ah
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz AH
+          units: {}
+      amsr2_btemp_89.0av:
+        name: btemp_89.0av
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz AV
+          units: {}
+      amsr2_btemp_89.0bh:
+        name: btemp_89.0bh
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz BH
+          units: {}
+      amsr2_btemp_89.0bv:
+        name: btemp_89.0bv
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz BV
+          units: {}
+
+      # GEOCAT Level 1 Products
+      geocat_surface_type:
+        name: pixel_surface_type
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Surface Type
+          units: {}
+      # GEOCAT Level 2 Products
+  glm_l2_radc:
+    single_variable: false
+    # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    global_attributes:
+      # FIXME: This should come from the reader's metadata
+      dataset_name:
+        value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_s{start_time:%Y%j%H%M%S0}_e{end_time:%Y%j%H%M%S0}_c{creation_time:%Y%j%H%M%S0}.nc'
+      time_coverage_end:
+        value: "{end_time:%Y-%m-%dT%H:%M:%S.%fZ}"
+      time_coverage_start:
+        value: "{start_time:%Y-%m-%dT%H:%M:%S.%fZ}"
+      production_site: {}  # special handler in awips_tiled.py
+      platform_ID:
+        value: "{platform_shortname}"
+      cdm_data_type:
+        raw_value: "Image"
+      spatial_resolution:
+        value: "{spatial_resolution}"
+      orbital_slot:
+        value: "{orbital_slot}"
+      # This is used by AWIPS as sectorID
+      scene_id:
+        value: "{scene_id}"
+    coordinates:
+      x:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+#          _Unsigned: "true"
+      y:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+#          _Unsigned: "true"
+    variables:
+      DQF:
+        # Not currently viewable by AWIPS
+        name: DQF
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_DQF"
+          units:
+            raw_value: "1"
+          long_name:
+            value: "{long_name}"
+          standard_name:
+            value: "{standard_name}"
+          flag_values:
+            raw_key: "flag_values"
+          flag_meanings:
+            raw_key: "flag_meanings"
+        encoding:
+          dtype: int8
+          _Unsigned: "true"
+
+      flash_extent_density:
+        name: "flash_extent_density"
+        var_name: "Flash_extent_density"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      flash_extent_density_window:
+        name: "flash_extent_density_window"
+        var_name: "Flash_extent_density_window"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area:
+        name: "average_flash_area"
+        var_name: "Average_flash_area"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Average_Flash_Area"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area_window:
+        name: "average_flash_area_window"
+        var_name: "Average_flash_area_window"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Average_Flash_Area_Window"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area:
+        name: "minimum_flash_area"
+        var_name: "Minimum_flash_area"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area_window:
+        name: "minimum_flash_area_window"
+        var_name: "Minimum_flash_area_window"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy:
+        name: "total_energy"
+        var_name: "Total_Optical_energy"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Total_Optical_Energy"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy_window:
+        name: "total_energy_window"
+        var_name: "Total_optical_energy_window"
+        attributes:
+#          physical_element:
+#            raw_value: "GLM_Total_Optical_Energy_Window"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+  glm_l2_radf:
+    single_variable: false
+    # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    global_attributes:
+      # FIXME: This should come from the reader's metadata
+      dataset_name:
+        # XXX: global attributes don't currently know things about tiles so we hardcode this to T00
+        value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T00_e{end_time:%Y%m%d%H%M%S}.nc'
+      time_coverage_end:
+        value: "{end_time:%Y-%m-%dT%H:%M:%SZ}"
+      time_coverage_start:
+        value: "{start_time:%Y-%m-%dT%H:%M:%SZ}"
+      production_site: {}  # special handler in awips_tiled.py
+      platform_ID:
+        value: "{platform_shortname}"
+      cdm_data_type:
+        raw_value: "Image"
+      spatial_resolution:
+        value: "{spatial_resolution}"
+      orbital_slot:
+        value: "{orbital_slot}"
+      # This is used by AWIPS as sectorID
+      scene_id:
+        value: "{scene_id}"
+    coordinates:
+      x:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+      #          _Unsigned: "true"
+      y:
+        attributes:
+          units:
+            value: "{units}"
+        encoding:
+          dtype: "int16"
+    #          _Unsigned: "true"
+    variables:
+      DQF:
+        # Not currently viewable by AWIPS
+        name: DQF
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_DQF"
+          units:
+            raw_value: "1"
+          long_name:
+            value: "{long_name}"
+          standard_name:
+            value: "{standard_name}"
+          flag_values:
+            raw_key: "flag_values"
+          flag_meanings:
+            raw_key: "flag_meanings"
+        encoding:
+          dtype: int8
+          _Unsigned: "true"
+
+      flash_extent_density:
+        name: "flash_extent_density"
+        var_name: "Flash_extent_density"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 1.0000001
+          add_offset: 0.0
+          _FillValue: -1
+      flash_extent_density_window:
+        name: "flash_extent_density_window"
+        var_name: "Flash_extent_density_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area:
+        name: "average_flash_area"
+        var_name: "Average_flash_area"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Average_Flash_Area"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area_window:
+        name: "average_flash_area_window"
+        var_name: "Average_flash_area_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Average_Flash_Area_Window"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area:
+        name: "minimum_flash_area"
+        var_name: "Minimum_flash_area"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area_window:
+        name: "minimum_flash_area_window"
+        var_name: "Minimum_flash_area_w5u1"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy:
+        name: "total_energy"
+        var_name: "Total_Optical_energy"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Total_Optical_Energy"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy_window:
+        name: "total_energy_window"
+        var_name: "Total_optical_energy_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Total_Optical_Energy_Window"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"

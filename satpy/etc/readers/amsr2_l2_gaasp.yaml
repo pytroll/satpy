@@ -1,0 +1,51 @@
+reader:
+  name: amsr2_l2_gaasp
+  short_name: AMSR2 Level 2 GAASP
+  long_name: GCOM-W1 AMSR2 Level 2 GAASP (NetCDF4)
+  description: >
+    NetCDF4 reader for GCOM-W1 AMSR2 Level 2 files processed using the GAASP
+    software distributed by NOAA. See
+    https://www.star.nesdis.noaa.gov/jpss/gcom.php for more information.
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsr2]
+
+file_types:
+  amsr2_mbt:
+    # Microwave Brightness Temperatures
+    # Ex. AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
+    file_patterns: ['AMSR2-MBT_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+  amsr2_precip:
+    # Ex. AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
+    file_patterns: ['AMSR2-PRECIP_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+  amsr2_ocean:
+    # Ex. AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
+    file_patterns: ['AMSR2-OCEAN_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+  amsr2_seaice_nh:
+    var_suffix: "_NH"
+    grid_epsg: 6931
+    # Ex. AMSR2-SEAICE-NH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPGriddedFileHandler
+    file_patterns:
+    - 'AMSR2-SEAICE-NH_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  amsr2_seaice_sh:
+    var_suffix: "_SH"
+    grid_epsg: 6932
+    # Ex. AMSR2-SEAICE-SH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPGriddedFileHandler
+    file_patterns:
+      - 'AMSR2-SEAICE-SH_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  amsr2_snow:
+    # Ex. AMSR2-SNOW_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowResFileHandler
+    file_patterns: ['AMSR2-SNOW_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+  amsr2_soil:
+    # Ex. AMSR2-SOIL_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowResFileHandler
+    file_patterns: ['AMSR2-SOIL_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+
+datasets: {}

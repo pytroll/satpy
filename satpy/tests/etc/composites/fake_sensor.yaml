@@ -1,0 +1,248 @@
+sensor_name: visir/fake_sensor
+
+modifiers:
+  mod1:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - ds2
+  mod2:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - comp3
+  mod3:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - ds2
+  res_change:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+  incomp_areas:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - ds1
+  incomp_areas_opt:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - name: ds1
+        modifiers: ['incomp_areas']
+    optional_prerequisites:
+      - ds2
+  mod_opt_prereq:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - ds1
+    optional_prerequisites:
+      - ds2
+  mod_bad_opt:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - ds1
+    optional_prerequisites:
+      - ds9_fail_load
+  mod_opt_only:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    optional_prerequisites:
+      - ds2
+  mod_wl:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    prerequisites:
+      - wavelength: 0.2
+        modifiers: ['mod1']
+  sunz_corr:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    optional_prerequisites:
+      - sunz_angles_NOPE
+  rayleigh_corr:
+    modifier: !!python/name:satpy.tests.utils.FakeModifier
+    optional_prerequisites:
+      - wavelength: 30.64
+        modifiers: ['sunz_corr']
+
+composites:
+  comp1:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+  comp2:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds2
+  comp3:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds2
+      - ds3
+  comp4:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - comp2
+      - ds3
+  comp5:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds2
+    optional_prerequisites:
+      - ds3
+  comp6:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds2
+    optional_prerequisites:
+      - comp2
+  comp7:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - comp2
+    optional_prerequisites:
+      - ds2
+  comp8:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds_NOPE
+      - comp2
+  comp9:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - comp2
+    optional_prerequisites:
+      - ds_NOPE
+  comp10:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds1
+        modifiers: ["mod1"]
+      - comp2
+  comp11:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - 0.22
+      - 0.48
+      - 0.85
+  comp12:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - wavelength: 0.22
+        modifiers: ["mod1"]
+      - wavelength: 0.48
+        modifiers: ["mod1"]
+      - wavelength: 0.85
+        modifiers: ["mod1"]
+  comp13:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds5
+        modifiers: ["res_change"]
+  comp14:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+  comp15:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds9_fail_load
+  comp16:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+    optional_prerequisites:
+      - ds9_fail_load
+  comp17:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - comp15
+  comp18:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds3
+      - name: ds4
+        modifiers: ["mod1", "mod3"]
+      - name: ds5
+        modifiers: ["mod1", "incomp_areas"]
+  comp18_2:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds3
+      - name: ds4
+        modifiers: ["mod1", "mod3"]
+      - name: ds5
+        modifiers: ["mod1", "incomp_areas_opt"]
+  comp19:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds5
+        modifiers: ["res_change"]
+      - comp13
+      - ds2
+  comp20:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds5
+        modifiers: ["mod_opt_prereq"]
+  comp21:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds5
+        modifiers: ["mod_bad_opt"]
+  comp22:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds5
+        modifiers: ["mod_opt_only"]
+  comp23:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - 0.8
+  static_image:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+  comp24:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: ds11
+      - name: ds12
+  comp25:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: comp24
+      - name: ds5
+  ahi_green:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - wavelength: 30.5
+        modifiers: ['sunz_corr', 'rayleigh_corr']
+      - wavelength: 30.85
+        modifiers: ['sunz_corr']
+  comp26:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - name: comp14
+  comp27:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+          - name: ds5
+            modifiers: ['mod1', 'mod_opt_only']
+      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+          - name: ds1
+            modifiers: ['mod1', 'mod_opt_only']
+      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+          - name: ds2
+            modifiers: ['mod1', 'mod_opt_only']
+      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+          - name: ds13
+            modifiers: ['mod1', 'mod_opt_only']
+  comp_multi:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds4_b

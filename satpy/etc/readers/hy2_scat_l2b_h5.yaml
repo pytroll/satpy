@@ -1,0 +1,149 @@
+reader:
+  name: hy2_scat_l2b_h5
+  short_name: Eumetsat Wind field
+  long_name: HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
+  description: Generic Eumetsat HY2 L2B H5 Wind field Reader
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [scatterometer]
+  default_datasets:
+
+file_types:
+  hy2_scat_l2b_h5:
+    file_reader: !!python/name:satpy.readers.hy2_scat_l2b_h5.HY2SCATL2BH5FileHandler
+    file_patterns:
+      - 'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,{platform_name}+SM_C_EUMP_{start_date:%Y%m%d------}_{orbit_number}_o_250_{product_level}.h5'
+      - '{platform_name}_OPER_SCA_{product_level}_OR_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit_number}_pwp_250_07_owv.h5'
+
+datasets:
+  wvc_lon:
+    name: wvc_lon
+    resolution: 25000
+    file_type: hy2_scat_l2b_h5
+    standard_name: longitude
+    units: degree
+
+  wvc_lat:
+    name: wvc_lat
+    resolution: 25000
+    file_type: hy2_scat_l2b_h5
+    standard_name: latitude
+    units: degree
+
+  wind_speed_selection:
+    name: wind_speed_selection
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wind_speed
+    sensor: scatterometer
+
+  wind_dir_selection:
+    name: wind_dir_selection
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wind_dir
+    sensor: scatterometer
+
+  wind_speed:
+    name: wind_speed
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wind_speed
+    sensor: scatterometer
+
+  wind_dir:
+    name: wind_dir
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wind_dir
+    sensor: scatterometer
+
+  max_likelihood_est:
+    name: max_likelihood_est
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: max_likelihood_est
+    sensor: scatterometer
+
+  model_speed:
+    name: model_speed
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: model_speed
+    sensor: scatterometer
+
+  model_dir:
+    name: model_dir
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: model_dir
+    sensor: scatterometer
+
+  num_ambigs:
+    name: num_ambigs
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: num_ambigs
+    sensor: scatterometer
+
+  num_in_aft:
+    name: num_in_aft
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: num_in_aft
+    sensor: scatterometer
+
+  num_in_fore:
+    name: num_in_fore
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: num_in_fore
+    sensor: scatterometer
+
+  num_out_aft:
+    name: num_out_aft
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: num_out_aft
+    sensor: scatterometer
+
+  num_out_fore:
+    name: num_out_fore
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: num_out_fore
+    sensor: scatterometer
+
+  wvc_quality_flag:
+    name: wvc_quality_flag
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wvc_quality_flag
+    sensor: scatterometer
+
+  wvc_row_time:
+    name: wvc_row_time
+    file_type: hy2_scat_l2b_h5
+    standard_name: wvc_row_time
+
+  wvc_selection:
+    name: wvc_selection
+    resolution: 25000
+    coordinates: [wvc_lon, wvc_lat]
+    file_type: hy2_scat_l2b_h5
+    standard_name: wvc_selection
+    sensor: scatterometer

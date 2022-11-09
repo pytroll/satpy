@@ -1,0 +1,117 @@
+reader:
+  name: fake1
+  description: Fake reader used for easier testing
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [fake_sensor]
+datasets:
+  lons:
+    name: lons
+    resolution: [250, 500, 1000]
+    standard_name: longitude
+    file_type: fake_file1
+  lats:
+    name: lats
+    resolution: [250, 500, 1000]
+    standard_name: latitude
+    file_type: fake_file1
+  ds1:
+    name: ds1
+    resolution: 250
+    calibration: "reflectance"
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds2:
+    name: ds2
+    resolution: 250
+    calibration: "reflectance"
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds3:
+    name: ds3
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds4:
+    name: ds4
+    calibration: ["radiance", "reflectance"]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds5:
+    name: ds5
+    resolution:
+      250:
+        file_type: fake_file1_highres
+      500:
+        file_type: fake_file1
+      1000:
+        file_type: fake_file1
+    coordinates: [lons, lats]
+  ds6:
+    name: ds6
+    resolution: 250
+    wavelength: [0.1, 0.2, 0.3]
+    calibration: "reflectance"
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds7:
+    name: ds7
+    wavelength: [0.4, 0.5, 0.6]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds8:
+    name: ds8
+    wavelength: [0.7, 0.8, 0.9]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds9_fail_load:
+    name: ds9_fail_load
+    wavelength: [1.0, 1.1, 1.2]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds10:
+    name: ds10
+    wavelength: [0.75, 0.85, 0.95]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds11:
+    name: ds11
+    resolution: [500, 1000]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds12:
+    name: ds12
+    resolution: [500, 1000]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  ds13_modified:
+    name: ds13
+    resolution: 250
+    modifiers: ["mod1"]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  B02:
+    name: B02
+    resolution: 1000
+    wavelength: [30.49, 30.51, 30.53]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  B03:
+    name: B03
+    resolution: 500
+    wavelength: [30.62, 30.64, 30.66]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+  B04:
+    name: B04
+    resolution: 1000
+    wavelength: [30.83, 30.85, 30.87]
+    file_type: fake_file1
+    coordinates: [lons, lats]
+file_types:
+  fake_file1:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake1_{file_idx:d}.txt']
+    sensor: fake_sensor
+  fake_file1_highres:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake1_highres_{file_idx:d}.txt']
+    sensor: fake_sensor

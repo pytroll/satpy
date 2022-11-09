@@ -1,0 +1,48 @@
+reader:
+  name: amsr2_l2
+  short_name: AMSR2 Level 2
+  long_name: GCOM-W1 AMSR2 Level 2 (HDF5)
+  description: >
+    HDF5 reader for GCOM-W1 AMSR2 Level 2 files from JAXA. See
+    https://suzaku.eorc.jaxa.jp/GCOM_W/data/data_w_product-2.html for more
+    information.
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsr2]
+
+file_types:
+  amsr2_l2_ssw:
+    file_reader: !!python/name:satpy.readers.amsr2_l2.AMSR2L2FileHandler
+    file_patterns: ['{platform_shortname:3s}{instrument_shortname:3s}_{start_time:%Y%m%d%H%M}_{path_number:3d}{orbit_direction:1s}_L2{process_kind:2s}SSW{resolution_id:1s}{dev_id:1s}{product_version:1s}{algorithm_version:3d}{parameter_version:3d}.h5']
+
+datasets:
+  longitude_ssw:
+    name: longitude_ssw
+    file_type: amsr2_l2_ssw
+    standard_name: longitude
+    resolution: 15000
+    units: degrees_east
+    file_key: 'Longitude of Observation Point'
+    fill_value: -9999.0
+
+  latitude_ssw:
+    name: latitude_ssw
+    file_type: amsr2_l2_ssw
+    standard_name: latitude
+    resolution: 15000
+    units: degrees_north
+    file_key: 'Latitude of Observation Point'
+    fill_value: -9999.0
+
+  #https://suzaku.eorc.jaxa.jp/GCOM_W/data/data_w_product-2.html
+  ssw:
+    name: ssw
+    standard_name: wind_speed
+    file_type: amsr2_l2_ssw
+    file_key: 'Geophysical Data'
+    fill_value: -32768
+    resolution: 15000
+    coordinates:
+        - longitude_ssw
+        - latitude_ssw

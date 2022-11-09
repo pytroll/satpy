@@ -1,0 +1,198 @@
+sensor_name: visir/agri
+
+composites:
+  green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C03
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+  #
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13_A&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C12
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C05
+        modifiers: [sunz_corrected]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C12
+      - name: C02
+      - name: C05
+    standard_name: cloud_phase_distinction
+
+  snow_fog:
+    description: >
+      Day Snow-Fog RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFogRGB_final_v2.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml of snow_defaul
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C05
+        modifiers: [sunz_corrected]
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C12
+    standard_name: snow
+
+  fire_temperature_awips:
+    description: >
+      Fire Temperature RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+    ## adapted from etc/composites/viirs.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C07
+      - name: C06
+      - name: C05
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+
+  land_cloud_fire:
+    description: >
+      Day Land Cloud Fire RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C06
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected]
+    standard_name: land_cloud_fire
+
+  land_cloud:
+    description: >
+      Day Land Cloud RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C05
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected]
+    standard_name: land_cloud
+
+  snow:
+    description: >
+      SEVIRI Snow RGB, for EUMETSAT
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+    ## adapted from etc/composites/visir.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C05
+        modifiers: [sunz_corrected]
+      - name: C07
+        modifiers: [nir_reflectance]
+    standard_name: snow
+
+  day_microphysics_eum:
+    description: >
+      SEVIRI Day Microphysics RGB, for EUMETSAT
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+    ## adapted from etc/composites/ahi.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C07
+        modifiers: [nir_reflectance]
+      - name: C12
+    standard_name: day_microphysics
+
+  day_microphysics_agri:
+    description: >
+      Variations to the Day Microphysics RGB product using the 2.3 micron channel, see the pages 12 and 13 in the references
+    references:
+      Quick Guide: http://www.virtuallab.bom.gov.au/files/3114/7884/4308/NewRGBProductsNov2016RFGmeeting.pdf
+    ## adapted from etc/composites/ahi.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+      - name: C06
+      - name: C12
+    standard_name: day_microphysics_ahi
+
+  cloud_phase:
+    description: >
+      Cloud Phase RGB, for EUMETSAT
+      Day Cloud Phase RGB, for EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_2861499.html)
+      "When we use the NIR2.3 instead of the VIS0.8 on the green beam, we can devise a new RGB product (let us call it 'Day Cloud Phase RGB') that has similar cloud colours than the Natural Colour RGB, but with improved separation of ice and water clouds."
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Cloud Phase recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C05
+        modifiers: [sunz_corrected]
+      - name: C06
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C05
+      - name: C06
+      - name: C02
+    standard_name: natural_color
+
+  color_infrared:
+    description: >
+      Similar to landsat and sentinel 2 combinations for enhance vegetation
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+    standard_name: true_color

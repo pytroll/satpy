@@ -1,0 +1,342 @@
+reader:
+  name: ami_l1b
+  short_name: AMI L1b
+  long_name: GEO-KOMPSAT-2 AMI Level 1b
+  description: >
+    GEO-KOMPSAT-2 AMI Level 1b data reader in the NetCDF4 format. The file format and
+    instrument are described on KMA's website
+    `here <https://nmsc.kma.go.kr/enhome/html/base/cmm/selectPage.do?page=satellite.gk2a.intro>`_.
+  sensors: [ami]
+  status: Beta
+  supports_fsspec: false
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'sensor', 'sector_info']
+
+file_types:
+  # Example: gk2a_ami_le1b_ir087_fd020ge_201901260310.nc
+  # Below list is alphabetical
+  ir087:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir087_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  ir096:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir096_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  ir105:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir105_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  ir112:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir112_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  ir123:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir123_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  ir133:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir133_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  nr013:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr013_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  nr016:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr016_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  sw038:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_sw038_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  vi004:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi004_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  vi005:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi005_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  vi006:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi006_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  vi008:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi008_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  wv063:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv063_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  wv069:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv069_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+  wv073:
+    file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv073_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+
+datasets:
+  # Below list is ordered the same as the table:
+  #   https://directory.eoportal.org/web/eoportal/satellite-missions/content/-/article/geo-kompsat-2
+  C01:
+    name: VI004
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vi004
+    file_key: image_pixel_values
+
+  C02:
+    name: VI005
+    wavelength: [0.495, 0.509, 0.523]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vi005
+    file_key: image_pixel_values
+
+  C03:
+    name: VI006
+    wavelength: [0.599, 0.639, 0.679]
+    resolution: 500
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vi006
+    file_key: image_pixel_values
+
+  C04:
+    name: VI008
+    wavelength: [0.846, 0.863, 0.880]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vi008
+    file_key: image_pixel_values
+
+  C05:
+    name: NR013
+    wavelength: [1.363, 1.37, 1.377]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: nr013
+    file_key: image_pixel_values
+
+  C06:
+    name: NR016
+    wavelength: [1.590, 1.61, 1.630]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: nr016
+    file_key: image_pixel_values
+
+  C07:
+    name: SW038
+    wavelength: [3.74, 3.83, 3.92]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: sw038
+    file_key: image_pixel_values
+
+  C08:
+    name: WV063
+    wavelength: [5.79, 6.21, 6.63]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: wv063
+    file_key: image_pixel_values
+
+  C09:
+    name: WV069
+    wavelength: [6.74, 6.94, 7.14]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: wv069
+    file_key: image_pixel_values
+
+  C10:
+    name: WV073
+    wavelength: [7.24, 7.33, 7.42]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: wv073
+    file_key: image_pixel_values
+
+  C11:
+    name: IR087
+    wavelength: [8.415, 8.59, 8.765]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir087
+    file_key: image_pixel_values
+
+  C12:
+    name: IR096
+    wavelength: [9.43, 9.62, 9.81]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir096
+    file_key: image_pixel_values
+
+  C13:
+    name: IR105
+    wavelength: [10.115, 10.35, 10.585]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir105
+    file_key: image_pixel_values
+
+  C14:
+    name: IR112
+    wavelength: [10.90, 11.23, 11.56]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir112
+    file_key: image_pixel_values
+
+  C15:
+    name: IR123
+    wavelength: [11.805, 12.36, 12.915]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir123
+    file_key: image_pixel_values
+
+  C16:
+    name: IR133
+    wavelength: [13.005, 13.29, 13.575]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: ir133
+    file_key: image_pixel_values

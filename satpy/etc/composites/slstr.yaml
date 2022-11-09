@@ -1,19 +1,59 @@
 sensor_name: visir/slstr
+composite_identification_keys:
+  name:
+    required: true
+  resolution:
+    transitive: true
+  view:
+    enum:
+    - nadir
+    - oblique
+    transitive: true
+  stripe:
+    enum:
+      - a
+      - b
+      - i
+
+modifiers:
+  nir_reflectance:
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
+    prerequisites:
+    - S8
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+    sunz_threshold: 85.0
 
 composites:
+
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - S2_an
-    - S3_an
-    - S8_in
+    - name: S2
+      modifiers: [sunz_corrected]
+    - name: S3
+      modifiers: [sunz_corrected]
+    - S8
     standard_name: overview
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: S5
+      modifiers: [sunz_corrected]
+    - name: S3
+      modifiers: [sunz_corrected]
+    - name: S2
+      modifiers: [sunz_corrected]
+    standard_name: natural_color
 
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - S3_an
-    - name: S7_in
+    - name: S3
+      modifiers: [sunz_corrected]
+    - name: S7
       modifiers: [nir_reflectance]
-    - S8_in
+    - S8
     standard_name: day_microphysics

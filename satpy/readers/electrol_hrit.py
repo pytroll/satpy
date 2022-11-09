@@ -16,33 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
-
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""HRIT format reader
-**********************
+"""HRIT format reader.
 
 References:
     ELECTRO-L GROUND SEGMENT MSU-GS INSTRUMENT,
       LRIT/HRIT Mission Specific Implementation, February 2012
+
 """
 
 import logging
@@ -51,10 +30,15 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from pyresample import geometry
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, time_cds_short)
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+    time_cds_short,
+)
 
 logger = logging.getLogger('hrit_electrol')
 
@@ -137,6 +121,7 @@ prologue = np.dtype([('SatelliteStatus', satellite_status),
 
 
 def recarray2dict(arr):
+    """Change record array to a dictionary."""
     res = {}
     for dtuple in arr.dtype.descr:
         key = dtuple[0]
@@ -176,7 +161,6 @@ class HRITGOMSPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-        pass
 
 
 radiometric_processing = np.dtype([("TagType", "<u4"),
@@ -263,8 +247,12 @@ class HRITGOMSEpilogueFileHandler(HRITFileHandler):
 C1 = 1.19104273e-5
 C2 = 1.43877523
 
+
+# Defined in MSG Level 1.5 Image Data Format Description
+# https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 SPACECRAFTS = {19001: "Electro-L N1",
-               19002: "Electro-L N2"}
+               19002: "Electro-L N2",
+               19003: "Electro-L N3"}
 
 
 class HRITGOMSFileHandler(HRITFileHandler):
@@ -293,15 +281,12 @@ class HRITGOMSFileHandler(HRITFileHandler):
         """Get the data  from the files."""
         res = super(HRITGOMSFileHandler, self).get_dataset(key, info)
 
-        res = self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key['calibration'])
         res.attrs['units'] = info['units']
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['wavelength'] = info['wavelength']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'msu-gs'
-        res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = 0
-        res.attrs['satellite_altitude'] = 35785831.00
         res.attrs['orbital_parameters'] = {
             'satellite_nominal_longitude': self.mda['orbital_parameters']['satellite_nominal_longitude'],
             'satellite_nominal_latitude': 0.,
@@ -351,42 +336,30 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        coff = np.float32(self.mda['coff'])
-        loff = np.float32(self.mda['loff'])
+        pdict = {}
+        pdict['cfac'] = np.int32(self.mda['cfac'])
+        pdict['lfac'] = np.int32(self.mda['lfac'])
+        pdict['coff'] = np.float32(self.mda['coff'])
+        pdict['loff'] = np.float32(self.mda['loff'])
 
-        a = 6378169.00
-        b = 6356583.80
-        h = 35785831.00
+        pdict['a'] = 6378169.00
+        pdict['b'] = 6356583.80
+        pdict['h'] = 35785831.00
+        pdict['scandir'] = 'N2S'
 
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
 
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
+        pdict['nlines'] = int(self.mda['number_of_lines'])
+        pdict['ncols'] = int(self.mda['number_of_columns'])
 
-        loff = nlines - loff
+        pdict['loff'] = pdict['nlines'] - pdict['loff']
 
-        area_extent = self.get_area_extent((nlines, ncols),
-                                           (loff, coff),
-                                           (lfac, cfac),
-                                           h)
+        pdict['a_name'] = 'geosgoms'
+        pdict['a_desc'] = 'Electro-L/GOMS channel area'
+        pdict['p_id'] = 'goms'
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+        area_extent = get_area_extent(pdict)
+        area = get_area_definition(pdict, area_extent)
 
         self.area = area
 

@@ -15,26 +15,18 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.clavrx module.
-"""
+"""Module for testing the satpy.readers.clavrx module."""
 
 import os
-import sys
-import numpy as np
+import unittest
+from unittest import mock
+
 import dask.array as da
+import numpy as np
 import xarray as xr
+from pyresample.geometry import AreaDefinition, SwathDefinition
+
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
-from pyresample.geometry import AreaDefinition
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -48,9 +40,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'SNPP',
             '/attr/sensor': 'VIIRS',
@@ -103,10 +96,11 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['variable3'] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
             attrs={
+                'SCALED': 0,
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
-                'units': '1',
+                'units': 'none',
             })
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 
@@ -115,20 +109,21 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderPolar(unittest.TestCase):
     """Test CLAVR-X Reader with Polar files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
-        from satpy.readers.clavrx import CLAVRXFileHandler
+        """Wrap HDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
+        from satpy.readers.clavrx import CLAVRXHDF4FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXFileHandler, '__bases__', (FakeHDF4FileHandlerPolar,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerPolar,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -138,7 +133,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -150,22 +145,22 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
         # mimic the YAML file being configured for more datasets
         fake_dataset_info = [
-            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['level2']}),
-            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['level2']}),
-            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
-            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
-            (None, {'name': '_fake1', 'file_type': ['level2']}),
+            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['clavrx_hdf4']}),
+            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['clavrx_hdf4']}),
+            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
+            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
+            (None, {'name': '_fake1', 'file_type': ['clavrx_hdf4']}),
             (None, {'name': 'variable1', 'file_type': ['level_fake']}),
-            (True, {'name': 'variable3', 'file_type': ['level2']}),
+            (True, {'name': 'variable3', 'file_type': ['clavrx_hdf4']}),
         ]
-        new_ds_infos = list(r.file_handlers['level2'][0].available_datasets(
+        new_ds_infos = list(r.file_handlers['clavrx_hdf4'][0].available_datasets(
             fake_dataset_info))
         self.assertEqual(len(new_ds_infos), 9)
 
@@ -210,9 +205,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
 
     def test_load_all(self):
-        """Test loading all test datasets"""
-        from satpy.readers import load_reader
+        """Test loading all test datasets."""
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -224,15 +220,20 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
             self.assertEqual(v.attrs['units'], '1')
+            self.assertEqual(v.attrs['platform_name'], 'npp')
+            self.assertEqual(v.attrs['sensor'], 'viirs')
+            self.assertIsInstance(v.attrs['area'], SwathDefinition)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 16)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'HIM8',
             '/attr/sensor': 'AHI',
@@ -293,6 +294,7 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
             DEFAULT_FILE_DATA.astype(np.byte),
             dims=('y', 'x'),
             attrs={
+                'SCALED': 0,
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
@@ -305,20 +307,21 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderGeo(unittest.TestCase):
     """Test CLAVR-X Reader with Geo files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
-        from satpy.readers.clavrx import CLAVRXFileHandler
+        """Wrap HDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
+        from satpy.readers.clavrx import CLAVRXHDF4FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXFileHandler, '__bases__', (FakeHDF4FileHandlerGeo,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerGeo,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -328,15 +331,16 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_H08_20180806_1800.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
     def test_no_nav_donor(self):
         """Test exception raised when no donor file is available."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -347,8 +351,9 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def test_load_all_old_donor(self):
         """Test loading all test datasets with old donor."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -373,15 +378,26 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
-        self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+            if v.attrs.get("flag_values"):
+                self.assertIn('_FillValue', v.attrs)
+            else:
+                self.assertNotIn('_FillValue', v.attrs)
+            if v.attrs["name"] == 'variable1':
+                self.assertIsInstance(v.attrs["valid_range"], list)
+            else:
+                self.assertNotIn('valid_range', v.attrs)
+            if 'flag_values' in v.attrs:
+                self.assertTrue(np.issubdtype(v.dtype, np.integer))
+                self.assertIsNotNone(v.attrs.get('flag_meanings'))
 
     def test_load_all_new_donor(self):
         """Test loading all test datasets with new donor."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -406,18 +422,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
+            self.assertTrue(v.attrs['area'].is_geostationary)
+            self.assertEqual(v.attrs['platform_name'], 'himawari8')
+            self.assertEqual(v.attrs['sensor'], 'ahi')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
-
-
-def suite():
-    """The test suite for test_viirs_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderPolar))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderGeo))
-
-    return mysuite

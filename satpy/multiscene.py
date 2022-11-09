@@ -15,25 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""MultiScene object to blend satellite data.
-"""
+"""MultiScene object to work with multiple timesteps of satellite data."""
 
+import copy
 import logging
-import numpy as np
-import dask.array as da
-import xarray as xr
-import pandas as pd
-from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
-from satpy.dataset import combine_metadata, DatasetID
+import warnings
+from queue import Queue
 from threading import Thread
 
-try:
-    # python 3
-    from queue import Queue
-except ImportError:
-    # python 2
-    from Queue import Queue
+import dask.array as da
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from satpy.dataset import DataID, combine_metadata
+from satpy.scene import Scene
+from satpy.writers import get_enhanced_image, split_results
 
 try:
     import imageio
@@ -49,7 +46,7 @@ log = logging.getLogger(__name__)
 
 
 def stack(datasets):
-    """First dataset at the bottom."""
+    """Overlay series of datasets on top of each other."""
     base = datasets[0].copy()
     for dataset in datasets[1:]:
         base = base.where(dataset.isnull(), dataset)
@@ -57,16 +54,88 @@ def stack(datasets):
 
 
 def timeseries(datasets):
-    """Expands dataset with and concats by time dimension"""
+    """Expand dataset with and concatenate by time dimension."""
     expanded_ds = []
     for ds in datasets:
-        tmp = ds.expand_dims("time")
-        tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        if 'time' not in ds.dims:
+            tmp = ds.expand_dims("time")
+            tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        else:
+            tmp = ds
         expanded_ds.append(tmp)
 
     res = xr.concat(expanded_ds, dim="time")
     res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
     return res
+
+
+def group_datasets_in_scenes(scenes, groups):
+    """Group different datasets in multiple scenes by adding aliases.
+
+    Args:
+        scenes (iterable): Scenes to be processed.
+        groups (dict): Groups of datasets that shall be treated equally by
+            MultiScene. Keys specify the groups, values specify the dataset
+            names to be grouped. For example::
+
+                from satpy import DataQuery
+                groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                          DataQuery(name='even'): ['ds2', 'ds4']}
+
+    """
+    for scene in scenes:
+        grp = GroupAliasGenerator(scene, groups)
+        yield grp.duplicate_datasets_with_group_alias()
+
+
+class GroupAliasGenerator:
+    """Add group aliases to a scene."""
+
+    def __init__(self, scene, groups):
+        """Initialize the alias generator."""
+        self.scene = scene.copy()
+        self.groups = groups
+
+    def duplicate_datasets_with_group_alias(self):
+        """Duplicate datasets to be grouped with a group alias."""
+        for group_id, group_members in self.groups.items():
+            self._duplicate_dataset_with_group_alias(group_id, group_members)
+        return self.scene
+
+    def _duplicate_dataset_with_group_alias(self, group_id, group_members):
+        member_ids = self._get_dataset_id_of_group_members_in_scene(group_members)
+        if len(member_ids) == 1:
+            self._duplicate_dataset_with_different_id(
+                dataset_id=member_ids[0],
+                alias_id=group_id,
+            )
+        elif len(member_ids) > 1:
+            raise ValueError('Cannot add multiple datasets from a scene '
+                             'to the same group')
+
+    def _get_dataset_id_of_group_members_in_scene(self, group_members):
+        return [
+            self.scene[member].attrs['_satpy_id']
+            for member in group_members if member in self.scene
+        ]
+
+    def _duplicate_dataset_with_different_id(self, dataset_id, alias_id):
+        dataset = self.scene[dataset_id].copy()
+        self._prepare_dataset_for_duplication(dataset, alias_id)
+        self.scene[alias_id] = dataset
+
+    def _prepare_dataset_for_duplication(self, dataset, alias_id):
+        # Drop all identifier attributes from the original dataset. Otherwise
+        # they might invalidate the dataset ID of the alias.
+        self._drop_id_attrs(dataset)
+        dataset.attrs.update(alias_id.to_dict())
+
+    def _drop_id_attrs(self, dataset):
+        for drop_key in self._get_id_attrs(dataset):
+            dataset.attrs.pop(drop_key)
+
+    def _get_id_attrs(self, dataset):
+        return dataset.attrs["_satpy_id"].to_dict().keys()
 
 
 class _SceneGenerator(object):
@@ -146,19 +215,38 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(cls, files_to_sort, reader=None, **kwargs):
+    def from_files(cls, files_to_sort, reader=None,
+                   ensure_all_readers=False, scene_kwargs=None, **kwargs):
         """Create multiple Scene objects from multiple files.
 
+        Args:
+            files_to_sort (Collection[str]): files to read
+            reader (str or Collection[str]): reader or readers to use
+            ensure_all_readers (bool): If True, limit to scenes where all
+                readers have at least one file.  If False (default), include
+                all scenes where at least one reader has at least one file.
+            scene_kwargs (Mapping): additional arguments to pass on to
+                :func:`Scene.__init__` for each created scene.
+
         This uses the :func:`satpy.readers.group_files` function to group
-        files. See this function for more details on possible keyword
-        arguments.
+        files. See this function for more details on additional possible
+        keyword arguments.  In particular, it is strongly recommended to pass
+        `"group_keys"` when using multiple instruments.
 
         .. versionadded:: 0.12
 
         """
         from satpy.readers import group_files
+        if scene_kwargs is None:
+            scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
-        scenes = (Scene(filenames=fg) for fg in file_groups)
+        if ensure_all_readers:
+            warnings.warn(
+                "Argument ensure_all_readers is deprecated.  Use "
+                "missing='skip' instead.",
+                DeprecationWarning)
+            file_groups = [fg for fg in file_groups if all(fg.values())]
+        scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
 
     def __iter__(self):
@@ -214,6 +302,7 @@ class MultiScene(object):
 
     @property
     def all_same_area(self):
+        """Determine if all contained Scenes have the same 'area'."""
         return self._all_same_area(self.loaded_dataset_ids)
 
     @staticmethod
@@ -253,6 +342,18 @@ class MultiScene(object):
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene.
 
+        Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
+        occurring in each scene will be passed to a blending
+        function, which shall take as input a list of datasets
+        (:class:`xarray.DataArray` objects) and shall return a single
+        dataset (:class:`xarray.DataArray` object).  The blend method
+        then assigns those datasets to the blended scene.
+
+        Blending functions provided in this module are :func:`stack`
+        (the default) and :func:`timeseries`, but the Python built-in
+        function :func:`sum` also works and may be appropriate for
+        some types of data.
+
         .. note::
 
             Blending is not currently optimized for generator-based
@@ -266,6 +367,22 @@ class MultiScene(object):
             new_scn[ds_id] = blend_function(datasets)
 
         return new_scn
+
+    def group(self, groups):
+        """Group datasets from the multiple scenes.
+
+        By default, `MultiScene` only operates on dataset IDs shared by all scenes. Using
+        this method you can specify groups of datasets that shall be treated equally
+        by `MultiScene`. Even if their dataset IDs differ (for example because the names or
+        wavelengths are slightly different).
+        Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
+        must be of type `DataQuery`, for example::
+
+            groups={
+                DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
+            }
+        """
+        self._scenes = group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
@@ -284,18 +401,20 @@ class MultiScene(object):
                 q.task_done()
 
         input_q = Queue(batch_size if batch_size is not None else 1)
-        load_thread = Thread(target=load_data, args=(input_q,))
+        # set threads to daemon so they are killed if error is raised from main thread
+        load_thread = Thread(target=load_data, args=(input_q,), daemon=True)
         load_thread.start()
 
         for scene in scenes_iter:
-            delayed = scene.save_datasets(compute=False, **kwargs)
-            if isinstance(delayed, (list, tuple)) and len(delayed) == 2:
+            delayeds = scene.save_datasets(compute=False, **kwargs)
+            sources, targets, delayeds = split_results(delayeds)
+            if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
                 raise NotImplementedError("Distributed save_datasets does not support writers "
                                           "that return (source, target) combinations at this time. Use "
                                           "the non-distributed save_datasets instead.")
-            future = client.compute(delayed)
+            future = client.compute(delayeds)
             input_q.put(future)
         input_q.put(None)
 
@@ -304,7 +423,7 @@ class MultiScene(object):
         log.debug("Child thread died successfully")
 
     def _simple_save_datasets(self, scenes_iter, **kwargs):
-        """Helper to simple run save_datasets on each Scene."""
+        """Run save_datasets on each Scene."""
         for scn in scenes_iter:
             scn.save_datasets(**kwargs)
 
@@ -366,9 +485,44 @@ class MultiScene(object):
         this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
 
+    @staticmethod
+    def _format_decoration(ds, decorate):
+        """Maybe format decoration.
+
+        If the nested dictionary in decorate (argument to ``save_animation``)
+        contains a text to be added, format those based on dataset parameters.
+        """
+        if decorate is None or "decorate" not in decorate:
+            return decorate
+        deco_local = copy.deepcopy(decorate)
+        for deco in deco_local["decorate"]:
+            if "text" in deco and "txt" in deco["text"]:
+                deco["text"]["txt"] = deco["text"]["txt"].format(**ds.attrs)
+        return deco_local
+
+    def _get_single_frame(self, ds, enh_args, fill_value):
+        """Get single frame from dataset.
+
+        Yet a single image frame from a dataset.
+        """
+        enh_args = enh_args.copy()  # don't change caller's dict!
+        if "decorate" in enh_args:
+            enh_args["decorate"] = self._format_decoration(
+                    ds, enh_args["decorate"])
+        img = get_enhanced_image(ds, **enh_args)
+        data, mode = img.finalize(fill_value=fill_value)
+        if data.ndim == 3:
+            # assume all other shapes are (y, x)
+            # we need arrays grouped by pixel so
+            # transpose if needed
+            data = data.transpose('y', 'x', 'bands')
+        return data
+
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
-                              ignore_missing=False):
+                              ignore_missing=False, enh_args=None):
         """Create enhanced image frames to save to a file."""
+        if enh_args is None:
+            enh_args = {}
         for idx, ds in enumerate(all_datasets):
             if ds is None and ignore_missing:
                 continue
@@ -377,13 +531,7 @@ class MultiScene(object):
                 data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
-                img = get_enhanced_image(ds)
-                data, mode = img.finalize(fill_value=fill_value)
-                if data.ndim == 3:
-                    # assume all other shapes are (y, x)
-                    # we need arrays grouped by pixel so
-                    # transpose if needed
-                    data = data.transpose('y', 'x', 'bands')
+                data = self._get_single_frame(ds, enh_args, fill_value)
             yield data.data
 
     def _get_client(self, client=True):
@@ -414,11 +562,11 @@ class MultiScene(object):
 
         input_q = Queue(batch_size if batch_size is not None else 1)
         load_thread = Thread(target=load_data, args=(frames_to_write, input_q,))
-        remote_q = client.gather(input_q)
         load_thread.start()
 
         while True:
-            future_dict = remote_q.get()
+            input_future = input_q.get()
+            future_dict = client.gather(input_future)
             if future_dict is None:
                 break
 
@@ -439,16 +587,62 @@ class MultiScene(object):
         else:
             log.debug("Child thread died successfully")
 
-    def _simple_frame_compute(self, writers, frame_keys, frames_to_write):
+    @staticmethod
+    def _simple_frame_compute(writers, frame_keys, frames_to_write):
         """Compute frames the plain dask way."""
         for frame_arrays in frames_to_write:
             for frame_key, product_frame in zip(frame_keys, frame_arrays):
                 w = writers[frame_key]
                 w.append_data(product_frame.compute())
 
+    def _get_writers_and_frames(
+            self, filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args):
+        """Get writers and frames.
+
+        Helper function for save_animation.
+        """
+        scene_gen = self._scene_gen
+
+        first_scene = self.first_scene
+        scenes = iter(self._scene_gen)
+        info_scenes = [first_scene]
+        if 'end_time' in filename:
+            # if we need the last scene to generate the filename
+            # then compute all the scenes so we can figure it out
+            log.debug("Generating scenes to compute end_time for filename")
+            scenes = list(scenes)
+            info_scenes.append(scenes[-1])
+
+        available_ds = [first_scene.get(ds) for ds in first_scene.wishlist]
+        available_ds = [DataID.from_dataarray(ds) for ds in available_ds if ds is not None]
+        dataset_ids = datasets or available_ds
+
+        if not dataset_ids:
+            raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
+
+        writers = {}
+        frames = {}
+        for dataset_id in dataset_ids:
+            if not self.is_generator and not self._all_same_area([dataset_id]):
+                raise ValueError("Sub-scene datasets must all be on the same "
+                                 "area (see the 'resample' method).")
+
+            all_datasets = scene_gen[dataset_id]
+            info_datasets = [scn.get(dataset_id) for scn in info_scenes]
+            this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
+            data_to_write = self._get_animation_frames(
+                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+
+            writer = imageio.get_writer(this_fn, **imio_args)
+            frames[dataset_id] = data_to_write
+            writers[dataset_id] = writer
+        return (writers, frames)
+
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
-                       batch_size=1, ignore_missing=False, client=True, **kwargs):
-        """Helper method for saving to movie (MP4) or GIF formats.
+                       batch_size=1, ignore_missing=False, client=True,
+                       enh_args=None, **kwargs):
+        """Save series of Scenes to movie (MP4) or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
         determined by filename extension by default.
@@ -472,7 +666,7 @@ class MultiScene(object):
             filename (str): Filename to save to. Can include python string
                             formatting keys from dataset ``.attrs``
                             (ex. "{name}_{start_time:%Y%m%d_%H%M%S.gif")
-            datasets (list): DatasetIDs to save (default: all datasets)
+            datasets (list): DataIDs to save (default: all datasets)
             fps (int): Frames per second for produced animation
             fill_value (int): Value to use instead creating an alpha band.
             batch_size (int): Number of frames to compute at the same time.
@@ -493,6 +687,14 @@ class MultiScene(object):
                 created and ``dask.distributed`` will not be used. If this
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
+            enh_args (Mapping): Optional, arguments passed to
+                :func:`satpy.writers.get_enhanced_image`.  If this includes a
+                keyword "decorate", in any text added
+                to the image, string formatting will be applied based on
+                dataset attributes.  For example, passing
+                ``enh_args={"decorate": {"decorate": [{"text": {"txt":
+                "{start_time:%H:%M}"}}]}`` will replace the decorated text
+                accordingly.
             kwargs: Additional keyword arguments to pass to
                    `imageio.get_writer`.
 
@@ -500,39 +702,9 @@ class MultiScene(object):
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
-        scene_gen = self._scene_gen
-        first_scene = self.first_scene
-        scenes = iter(self._scene_gen)
-        info_scenes = [first_scene]
-        if 'end_time' in filename:
-            # if we need the last scene to generate the filename
-            # then compute all the scenes so we can figure it out
-            log.debug("Generating scenes to compute end_time for filename")
-            scenes = list(scenes)
-            info_scenes.append(scenes[-1])
-
-        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
-        available_ds = [DatasetID.from_dict(ds.attrs) for ds in available_ds if ds is not None]
-        dataset_ids = datasets or available_ds
-
-        if not dataset_ids:
-            raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
-
-        writers = {}
-        frames = {}
-        for dataset_id in dataset_ids:
-            if not self.is_generator and not self._all_same_area([dataset_id]):
-                raise ValueError("Sub-scene datasets must all be on the same "
-                                 "area (see the 'resample' method).")
-
-            all_datasets = scene_gen[dataset_id]
-            info_datasets = [scn.get(dataset_id) for scn in info_scenes]
-            this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
-            data_to_write = self._get_animation_frames(all_datasets, shape, this_fill, ignore_missing)
-
-            writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-            frames[dataset_id] = data_to_write
-            writers[dataset_id] = writer
+        (writers, frames) = self._get_writers_and_frames(
+                filename, datasets, fill_value, ignore_missing,
+                enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames

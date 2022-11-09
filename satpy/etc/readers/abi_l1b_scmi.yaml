@@ -1,6 +1,10 @@
 reader:
-  description: SCMI NetCDF4 Reader for ABI data
   name: abi_l1b_scmi
+  short_name: ABI level 1b
+  long_name: SCMI ABI L1B in netCDF4 format
+  description: SCMI NetCDF4 Reader for ABI data
+  status: Beta
+  supports_fsspec: false
   sensors: []
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

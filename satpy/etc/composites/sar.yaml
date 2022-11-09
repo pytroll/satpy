@@ -9,7 +9,7 @@ composites:
       calibration: gamma
     - name: measurement
       polarization: hv
-      calibraion: gamma
+      calibration: gamma
     standard_name: sar-ice
 
   sar-ice-iw:
@@ -58,3 +58,38 @@ composites:
     - name: measurement
       polarization: hv
     standard_name: sar-land
+
+  sar-land-iw:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: vv
+    - name: measurement
+      polarization: vh
+    standard_name: sar-land
+
+  sar-ice-log:
+    compositor: !!python/name:satpy.composites.sar.SARIceLog
+    prerequisites:
+    - name: measurement
+      polarization: hh
+      calibration: gamma
+      quantity: dB
+    - name: measurement
+      polarization: hv
+      calibration: gamma
+      quantity: dB
+    standard_name: sar-ice-log
+
+  sar-ice-log-iw:
+    compositor: !!python/name:satpy.composites.sar.SARIceLog
+    prerequisites:
+    - name: measurement
+      polarization: vv
+      calibration: gamma
+      quantity: dB
+    - name: measurement
+      polarization: vh
+      calibration: gamma
+      quantity: dB
+    standard_name: sar-ice-log

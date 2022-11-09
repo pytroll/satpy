@@ -1,0 +1,160 @@
+sensor_name: visir/mersi-2
+
+modifiers:
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: '3'
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    prerequisites:
+      - solar_zenith_angle
+
+  nir_reflectance:
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
+    prerequisites:
+    - name: '24'
+    optional_prerequisites:
+    - solar_zenith_angle
+
+
+composites:
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '25'
+          - name: '24'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '24'
+          - name: '23'
+      - name: '24'
+    standard_name: ash
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - '3'
+      - '2'
+      - '1'
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'  # 0.65
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '2'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '1'  # 0.47
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: '6'
+        modifiers: [sunz_corrected]
+      - name: '15'
+        modifiers: [sunz_corrected]
+      - name: '3'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: '4'
+        modifiers: [sunz_corrected]
+    standard_name: natural_color
+    high_resolution_band: green
+
+  natural_color_lowres:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '6'
+        modifiers: [sunz_corrected]
+      - name: '15'
+        modifiers: [sunz_corrected]
+      - name: '12'
+        modifiers: [sunz_corrected]
+    standard_name: natural_color
+
+  overview_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '12'
+      - name: '15'
+      - name: '24'
+    standard_name: overview
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '12'
+        modifiers: [sunz_corrected]
+      - name: '15'
+        modifiers: [sunz_corrected]
+      - name: '24'
+    standard_name: overview
+
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '20'
+      - name: '24'
+      - name: '25'
+    standard_name: cloudtop
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '15'
+      modifiers: [sunz_corrected]
+    - name: '20'
+      modifiers: [nir_reflectance]
+    - name: '24'
+    standard_name: day_microphysics
+
+  night_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '25'
+      - name: '24'
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '24'
+      - name: '20'
+    - name: '24'
+    standard_name: night_fog
+
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '25'
+      - name: '24'
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '24'
+      - name: '23'
+    - name: '24'
+    standard_name: fog
+
+  green_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '6'
+    - name: '3'
+    - name: '24'
+    standard_name: green_snow

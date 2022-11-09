@@ -1,0 +1,237 @@
+enhancements:
+  cimss_true_color:
+    standard_name: cimss_true_color
+    sensor: abi
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 120.}
+      - name: sqrt
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 2.0}
+      - name: contrast
+        method: !!python/name:satpy.enhancements.abi.cimss_true_color_contrast
+
+  cmi_reflectance_default:
+    standard_name: toa_lambertian_equivalent_albedo_multiplied_by_cosine_solar_zenith_angle
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 1.5}
+
+  airmass:
+    standard_name: airmass
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-26.2, -43.2, 243.9]
+          max_stretch: [0.6, 6.7, 208.5]
+
+
+  true_color_with_night_fires:
+    standard_name: true_color_with_night_fires
+    sensor: abi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0., 0., 0.]
+          max_stretch: [1., 1., 1.]
+
+
+  cira_fire_temperature:
+    standard_name: cira_fire_temperature
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273.15, 0.0, 0.0]
+          max_stretch: [333.15, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [0.4, 1, 1]
+
+  cira_day_convection:
+    standard_name: cira_day_convection
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-35.0, -5.0, -75.0]
+          max_stretch: [5.0, 60.0, 25.0]
+
+  cimss_cloud_type:
+    standard_name: cimss_cloud_type
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [10.0, 80.0, 80.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.5, 0.75, 1.0]
+
+#
+  ash_abi:
+    ## RGB Ash recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
+    standard_name: ash
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-6.7, -6.0, 243.6]
+        max_stretch: [ 2.6,  6.3, 302.4]
+
+  dust_abi:
+    ## RGB Dust recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
+    standard_name: dust
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-6.7, -0.5, 261.2]
+        max_stretch: [ 2.6, 20.0, 288.7]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 2.5, 1]
+
+  convection_abi:
+    ## RGB Convection recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+    standard_name: convection
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-35.0, -5.0, -75]
+        max_stretch: [  5.0, 60.0, 25]
+
+  night_microphysics_abi:
+    ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
+    standard_name: night_microphysics
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-6.7, -3.1, 243.55]
+        max_stretch: [ 2.6,  5.2, 292.65]
+
+  land_cloud_fire:
+    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
+    standard_name: land_cloud_fire
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
+
+  land_cloud:
+    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+    standard_name: land_cloud
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [ 0.0,   0.0,   0.0]
+        max_stretch: [97.5, 108.6, 100.0]
+
+  # IR with white clouds
+  highlighted_brightness_temperature:
+    standard_name: highlighted_toa_brightness_temperature
+    sensor: abi
+    operations:
+      - name: btemp_threshold
+        method: !!python/name:satpy.enhancements.btemp_threshold
+        kwargs:
+          threshold: 242.0
+          min_in: 163.0
+          max_in: 330.0
+
+  # EumetSat cloud phase and cloud type RGB recipes
+  # http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  cloud_phase:
+    standard_name: cloud_phase
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,  0,   0]
+          max_stretch: [50, 50, 100]
+
+  # NOAA GOES-R Level-2 ABI Cloud Mask product
+  # https://www.goes-r.gov/products/baseline-clear-sky-mask.html
+  binary_cloud_mask:
+    name: BCM
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [  0, # Clear
+                            1, # Cloudy
+                          255, # Fill Value
+                         ],
+               'colors': [[ 94,  79, 162],  # blue,    0 = Clear
+                          [255, 255, 255],  # white,   1 = Cloudy
+                          [  0,   0,   0],  # black, 255 = Fill Value
+                         ],
+               'color_scale': 255,
+              }
+
+  four_level_cloud_mask:
+    name: ACM
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [  0, # Clear
+                            1, # Probably Clear
+                            2, # Probably Cloudy
+                            3, # Cloudy
+                          255, # Fill Value
+                         ],
+               'colors': [[ 94,  79, 162], # blue,    0 = Clear
+                          [ 73, 228, 242], # cyan,    1 = Probably Clear
+                          [158,   1,  66], # red,     2 = Probably Cloudy
+                          [255, 255, 255], # white,   3 = Cloudy
+                          [  0,   0,   0], # black, 255 = Fill Value
+                         ],
+               'color_scale': 255,
+              }
+
+  cloud_probability:
+    name: Cloud_Probabilities
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+             - {colors: 'spectral',
+                reverse: true,
+                min_value: 0.0,
+                max_value: 1.0,
+               }

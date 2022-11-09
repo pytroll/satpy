@@ -1,0 +1,552 @@
+reader:
+  name: abi_l2_nc
+  short_name: ABI L2 NetCDF4
+  long_name: GOES-R ABI Level 2 products in netCDF4 format
+  description: >
+    GOES-R ABI Level 2+ data reader in the NetCDF4 format. The file format is
+    described in the GOES-R Product Definition and Users' Guide (PUG) Volume
+    5. This document can be found
+    `here <https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf>`_.
+  status: Beta
+  supports_fsspec: true
+  sensors: ['abi']
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
+
+datasets:
+# --- Cloud Moisture Image Products ---
+  CMIP_C01:                          # Cloud Moisture Image Products Channel 1
+    name: C01
+    wavelength: [0.450, 0.470, 0.490]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c01, abi_l2_mcmip]
+
+  CMIP_C02:                           # Cloud Moisture Image Products Channel 2
+    name: C02
+    wavelength: [0.590, 0.640, 0.690]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c02, abi_l2_mcmip]
+
+  CMIP_C03:                          # Cloud Moisture Image Products Channel 3
+    name: C03
+    wavelength: [0.8455, 0.865, 0.8845]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c03, abi_l2_mcmip]
+
+  CMIP_C04:                          # Cloud Moisture Image Products Channel 4
+    name: C04
+    wavelength: [1.3705, 1.378, 1.3855]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c04, abi_l2_mcmip]
+
+  CMIP_C05:                          # Cloud Moisture Image Products Channel 5
+    name: C05
+    wavelength: [1.580, 1.610, 1.640]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c05, abi_l2_mcmip]
+
+  CMIP_C06:                          # Cloud Moisture Image Products Channel 6
+    name: C06
+    wavelength: [2.225, 2.250, 2.275]
+    calibration: reflectance
+    file_key: CMI
+    file_type: [abi_l2_cmip_c06, abi_l2_mcmip]
+
+  CMIP_C07:                          # Cloud Moisture Image Products Channel 7
+    name: C07
+    wavelength: [3.80, 3.90, 4.00]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c07, abi_l2_mcmip]
+
+  CMIP_C08:                          # Cloud Moisture Image Products Channel 8
+    name: C08
+    wavelength: [5.770, 6.185, 6.600]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c08, abi_l2_mcmip]
+
+  CMIP_C09:                          # Cloud Moisture Image Products Channel 9
+    name: C09
+    wavelength: [6.75, 6.95, 7.15]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c09, abi_l2_mcmip]
+
+  CMIP_C10:                          # Cloud Moisture Image Products Channel 10
+    name: C10
+    wavelength: [7.24, 7.34, 7.44]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c10, abi_l2_mcmip]
+
+  CMIP_C11:                          # Cloud Moisture Image Products Channel 11
+    name: C11
+    wavelength: [8.30, 8.50, 8.70]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c11, abi_l2_mcmip]
+
+  CMIP_C12:                          # Cloud Moisture Image Products Channel 12
+    name: C12
+    wavelength: [9.42, 9.61, 9.80]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c12, abi_l2_mcmip]
+
+  CMIP_C13:                          # Cloud Moisture Image Products Channel 13
+    name: C13
+    wavelength: [10.10, 10.35, 10.60]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c13, abi_l2_mcmip]
+
+  CMIP_C14:                          # Cloud Moisture Image Products Channel 14
+    name: C14
+    wavelength: [10.80, 11.20, 11.60]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c14, abi_l2_mcmip]
+
+  CMIP_C15:                          # Cloud Moisture Image Products Channel 15
+    name: C15
+    wavelength: [11.80, 12.30, 12.80]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c15, abi_l2_mcmip]
+
+  CMIP_C16:                          # Cloud Moisture Image Products Channel 16
+    name: C16
+    wavelength: [13.00, 13.30, 13.60]
+    calibration: brightness_temperature
+    file_key: CMI
+    file_type: [abi_l2_cmip_c16, abi_l2_mcmip]
+
+# --- Cloud Top Height ---
+  cloud_top_height:
+    name: HT
+    file_type: abi_l2_acha
+    file_key: HT                #  variable name in the nc files
+
+# --- Cloud Top Temperature ---
+  cloud_top_temperature:
+    name: TEMP
+    file_type: abi_l2_acht
+    file_key: TEMP
+
+# --- Cloud Top Phase ---
+  cloud_top_phase:
+    name: Phase
+    file_type: abi_l2_actp
+    file_key: Phase
+
+# --- Clear Sky Mask ---
+  clear_sky_mask:
+    name: BCM
+    file_type: abi_l2_acm
+    file_key: BCM
+
+  four_level_cloud_mask:
+    name: ACM
+    file_type: abi_l2_acm
+    file_key: ACM
+
+  cloud_probabilities:
+    name: Cloud_Probabilities
+    file_type: abi_l2_acm
+    file_key: Cloud_Probabilities
+
+# --- Aerosol Detection Products ---
+  aerosol_binary_mask:
+    name: Aerosol
+    file_type: abi_l2_adp
+    file_key: Aerosol
+
+  smoke_binary_mask:
+    name: Smoke
+    file_type: abi_l2_adp
+    file_key: Smoke
+
+  dust_binary_mask:
+    name: Dust
+    file_type: abi_l2_adp
+    file_key: Dust
+
+# --- Aerosol Optical Depth at 550 nm ---
+  aerosol_optical_depth:
+    name: AOD
+    file_type: abi_l2_aod
+    file_key: AOD
+
+# --- Cloud Optical Depth at 640 nm ---
+  cloud_optical_depth:
+    name: COD
+    file_type: abi_l2_cod
+    file_key: COD
+  cloud_optical_depth_day:
+    name: CODD
+    file_type: abi_l2_codd
+    file_key: COD
+  cloud_optical_depth_night:
+    name: CODN
+    file_type: abi_l2_codn
+    file_key: COD
+
+# --- Cloud Particle Size ---
+  cloud_particle_size:
+    name: PSD
+    file_type: abi_l2_cps
+    file_key: PSD
+  cloud_particle_size_day:
+    name: PSDD
+    file_type: abi_l2_cpsd
+    file_key: PSD
+  cloud_particle_size_night:
+    name: PSDN
+    file_type: abi_l2_cpsn
+    file_key: PSD
+
+# --- Cloud Top Pressure ---
+  cloud_top_pressure:
+    name: PRES
+    file_type: abi_l2_ctp
+    file_key: PRES
+
+# --- Derived Stability Indices ---
+  cape:
+    name: CAPE
+    file_type: abi_l2_dsi
+    file_key: CAPE
+
+  total_totals_index:
+    name: TT
+    file_type: abi_l2_dsi
+    file_key: TT
+
+  lifted_index:
+    name: LI
+    file_type: abi_l2_dsi
+    file_key: LI
+
+  showalter_index:
+    name: SI
+    file_type: abi_l2_dsi
+    file_key: SI
+
+  k_index:
+    name: KI
+    file_type: abi_l2_dsi
+    file_key: KI
+
+# --- Fire (Hot Spot Characterization) Products ---
+  fire_area:
+    name: Area
+    file_type: abi_l2_fdc
+    file_key: Area
+
+  fire_temp:
+    name: Temp
+    file_type: abi_l2_fdc
+    file_key: Temp
+
+  radiative_power:
+    name: Power
+    file_type: abi_l2_fdc
+    file_key: Power
+
+  fire_mask:
+    name: Mask
+    file_type: abi_l2_fdc
+    file_key: Mask
+
+# --- Snow Cover ---
+  snow_cover_fraction:
+    name: FSC
+    file_type: abi_l2_fsc
+    file_key: FSC
+
+# --- Reflected Shortwave Radiation ---
+  reflected_shortwave_radiation:
+    name: RSR
+    file_type: abi_l2_rsr
+    file_key: RSR
+#    coordinates: [lon, lat]
+
+# --- Downward Shortwave Radiation: Surface ---
+  downward_shortwave_radiation:
+    name: DSR
+    file_type: abi_l2_dsr
+    file_key: DSR
+#    coordinates: [lon, lat]
+
+# --- Land Surface (Skin) Temperature ---
+  land_surface_temperature:
+    name: LST
+    file_type: abi_l2_lst
+    file_key: LST
+
+# --- Sea Surface (Skin) Temperature ---
+  sea_surface_temperature:
+    name: SST
+    file_type: abi_l2_sst
+    file_key: SST
+
+# --- Rainfall Rate - Quantitative Prediction Estimate ---
+  rainfall_rate:
+    name: RRQPE
+    file_type: abi_l2_rrqpe
+    file_key: RRQPE
+
+# --- Total Precipitalable Water ---
+  total_precipitalable_water:
+    name: TPW
+    file_type: abi_l2_tpw
+    file_key: TPW
+
+# ---Volcanic Ash Products ---
+  ash_cloud_height:
+    name: VAH
+    file_type: abi_l2_vaa
+    file_key: VAH
+
+  ash_mass_loading:
+    name: VAML
+    file_type: abi_l2_vaa
+    file_key: VAML
+
+# ---Navigation Products - Unofficial ---
+  nav_longitude:
+    name: Longitude
+    file_type: abi_l2_nav
+    file_key: Longitude
+
+  nav_latitude:
+    name: Latitude
+    file_type: abi_l2_nav
+    file_key: Latitude
+
+
+# ----
+file_types:
+  abi_l2_cmip_c01:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c02:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c03:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c04:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c05:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c06:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c07:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c08:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c09:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c10:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c11:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c12:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c13:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c14:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c15:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_cmip_c16:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:1s}-{scan_mode:2s}C16_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CMIP"
+
+  abi_l2_mcmip:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-MCMIP{scene_abbr:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "MCMIP"
+
+  abi_l2_acha:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "ACHA"
+
+  abi_l2_acht:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHT{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "ACHT"
+
+  abi_l2_acm:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "ACM"
+
+  abi_l2_actp:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACTP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "ACTP"
+
+  abi_l2_adp:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ADP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "ADP"
+
+  abi_l2_aod:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-AOD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "AOD"
+
+  abi_l2_cod:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-COD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "COD"
+
+  # CSPP Geo keeps Day and Night algorithm outputs separate
+  abi_l2_codd:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns:
+      - '{system_environment:2s}_{mission_id:3s}-L2-CODD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    observation_type: "CODD"
+
+  abi_l2_codn:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns:
+      - '{system_environment:2s}_{mission_id:3s}-L2-CODN{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    observation_type: "CODN"
+
+  abi_l2_cps:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CPS{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CPS"
+
+  # CSPP Geo keeps Day and Night algorithm outputs separate
+  abi_l2_cpsd:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns:
+      - '{system_environment:2s}_{mission_id:3s}-L2-CPSD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    observation_type: "CPSD"
+
+  abi_l2_cpsn:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns:
+      - '{system_environment:2s}_{mission_id:3s}-L2-CPSN{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    observation_type: "CPSN"
+
+  abi_l2_ctp:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CTP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "CTP"
+
+  abi_l2_dsi:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSI{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "DSI"
+
+  abi_l2_drs:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DRS{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "DRS"
+
+  abi_l2_fdc:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "FDC"
+
+  abi_l2_fsc:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FSC{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "FSC"
+
+  abi_l2_lst:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-LST{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "LST"
+
+  abi_l2_rrqpe:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RRQPE{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "RRQPE"
+
+  abi_l2_rsr:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RSR{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "RSR"
+
+  abi_l2_dsr:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSR{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "DSR"
+
+  abi_l2_sst:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "SST"
+
+  abi_l2_tpw:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-TPW{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "TPW"
+
+  abi_l2_vaa:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-VAA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc', '{system_environment:2s}_{mission_id:3s}-L2-VAA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-128600_0.nc']
+    observation_type: "VAA"
+
+  # CSPP - Geo Unofficial product
+  abi_l2_nav:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-NAV{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    observation_type: "NAV"

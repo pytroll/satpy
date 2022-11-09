@@ -1,0 +1,316 @@
+reader:
+  name: seviri_l2_grib
+  short_name: SEVIRI L2 GRIB
+  long_name: MSG (Meteosat 8 to 11) Level 2 products in GRIB2 format
+  description: Reader for EUMETSAT MSG SEVIRI L2 files in GRIB format.
+  status: Nominal
+  supports_fsspec: false
+  sensors: [seviri]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+
+file_types:
+  # EUMETSAT MSG SEVIRI L2 Cloud Mask files in GRIB format
+  grib_seviri_clm:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+        - 'CLMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+        - '{spacecraft:4s}-SEVI-MSGCLMK-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+        - '{spacecraft:4s}-SEVI-MSGCLMK-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+        - '{spacecraft:4s}-SEVI-MSGCLMK-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  # EUMETSAT MSG SEVIRI L2 Optimal Cloud Analysis files in GRIB format
+  grib_seviri_oca:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+        - 'OCAEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+        - '{spacecraft:4s}-SEVI-MSGOCAE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+        - '{spacecraft:4s}-SEVI-MSGOCAE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+        - '{spacecraft:4s}-SEVI-MSGOCAE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  # EUMETSAT MSG SEVIRI L2 Active Fire Monitoring files in GRIB format
+  grib_seviri_fir:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'FIREncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  grib_seviri_aes:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'AESGRIBProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGAESE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGAESE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGAESE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  grib_seviri_cth:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'CTHEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGCLTH-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGCLTH-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGCLTH-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  grib_seviri_crm:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'CRMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+  grib_seviri_mpe:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'MPEGRIBProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGMPEG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGMPEG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGMPEG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+
+datasets:
+
+  cloud_mask:
+    name: cloud_mask
+    resolution: 3000.403165817
+    file_type: grib_seviri_clm
+    parameter_number: 7
+    units: "1"
+    long_name: cloud_mask_classification
+
+  pixel_scene_type:
+    name: pixel_scene_type
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 8
+    units: "1"
+    long_name: scene_classification
+
+  measurement_cost:
+    name: measurement_cost
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 30
+    units: "1"
+    long_name: cost_function
+
+  upper_layer_cloud_optical_depth:
+    name: upper_layer_cloud_optical_depth
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 31
+    units: "1"
+    long_name: cloud_optical_depth
+
+  upper_layer_cloud_top_pressure:
+    name: upper_layer_cloud_top_pressure
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 32
+    units: Pa
+    standard_name: air_pressure_at_cloud_top
+
+  upper_layer_cloud_effective_radius:
+    name: upper_layer_cloud_effective_radius
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 33
+    units: m
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+
+  error_in_upper_layer_cloud_optical_depth:
+    name: error_in_upper_layer_cloud_optical_depth
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 34
+    units: "1"
+    long_name: cloud_optical_depth
+
+  error_in_upper_layer_cloud_top_pressure:
+    name: error_in_upper_layer_cloud_top_pressure
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 35
+    units: Pa
+    standard_name: air_pressure_at_cloud_top_standard_error
+
+  error_in_upper_layer_cloud_effective_radius:
+    name: error_in_upper_layer_cloud_effective_radius
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 36
+    units: m
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
+
+  lower_layer_cloud_optical_depth:
+    name: lower_layer_cloud_optical_depth
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 37
+    units: "1"
+    long_name: cloud_optical_depth
+
+  lower_layer_cloud_top_pressure:
+    name: lower_layer_cloud_top_pressure
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 38
+    units: Pa
+    standard_name: air_pressure_at_cloud_top
+
+  error_in_lower_layer_cloud_optical_depth:
+    name: error_in_lower_layer_cloud_optical_depth
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 39
+    units: "1"
+    long_name: cloud_optical_depth_standard_error
+
+  error_in_lower_layer_cloud_top_pressure:
+    name: error_in_lower_layer_cloud_top_pressure
+    resolution: 3000.403165817
+    file_type: grib_seviri_oca
+    parameter_number: 40
+    units: Pa
+    standard_name: air_pressure_at_cloud_top_standard_error
+
+  fire_probability:
+    name: fire_probability
+    resolution: 3000.403165817
+    file_type: grib_seviri_fir
+    parameter_number: 192
+    units: "%"
+    long_name: fire_probability
+
+  active_fires:
+    name: active_fires
+    resolution: 3000.403165817
+    file_type: grib_seviri_fir
+    parameter_number: 9
+    units: "1"
+    long_name: active_fire_classification
+
+  aerosol_optical_thickness_vis06:
+    name: aerosol_optical_thickness_vis06
+    resolution: 9001.209497451
+    file_type: grib_seviri_aes
+    parameter_number: 20
+    units: "1"
+    long_name: aerosol_optical_thickness_vis06
+
+  aerosol_optical_thickness_vis08:
+    name: aerosol_optical_thickness_vis08
+    resolution: 9001.209497451
+    file_type: grib_seviri_aes
+    parameter_number: 21
+    units: "1"
+    long_name: aerosol_optical_thickness_vis08
+
+  aerosol_optical_thickness_vis16:
+    name: aerosol_optical_thickness_vis16
+    resolution: 9001.209497451
+    file_type: grib_seviri_aes
+    parameter_number: 22
+    units: "1"
+    long_name: aerosol_optical_thickness_vis16
+
+  angstroem_coefficient:
+    name: angstroem_coefficient
+    resolution: 9001.209497451
+    file_type: grib_seviri_aes
+    parameter_number: 23
+    units: "1"
+    long_name: angstroem_coefficient
+
+  aes_quality:
+    name: aes_quality
+    resolution: 9001.209497451
+    file_type: grib_seviri_aes
+    parameter_number: 192
+    units: "1"
+    long_name: aes_quality
+
+  cloud_top_height:
+    name: cloud_top_height
+    resolution: 9001.209497451
+    file_type: grib_seviri_cth
+    parameter_number: 2
+    units: m
+    long_name: cloud_top_height
+
+  cloud_top_quality:
+    name: cloud_top_quality
+    resolution: 9001.209497451
+    file_type: grib_seviri_cth
+    parameter_number: 3
+    units: "1"
+    long_name: cloud_top_quality
+
+  vis_refl_06:
+    name: vis_refl_06
+    resolution: 3000.403165817
+    wavelength: [0.56, 0.635, 0.71]
+    file_type: grib_seviri_crm
+    parameter_number: 9
+    units: "%"
+    long_name: vis_refl_06
+
+  vis_refl_08:
+    name: vis_refl_08
+    resolution: 3000.403165817
+    wavelength: [0.74, 0.81, 0.88]
+    file_type: grib_seviri_crm
+    parameter_number: 10
+    units: "%"
+    long_name: vis_refl_08
+
+  vis_refl_16:
+    name: vis_refl_16
+    resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
+    file_type: grib_seviri_crm
+    parameter_number: 11
+    units: "%"
+    long_name: vis_refl_16
+
+  nir_refl_39:
+    name: nir_refl_39
+    resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
+    file_type: grib_seviri_crm
+    parameter_number: 12
+    units: "%"
+    long_name: nir_refl_39
+
+  num_accumulations:
+    name: num_accumulations
+    resolution: 3000.403165817
+    file_type: grib_seviri_crm
+    parameter_number: 6
+    units: "1"
+    long_name:  num_accumulations
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    resolution: 3000.403165817
+    file_type: grib_seviri_crm
+    parameter_number: 7
+    units: degrees
+    long_name: solar_zenith_angle
+
+  relative_azimuth_angle:
+    name: relative_azimuth_angle
+    resolution: 3000.403165817
+    file_type: grib_seviri_crm
+    parameter_number: 8
+    units: degrees
+    long_name: relative_azimuth_angle
+
+  instantaneous_rain_rate:
+    name: instantaneous_rain_rate
+    resolution: 3000.403165817
+    file_type: grib_seviri_mpe
+    parameter_number: 1
+    units: "kg m-2 s-1"
+    long_name: instantaneous_rain_rate

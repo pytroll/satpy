@@ -1,0 +1,98 @@
+enhancements:
+   tpwGrid:
+      name: tpwGrid
+      operations:
+      - name: tpw_nrl_brightened
+        method: !!python/name:satpy.enhancements.mimic.nrl_colors
+        kwargs:
+          palettes: {min_value: 0, max_value: 76}
+   tpwGridPrior:
+      name: tpwGridPrior
+      operations:
+      - name: tpw_nrl_brightened_prior
+        method: !!python/name:satpy.enhancements.mimic.nrl_colors
+        kwargs:
+          palettes: {min_value: 0, max_value: 76}
+
+   tpwGridSubseq:
+      name: tpwGridSubseq
+      operations:
+      - name: tpw_nrl_brightened_subsequent
+        method: !!python/name:satpy.enhancements.mimic.nrl_colors
+        kwargs:
+           palettes: {min_value: 0, max_value: 76}
+
+   timeAwayGridPrior:
+      name: timeAwayGridPrior
+      operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+           palettes:
+              - {colors: spectral, min_value: 0, max_value: 480, reverse: True}
+              - {colors: rainbow, min_value: 0, max_value: 480}
+
+   timeAwayGridSubseq:
+     name: timeAwayGridSubseq
+     operations:
+       - name: colorize
+         method: !!python/name:satpy.enhancements.colorize
+         kwargs:
+           palettes:
+             - { colors: spectral, min_value: 0, max_value: 480, reverse: True }
+             - { colors: rainbow, min_value: 0, max_value: 480 }
+
+   footGridPrior:
+     name: footGridPrior
+     operations:
+       - name: colorize
+         method: !!python/name:satpy.enhancements.colorize
+         kwargs:
+           palettes:
+             - { colors: rainbow, min_value: 9, max_value: 45 }
+
+   footGridSubseq:
+     name: footGridSubseq
+     operations:
+       - name: colorize
+         method: !!python/name:satpy.enhancements.colorize
+         kwargs:
+           palettes:
+             - { colors: rainbow, min_value: 9, max_value: 45 }
+   satGridPrior:
+      name: satGridPrior
+      operations:
+      - name: satellite_contribution
+        method: !!python/name:satpy.enhancements.mimic.total_precipitable_water
+        kwargs:
+           palettes: { colors: [ [ 0, [ 136, 136, 136 ]],
+                                 [ 1, [ 0, 0, 255 ]],
+                                 [ 2, [ 0, 129, 255 ]],
+                                 [ 3, [ 22, 255, 255 ]],
+                                 [ 4, [ 125, 255, 122 ]],
+                                 [ 5, [ 228, 255, 19 ]],
+                                 [ 6, [ 255, 148, 0 ]],
+                                 [ 7, [ 255, 30, 0 ]],
+                                 [ 8, [ 128, 0, 0 ]],
+                                 ],
+                       min_value: 0,
+                       max_value: 8 }
+
+   satGridSubsq:
+     name: satGridSubseq
+     operations:
+       - name: satellite_contribution
+         method: !!python/name:satpy.enhancements.mimic.total_precipitable_water
+         kwargs:
+           palettes: { colors: [ [ 0, [ 136, 136, 136 ] ],
+                                 [ 1, [ 0, 0, 255 ] ],
+                                 [ 2, [ 0, 129, 255 ] ],
+                                 [ 3, [ 22, 255, 255 ] ],
+                                 [ 4, [ 125, 255, 122 ] ],
+                                 [ 5, [ 228, 255, 19 ] ],
+                                 [ 6, [ 255, 148, 0 ] ],
+                                 [ 7, [ 255, 30, 0 ] ],
+                                 [ 8, [ 128, 0, 0 ] ],
+           ],
+                       min_value: 0,
+                       max_value: 8 }

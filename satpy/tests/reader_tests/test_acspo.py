@@ -15,25 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.acspo module.
-"""
+"""Module for testing the satpy.readers.acspo module."""
 
 import os
-import sys
 from datetime import datetime, timedelta
+from unittest import mock
+
 import numpy as np
+import pytest
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -47,12 +39,14 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         sat, inst = {
             'VIIRS_NPP': ('NPP', 'VIIRS'),
+            'VIIRS_N20': ('N20', 'VIIRS'),
         }[filename_info['sensor_id']]
 
         file_content = {
@@ -101,17 +95,18 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
             dtype=np.uint16)
 
-        convert_file_content_to_data_array(file_content)
+        convert_file_content_to_data_array(file_content, dims=("time", "nj", "ni"))
         return file_content
 
 
-class TestACSPOReader(unittest.TestCase):
-    """Test ACSPO Reader"""
+class TestACSPOReader:
+    """Test ACSPO Reader."""
+
     yaml_file = "acspo.yaml"
 
-    def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+    def setup_method(self):
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.acspo import ACSPOFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -119,24 +114,29 @@ class TestACSPOReader(unittest.TestCase):
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+    def teardown_method(self):
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
-    def test_init(self):
+    @pytest.mark.parametrize(
+        ("filename",),
+        [
+            ["20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc"],
+            ["20210916161708-STAR-L2P_GHRSST-SSTsubskin-VIIRS_N20-ACSPO_V2.80-v02.0-fv01.0.nc"],
+        ]
+    )
+    def test_init(self, filename):
         """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            '20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc',
-        ])
-        self.assertTrue(len(loadables), 1)
+        loadables = r.select_files_from_pathnames([filename])
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_every_dataset(self):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -147,16 +147,9 @@ class TestACSPOReader(unittest.TestCase):
                            'satellite_zenith_angle',
                            'sea_ice_fraction',
                            'wind_speed'])
-        self.assertEqual(len(datasets), 4)
+        assert len(datasets) == 4
         for d in datasets.values():
-            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-
-
-def suite():
-    """The test suite for test_acspo.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestACSPOReader))
-
-    return mysuite
+            assert d.shape == DEFAULT_FILE_SHAPE
+            assert d.dims == ("y", "x")
+            assert d.attrs["sensor"] == "viirs"
+            assert d.attrs["rows_per_scan"] == 16

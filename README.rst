@@ -1,17 +1,17 @@
 Satpy
 =====
 
-.. image:: https://travis-ci.org/pytroll/satpy.svg?branch=develop
-    :target: https://travis-ci.org/pytroll/satpy
+.. image:: https://github.com/pytroll/satpy/workflows/CI/badge.svg?branch=main
+    :target: https://github.com/pytroll/satpy/actions?query=workflow%3A%22CI%22
 
-.. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/pytroll/satpy/branch/master
-
-.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=master
-    :target: https://coveralls.io/github/pytroll/satpy?branch=master
+.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=main
+    :target: https://coveralls.io/github/pytroll/satpy?branch=main
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
+
+.. image:: https://anaconda.org/conda-forge/satpy/badges/version.svg
+   :target: https://anaconda.org/conda-forge/satpy/
 
 .. image:: https://zenodo.org/badge/51397392.svg
    :target: https://zenodo.org/badge/latestdoi/51397392

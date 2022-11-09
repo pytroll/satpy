@@ -1,0 +1,20 @@
+enhancements:
+  default:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear}
+
+  cloudtop_default:
+    standard_name: cloudtop
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [320, 310, 310]
+        max_stretch: [220, 220, 220]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.4, 1.4, 1.2]

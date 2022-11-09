@@ -1,0 +1,16 @@
+reader:
+    name: smos_l2_wind
+    short_name: SMOS l2
+    long_name: SMOS level 2 wind data in NetCDF4 format
+    description: SMOS Level 2 Wind NetCDF reader
+    status: Beta
+    supports_fsspec: false
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [smos]
+
+file_types:
+    smos_l2_wind:
+        # Ex: SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc
+        file_reader: !!python/name:satpy.readers.smos_l2_wind.SMOSL2WINDFileHandler
+        file_patterns:
+            - '{platform_shortname:2s}_{file_class:4s}_{file_category:4s}{semantic_descriptor:6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{version:3s}_{counter:3s}_{site_id:1s}.nc'

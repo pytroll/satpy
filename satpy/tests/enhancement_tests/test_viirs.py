@@ -15,21 +15,24 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit testing for the VIIRS enhancement function
-"""
+"""Unit testing for the VIIRS enhancement function."""
 
 import unittest
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
+
+from .test_enhancements import run_and_check_enhancement
 
 
 class TestVIIRSEnhancement(unittest.TestCase):
-    """Class for testing the VIIRS enhancement function in satpy.enhancements.viirs"""
+    """Class for testing the VIIRS enhancement function in satpy.enhancements.viirs."""
 
     def setUp(self):
-        """Setup the test"""
+        """Create test data."""
         data = np.arange(15, 301, 15).reshape(2, 10)
+        data = da.from_array(data, chunks=(2, 10))
         self.da = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
         self.palette = {'colors':
                         [[14, [0.0, 0.0, 0.0]],
@@ -65,36 +68,9 @@ class TestVIIRSEnhancement(unittest.TestCase):
                         'max_value': 201}
 
     def test_viirs(self):
+        """Test VIIRS flood enhancement."""
         from satpy.enhancements.viirs import water_detection
         expected = [[[1, 7, 8, 8, 8, 9, 10, 11, 14, 8],
                      [20, 23, 26, 10, 12, 15, 18, 21, 24, 27]]]
-        self._test_enhancement(water_detection, self.da, expected,
-                               palettes=self.palette)
-
-    def _test_enhancement(self, func, data, expected, **kwargs):
-        from trollimage.xrimage import XRImage
-
-        pre_attrs = data.attrs
-        img = XRImage(data)
-        func(img, **kwargs)
-
-        self.assertIsInstance(img.data.data, da.Array)
-        self.assertListEqual(sorted(pre_attrs.keys()),
-                             sorted(img.data.attrs.keys()),
-                             "DataArray attributes were not preserved")
-
-        np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
-
-    def tearDown(self):
-        """Clean up"""
-        pass
-
-
-def suite():
-    """The test suite for test_viirs.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSEnhancement))
-
-    return mysuite
+        run_and_check_enhancement(water_detection, self.da, expected,
+                                  palettes=self.palette)

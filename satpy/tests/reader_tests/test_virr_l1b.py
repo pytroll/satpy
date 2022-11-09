@@ -15,30 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test for readers/virr_l1b.py.
-"""
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import sys
-import numpy as np
-import dask.array as da
-import xarray as xr
+"""Test for readers/virr_l1b.py."""
 import os
+import unittest
+from unittest import mock
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import dask.array as da
+import numpy as np
+import xarray as xr
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, dims):
+        """Create fake test data."""
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
     def _make_file(self, platform_id, geolocation_prefix, l1b_prefix, ECWN, Emissive_units):
@@ -92,12 +85,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestVIRRL1BReader(unittest.TestCase):
     """Test VIRR L1B Reader."""
+
     yaml_file = "virr_l1b.yaml"
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.virr_l1b import VIRR_L1B
-        from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIRR_L1B, '__bases__', (FakeHDF5FileHandler2,))
@@ -119,31 +113,41 @@ class TestVIRRL1BReader(unittest.TestCase):
         self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
 
     def _fy3_helper(self, platform_name, reader, Emissive_units):
+        """Load channels and test accurate metadata."""
         import datetime
-        band_values = {'R1': 22.0, 'R2': 22.0, 'R3': 22.0, 'R4': 22.0, 'R5': 22.0, 'R6': 22.0, 'R7': 22.0,
-                       'E1': 496.542155, 'E2': 297.444511, 'E3': 288.956557, 'solar_zenith_angle': .1,
+        band_values = {'1': 22.0, '2': 22.0, '6': 22.0, '7': 22.0, '8': 22.0, '9': 22.0, '10': 22.0,
+                       '3': 496.542155, '4': 297.444511, '5': 288.956557, 'solar_zenith_angle': .1,
                        'satellite_zenith_angle': .1, 'solar_azimuth_angle': .1, 'satellite_azimuth_angle': .1,
                        'longitude': 10}
+        if platform_name == 'FY3B':
+            # updated 2015 coefficients
+            band_values['1'] = -0.168
+            band_values['2'] = -0.2706
+            band_values['6'] = -1.5631
+            band_values['7'] = -0.2114
+            band_values['8'] = -0.171
+            band_values['9'] = -0.1606
+            band_values['10'] = -0.1328
         datasets = reader.load([band for band in band_values])
         for dataset in datasets:
             # Object returned by get_dataset.
-            ds = datasets[dataset.name]
+            ds = datasets[dataset['name']]
             attributes = ds.attrs
             self.assertTrue(isinstance(ds.data, da.Array))
-            self.assertEqual('VIRR', attributes['sensor'])
+            self.assertEqual('virr', attributes['sensor'])
             self.assertEqual(platform_name, attributes['platform_name'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((19, 20), datasets[dataset.name].shape)
-            self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
-            if 'R' in dataset.name:
+            self.assertEqual((19, 20), datasets[dataset['name']].shape)
+            self.assertEqual(('y', 'x'), datasets[dataset['name']].dims)
+            if dataset['name'] in ['1', '2', '6', '7', '8', '9', '10']:
                 self._band_helper(attributes, '%', 'reflectance',
                                   'toa_bidirectional_reflectance', 'virr_l1b',
                                   7, 1000)
-            elif 'E' in dataset.name:
+            elif dataset['name'] in ['3', '4', '5']:
                 self._band_helper(attributes, Emissive_units, 'brightness_temperature',
                                   'toa_brightness_temperature', 'virr_l1b', 3, 1000)
-            elif dataset.name in ['longitude', 'latitude']:
+            elif dataset['name'] in ['longitude', 'latitude']:
                 self.assertEqual('degrees', attributes['units'])
                 self.assertTrue(attributes['standard_name'] in ['longitude', 'latitude'])
                 self.assertEqual(['virr_l1b', 'virr_geoxx'], attributes['file_type'])
@@ -155,34 +159,29 @@ class TestVIRRL1BReader(unittest.TestCase):
                                                     'sensor_azimuth_angle'])
                 self.assertEqual(['virr_geoxx', 'virr_l1b'], attributes['file_type'])
                 self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
-            self.assertEqual(band_values[dataset.name],
+            self.assertEqual(band_values[dataset['name']],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
+            assert "valid_range" not in ds.attrs
 
     def test_fy3b_file(self):
+        """Test that FY3B files are recognized."""
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
-        self.assertTrue(1, len(FY3B_file))
+        self.assertEqual(1, len(FY3B_file))
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
         self.assertTrue(FY3B_reader.file_handlers)
         self._fy3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
 
     def test_fy3c_file(self):
+        """Test that FY3C files are recognized."""
         from satpy.readers import load_reader
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
                                                               'tf2018359143912.FY3C-L_VIRRX_L1B.HDF'])
-        self.assertTrue(2, len(FY3C_files))
+        self.assertEqual(2, len(FY3C_files))
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)
         self._fy3_helper('FY3C', FY3C_reader, '1')
-
-
-def suite():
-    """The test suite for test_virr_l1b."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIRRL1BReader))
-    return mysuite
