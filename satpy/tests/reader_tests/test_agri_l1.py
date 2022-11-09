@@ -98,7 +98,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'FillValue': np.array(65535.),
                                     'units': 'NUL',
                                     'band_names': 'NUL',
-                                    'valid_range': np.array([-180., 180.]),
+                                    'valid_range': np.array([0., 360.]),
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
