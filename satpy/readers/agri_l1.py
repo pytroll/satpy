@@ -73,45 +73,73 @@ class HDF_AGRI_L1(FY4Base):
         data.attrs.pop('Intercept', None)
         data.attrs.pop('Slope', None)
 
-    def get_area_def(self, key):
-        """Get the area definition."""
-        # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
-        # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
-        res = key['resolution']
-        pdict = {}
-        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)]
-        pdict['loff'] = self._LOFF_list[RESOLUTION_LIST.index(res)]
-        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
-        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
-        if self.PLATFORM_ID == 'FY-4A':
-            pdict['a'] = self.file_content['/attr/dEA'] * 1e3  # equator radius (m)
+    def calibrate(self, data, ds_info, ds_name, file_key):
+        """Calibrate the data."""
+        # Check if calibration is present, if not assume dataset is an angle
+        calibration = ds_info.get('calibration')
+        # Return raw data in case of counts or no calibration
+        if calibration in ('counts', None):
+            data.attrs['units'] = ds_info['units']
+            ds_info['valid_range'] = data.attrs['valid_range']
+        elif calibration == 'reflectance':
+            channel_index = int(file_key[-2:]) - 1
+            data = self.calibrate_to_reflectance(data, channel_index, ds_info)
+
+        elif calibration == 'brightness_temperature':
+            data = self.calibrate_to_bt(data, ds_info, ds_name)
+        elif calibration == 'radiance':
+            raise NotImplementedError("Calibration to radiance is not supported.")
+        # Apply range limits, but not for counts or we convert to float!
+        if calibration not in ['counts', None]:
+            data = data.where((data >= min(data.attrs['valid_range'])) &
+                              (data <= max(data.attrs['valid_range'])))
         else:
-            pdict['a'] = self.file_content['/attr/dEA']  # equator radius (m)
-        pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
-        pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
-        if self.PLATFORM_ID == 'FY-4B':
-            pdict['h'] = pdict['h'] - pdict['a']
+            data.attrs['_FillValue'] = data.attrs['FillValue'].item()
+        if calibration is None:
+            data = data.where(data != data.attrs['_FillValue'])
+        return data
 
-        pdict['ssp_lon'] = self.file_content['/attr/NOMCenterLon']
-        pdict['nlines'] = self.file_content['/attr/RegLength']
-        pdict['ncols'] = self.file_content['/attr/RegWidth']
+    def calibrate_to_reflectance(self, data, channel_index, ds_info):
+        """Calibrate to reflectance [%]."""
+        logger.debug("Calibrating to reflectances")
+        # using the corresponding SCALE and OFFSET
+        cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
+        num_channel = self.get(cal_coef).shape[0]
+        if num_channel == 1:
+            # only channel_2, resolution = 500 m
+            channel_index = 0
+        data.attrs['scale_factor'] = self.get(cal_coef)[channel_index, 0].values.item()
+        data.attrs['add_offset'] = self.get(cal_coef)[channel_index, 1].values.item()
+        data = scale(data, data.attrs['scale_factor'], data.attrs['add_offset'])
+        data *= 100
+        ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['scale_factor'] + data.attrs['add_offset'])
+        ds_info['valid_range'] = ds_info['valid_range'] * 100
+        return data
 
-        pdict['scandir'] = 'S2N'
+    def calibrate_to_bt(self, data, ds_info, ds_name):
+        """Calibrate to Brightness Temperatures [K]."""
+        logger.debug("Calibrating to brightness_temperature")
+        lut_key = ds_info.get('lut_key', ds_name)
+        lut = self.get(lut_key)
+        # the value of dn is the index of brightness_temperature
+        data = apply_lut(data, lut)
+        ds_info['valid_range'] = lut.attrs['valid_range']
+        return data
 
-        pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
+    @property
+    def start_time(self):
+        """Get the start time."""
+        start_time = self['/attr/Observing Beginning Date'] + 'T' + self['/attr/Observing Beginning Time'] + 'Z'
+        try:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
 
-        pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}'
-        pdict['p_id'] = f'{self.PLATFORM_ID}, {res}m'
-
-        pdict['coff'] = pdict['coff'] + 0.5
-        pdict['nlines'] = pdict['nlines'] - 1
-        pdict['ncols'] = pdict['ncols'] - 1
-        pdict['loff'] = (pdict['loff'] - self.file_content['/attr/End Line Number'] + 0.5)
-        area_extent = get_area_extent(pdict)
-        area_extent = (area_extent[0], area_extent[1], area_extent[2], area_extent[3])
-
-        pdict['nlines'] = pdict['nlines'] + 1
-        pdict['ncols'] = pdict['ncols'] + 1
-        area = get_area_definition(pdict, area_extent)
-
-        return area
+    @property
+    def end_time(self):
+        """Get the end time."""
+        end_time = self['/attr/Observing Ending Date'] + 'T' + self['/attr/Observing Ending Time'] + 'Z'
+        try:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ')

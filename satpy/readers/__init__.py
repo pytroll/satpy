@@ -26,13 +26,9 @@ from datetime import datetime, timedelta
 from functools import total_ordering
 
 import yaml
+from yaml import UnsafeLoader
 
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
-from satpy._config import config_search_paths, glob_config
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 
 from .yaml_reader import AbstractYAMLReader
 from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
@@ -328,14 +324,17 @@ def configs_for_reader(reader=None):
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.readers')
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'), search_dirs=paths)
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
+        paths = get_entry_points_config_dirs('satpy.readers')
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename))
+            os.path.join("readers", config_basename),
+            search_dirs=paths, check_exists=True)
 
         if not reader_configs:
             # either the reader they asked for does not exist
@@ -367,22 +366,24 @@ def get_valid_reader_names(reader):
     return new_readers
 
 
-def available_readers(as_dict=False):
+def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
     """Available readers based on current configuration.
 
     Args:
         as_dict (bool): Optionally return reader information as a dictionary.
-                        Default: False
+                        Default: False.
+        yaml_loader (Optional[Union[yaml.BaseLoader, yaml.FullLoader, yaml.UnsafeLoader]]):
+            The yaml loader type. Default: ``yaml.UnsafeLoader``.
 
-    Returns: List of available reader names. If `as_dict` is `True` then
-             a list of dictionaries including additionally reader information
-             is returned.
+    Returns:
+        Union[list[str], list[dict]]: List of available reader names. If `as_dict` is `True` then
+        a list of dictionaries including additionally reader information is returned.
 
     """
     readers = []
     for reader_configs in configs_for_reader():
         try:
-            reader_info = read_reader_config(reader_configs)
+            reader_info = read_reader_config(reader_configs, loader=yaml_loader)
         except (KeyError, IOError, yaml.YAMLError):
             LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
@@ -451,12 +452,12 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         missing_ok (bool): If False (default), raise ValueError if no files
                             are found.  If True, return empty dictionary if no
                             files are found.
-        fs (FileSystem): Optional, instance of implementation of
-                         fsspec.spec.AbstractFileSystem (strictly speaking,
-                         any object of a class implementing ``.glob`` is
-                         enough).  Defaults to searching the local filesystem.
+        fs (:class:`fsspec.spec.AbstractFileSystem`): Optional, instance of implementation of
+            :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing
+            ``.glob`` is enough).  Defaults to searching the local filesystem.
 
-    Returns: Dictionary mapping reader name string to list of filenames
+    Returns:
+        dict: Dictionary mapping reader name string to list of filenames
 
     """
     reader_files = {}

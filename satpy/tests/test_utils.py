@@ -18,6 +18,7 @@
 """Testing of utils."""
 from __future__ import annotations
 
+import datetime
 import logging
 import typing
 import unittest
@@ -270,6 +271,30 @@ class TestGetSatPos:
         data_arr = xr.DataArray((), attrs=attrs)
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
+
+    def test_get_satpos_from_satname(self, caplog):
+        """Test getting satellite position from satellite name only."""
+        import pyorbital.tlefile
+
+        data_arr = xr.DataArray(
+                (),
+                attrs={
+                    "platform_name": "Meteosat-42",
+                    "sensor": "irives",
+                    "start_time": datetime.datetime(2031, 11, 20, 19, 18, 17)})
+        with mock.patch("pyorbital.tlefile.read") as plr:
+            plr.return_value = pyorbital.tlefile.Tle(
+                    "Meteosat-42",
+                    line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
+                    line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+            with caplog.at_level(logging.WARNING):
+                (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
+            assert "Orbital parameters missing from metadata" in caplog.text
+            np.testing.assert_allclose(
+                (lon, lat, alt),
+                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                rtol=1e-4,
+            )
 
 
 def test_make_fake_scene():

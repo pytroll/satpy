@@ -91,14 +91,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         elif prefix == 'GEO':
             data = xr.DataArray(
-                                da.from_array(np.arange(10, dtype=np.float32).reshape((2, 5)) + 1,
+                                da.from_array(np.arange(0., 360., 36., dtype=np.float32).reshape((2, 5)),
                                               [dim for dim in dims]),
                                 attrs={
                                     'Slope': np.array(1.), 'Intercept': np.array(0.),
                                     'FillValue': np.array(65535.),
                                     'units': 'NUL',
                                     'band_names': 'NUL',
-                                    'valid_range': np.array([0., 360.]),
+                                    'valid_range': np.array([-180., 180.]),
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
@@ -211,6 +211,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data = self._get_1km_data('1000')
         elif self.filetype_info['file_type'] == 'agri_l1_2000m':
             data = self._get_2km_data('2000')
+            global_attrs['/attr/Observing Beginning Time'] = '00:30:01'
+            global_attrs['/attr/Observing Ending Time'] = '00:34:07'
         elif self.filetype_info['file_type'] == 'agri_l1_4000m':
             data = self._get_4km_data('4000')
         elif self.filetype_info['file_type'] == 'agri_l1_4000m_geo':
@@ -237,7 +239,7 @@ class Test_HDF_AGRI_L1_cal:
 
     yaml_file = "agri_fy4a_l1.yaml"
 
-    def setup(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.agri_l1 import HDF_AGRI_L1
@@ -267,11 +269,18 @@ class Test_HDF_AGRI_L1_cal:
                     14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
                     }
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_agri_channels_are_loaded_with_right_resolution(self):
+    def test_times_correct(self):
+        """Test that the reader handles the two possible time formats correctly."""
+        reader = self._create_reader_for_resolutions(1000)
+        np.testing.assert_almost_equal(reader.start_time.microsecond, 807000)
+        reader = self._create_reader_for_resolutions(2000)
+        np.testing.assert_almost_equal(reader.start_time.microsecond, 0)
+
+    def test_fy4a_channels_are_loaded_with_right_resolution(self):
         """Test all channels are loaded with the right resolution."""
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
@@ -349,6 +358,9 @@ class Test_HDF_AGRI_L1_cal:
         ds_ids = [make_dsq(name=band_name)]
         res = reader.load(ds_ids)
         assert len(res) == 1
+
+        np.testing.assert_almost_equal(np.nanmin(res[band_name]), 0.)
+        np.testing.assert_almost_equal(np.nanmax(res[band_name]), 324.)
 
         assert res[band_name].shape == (2, 5)
         assert res[band_name].dtype == np.float32

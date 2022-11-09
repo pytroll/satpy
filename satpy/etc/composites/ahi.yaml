@@ -16,7 +16,7 @@ modifiers:
 
 composites:
   green:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -31,7 +31,7 @@ composites:
   green_true_color_reproduction:
     # JMA True Color Reproduction green band
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
     - name: B02
@@ -43,7 +43,7 @@ composites:
     standard_name: none
 
   green_nocorr:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -345,6 +345,15 @@ composites:
     prerequisites:
       - name: B14
 
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
@@ -368,6 +377,14 @@ composites:
       - name: B15
       - name: B13
 
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cloudtop
+    prerequisites:
+      - name: B07
+      - name: B14
+      - name: B15
+
   night_ir_with_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background
@@ -377,7 +394,7 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
