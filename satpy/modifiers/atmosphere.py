@@ -45,9 +45,9 @@ class PSPRayleighReflectance(ModifierBase):
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
-            # First make sure the two azimuth angles are in the range 0-360:
-            sata = sata % 360.
-            suna = suna % 360.
+        # First make sure the two azimuth angles are in the range 0-360:
+        sata = sata % 360.
+        suna = suna % 360.
 
         # get the dask array underneath
         sata = sata.data
