@@ -35,7 +35,7 @@ class TestAGRIComposites(unittest.TestCase):
         import xarray as xr
         from pyresample.geometry import AreaDefinition
 
-        from satpy.composites.agri import PseudoRed_AGRI
+        from satpy.composites.agri import PseudoRedAGRI
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -45,8 +45,8 @@ class TestAGRIComposites(unittest.TestCase):
             cols, rows,
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
-        comp = PseudoRed_AGRI('red', prerequisites=('C01', 'C02', 'C03'),
-                              standard_name='toa_bidirectional_reflectance')
+        comp = PseudoRedAGRI('red', prerequisites=('C01', 'C02', 'C03'),
+                             standard_name='toa_bidirectional_reflectance')
         c01 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.25,
                            dims=('y', 'x'),
                            attrs={'name': 'C01', 'area': area})
