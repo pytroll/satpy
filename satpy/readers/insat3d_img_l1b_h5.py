@@ -9,6 +9,8 @@ from xarray.backends import BackendArray, BackendEntrypoint
 from xarray.coding.variables import CFScaleOffsetCoder, lazy_elemwise_func, unpack_for_decoding
 from xarray.core import indexing
 
+from satpy.readers.file_handlers import BaseFileHandler
+
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
                 "swir": ("RADIANCE",),
                 "mir": ("RADIANCE", "TEMP"),
@@ -106,7 +108,64 @@ class I3DBackend(BackendEntrypoint):
         else:
             raise ValueError(f"Resolution {resolution} not availble. Available resolutions: 1000, 4000, 8000")
 
-        # this makes sure the file isn't close at the end of the function.
+        # this makes sure the file isn't closed at the end of the function.
         ds.attrs["_filehandle"] = h5f
         ds.attrs.update(h5f.attrs)
         return ds
+
+
+class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
+    """File handler for insat 3d imager data."""
+
+    def get_dataset(self, ds_id, ds_info):
+        """Get a data array."""
+        resolution = ds_id["resolution"]
+        ds = xr.open_dataset(self.filename, engine=I3DBackend, chunks={}, resolution=resolution)
+        # this makes sure the file isn't closed at the end of the function.
+        self._h5filehandle = ds.attrs["_filehandle"]
+
+        if ds_id["name"] in ["Longitude", "Latitude"]:
+            return ds[ds_id["name"]]
+
+        if ds_id["calibration"] == "counts":
+            calibration = ""
+        elif ds_id["calibration"] == "radiance":
+            calibration = "_RADIANCE"
+        elif ds_id["calibration"] == "reflectance":
+            calibration = "_ALBEDO"
+        darr = ds["IMG_" + ds_id["name"] + calibration]
+        return darr
+
+    def get_area_def(self, ds_id):
+        """Get the area definition."""
+        from satpy.readers._geos_area import get_area_definition, get_area_extent
+        resolution = ds_id["resolution"]
+        ds = xr.open_dataset(self.filename, engine=I3DBackend, chunks={}, resolution=resolution)
+        darr = ds["IMG_" + ds_id.name]
+        shape = darr.shape
+        lines = shape[-2]
+        cols = shape[-1]
+        fov = ds.attrs["Field_of_View(degrees)"]
+        cfac = 2 ** 16 / (fov / cols)
+        lfac = 2 ** 16 / (fov / lines)
+        # HRV on MSG
+        # lfac = cfac = 40927014
+        pdict = {
+            'cfac': cfac,
+            'lfac': lfac,
+            'coff': cols / 2,
+            'loff': lines / 2,
+            'ncols': cols,
+            'nlines': lines,
+            'scandir': 'N2S',
+            'a': 6378137.0,
+            'b': 6356752.314245,
+            'h': 35778490.219,
+            'ssp_lon': 82.0,
+            'a_name': "insat3d82",
+            'a_desc': "insat3d82",
+            'p_id': 'geosmsg'
+        }
+        area_extent = get_area_extent(pdict)
+        adef = get_area_definition(pdict, area_extent)
+        return adef

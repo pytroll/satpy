@@ -1,11 +1,21 @@
 """Tests for the Insat3D reader."""
+import os
+
 import dask.array as da
 import h5netcdf
 import numpy as np
 import pytest
 from xarray import open_dataset
 
-from satpy.readers.insat3d_img_l1b_h5 import CHANNELS_BY_RESOLUTION, LUT_SUFFIXES, I3DBackend, get_lonlat_suffix
+from satpy import Scene
+from satpy.readers.insat3d_img_l1b_h5 import (
+    CHANNELS_BY_RESOLUTION,
+    LUT_SUFFIXES,
+    I3DBackend,
+    Insat3DIMGL1BH5FileHandler,
+    get_lonlat_suffix,
+)
+from satpy.tests.utils import make_dataid
 
 # real shape is 1, 11220, 11264
 shape_1km = (1, 1122, 1126)
@@ -56,7 +66,8 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
-global_attrs = {"Observer_Altitude(km)": 35778490.219}
+global_attrs = {"Observer_Altitude(km)": 35778490.219,
+                "Field_of_View(degrees)": 17.973925}
 
 
 @pytest.fixture(scope="session")
@@ -157,3 +168,52 @@ def test_insat3d_has_global_attributes(insat_filename, resolution):
     res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
     del res.attrs["_filehandle"]
     assert res.attrs.items() >= global_attrs.items()
+
+
+@pytest.mark.parametrize("calibration,expected_values",
+                         [("counts", values_1km),
+                          ("radiance", values_1km * 2),
+                          ("reflectance", values_1km * 3)])
+def test_filehandler_returns_data_array(insat_filename, calibration, expected_values):
+    """Test that the filehandler can get dataarrays."""
+    fileinfo = {}
+    filetype = None
+    ds_info = None
+
+    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
+
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration=calibration)
+    darr = fh.get_dataset(ds_id, ds_info)
+    np.testing.assert_allclose(darr, expected_values)
+
+
+def test_filehandler_returns_coords(insat_filename):
+    """Test that lon and lat can be loaded."""
+    fileinfo = {}
+    filetype = None
+    ds_info = None
+
+    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
+
+    lon_id = make_dataid(name="Longitude", resolution=1000)
+    darr = fh.get_dataset(lon_id, ds_info)
+    np.testing.assert_allclose(darr, values_1km.squeeze() / 100)
+
+
+def test_filehandler_returns_area(insat_filename):
+    """Test that filehandle returns an area."""
+    fileinfo = {}
+    filetype = None
+
+    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
+
+    ds_id = make_dataid(name="MIR", resolution=4000, calibration="counts")
+    area_def = fh.get_area_def(ds_id)
+    lons, lats = area_def.get_lonlats(chunks=1000)
+
+
+def test_satpy_load_array(insat_filename):
+    """Test that satpy can load the VIS array."""
+    scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
+    scn.load(["VIS"])
+    np.testing.assert_allclose(scn["VIS"], values_1km * 3)
