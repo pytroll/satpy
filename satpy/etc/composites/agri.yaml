@@ -27,7 +27,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   pseudored:
-    compositor: !!python/name:satpy.composites.agri.PseudoRedAGRI
+    compositor: !!python/name:satpy.composites.agri.SimulatedRed
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -39,7 +39,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   pseudored_nocorr:
-    compositor: !!python/name:satpy.composites.agri.PseudoRedAGRI
+    compositor: !!python/name:satpy.composites.agri.SimulatedRed
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:

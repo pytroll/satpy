@@ -24,7 +24,7 @@ from satpy.composites import GenericCompositor
 LOG = logging.getLogger(__name__)
 
 
-class PseudoRedAGRI(GenericCompositor):
+class SimulatedRed(GenericCompositor):
     """A single-band dataset resembling a Red (0.64 µm) band.
 
     This compositor creates a single band product by combining two
@@ -51,11 +51,11 @@ class PseudoRedAGRI(GenericCompositor):
 
         """
         self.fractions = fractions
-        super(PseudoRedAGRI, self).__init__(name, **kwargs)
+        super(SimulatedRed, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Generate the single band composite."""
         c1, c2 = self.match_data_arrays(projectables)
         res = (c1 * self.fractions[0] - c2 * self.fractions[1]) / self.fractions[2]
         res.attrs = c1.attrs.copy()
-        return super(PseudoRedAGRI, self).__call__((res,), **attrs)
+        return super(SimulatedRed, self).__call__((res,), **attrs)
