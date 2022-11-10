@@ -27,7 +27,7 @@ import logging
 from pyproj import Proj
 
 from satpy.readers._geos_area import get_area_definition
-from satpy.readers.fy4_base import RESOLUTION_LIST, FY4Base
+from satpy.readers.fy4_base import FY4Base
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,7 @@ class HDF_GHI_L1(FY4Base):
         # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
+
         pdict = {}
 
         c_lats = self.file_content['/attr/Corner-Point Latitudes']
@@ -89,57 +90,38 @@ class HDF_GHI_L1(FY4Base):
         p3 = (c_lons[2], c_lats[2])
         p4 = (c_lons[3], c_lats[3])
 
-        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)]
-        pdict['loff'] = -self._LOFF_list[RESOLUTION_LIST.index(res)]
-        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
-        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
         pdict['a'] = self.file_content['/attr/Semi_major_axis'] * 1E3  # equator radius (m)
         pdict['b'] = self.file_content['/attr/Semi_minor_axis'] * 1E3  # equator radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight'] * 1E3  # the altitude of satellite (m)
 
+        pdict['h'] = pdict['h'] - pdict['a']
+
         pdict['ssp_lon'] = float(self.file_content['/attr/NOMSubSatLon'])
-        pdict['nlines'] = self.file_content['/attr/RegLength']
-        pdict['ncols'] = self.file_content['/attr/RegWidth']
+        pdict['nlines'] = float(self.file_content['/attr/RegLength'])
+        pdict['ncols'] = float(self.file_content['/attr/RegWidth'])
 
-        pdict['scandir'] = 'N2S'
+        pdict['scandir'] = 'S2N'
 
-        b250 = ['C01']
-        b500 = ['C02', 'C03', 'C04', 'C05', 'C06']
-
-        pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
-
-        if key['name'] in b250:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_250m'
-            pdict['p_id'] = 'FY-4A, 250m'
-        elif key['name'] in b500:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_500m'
-            pdict['p_id'] = 'FY-4A, 500m'
-        else:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_2000m'
-            pdict['p_id'] = 'FY-4A, 2000m'
-
-        pdict['nlines'] = pdict['nlines'] - 1
-        pdict['ncols'] = pdict['ncols'] - 1
+        pdict['a_desc'] = "FY-4 {} area".format(self.filename_info['observation_type'])
+        pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}m'
+        pdict['p_id'] = f'FY-4, {res}m'
 
         proj_dict = {'a': pdict['a'],
+                     'b': pdict['b'],
                      'lon_0': pdict['ssp_lon'],
                      'h': pdict['h'],
-                     'rf': 1 / (pdict['a'] / pdict['b'] - 1),
                      'proj': 'geos',
                      'units': 'm',
-                     'sweep': 'x'}
+                     'sweep': 'y'}
 
         p = Proj(proj_dict)
-        o1 = (p(p1[0], p1[1]))
-        o2 = (p(p2[0], p2[1]))
-        o3 = (p(p3[0], p3[1]))
-        o4 = (p(p4[0], p4[1]))
+        o1 = (p(p1[0], p1[1]))  # Upper left
+        o2 = (p(p2[0], p2[1]))  # Upper right
+        o3 = (p(p3[0], p3[1]))  # Lower left
+        o4 = (p(p4[0], p4[1]))  # Lower right
 
-        lons = (o1[0], o2[0], o3[0], o4[0])
-        lats = (o1[1], o2[1], o3[1], o4[1])
+        deller = res / 2.
 
-        pdict['nlines'] = pdict['nlines'] + 1
-        pdict['ncols'] = pdict['ncols'] + 1
-        area = get_area_definition(pdict, (lons[2], lats[3], lons[3], lats[2]))
+        area = get_area_definition(pdict, (o3[0] - deller, o4[1] - deller, o2[0], o1[1]))
 
         return area
