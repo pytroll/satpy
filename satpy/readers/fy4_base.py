@@ -224,15 +224,12 @@ class FY4Base(HDF5FileHandler):
         pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}m'
         pdict['p_id'] = f'FY-4, {res}m'
 
-        pdict['coff'] = pdict['coff'] + 0.5
-        pdict['nlines'] = pdict['nlines'] - 1
-        pdict['ncols'] = pdict['ncols'] - 1
-        pdict['loff'] = (pdict['loff'] - self.file_content['/attr/End Line Number'] + 0.5)
+        pdict['coff'] = pdict['coff'] + 1
+
+        pdict['loff'] = pdict['loff'] - self.file_content['/attr/End Line Number']
         area_extent = get_area_extent(pdict)
         area_extent = (area_extent[0], area_extent[1], area_extent[2], area_extent[3])
 
-        pdict['nlines'] = pdict['nlines'] + 1
-        pdict['ncols'] = pdict['ncols'] + 1
         area = get_area_definition(pdict, area_extent)
 
         return area
