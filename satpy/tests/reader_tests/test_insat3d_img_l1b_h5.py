@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from xarray import open_dataset
 
-from satpy.readers.insat3d_img_l1b_h5 import CHANNELS_BY_RESOLUTION, LUT_SUFFIXES, I3DBackend
+from satpy.readers.insat3d_img_l1b_h5 import CHANNELS_BY_RESOLUTION, LUT_SUFFIXES, I3DBackend, get_lonlat_suffix
 
 # real shape is 1, 11220, 11264
 shape_1km = (1, 1122, 1126)
@@ -22,6 +22,9 @@ values_8km = np.random.randint(0, 1000, shape_8km, dtype=np.uint16)
 values_by_resolution = {1000: values_1km,
                         4000: values_4km,
                         8000: values_8km}
+
+lut_values_2 = np.arange(0, 1024 * 2, 2)
+lut_values_3 = np.arange(0, 1024 * 3, 3)
 
 dimensions = {"GeoX": shape_4km[2],
               "GeoY": shape_4km[1],
@@ -53,70 +56,46 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
+global_attrs = {"Observer_Altitude(km)": 35778490.219}
+
 
 @pytest.fixture(scope="session")
 def insat_filename(tmp_path_factory):
     """Create a fake insat 3d l1b file."""
-    lut_values_2 = np.arange(0, 1024 * 2, 2)
-    lut_values_3 = np.arange(0, 1024 * 3, 3)
-
     filename = tmp_path_factory.mktemp("data") / "3DIMG_25OCT2022_0400_L1B_STD_V01R00.h5"
     with h5netcdf.File(filename, mode="w") as h5f:
         h5f.dimensions = dimensions
+        h5f.attrs.update(global_attrs)
         for resolution, channels in CHANNELS_BY_RESOLUTION.items():
-            for channel in channels:
-                var_name = "IMG_" + channel.upper()
+            _create_channels(channels, h5f, resolution)
+            _create_lonlats(h5f, resolution)
 
-                var = h5f.create_variable(var_name, ("time", ) + dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km)
-                var[:] = values_by_resolution[resolution]
-                for suffix, lut_values in zip(LUT_SUFFIXES[channel], (lut_values_2, lut_values_3)):
-                    lut_name = "_".join((var_name, suffix))
-                    var = h5f.create_variable(lut_name, ("GreyCount",), float)
-                    var[:] = lut_values
-                    var.attrs["units"] = bytes(calibrated_units[suffix], "ascii")
-                    var.attrs["long_name"] = " ".join((channel_names[channel], calibrated_names[suffix]))
-
-            if resolution == 1000:
-                var_name = "Longitude_VIS"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
-                var_name = "Latitude_VIS"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
-            elif resolution == 4000:
-                var_name = "Longitude"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
-                var_name = "Latitude"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
-            elif resolution == 8000:
-                var_name = "Longitude_WV"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
-                var_name = "Latitude_WV"
-                var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
-                                          chunks=chunks_1km[1:])
-                var[:] = values_by_resolution[resolution]
-                var.attrs["scale_factor"] = 0.01
-                var.attrs["add_offset"] = 0.0
     return filename
+
+
+def _create_channels(channels, h5f, resolution):
+    for channel in channels:
+        var_name = "IMG_" + channel.upper()
+
+        var = h5f.create_variable(var_name, ("time",) + dimensions_by_resolution[resolution], np.uint16,
+                                  chunks=chunks_1km)
+        var[:] = values_by_resolution[resolution]
+        for suffix, lut_values in zip(LUT_SUFFIXES[channel], (lut_values_2, lut_values_3)):
+            lut_name = "_".join((var_name, suffix))
+            var = h5f.create_variable(lut_name, ("GreyCount",), float)
+            var[:] = lut_values
+            var.attrs["units"] = bytes(calibrated_units[suffix], "ascii")
+            var.attrs["long_name"] = " ".join((channel_names[channel], calibrated_names[suffix]))
+
+
+def _create_lonlats(h5f, resolution):
+    lonlat_suffix = get_lonlat_suffix(resolution)
+    for var_name in ["Longitude" + lonlat_suffix, "Latitude" + lonlat_suffix]:
+        var = h5f.create_variable(var_name, dimensions_by_resolution[resolution], np.uint16,
+                                  chunks=chunks_1km[1:])
+        var[:] = values_by_resolution[resolution]
+        var.attrs["scale_factor"] = 0.01
+        var.attrs["add_offset"] = 0.0
 
 
 def test_insat3d_backend_has_1km_channels(insat_filename):
@@ -161,10 +140,20 @@ def test_insat3d_only_has_3_resolutions(insat_filename):
         _ = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=1024)
 
 
-def test_insat3d_returns_lonlat(insat_filename):
+@pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
+def test_insat3d_returns_lonlat(insat_filename, resolution):
     """Test that lons and lats are loaded."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=1000)
+    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
+    expected = values_by_resolution[resolution].squeeze() / 100.0
     assert isinstance(res["Latitude"].data, da.Array)
-    np.testing.assert_allclose(res["Latitude"], values_1km.squeeze() / 100.0)
+    np.testing.assert_allclose(res["Latitude"], expected)
     assert isinstance(res["Longitude"].data, da.Array)
-    np.testing.assert_allclose(res["Longitude"], values_1km.squeeze() / 100.0)
+    np.testing.assert_allclose(res["Longitude"], expected)
+
+
+@pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
+def test_insat3d_has_global_attributes(insat_filename, resolution):
+    """Test that the backend supports global attributes."""
+    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
+    del res.attrs["_filehandle"]
+    assert res.attrs.items() >= global_attrs.items()

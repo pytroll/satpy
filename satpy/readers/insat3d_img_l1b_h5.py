@@ -67,6 +67,17 @@ def _create_variable_from_h5_array(h5_arr):
     return var
 
 
+def get_lonlat_suffix(resolution):
+    """Get the lonlat variable suffix from the resolution."""
+    if resolution == 1000:
+        lonlat_suffix = "_VIS"
+    elif resolution == 8000:
+        lonlat_suffix = "_WV"
+    else:
+        lonlat_suffix = ""
+    return lonlat_suffix
+
+
 class I3DBackend(BackendEntrypoint):
     """Backend for Insat 3D in hdf5 format."""
 
@@ -74,6 +85,7 @@ class I3DBackend(BackendEntrypoint):
         """Open the dataset."""
         h5f = h5netcdf.File(filename, mode="r")
         ds = xr.Dataset()
+        scale_offset_coder = CFScaleOffsetCoder()
         if resolution in [1000, 4000, 8000]:
             for channel in CHANNELS_BY_RESOLUTION[resolution]:
                 var_name = "IMG_" + channel.upper()
@@ -85,22 +97,16 @@ class I3DBackend(BackendEntrypoint):
                     decoded = decode_lut(var, lut)
                     ds[name] = decoded
 
-                if resolution == 1000:
-                    lonlat_suffix = "_VIS"
-                elif resolution == 8000:
-                    lonlat_suffix = "_WV"
-                else:
-                    lonlat_suffix = ""
-
-                coder = CFScaleOffsetCoder()
+                lonlat_suffix = get_lonlat_suffix(resolution)
 
                 for coord in ["Longitude", "Latitude"]:
                     var_name = coord + lonlat_suffix
                     var = _create_variable_from_h5_array(h5f[var_name])
-                    ds[coord] = coder.decode(var)
+                    ds[coord] = scale_offset_coder.decode(var)
         else:
-            raise ValueError("Available resolutions: 1000, 4000, 8000")
+            raise ValueError(f"Resolution {resolution} not availble. Available resolutions: 1000, 4000, 8000")
 
         # this makes sure the file isn't close at the end of the function.
         ds.attrs["_filehandle"] = h5f
+        ds.attrs.update(h5f.attrs)
         return ds
