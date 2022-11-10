@@ -40,6 +40,13 @@ DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
+    def __getitem__(self, key):
+        """Return copy of dataarray to prevent manipulating attributes in the original."""
+        val = self.file_content[key]
+        if isinstance(val, xr.core.dataarray.DataArray):
+            val = val.copy()
+        return val
+
     def _get_geo_data(self, num_rows, num_cols):
         geo = {
             'wvc_lon':
@@ -498,3 +505,20 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.assertEqual(res['wvc_lon'].attrs['L2B_Number_WVC_cells'], 10)
         self.assertEqual(res['wvc_lon'].attrs['L2B_Expected_WVC_Cells'], 10)
+
+    def test_properties(self):
+        """Test platform_name."""
+        from datetime import datetime
+
+        from satpy.readers import load_reader
+        filenames = [
+            'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
+
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        res = reader.load(['wvc_lon'])
+        self.assertEqual(res['wvc_lon'].platform_name, 'HY-2B')
+        self.assertEqual(res['wvc_lon'].start_time, datetime(2020, 3, 26, 1, 11, 7))
+        self.assertEqual(res['wvc_lon'].end_time, datetime(2020, 3, 26, 2, 55, 40))
