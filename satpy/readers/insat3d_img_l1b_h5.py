@@ -10,7 +10,7 @@ from xarray.coding.variables import CFScaleOffsetCoder, lazy_elemwise_func, unpa
 from xarray.core import indexing
 
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
-                "swir": ("RADIANCE", "TEMP"),
+                "swir": ("RADIANCE",),
                 "mir": ("RADIANCE", "TEMP"),
                 "tir1": ("RADIANCE", "TEMP"),
                 "tir2": ("RADIANCE", "TEMP"),
