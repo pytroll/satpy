@@ -50,8 +50,9 @@ class FY4Base(HDF5FileHandler):
 
         # info of 250m, 500m, 1km, 2km and 4km data
         self._COFF_list = [21983.5, 10991.5, 5495.5, 2747.5, 1373.5]
-        self._CFAC_list = [163730199.0, 81865099.0, 40932549.0, 20466274.0, 10233137.0]
         self._LOFF_list = [21983.5, 10991.5, 5495.5, 2747.5, 1373.5]
+
+        self._CFAC_list = [163730199.0, 81865099.0, 40932549.0, 20466274.0, 10233137.0]
         self._LFAC_list = [163730199.0, 81865099.0, 40932549.0, 20466274.0, 10233137.0]
 
         self.PLATFORM_NAMES = {'FY4A': 'FY-4A',
@@ -210,25 +211,44 @@ class FY4Base(HDF5FileHandler):
         pdict['loff'] = self._LOFF_list[RESOLUTION_LIST.index(res)]
         pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
-        pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
-        pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
+        try:
+            pdict['a'] = float(self.file_content['/attr/Semimajor axis of ellipsoid'])
+        except KeyError:
+            pdict['a'] = float(self.file_content['/attr/dEA'])
+        if pdict['a'] < 10000:
+            pdict['a'] = pdict['a'] * 1E3  # equator radius (m)
+        try:
+            pdict['b'] = float(self.file_content['/attr/Semiminor axis of ellipsoid'])
+        except KeyError:
+            pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
+
         pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
+        if pdict['h'] > 42000000.0:
+            pdict['h'] = pdict['h'] - pdict['a']
 
-        pdict['ssp_lon'] = self.file_content['/attr/NOMCenterLon']
-        pdict['nlines'] = self.file_content['/attr/RegLength']
-        pdict['ncols'] = self.file_content['/attr/RegWidth']
+        pdict['ssp_lon'] = float(self.file_content['/attr/NOMCenterLon'])
+        pdict['nlines'] = float(self.file_content['/attr/RegLength'])
+        pdict['ncols'] = float(self.file_content['/attr/RegWidth'])
 
-        pdict['scandir'] = 'S2N'
-
+        pdict['scandir'] = 'N2S'
         pdict['a_desc'] = "FY-4 {} area".format(self.filename_info['observation_type'])
         pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}m'
         pdict['p_id'] = f'FY-4, {res}m'
 
-        pdict['coff'] = pdict['coff'] + 1
+        pdict['nlines'] = pdict['nlines'] - 1
+        pdict['ncols'] = pdict['ncols'] - 1
 
-        pdict['loff'] = pdict['loff'] - self.file_content['/attr/End Line Number']
+        pdict['coff'] = pdict['coff'] - 0.5
+        pdict['loff'] = pdict['loff'] + 1
+
         area_extent = get_area_extent(pdict)
-        area_extent = (area_extent[0], area_extent[1], area_extent[2], area_extent[3])
+        area_extent = (area_extent[0],
+                       area_extent[1],
+                       area_extent[2],
+                       area_extent[3])
+
+        pdict['nlines'] = pdict['nlines'] + 1
+        pdict['ncols'] = pdict['ncols'] + 1
 
         area = get_area_definition(pdict, area_extent)
 
