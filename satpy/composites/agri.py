@@ -35,6 +35,7 @@ class PseudoRed_AGRI(GenericCompositor):
 
     See the `fractions` keyword argument for more information.
     The default setup is to use:
+
      - f1 = 1.0
      - f2 = 0.13
      - f3 = 0.87
