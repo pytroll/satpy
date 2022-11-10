@@ -364,8 +364,8 @@ hdf5 based readers
 ------------------
 
 .. automodule:: satpy.readers.agri_l1
-    :noindex
-:
+    :noindex:
+
 .. automodule:: satpy.readers.ghi_l1
     :noindex:
 
