@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2019, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -43,6 +43,14 @@ except ImportError:
     get_client = None
 
 log = logging.getLogger(__name__)
+
+
+def weighted(datasets, weights=None):
+    """Blend datasets using weights."""
+    indices = np.argmax(np.dstack(weights), axis=-1)
+
+    base = np.choose(indices, datasets)
+    return base
 
 
 def stack(datasets):
@@ -339,7 +347,7 @@ class MultiScene(object):
         """Resample the multiscene."""
         return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
 
-    def blend(self, blend_function=stack):
+    def blend(self, blend_function=stack, **kwargs):
         """Blend the datasets into one scene.
 
         Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
@@ -364,7 +372,7 @@ class MultiScene(object):
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
             datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
-            new_scn[ds_id] = blend_function(datasets)
+            new_scn[ds_id] = blend_function(datasets, **kwargs)
 
         return new_scn
 
@@ -508,7 +516,7 @@ class MultiScene(object):
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
-                    ds, enh_args["decorate"])
+                ds, enh_args["decorate"])
         img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
         if data.ndim == 3:
@@ -632,7 +640,7 @@ class MultiScene(object):
             info_datasets = [scn.get(dataset_id) for scn in info_scenes]
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
             data_to_write = self._get_animation_frames(
-                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+                all_datasets, shape, this_fill, ignore_missing, enh_args)
 
             writer = imageio.get_writer(this_fn, **imio_args)
             frames[dataset_id] = data_to_write
@@ -703,8 +711,8 @@ class MultiScene(object):
             raise ImportError("Missing required 'imageio' library")
 
         (writers, frames) = self._get_writers_and_frames(
-                filename, datasets, fill_value, ignore_missing,
-                enh_args, imio_args={"fps": fps, **kwargs})
+            filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames
