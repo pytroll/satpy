@@ -66,7 +66,6 @@ class FY4Base(HDF5FileHandler):
         self.CHANS_ID = 'NOMChannel'
         self.SAT_ID = 'NOMSatellite'
         self.SUN_ID = 'NOMSun'
-        self.sensor = None
 
     @staticmethod
     def scale(dn, slope, offset):
@@ -129,6 +128,7 @@ class FY4Base(HDF5FileHandler):
         if calibration in ('counts', None):
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
+            ds_info['fill_value'] = data.attrs['FillValue'].item()
         elif calibration == 'reflectance':
             channel_index = int(file_key[-2:]) - 1
             data = self.calibrate_to_reflectance(data, channel_index, ds_info)
@@ -149,7 +149,7 @@ class FY4Base(HDF5FileHandler):
         logger.debug("Calibrating to reflectances")
         # using the corresponding SCALE and OFFSET
         if self.sensor != 'AGRI' and self.sensor != 'GHI':
-            ValueError(f'Unsupported sensor type: {self.sensor}')
+            raise ValueError(f'Unsupported sensor type: {self.sensor}')
 
         coeffs = self.reflectance_coeffs
         num_channel = coeffs.shape[0]
@@ -157,6 +157,7 @@ class FY4Base(HDF5FileHandler):
         if self.sensor == 'AGRI' and num_channel == 1:
             # only channel_2, resolution = 500 m
             channel_index = 0
+        data.data = da.where(data.data == data.attrs['FillValue'].item(), np.nan, data.data)
         data.attrs['scale_factor'] = coeffs[channel_index, 0].item()
         data.attrs['add_offset'] = coeffs[channel_index, 1].item()
         data = self.scale(data, data.attrs['scale_factor'], data.attrs['add_offset'])
@@ -169,13 +170,17 @@ class FY4Base(HDF5FileHandler):
         """Calibrate to Brightness Temperatures [K]."""
         logger.debug("Calibrating to brightness_temperature")
 
-        if self.sensor == 'AGRI':
-            lut_key = ds_info.get('lut_key', ds_name)
-        elif self.sensor == 'GHI':
+        if self.sensor not in ['GHI', 'AGRI']:
+            raise ValueError("Error, sensor must be GHI or AGRI.")
+
+        # The key is sometimes prefixes with `Calibration/` so we try both options here
+        lut_key = ds_info.get('lut_key', ds_name)
+        try:
+            lut = self[lut_key]
+        except KeyError:
             lut_key = f'Calibration/{ds_info.get("lut_key", ds_name)}'
-        else:
-            raise ValueError(f'Unsupported sensor type: {self.sensor}')
-        lut = self.get(lut_key)
+            lut = self[lut_key]
+
         # the value of dn is the index of brightness_temperature
         data = self.apply_lut(data, lut)
         ds_info['valid_range'] = lut.attrs['valid_range']

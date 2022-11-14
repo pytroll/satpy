@@ -46,11 +46,11 @@ AREA_EXTENTS_BY_RESOLUTION = {'FY4A': {
     4000: (-5490021.187119, -5496021.210274, -5474021.125371, -5492021.194837)
 },
     'FY4B': {
-    500: (-5495271.006002, -5496021.008869, -5493270.998357, -5495521.006957),
-    1000: (-5494521.070252, -5496021.076004, -5490521.054912, -5495021.072169),
-    2000: (-5493021.198696, -5496021.210274, -5485021.167823, -5494021.202556),
-    4000: (-5490021.187119, -5496021.210274, -5474021.125371, -5492021.194837)
-}}
+        500: (-5495271.006002, -5496021.008869, -5493270.998357, -5495521.006957),
+        1000: (-5494521.070252, -5496021.076004, -5490521.054912, -5495021.072169),
+        2000: (-5493021.198696, -5496021.210274, -5485021.167823, -5494021.202556),
+        4000: (-5490021.187119, -5496021.210274, -5474021.125371, -5492021.194837)
+    }}
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -60,47 +60,47 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         """Make test data."""
         if prefix == 'CAL':
             data = xr.DataArray(
-                                da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
-                                attrs={
-                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                                    'FillValue': np.array(-65535.0),
-                                    'units': 'NUL',
-                                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                                    'band_names': 'band{}(band number is range from 1 to 14)'
-                                                  .format(ch).encode('utf-8'),
-                                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': np.array([0, 1.5]),
-                                },
-                                dims='_const')
+                da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
+                attrs={
+                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                    'FillValue': np.array(-65535.0),
+                    'units': 'NUL',
+                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
+                    'band_names': 'band{}(band number is range from 1 to 14)'
+                    .format(ch).encode('utf-8'),
+                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
+                    'valid_range': np.array([0, 1.5]),
+                },
+                dims='_const')
 
         elif prefix == 'NOM':
             data = xr.DataArray(
-                                da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
-                                              [dim for dim in dims]),
-                                attrs={
-                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                                    'FillValue': np.array(65535),
-                                    'units': 'DN',
-                                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                                    'band_names': 'band{}(band number is range from 1 to 14)'
-                                                  .format(ch).encode('utf-8'),
-                                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': np.array([0, 4095]),
-                                },
-                                dims=('_RegLength', '_RegWidth'))
+                da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
+                              [dim for dim in dims]),
+                attrs={
+                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                    'FillValue': np.array(65535),
+                    'units': 'DN',
+                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
+                    'band_names': 'band{}(band number is range from 1 to 14)'
+                    .format(ch).encode('utf-8'),
+                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
+                    'valid_range': np.array([0, 4095]),
+                },
+                dims=('_RegLength', '_RegWidth'))
 
         elif prefix == 'GEO':
             data = xr.DataArray(
-                                da.from_array(np.arange(0., 360., 36., dtype=np.float32).reshape((2, 5)),
-                                              [dim for dim in dims]),
-                                attrs={
-                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                                    'FillValue': np.array(65535.),
-                                    'units': 'NUL',
-                                    'band_names': 'NUL',
-                                    'valid_range': np.array([0., 360.]),
-                                },
-                                dims=('_RegLength', '_RegWidth'))
+                da.from_array(np.arange(0., 360., 36., dtype=np.float32).reshape((2, 5)),
+                              [dim for dim in dims]),
+                attrs={
+                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                    'FillValue': np.array(65535.),
+                    'units': 'NUL',
+                    'band_names': 'NUL',
+                    'valid_range': np.array([0., 360.]),
+                },
+                dims=('_RegLength', '_RegWidth'))
 
         elif prefix == 'COEF':
             if file_type == '500':
@@ -139,6 +139,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
                                                                            [dim_0, dim_1], file_type)
+            data['Calibration/CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+                                                                                       [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
                                                                            [dim_0, dim_1], file_type)
             data['Data/NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
@@ -191,7 +193,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         global_attrs = {
             '/attr/NOMCenterLat': np.array(0.0),
             '/attr/NOMCenterLon': np.array(104.7),
-            '/attr/NOMSatHeight': np.array(3.5786E7),
+            '/attr/NOMSatHeight': np.array(42164140.0),
             '/attr/dEA': np.array(6378.14),
             '/attr/dObRecFlat': np.array(298.257223563),
             '/attr/OBIType': 'REGC',
@@ -253,21 +255,21 @@ class Test_HDF_AGRI_L1_cal:
         self.satname = 'FY4A'
 
         self.expected = {
-                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
-                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
-                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
-                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
-                    7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    8: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    9: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    10: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    11: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    12: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    13: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
-                    14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
-                    }
+            1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
+            2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
+            3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
+            4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
+            5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
+            6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
+            7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            8: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            9: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            10: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            11: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            12: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            13: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+            14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
+        }
 
     def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
@@ -314,7 +316,7 @@ class Test_HDF_AGRI_L1_cal:
             assert isinstance(orbital_parameters[attr], float)
         assert orbital_parameters['satellite_nominal_latitude'] == 0.
         assert orbital_parameters['satellite_nominal_longitude'] == 104.7
-        assert orbital_parameters['satellite_nominal_altitude'] == 3.5786E7
+        assert orbital_parameters['satellite_nominal_altitude'] == 42164140.0
 
     @staticmethod
     def _check_keys_for_dsq(available_datasets, resolution_to_test):
