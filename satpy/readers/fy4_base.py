@@ -175,10 +175,11 @@ class FY4Base(HDF5FileHandler):
 
         # The key is sometimes prefixes with `Calibration/` so we try both options here
         lut_key = ds_info.get('lut_key', ds_name)
-        lut = self.get(lut_key)
-        if lut is None:
+        try:
+            lut = self[lut_key]
+        except KeyError:
             lut_key = f'Calibration/{ds_info.get("lut_key", ds_name)}'
-            lut = self.get(lut_key)
+            lut = self[lut_key]
 
         # the value of dn is the index of brightness_temperature
         data = self.apply_lut(data, lut)
