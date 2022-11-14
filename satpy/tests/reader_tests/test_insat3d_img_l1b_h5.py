@@ -5,15 +5,14 @@ import dask.array as da
 import h5netcdf
 import numpy as np
 import pytest
-from xarray import open_dataset
 
 from satpy import Scene
 from satpy.readers.insat3d_img_l1b_h5 import (
     CHANNELS_BY_RESOLUTION,
     LUT_SUFFIXES,
-    I3DBackend,
     Insat3DIMGL1BH5FileHandler,
     get_lonlat_suffix,
+    open_dataset,
 )
 from satpy.tests.utils import make_dataid
 
@@ -91,6 +90,7 @@ def _create_channels(channels, h5f, resolution):
         var = h5f.create_variable(var_name, ("time",) + dimensions_by_resolution[resolution], np.uint16,
                                   chunks=chunks_1km)
         var[:] = values_by_resolution[resolution]
+        var.attrs["_FillValue"] = 0
         for suffix, lut_values in zip(LUT_SUFFIXES[channel], (lut_values_2, lut_values_3)):
             lut_name = "_".join((var_name, suffix))
             var = h5f.create_variable(lut_name, ("GreyCount",), float)
@@ -111,7 +111,7 @@ def _create_lonlats(h5f, resolution):
 
 def test_insat3d_backend_has_1km_channels(insat_filename):
     """Test the insat3d backend."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=1000)
+    res = open_dataset(insat_filename, resolution=1000)
     assert res["IMG_VIS"].shape == shape_1km
     assert res["IMG_SWIR"].shape == shape_1km
 
@@ -131,7 +131,7 @@ def test_insat3d_backend_has_1km_channels(insat_filename):
 def test_insat3d_has_calibrated_arrays(insat_filename,
                                        resolution, name, shape, expected_values, expected_name, expected_units):
     """Check that calibration happens as expected."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
+    res = open_dataset(insat_filename, resolution=resolution)
     assert res[name].shape == shape
     np.testing.assert_allclose(res[name], expected_values)
     assert res[name].attrs["units"] == expected_units
@@ -140,21 +140,21 @@ def test_insat3d_has_calibrated_arrays(insat_filename,
 
 def test_insat3d_has_dask_arrays(insat_filename):
     """Test that the backend uses dask."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=1000)
+    res = open_dataset(insat_filename, resolution=1000)
     assert isinstance(res["IMG_VIS_RADIANCE"].data, da.Array)
-    assert res["IMG_VIS"].chunks == da.core.normalize_chunks(chunks_1km, shape_1km)
+    assert res["IMG_VIS"].chunks is not None
 
 
 def test_insat3d_only_has_3_resolutions(insat_filename):
     """Test that we only accept 1000, 4000, 8000."""
     with pytest.raises(ValueError):
-        _ = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=1024)
+        _ = open_dataset(insat_filename, resolution=1024)
 
 
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
 def test_insat3d_returns_lonlat(insat_filename, resolution):
     """Test that lons and lats are loaded."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
+    res = open_dataset(insat_filename, resolution=resolution)
     expected = values_by_resolution[resolution].squeeze() / 100.0
     assert isinstance(res["Latitude"].data, da.Array)
     np.testing.assert_allclose(res["Latitude"], expected)
@@ -165,8 +165,7 @@ def test_insat3d_returns_lonlat(insat_filename, resolution):
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
 def test_insat3d_has_global_attributes(insat_filename, resolution):
     """Test that the backend supports global attributes."""
-    res = open_dataset(insat_filename, engine=I3DBackend, chunks={}, resolution=resolution)
-    del res.attrs["_filehandle"]
+    res = open_dataset(insat_filename, resolution=resolution)
     assert res.attrs.items() >= global_attrs.items()
 
 
@@ -174,40 +173,41 @@ def test_insat3d_has_global_attributes(insat_filename, resolution):
                          [("counts", values_1km),
                           ("radiance", values_1km * 2),
                           ("reflectance", values_1km * 3)])
-def test_filehandler_returns_data_array(insat_filename, calibration, expected_values):
+def test_filehandler_returns_data_array(insat_filehandler, calibration, expected_values):
     """Test that the filehandler can get dataarrays."""
-    fileinfo = {}
-    filetype = None
+    fh = insat_filehandler
     ds_info = None
-
-    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
 
     ds_id = make_dataid(name="VIS", resolution=1000, calibration=calibration)
     darr = fh.get_dataset(ds_id, ds_info)
     np.testing.assert_allclose(darr, expected_values)
+    assert darr.dims == ("time", "y", "x")
 
 
-def test_filehandler_returns_coords(insat_filename):
+def test_filehandler_returns_coords(insat_filehandler):
     """Test that lon and lat can be loaded."""
-    fileinfo = {}
-    filetype = None
+    fh = insat_filehandler
     ds_info = None
 
-    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
-
-    lon_id = make_dataid(name="Longitude", resolution=1000)
+    lon_id = make_dataid(name="longitude", resolution=1000)
     darr = fh.get_dataset(lon_id, ds_info)
     np.testing.assert_allclose(darr, values_1km.squeeze() / 100)
 
 
-def test_filehandler_returns_area(insat_filename):
-    """Test that filehandle returns an area."""
+@pytest.fixture(scope="session")
+def insat_filehandler(insat_filename):
+    """Instantiate a Filehandler."""
     fileinfo = {}
     filetype = None
-
     fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
+    return fh
 
-    ds_id = make_dataid(name="MIR", resolution=4000, calibration="counts")
+
+def test_filehandler_returns_area(insat_filehandler):
+    """Test that filehandle returns an area."""
+    fh = insat_filehandler
+
+    ds_id = make_dataid(name="MIR", resolution=4000, calibration="brightness_temperature")
     area_def = fh.get_area_def(ds_id)
     lons, lats = area_def.get_lonlats(chunks=1000)
 
