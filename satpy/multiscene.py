@@ -47,10 +47,12 @@ log = logging.getLogger(__name__)
 
 def weighted(datasets, weights=None):
     """Blend datasets using weights."""
-    indices = np.argmax(np.dstack(weights), axis=-1)
-
-    base = np.choose(indices, datasets)
-    return base
+    indices = da.argmax(da.dstack(weights), axis=-1)
+    dims = datasets[0].dims
+    attrs = datasets[0].attrs
+    weighted_array = xr.DataArray(da.choose(indices, datasets),
+                                  dims=dims, attrs=attrs)
+    return weighted_array
 
 
 def stack(datasets):

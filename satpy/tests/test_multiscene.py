@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -24,8 +24,10 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import dask.array as da
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
@@ -166,7 +168,7 @@ class TestMultiScene(unittest.TestCase):
             "OR_ABI-L1b-RadC-M3C01_G16_s20171171517203_e20171171519577_c20171171520019.nc",
             "OR_ABI-L1b-RadC-M3C01_G16_s20171171522203_e20171171524576_c20171171525020.nc",
             "OR_ABI-L1b-RadC-M3C01_G16_s20171171527203_e20171171529576_c20171171530017.nc",
-            ]
+        ]
         input_files_glm = [
             "OR_GLM-L2-GLMC-M3_G16_s20171171500000_e20171171501000_c20380190314080.nc",
             "OR_GLM-L2-GLMC-M3_G16_s20171171501000_e20171171502000_c20380190314080.nc",
@@ -179,9 +181,9 @@ class TestMultiScene(unittest.TestCase):
         ]
         with mock.patch('satpy.multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
-                    input_files_abi,
-                    reader='abi_l1b',
-                    scene_kwargs={"reader_kwargs": {}})
+                input_files_abi,
+                reader='abi_l1b',
+                scene_kwargs={"reader_kwargs": {}})
             assert len(mscn.scenes) == 6
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi]},
@@ -192,11 +194,11 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.reset_mock()
             with pytest.warns(DeprecationWarning):
                 mscn = MultiScene.from_files(
-                        input_files_abi + input_files_glm,
-                        reader=('abi_l1b', "glm_l2"),
-                        group_keys=["start_time"],
-                        ensure_all_readers=True,
-                        time_threshold=30)
+                    input_files_abi + input_files_glm,
+                    reader=('abi_l1b', "glm_l2"),
+                    group_keys=["start_time"],
+                    ensure_all_readers=True,
+                    time_threshold=30)
             assert len(mscn.scenes) == 2
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi], 'glm_l2': [in_file_glm]})
@@ -206,11 +208,11 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.assert_has_calls(calls)
             scn_mock.reset_mock()
             mscn = MultiScene.from_files(
-                    input_files_abi + input_files_glm,
-                    reader=('abi_l1b', "glm_l2"),
-                    group_keys=["start_time"],
-                    ensure_all_readers=False,
-                    time_threshold=30)
+                input_files_abi + input_files_glm,
+                reader=('abi_l1b', "glm_l2"),
+                group_keys=["start_time"],
+                ensure_all_readers=False,
+                time_threshold=30)
             assert len(mscn.scenes) == 12
 
 
@@ -531,7 +533,7 @@ class TestMultiSceneSave(unittest.TestCase):
             x_size // 2,
             y_size // 2,
             area_extent,
-            )
+        )
         scene1["1"] = DataArray(np.zeros((y_size, x_size)))
         scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
         scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
@@ -562,19 +564,29 @@ class TestBlendFuncs(unittest.TestCase):
         import dask.array as da
         import xarray as xr
         from pyresample.geometry import AreaDefinition
+        shape = (8, 12)
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
-                              2, 2, [-200, -200, 200, 200])
-        ds1 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                              shape[1], shape[0], [-200, -200, 200, 200])
+        ds1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
         self.ds1 = ds1
-        ds2 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+        wgt1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
+                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+        self.ds1_wgt = wgt1
+        ds2 = xr.DataArray(da.ones(shape, chunks=-1) * 2, dims=('y', 'x'),
                            attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
         self.ds2 = ds2
-        ds3 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
+        wgt2 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
+                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+        self.line = 2
+        wgt2[self.line, :] = 2
+        self.ds2_wgt = wgt2
+
+        ds3 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
         self.ds3 = ds3
-        ds4 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
+        ds4 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
                            attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
         self.ds4 = ds4
 
@@ -595,6 +607,78 @@ class TestBlendFuncs(unittest.TestCase):
         self.assertIsInstance(res2, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
         self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
+
+
+@pytest.fixture
+def datasets_and_weights():
+    """X-Array datasets with area definition plus weights for input to tests."""
+    shape = (8, 12)
+    area = AreaDefinition('test', 'test', 'test',
+                          {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                          shape[1], shape[0], [-200, -200, 200, 200])
+    ds1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
+                       attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+    ds2 = xr.DataArray(da.ones(shape, chunks=-1) * 2, dims=('y', 'x'),
+                       attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+    ds3 = xr.DataArray(da.ones(shape, chunks=-1) * 3, dims=('y', 'x'),
+                       attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+
+    wgt1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
+                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+    wgt2 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
+                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+    wgt3 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
+                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+
+    datastruct = {'shape': shape,
+                  'area': area,
+                  'datasets': [ds1, ds2, ds3],
+                  'weights': [wgt1, wgt2, wgt3]}
+    return datastruct
+
+
+@pytest.mark.parametrize(('line', 'column',),
+                         [(2, 3), (4, 5)]
+                         )
+def test_blend_function_weighted(datasets_and_weights, line, column):
+    """Test the 'weighted' function."""
+    from satpy.multiscene import weighted
+
+    input_data = datasets_and_weights
+
+    input_data['weights'][1][line, :] = 2
+    input_data['weights'][2][:, column] = 2
+
+    blend_result = weighted(input_data['datasets'], input_data['weights'])
+
+    ds1 = input_data['datasets'][0]
+    ds2 = input_data['datasets'][1]
+    ds3 = input_data['datasets'][2]
+    expected = ds1.copy()
+    expected[:, column] = ds3[:, column]
+    expected[line, :] = ds2[line, :]
+
+    xr.testing.assert_equal(blend_result.compute(), expected.compute())
+    assert expected.attrs == blend_result.attrs
+
+
+def test_blend_function_stack(datasets_and_weights):
+    """Test the 'stack' function."""
+    from satpy.multiscene import stack
+
+    input_data = datasets_and_weights
+
+    ds1 = input_data['datasets'][0]
+    ds2 = input_data['datasets'][1]
+
+    res = stack([ds1, ds2])
+    expected = ds2.copy()
+
+    xr.testing.assert_equal(res.compute(), expected.compute())
+    # assert expected.attrs == res.attrs
+    # FIXME! Looks like the attributes are taken from the first dataset. Should
+    # be like that?  So in this case the datetime is different from "expected"
+    # (= in this case the last dataset in the stack, the one on top)
 
 
 @mock.patch('satpy.multiscene.get_enhanced_image')
@@ -656,11 +740,11 @@ def test_save_mp4(smg, tmp_path):
     with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
         get_writer.return_value = writer_mock
         mscn.save_animation(
-                fn, client=False,
-                enh_args={"decorate": {
-                    "decorate": [{
-                        "text": {
-                            "txt":
+            fn, client=False,
+            enh_args={"decorate": {
+                "decorate": [{
+                    "text": {
+                        "txt":
                             "Test {start_time:%Y-%m-%d %H:%M} - "
                             "{end_time:%Y-%m-%d %H:%M}"}}]}})
     assert writer_mock.append_data.call_count == 2 + 2
