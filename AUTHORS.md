@@ -60,6 +60,7 @@ The following people have made contributions to this project:
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
+- [Martin Radenz (martin-rdz)](https://github.com/martin-rdz)
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
 - [Bengt Rydberg (BengtRydberg)](https://github.com/BengtRydberg)

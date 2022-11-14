@@ -359,7 +359,7 @@ composites:
     - M12
     - M15
     standard_name: night_microphysics
-    
+
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -369,8 +369,8 @@ composites:
       modifiers: [nir_reflectance]
     - M15
     standard_name: day_microphysics
-    
-  hr_day_microphysics:
+
+  day_microphysics_hires:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: I02
@@ -378,7 +378,7 @@ composites:
     - name: I04
       modifiers: [nir_reflectance_hires]
     - I05
-    standard_name: day_microphysics 
+    standard_name: day_microphysics
 
   fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
