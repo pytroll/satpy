@@ -244,7 +244,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         self.variable_transforms = self.ds_desc.get('variable_transforms', {})
 
         # Store the pattern for the default swath coordinates:
-        # Note that we should always have this swath corodinates entry now:
+        # Note that we should always have this swath coordinates entry now:
         self.swath_coordinates = self.ds_desc.get('swath_coordinates', {})
         patterns = self.swath_coordinates.get('variable_patterns', [])
         self.swath_coordinates['patterns'] = [re.compile(pstr) for pstr in patterns]
