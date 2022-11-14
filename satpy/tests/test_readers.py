@@ -630,45 +630,24 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
 
 @pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
-def test_fsspec_fsfile(tmp_path):
+def test_find_files_and_readers_fsspec_fsfile(tmp_path):
     """Test that iff an fsspec instance is passed, fsfile is returned."""
     p = (tmp_path /
          "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
          "_c20152950029000.nc")
     p.touch()
+
     from satpy.readers import FSFile, find_files_and_readers
-    lfs = fsspec.implementations.local.LocalFileSystem()
+
     ri = find_files_and_readers(
             base_dir=p.parent,
             fs=fsspec.implementations.local.LocalFileSystem(),
-            reader="abi_l1b",
-            use_fsfile=True)
+            reader="abi_l1b")
 
     assert ri.keys() == {"abi_l1b"}
     assert len(ri["abi_l1b"]) == 1
     assert isinstance(ri["abi_l1b"][0], FSFile)
     assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
-
-    ri = find_files_and_readers(
-            base_dir=tmp_path,
-            fs=lfs,
-            reader="abi_l1b",
-            use_fsfile=False)
-    assert not isinstance(ri["abi_l1b"][0], FSFile)
-
-    ri = find_files_and_readers(
-            base_dir=p.parent,
-            fs=fsspec.implementations.local.LocalFileSystem(),
-            reader="abi_l1b",
-            use_fsfile=True,
-            fs_open_args={"mode": "rt", "encoding": "ascii"})
-    assert ri["abi_l1b"][0]._file.encoding == "ascii"
-
-    with pytest.raises(ValueError, match="no file system passed"):
-        find_files_and_readers(
-                base_dir=tmp_path,
-                reader="abi_l1b",
-                use_fsfile=True)
 
 
 class TestYAMLFiles(unittest.TestCase):

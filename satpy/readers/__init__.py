@@ -25,6 +25,7 @@ import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
 
+import fsspec
 import yaml
 
 try:
@@ -401,7 +402,7 @@ def available_readers(as_dict=False):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None,
                            filter_parameters=None, reader_kwargs=None,
-                           missing_ok=False, fs=None, use_fsfile=None):
+                           missing_ok=False, fs=None):
     """Find files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
@@ -455,14 +456,11 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         fs (:class:`fsspec.spec.AbstractFileSystem`, optional): Instance of implementation of
             :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing ``.glob`` is
             enough).  Defaults to searching the local filesystem.
-        use_fsfile (bool, optional): Only used if filesystem is passed to `fs` in which case it defaults to
-            True and will return :class:`FSFile` objects. Set to False to return file strings.
 
     Returns:
         dict: Dictionary mapping reader name string to list of string filenames or :class:`FSFile` objects.
 
     """
-    use_fsfile = True if ((use_fsfile is None or use_fsfile) and fs is not None) else use_fsfile
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -478,7 +476,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                 base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
         sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
-            if use_fsfile:
+            if fs is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
                 reader_files[reader_instance.name] = [FSFile(fn, fs=fs) for fn in loadables]
             else:
                 reader_files[reader_instance.name] = list(loadables)
