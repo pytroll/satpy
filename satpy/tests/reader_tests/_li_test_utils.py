@@ -22,7 +22,6 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-import tests.li_test_utils as utl
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 # mapping of netcdf type code to numpy data type:
@@ -739,7 +738,7 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             # Note: params *IS* callable below:
             params = params(filename, filename_info, filetype_info)  # pylint: disable=not-callable
 
-        settings = utl.get_product_schema(filetype_info['file_desc']['product_type'], params)
+        settings = get_product_schema(filetype_info['file_desc']['product_type'], params)
 
         # Resulting dataset:
         dset = {}

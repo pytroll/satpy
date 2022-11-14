@@ -41,7 +41,7 @@ file_types:
         # variable_patterns: ['_id', '_qa', ...]
 
   li_l2_lgr_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LGR-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-LGR'
@@ -64,7 +64,7 @@ file_types:
         variable_patterns: ['radiance', 'group_', 'flash_', 'number_of_']
 
   li_l2_lef_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LEF-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-LEF'
@@ -97,7 +97,7 @@ file_types:
         variable_patterns: ['detector_', 'event', 'flash_', 'group_', 'radiance', 'time_']
 
   li_l2_lfl_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LFL-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-LFL'
@@ -124,7 +124,7 @@ file_types:
         variable_patterns: ['radiance', 'flash_', 'number_of_']
 
   li_l2_af_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AF-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-AF'
@@ -147,7 +147,7 @@ file_types:
         variable_patterns: ['flash_accumulation']
 
   li_l2_afr_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AFR-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-AFR'
@@ -170,7 +170,7 @@ file_types:
         variable_patterns: ['flash_radiance']
 
   li_l2_afa_nc:
-    file_reader: !!python/name:readers.li_l2_nc.LIL2NCFileHandler
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
     file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AFA-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
     file_desc:
       product_type: '2-AFA'

@@ -25,12 +25,12 @@ import pytest
 import xarray as xr
 from pyproj import Proj
 
-from readers.li_base_nc import LINCFileHandler
-from readers.li_l2_nc import LIL2NCFileHandler
+from satpy.readers.li_base_nc import LINCFileHandler
+from satpy.readers.li_l2_nc import LIL2NCFileHandler
 from satpy._config import config_search_paths
 from satpy.readers.yaml_reader import load_yaml_configs
 from satpy.tests.utils import make_dataid
-from tests.reader_tests._li_test_utils import FakeLIFileHandlerBase, extract_filetype_info, get_product_schema
+from satpy.tests.reader_tests._li_test_utils import FakeLIFileHandlerBase, extract_filetype_info, get_product_schema
 
 
 @pytest.fixture(name="filetype_infos")

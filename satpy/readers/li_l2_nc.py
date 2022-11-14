@@ -35,7 +35,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from readers.li_base_nc import LINCFileHandler
+from satpy.readers.li_base_nc import LINCFileHandler
 from satpy import CHUNK_SIZE
 from satpy.resample import get_area_def
 

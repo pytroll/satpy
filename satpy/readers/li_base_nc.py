@@ -388,7 +388,7 @@ class LINCFileHandler(NetCDF4FileHandler):
     def variable_path_exists(self, var_path):
         """Check if a given variable path is available in the underlying netCDF file.
 
-        All we really need to do here is to access the file_content dictionnary and
+        All we really need to do here is to access the file_content dictionary and
         check if we have a variable under that var_path key.
         """
         # but we ignore attributes: or sub properties:
@@ -743,8 +743,8 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # Retrieve the transformed data array:
         data_array = self.get_transformed_dataset(ds_info)
-        # Validate the dimensions:
 
+        # Validate the dimensions:
         data_array = self.validate_array_dimensions(data_array, ds_info)
 
         # Update the attributes in the final array:
