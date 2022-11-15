@@ -949,5 +949,6 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     # Do not use (4)
     line_mask &= line_radiometric_quality == 4
     line_mask &= line_geometric_quality == 4
-    data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+    line_mask = line_mask[:, np.newaxis]
+    data = np.where(line_mask, data, np.nan).astype(np.float32)
     return data
