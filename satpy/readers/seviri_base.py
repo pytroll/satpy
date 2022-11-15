@@ -924,24 +924,22 @@ def pad_data_vertically(data, final_size, south_bound, north_bound):
     return np.vstack((padding_south, data, padding_north))
 
 
-def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality):
-    """Mask scan lines with bad quality.
+def _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality):
+    """Create bad quality scan lines mask.
 
     For details on quality flags see `MSG Level 1.5 Image Data Format Description`_
     page 109.
 
     Args:
-        data (xarray.DataArray):
-            Channel data
-        line_validity (numpy.Array):
+        line_validity (numpy.ndarray):
             Quality flags with shape (nlines,).
-        line_geometric_quality (numpy.Array):
+        line_geometric_quality (numpy.ndarray):
             Quality flags with shape (nlines,).
-        line_radiometric_quality (numpy.Array):
+        line_radiometric_quality (numpy.ndarray):
             Quality flags with shape (nlines,).
 
     Returns:
-        xarray.DataArray: data with lines flagged as bad converted to np.nan.
+        numpy.ndarray
     """
     # Based on missing (2) or corrupted (3) data
     line_mask = line_validity >= 2
@@ -949,6 +947,26 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     # Do not use (4)
     line_mask &= line_radiometric_quality == 4
     line_mask &= line_geometric_quality == 4
+    return line_mask
+
+
+def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality):
+    """Mask scan lines with bad quality.
+
+    Args:
+        data (xarray.DataArray):
+            Channel data
+        line_validity (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        xarray.DataArray: data with lines flagged as bad converted to np.nan.
+    """
+    line_mask = _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality)
     line_mask = line_mask[:, np.newaxis]
     data = np.where(line_mask, data, np.nan).astype(np.float32)
     return data
