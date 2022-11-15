@@ -20,10 +20,11 @@ import os
 import unittest
 from unittest import mock
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -89,8 +90,8 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.virr_l1b import VIRR_L1B
         from satpy._config import config_search_paths
+        from satpy.readers.virr_l1b import VIRR_L1B
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIRR_L1B, '__bases__', (FakeHDF5FileHandler2,))
@@ -160,6 +161,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                 self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
             self.assertEqual(band_values[dataset['name']],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
+            assert "valid_range" not in ds.attrs
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""

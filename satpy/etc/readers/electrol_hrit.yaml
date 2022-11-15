@@ -1,6 +1,10 @@
 reader:
-  description: MSG HRIT Reader
   name: electrol_hrit
+  short_name: Electro-L N2
+  long_name: Electro-L N2 MSU-GS data in HRIT format
+  description: Reader for Electro-L N2 MSU-GS HRIT data
+  status: Nominal
+  supports_fsspec: false
   sensors: [msu-gs]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

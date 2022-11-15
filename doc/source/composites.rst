@@ -9,7 +9,6 @@ Composites are generated in satpy using Compositor classes. The attributes of th
 resulting composites are usually a combination of the prerequisites' attributes and
 the key/values of the DataID used to identify it.
 
-
 Built-in Compositors
 ====================
 
@@ -108,14 +107,35 @@ first composite will be placed on the day-side of the scene, and the
 second one on the night side.  The transition from day to night is
 done by calculating solar zenith angle (SZA) weighed average of the
 two composites.  The SZA can optionally be given as third dataset, and
-if not given, the angles will be calculated.  Width of the blending
-zone can be defined when initializing the compositor (default values
-shown in the example below).
+if not given, the angles will be calculated.  Three arguments are used
+to generate the image (default values shown in the example below).
+They can be defined when initializing the compositor::
+
+ - lim_low (float): lower limit of Sun zenith angle for the
+                    blending of the given channels
+ - lim_high (float): upper limit of Sun zenith angle for the
+                     blending of the given channels
+                     Together with `lim_low` they define the width
+                     of the blending zone
+ - day_night (string): "day_night" means both day and night portions will be kept
+                       "day_only" means only day portion will be kept
+                       "night_only" means only night portion will be kept
+
+Usage (with default values)::
 
     >>> from satpy.composites import DayNightCompositor
-    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88.)
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_night")
     >>> composite = compositor([local_scene['true_color'],
     ...                         local_scene['night_fog']])
+
+As above, with `day_night` flag it is also available to use only
+a day product or only a night product and mask out (make transparent)
+the opposite portion of the image (night or day). The example below
+provides only a day product with night portion masked-out::
+
+    >>> from satpy.composites import DayNightCompositor
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
+    >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
 ---------------
@@ -224,6 +244,28 @@ BackgroundCompositor
     >>> background = local_scene['overview']
     >>> composite = compositor([clouds, background])
 
+CategoricalDataCompositor
+-------------------------
+
+:class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+combine comparable categories into a common category. The category remapping from `data` to `composite` is done
+using a look-up-table (`lut`)::
+
+    composite = [[lut[data[0,0]], lut[data[0,1]], lut[data[0,Nj]]],
+                 [[lut[data[1,0]], lut[data[1,1]], lut[data[1,Nj]],
+                 [[lut[data[Ni,0]], lut[data[Ni,1]], lut[data[Ni,Nj]]]
+
+Hence, `lut` must have a length that is greater than the maximum value in `data` in orer to avoid an `IndexError`.
+Below is an example on how to create a binary clear-sky/cloud mask from a pseodu cloud type product with six
+categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and missing/undefined data (cat0)::
+
+    >>> cloud_type = local_scene['cloud_type']  # 0 - cat0, 1 - cat1, 2 - cat2, 3 - cat3, 4 - cat4, 5 - cat5,
+    # categories: 0    1  2  3  4  5
+    >>> lut = [np.nan, 0, 1, 1, 1, 0]
+    >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
+    >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
+
+
 Creating composite configuration files
 ======================================
 
@@ -282,9 +324,9 @@ to be added.
 Using modifiers
 ---------------
 
-In many cases the basic datasets need to be adjusted, e.g. for Solar
-zenith angle normalization.  These modifiers can be applied in the
-following way::
+In many cases the basic datasets that go into the composite need to be
+adjusted, e.g. for Solar zenith angle normalization.  These modifiers
+can be applied in the following way::
 
       overview:
         compositor: !!python/name:satpy.composites.GenericCompositor
@@ -305,6 +347,12 @@ Here we see two changes:
 The modifier above is a built-in that normalizes the Solar zenith
 angle to Sun being directly at the zenith.
 
+More examples can be found in Satpy source code directory
+`satpy/etc/composites <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_.
+
+See the :doc:`modifiers` documentation for more information on
+available built-in modifiers.
+
 Using other composites
 ----------------------
 
@@ -319,7 +367,7 @@ the day side, and another for the night side::
         - night_fog
       standard_name: natural_with_night_fog
 
-This compositor has two additional keyword arguments that can be
+This compositor has three additional keyword arguments that can be
 defined (shown with the default values, thus identical result as
 above)::
 
@@ -329,7 +377,8 @@ above)::
         - natural_color
         - night_fog
       lim_low: 85.0
-      lim_high: 95.0
+      lim_high: 88.0
+      day_night: "day_night"
       standard_name: natural_with_night_fog
 
 Defining other composites in-line
@@ -487,8 +536,27 @@ the file) as::
           kwargs:
             gamma: [1.7, 1.7, 1.7]
 
+.. warning::
+   If you define a composite with no matching enhancement, Satpy will by
+   default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
+   cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
+   are enhancing a composite based on :class:`DayNightCompositor` where
+   the components have their own enhancements defined), you need to define
+   an enhancement that does nothing::
+
+      enhancements:
+        day_x:
+          standard_name: day_x
+          operations: []
+
+   It is recommended to define an enhancement even if you intend to use
+   the default, in case the default should change in future versions of
+   Satpy.
+
 More examples can be found in SatPy source code directory
 ``satpy/etc/enhancements/generic.yaml``.
 
 See the :doc:`enhancements` documentation for more information on
 available built-in enhancements.
+
+.. include:: modifiers.rst

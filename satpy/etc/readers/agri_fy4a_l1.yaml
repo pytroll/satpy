@@ -1,0 +1,317 @@
+# References:
+#  - L1_SDR Data of FY4A Advanced Geostationary Radiation Imager
+#  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
+
+reader:
+  name: agri_fy4a_l1
+  short_name: AGRI FY4A L1
+  long_name: FY-4A AGRI L1 data in HDF5 format
+  description: FY-4A AGRI instrument HDF5 reader
+  status: Beta
+  supports_fsspec: false
+  sensors: [agri]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    agri_l1_0500m:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
+    agri_l1_1000m:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF']
+    agri_l1_2000m:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
+    agri_l1_4000m:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+    agri_l1_4000m_geo:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+
+datasets:
+  C01:
+    name: C01
+    wavelength: [0.45, 0.47, 0.49]
+    resolution:
+        1000: {file_type: agri_l1_1000m}
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel01
+    lut_key: CALChannel01
+
+  C02:
+    name: C02
+    wavelength: [0.55, 0.65, 0.75]
+    resolution:
+        500: {file_type: agri_l1_0500m}
+        1000: {file_type: agri_l1_1000m}
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel02
+    lut_key: CALChannel02
+
+  C03:
+    name: C03
+    wavelength: [0.75, 0.83, 0.90]
+    resolution:
+        1000: {file_type: agri_l1_1000m}
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel03
+    lut_key: CALChannel03
+
+  C04:
+    name: C04
+    wavelength: [1.36, 1.37, 1.39]
+    resolution:
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel04
+    lut_key: CALChannel04
+
+  C05:
+    name: C05
+    wavelength: [1.58, 1.61, 1.64]
+    resolution:
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel05
+    lut_key: CALChannel05
+
+  C06:
+    name: C06
+    wavelength: [2.10, 2.22, 2.35]
+    resolution:
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel06
+    lut_key: CALChannel06
+
+  C07:
+    name: C07
+    wavelength: [3.5, 3.72, 4.0]
+    resolution:
+        2000: {file_type: agri_l1_2000m}
+        4000: {file_type: agri_l1_4000m}
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel07
+    lut_key: CALChannel07
+
+  C08:
+    name: C08
+    wavelength: [3.5, 3.72, 4.0]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel08
+    lut_key: CALChannel08
+    file_type: agri_l1_4000m
+
+  C09:
+    name: C09
+    wavelength: [5.8, 6.25, 6.7]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel09
+    lut_key: CALChannel09
+    file_type: agri_l1_4000m
+
+  C10:
+    name: C10
+    wavelength: [6.9, 7.10, 7.3]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel10
+    lut_key: CALChannel10
+    file_type: agri_l1_4000m
+
+  C11:
+    name: C11
+    wavelength: [8.0, 8.5, 9.0]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel11
+    lut_key: CALChannel11
+    file_type: agri_l1_4000m
+
+  C12:
+    name: C12
+    wavelength: [10.3, 10.8, 11.1]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel12
+    lut_key: CALChannel12
+    file_type: agri_l1_4000m
+
+  C13:
+    name: C13
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel13
+    lut_key: CALChannel13
+    file_type: agri_l1_4000m
+
+  C14:
+    name: C14
+    wavelength: [13.2, 13.5, 13.8]
+    resolution: 4000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel14
+    lut_key: CALChannel14
+    file_type: agri_l1_4000m
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunZenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunAzimuth
+
+  solar_glint_angle:
+    name: solar_glint_angle
+    units: degree
+    standard_name: solar_glint_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunGlintAngle
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: satellite_zenith_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSatelliteZenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: satellite_azimuth_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSatelliteAzimuth

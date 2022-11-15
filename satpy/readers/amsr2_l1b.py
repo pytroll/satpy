@@ -32,7 +32,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             "shape": self.get_shape(ds_id, ds_info),
             "units": self[var_path + "/attr/UNIT"],
             "platform_name": self["/attr/PlatformShortName"],
-            "sensor": self["/attr/SensorShortName"],
+            "sensor": self["/attr/SensorShortName"].lower(),
             "start_orbit": int(self["/attr/StartOrbitNumber"]),
             "end_orbit": int(self["/attr/StopOrbitNumber"]),
         })

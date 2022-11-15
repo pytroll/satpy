@@ -16,92 +16,144 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for modifiers in modifiers/__init__.py."""
-
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+from pytest_lazyfixture import lazy_fixture
 
 
-class TestSunZenithCorrector(unittest.TestCase):
+def _sunz_area_def():
+    """Get fake area for testing sunz generation."""
+    area = AreaDefinition('test', 'test', 'test',
+                          {'proj': 'merc'}, 2, 2,
+                          (-2000, -2000, 2000, 2000))
+    return area
+
+
+def _sunz_bigger_area_def():
+    """Get area that is twice the size of 'sunz_area_def'."""
+    bigger_area = AreaDefinition('test', 'test', 'test',
+                                 {'proj': 'merc'}, 4, 4,
+                                 (-2000, -2000, 2000, 2000))
+    return bigger_area
+
+
+def _sunz_stacked_area_def():
+    """Get fake stacked area for testing sunz generation."""
+    area1 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, 0, 2000, 2000))
+    area2 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, -2000, 2000, 0))
+    return StackedAreaDefinition(area1, area2)
+
+
+def _shared_sunz_attrs(area_def):
+    attrs = {'area': area_def,
+             'start_time': datetime(2018, 1, 1, 18),
+             'modifiers': tuple(),
+             'name': 'test_vis'}
+    return attrs
+
+
+def _get_ds1(attrs):
+    ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 1], 'x': [0, 1]})
+    return ds1
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1_stacked():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_stacked_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds2():
+    """Generate larger fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_bigger_area_def())
+    ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+    return ds2
+
+
+@pytest.fixture(scope="session")
+def sunz_sza():
+    """Generate fake solar zenith angle data array for testing."""
+    sza = xr.DataArray(
+        np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                           chunks=2))),
+        attrs={'area': _sunz_area_def()},
+        dims=('y', 'x'),
+        coords={'y': [0, 1], 'x': [0, 1]},
+    )
+    return sza
+
+
+class TestSunZenithCorrector:
     """Test case for the zenith corrector."""
 
-    def setUp(self):
-        """Create test data."""
-        from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
-                              (-2000, -2000, 2000, 2000))
-        bigger_area = AreaDefinition('test', 'test', 'test',
-                                     {'proj': 'merc'}, 4, 4,
-                                     (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        self.ds1 = ds1
-        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
-        ds2.attrs['area'] = bigger_area
-        self.ds2 = ds2
-        self.sza = xr.DataArray(
-            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
-                                               chunks=2))),
-            attrs={'area': area},
-            dims=('y', 'x'),
-            coords={'y': [0, 1], 'x': [0, 1]},
-        )
-
-    def test_basic_default_not_provided(self):
+    def test_basic_default_not_provided(self, sunz_ds1):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertIn('y', res.coords)
-        self.assertIn('x', res.coords)
-        ds1 = self.ds1.copy().drop_vars(('y', 'x'))
+        assert 'y' in res.coords
+        assert 'x' in res.coords
+        ds1 = sunz_ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertNotIn('y', res.coords)
-        self.assertNotIn('x', res.coords)
+        assert 'y' not in res.coords
+        assert 'x' not in res.coords
 
-    def test_basic_lims_not_provided(self):
+    def test_basic_lims_not_provided(self, sunz_ds1):
         """Test custom limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_basic_default_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_default_provided(self, data_arr, sunz_sza):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
-    def test_basic_lims_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_lims_provided(self, data_arr, sunz_sza):
         """Test custom limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_imcompatible_areas(self):
+    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):
-            comp((self.ds2, self.sza), test_attr='test')
+            comp((sunz_ds2, sunz_sza), test_attr='test')
 
 
 class TestNIRReflectance(unittest.TestCase):
@@ -181,7 +233,9 @@ class TestNIRReflectance(unittest.TestCase):
         info = {'modifiers': None}
         res = comp([self.nir, self.ir_], optional_datasets=[], **info)
 
-        self.get_lonlats.assert_called()
+        # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
+        # we must used the area from the final result DataArray
+        res.attrs["area"].get_lonlats.assert_called()
         sza.assert_called_with(self.start_time, self.lons, self.lats)
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()
@@ -341,94 +395,36 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
-    def setUp(self):
-        """Patch in-class imports."""
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyspectral.atm_correction_ir': mock.MagicMock(),
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers.PSPAtmosphericalCorrection.apply_modifier_info')
-    @mock.patch('satpy.modifiers.atmosphere.get_satpos')
-    def test_call(self, get_satpos, *mocks):
+    def test_call(self):
         """Test atmospherical correction."""
+        from pyresample.geometry import SwathDefinition
+
         from satpy.modifiers import PSPAtmosphericalCorrection
 
         # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        area = mock.MagicMock()
-        area.get_lonlats.return_value = 'lons', 'lats'
-        band = mock.MagicMock(attrs={'area': area,
-                                     'start_time': 'start_time',
-                                     'name': 'name',
-                                     'platform_name': 'platform',
-                                     'sensor': 'sensor'}, dims=['y'])
-
-        # Perform atmospherical correction
-        psp = PSPAtmosphericalCorrection(name='dummy')
-        psp(projectables=[band])
-
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
-
-
-class TestPSPRayleighReflectance(unittest.TestCase):
-    """Test the pyspectral-based rayleigh correction modifier."""
-
-    def setUp(self):
-        """Patch in-class imports."""
-        self.astronomy = mock.MagicMock()
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyorbital.astronomy': self.astronomy,
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers.atmosphere.get_satpos')
-    def test_get_angles(self, get_satpos):
-        """Test sun and satellite angle calculation."""
-        from satpy.modifiers import PSPRayleighReflectance
-
-        # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        self.astronomy.get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
         lons = np.zeros((5, 5))
         lons[1, 1] = np.inf
         lons = da.from_array(lons, chunks=5)
         lats = np.zeros((5, 5))
         lats[1, 1] = np.inf
         lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        vis = mock.MagicMock(attrs={'area': area,
-                                    'start_time': 'start_time'})
+        area = SwathDefinition(lons, lats)
+        stime = datetime(2020, 1, 1, 12, 0, 0)
+        orb_params = {
+            "satellite_actual_altitude": 12345678,
+            "nadir_longitude": 0.0,
+            "nadir_latitude": 0.0,
+        }
+        band = xr.DataArray(da.zeros((5, 5)),
+                            attrs={'area': area,
+                                   'start_time': stime,
+                                   'name': 'name',
+                                   'platform_name': 'platform',
+                                   'sensor': 'sensor',
+                                   'orbital_parameters': orb_params},
+                            dims=('y', 'x'))
 
-        # Compute angles
-        psp = PSPRayleighReflectance(name='dummy')
-        psp.get_angles(vis)
-
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_once()
-        args = self.orbital.get_observer_look.call_args[0]
-        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
-        self.assertIsInstance(args[4], da.Array)
-        self.assertIsInstance(args[5], da.Array)
-        self.assertEqual(args[6], 0)
+        # Perform atmospherical correction
+        psp = PSPAtmosphericalCorrection(name='dummy')
+        res = psp(projectables=[band])
+        res.compute()

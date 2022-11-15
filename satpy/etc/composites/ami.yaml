@@ -2,7 +2,7 @@ sensor_name: visir/ami
 
 composites:
   green_raw:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     prerequisites:
       - name: VI005
         modifiers: [sunz_corrected]
@@ -12,7 +12,7 @@ composites:
     fractions: [0.85, 0.15]
 
   green:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     prerequisites:
       - name: VI005
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -22,7 +22,7 @@ composites:
     fractions: [0.85, 0.15]
 
   green_nocorr:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     prerequisites:
       - name: VI005
       - name: VI008
@@ -91,6 +91,15 @@ composites:
       - name: VI006
     high_resolution_band: blue
     standard_name: natural_color
+
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
 
   day_microphysics_eum:
     compositor: !!python/name:satpy.composites.GenericCompositor

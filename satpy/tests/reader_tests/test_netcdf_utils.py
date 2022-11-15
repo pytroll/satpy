@@ -19,13 +19,14 @@
 
 import os
 import unittest
+
 import numpy as np
 
 try:
     from satpy.readers.netcdf_utils import NetCDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object
+    NetCDF4FileHandler = object  # type: ignore
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -121,8 +122,9 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test everything about the NetCDF4 class."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
         import xarray as xr
+
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler('test.nc', {}, {})
 
         self.assertEqual(file_handler['/dimension/rows'], 10)
@@ -144,6 +146,14 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
+
+        global_attrs = {
+            'test_attr_str': 'test_string',
+            'test_attr_str_arr': 'test_string2',
+            'test_attr_int': 0,
+            'test_attr_float': 1.2
+            }
+        self.assertEqual(file_handler['/attrs'], global_attrs)
 
         self.assertIsInstance(file_handler.get('ds2_f')[:], xr.DataArray)
         self.assertIsNone(file_handler.get('fake_ds'))

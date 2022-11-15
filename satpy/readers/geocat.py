@@ -29,7 +29,10 @@ takes a single lon/lat point as reference and uses hardcoded resolution
 and projection information to calculate the area extents.
 
 """
+from __future__ import annotations
+
 import logging
+
 import numpy as np
 from pyproj import Proj
 from pyresample import geometry
@@ -61,7 +64,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'goes16': 'abi',  # untested
         'goesr': 'abi',  # untested
     }
-    platforms = {
+    platforms: dict[str, str] = {
     }
     resolutions = {
         'abi': {
@@ -81,7 +84,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         for k, v in self.sensors.items():
             if k == sensor:
                 return v
-            elif k in sensor:
+            if k in sensor:
                 last_resort = v
         if last_resort:
             return last_resort
