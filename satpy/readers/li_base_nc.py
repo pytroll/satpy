@@ -445,11 +445,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         # Check if we have extra infos for that variable:
         # Note that if available we should use the alias name instead here:
         vname = ds_infos["alias_name"] if 'alias_name' in ds_infos else ds_infos["variable_name"]
-        if vname in self.variable_transforms:
-            extras = self.variable_transforms[vname]
-
-            # extend the ds_infos:
-            ds_infos.update(extras)
+        self.check_variable_extra_info(ds_infos, vname)
 
         # We check here if we should include the default coordinates on that dataset:
         if self.swath_coordinates is not None and 'coordinates' not in ds_infos:
@@ -459,11 +455,7 @@ class LINCFileHandler(NetCDF4FileHandler):
             if any([p.search(vname) is not None for p in self.swath_coordinates['patterns']]):
 
                 # Get the target coordinate names, applying the sector name as needed:
-                lat_coord_name, lon_coord_name = self.get_latlon_names()
-                if 'sector_name' in ds_infos:
-                    sname = ds_infos['sector_name']
-                    lat_coord_name = lat_coord_name.replace("{sector_name}", sname)
-                    lon_coord_name = lon_coord_name.replace("{sector_name}", sname)
+                lat_coord_name, lon_coord_name = self.get_coordinate_names(ds_infos)
 
                 # Ensure we do not try to add the coordinates on the coordinates themself:
                 dname = ds_infos['name']
@@ -471,6 +463,23 @@ class LINCFileHandler(NetCDF4FileHandler):
                     ds_infos['coordinates'] = [lon_coord_name, lat_coord_name]
         self.dataset_infos.append(ds_infos)
         self.provided_datasets.add(ds_infos['name'])
+
+    def check_variable_extra_info(self, ds_infos, vname):
+        """Check if we have extra infos for that variable."""
+        if vname in self.variable_transforms:
+            extras = self.variable_transforms[vname]
+
+            # extend the ds_infos:
+            ds_infos.update(extras)
+
+    def get_coordinate_names(self, ds_infos):
+        """Get the target coordinate names, applying the sector name as needed."""
+        lat_coord_name, lon_coord_name = self.get_latlon_names()
+        if 'sector_name' in ds_infos:
+            sname = ds_infos['sector_name']
+            lat_coord_name = lat_coord_name.replace("{sector_name}", sname)
+            lon_coord_name = lon_coord_name.replace("{sector_name}", sname)
+        return lat_coord_name, lon_coord_name
 
     def get_dataset_infos(self, dname):
         """Retrieve the dataset infos corresponding to one of the registered datasets."""
