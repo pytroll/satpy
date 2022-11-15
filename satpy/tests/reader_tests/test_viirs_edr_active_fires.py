@@ -22,17 +22,18 @@ readers.
 
 """
 
+import io
 import os
 import unittest
 from unittest import mock
-import numpy as np
-import io
-import dask.dataframe as dd
-import pandas as pd
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
 
+import dask.dataframe as dd
+import numpy as np
+import pandas as pd
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_SHAPE = (1, 100)
 
@@ -60,8 +61,8 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         """Mimic reader input file content."""
         file_content = {}
         file_content['/attr/data_id'] = "AFMOD"
-        file_content['satellite_name'] = "npp"
-        file_content['sensor'] = 'VIIRS'
+        file_content['/attr/satellite_name'] = "NPP"
+        file_content['/attr/instrument_name'] = 'VIIRS'
 
         file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
         file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
@@ -86,15 +87,15 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         """Mimic reader input file content."""
         file_content = {}
         file_content['/attr/data_id'] = "AFIMG"
-        file_content['satellite_name'] = "npp"
-        file_content['sensor'] = 'VIIRS'
+        file_content['/attr/satellite_name'] = "NPP"
+        file_content['/attr/instrument_name'] = 'VIIRS'
 
-        file_content['FP_latitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['FP_longitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['FP_power'] = DEFAULT_POWER_FILE_DATA
-        file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
-        file_content['FP_T4/attr/units'] = 'kelvins'
-        file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
+        file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['Fire Pixels/FP_power'] = DEFAULT_POWER_FILE_DATA
+        file_content['Fire Pixels/FP_T4'] = DEFAULT_M13_FILE_DATA
+        file_content['Fire Pixels/FP_T4/attr/units'] = 'kelvins'
+        file_content['Fire Pixels/FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
 
         attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
         convert_file_content_to_data_array(
@@ -207,7 +208,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'NOAA-21')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            self.assertEqual(v.attrs['sensor'], 'viirs')
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
@@ -264,7 +265,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            self.assertEqual(v.attrs['sensor'], 'viirs')
 
 
 @mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')

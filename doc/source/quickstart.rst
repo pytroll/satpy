@@ -26,7 +26,7 @@ To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
 method. Printing the Scene object will list each of the
 :class:`xarray.DataArray` objects currently loaded:
 
-    >>> global_scene.load([0.6, 0.8, 10.8])
+    >>> global_scene.load(['0.8', '1.6', '10.8'])
     >>> print(global_scene)
     <xarray.DataArray 'reshape-d66223a8e05819b890c4535bc7e74356' (y: 3712, x: 3712)>
     dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
@@ -34,14 +34,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        brightness_temperature
         units:                K
         wavelength:           (9.8, 10.8, 11.8)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -58,14 +56,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
         wavelength:           (0.74, 0.81, 0.88)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -82,14 +78,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
-        wavelength:           (0.56, 0.635, 0.71)
-        satellite_latitude:   0.0
+        wavelength:           (1.5, 1.64, 1.78)
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -103,7 +97,7 @@ method. Printing the Scene object will list each of the
 
 Satpy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
 
-    >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
+    >>> global_scene.load(["VIS008", "IR_016", "IR_108"])
 
 To have a look at the available channels for loading from your :class:`~satpy.scene.Scene` object use the
 :meth:`~satpy.scene.Scene.available_dataset_names` method:
@@ -125,7 +119,7 @@ To have a look at the available channels for loading from your :class:`~satpy.sc
 
 To access the loaded data use the wavelength or name:
 
-    >>> print(global_scene[0.6])
+    >>> print(global_scene[0.8])
 
 For more information on loading datasets by resolution, calibration, or other
 advanced loading methods see the :doc:`readers` documentation.
@@ -136,44 +130,45 @@ Calculating measurement values and navigation coordinates
 
 Once loaded, measurement values can be calculated from a DataArray within a scene, using .values to get a fully calculated numpy array:
 
-    >>> vis006 = global_scene["VIS006"]
-    >>> vis006_meas = vis006.values
+    >>> vis008 = global_scene["VIS008"]
+    >>> vis008_meas = vis008.values
 
 Note that for very large images, such as half-kilometer geostationary imagery, calculated measurement arrays may require multiple gigabytes of memory; using deferred computation and/or subsetting of datasets may be preferred in such cases.
 
 The 'area' attribute of the DataArray, if present, can be converted to latitude and longitude arrays. For some instruments (typically polar-orbiters), the get_lonlats() may result in arrays needing an additional .compute() or .values extraction.
 
-    >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
+    >>> vis008_lon, vis008_lat = vis008.attrs['area'].get_lonlats()
 
 
-Visualizing data                                                                                    
-================                                                                                    
+Visualizing data
+================
 
-To visualize loaded data in a pop-up window:                                                        
-                                                                                                    
-    >>> global_scene.show(0.6)                                                                      
-                                                                                                    
+To visualize loaded data in a pop-up window:
+
+    >>> global_scene.show(0.8)
+
 Alternatively if working in a Jupyter notebook the scene can be converted to
 a `geoviews <https://geoviews.org>`_ object using the
 :meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
 requirement of the base satpy install so in order to use this feature the user
 needs to install the geoviews package himself.
-                                                                                                    
-    >>> import holoviews as hv                                                                      
-    >>> import geoviews as gv                                                                       
-    >>> import geoviews.feature as gf                                                               
-    >>> gv.extension("bokeh", "matplotlib")                                                         
-    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
-    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+
+    >>> import holoviews as hv
+    >>> import geoviews as gv
+    >>> import geoviews.feature as gf
+    >>> gv.extension("bokeh", "matplotlib")
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]
+    >>> %opts Image QuadMesh (cmap='RdBu_r')
     >>> gview = global_scene.to_geoviews(vdims=[0.6])
-    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
-                                                                                                     
-Creating new datasets                                                                               
-=====================                                                                               
+    >>> gview[::5,::5] * gf.coastline * gf.borders
+
+Creating new datasets
+=====================
 
 Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
-    >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
+    >>> global_scene.load(['VIS006', 'VIS008'])
+    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
     >>> global_scene.show("ndvi")
 
 When doing calculations Xarray, by default, will drop all attributes so attributes need to be
@@ -181,9 +176,9 @@ copied over by hand. The :func:`~satpy.dataset.combine_metadata` function can as
 Assigning additional custom metadata is also possible.
 
     >>> from satpy.dataset import combine_metadata
-    >>> scene['new_band'] = scene[0.8] / scene[0.6]
-    >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
-    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
+    >>> scene['new_band'] = scene['VIS008'] / scene['VIS006']
+    >>> scene['new_band'].attrs = combine_metadata(scene['VIS008'], scene['VIS006'])
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want'
 
 Generating composites
 =====================

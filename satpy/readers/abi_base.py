@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',
+    'G18': 'GOES-18',
+    'G19': 'GOES-19',
 }
 
 
@@ -75,7 +77,8 @@ class NC_ABI_BASE(BaseFileHandler):
         if 't' in nc.dims or 't' in nc.coords:
             nc = nc.rename({'t': 'time'})
         if 'goes_lat_lon_projection' in nc:
-            nc = nc.rename({'lon': 'x', 'lat': 'y'})
+            with suppress(ValueError):
+                nc = nc.rename({'lon': 'x', 'lat': 'y'})
         return nc
 
     @property
@@ -170,10 +173,9 @@ class NC_ABI_BASE(BaseFileHandler):
         """Get the area definition of the data at hand."""
         if 'goes_imager_projection' in self.nc:
             return self._get_areadef_fixedgrid(key)
-        elif 'goes_lat_lon_projection' in self.nc:
+        if 'goes_lat_lon_projection' in self.nc:
             return self._get_areadef_latlon(key)
-        else:
-            raise ValueError('Unsupported projection found in the dataset')
+        raise ValueError('Unsupported projection found in the dataset')
 
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand."""
@@ -284,8 +286,3 @@ class NC_ABI_BASE(BaseFileHandler):
         else:
             raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
         return res
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError):
-            self.nc.close()

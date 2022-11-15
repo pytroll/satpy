@@ -18,18 +18,17 @@
 
 """The vii_2_nc reader tests package."""
 
-import os
-import numpy as np
-import xarray as xr
-import dask.array as da
 import datetime
-from netCDF4 import Dataset
+import os
+import unittest
 import uuid
 
+import dask.array as da
+import numpy as np
+import xarray as xr
+from netCDF4 import Dataset
+
 from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
-
-import unittest
-
 
 TEST_FILE = 'test_file_vii_l2_nc.nc'
 
@@ -48,14 +47,14 @@ class TestViiL2NCFileHandler(unittest.TestCase):
             g1 = nc.createGroup('data')
 
             # Add dimensions to data group
-            g1.createDimension('num_pixels', 10)
-            g1.createDimension('num_lines', 100)
+            g1.createDimension('num_pixels', 100)
+            g1.createDimension('num_lines', 10)
 
             # Create measurement_data group
             g1_2 = g1.createGroup('measurement_data')
 
             # Add variables to data/measurement_data group
-            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_pixels', 'num_lines'))
+            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_lines', 'num_pixels'))
             delta_lat[:] = 0.1
 
         self.reader = ViiL2NCFileHandler(
@@ -83,7 +82,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         """Test the functions."""
         # Checks that the _perform_orthorectification function is correctly executed
         variable = xr.DataArray(
-            dims=('num_pixels', 'num_lines'),
+            dims=('num_lines', 'num_pixels'),
             name='test_name',
             attrs={
                 'key_1': 'value_1',

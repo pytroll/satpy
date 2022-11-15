@@ -14,6 +14,7 @@ at the pages listed below.
     CONTRIBUTING
     xarray_migration
     custom_reader
+    remote_file_support
     plugins
     satpy_internals
     aux_data
@@ -61,7 +62,7 @@ clone your fork. The package can then be installed in development mode by doing:
 The first command will install all dependencies needed by the Satpy
 conda-forge package, but won't actually install Satpy. The second command
 should be run from the root of the cloned Satpy repository (where the
-`setup.py` is) and will install the actual package.
+``setup.py`` is) and will install the actual package.
 
 You can now edit the python files in your cloned repository and have them
 immediately reflected in your conda environment.
@@ -69,11 +70,24 @@ immediately reflected in your conda environment.
 Running tests
 =============
 
-Satpy tests are written using the python :mod:`unittest` module and the
-third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
-running::
+Satpy tests are written using the third-party :doc:`pytest <pytest:index>`
+package. There is usually no need to run all Satpy tests, but instead only
+run the tests related to the component you are working on. All tests are
+automatically run from the GitHub Pull Request using multiple versions of
+Python, multiple operating systems, and multiple versions of dependency
+libraries. If you want to run all Satpy tests you will need to install
+additional dependencies that aren't needed for regular Satpy usage. To install
+them run::
+
+    pip install -e .[tests]
+
+Satpy tests can be executed by running::
 
     pytest satpy/tests
+
+You can also run a specific tests by specifying a sub-directory or module::
+
+    pytest satpy/tests/reader_tests/test_abi_l1b.py
 
 Running benchmarks
 ==================

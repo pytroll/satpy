@@ -917,3 +917,61 @@ enhancements:
         stretch: crude
         min_stretch: [26.2,  27.4, 243.9]
         max_stretch: [ 0.6, -26.2, 208.5]
+  # SEADAS Cholorphyll A - MODIS or VIIRS
+  chlor_a_default:
+    name: chlor_a
+    reader: seadas_l2
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0
+
+  cimss_cloud_type:
+    standard_name: cimss_cloud_type
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [10.0, 80.0, 80.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.5, 0.75, 1.0]
+
+  cloud_phase:
+    standard_name: cloud_phase
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,  0,   0]
+          max_stretch: [50, 50, 100]
+
+  essl_low_level_moisture:
+    name: essl_low_level_moisture
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.35, max_stretch: 0.85}
+
+  day_essl_low_level_moisture:
+    standard_name: day_essl_low_level_moisture
+    operations: []
+
+  essl_colorized_low_level_moisture:
+    name: essl_colorized_low_level_moisture
+    operations:
+      - name: essl_moisture
+        method: !!python/name:satpy.enhancements.atmosphere.essl_moisture
+
+  day_essl_colorized_low_level_moisture:
+    standard_name: day_essl_colorized_low_level_moisture
+    operations: []

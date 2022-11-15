@@ -5,8 +5,10 @@
 reader:
   name: ahi_hrit
   short_name: AHI HRIT
-  long_name: Himawari AHI Level 1 (HRIT)
+  long_name: Himawari (8 + 9) AHI Level 1 (HRIT)
   description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
+  status: Nominal
+  supports_fsspec: false
   sensors: [ahi]
   reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
@@ -17,6 +19,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b01_fd:
@@ -28,6 +31,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b02_fd:
@@ -39,6 +43,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b03_fd:
@@ -50,6 +55,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b04_fd:
@@ -61,6 +67,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b05_fd:
@@ -72,6 +79,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b06_fd:
@@ -86,6 +94,7 @@ file_types:
         # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
         file_patterns:
         - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b07_fd:
@@ -100,6 +109,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b07_ir4_fd:
@@ -111,6 +121,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b08_fd:
@@ -122,6 +133,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b09_fd:
@@ -133,6 +145,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b10_fd:
@@ -144,6 +157,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b11_fd:
@@ -155,6 +169,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b12_fd:
@@ -166,6 +181,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b13_fd:
@@ -177,6 +193,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b14_fd:
@@ -188,6 +205,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b15_fd:
@@ -199,6 +217,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}_{segment:03d}.bz2'
         expected_segments: 10
 
     hrit_b16_fd:

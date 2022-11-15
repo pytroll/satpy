@@ -26,34 +26,45 @@ References:
 """
 
 import logging
+import warnings
 from datetime import datetime
-import numpy as np
 
-import xarray as xr
 import dask.array as da
-
-from satpy import CHUNK_SIZE
-
+import numpy as np
+import xarray as xr
 from pyresample import geometry
 
+from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import (
-    recarray2dict, get_service_mode, time_cds_short
-)
 from satpy.readers.seviri_base import (
-    SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
-    VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
-    create_coef_dict, pad_data_horizontally, pad_data_vertically,
-    add_scanline_acq_time, get_cds_time, OrbitPolynomialFinder, get_satpos,
-    NoValidOrbitParams
+    CHANNEL_NAMES,
+    HRV_NUM_COLUMNS,
+    HRV_NUM_LINES,
+    SATNUM,
+    VISIR_NUM_COLUMNS,
+    VISIR_NUM_LINES,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    calculate_area_extent,
+    create_coef_dict,
+    dec10216,
+    get_cds_time,
+    get_satpos,
+    pad_data_horizontally,
+    pad_data_vertically,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
-    GSDTRecords, get_native_header, native_trailer,
-    DEFAULT_15_SECONDARY_PRODUCT_HEADER
+    DEFAULT_15_SECONDARY_PRODUCT_HEADER,
+    GSDTRecords,
+    get_native_header,
+    native_trailer,
 )
 from satpy.readers.utils import reduce_mda
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('native_msg')
 
@@ -84,7 +95,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
-                 mda_max_array_size=100):
+                 include_raw_metadata=False, mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -93,6 +104,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
+        self.include_raw_metadata = include_raw_metadata
         self.mda_max_array_size = mda_max_array_size
 
         # Declare required variables.
@@ -115,29 +127,38 @@ class NativeMSGFileHandler(BaseFileHandler):
             return istream.read(36) == ascii_startswith
 
     @property
-    def start_time(self):
-        """Read the repeat cycle start time from metadata."""
+    def nominal_start_time(self):
+        """Read the repeat cycle nominal start time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
     @property
-    def end_time(self):
-        """Read the repeat cycle end time from metadata."""
+    def nominal_end_time(self):
+        """Read the repeat cycle nominal end time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
 
-    @staticmethod
-    def _calculate_area_extent(center_point, north, east, south, west,
-                               we_offset, ns_offset, column_step, line_step):
-        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
-        # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
+    @property
+    def observation_start_time(self):
+        """Read the repeat cycle sensing start time from metadata."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanStart']
 
-        ll_c = (center_point - east + 0.5 + we_offset) * column_step
-        ll_l = (north - center_point + 0.5 + ns_offset) * line_step
-        ur_c = (center_point - west - 0.5 + we_offset) * column_step
-        ur_l = (south - center_point - 0.5 + ns_offset) * line_step
+    @property
+    def observation_end_time(self):
+        """Read the repeat cycle sensing end time from metadata."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanEnd']
 
-        return (ll_c, ll_l, ur_c, ur_l)
+    @property
+    def start_time(self):
+        """Get general start time for this file."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
@@ -275,6 +296,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
         self.mda['hrv_number_of_columns'] = cols_hrv
 
+        if self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
+            warnings.warn("The quality flag for this file indicates not OK. Use this data with caution!", UserWarning)
+
     def _read_trailer(self):
 
         hdr_size = self.header_type.itemsize
@@ -411,8 +435,19 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             nlines = north_bound - south_bound + 1
             ncolumns = west_bound - east_bound + 1
-            aex = self._calculate_area_extent(center_point, north_bound, east_bound, south_bound, west_bound,
-                                              we_offset, ns_offset, column_step, line_step)
+
+            area_dict = {'center_point': center_point,
+                         'east': east_bound,
+                         'west': west_bound,
+                         'south': south_bound,
+                         'north': north_bound,
+                         'column_step': column_step,
+                         'line_step': line_step,
+                         'column_offset': we_offset,
+                         'line_offset': ns_offset
+                         }
+
+            aex = calculate_area_extent(area_dict)
 
             aex_data['area_extent'].append(aex)
             aex_data['nlines'].append(nlines)
@@ -568,6 +603,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs['sensor'] = 'seviri'
         dataset.attrs['georef_offset_corrected'] = self.mda[
             'offset_corrected']
+        dataset.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+        }
+        dataset.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        if self.include_raw_metadata:
+            dataset.attrs['raw_metadata'] = reduce_mda(
+                self.header, max_size=self.mda_max_array_size
+            )
+
+    def _get_orbital_parameters(self):
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -587,10 +635,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             })
         except NoValidOrbitParams as err:
             logger.warning(err)
-        dataset.attrs['orbital_parameters'] = orbital_parameters
-        dataset.attrs['raw_metadata'] = reduce_mda(
-            self.header, max_size=self.mda_max_array_size
-        )
+        return orbital_parameters
 
     @cached_property
     def satpos(self):
@@ -605,7 +650,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=self.start_time,
+            time=self.observation_start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
             semi_minor_axis=self.mda['projection_parameters']['b']
         )
