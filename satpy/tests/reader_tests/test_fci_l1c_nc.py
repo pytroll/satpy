@@ -19,6 +19,7 @@
 
 import logging
 import os
+from typing import Dict
 from unittest import mock
 
 import dask.array as da
@@ -32,6 +33,8 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
+
+    cached_file_content: Dict[str, xr.DataArray] = {}
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
         from pyspectral.blackbody import C_SPEED as c

@@ -293,7 +293,8 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self.cached_file_content[var_name]
 
         v = self.file_content[var_name]
-
+        if isinstance(v, xr.DataArray):
+            return v
         self.cached_file_content[var_name] = xr.DataArray(
             v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
 
