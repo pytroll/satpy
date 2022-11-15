@@ -25,19 +25,18 @@ import pytest
 import xarray as xr
 from pyproj import Proj
 
+from satpy._config import config_search_paths
 from satpy.readers.li_base_nc import LINCFileHandler
 from satpy.readers.li_l2_nc import LIL2NCFileHandler
-from satpy._config import config_search_paths
 from satpy.readers.yaml_reader import load_yaml_configs
-from satpy.tests.utils import make_dataid
 from satpy.tests.reader_tests._li_test_utils import FakeLIFileHandlerBase, extract_filetype_info, get_product_schema
+from satpy.tests.utils import make_dataid
 
 
 @pytest.fixture(name="filetype_infos")
 def std_filetype_infos():
     """Return standard filetype info for LI L2."""
     cpaths = config_search_paths(os.path.join("readers", "li_l2_nc.yaml"))
-    assert len(cpaths) == 1
 
     cfg = load_yaml_configs(cpaths[0])
 
