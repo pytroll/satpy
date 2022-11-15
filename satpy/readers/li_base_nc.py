@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2022 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
@@ -202,10 +199,10 @@ class LINCFileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, cache_handle=True):
         """Initialize LINCFileHandler."""
-        super(LINCFileHandler, self).__init__(filename, filename_info, filetype_info,
-                                              cache_var_size=10000,
-                                              cache_handle=cache_handle
-                                              )
+        super().__init__(filename, filename_info, filetype_info,
+                         cache_var_size=10000,
+                         cache_handle=cache_handle
+                         )
 
         # decode_times should be disabled for xr.open_dataset access (cache_handle=False):
         # Note: the default dict assignment is need to avoid error when using the fake
@@ -373,17 +370,6 @@ class LINCFileHandler(NetCDF4FileHandler):
         lat_name, lon_name = self.get_latlon_names()
         self.register_dataset(lon_name)
         self.register_dataset(lat_name)
-
-    def get_area_def(self, _dsid):
-        """Compute area definition for a dataset, not supported in this reader."""
-        raise NotImplementedError
-
-    def get_bounding_box(self):
-        """Get the bounding box of the files, as a (lons, lats) tuple.
-
-        Not supported in this reader.
-        """
-        raise NotImplementedError
 
     def variable_path_exists(self, var_path):
         """Check if a given variable path is available in the underlying netCDF file.

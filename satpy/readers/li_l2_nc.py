@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2022 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
@@ -35,8 +32,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.li_base_nc import LINCFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.li_base_nc import LINCFileHandler
 from satpy.resample import get_area_def
 
 logger = logging.getLogger(__name__)
