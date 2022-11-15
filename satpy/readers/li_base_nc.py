@@ -517,6 +517,24 @@ class LINCFileHandler(NetCDF4FileHandler):
             self.register_coords_from_scan_angles()
 
         # First we check if we have support for sectors for this product:
+        self.register_sector_datasets()
+
+        # Retrieve the list of "raw" (ie not in sectors) variables provided in this description:
+        self.register_variable_datasets()
+
+        logger.debug("Adding %d datasets for %s input product.",
+                     len(self.dataset_infos), self.product_type)
+
+    def register_variable_datasets(self):
+        """Register all the available raw (i.e. not in sectors)."""
+        if 'variables' in self.ds_desc:
+            all_vars = self.ds_desc['variables']
+            # No sector to handle so we write simple datasets from the variables:
+            for var_name in all_vars:
+                self.register_dataset(var_name)
+
+    def register_sector_datasets(self):
+        """Register all the available sector datasets."""
         if 'sectors' in self.ds_desc:
             sectors = self.ds_desc['sectors']
             sector_vars = self.ds_desc['sector_variables']
@@ -524,16 +542,6 @@ class LINCFileHandler(NetCDF4FileHandler):
             for oc_name in sectors:
                 for var_name in sector_vars:
                     self.register_dataset(var_name, oc_name)
-
-        # Retrieve the list of "raw" (ie not in sectors) variables provided in this description:
-        if 'variables' in self.ds_desc:
-            all_vars = self.ds_desc['variables']
-            # No sector to handle so we write simple datasets from the variables:
-            for var_name in all_vars:
-                self.register_dataset(var_name)
-
-        logger.debug("Adding %d datasets for %s input product.",
-                     len(self.dataset_infos), self.product_type)
 
     def available_datasets(self, configured_datasets=None):
         """Determine automatically the datasets provided by this file.
