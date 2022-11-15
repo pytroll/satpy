@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for scene.py."""
 
+import math
 import os
 import random
 import string
@@ -709,7 +710,7 @@ class TestScene:
 
 def _create_coarest_finest_data_array(shape, area_def, attrs=None):
     data_arr = xr.DataArray(
-        da.arange(shape[0] * shape[1]).reshape(shape),
+        da.arange(math.prod(shape)).reshape(shape),
         attrs={
             'area': area_def,
         })
@@ -735,8 +736,12 @@ def _create_coarsest_finest_area_def(shape, extents):
 
 def _create_coarsest_finest_swath_def(shape, extents, name_suffix):
     from pyresample import SwathDefinition
-    lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
-    lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
+    if len(shape) == 1:
+        lons_arr = da.linspace(extents[0], extents[2], shape[0], dtype=np.float32)
+        lats_arr = da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)
+    else:
+        lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
+        lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
     lons_data_arr = xr.DataArray(lons_arr, attrs={"name": f"longitude{name_suffix}"})
     lats_data_arr = xr.DataArray(lats_arr, attrs={"name": f"latitude1{name_suffix}"})
     return SwathDefinition(lons_data_arr, lats_data_arr)
@@ -754,6 +759,8 @@ class TestFinestCoarsestArea:
              _create_coarsest_finest_area_def((4, 10), (-1000.0, -1500.0, 1000.0, 1500.0))),
             (_create_coarsest_finest_swath_def((2, 5), (1000.0, 1500.0, -1000.0, -1500.0), "1"),
              _create_coarsest_finest_swath_def((4, 10), (1000.0, 1500.0, -1000.0, -1500.0), "1")),
+            (_create_coarsest_finest_swath_def((5,), (1000.0, 1500.0, -1000.0, -1500.0), "1"),
+             _create_coarsest_finest_swath_def((10,), (1000.0, 1500.0, -1000.0, -1500.0), "1")),
         ]
     )
     def test_coarsest_finest_area_different_shape(self, coarse_area, fine_area):

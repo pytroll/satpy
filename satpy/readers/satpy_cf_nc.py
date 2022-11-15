@@ -183,6 +183,7 @@ import json
 import logging
 
 import xarray as xr
+from pyresample import AreaDefinition
 
 from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
@@ -211,15 +212,15 @@ class SatpyCFFileHandler(BaseFileHandler):
         return self.filename_info.get('end_time', self.start_time)
 
     @property
-    def sensor(self):
-        """Get sensor."""
-        nc = xr.open_dataset(self.filename, engine=self.engine)
-        return nc.attrs['instrument'].replace('/', '-').lower()
-
-    @property
     def sensor_names(self):
         """Get sensor set."""
-        return {self.sensor}
+        sensors = set()
+        for _, ds_info in self.available_datasets():
+            try:
+                sensors.add(ds_info["sensor"])
+            except KeyError:
+                continue
+        return sensors
 
     def available_datasets(self, configured_datasets=None):
         """Add information of available datasets."""
@@ -294,7 +295,20 @@ class SatpyCFFileHandler(BaseFileHandler):
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         if "orbital_parameters" in data.attrs:
             data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
+
         return data
+
+    def get_area_def(self, dataset_id):
+        """Get area definition from CF complient netcdf."""
+        try:
+            area = AreaDefinition.from_cf(self.filename)
+            return area
+        except ValueError:
+            # No CF compliant projection information was found in the netcdf file or
+            # file contains 2D lat/lon arrays. To fall back to generating a SwathDefinition
+            # with the yaml_reader NotImplementedError is raised.
+            logger.debug("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
+            raise NotImplementedError
 
 
 def _str2dict(val):
