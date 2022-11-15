@@ -26,7 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from area_def_list import generate_area_def_list  # noqa: E402
+from pyresample.area_config import generate_area_def_list  # noqa: E402
 from reader_table import generate_reader_table  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
