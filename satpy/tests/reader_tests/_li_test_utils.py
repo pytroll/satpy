@@ -654,7 +654,7 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
     """Class for faking the NetCDF4 Filehandler."""
 
     # Optional parameter that may be provided at the time of the creation of this file handler
-    # to customize the generated content. This may be either a simple dictionnary or a callable
+    # to customize the generated content. This may be either a simple dictionary or a callable
     # if a callable is provided it will be called to retrieve the actual parameter to be used:
     schema_parameters = None
 
@@ -746,13 +746,23 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
         # Retrieve the variable writer function
         write_variable = self.get_variable_writer(dset, settings)
 
-        # Write all the variables:
+        # Write all the raw (i.e not in sectors) variables:
+        self.write_variables(settings, write_variable)
+
+        # Write the sector variables:
+        self.write_sector_variables(settings, write_variable)
+
+        return dset
+
+    def write_variables(self, settings, write_variable):
+        """Write raw (i.e. not in sectors) variables."""
         if 'variables' in settings:
             variables = settings.get('variables')
             for vname, desc in variables.items():
                 write_variable(vname, desc)
 
-        # write the sector variables:
+    def write_sector_variables(self, settings, write_variable):
+        """Write the sector variables."""
         if 'sector_variables' in settings:
             sector_vars = settings.get('sector_variables')
             sectors = settings.get('sectors', ['north', 'east', 'south', 'west'])
@@ -760,5 +770,3 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             for sname in sectors:
                 for vname, desc in sector_vars.items():
                     write_variable(vname, desc, sname)
-
-        return dset
