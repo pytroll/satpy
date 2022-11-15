@@ -26,7 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from pyresample.area_config import generate_area_def_list  # noqa: E402
+from pyresample.area_config import generate_area_def_rst_list  # noqa: E402
 from reader_table import generate_reader_table  # noqa: E402
 
 from satpy.resample import get_area_file  # noqa: E402
@@ -85,7 +85,7 @@ with open("reader_table.rst", mode="w") as f:
 
 area_file = get_area_file()[0]
 with open("area_def_list.rst", mode="w") as f:
-    f.write(generate_area_def_list(area_file))
+    f.write(generate_area_def_rst_list(area_file))
 
 # -- General configuration -----------------------------------------------------
 
