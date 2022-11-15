@@ -133,7 +133,7 @@ Each of those description entries may contain the following elements:
 
     - ``milliseconds_to_timedelta``: Same kind of transformation
       as ``seconds_to_timedelta`` except that the source data is
-      ssumed to contain millisecond float values.
+      assumed to contain millisecond float values.
 
     - ``accumulate_index_offset``: if this extra info is found in
       a ``dataset_info`` on dataset loading, then we will consider that the
@@ -593,7 +593,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         new_array = da.broadcast_to(data_array, ref_var.shape)
         dims = data_array.dims if data_array.ndim > 0 else ('y',)
         data_array = xr.DataArray(new_array, coords=data_array.coords, dims=dims, name=data_array.name,
-                                  attrs=data_array.attrs, indexes=data_array.indexes)
+                                  attrs=data_array.attrs)
         return data_array
 
     def apply_accumulate_index_offset(self, data_array, ds_info):
