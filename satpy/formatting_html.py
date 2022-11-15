@@ -24,7 +24,12 @@ from importlib.resources import read_binary
 
 import toolz
 import xarray as xr
-from pyresample._formatting_html import _icon, plot_area_def
+
+try:
+    from pyresample._formatting_html import _icon, plot_area_def
+except ModuleNotFoundError:
+    cartopy = False
+
 from xarray.core.formatting_html import _mapping_section, summarize_vars  # , datavar_section
 
 STATIC_FILES = {"html": [("pyresample.static.html", "icons_svg_inline.html")],
@@ -542,7 +547,7 @@ def resolution_section(projection, datasets):
 
     for res, ds in by_resolution.items():
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in ds if i.attrs.get('area') is not None}
-        dss = xr.merge(ds_dict.values())
+        dss = xr.merge(ds_dict.values(), compat="override")
         html += xarray_dataset_repr(dss, "Resolution (x/y): {}".format(res))
 
     return html
