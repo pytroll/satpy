@@ -29,6 +29,8 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from pyresample.area_config import generate_area_def_list  # noqa: E402
 from reader_table import generate_reader_table  # noqa: E402
 
+from satpy.resample import get_area_file  # noqa: E402
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -81,8 +83,9 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())
 
+area_file = get_area_file()[0]
 with open("area_def_list.rst", mode="w") as f:
-    f.write(generate_area_def_list())
+    f.write(generate_area_def_list(area_file))
 
 # -- General configuration -----------------------------------------------------
 
