@@ -833,7 +833,7 @@ class TestSceneAvailableDatasets:
         num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 29
+        assert len(id_list) == num_reader_ds + 33
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
@@ -1300,6 +1300,14 @@ class TestSceneLoading:
         """Test loading a modified dataset."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
+        loaded_ids = list(scene._datasets.keys())
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
+
+    def test_load_modified_with_load_kwarg(self):
+        """Test loading a modified dataset using the ``Scene.load`` keyword argument."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'], modifiers=('mod1', 'mod2'))
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')

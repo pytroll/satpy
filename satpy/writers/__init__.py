@@ -649,7 +649,7 @@ class Writer(Plugin, DataDownloadMixin):
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
             LOG.info("Creating output directory: {}".format(dirname))
-            os.makedirs(dirname)
+            os.makedirs(dirname, exist_ok=True)
         return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):

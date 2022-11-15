@@ -24,6 +24,7 @@ file_types:
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS.gz'
 
     hrit_ir1:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
@@ -31,6 +32,7 @@ file_types:
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1.gz'
 
     hrit_ir2:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
@@ -38,6 +40,7 @@ file_types:
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2.gz'
 
     hrit_ir3:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
@@ -45,6 +48,7 @@ file_types:
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3.gz'
 
 
     hrit_ir4:
@@ -53,6 +57,7 @@ file_types:
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4.gz'
 
 datasets:
   VIS:

@@ -1296,7 +1296,7 @@ class Scene:
             del self._datasets[ds_id]
 
     def load(self, wishlist, calibration='*', resolution='*',
-             polarization='*', level='*', generate=True, unload=True,
+             polarization='*', level='*', modifiers='*', generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -1305,35 +1305,37 @@ class Scene:
         or they can not provide certain parameters and the "best" parameter
         will be chosen. For example, if a dataset is available in multiple
         resolutions and no resolution is specified in the wishlist's DataQuery
-        then the highest (smallest number) resolution will be chosen.
+        then the highest (the smallest number) resolution will be chosen.
 
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
             wishlist (iterable): List of names (str), wavelengths (float),
-                                 DataQuery objects or DataID of the requested
-                                 datasets to load. See `available_dataset_ids()`
-                                 for what datasets are available.
-            calibration (list, str): Calibration levels to limit available
-                                     datasets. This is a shortcut to
-                                     having to list each DataQuery/DataID in
-                                     `wishlist`.
+                DataQuery objects or DataID of the requested datasets to load.
+                See `available_dataset_ids()` for what datasets are available.
+            calibration (list | str): Calibration levels to limit available
+                datasets. This is a shortcut to having to list each
+                DataQuery/DataID in `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
-                                       This is a shortcut similar to
-                                       calibration.
+                This is a shortcut similar to calibration.
             polarization (list | str): Polarization ('V', 'H') to limit
-                                       available datasets. This is a shortcut
-                                       similar to calibration.
+                available datasets. This is a shortcut similar to calibration.
+            modifiers (tuple | str): Modifiers that should be applied to the
+                loaded datasets. This is a shortcut similar to calibration,
+                but only represents a single set of modifiers as a tuple.
+                For example, specifying
+                ``modifiers=('sunz_corrected', 'rayleigh_corrected')`` will
+                attempt to apply both of these modifiers to all loaded
+                datasets in the specified order ('sunz_corrected' first).
             level (list | str): Pressure level to limit available datasets.
-                                Pressure should be in hPa or mb. If an
-                                altitude is used it should be specified in
-                                inverse meters (1/m). The units of this
-                                parameter ultimately depend on the reader.
+                Pressure should be in hPa or mb. If an altitude is used it
+                should be specified in inverse meters (1/m). The units of this
+                parameter ultimately depend on the reader.
             generate (bool): Generate composites from the loaded datasets
-                             (default: True)
-            unload (bool): Unload datasets that were required to generate
-                           the requested datasets (composite dependencies)
-                           but are no longer needed.
+                (default: True)
+            unload (bool): Unload datasets that were required to generate the
+                requested datasets (composite dependencies) but are no longer
+                needed.
 
         """
         if isinstance(wishlist, str):
@@ -1343,6 +1345,7 @@ class Scene:
         query = DataQuery(calibration=calibration,
                           polarization=polarization,
                           resolution=resolution,
+                          modifiers=modifiers,
                           level=level)
         self._update_dependency_tree(needed_datasets, query)
 

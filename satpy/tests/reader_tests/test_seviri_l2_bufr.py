@@ -125,7 +125,7 @@ class SeviriL2BufrData:
         from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         self.buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(self.buf1, 'unpack', 1)
-        # write the bufr test data twice as we want to read in and the concatenate the data in the reader
+        # write the bufr test data twice as we want to read in and then concatenate the data in the reader
         # 55 id corresponds to METEOSAT 8`
         ec.codes_set(self.buf1, 'satelliteIdentifier', 55)
         ec.codes_set_array(self.buf1, 'latitude', LAT)
@@ -255,3 +255,27 @@ class TestSeviriL2BufrReader:
 
         ad = bufr_obj.fh.get_area_def(None)
         assert ad == AREA_DEF_FES
+
+
+class SeviriL2AMVBufrData:
+    """Mock SEVIRI L2 AMV BUFR data."""
+
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
+    def __init__(self, filename):
+        """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
+        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
+
+        with mock.patch('satpy.readers.seviri_l2_bufr.np.fromfile'):
+            self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2,
+                                              filetype_info={'file_type': 'seviri_l2_bufr_amv'},
+                                              with_area_definition=True)
+
+
+class TestSeviriL2AMVBufrReader:
+    """Test SEVIRI L2 BUFR Reader for AMV data."""
+
+    @staticmethod
+    def test_amv_with_area_def():
+        """Test that AMV data can not be loaded with an area definition."""
+        bufr_obj = SeviriL2AMVBufrData('AMVBUFRProd_20201110124500Z_00_OMPEFS04_MET11_FES_E0000')
+        assert bufr_obj.fh.with_adef is False
