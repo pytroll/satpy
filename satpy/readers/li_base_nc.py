@@ -419,12 +419,7 @@ class LINCFileHandler(NetCDF4FileHandler):
                 return arr
 
         # Get the search paths from our dataset descriptions:
-        if len(self.search_paths) == 0:
-            all_var_paths = var_paths
-        else:
-            all_var_paths = [f"{folder}/{var_path}"
-                             for folder in self.search_paths
-                             for var_path in var_paths]
+        all_var_paths = self.get_variable_search_paths(var_paths)
 
         arr = self.get_first_valid_variable(all_var_paths)
 
@@ -433,12 +428,27 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # Also handle fill value here (but only if it is not None, so that we can still bypass this
         # step if needed)
+        arr = self.apply_fill_value(arr, fill_value)
+
+        return arr
+
+    def apply_fill_value(self, arr, fill_value):
+        """Apply fill values, unless it is None."""
         if fill_value is not None:
             if np.isnan(fill_value):
                 fill_value = np.float32(np.nan)
             arr = arr.where(arr != arr.attrs.get('_FillValue'), fill_value)
-
         return arr
+
+    def get_variable_search_paths(self, var_paths):
+        """Get the search paths from the dataset descriptions."""
+        if len(self.search_paths) == 0:
+            all_var_paths = var_paths
+        else:
+            all_var_paths = [f"{folder}/{var_path}"
+                             for folder in self.search_paths
+                             for var_path in var_paths]
+        return all_var_paths
 
     def add_provided_dataset(self, ds_infos):
         """Add a provided dataset to our internal list."""
