@@ -90,11 +90,29 @@ def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
     )
 
 
-def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
+def _create_test_int8_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None):
     """Create a test DataArray object."""
     import dask.array as da
     import numpy as np
     import xarray as xr
+
+    return xr.DataArray(
+        da.ones(shape, dtype=np.uint8, chunks=shape) * values, dims=('y', 'x'),
+        attrs={'_FillValue': 255,
+               'valid_range': [1, 15],
+               'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
+
+
+def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None):
+    """Create a test DataArray object."""
+    import dask.array as da
+    import numpy as np
+    import xarray as xr
+
+    if values:
+        return xr.DataArray(
+            da.ones(shape, dtype=np.float32, chunks=shape) * values, dims=('y', 'x'),
+            attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
     return xr.DataArray(
         da.zeros(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
@@ -554,131 +572,220 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
 
 
-class TestBlendFuncs(unittest.TestCase):
+class TestBlendFuncs():
     """Test individual functions used for blending."""
 
-    def setUp(self):
-        """Set up test data."""
-        from datetime import datetime
+    column = 3
 
-        import dask.array as da
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
+    @pytest.fixture
+    def scene1_with_weights(self):
+        """Create first test scene with a dataset of weights."""
+        from satpy import Scene
+
+        area = _create_test_area()
+        scene = Scene()
+        dsid1 = make_dataid(
+            name="geo-ct",
+            resolution=3000,
+            modifiers=()
+        )
+        scene[dsid1] = _create_test_int8_dataset(name='geo-ct', area=area, values=1)
+        wgt1 = _create_test_dataset(name='geo-ct-wgt', area=area, values=0)
+
+        line = 2
+        column = 3
+
+        wgt1[line, :] = 2
+        wgt1[:, column] = 2
+
+        dsid2 = make_dataid(
+            name="geo-cma",
+            resolution=3000,
+            modifiers=()
+        )
+        scene[dsid2] = _create_test_int8_dataset(name='geo-cma', area=area, values=2)
+        wgt2 = _create_test_dataset(name='geo-cma-wgt', area=area, values=0)
+
+        return scene, [wgt1, wgt2]
+
+    @pytest.fixture
+    def scene2_with_weights(self):
+        """Create second test scene."""
+        from satpy import Scene
+
+        area = _create_test_area()
+        scene = Scene()
+        dsid1 = make_dataid(
+            name="polar-ct",
+            modifiers=()
+        )
+        scene[dsid1] = _create_test_int8_dataset(name='polar-ct', area=area, values=3)
+        scene[dsid1][-1, :] = scene[dsid1].attrs['_FillValue']
+        wgt1 = _create_test_dataset(name='polar-ct-wgt', area=area, values=1)
+
+        dsid2 = make_dataid(
+            name="polar-cma",
+            modifiers=()
+        )
+        scene[dsid2] = _create_test_int8_dataset(name='polar-cma', area=area, values=4)
+        wgt2 = _create_test_dataset(name='polar-cma-wgt', area=area, values=1)
+        return scene, [wgt1, wgt2]
+
+    @pytest.fixture
+    def multi_scene_and_weights(self, scene1_with_weights, scene2_with_weights):
+        """Create small multi-scene for testing."""
+        from satpy import MultiScene
+        scene1, weights1 = scene1_with_weights
+        scene2, weights2 = scene2_with_weights
+
+        return MultiScene([scene1, scene2]), [weights1, weights2]
+
+    @pytest.fixture
+    def groups(self):
+        """Get group definitions for the MultiScene."""
+        return {
+            DataQuery(name='CloudType'): ['geo-ct', 'polar-ct'],
+            DataQuery(name='CloudMask'): ['geo-cma', 'polar-cma']
+        }
+
+    def test_blend_two_scenes_using_stack(self, multi_scene_and_weights, groups,
+                                          scene1_with_weights, scene2_with_weights):
+        """Test blending two scenes by stacking them on top of each other using function 'stack'."""
+        from satpy.multiscene import stack
+
+        multi_scene, weights = multi_scene_and_weights
+        scene1, weights1 = scene1_with_weights
+        scene2, weights2 = scene2_with_weights
+
+        multi_scene.group(groups)
+
+        resampled = multi_scene
+        stacked = resampled.blend(blend_function=stack)
+
+        expected = scene2['polar-ct'].copy()
+        expected[-1, :] = scene1['geo-ct'][-1, :]
+
+        xr.testing.assert_equal(stacked['CloudType'].compute(), expected.compute())
+
+    def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
+                                                   scene1_with_weights, scene2_with_weights):
+        """Test stacking two scenes using weights."""
+        from satpy.multiscene import stack_weighted
+
+        multi_scene, weights = multi_scene_and_weights
+        scene1, weights1 = scene1_with_weights
+        scene2, weights2 = scene2_with_weights
+
+        simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
+        multi_scene.group(simple_groups)
+
+        weights = [weights[0][0], weights[1][0]]
+        weighted_blend = multi_scene.blend(blend_function=stack_weighted, weights=weights)
+
+        line = 2
+        column = 3
+
+        expected = scene2['polar-ct']
+        expected[line, :] = scene1['geo-ct'][line, :]
+        expected[:, column] = scene1['geo-ct'][:, column]
+        expected[-1, :] = scene1['geo-ct'][-1, :]
+
+        result = weighted_blend['CloudType'].compute()
+        xr.testing.assert_equal(result, expected.compute())
+
+    @pytest.fixture
+    def datasets_and_weights(self):
+        """X-Array datasets with area definition plus weights for input to tests."""
         shape = (8, 12)
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
                               shape[1], shape[0], [-200, -200, 200, 200])
+
         ds1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-        self.ds1 = ds1
-        wgt1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
-                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-        self.ds1_wgt = wgt1
         ds2 = xr.DataArray(da.ones(shape, chunks=-1) * 2, dims=('y', 'x'),
                            attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
-        self.ds2 = ds2
+        ds3 = xr.DataArray(da.ones(shape, chunks=-1) * 3, dims=('y', 'x'),
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+
+        ds4 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
+                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+        ds5 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+
+        wgt1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
+                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
         wgt2 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
                             attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-        self.line = 2
-        wgt2[self.line, :] = 2
-        self.ds2_wgt = wgt2
+        wgt3 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
+                            attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
 
-        ds3 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
-                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-        self.ds3 = ds3
-        ds4 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'time'),
-                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
-        self.ds4 = ds4
+        datastruct = {'shape': shape,
+                      'area': area,
+                      'datasets': [ds1, ds2, ds3, ds4, ds5],
+                      'weights': [wgt1, wgt2, wgt3]}
+        return datastruct
 
-    def test_stack(self):
+    @pytest.mark.parametrize(('line', 'column',),
+                             [(2, 3), (4, 5)]
+                             )
+    def test_blend_function_stack_weighted(self, datasets_and_weights, line, column):
+        """Test the 'stack_weighted' function."""
+        from satpy.multiscene import stack_weighted
+
+        input_data = datasets_and_weights
+
+        input_data['weights'][1][line, :] = 2
+        input_data['weights'][2][:, column] = 2
+
+        blend_result = stack_weighted(input_data['datasets'][0:3], input_data['weights'])
+
+        ds1 = input_data['datasets'][0]
+        ds2 = input_data['datasets'][1]
+        ds3 = input_data['datasets'][2]
+        expected = ds1.copy()
+        expected[:, column] = ds3[:, column]
+        expected[line, :] = ds2[line, :]
+
+        xr.testing.assert_equal(blend_result.compute(), expected.compute())
+        assert expected.attrs == blend_result.attrs
+
+    def test_blend_function_stack(self, datasets_and_weights):
         """Test the 'stack' function."""
         from satpy.multiscene import stack
-        res = stack([self.ds1, self.ds2])
-        self.assertTupleEqual(self.ds1.shape, res.shape)
 
-    def test_timeseries(self):
+        input_data = datasets_and_weights
+
+        ds1 = input_data['datasets'][0]
+        ds2 = input_data['datasets'][1]
+
+        res = stack([ds1, ds2])
+        expected = ds2.copy()
+
+        xr.testing.assert_equal(res.compute(), expected.compute())
+        # assert expected.attrs == res.attrs
+        # FIXME! Looks like the attributes are taken from the first dataset. Should
+        # be like that?  So in this case the datetime is different from "expected"
+        # (= in this case the last dataset in the stack, the one on top)
+
+    def test_timeseries(self, datasets_and_weights):
         """Test the 'timeseries' function."""
-        import xarray as xr
-
         from satpy.multiscene import timeseries
-        res = timeseries([self.ds1, self.ds2])
-        res2 = timeseries([self.ds3, self.ds4])
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res2, xr.DataArray)
-        self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
-        self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
 
+        input_data = datasets_and_weights
 
-@pytest.fixture
-def datasets_and_weights():
-    """X-Array datasets with area definition plus weights for input to tests."""
-    shape = (8, 12)
-    area = AreaDefinition('test', 'test', 'test',
-                          {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
-                          shape[1], shape[0], [-200, -200, 200, 200])
-    ds1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
-                       attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-    ds2 = xr.DataArray(da.ones(shape, chunks=-1) * 2, dims=('y', 'x'),
-                       attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
-    ds3 = xr.DataArray(da.ones(shape, chunks=-1) * 3, dims=('y', 'x'),
-                       attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+        ds1 = input_data['datasets'][0]
+        ds2 = input_data['datasets'][1]
+        ds4 = input_data['datasets'][2]
+        ds4 = input_data['datasets'][3]
+        ds5 = input_data['datasets'][4]
 
-    wgt1 = xr.DataArray(da.ones(shape, chunks=-1), dims=('y', 'x'),
-                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-    wgt2 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
-                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-    wgt3 = xr.DataArray(da.zeros(shape, chunks=-1), dims=('y', 'x'),
-                        attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
-
-    datastruct = {'shape': shape,
-                  'area': area,
-                  'datasets': [ds1, ds2, ds3],
-                  'weights': [wgt1, wgt2, wgt3]}
-    return datastruct
-
-
-@pytest.mark.parametrize(('line', 'column',),
-                         [(2, 3), (4, 5)]
-                         )
-def test_blend_function_weighted(datasets_and_weights, line, column):
-    """Test the 'weighted' function."""
-    from satpy.multiscene import weighted
-
-    input_data = datasets_and_weights
-
-    input_data['weights'][1][line, :] = 2
-    input_data['weights'][2][:, column] = 2
-
-    blend_result = weighted(input_data['datasets'], input_data['weights'])
-
-    ds1 = input_data['datasets'][0]
-    ds2 = input_data['datasets'][1]
-    ds3 = input_data['datasets'][2]
-    expected = ds1.copy()
-    expected[:, column] = ds3[:, column]
-    expected[line, :] = ds2[line, :]
-
-    xr.testing.assert_equal(blend_result.compute(), expected.compute())
-    assert expected.attrs == blend_result.attrs
-
-
-def test_blend_function_stack(datasets_and_weights):
-    """Test the 'stack' function."""
-    from satpy.multiscene import stack
-
-    input_data = datasets_and_weights
-
-    ds1 = input_data['datasets'][0]
-    ds2 = input_data['datasets'][1]
-
-    res = stack([ds1, ds2])
-    expected = ds2.copy()
-
-    xr.testing.assert_equal(res.compute(), expected.compute())
-    # assert expected.attrs == res.attrs
-    # FIXME! Looks like the attributes are taken from the first dataset. Should
-    # be like that?  So in this case the datetime is different from "expected"
-    # (= in this case the last dataset in the stack, the one on top)
+        res = timeseries([ds1, ds2])
+        res2 = timeseries([ds4, ds5])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res2, xr.DataArray)
+        assert (2, ds1.shape[0], ds1.shape[1]) == res.shape
+        assert (ds4.shape[0], ds4.shape[1]+ds5.shape[1]) == res2.shape
 
 
 @mock.patch('satpy.multiscene.get_enhanced_image')

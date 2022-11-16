@@ -45,8 +45,15 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def weighted(datasets, weights=None):
-    """Blend datasets using weights."""
+def stack_weighted(datasets, weights=None):
+    """Stack datasets using weights."""
+    # Go through weights and set to zero where corresponding datasets have a value equals _FillValue or nan
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset == dataset._FillValue, 0, weights[i])
+        except AttributeError:
+            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+
     indices = da.argmax(da.dstack(weights), axis=-1)
     dims = datasets[0].dims
     attrs = datasets[0].attrs
@@ -59,7 +66,10 @@ def stack(datasets):
     """Overlay series of datasets on top of each other."""
     base = datasets[0].copy()
     for dataset in datasets[1:]:
-        base = base.where(dataset.isnull(), dataset)
+        try:
+            base = base.where(dataset == dataset._FillValue, dataset)
+        except AttributeError:
+            base = base.where(dataset.isnull(), dataset)
     return base
 
 
