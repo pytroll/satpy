@@ -541,7 +541,14 @@ def group_results_by_output_file(sources, targets):
         the number of output files planned to be written by
         :meth:`Scene.save_datasets`.
     """
-    raise NotImplementedError()
+    ofs = {}
+    for (src, targ) in zip(sources, targets, strict=True):
+        fn = targ.rfile.path
+        if fn not in ofs:
+            ofs[fn] = ([], [])
+        ofs[fn][0].append(src)
+        ofs[fn][1].append(targ)
+    return list(ofs.values())
 
 
 def compute_writer_results(results):

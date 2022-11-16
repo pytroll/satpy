@@ -866,7 +866,7 @@ class TestOverlays(unittest.TestCase):
         self.assertEqual('RGBA', new_img.mode)
 
 
-def test_group_results_by_output_file():
+def test_group_results_by_output_file(tmp_path):
     """Test grouping results by output file.
 
     Add a test for grouping the results from save_datasets(..., compute=False)
@@ -890,8 +890,9 @@ def test_group_results_by_output_file():
         daskify=True,
         area=fake_area,
         common_attrs={"start_time": datetime.datetime(2022, 11, 16, 13, 27)})
+    # NB: even if compute=False, ``save_datasets`` creates (empty) files
     (sources, targets) = fake_scene.save_datasets(
-            filename="/tmp/test/huh-{name}.tif",
+            filename=os.fspath(tmp_path / "test-{name}.tif"),
             writer="ninjogeotiff",
             compress="NONE",
             fill_value=0,
@@ -908,3 +909,7 @@ def test_group_results_by_output_file():
     assert len({x.rfile.path for x in grouped[0][1]}) == 1
     for x in grouped:
         assert len(x[0]) == len(x[1])
+    assert sources[:5] == grouped[0][0]
+    assert targets[:5] == grouped[0][1]
+    assert sources[10:] == grouped[2][0]
+    assert targets[10:] == grouped[2][1]
