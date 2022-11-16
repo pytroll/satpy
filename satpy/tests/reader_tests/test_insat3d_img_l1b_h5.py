@@ -1,5 +1,6 @@
 """Tests for the Insat3D reader."""
 import os
+from datetime import datetime
 
 import dask.array as da
 import h5netcdf
@@ -66,8 +67,16 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
+start_time = datetime(2009, 6, 9, 9, 0)
+end_time = datetime(2009, 6, 9, 9, 30)
+
+time_pattern = "%d-%b-%YT%H:%M:%S"
+
 global_attrs = {"Observed_Altitude(km)": 35778490.219,
-                "Field_of_View(degrees)": 17.973925}
+                "Field_of_View(degrees)": 17.973925,
+                "Acquisition_Start_Time": start_time.strftime(time_pattern),
+                "Acquisition_End_Time": end_time.strftime(time_pattern)
+                }
 
 
 @pytest.fixture(scope="session")
@@ -177,6 +186,12 @@ def test_insat3d_opens_datatree(insat_filename, resolution):
     assert str(resolution) in res.keys()
 
 
+def test_insat3d_datatree_has_global_attributes(insat_filename):
+    """Test that the backend supports global attributes in the datatree."""
+    res = open_datatree(insat_filename)
+    assert res.attrs.items() >= global_attrs.items()
+
+
 @pytest.mark.parametrize("calibration,expected_values",
                          [("counts", values_1km),
                           ("radiance", values_1km * 2),
@@ -220,8 +235,23 @@ def test_filehandler_returns_area(insat_filehandler):
     lons, lats = area_def.get_lonlats(chunks=1000)
 
 
+def test_filehandler_has_start_and_end_time(insat_filehandler):
+    """Test that the filehandler handles start and end time."""
+    fh = insat_filehandler
+
+    assert fh.start_time == start_time
+    assert fh.end_time == end_time
+
+
 def test_satpy_load_array(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
     scn.load(["VIS"])
     np.testing.assert_allclose(scn["VIS"], values_1km * 3)
+
+
+def test_satpy_load_two_arrays(insat_filename):
+    """Test that satpy can load the VIS array."""
+    scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
+    scn.load(["TIR1", "WV"])
+    np.testing.assert_allclose(scn["TIR1"], values_4km * 3)

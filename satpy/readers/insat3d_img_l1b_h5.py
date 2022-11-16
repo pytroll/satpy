@@ -1,5 +1,6 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
 from contextlib import suppress
+from datetime import datetime
 from functools import cached_property, lru_cache
 
 import dask.array as da
@@ -91,7 +92,6 @@ def open_dataset(filename, resolution=1000):
         for lats in ["Latitude_VIS", "Latitude_WV"]:
             with suppress(ValueError):
                 ds = ds.rename({lats: "Latitude"})
-
     else:
         raise ValueError(f"Resolution {resolution} not available. Available resolutions: 1000, 4000, 8000")
     return ds
@@ -103,11 +103,24 @@ def open_datatree(filename):
     for resolution in [1000, 4000, 8000]:
         datasets[str(resolution)] = open_dataset(filename, resolution)
     dt = DataTree.from_dict(datasets)
+    dt.attrs = dt["1000"].attrs
     return dt
 
 
 class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     """File handler for insat 3d imager data."""
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        start_time = datetime.strptime(self.datatree.attrs['Acquisition_Start_Time'], '%d-%b-%YT%H:%M:%S')
+        return start_time
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        end_time = datetime.strptime(self.datatree.attrs['Acquisition_End_Time'], '%d-%b-%YT%H:%M:%S')
+        return end_time
 
     @cached_property
     def datatree(self):
@@ -123,13 +136,13 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
             return darr
 
-        if ds_id["calibration"] == "counts":
+        if ds_id["calibration"].name == "counts":
             calibration = ""
-        elif ds_id["calibration"] == "radiance":
+        elif ds_id["calibration"].name == "radiance":
             calibration = "_RADIANCE"
-        elif ds_id["calibration"] == "reflectance":
+        elif ds_id["calibration"].name == "reflectance":
             calibration = "_ALBEDO"
-        elif ds_id["calibration"] == "brightness_temperature":
+        elif ds_id["calibration"].name == "brightness_temperature":
             calibration = "_TEMP"
 
         darr = ds["IMG_" + ds_id["name"] + calibration]
@@ -139,18 +152,16 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     def get_area_def(self, ds_id):
         """Get the area definition."""
         from satpy.readers._geos_area import get_area_definition, get_area_extent
-        resolution = ds_id["resolution"]
-        ds = self.datatree[str(resolution)]
         darr = self.get_dataset(ds_id, None)
         shape = darr.shape
         lines = shape[-2]
         cols = shape[-1]
 
-        fov = ds.attrs["Field_of_View(degrees)"]
+        fov = self.datatree.attrs["Field_of_View(degrees)"]
         cfac = 2 ** 16 / (fov / cols)
         lfac = 2 ** 16 / (fov / lines)
 
-        h = ds.attrs["Observed_Altitude(km)"] * 1000
+        h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
         a = 6378137.0
         b = 6356752.314245
