@@ -516,6 +516,34 @@ def split_results(results):
     return sources, targets, delayeds
 
 
+def group_results_by_output_file(sources, targets):
+    """Group results by output file.
+
+    For writers that return sources and targets for ``compute=False``, split
+    the results by output file.
+
+    When not only the data but also GeoTIFF tags are dask arrays, then
+    ``save_datasets(..., compute=False)``` returns a tuple of flat lists,
+    where the second list consists of a mixture of ``RIOTag`` and ``RIODataset``
+    objects (from trollimage).  In some cases, we may want to get a seperate
+    delayed object for each file; for example, if we want to add a wrapper to do
+    something with the file as soon as it's finished.  This function unflattens
+    the flat lists into a list of (src, target) tuples.
+
+    Args:
+        sources: List of sources (typically dask.array) as returned by
+            :meth:`Scene.save_datasets`.
+        targets: List of targets (should be ``RIODataset`` or ``RIOTag``) as
+            returned by :meth:`Scene.save_datasets`.
+
+    Returns:
+        List of ``Tuple(List[sources], List[targets])`` with a length equal to
+        the number of output files planned to be written by
+        :meth:`Scene.save_datasets`.
+    """
+    raise NotImplementedError()
+
+
 def compute_writer_results(results):
     """Compute all the given dask graphs `results` so that the files are saved.
 
