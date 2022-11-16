@@ -456,7 +456,7 @@ class TestLIL2():
 
     def test_generate_coords_not_called_on_non_coord_dataset(self, filetype_infos):
         """Test that the method is not called when getting non-coord dataset."""
-        handler = self.generate_coords(filetype_infos,  'li_l2_af_nc', 'flash_accumulation')
+        handler = self.generate_coords(filetype_infos, 'li_l2_af_nc', 'flash_accumulation')
         assert not handler.generate_coords_from_scan_angles.called
 
     def test_generate_coords_not_called_on_non_accum_dataset(self, filetype_infos):
