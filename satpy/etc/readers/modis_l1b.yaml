@@ -403,11 +403,29 @@ datasets:
     name: '36'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
-    coordinates: [longitude, latitude]
+    coordinates: [longitude, latitude, longitude_tiepoints, latitude_tiepoints]
     wavelength:
     - 14.085
     - 14.235
     - 14.385
+
+  longitude_tiepoints:
+    name: longitude_tiepoints
+    resolution:
+     1000:
+        file_type: hdf_eos_data_1000m
+    file_key: Longitude
+    standard_name: longitude_tiepoints
+    units: degree
+
+  latitude_tiepoints:
+    name: latitude_tiepoints
+    resolution:
+      1000:
+        file_type: hdf_eos_data_1000m
+    file_key: Latitude
+    standard_name: latitude_tiepoints
+    units: degree
 
   longitude:
     name: longitude
