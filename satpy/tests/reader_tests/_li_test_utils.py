@@ -685,14 +685,7 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             data = np.zeros(shape, dtype=dtype)
 
             # Replace variable default path if applicable:
-            vpath = desc.get('path', var_path)
-
-            # Ensure we have a trailing separator:
-            if vpath != "" and vpath[-1] != '/':
-                vpath += '/'
-
-            if sname != "":
-                vpath += sname + "/"
+            vpath = set_variable_path(var_path, desc, sname)
 
             # Variable full name:
             full_name = f"{vpath}{vname}"
@@ -707,6 +700,16 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             if 'fill_value' in desc:
                 attribs['_FillValue'] = desc['fill_value']
 
+            populate_dummy_data(vname, data, desc, sname)
+
+            # Now we assign that data array:
+            dset[full_name] = xr.DataArray(data, dims=shape_str, attrs=attribs)
+
+            # Write the copy of the content:
+            self.content[full_name] = data
+
+        def populate_dummy_data(vname, data, desc, sname):
+            """Populate variable with dummy data."""
             if vname in providers:
                 prov = providers[vname]
                 # prov might be a function or directly an array that we assume will be of the correct shape:
@@ -715,11 +718,15 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
                 # Otherwise we write the default data:
                 data[:] = desc['default_data']()
 
-            # Now we assign that data array:
-            dset[full_name] = xr.DataArray(data, dims=shape_str, attrs=attribs)
-
-            # Write the copy of the content:
-            self.content[full_name] = data
+        def set_variable_path(var_path, desc, sname):
+            """Replace variable default path if applicable and ensure trailing separator."""
+            vpath = desc.get('path', var_path)
+            # Ensure we have a trailing separator:
+            if vpath != "" and vpath[-1] != '/':
+                vpath += '/'
+            if sname != "":
+                vpath += sname + "/"
+            return vpath
 
         return write_variable
 
