@@ -254,8 +254,9 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         attrs = dict(data.attrs.items()).copy()
         info = info.copy()
-        data = xr.DataArray(
-            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+        if not isinstance(data, xr.DataArray):
+            data = xr.DataArray(
+                da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
 
         fv = attrs.pop(
             "FillValue",
@@ -346,9 +347,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
-        attrs = dict(data.attrs.items()).copy()
-        data = xr.DataArray(
-            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+        if not isinstance(data, xr.DataArray):
+            attrs = dict(data.attrs.items()).copy()
+            data = xr.DataArray(
+                da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         return data
 
     def _get_dataset_index_map(self, dsname):
@@ -356,18 +358,20 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
-        attrs = dict(data.attrs.items()).copy()
-        data = xr.DataArray(
-            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+        if not isinstance(data, xr.DataArray):
+            attrs = dict(data.attrs.items()).copy()
+            data = xr.DataArray(
+                da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         data = data.where(data != data.attrs.get('_FillValue', 65535))
         return data
 
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self[AUX_DATA[aux_data_name]]
-        attrs = dict(lut.attrs.items()).copy()
-        lut = xr.DataArray(
-            da.from_array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
+        if not isinstance(lut, xr.DataArray):
+            attrs = dict(lut.attrs.items()).copy()
+            lut = xr.DataArray(
+                da.from_array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
@@ -573,11 +577,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         measured = self.get_channel_measured_group_path(key['name'])
 
-        vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
-        a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
-        b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
-        c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
-        c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
+        vc = _get_array_item(self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"])
+        a = _get_array_item(self[measured + "/radiance_to_bt_conversion_coefficient_a"])
+        b = _get_array_item(self[measured + "/radiance_to_bt_conversion_coefficient_b"])
+        c1 = _get_array_item(self[measured + "/radiance_to_bt_conversion_constant_c1"])
+        c2 = _get_array_item(self[measured + "/radiance_to_bt_conversion_constant_c2"])
 
         for v in (vc, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
@@ -590,10 +594,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                         measured))
                 return radiance * np.nan
 
-        nom = _get_array_item(c2) * _get_array_item(vc)
-        denom = _get_array_item(a) * np.log(1 + (_get_array_item(c1) * _get_array_item(vc) ** 3) / radiance)
+        nom = c2 * vc
+        denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
 
-        res = nom / denom - _get_array_item(b) / _get_array_item(a)
+        res = nom / denom - b / a
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):

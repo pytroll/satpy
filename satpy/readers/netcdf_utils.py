@@ -20,7 +20,6 @@
 import logging
 
 import dask.array as da
-import h5netcdf
 import netCDF4
 import numpy as np
 import xarray as xr
@@ -313,11 +312,13 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
     """NetCDF4 file handler using fsspec to read files remotely."""
 
     def _get_file_handle(self):
+        import h5netcdf
         f_obj = open_file_or_filename(self.filename)
         return h5netcdf.File(f_obj, 'r')
 
     def _check_variable_type(self, var, cache_var_size):
-        return (isinstance(var, h5netcdf.Variable)
+        from h5netcdf import Variable
+        return (isinstance(var, Variable)
                 and isinstance(var.dtype, np.dtype)  # vlen may be str
                 and np.prod(var.shape) * var.dtype.itemsize < cache_var_size)
 
