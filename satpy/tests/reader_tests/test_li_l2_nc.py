@@ -448,21 +448,22 @@ class TestLIL2():
 
     def test_generate_coords_not_called_on_non_coord_dataset(self, filetype_infos):
         """Test that the method is not called when getting non-coord dataset."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
-        dsid = make_dataid(name='flash_accumulation')
-        handler.generate_coords_from_scan_angles = mock.MagicMock(
-            side_effect=handler.generate_coords_from_scan_angles)
-        handler.get_dataset(dsid)
+        handler = self.generate_coords(filetype_infos,  'li_l2_af_nc', 'flash_accumulation')
         assert not handler.generate_coords_from_scan_angles.called
 
     def test_generate_coords_not_called_on_non_accum_dataset(self, filetype_infos):
         """Test that the method is not called when getting non-accum dataset."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
-        dsid = make_dataid(name='latitude_north_sector')
+        handler = self.generate_coords(filetype_infos, 'li_l2_lef_nc', 'latitude_north_sector')
+        assert not handler.generate_coords_from_scan_angles.called
+
+    def generate_coords(self, filetype_infos, file_type_name, variable_name):
+        """Generate file handler and mimic coordinate generator call."""
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, file_type_name))
+        dsid = make_dataid(name=variable_name)
         handler.generate_coords_from_scan_angles = mock.MagicMock(
             side_effect=handler.generate_coords_from_scan_angles)
         handler.get_dataset(dsid)
-        assert not handler.generate_coords_from_scan_angles.called
+        return handler
 
     def test_generate_coords_called_once(Self, filetype_infos):
         """Test that the method is called only once."""
