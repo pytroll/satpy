@@ -975,3 +975,13 @@ enhancements:
   day_essl_colorized_low_level_moisture:
     standard_name: day_essl_colorized_low_level_moisture
     operations: []
+
+  rocket_plume:
+    standard_name: rocket_plume
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273, 233, 0.]
+          max_stretch: [338, 253, 80.]
