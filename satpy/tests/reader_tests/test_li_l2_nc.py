@@ -77,16 +77,12 @@ class TestLIL2():
             'use_rescaling': False,
         }
 
-        dataset_id = make_dataid(name=dname)
-        res = handler.get_dataset(dataset_id, dataset_info)
+        res = self.get_variable_dataset(dataset_info, dname, handler)
 
         assert res.shape == shape
 
         # Should retrieve content with fullname key:
-        vpath = desc.get('path', var_path)
-        if vpath != "" and vpath[-1] != '/':
-            vpath += '/'
-        full_name = vpath + dname
+        full_name = self.create_fullname_key(desc, var_path, dname)
 
         # Note: 'content' is not recognized as a valid member of the class below
         # since it is silently injected in from our patching fake base netcdf4 file handler class.
@@ -124,22 +120,34 @@ class TestLIL2():
             'use_rescaling': False,
         }
 
-        dataset_id = make_dataid(name=dname)
-        res = handler.get_dataset(dataset_id, dataset_info)
+        res = self.get_variable_dataset(dataset_info, dname, handler)
 
         assert res.shape == shape
 
         # Should retrieve content with fullname key:
-        vpath = desc.get('path', var_path)
-        if vpath != "" and vpath[-1] != '/':
-            vpath += '/'
-        full_name = f"{vpath}{sname}/{vname}"
+        full_name = self.create_fullname_key(desc, var_path, vname, sname=sname)
 
         # Note: 'content' is not recognized as a valid member of the class below
         # since it is silently injected in from our patching fake base netcdf4 file handler class.
         # But for now, we don't need to actually extend the class itself as this is only
         # needed for testing.
         assert np.all(res.values == handler.content[full_name])  # pylint: disable=no-member
+
+    def get_variable_dataset(self, dataset_info, dname, handler):
+        """Get the dataset of a given (sector) variable."""
+        dataset_id = make_dataid(name=dname)
+        res = handler.get_dataset(dataset_id, dataset_info)
+        return res
+
+    def create_fullname_key(self, desc, var_path, vname, sname=''):
+        """Create full name key for sector/non-sector content retrieval."""
+        vpath = desc.get('path', var_path)
+        if vpath != "" and vpath[-1] != '/':
+            vpath += '/'
+        if sname != "":
+            sname += '/'
+        full_name = f"{vpath}{sname}{vname}"
+        return full_name
 
     def _test_dataset_sector_variables(self, settings, ds_desc, handler):
         """Check the loading of the in sector variables."""
