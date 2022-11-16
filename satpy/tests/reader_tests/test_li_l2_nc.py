@@ -105,8 +105,10 @@ class TestLIL2():
             assert vname in all_vars
             self._test_dataset_single_variable(vname, desc, settings, handler)
 
-    def _test_dataset_single_sector_variable(self, sname, vname, desc, settings, handler):
-        """Check the validity of a given variable."""
+    def _test_dataset_single_sector_variable(self, names, desc, settings, handler):
+        """Check the validity of a given sector variable."""
+        sname, vname = names[0], names[1]
+
         dname = f"{vname}_{sname}_sector"
 
         dims = settings.get('dimensions', {})
@@ -151,7 +153,7 @@ class TestLIL2():
             for vname, desc in sector_vars.items():
                 # variable should be in list of dataset:
                 assert vname in all_vars
-                self._test_dataset_single_sector_variable(sname, vname, desc, settings, handler)
+                self._test_dataset_single_sector_variable([sname, vname], desc, settings, handler)
 
     def test_dataset_loading(self, filetype_infos):
         """Test loading of all datasets from all products."""
