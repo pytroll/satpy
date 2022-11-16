@@ -17,6 +17,8 @@
 
 import logging
 
+import dask.array as da
+
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -68,3 +70,54 @@ class GreenCorrector(GenericCompositor):
         new_green = sum(fraction * value for fraction, value in zip(self.fractions, projectables))
         new_green.attrs = combine_metadata(*projectables)
         return super(GreenCorrector, self).__call__((new_green,), **attrs)
+
+
+class NDVIHybridGreen(GenericCompositor):
+    """Construct a hybrid green channel weigthed by NDVI.
+
+    This NDVIHybridGreen correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
+    factor `f` that depends on the pixel-level Normalized Differece Vegetation Index (NDVI). The higher the NDVI, the
+    smaller the contribution from the nir channel will be, following a liner relationship between the two ranges
+    [ndvi_min, ndvi_max] and `fractions`.
+
+    A new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like:
+
+    ndvi_hybrid_green:
+        compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+        fractions: [0.15, 0.05]
+        prerequisites:
+          - name: vis_05
+            modifiers: [sunz_corrected, rayleigh_corrected]
+          - name: vis_08
+            modifiers: [sunz_corrected, rayleigh_corrected]
+        standard_name: toa_bidirectional_reflectance
+
+    In this example, pixels with NDVI=0.0 (default `ndvi_min`) will be a weighted average with 85% contribution from the
+    native green vis_05 channel and 15% from the near-infrared vis_08 channel, whereas pixels with an NDVI=1.0 (default
+    `ndvi_max`) will be a weighted average with 95% contribution from the native green vis_05 channel and 5% from the
+    near-infrared vis_08 channel. For other values of NDVI (within this range) a linear interpolation will be performed.
+    """
+
+    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, fractions=(0.15, 0.05), **kwargs):
+        """Initialize class and set the NDVI limits and the corresponding blending fraction limits."""
+        self.ndvi_min = ndvi_min
+        self.ndvi_max = ndvi_max
+        self.fractions = fractions
+        super(NDVIHybridGreen, self).__init__(*args, **kwargs)
+
+    def __call__(self, projectables, optional_datasets=None, **attrs):
+        """Construct the hybrid green channel weighted  by NDVI."""
+        projectables = self.match_data_arrays(projectables)
+
+        ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
+
+        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
+        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+
+        f = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.fractions[1] - self.fractions[0]) \
+            + self.fractions[0]
+
+        output = (1 - f) * projectables[0] + f * projectables[2]
+        output.attrs = combine_metadata(*projectables)
+
+        return super(NDVIHybridGreen, self).__call__((output,), **attrs)
