@@ -1,10 +1,11 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
 from contextlib import suppress
-from functools import lru_cache
+from functools import cached_property, lru_cache
 
 import dask.array as da
 import numpy as np
 import xarray as xr
+from datatree import DataTree
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -92,17 +93,31 @@ def open_dataset(filename, resolution=1000):
                 ds = ds.rename({lats: "Latitude"})
 
     else:
-        raise ValueError(f"Resolution {resolution} not availble. Available resolutions: 1000, 4000, 8000")
+        raise ValueError(f"Resolution {resolution} not available. Available resolutions: 1000, 4000, 8000")
     return ds
+
+
+def open_datatree(filename):
+    """Open a datatree."""
+    datasets = {}
+    for resolution in [1000, 4000, 8000]:
+        datasets[str(resolution)] = open_dataset(filename, resolution)
+    dt = DataTree.from_dict(datasets)
+    return dt
 
 
 class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     """File handler for insat 3d imager data."""
 
+    @cached_property
+    def datatree(self):
+        """Create the datatree."""
+        return open_datatree(self.filename)
+
     def get_dataset(self, ds_id, ds_info):
         """Get a data array."""
         resolution = ds_id["resolution"]
-        ds = open_dataset(self.filename, resolution=resolution)
+        ds = self.datatree[str(resolution)]
         if ds_id["name"] in ["longitude", "latitude"]:
             darr = ds[ds_id["name"].capitalize()]
 
@@ -125,25 +140,21 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         """Get the area definition."""
         from satpy.readers._geos_area import get_area_definition, get_area_extent
         resolution = ds_id["resolution"]
-        ds = open_dataset(self.filename, resolution=resolution)
+        ds = self.datatree[str(resolution)]
         darr = self.get_dataset(ds_id, None)
         shape = darr.shape
         lines = shape[-2]
         cols = shape[-1]
+
         fov = ds.attrs["Field_of_View(degrees)"]
         cfac = 2 ** 16 / (fov / cols)
         lfac = 2 ** 16 / (fov / lines)
-        # HRV on MSG
-        # lfac = cfac = 40927014
-        a = 6378169.0
-        b = 6356583.8
-        # h = 35785831.0
-        h = 36000000.0
+
+        h = ds.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
-        # a = 6378137.0
-        # b = 6356752.314245
-        # actual height
-        # h = 35778490.219
+        a = 6378137.0
+        b = 6356752.314245
+
         pdict = {
             'cfac': cfac,
             'lfac': lfac,

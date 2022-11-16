@@ -13,6 +13,7 @@ from satpy.readers.insat3d_img_l1b_h5 import (
     Insat3DIMGL1BH5FileHandler,
     get_lonlat_suffix,
     open_dataset,
+    open_datatree,
 )
 from satpy.tests.utils import make_dataid
 
@@ -65,7 +66,7 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
-global_attrs = {"Observer_Altitude(km)": 35778490.219,
+global_attrs = {"Observed_Altitude(km)": 35778490.219,
                 "Field_of_View(degrees)": 17.973925}
 
 
@@ -167,6 +168,13 @@ def test_insat3d_has_global_attributes(insat_filename, resolution):
     """Test that the backend supports global attributes."""
     res = open_dataset(insat_filename, resolution=resolution)
     assert res.attrs.items() >= global_attrs.items()
+
+
+@pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
+def test_insat3d_opens_datatree(insat_filename, resolution):
+    """Test that a datatree is produced."""
+    res = open_datatree(insat_filename)
+    assert str(resolution) in res.keys()
 
 
 @pytest.mark.parametrize("calibration,expected_values",
