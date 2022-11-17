@@ -204,21 +204,31 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get end time."""
         return self.filename_info['end_time']
 
+    def get_channel_measured_group_path(self, channel):
+        """Get the channel's measured group path."""
+        if self.filetype_info['file_type'] == 'fci_l1c_hrfi':
+            channel += '_hr'
+        measured_group_path = 'data/{}/measured'.format(channel)
+
+        return measured_group_path
+
     def get_segment_position_info(self):
         """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
 
         This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
+        vis_06_measured_path = self.get_channel_measured_group_path('vis_06')
+        ir_105_measured_path = self.get_channel_measured_group_path('ir_105')
         segment_position_info = {
-            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
-                    self['data/vis_04/measured/start_position_row'].item() + 1,
+            '1km': {'start_position_row': self[vis_06_measured_path+'/start_position_row'].item(),
+                    'end_position_row': self[vis_06_measured_path+'/end_position_row'].item(),
+                    'segment_height': self[vis_06_measured_path+'/end_position_row'].item() -
+                    self[vis_06_measured_path+'/start_position_row'].item() + 1,
                     'segment_width': 11136},
-            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
-                    self['data/ir_105/measured/start_position_row'].item() + 1,
+            '2km': {'start_position_row': self[ir_105_measured_path+'/start_position_row'].item(),
+                    'end_position_row': self[ir_105_measured_path+'/end_position_row'].item(),
+                    'segment_height': self[ir_105_measured_path+'/end_position_row'].item() -
+                    self[ir_105_measured_path+'/start_position_row'].item() + 1,
                     'segment_width': 5568}
         }
 
@@ -386,13 +396,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         return aux
 
-    @staticmethod
-    def get_channel_measured_group_path(channel):
-        """Get the channel's measured group path."""
-        measured_group_path = 'data/{}/measured'.format(channel)
-
-        return measured_group_path
-
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
         # if a user requests a pixel quality or index map before the channel data, the
@@ -412,7 +415,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         extents = {}
         for coord in "xy":
-            coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
+            coord_radian = self[measured + "/{:s}".format(coord)]
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
             if coord == "x" and coord_radian.scale_factor > 0:
