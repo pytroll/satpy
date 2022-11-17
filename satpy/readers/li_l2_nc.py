@@ -17,13 +17,15 @@
 
 This reader supports reading all the products from the LI L2
 processing level:
+
   * L2-LE
   * L2-LGR
   * L2-AFA
   * L2-LEF
-  + L2-LFL
+  * L2-LFL
   * L2-AF
   * L2-AFR
+
 """
 
 import logging

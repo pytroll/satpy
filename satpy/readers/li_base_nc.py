@@ -47,6 +47,7 @@ Each of those description entries may contain the following elements:
   The LI reader will use a ``SwathDefinition`` object to define
   the area/coordinates of each of the provided datasets depending on the
   content of this entry. The user can either:
+
     - Specify a
       ``swath_coordinates`` entry directly with
       ``latitude`` and ``longitude`` entries, in which
@@ -105,6 +106,7 @@ Each of those description entries may contain the following elements:
   to provide our LI reader with the following traits which
   will then be used to \"transform\" the data of the dataset as requested
   on loading:
+
     - ``broadcast_to``: if this extra info is found in a
       dataset_info on dataset loading, then the initial data array will be
       broadcast to the shape of the variable found under the variable path
