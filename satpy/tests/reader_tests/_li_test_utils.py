@@ -36,159 +36,90 @@ TYPE_MAP = {
 }
 
 
-def l2_af_schema(settings=None):
-    """Define schema for LI L2 AF product."""
+def l2_le_schema(settings=None):
+    """Define schema for LI L2 LE product."""
     settings = settings or {}
-    nobs = settings.get("num_obs", 1234)
+    nobs = settings.get("num_obs", 123)
+    nchunks = settings.get("num_chunks", 23)
+    nfilters = settings.get("num_filters", 2)
+
+    def rand_u16(num):
+        return np.random.randint(low=0, high=np.iinfo(np.uint16).max - 1, size=num, dtype=np.uint16)
 
     return {
         'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
+        'variable_path': settings.get('variable_path', 'data/'),
         'dimensions': {
-            'accumulations': 1,
-            'pixels': nobs,
+            'unfiltered_events': nobs,
+            'l1b_chunks': nchunks,
+            'l1b_offsets': nchunks,
+            'filters': nfilters,
+            'scalar': 1,
         },
-        'variables': {
-            "accumulation_offsets": {
+        'variables': {},
+        'sector_variables': {
+            "event_id": {
+                "format": "u2",
+                "shape": ('unfiltered_events',),
+                "fill_value": 65535,
+                "long_name": "ID of LI L2 Event",
+                "default_data": lambda: rand_u16(nobs)
+            },
+            "group_id": {
+                "format": "u2",
+                "shape": ('unfiltered_events',),
+                "fill_value": 65535,
+                "long_name": "ID of associated LI L2 Group object",
+                "default_data": lambda: rand_u16(nobs)
+            },
+            "l1b_chunk_ids": {
                 "format": "u4",
-                "shape": ('accumulations',),
-                "default_data": lambda: 0
+                "shape": ('l1b_chunks',),
+                "fill_value": 4294967295,
+                "long_name": "Array of L1b event chunk IDs",
+                "default_data": lambda: np.arange(nchunks) + 10000
             },
-            "accumulation_start_times": {
+            "l1b_chunk_offsets": {
+                "format": "u4",
+                "shape": ('l1b_offsets',),
+                "fill_value": 4294967295,
+                "long_name": "Array offset for L1b event chunk boundaries",
+                "default_data": lambda: np.arange(nchunks)
+            },
+            "l1b_window": {
+                "format": "u4",
+                "shape": ('unfiltered_events',),
+                "fill_value": 4294967295,
+                "long_name": "window index of associated L1b event",
+                "default_data": lambda: np.random.randint(low=1, high=1170, size=(nobs), dtype=np.int16)
+            },
+            "filter_values": {
+                "format": "u1",
+                "shape": ('unfiltered_events', 'filters',),
+                "fill_value": 255,
+                "scale_factor": 0.004,
+                "add_offset": 0.0,
+                "long_name": "L2 filter results",
+                "default_data": lambda: np.random.randint(low=0, high=255, size=(nobs, nfilters), dtype=np.uint8)
+            },
+            "epoch_time": {
                 "format": "f8",
-                "shape": ('accumulations',),
-                "default_data": lambda: 4.25055600161e8
+                "shape": ('scalar',),
+                "fill_value": 9.96920996886869e36,
+                "long_name": "Start time of integration frame",
+                "default_data": lambda: 1.234,
+                'precision': '1 millisecond',
+                'time_standard': 'UTC',
+                'standard_name': 'time',
+                'units': 'seconds since 2000-01-01 00:00:00.0',
             },
-            "l1b_geolocation_warning": {
-                "format": "i1",
-                "shape": ('accumulations',),
-                "long_name": "L1b geolocation warning",
-                "default_data": lambda: -127
-            },
-            "l1b_radiometric_warning": {
-                "format": "i1",
-                "shape": ('accumulations',),
-                "long_name": "L1b radiometric warning",
-                "default_data": lambda: -127
-            },
-            "average_flash_qa": {
-                "format": "i1",
-                "shape": ('accumulations',),
-                "default_data": lambda: 23
-            },
-            "flash_accumulation": {
-                "format": "u2",
-                "shape": ('pixels',),
-                "default_data": lambda: np.clip(np.round(np.random.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
-            },
-            "mtg_geos_projection": {
-                "format": "i4",
-                "shape": ('accumulations',),
-                "grid_mapping_name": 'geostationary',
-                "inverse_flattening": 298.2572221,
-                "latitude_of_projection_origin": 0,
-                "longitude_of_projection_origin": 0,
-                "perspective_point_height": 42164000,
-                "semi_major_axis": 6378169,
-                "semi_minor_axis": 6356583.8,
-                "sweep_angle_axis": 'y',
-                "long_name": 'MTG geostationary projection',
-                "default_data": lambda: -2147483647
-            },
-            "x": {
-                "format": "u2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'X',
-                "long_name": 'azimuth angle encoded as column',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_x_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
-            "y": {
-                "format": "u2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'Y',
-                "long_name": 'zenith angle encoded as row',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_y_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
-        }
-    }
-
-
-def l2_afr_schema(settings=None):
-    """Define schema  for LI L2 AFR product."""
-    settings = settings or {}
-    nobs = settings.get("num_obs", 120)
-    nacc = settings.get("num_accumulations", 20)
-
-    return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'accumulations': nacc,
-            'pixels': nobs,
-        },
-        'variables': {
-            "flash_radiance": {
+            "time_offset": {
                 "format": "f4",
-                "shape": ('pixels',),
-                "long_name": "Area averaged flash radiance accumulation",
-                "grid_mapping": "mtg_geos_projection",
-                "coordinate": "sparse: x y",
-                "default_data": lambda: np.random.randint(low=1, high=6548, size=(120), dtype=np.int16)
-            },
-            "accumulation_start_times": {
-                "format": "f4",
-                "shape": ('accumulations',),
-                "long_name": "Accumulation start time",
-                "units": "seconds since 2000-01-01 00:00:00.0",
-                "default_data": lambda: 0
-            },
-            "mtg_geos_projection": {
-                "format": "i4",
-                "shape": ('accumulations',),
-                "grid_mapping_name": 'geostationary',
-                "inverse_flattening": 298.2572221,
-                "latitude_of_projection_origin": 0,
-                "longitude_of_projection_origin": 0,
-                "perspective_point_height": 42164000,
-                "semi_major_axis": 6378169,
-                "semi_minor_axis": 6356583.8,
-                "sweep_angle_axis": 'y',
-                "long_name": 'MTG geostationary projection',
-                "default_data": lambda: -2147483647
-            },
-            "x": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'X',
-                "long_name": 'azimuth angle encoded as column',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_x_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
-            "y": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'Y',
-                "long_name": 'zenith angle encoded as row',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_y_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
+                "shape": ('unfiltered_events',),
+                "fill_value": 9.96921e36,
+                "long_name": "Time offset from epoch time",
+                "default_data": lambda: np.linspace(0.0, 1000.0, nobs),
+                'units': 'seconds',
             },
         }
     }
@@ -321,6 +252,36 @@ def l2_lef_schema(settings=None):
     }
 
 
+def l2_lgr_schema(settings=None):
+    """Define schema for LI L2 LGR product."""
+    settings = settings or {}
+    ngrps = settings.get("num_groups", 120)
+
+    return {
+        'providers': settings.get('providers', {}),
+        'variable_path': settings.get('variable_path', ''),
+        'dimensions': {
+            'groups': ngrps,
+        },
+        'variables': {
+            "latitude": {
+                "format": "f4",
+                "shape": ('groups',),
+                "long_name": "Latitude of group",
+                "units": "degrees_north",
+                "default_data": lambda: np.linspace(-90, 90, ngrps)
+            },
+            "longitude": {
+                "format": "f4",
+                "shape": ('groups',),
+                "long_name": "Longitude of group",
+                "units": "degrees_east",
+                "default_data": lambda: np.linspace(-180, 80, ngrps)
+            },
+        }
+    }
+
+
 def l2_lfl_schema(settings=None):
     """Define schema for LI L2 LFL product."""
     settings = settings or {}
@@ -436,6 +397,93 @@ def l2_lfl_schema(settings=None):
     }
 
 
+def l2_af_schema(settings=None):
+    """Define schema for LI L2 AF product."""
+    settings = settings or {}
+    nobs = settings.get("num_obs", 1234)
+
+    return {
+        'providers': settings.get('providers', {}),
+        'variable_path': settings.get('variable_path', ''),
+        'dimensions': {
+            'accumulations': 1,
+            'pixels': nobs,
+        },
+        'variables': {
+            "accumulation_offsets": {
+                "format": "u4",
+                "shape": ('accumulations',),
+                "default_data": lambda: 0
+            },
+            "accumulation_start_times": {
+                "format": "f8",
+                "shape": ('accumulations',),
+                "default_data": lambda: 4.25055600161e8
+            },
+            "l1b_geolocation_warning": {
+                "format": "i1",
+                "shape": ('accumulations',),
+                "long_name": "L1b geolocation warning",
+                "default_data": lambda: -127
+            },
+            "l1b_radiometric_warning": {
+                "format": "i1",
+                "shape": ('accumulations',),
+                "long_name": "L1b radiometric warning",
+                "default_data": lambda: -127
+            },
+            "average_flash_qa": {
+                "format": "i1",
+                "shape": ('accumulations',),
+                "default_data": lambda: 23
+            },
+            "flash_accumulation": {
+                "format": "u2",
+                "shape": ('pixels',),
+                "default_data": lambda: np.clip(np.round(np.random.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
+            },
+            "mtg_geos_projection": {
+                "format": "i4",
+                "shape": ('accumulations',),
+                "grid_mapping_name": 'geostationary',
+                "inverse_flattening": 298.2572221,
+                "latitude_of_projection_origin": 0,
+                "longitude_of_projection_origin": 0,
+                "perspective_point_height": 42164000,
+                "semi_major_axis": 6378169,
+                "semi_minor_axis": 6356583.8,
+                "sweep_angle_axis": 'y',
+                "long_name": 'MTG geostationary projection',
+                "default_data": lambda: -2147483647
+            },
+            "x": {
+                "format": "u2",
+                "shape": ('pixels',),
+                "add_offset": -0.155619516,
+                "axis": 'X',
+                "long_name": 'azimuth angle encoded as column',
+                "scale_factor": 5.58878e-5,
+                "standard_name": 'projection_x_coordinate',
+                "units": 'radian',
+                "valid_range": np.asarray([1, 5568]),
+                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
+            },
+            "y": {
+                "format": "u2",
+                "shape": ('pixels',),
+                "add_offset": -0.155619516,
+                "axis": 'Y',
+                "long_name": 'zenith angle encoded as row',
+                "scale_factor": 5.58878e-5,
+                "standard_name": 'projection_y_coordinate',
+                "units": 'radian',
+                "valid_range": np.asarray([1, 5568]),
+                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
+            },
+        }
+    }
+
+
 def l2_afa_schema(settings=None):
     """Define schema for LI L2 AFA product."""
     settings = settings or {}
@@ -506,133 +554,85 @@ def l2_afa_schema(settings=None):
     }
 
 
-def l2_lgr_schema(settings=None):
-    """Define schema for LI L2 LGR product."""
+def l2_afr_schema(settings=None):
+    """Define schema  for LI L2 AFR product."""
     settings = settings or {}
-    ngrps = settings.get("num_groups", 120)
+    nobs = settings.get("num_obs", 120)
+    nacc = settings.get("num_accumulations", 20)
 
     return {
         'providers': settings.get('providers', {}),
         'variable_path': settings.get('variable_path', ''),
         'dimensions': {
-            'groups': ngrps,
+            'accumulations': nacc,
+            'pixels': nobs,
         },
         'variables': {
-            "latitude": {
+            "flash_radiance": {
                 "format": "f4",
-                "shape": ('groups',),
-                "long_name": "Latitude of group",
-                "units": "degrees_north",
-                "default_data": lambda: np.linspace(-90, 90, ngrps)
+                "shape": ('pixels',),
+                "long_name": "Area averaged flash radiance accumulation",
+                "grid_mapping": "mtg_geos_projection",
+                "coordinate": "sparse: x y",
+                "default_data": lambda: np.random.randint(low=1, high=6548, size=(120), dtype=np.int16)
             },
-            "longitude": {
+            "accumulation_start_times": {
                 "format": "f4",
-                "shape": ('groups',),
-                "long_name": "Longitude of group",
-                "units": "degrees_east",
-                "default_data": lambda: np.linspace(-180, 80, ngrps)
+                "shape": ('accumulations',),
+                "long_name": "Accumulation start time",
+                "units": "seconds since 2000-01-01 00:00:00.0",
+                "default_data": lambda: 0
             },
-        }
-    }
-
-
-def l2_le_schema(settings=None):
-    """Define schema for LI L2 LE product."""
-    settings = settings or {}
-    nobs = settings.get("num_obs", 123)
-    nchunks = settings.get("num_chunks", 23)
-    nfilters = settings.get("num_filters", 2)
-
-    def rand_u16(num):
-        return np.random.randint(low=0, high=np.iinfo(np.uint16).max - 1, size=num, dtype=np.uint16)
-
-    return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', 'data/'),
-        'dimensions': {
-            'unfiltered_events': nobs,
-            'l1b_chunks': nchunks,
-            'l1b_offsets': nchunks,
-            'filters': nfilters,
-            'scalar': 1,
-        },
-        'variables': {},
-        'sector_variables': {
-            "event_id": {
-                "format": "u2",
-                "shape": ('unfiltered_events',),
-                "fill_value": 65535,
-                "long_name": "ID of LI L2 Event",
-                "default_data": lambda: rand_u16(nobs)
+            "mtg_geos_projection": {
+                "format": "i4",
+                "shape": ('accumulations',),
+                "grid_mapping_name": 'geostationary',
+                "inverse_flattening": 298.2572221,
+                "latitude_of_projection_origin": 0,
+                "longitude_of_projection_origin": 0,
+                "perspective_point_height": 42164000,
+                "semi_major_axis": 6378169,
+                "semi_minor_axis": 6356583.8,
+                "sweep_angle_axis": 'y',
+                "long_name": 'MTG geostationary projection',
+                "default_data": lambda: -2147483647
             },
-            "group_id": {
-                "format": "u2",
-                "shape": ('unfiltered_events',),
-                "fill_value": 65535,
-                "long_name": "ID of associated LI L2 Group object",
-                "default_data": lambda: rand_u16(nobs)
+            "x": {
+                "format": "i2",
+                "shape": ('pixels',),
+                "add_offset": -0.155619516,
+                "axis": 'X',
+                "long_name": 'azimuth angle encoded as column',
+                "scale_factor": 5.58878e-5,
+                "standard_name": 'projection_x_coordinate',
+                "units": 'radian',
+                "valid_range": np.asarray([1, 5568]),
+                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
             },
-            "l1b_chunk_ids": {
-                "format": "u4",
-                "shape": ('l1b_chunks',),
-                "fill_value": 4294967295,
-                "long_name": "Array of L1b event chunk IDs",
-                "default_data": lambda: np.arange(nchunks) + 10000
-            },
-            "l1b_chunk_offsets": {
-                "format": "u4",
-                "shape": ('l1b_offsets',),
-                "fill_value": 4294967295,
-                "long_name": "Array offset for L1b event chunk boundaries",
-                "default_data": lambda: np.arange(nchunks)
-            },
-            "l1b_window": {
-                "format": "u4",
-                "shape": ('unfiltered_events',),
-                "fill_value": 4294967295,
-                "long_name": "window index of associated L1b event",
-                "default_data": lambda: np.random.randint(low=1, high=1170, size=(nobs), dtype=np.int16)
-            },
-            "filter_values": {
-                "format": "u1",
-                "shape": ('unfiltered_events', 'filters',),
-                "fill_value": 255,
-                "scale_factor": 0.004,
-                "add_offset": 0.0,
-                "long_name": "L2 filter results",
-                "default_data": lambda: np.random.randint(low=0, high=255, size=(nobs, nfilters), dtype=np.uint8)
-            },
-            "epoch_time": {
-                "format": "f8",
-                "shape": ('scalar',),
-                "fill_value": 9.96920996886869e36,
-                "long_name": "Start time of integration frame",
-                "default_data": lambda: 1.234,
-                'precision': '1 millisecond',
-                'time_standard': 'UTC',
-                'standard_name': 'time',
-                'units': 'seconds since 2000-01-01 00:00:00.0',
-            },
-            "time_offset": {
-                "format": "f4",
-                "shape": ('unfiltered_events',),
-                "fill_value": 9.96921e36,
-                "long_name": "Time offset from epoch time",
-                "default_data": lambda: np.linspace(0.0, 1000.0, nobs),
-                'units': 'seconds',
+            "y": {
+                "format": "i2",
+                "shape": ('pixels',),
+                "add_offset": -0.155619516,
+                "axis": 'Y',
+                "long_name": 'zenith angle encoded as row',
+                "scale_factor": 5.58878e-5,
+                "standard_name": 'projection_y_coordinate',
+                "units": 'radian',
+                "valid_range": np.asarray([1, 5568]),
+                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
             },
         }
     }
 
 
 product_schemas = {
-    '2-AF': l2_af_schema,
-    '2-AFR': l2_afr_schema,
-    '2-LEF': l2_lef_schema,
-    '2-LFL': l2_lfl_schema,
-    '2-AFA': l2_afa_schema,
-    '2-LGR': l2_lgr_schema,
     '2-LE': l2_le_schema,
+    '2-LEF': l2_lef_schema,
+    '2-LGR': l2_lgr_schema,
+    '2-LFL': l2_lfl_schema,
+    '2-AF': l2_af_schema,
+    '2-AFA': l2_afa_schema,
+    '2-AFR': l2_afr_schema,
 }
 
 
