@@ -571,13 +571,7 @@ class TestLIL2():
 
     def test_with_area_def(self, filetype_infos):
         """Test accumulated products data array with area definition."""
-        # Note: we need a test param provider here to ensure we write the same values for both handlers below:
-        FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
-
-        # with area definition
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'),
-                                    with_area_definition=True)
-
+        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
         dsid = make_dataid(name="flash_accumulation")
         # Retrieve the 2D array:
         arr = handler.get_dataset(dsid).values
@@ -597,15 +591,19 @@ class TestLIL2():
 
     def test_with_area_def_vars_with_no_pattern(self, filetype_infos):
         """Test accumulated products variable with no patterns and with area definition."""
-        # with area definition
-        FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
-
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'),
-                                    with_area_definition=True)
-
+        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
         # variable with no patterns
         dsid = make_dataid(name="accumulation_offsets")
         assert handler.get_dataset(dsid).shape == (1,)
+
+    def handler_with_area(self, filetype_infos, product_name):
+        """Create handler with area definition."""
+        # Note: we need a test param provider here to ensure we write the same values for both handlers below:
+        FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
+        # with area definition
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, product_name),
+                                    with_area_definition=True)
+        return handler
 
     def test_with_area_def_pixel_placement(self, filetype_infos):
         """Test the placements of pixel value with area definition."""
