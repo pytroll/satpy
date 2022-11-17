@@ -39,6 +39,7 @@ def decode_lut_arr(arr, lut):
     attrs["long_name"] = lut_attrs["long_name"]
     new_darr = da.map_blocks(apply_lut, arr.data, lut=np.asanyarray(lut), dtype=dtype)
     new_arr = xr.DataArray(new_darr, dims=arr.dims, attrs=attrs, coords=arr.coords)
+    new_arr = new_arr.where(arr.data != attrs["_FillValue"])
     return new_arr
 
 

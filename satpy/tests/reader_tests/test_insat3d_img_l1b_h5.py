@@ -27,6 +27,7 @@ alb_units = "%"
 temp_units = "K"
 chunks_1km = (1, 46, 1126)
 values_1km = np.random.randint(0, 1000, shape_1km, dtype=np.uint16)
+values_1km[0, 0, 0] = 0
 values_4km = np.random.randint(0, 1000, shape_4km, dtype=np.uint16)
 values_8km = np.random.randint(0, 1000, shape_8km, dtype=np.uint16)
 
@@ -93,6 +94,11 @@ def insat_filename(tmp_path_factory):
     return filename
 
 
+def mask_array(array):
+    """Mask an array with nan instead of 0."""
+    return np.where(array == 0, np.nan, array)
+
+
 def _create_channels(channels, h5f, resolution):
     for channel in channels:
         var_name = "IMG_" + channel.upper()
@@ -127,16 +133,20 @@ def test_insat3d_backend_has_1km_channels(insat_filename):
 
 
 @pytest.mark.parametrize("resolution,name,shape,expected_values,expected_name,expected_units",
-                         [(1000, "IMG_VIS_RADIANCE", shape_1km, values_1km * 2, "Visible Radiance", rad_units),
-                          (1000, "IMG_VIS_ALBEDO", shape_1km, values_1km * 3, "Visible Albedo", alb_units),
-                          (4000, "IMG_MIR_RADIANCE", shape_4km, values_4km * 2, "Middle Infrared Radiance", rad_units),
-                          (4000, "IMG_MIR_TEMP", shape_4km, values_4km * 3, "Middle Infrared Brightness Temperature",
-                           temp_units),
-                          (4000, "IMG_TIR1_RADIANCE", shape_4km, values_4km * 2, "Thermal Infrared1 Radiance",
-                           rad_units),
-                          (4000, "IMG_TIR2_RADIANCE", shape_4km, values_4km * 2, "Thermal Infrared2 Radiance",
-                           rad_units),
-                          (8000, "IMG_WV_RADIANCE", shape_8km, values_8km * 2, "Water Vapor Radiance", rad_units),
+                         [(1000, "IMG_VIS_RADIANCE", shape_1km, mask_array(values_1km * 2),
+                           "Visible Radiance", rad_units),
+                          (1000, "IMG_VIS_ALBEDO", shape_1km, mask_array(values_1km * 3),
+                           "Visible Albedo", alb_units),
+                          (4000, "IMG_MIR_RADIANCE", shape_4km, mask_array(values_4km * 2),
+                           "Middle Infrared Radiance", rad_units),
+                          (4000, "IMG_MIR_TEMP", shape_4km, mask_array(values_4km * 3),
+                           "Middle Infrared Brightness Temperature", temp_units),
+                          (4000, "IMG_TIR1_RADIANCE", shape_4km, mask_array(values_4km * 2),
+                           "Thermal Infrared1 Radiance", rad_units),
+                          (4000, "IMG_TIR2_RADIANCE", shape_4km, mask_array(values_4km * 2),
+                           "Thermal Infrared2 Radiance", rad_units),
+                          (8000, "IMG_WV_RADIANCE", shape_8km, mask_array(values_8km * 2),
+                           "Water Vapor Radiance", rad_units),
                           ])
 def test_insat3d_has_calibrated_arrays(insat_filename,
                                        resolution, name, shape, expected_values, expected_name, expected_units):
@@ -194,8 +204,8 @@ def test_insat3d_datatree_has_global_attributes(insat_filename):
 
 @pytest.mark.parametrize("calibration,expected_values",
                          [("counts", values_1km),
-                          ("radiance", values_1km * 2),
-                          ("reflectance", values_1km * 3)])
+                          ("radiance", mask_array(values_1km * 2)),
+                          ("reflectance", mask_array(values_1km * 3))])
 def test_filehandler_returns_data_array(insat_filehandler, calibration, expected_values):
     """Test that the filehandler can get dataarrays."""
     fh = insat_filehandler
@@ -205,6 +215,16 @@ def test_filehandler_returns_data_array(insat_filehandler, calibration, expected
     darr = fh.get_dataset(ds_id, ds_info)
     np.testing.assert_allclose(darr, expected_values)
     assert darr.dims == ("time", "y", "x")
+
+
+def test_filehandler_returns_masked_data_in_space(insat_filehandler):
+    """Test that the filehandler masks space pixels."""
+    fh = insat_filehandler
+    ds_info = None
+
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    darr = fh.get_dataset(ds_id, ds_info)
+    assert np.isnan(darr[0, 0, 0])
 
 
 def test_filehandler_returns_coords(insat_filehandler):
@@ -247,11 +267,13 @@ def test_satpy_load_array(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
     scn.load(["VIS"])
-    np.testing.assert_allclose(scn["VIS"], values_1km * 3)
+    expected = mask_array(values_1km * 3)
+    np.testing.assert_allclose(scn["VIS"], expected)
 
 
 def test_satpy_load_two_arrays(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
     scn.load(["TIR1", "WV"])
-    np.testing.assert_allclose(scn["TIR1"], values_4km * 3)
+    expected = mask_array(values_4km * 3)
+    np.testing.assert_allclose(scn["TIR1"], expected)
