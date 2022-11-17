@@ -154,6 +154,10 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             ncols=self.ncols,
             projection_longitude=self.projection_longitude
         )
+        self.reader.mda.update({
+            'segment_sequence_number': 18,
+            'planned_start_segment_number': 1
+        })
 
     def _get_fake_data(self):
         return xr.DataArray(
@@ -209,7 +213,9 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         res = self.reader.get_dataset(key, info)
 
         # Test method calls
-        expected = data.copy()
+        new_data = np.zeros_like(data.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = data.copy(data=new_data)
         expected['acq_time'] = (
             'y',
             setup.get_acq_time_exp(self.start_time, self.nlines)
@@ -382,9 +388,9 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         }
         mda = {
             'image_segment_line_quality': {
-                'line_validity': np.zeros(2),
-                'line_radiometric_quality': np.zeros(2),
-                'line_geometric_quality': np.zeros(2)
+                'line_validity': np.array([3, 3]),
+                'line_radiometric_quality': np.array([3, 3]),
+                'line_geometric_quality': np.array([3, 3])
             },
         }
 
@@ -495,9 +501,9 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         )
 
         fh = file_handler
-        fh.mda['image_segment_line_quality']['line_validity'] = np.array([3, 3])
-        fh.mda['image_segment_line_quality']['line_radiometric_quality'] = np.array([3, 3])
-        fh.mda['image_segment_line_quality']['line_geometric_quality'] = np.array([3, 3])
+        # fh.mda['image_segment_line_quality']['line_validity'] = np.array([3, 3])
+        # fh.mda['image_segment_line_quality']['line_radiometric_quality'] = np.array([3, 3])
+        # fh.mda['image_segment_line_quality']['line_geometric_quality'] = np.array([3, 3])
         fh.channel_name = channel
         fh.calib_mode = calib_mode
         fh.ext_calib_coefs = external_coefs
