@@ -450,3 +450,60 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
 
         res = fh.calibrate(counts, calibration)
         xr.testing.assert_allclose(res, expected)
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration', 'calib_mode', 'use_ext_coefs'),
+        [
+            # VIS channel, internal coefficients
+            ('VIS006', 'counts', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'GSICS', False),
+            ('VIS006', 'reflectance', 'NOMINAL', False),
+            # VIS channel, external coefficients (mode should have no effect)
+            ('VIS006', 'radiance', 'GSICS', True),
+            ('VIS006', 'reflectance', 'NOMINAL', True),
+            # IR channel, internal coefficients
+            ('IR_108', 'counts', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'GSICS', False),
+            ('IR_108', 'brightness_temperature', 'NOMINAL', False),
+            ('IR_108', 'brightness_temperature', 'GSICS', False),
+            # IR channel, external coefficients (mode should have no effect)
+            ('IR_108', 'radiance', 'NOMINAL', True),
+            ('IR_108', 'brightness_temperature', 'GSICS', True),
+            # HRV channel, internal coefficiens
+            ('HRV', 'counts', 'NOMINAL', False),
+            ('HRV', 'radiance', 'NOMINAL', False),
+            ('HRV', 'radiance', 'GSICS', False),
+            ('HRV', 'reflectance', 'NOMINAL', False),
+            # HRV channel, external coefficients (mode should have no effect)
+            ('HRV', 'radiance', 'GSICS', True),
+            ('HRV', 'reflectance', 'NOMINAL', True),
+        ]
+    )
+    def test_mask_bad_quality(
+            self, file_handler, counts, channel, calibration, calib_mode,
+            use_ext_coefs
+    ):
+        """Test the masking of bad quality scan lines."""
+        external_coefs = self.external_coefs if use_ext_coefs else {}
+        expected = self._get_expected(
+            channel=channel,
+            calibration=calibration,
+            calib_mode=calib_mode,
+            use_ext_coefs=use_ext_coefs
+        )
+
+        fh = file_handler
+        fh.mda['image_segment_line_quality']['line_validity'] = np.array([3, 3])
+        fh.mda['image_segment_line_quality']['line_radiometric_quality'] = np.array([3, 3])
+        fh.mda['image_segment_line_quality']['line_geometric_quality'] = np.array([3, 3])
+        fh.channel_name = channel
+        fh.calib_mode = calib_mode
+        fh.ext_calib_coefs = external_coefs
+
+        res = fh._mask_bad_quality(expected)
+        new_data = np.zeros_like(expected.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = expected.copy(data=new_data)
+        xr.testing.assert_allclose(res, expected)
