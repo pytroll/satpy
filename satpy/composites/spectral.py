@@ -122,7 +122,7 @@ class NDVIHybridGreen(SpectralBlender):
 
     ndvi_hybrid_green:
         compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
-        fractions: [0.15, 0.05]
+        limits: [0.15, 0.05]
         prerequisites:
           - name: vis_05
             modifiers: [sunz_corrected, rayleigh_corrected]
@@ -144,7 +144,7 @@ class NDVIHybridGreen(SpectralBlender):
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
-        """Construct the hybrid green channel weighted  by NDVI."""
+        """Construct the hybrid green channel weighted by NDVI."""
         ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
 
         ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
