@@ -680,6 +680,7 @@ class FSFile(os.PathLike):
             fs (fsspec filesystem, optional)
                 Object implementing the fsspec filesystem protocol.
         """
+        self._fs_open_kwargs = _get_fs_open_kwargs(file)
         try:
             self._file = file.path
             self._fs = file.fs
@@ -704,10 +705,17 @@ class FSFile(os.PathLike):
 
         This is read-only.
         """
+        fs_open_kwargs = self._update_with_fs_open_kwargs(kwargs)
         try:
-            return self._fs.open(self._file, *args, **kwargs)
+            return self._fs.open(self._file, *args, **fs_open_kwargs)
         except AttributeError:
             return open(self._file, *args, **kwargs)
+
+    def _update_with_fs_open_kwargs(self, user_kwargs):
+        """Complement keyword arguments for opening a file via file system."""
+        kwargs = user_kwargs.copy()
+        kwargs.update(self._fs_open_kwargs)
+        return kwargs
 
     def __lt__(self, other):
         """Implement ordering.
@@ -745,6 +753,23 @@ class FSFile(os.PathLike):
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
             fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
+
+
+def _get_fs_open_kwargs(file):
+    """Get keyword arguments for opening a file via file system.
+
+    For example compression.
+    """
+    return {
+        "compression": _get_compression(file)
+    }
+
+
+def _get_compression(file):
+    try:
+        return file.compression
+    except AttributeError:
+        return None
 
 
 def open_file_or_filename(unknown_file_thing):
