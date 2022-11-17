@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2021 Satpy developers
 #
 # This file is part of satpy.
@@ -31,13 +29,7 @@ from functools import reduce
 
 import numpy as np
 
-from satpy.readers.olci_nc import (
-    NCOLCIBase,
-    NCOLCI2,
-    NCOLCIAngles,
-    NCOLCIMeteo,
-    BitFlags,
-)
+from satpy.readers.olci_nc import NCOLCI2, BitFlags, NCOLCIAngles, NCOLCIBase, NCOLCIMeteo
 
 logger = logging.getLogger(__name__)
 
