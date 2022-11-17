@@ -73,10 +73,12 @@ end_time = datetime(2009, 6, 9, 9, 30)
 
 time_pattern = "%d-%b-%YT%H:%M:%S"
 
-global_attrs = {"Observed_Altitude(km)": 35778490.219,
+global_attrs = {"Observed_Altitude(km)": 35778.490219,
                 "Field_of_View(degrees)": 17.973925,
                 "Acquisition_Start_Time": start_time.strftime(time_pattern),
-                "Acquisition_End_Time": end_time.strftime(time_pattern)
+                "Acquisition_End_Time": end_time.strftime(time_pattern),
+                "Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude": [0.0, 82.0],
+                "Nominal_Altitude(km)": 36000.0,
                 }
 
 
@@ -186,7 +188,7 @@ def test_insat3d_returns_lonlat(insat_filename, resolution):
 def test_insat3d_has_global_attributes(insat_filename, resolution):
     """Test that the backend supports global attributes."""
     res = open_dataset(insat_filename, resolution=resolution)
-    assert res.attrs.items() >= global_attrs.items()
+    assert res.attrs.keys() >= global_attrs.keys()
 
 
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
@@ -199,7 +201,7 @@ def test_insat3d_opens_datatree(insat_filename, resolution):
 def test_insat3d_datatree_has_global_attributes(insat_filename):
     """Test that the backend supports global attributes in the datatree."""
     res = open_datatree(insat_filename)
-    assert res.attrs.items() >= global_attrs.items()
+    assert res.attrs.keys() >= global_attrs.keys()
 
 
 @pytest.mark.parametrize("calibration,expected_values",
@@ -213,8 +215,8 @@ def test_filehandler_returns_data_array(insat_filehandler, calibration, expected
 
     ds_id = make_dataid(name="VIS", resolution=1000, calibration=calibration)
     darr = fh.get_dataset(ds_id, ds_info)
-    np.testing.assert_allclose(darr, expected_values)
-    assert darr.dims == ("time", "y", "x")
+    np.testing.assert_allclose(darr, expected_values.squeeze())
+    assert darr.dims == ("y", "x")
 
 
 def test_filehandler_returns_masked_data_in_space(insat_filehandler):
@@ -224,7 +226,24 @@ def test_filehandler_returns_masked_data_in_space(insat_filehandler):
 
     ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
     darr = fh.get_dataset(ds_id, ds_info)
-    assert np.isnan(darr[0, 0, 0])
+    assert np.isnan(darr[0, 0])
+
+
+def test_insat3d_has_orbital_parameters(insat_filehandler):
+    """Test that the filehandler returns data with orbital parameter attributes."""
+    fh = insat_filehandler
+    ds_info = None
+
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    darr = fh.get_dataset(ds_id, ds_info)
+
+    assert "orbital_parameters" in darr.attrs
+    assert "satellite_nominal_longitude" in darr.attrs["orbital_parameters"]
+    assert "satellite_nominal_latitude" in darr.attrs["orbital_parameters"]
+    assert "satellite_nominal_altitude" in darr.attrs["orbital_parameters"]
+    assert "satellite_actual_altitude" in darr.attrs["orbital_parameters"]
+    assert "platform_name" in darr.attrs
+    assert "sensor" in darr.attrs
 
 
 def test_filehandler_returns_coords(insat_filehandler):
@@ -267,7 +286,7 @@ def test_satpy_load_array(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
     scn.load(["VIS"])
-    expected = mask_array(values_1km * 3)
+    expected = mask_array(values_1km * 3).squeeze()
     np.testing.assert_allclose(scn["VIS"], expected)
 
 
@@ -275,5 +294,5 @@ def test_satpy_load_two_arrays(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
     scn.load(["TIR1", "WV"])
-    expected = mask_array(values_4km * 3)
+    expected = mask_array(values_4km * 3).squeeze()
     np.testing.assert_allclose(scn["TIR1"], expected)

@@ -148,6 +148,15 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
         darr = ds["IMG_" + ds_id["name"] + calibration]
 
+        nlat, nlon = ds.attrs['Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude']
+        darr.attrs["orbital_parameters"] = dict(satellite_nominal_longitude=float(nlon),
+                                                satellite_nominal_latitude=float(nlat),
+                                                satellite_nominal_altitude=float(ds.attrs["Nominal_Altitude(km)"]),
+                                                satellite_actual_altitude=float(ds.attrs["Observed_Altitude(km)"]))
+        darr.attrs["platform_name"] = "insat-3d"
+        darr.attrs["sensor"] = "imager"
+        darr = darr.squeeze()
+
         return darr
 
     def get_area_def(self, ds_id):
