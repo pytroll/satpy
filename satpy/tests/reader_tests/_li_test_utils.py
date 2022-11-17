@@ -405,10 +405,7 @@ def l2_af_schema(settings=None):
     return {
         'providers': settings.get('providers', {}),
         'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'accumulations': 1,
-            'pixels': nobs,
-        },
+        'dimensions': accumulation_dimensions(1, nobs),
         'variables': {
             "accumulation_offsets": {
                 "format": "u4",
@@ -442,44 +439,9 @@ def l2_af_schema(settings=None):
                 "shape": ('pixels',),
                 "default_data": lambda: np.clip(np.round(np.random.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
             },
-            "mtg_geos_projection": {
-                "format": "i4",
-                "shape": ('accumulations',),
-                "grid_mapping_name": 'geostationary',
-                "inverse_flattening": 298.2572221,
-                "latitude_of_projection_origin": 0,
-                "longitude_of_projection_origin": 0,
-                "perspective_point_height": 42164000,
-                "semi_major_axis": 6378169,
-                "semi_minor_axis": 6356583.8,
-                "sweep_angle_axis": 'y',
-                "long_name": 'MTG geostationary projection',
-                "default_data": lambda: -2147483647
-            },
-            "x": {
-                "format": "u2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'X',
-                "long_name": 'azimuth angle encoded as column',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_x_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
-            "y": {
-                "format": "u2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'Y',
-                "long_name": 'zenith angle encoded as row',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_y_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
+            "mtg_geos_projection": mtg_geos_projection(),
+            "x": fci_grid_definition('X', nobs),
+            "y": fci_grid_definition('Y', nobs),
         }
     }
 
@@ -493,10 +455,7 @@ def l2_afa_schema(settings=None):
     return {
         'providers': settings.get('providers', {}),
         'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'pixels': npix,
-            'accumulations': nacc,
-        },
+        'dimensions': accumulation_dimensions(nacc, npix),
         'variables': {
             "accumulation_start_times": {
                 "format": "f4",
@@ -512,44 +471,9 @@ def l2_afa_schema(settings=None):
                 "long_name": "Number of contributing unique flashes to each pixel",
                 "default_data": lambda: np.mod(np.arange(npix), 10) + 1
             },
-            "mtg_geos_projection": {
-                "format": "i4",
-                "shape": ('accumulations',),
-                "grid_mapping_name": 'geostationary',
-                "inverse_flattening": 298.2572221,
-                "latitude_of_projection_origin": 0,
-                "longitude_of_projection_origin": 0,
-                "perspective_point_height": 42164000,
-                "semi_major_axis": 6378169,
-                "semi_minor_axis": 6356583.8,
-                "sweep_angle_axis": 'y',
-                "long_name": 'MTG geostationary projection',
-                "default_data": lambda: -2147483647
-            },
-            "x": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'X',
-                "long_name": 'azimuth angle encoded as column',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_x_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, npix)), 1, 2 ** 16 - 1)
-            },
-            "y": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'Y',
-                "long_name": 'zenith angle encoded as row',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_y_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, npix)), 1, 2 ** 16 - 1)
-            },
+            "mtg_geos_projection": mtg_geos_projection(),
+            "x": fci_grid_definition('X', npix),
+            "y": fci_grid_definition('Y', npix),
         }
     }
 
@@ -563,10 +487,7 @@ def l2_afr_schema(settings=None):
     return {
         'providers': settings.get('providers', {}),
         'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'accumulations': nacc,
-            'pixels': nobs,
-        },
+        'dimensions': accumulation_dimensions(nacc, nobs),
         'variables': {
             "flash_radiance": {
                 "format": "f4",
@@ -583,45 +504,59 @@ def l2_afr_schema(settings=None):
                 "units": "seconds since 2000-01-01 00:00:00.0",
                 "default_data": lambda: 0
             },
-            "mtg_geos_projection": {
-                "format": "i4",
-                "shape": ('accumulations',),
-                "grid_mapping_name": 'geostationary',
-                "inverse_flattening": 298.2572221,
-                "latitude_of_projection_origin": 0,
-                "longitude_of_projection_origin": 0,
-                "perspective_point_height": 42164000,
-                "semi_major_axis": 6378169,
-                "semi_minor_axis": 6356583.8,
-                "sweep_angle_axis": 'y',
-                "long_name": 'MTG geostationary projection',
-                "default_data": lambda: -2147483647
-            },
-            "x": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'X',
-                "long_name": 'azimuth angle encoded as column',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_x_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
-            "y": {
-                "format": "i2",
-                "shape": ('pixels',),
-                "add_offset": -0.155619516,
-                "axis": 'Y',
-                "long_name": 'zenith angle encoded as row',
-                "scale_factor": 5.58878e-5,
-                "standard_name": 'projection_y_coordinate',
-                "units": 'radian',
-                "valid_range": np.asarray([1, 5568]),
-                "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
-            },
+            "mtg_geos_projection": mtg_geos_projection(),
+            "x": fci_grid_definition('X', nobs),
+            "y": fci_grid_definition('Y', nobs),
         }
+    }
+
+
+def accumulation_dimensions(nacc, nobs):
+    """Set dimensions for the accumulated products."""
+    return {
+        'accumulations': nacc,
+        'pixels': nobs,
+    }
+
+
+def fci_grid_definition(axis, nobs):
+    """FCI grid definition on X or Y axis."""
+    if axis == 'X':
+        long_name = 'azimuth angle encoded as column'
+        standard_name = 'projection_x_coordinate'
+    else:
+        long_name = 'zenith angle encoded as row'
+        standard_name = 'projection_y_coordinate'
+
+    return {
+        "format": "i2",
+        "shape": ('pixels',),
+        "add_offset": -0.155619516,
+        "axis": axis,
+        "long_name": long_name,
+        "scale_factor": 5.58878e-5,
+        "standard_name": standard_name,
+        "units": 'radian',
+        "valid_range": np.asarray([1, 5568]),
+        "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
+    }
+
+
+def mtg_geos_projection():
+    """MTG geos projection definition."""
+    return {
+        "format": "i4",
+        "shape": ('accumulations',),
+        "grid_mapping_name": 'geostationary',
+        "inverse_flattening": 298.2572221,
+        "latitude_of_projection_origin": 0,
+        "longitude_of_projection_origin": 0,
+        "perspective_point_height": 42164000,
+        "semi_major_axis": 6378169,
+        "semi_minor_axis": 6356583.8,
+        "sweep_angle_axis": 'y',
+        "long_name": 'MTG geostationary projection',
+        "default_data": lambda: -2147483647
     }
 
 
