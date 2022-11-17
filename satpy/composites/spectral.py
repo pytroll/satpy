@@ -126,8 +126,10 @@ class NDVIHybridGreen(SpectralBlender):
         prerequisites:
           - name: vis_05
             modifiers: [sunz_corrected, rayleigh_corrected]
-          - name: vis_08
+          - name: vis_06
             modifiers: [sunz_corrected, rayleigh_corrected]
+          - name: vis_08
+            modifiers: [sunz_corrected ]
         standard_name: toa_bidirectional_reflectance
 
     In this example, pixels with NDVI=0.0 (default `ndvi_min`) will be a weighted average with 85% contribution from the

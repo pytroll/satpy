@@ -17,7 +17,7 @@ composites:
       - name: vis_06
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: vis_08
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected ]
     standard_name: toa_bidirectional_reflectance
 
   ndvi_hybrid_green_raw:
