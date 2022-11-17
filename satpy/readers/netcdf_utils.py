@@ -108,8 +108,8 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         listed_variables = filetype_info.get("required_netcdf_variables")
         channel_names = filetype_info.get("channel_names")
-        if listed_variables and channel_names:
-            self._collect_listed_variables(file_handle, channel_names, listed_variables)
+        if listed_variables:
+            self._collect_listed_variables(file_handle, listed_variables, channel_names=channel_names)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
@@ -162,8 +162,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content[var_name + "/dimensions"] = var_obj.dimensions
         self._collect_attrs(var_name, var_obj)
 
-    def _collect_listed_variables(self, file_handle, channel_names, listed_variables):
-        for itm in self._get_required_variable_names(channel_names, listed_variables):
+    def _collect_listed_variables(self, file_handle, listed_variables, channel_names=None):
+        for itm in self._get_required_variable_names(listed_variables, channel_names):
             parts = itm.split('/')
             grp = file_handle
             for p in parts[:-1]:
@@ -178,10 +178,10 @@ class NetCDF4FileHandler(BaseFileHandler):
                 self.collect_dimensions(itm, grp)
 
     @staticmethod
-    def _get_required_variable_names(channel_names, listed_variables):
+    def _get_required_variable_names(listed_variables, channel_names):
         variable_names = []
         for var in listed_variables:
-            if 'CHANNEL_NAME' in var:
+            if channel_names and 'CHANNEL_NAME' in var:
                 for ch in channel_names:
                     variable_names.append(var.replace('CHANNEL_NAME', ch))
             else:
