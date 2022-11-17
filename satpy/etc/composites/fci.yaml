@@ -2,15 +2,15 @@ sensor_name: visir/fci
 
 
 composites:
-  corrected_green:
+  hybrid_green:
     description: >
-      The FCI green band at 0.51 µm deliberately misses the chlorophyl band, such that
-      the signal comes rather from aerosols and ash rather than vegetation.  An effect
-      is that vegetation in a true colour RGB looks rather brown than green.  Mixing in
+      The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
+      the signal comes from aerosols and ash rather than vegetation. An effect
+      is that vegetation in a true colour RGB looks rather brown than green and barren rather red. Mixing in
       some part of the NIR 0.8 channel reduced this effect.  Note that the fractions
-      currently implemented are experimental and may change in future versions of Satpy.
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
-    fractions: [0.93, 0.07]
+      currently implemented are optimized for AHI and may change in future versions of Satpy.
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
+    fraction: 0.07
     prerequisites:
       - name: vis_05
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -18,11 +18,11 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: toa_bidirectional_reflectance
 
-  corrected_green_raw:
+  hybrid_green_raw:
     description: >
-      Alternative to corrected_green, but without solar zenith or rayleigh correction.
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
-    fractions: [0.93, 0.07]
+      Alternative to hybrid_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
+    fraction: 0.07
     prerequisites:
       - name: vis_05
       - name: vis_08
@@ -42,11 +42,11 @@ composites:
     description: >
       FCI true color composite.  The green band is simulated based on a combination of
       channels.  This simulation may change in future versions of Satpy.  See the description
-      of the corrected_green composites for details.
+      of the hybrid_green composites for details.
     prerequisites:
       - name: vis_06
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: corrected_green
+      - name: hybrid_green
       - name: vis_04
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
@@ -55,9 +55,9 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     description: >
       FCI true color without solar zenith or rayleigh corrections, but with the
-      corrected green composite.
+      hybrid green correction.
     prerequisites:
       - name: vis_06
-      - name: corrected_green_raw
+      - name: hybrid_green_raw
       - name: vis_04
     standard_name: true_color_raw

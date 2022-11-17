@@ -15,8 +15,8 @@ modifiers:
     - solar_zenith_angle
 
 composites:
-  green:
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+  hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -28,10 +28,10 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
-  green_true_color_reproduction:
+  reproduced_green:
     # JMA True Color Reproduction green band
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.SpectralBlender
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
     - name: B02
@@ -42,8 +42,17 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: none
 
-  green_nocorr:
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+  ndvi_hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    prerequisites:
+    - name: B02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B04
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+
+  hybrid_green_nocorr:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -204,7 +213,18 @@ composites:
     prerequisites:
     - name: B03
       modifiers: [sunz_corrected, rayleigh_corrected]
-    - name: green
+    - name: hybrid_green
+    - name: B01
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+  true_color_ndvi_green_sharp:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: ndvi_hybrid_green
     - name: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
     high_resolution_band: red
@@ -223,7 +243,7 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - name: B03
-    - name: green_nocorr
+    - name: hybrid_green_nocorr
     - name: B01
     high_resolution_band: red
     standard_name: true_color
@@ -235,7 +255,7 @@ composites:
     prerequisites:
       - name: B03
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: green_true_color_reproduction
+      - name: reproduced_green
       - name: B01
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color_reproduction

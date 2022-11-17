@@ -21,30 +21,67 @@ import unittest
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
-from satpy.composites.spectral import NDVIHybridGreen
+from satpy.composites.spectral import HybridGreen, NDVIHybridGreen, SpectralBlender
 
 
 class TestSpectralComposites(unittest.TestCase):
     """Test composites for spectral channel corrections."""
 
-    def test_ndvi_hybrid_green(self):
-        """Test generation of NDVI-scaled hybrid green channel."""
-        vis_05 = xr.DataArray(da.from_array([[0.25, 0.30], [0.20, 0.30]], chunks=25),
-                              dims=('y', 'x'),
-                              attrs={'name': 'vis05'})
-        vis_06 = xr.DataArray(da.from_array([[0.25, 0.30], [0.25, 0.35]], chunks=25),
-                              dims=('y', 'x'),
-                              attrs={'name': 'vis06'})
-        vis_08 = xr.DataArray(da.from_array([[0.35, 0.35], [0.28, 0.65]], chunks=25),
-                              dims=('y', 'x'),
-                              attrs={'name': 'vis08'})
+    def setUp(self):
+        """Initialize channels."""
+        rows = 5
+        cols = 10
+        self.c01 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.20, dims=('y', 'x'), attrs={'name': 'C02'})
+        self.c02 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.30, dims=('y', 'x'), attrs={'name': 'C03'})
+        self.c03 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.40, dims=('y', 'x'), attrs={'name': 'C04'})
 
-        comp = NDVIHybridGreen('ndvi_hybrid_green', fractions=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+    def test_bad_lengths(self):
+        """Test that error is raised if the amount of channels to blend does not match the number of weights."""
+        comp = SpectralBlender('blended_channel', fractions=(0.3, 0.7), prerequisites=(0.51, 0.85),
+                               standard_name='toa_bidirectional_reflectance')
+        with pytest.raises(ValueError):
+            comp((self.c01, self.c02, self.c03))
+
+    def test_spectral_blender(self):
+        """Test the base class for spectral blending of channels."""
+        comp = SpectralBlender('blended_channel', fractions=(0.3, 0.4, 0.3), prerequisites=(0.51, 0.65, 0.85),
+                               standard_name='toa_bidirectional_reflectance')
+        res = comp((self.c01, self.c02, self.c03))
+        self.assertIsInstance(res, xr.DataArray)
+        self.assertIsInstance(res.data, da.Array)
+        self.assertEqual(res.attrs['name'], 'blended_channel')
+        self.assertEqual(res.attrs['standard_name'], 'toa_bidirectional_reflectance')
+        data = res.compute()
+        np.testing.assert_allclose(data, 0.3)
+
+    def test_hybrid_green(self):
+        """Test hybrid green correction of the 'green' band."""
+        comp = HybridGreen('hybrid_green', fraction=0.15, prerequisites=(0.51, 0.85),
+                           standard_name='toa_bidirectional_reflectance')
+        res = comp((self.c01, self.c03))
+        self.assertIsInstance(res, xr.DataArray)
+        self.assertIsInstance(res.data, da.Array)
+        self.assertEqual(res.attrs['name'], 'hybrid_green')
+        self.assertEqual(res.attrs['standard_name'], 'toa_bidirectional_reflectance')
+        data = res.compute()
+        np.testing.assert_allclose(data, 0.23)
+
+    def test_ndvi_hybrid_green(self):
+        """Test NDVI-scaled hybrid green correction of 'green' band."""
+        self.c01 = xr.DataArray(da.from_array([[0.25, 0.30], [0.20, 0.30]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C02'})
+        self.c02 = xr.DataArray(da.from_array([[0.25, 0.30], [0.25, 0.35]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C03'})
+        self.c03 = xr.DataArray(da.from_array([[0.35, 0.35], [0.28, 0.65]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C04'})
+
+        comp = NDVIHybridGreen('ndvi_hybrid_green', limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
                                standard_name='toa_bidirectional_reflectance')
 
-        res = comp((vis_05, vis_06, vis_08))
+        res = comp((self.c01, self.c02, self.c03))
         self.assertIsInstance(res, xr.DataArray)
         self.assertIsInstance(res.data, da.Array)
         self.assertEqual(res.attrs['name'], 'ndvi_hybrid_green')
