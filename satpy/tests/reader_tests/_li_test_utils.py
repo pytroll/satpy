@@ -583,6 +583,37 @@ def extract_filetype_info(filetype_infos, filetype):
     return ftype_info
 
 
+def set_variable_path(var_path, desc, sname):
+    """Replace variable default path if applicable and ensure trailing separator."""
+    vpath = desc.get('path', var_path)
+    # Ensure we have a trailing separator:
+    if vpath != "" and vpath[-1] != '/':
+        vpath += '/'
+    if sname != "":
+        vpath += sname + "/"
+    return vpath
+
+
+def populate_dummy_data(data, names, details):
+    """Populate variable with dummy data."""
+    vname, sname = names
+    desc, providers, settings = details
+    if vname in providers:
+        prov = providers[vname]
+        # prov might be a function or directly an array that we assume will be of the correct shape:
+        data[:] = prov(vname, sname, settings) if callable(prov) else prov
+    else:
+        # Otherwise we write the default data:
+        data[:] = desc['default_data']()
+
+
+def add_attributes(attribs, ignored_attrs, desc):
+    """Add all the custom properties directly as attributes."""
+    for key, val in desc.items():
+        if key not in ignored_attrs:
+            attribs[key] = val
+
+
 # Note: the helper class below has some missing abstract class implementation,
 # but that is not critical to us, so ignoring them for now.
 class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract-method
@@ -627,41 +658,21 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
 
             # Add all the custom properties directly as attributes:
             attribs = {}
-            for key, val in desc.items():
-                if key not in ignored_attrs:
-                    attribs[key] = val
+            add_attributes(attribs, ignored_attrs, desc)
 
             # Rename the fill value attribute:
             if 'fill_value' in desc:
                 attribs['_FillValue'] = desc['fill_value']
 
-            populate_dummy_data(vname, data, desc, sname)
+            names = [vname,  sname]
+            details = [desc, providers, settings]
+            populate_dummy_data(data, names, details)
 
             # Now we assign that data array:
             dset[full_name] = xr.DataArray(data, dims=shape_str, attrs=attribs)
 
             # Write the copy of the content:
             self.content[full_name] = data
-
-        def populate_dummy_data(vname, data, desc, sname):
-            """Populate variable with dummy data."""
-            if vname in providers:
-                prov = providers[vname]
-                # prov might be a function or directly an array that we assume will be of the correct shape:
-                data[:] = prov(vname, sname, settings) if callable(prov) else prov
-            else:
-                # Otherwise we write the default data:
-                data[:] = desc['default_data']()
-
-        def set_variable_path(var_path, desc, sname):
-            """Replace variable default path if applicable and ensure trailing separator."""
-            vpath = desc.get('path', var_path)
-            # Ensure we have a trailing separator:
-            if vpath != "" and vpath[-1] != '/':
-                vpath += '/'
-            if sname != "":
-                vpath += sname + "/"
-            return vpath
 
         return write_variable
 
