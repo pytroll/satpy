@@ -164,6 +164,21 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertIsNone(file_handler.file_handle)
         self.assertEqual(file_handler["ds2_sc"], 42)
 
+    def test_listed_variables(self):
+        """Test that only listed variables/attributes area collected."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        filetype_info = {
+            'required_netcdf_variables': [
+                'test_group/attr/test_attr_str',
+                'attr/test_attr_str',
+            ]
+        }
+        file_handler = NetCDF4FileHandler('test.nc', {}, filetype_info)
+        assert len(file_handler.file_content) == 2
+        assert 'test_group/attr/test_attr_str' in file_handler.file_content
+        assert 'attr/test_attr_str' in file_handler.file_content
+
     def test_caching(self):
         """Test that caching works as intended."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
