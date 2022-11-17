@@ -30,7 +30,7 @@ import xarray as xr
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
-class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
+class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
@@ -143,17 +143,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         return data
 
     def _get_test_content_all_channels(self):
-        chan_patterns = {
-            "vis_{:>02d}": (4, 5, 6, 8, 9),
-            "nir_{:>02d}": (13, 16, 22),
-            "ir_{:>02d}": (38, 87, 97, 105, 123, 133),
-            "wv_{:>02d}": (63, 73),
-        }
-        data = {}
-        for pat in chan_patterns:
-            for ch_num in chan_patterns[pat]:
-                data.update(self._get_test_content_for_channel(pat, ch_num))
-        return data
+        raise NotImplementedError
 
     def _get_test_content_areadef(self):
         data = {}
@@ -221,7 +211,24 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         return D
 
 
-class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
+class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
+    """Mock FDHSI data."""
+
+    def _get_test_content_all_channels(self):
+        chan_patterns = {
+            "vis_{:>02d}": (4, 5, 6, 8, 9),
+            "nir_{:>02d}": (13, 16, 22),
+            "ir_{:>02d}": (38, 87, 97, 105, 123, 133),
+            "wv_{:>02d}": (63, 73),
+        }
+        data = {}
+        for pat in chan_patterns:
+            for ch_num in chan_patterns[pat]:
+                data.update(self._get_test_content_for_channel(pat, ch_num))
+        return data
+
+
+class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
     """Mock bad data."""
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
@@ -243,7 +250,7 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         return data
 
 
-class FakeNetCDF4FileHandler4(FakeNetCDF4FileHandler2):
+class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
     """Mock bad data for IDPF TO-DO's."""
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
@@ -287,7 +294,7 @@ class TestFCIL1cNCReader:
 
     yaml_file = "fci_l1c_nc.yaml"
 
-    _alt_handler = FakeNetCDF4FileHandler2
+    _alt_handler = FakeFCIFileHandlerFDHSI
 
     @pytest.fixture(autouse=True, scope="class")
     def fake_handler(self):
@@ -306,7 +313,7 @@ class TestFCIL1cNCReader:
 class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
     """Test FCI L1c NetCDF reader."""
 
-    _alt_handler = FakeNetCDF4FileHandler2
+    _alt_handler = FakeFCIFileHandlerFDHSI
 
     def test_file_pattern(self, reader_configs):
         """Test file pattern matching."""
@@ -325,10 +332,6 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114500_GTT_DEV_"
             "20170410113951_20170410114000_N__C_0070_0070.nc",
-            # this is an HRFI file
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114500_GTT_DEV_"
-            "20170410113951_20170410114000_N__C_0070_0070.nc",
             # this is a TRAIL file, which we don't use/read
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-TRAIL--L2P-NC4E_C_EUMT_20170410114600_GTT_DEV_"
@@ -337,8 +340,8 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
 
         reader = load_reader(reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        # only 5 (4 FDHSI, 1 HRFI) should match, the TRAIL should be ignored
-        assert len(files) == 5
+        # only 4 FDHSI should match, the TRAIL should be ignored
+        assert len(files) == 4
 
     _chans = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
                         "nir_13", "nir_16", "nir_22"],
@@ -614,7 +617,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
 class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
     """Test the FCI L1c NetCDF Reader for bad data input."""
 
-    _alt_handler = FakeNetCDF4FileHandler3
+    _alt_handler = FakeFCIFileHandlerWithBadData
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
@@ -654,7 +657,7 @@ class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
 class TestFCIL1cNCReaderBadDataFromIDPF(TestFCIL1cNCReader):
     """Test the FCI L1c NetCDF Reader for bad data input."""
 
-    _alt_handler = FakeNetCDF4FileHandler4
+    _alt_handler = FakeFCIFileHandlerWithBadIDPFData
 
     def test_handling_bad_earthsun_distance(self, reader_configs, caplog):
         """Test handling of bad earth-sun distance data."""
