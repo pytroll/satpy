@@ -664,7 +664,7 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             if 'fill_value' in desc:
                 attribs['_FillValue'] = desc['fill_value']
 
-            names = [vname,  sname]
+            names = [vname, sname]
             details = [desc, providers, settings]
             populate_dummy_data(data, names, details)
 
