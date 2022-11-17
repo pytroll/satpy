@@ -5,7 +5,7 @@ reader:
   description: >
     Reader for Insat 3d IMG level 1B data in Hdf5 format.
     For documentation see: https://mosdac.gov.in/insat-3d-references .
-  status: Beta
+  status: Beta, navigation still off
   supports_fsspec: false
   sensors: [insat3d_img]
   default_channels: [VIS, WV, TIR1, TIR2, SWIR, MIR]
