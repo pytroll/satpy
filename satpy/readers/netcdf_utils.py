@@ -107,9 +107,10 @@ class NetCDF4FileHandler(BaseFileHandler):
             file_handle.set_auto_maskandscale(auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
-        channel_names = filetype_info.get("channel_names")
+        variable_name_replacements = filetype_info.get("variable_name_replacements")
         if listed_variables:
-            self._collect_listed_variables(file_handle, listed_variables, channel_names=channel_names)
+            self._collect_listed_variables(file_handle, listed_variables,
+                                           variable_name_replacements=variable_name_replacements)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
@@ -162,8 +163,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content[var_name + "/dimensions"] = var_obj.dimensions
         self._collect_attrs(var_name, var_obj)
 
-    def _collect_listed_variables(self, file_handle, listed_variables, channel_names=None):
-        for itm in self._get_required_variable_names(listed_variables, channel_names):
+    def _collect_listed_variables(self, file_handle, listed_variables, variable_name_replacements=None):
+        for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
             parts = itm.split('/')
             grp = file_handle
             for p in parts[:-1]:
@@ -178,12 +179,11 @@ class NetCDF4FileHandler(BaseFileHandler):
                 self.collect_dimensions(itm, grp)
 
     @staticmethod
-    def _get_required_variable_names(listed_variables, channel_names):
+    def _get_required_variable_names(listed_variables, variable_name_replacements):
         variable_names = []
         for var in listed_variables:
-            if channel_names and 'CHANNEL_NAME' in var:
-                for ch in channel_names:
-                    variable_names.append(var.replace('CHANNEL_NAME', ch))
+            if variable_name_replacements and '{' in var:
+                _compose_replacement_names(variable_name_replacements, var, variable_names)
             else:
                 variable_names.append(var)
         return variable_names
@@ -333,3 +333,11 @@ class NetCDF4FileHandler(BaseFileHandler):
             v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
 
         return self.cached_file_content[var_name]
+
+
+def _compose_replacement_names(variable_name_replacements, var, variable_names):
+    for key in variable_name_replacements:
+        vals = variable_name_replacements[key]
+        for val in vals:
+            if key in var:
+                variable_names.append(var.replace('{' + key + '}', val))

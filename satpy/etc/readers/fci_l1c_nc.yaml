@@ -21,20 +21,20 @@ file_types:
     required_netcdf_variables:
     - attr/platform
     - data/mtg_geos_projection
-    - data/CHANNEL_NAME/measured/start_position_row
-    - data/CHANNEL_NAME/measured/end_position_row
-    - data/CHANNEL_NAME/measured/radiance_to_bt_conversion_coefficient_wavenumber
-    - data/CHANNEL_NAME/measured/radiance_to_bt_conversion_coefficient_a
-    - data/CHANNEL_NAME/measured/radiance_to_bt_conversion_coefficient_b
-    - data/CHANNEL_NAME/measured/radiance_to_bt_conversion_constant_c1
-    - data/CHANNEL_NAME/measured/radiance_to_bt_conversion_constant_c2
-    - data/CHANNEL_NAME/measured/radiance_unit_conversion_coefficient
-    - data/CHANNEL_NAME/measured/channel_effective_solar_irradiance
-    - data/CHANNEL_NAME/measured/effective_radiance
-    - data/CHANNEL_NAME/measured/x
-    - data/CHANNEL_NAME/measured/y
-    - data/CHANNEL_NAME/measured/pixel_quality
-    - data/CHANNEL_NAME/measured/index_map
+    - data/{channel_name}/measured/start_position_row
+    - data/{channel_name}/measured/end_position_row
+    - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
+    - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
+    - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
+    - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
+    - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
+    - data/{channel_name}/measured/radiance_unit_conversion_coefficient
+    - data/{channel_name}/measured/channel_effective_solar_irradiance
+    - data/{channel_name}/measured/effective_radiance
+    - data/{channel_name}/measured/x
+    - data/{channel_name}/measured/y
+    - data/{channel_name}/measured/pixel_quality
+    - data/{channel_name}/measured/index_map
     - data/mtg_geos_projection/attr/inverse_flattening
     - data/mtg_geos_projection/attr/longitude_of_projection_origin
     - data/mtg_geos_projection/attr/longitude_of_projection_origin
@@ -54,23 +54,24 @@ file_types:
     - state/platform/subsatellite_latitude
     - state/platform/subsatellite_longitude
     - time
-    channel_names:
-    - vis_04
-    - vis_05
-    - vis_06
-    - vis_08
-    - vis_09
-    - nir_13
-    - nir_16
-    - nir_22
-    - ir_38
-    - wv_63
-    - wv_73
-    - ir_87
-    - ir_97
-    - ir_105
-    - ir_123
-    - ir_133
+    variable_name_replacements:
+      channel_name:
+      - vis_04
+      - vis_05
+      - vis_06
+      - vis_08
+      - vis_09
+      - nir_13
+      - nir_16
+      - nir_22
+      - ir_38
+      - wv_63
+      - wv_73
+      - ir_87
+      - ir_97
+      - ir_105
+      - ir_123
+      - ir_133
 
 datasets:
   vis_04:
