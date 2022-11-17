@@ -560,20 +560,20 @@ def mtg_geos_projection():
     }
 
 
-product_schemas = {
-    '2-LE': l2_le_schema,
-    '2-LEF': l2_lef_schema,
-    '2-LGR': l2_lgr_schema,
-    '2-LFL': l2_lfl_schema,
-    '2-AF': l2_af_schema,
-    '2-AFA': l2_afa_schema,
-    '2-AFR': l2_afr_schema,
+products_dict = {
+    '2-LE': {'ftype': 'li_l2_le_nc', 'schema': l2_le_schema},
+    '2-LEF': {'ftype': 'li_l2_lef_nc', 'schema': l2_lef_schema},
+    '2-LGR': {'ftype': 'li_l2_lgr_nc', 'schema': l2_lgr_schema},
+    '2-LFL': {'ftype': 'li_l2_lfl_nc', 'schema': l2_lfl_schema},
+    '2-AF': {'ftype': 'li_l2_af_nc', 'schema': l2_af_schema},
+    '2-AFA': {'ftype': 'li_l2_afa_nc', 'schema': l2_afa_schema},
+    '2-AFR': {'ftype': 'li_l2_afr_nc', 'schema': l2_afr_schema},
 }
 
 
 def get_product_schema(pname, settings=None):
     """Retrieve an LI product schema given its name."""
-    return product_schemas[pname](settings)
+    return products_dict[pname]['schema'](settings)
 
 
 def extract_filetype_info(filetype_infos, filetype):

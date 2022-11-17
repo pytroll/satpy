@@ -26,7 +26,12 @@ from satpy._config import config_search_paths
 from satpy.readers.li_base_nc import LINCFileHandler
 from satpy.readers.li_l2_nc import LIL2NCFileHandler
 from satpy.readers.yaml_reader import load_yaml_configs
-from satpy.tests.reader_tests._li_test_utils import FakeLIFileHandlerBase, extract_filetype_info, get_product_schema
+from satpy.tests.reader_tests._li_test_utils import (
+    FakeLIFileHandlerBase,
+    extract_filetype_info,
+    get_product_schema,
+    products_dict,
+)
 from satpy.tests.utils import make_dataid
 
 
@@ -156,18 +161,9 @@ class TestLIL2():
 
     def test_dataset_loading(self, filetype_infos):
         """Test loading of all datasets from all products."""
-        products = [
-            ('2-AF', 'li_l2_af_nc'),
-            ('2-AFR', 'li_l2_afr_nc'),
-            ('2-LEF', 'li_l2_lef_nc'),
-            ('2-LFL', 'li_l2_lfl_nc'),
-            ('2-AFA', 'li_l2_afa_nc'),
-            ('2-LGR', 'li_l2_lgr_nc'),
-            ('2-LE', 'li_l2_le_nc')
-        ]
-
         # Iterate on all the available product types:
-        for ptype, ftype in products:
+        for ptype, pinfo in products_dict.items():
+            ftype = pinfo['ftype']
             filename_info = {
                 'start_time': "0000",
                 'end_time': "1000"
