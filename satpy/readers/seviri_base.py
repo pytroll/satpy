@@ -111,7 +111,8 @@ Masking of bad quality scan lines
 
 By default bad quality scan lines are masked and replaced with ``np.nan`` for radiance, reflectance and
 brightness temperature calibrations based on the quality flags provided by the data (for details on quality
-flags see `MSG Level 1.5 Image Data Format Description`_ page 109.)
+flags see `MSG Level 1.5 Image Data Format Description`_ page 109). To disable masking
+``reader_kwargs={'mask_bad_quality_scan_lines': False}`` can be passed to the Scene.
 
 
 Metadata

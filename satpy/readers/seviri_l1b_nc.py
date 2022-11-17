@@ -58,10 +58,11 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mask_bad_quality_scan_lines=True):
         """Init the file handler."""
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.ext_calib_coefs = ext_calib_coefs or {}
+        self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
         self.get_metadata()
@@ -137,7 +138,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
-        if dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']:
+        if (dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature'] and
+            self.mask_bad_quality_scan_lines):  # noqa: E129
+
             dataset = self._mask_bad_quality(dataset, dataset_info)
 
         self._update_attrs(dataset, dataset_info)
