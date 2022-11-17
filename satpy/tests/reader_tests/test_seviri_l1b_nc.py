@@ -304,6 +304,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
                                       np.datetime64('1958-01-02 00:00:02')])
         expected = expected[::-1]  # reader flips data upside down
+        expected = file_handler._mask_bad_quality(expected, dataset_info)
         xr.testing.assert_allclose(res, expected)
 
         for key in ['sun_earth_distance_correction_applied',
