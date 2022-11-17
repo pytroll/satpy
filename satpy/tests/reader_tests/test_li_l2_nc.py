@@ -76,19 +76,8 @@ class TestLIL2():
             'variable_name': vname,
             'use_rescaling': False,
         }
-
-        res = self.get_variable_dataset(dataset_info, dname, handler)
-
-        assert res.shape == shape
-
-        # Should retrieve content with fullname key:
-        full_name = self.create_fullname_key(desc, var_path, dname)
-
-        # Note: 'content' is not recognized as a valid member of the class below
-        # since it is silently injected in from our patching fake base netcdf4 file handler class.
-        # But for now, we don't need to actually extend the class itself as this is only
-        # needed for testing.
-        assert np.all(res.values == handler.content[full_name])  # pylint: disable=no-member
+        var_params = [dataset_info, desc, dname, handler, shape, var_path]
+        self._test_dataset_variable(var_params)
 
     def _test_dataset_variables(self, settings, ds_desc, handler):
         """Check the loading of the non in sector variables."""
@@ -119,14 +108,16 @@ class TestLIL2():
             'sector_name': sname,
             'use_rescaling': False,
         }
+        var_params = [dataset_info, desc, vname, handler, shape, var_path]
+        self._test_dataset_variable(var_params, sname=sname)
 
+    def _test_dataset_variable(self, var_params, sname=""):
+        """Test the validity of a given (sector) variable."""
+        dataset_info, desc, dname, handler, shape, var_path = var_params
         res = self.get_variable_dataset(dataset_info, dname, handler)
-
         assert res.shape == shape
-
         # Should retrieve content with fullname key:
-        full_name = self.create_fullname_key(desc, var_path, vname, sname=sname)
-
+        full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below
         # since it is silently injected in from our patching fake base netcdf4 file handler class.
         # But for now, we don't need to actually extend the class itself as this is only
