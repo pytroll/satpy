@@ -106,8 +106,13 @@ class NetCDF4FileHandler(BaseFileHandler):
         if hasattr(file_handle, "set_auto_maskandscale"):
             file_handle.set_auto_maskandscale(auto_maskandscale)
 
-        self.collect_metadata("", file_handle)
-        self.collect_dimensions("", file_handle)
+        listed_variables = filetype_info.get("required_netcdf_variables")
+        channel_names = filetype_info.get("channel_names")
+        if listed_variables and channel_names:
+            self._collect_listed_variables(file_handle, channel_names, listed_variables)
+        else:
+            self.collect_metadata("", file_handle)
+            self.collect_dimensions("", file_handle)
         if cache_var_size > 0:
             self.collect_cache_vars(
                     [varname for (varname, var)
@@ -123,6 +128,65 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
+
+    def collect_metadata(self, name, obj):
+        """Collect all file variables and attributes for the provided file object.
+
+        This method also iterates through subgroups of the provided object.
+        """
+        # Look through each subgroup
+        base_name = name + "/" if name else ""
+        self._collect_groups_info(base_name, obj)
+        self._collect_variables_info(base_name, obj)
+        if not name:
+            self._collect_global_attrs(obj)
+        else:
+            self._collect_attrs(name, obj)
+
+    def _collect_groups_info(self, base_name, obj):
+        for group_name, group_obj in obj.groups.items():
+            full_group_name = base_name + group_name
+            self.file_content[full_group_name] = group_obj
+            self._collect_attrs(full_group_name, group_obj)
+            self.collect_metadata(full_group_name, group_obj)
+
+    def _collect_variables_info(self, base_name, obj):
+        for var_name, var_obj in obj.variables.items():
+            var_name = base_name + var_name
+            self._collect_variable_info(var_name, var_obj)
+
+    def _collect_variable_info(self, var_name, var_obj):
+        self.file_content[var_name] = var_obj
+        self.file_content[var_name + "/dtype"] = var_obj.dtype
+        self.file_content[var_name + "/shape"] = var_obj.shape
+        self.file_content[var_name + "/dimensions"] = var_obj.dimensions
+        self._collect_attrs(var_name, var_obj)
+
+    def _collect_listed_variables(self, file_handle, channel_names, listed_variables):
+        for itm in self._get_required_variable_names(channel_names, listed_variables):
+            parts = itm.split('/')
+            grp = file_handle
+            for p in parts[:-1]:
+                if p == "attr":
+                    n = '/'.join(parts)
+                    self.file_content[n] = self._get_attr_value(grp, parts[-1])
+                    break
+                grp = grp[p]
+            if p != "attr":
+                var_obj = grp[parts[-1]]
+                self._collect_variable_info(itm, var_obj)
+                self.collect_dimensions(itm, grp)
+
+    @staticmethod
+    def _get_required_variable_names(channel_names, listed_variables):
+        variable_names = []
+        for var in listed_variables:
+            if 'CHANNEL_NAME' in var:
+                for ch in channel_names:
+                    variable_names.append(var.replace('CHANNEL_NAME', ch))
+            else:
+                variable_names.append(var)
+        return variable_names
 
     def __del__(self):
         """Delete the file handler."""
@@ -155,36 +219,6 @@ class NetCDF4FileHandler(BaseFileHandler):
         except ValueError:
             pass
         return value
-
-    def collect_metadata(self, name, obj):
-        """Collect all file variables and attributes for the provided file object.
-
-        This method also iterates through subgroups of the provided object.
-        """
-        # Look through each subgroup
-        base_name = name + "/" if name else ""
-        self._collect_groups_info(base_name, obj)
-        self._collect_variables_info(base_name, obj)
-        if not name:
-            self._collect_global_attrs(obj)
-        else:
-            self._collect_attrs(name, obj)
-
-    def _collect_groups_info(self, base_name, obj):
-        for group_name, group_obj in obj.groups.items():
-            full_group_name = base_name + group_name
-            self.file_content[full_group_name] = group_obj
-            self._collect_attrs(full_group_name, group_obj)
-            self.collect_metadata(full_group_name, group_obj)
-
-    def _collect_variables_info(self, base_name, obj):
-        for var_name, var_obj in obj.variables.items():
-            var_name = base_name + var_name
-            self.file_content[var_name] = var_obj
-            self.file_content[var_name + "/dtype"] = var_obj.dtype
-            self.file_content[var_name + "/shape"] = var_obj.shape
-            self.file_content[var_name + "/dimensions"] = var_obj.dimensions
-            self._collect_attrs(var_name, var_obj)
 
     def collect_dimensions(self, name, obj):
         """Collect dimensions."""

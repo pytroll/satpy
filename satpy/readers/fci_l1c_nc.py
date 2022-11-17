@@ -296,7 +296,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         res.attrs.update(attrs)
 
         res.attrs["platform_name"] = self._platform_name_translate.get(
-            self["/attr/platform"], self["/attr/platform"])
+            self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
         if key['calibration'] in ['brightness_temperature', 'reflectance']:
