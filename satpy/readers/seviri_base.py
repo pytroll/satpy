@@ -106,8 +106,16 @@ removed on a per-channel basis using
 :func:`satpy.readers.utils.remove_earthsun_distance_correction`.
 
 
+Masking of bad quality scan lines
+---------------------------------
+
+By default bad quality scan lines are masked and replaced with ``np.nan`` for radiance, reflectance and
+brightness temperature calibrations based on the quality flags provided by the data (for details on quality
+flags see `MSG Level 1.5 Image Data Format Description`_ page 109.)
+
+
 Metadata
-^^^^^^^^
+--------
 
 The SEVIRI L1.5 readers provide the following metadata:
 
