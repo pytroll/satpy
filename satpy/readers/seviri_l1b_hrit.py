@@ -627,6 +627,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key['calibration'])
+        if key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']:
+            res = self._mask_bad_quality(res)
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
@@ -677,8 +679,6 @@ class HRITMSGFileHandler(HRITFileHandler):
             scan_time=self.start_time
         )
         res = calib.calibrate(data, calibration)
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self._mask_bad_quality(res)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
