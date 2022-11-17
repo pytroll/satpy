@@ -136,13 +136,13 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
             return darr
 
-        if ds_id["calibration"].name == "counts":
+        if ds_id["calibration"] == "counts":
             calibration = ""
-        elif ds_id["calibration"].name == "radiance":
+        elif ds_id["calibration"] == "radiance":
             calibration = "_RADIANCE"
-        elif ds_id["calibration"].name == "reflectance":
+        elif ds_id["calibration"] == "reflectance":
             calibration = "_ALBEDO"
-        elif ds_id["calibration"].name == "brightness_temperature":
+        elif ds_id["calibration"] == "brightness_temperature":
             calibration = "_TEMP"
 
         darr = ds["IMG_" + ds_id["name"] + calibration]
