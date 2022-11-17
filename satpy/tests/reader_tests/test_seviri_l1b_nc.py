@@ -312,13 +312,14 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         xr.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
-        ('channel', 'calibration'),
+        ('channel', 'calibration', 'mask_bad_quality_scan_lines'),
         [
-            ('VIS006', 'reflectance'),
-            ('IR_108', 'brightness_temperature')
+            ('VIS006', 'reflectance', True),
+            ('VIS006', 'reflectance', False),
+            ('IR_108', 'brightness_temperature', True)
          ]
     )
-    def test_get_dataset(self, file_handler, channel, calibration):
+    def test_get_dataset(self, file_handler, channel, calibration, mask_bad_quality_scan_lines):
         """Test getting the dataset."""
         dataset_id = make_dataid(name=channel, calibration=calibration)
         key = channel_keys_dict[channel]
@@ -328,6 +329,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
         }
+
+        file_handler.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         res = file_handler.get_dataset(dataset_id, dataset_info)
 
         # Test scanline acquisition times
@@ -358,7 +361,9 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
                                       np.datetime64('1958-01-02 00:00:02')])
         expected = expected[::-1]  # reader flips data upside down
-        expected = file_handler._mask_bad_quality(expected, dataset_info)
+        if mask_bad_quality_scan_lines:
+            expected = file_handler._mask_bad_quality(expected, dataset_info)
+
         xr.testing.assert_allclose(res, expected)
 
         for key in ['sun_earth_distance_correction_applied',

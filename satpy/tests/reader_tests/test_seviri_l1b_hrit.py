@@ -216,6 +216,32 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         new_data = np.zeros_like(data.data).astype('float32')
         new_data[:, :] = np.nan
         expected = data.copy(data=new_data)
+
+        expected['acq_time'] = (
+            'y',
+            setup.get_acq_time_exp(self.start_time, self.nlines)
+        )
+        xr.testing.assert_equal(res, expected)
+        self.assert_attrs_equal(
+            res.attrs,
+            setup.get_attrs_exp(self.projection_longitude)
+        )
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
+    def test_get_dataset_without_masking_bad_scan_lines(self, calibrate, parent_get_dataset):
+        """Test getting the dataset."""
+        data = self._get_fake_data()
+        parent_get_dataset.return_value = mock.MagicMock()
+        calibrate.return_value = data
+
+        key = make_dataid(name='VIS006', calibration='reflectance')
+        info = setup.get_fake_dataset_info()
+        self.reader.mask_bad_quality_scan_lines = False
+        res = self.reader.get_dataset(key, info)
+
+        # Test method calls
+        expected = data.copy()
         expected['acq_time'] = (
             'y',
             setup.get_acq_time_exp(self.start_time, self.nlines)
@@ -501,9 +527,6 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         )
 
         fh = file_handler
-        # fh.mda['image_segment_line_quality']['line_validity'] = np.array([3, 3])
-        # fh.mda['image_segment_line_quality']['line_radiometric_quality'] = np.array([3, 3])
-        # fh.mda['image_segment_line_quality']['line_geometric_quality'] = np.array([3, 3])
         fh.channel_name = channel
         fh.calib_mode = calib_mode
         fh.ext_calib_coefs = external_coefs
