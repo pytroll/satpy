@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2016-2021 Satpy developers
 #
 # This file is part of satpy.
@@ -26,7 +24,7 @@ class TestMERISReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
-        from satpy.readers.meris_nc_sen3 import (NCMERISCal, NCMERISGeo, NCMERIS2)
+        from satpy.readers.meris_nc_sen3 import NCMERIS2, NCMERISCal, NCMERISGeo
         from satpy.tests.utils import make_dataid
 
         ds_id = make_dataid(name='M01', calibration='reflectance')
@@ -68,10 +66,11 @@ class TestMERISReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.meris_nc_sen3 import NCMERIS2
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.meris_nc_sen3 import NCMERIS2
+        from satpy.tests.utils import make_dataid
         mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
                                                            np.array([1 << x for x in range(30)]).reshape(5, 6))},
                                                  coords={'rows': np.arange(5),
@@ -85,10 +84,11 @@ class TestMERISReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_meris_angles(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.meris_nc_sen3 import NCMERISAngles
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.meris_nc_sen3 import NCMERISAngles
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -117,10 +117,11 @@ class TestMERISReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_meris_meteo(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.meris_nc_sen3 import NCMERISMeteo
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.meris_nc_sen3 import NCMERISMeteo
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -153,8 +154,10 @@ class TestBitFlags(unittest.TestCase):
 
     def test_bitflags(self):
         """Test the BitFlags class."""
-        import numpy as np
         from functools import reduce
+
+        import numpy as np
+
         from satpy.readers.olci_nc import BitFlags
 
         flag_list = ['SEA_ICE', 'MEGLINT', 'HIGHGLINT', 'CASE2_S', 'CASE2_ANOM',
