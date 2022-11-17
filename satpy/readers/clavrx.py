@@ -43,6 +43,7 @@ SENSORS = {
     'AVHRR': 'avhrr',
     'AHI': 'ahi',
     'ABI': 'abi',
+    'GOES-RU-IMAGER': 'abi',
 }
 PLATFORMS = {
     'SNPP': 'npp',
@@ -68,6 +69,7 @@ NADIR_RESOLUTION = {
 
 def _get_sensor(sensor: str) -> str:
     """Get the sensor."""
+    LOG.debug('SENSORS: {}'.format(sensor))
     for k, v in SENSORS.items():
         if k in sensor:
             return v
@@ -258,6 +260,8 @@ class _CLAVRxHelper:
         if not i.get('SCALED', 1) and not flag_meanings:
             i['flag_meanings'] = '<flag_meanings_unknown>'
             i.setdefault('flag_values', [None])
+        elif not i.get('SCALED', 1) and isinstance(flag_meanings, str):
+            flag_meanings = flag_meanings.split("  ")
         u = i.get('units')
         if u in CF_UNITS:
             # CF compliance
@@ -315,7 +319,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
+        LOG.debug(self.file_content.get('/attr/sensor'))
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
+        LOG.debug(self.sensor)
         self.platform = _get_platform(self.file_content.get('/attr/platform'))
 
         nadir_resolution = self.get_nadir_resolution(self.sensor)
