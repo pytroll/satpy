@@ -406,7 +406,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
         self.platform = _get_platform(
             self.filename_info.get('platform_shortname', None))
-        self.sensor = self.nc.attrs.get('sensor', None)
+        self.sensor = _get_sensor(self.nc.attrs.get('sensor', None))
         # coordinates need scaling and valid_range (mask_and_scale won't work on valid_range)
         self.nc.coords["latitude"] = _CLAVRxHelper._get_data(self.nc.coords["latitude"],
                                                              {"name": "latitude"})
