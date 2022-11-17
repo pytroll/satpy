@@ -47,6 +47,8 @@ composites:
     prerequisites:
     - name: B02
       modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: B04
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance

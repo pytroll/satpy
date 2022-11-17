@@ -14,6 +14,8 @@ composites:
     prerequisites:
       - name: vis_05
         modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
       - name: vis_08
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: toa_bidirectional_reflectance
@@ -25,6 +27,7 @@ composites:
     limits: [0.15, 0.05]
     prerequisites:
       - name: vis_05
+      - name: vis_06
       - name: vis_08
     standard_name: toa_bidirectional_reflectance
 
