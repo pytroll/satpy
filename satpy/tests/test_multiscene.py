@@ -575,7 +575,10 @@ class TestMultiSceneSave(unittest.TestCase):
 class TestBlendFuncs():
     """Test individual functions used for blending."""
 
-    column = 3
+    @pytest.fixture(autouse=True)
+    def _get_line_column(self):
+        self._line = 2
+        self._column = 3
 
     @pytest.fixture
     def scene1_with_weights(self):
@@ -592,11 +595,8 @@ class TestBlendFuncs():
         scene[dsid1] = _create_test_int8_dataset(name='geo-ct', area=area, values=1)
         wgt1 = _create_test_dataset(name='geo-ct-wgt', area=area, values=0)
 
-        line = 2
-        column = 3
-
-        wgt1[line, :] = 2
-        wgt1[:, column] = 2
+        wgt1[self._line, :] = 2
+        wgt1[:, self._column] = 2
 
         dsid2 = make_dataid(
             name="geo-cma",
@@ -682,12 +682,9 @@ class TestBlendFuncs():
         weights = [weights[0][0], weights[1][0]]
         weighted_blend = multi_scene.blend(blend_function=stack_weighted, weights=weights)
 
-        line = 2
-        column = 3
-
         expected = scene2['polar-ct']
-        expected[line, :] = scene1['geo-ct'][line, :]
-        expected[:, column] = scene1['geo-ct'][:, column]
+        expected[self._line, :] = scene1['geo-ct'][self._line, :]
+        expected[:, self._column] = scene1['geo-ct'][:, self._column]
         expected[-1, :] = scene1['geo-ct'][-1, :]
 
         result = weighted_blend['CloudType'].compute()
