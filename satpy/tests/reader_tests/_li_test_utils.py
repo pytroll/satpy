@@ -336,7 +336,7 @@ def l2_lfl_schema(settings=None):
                 "long_name": "Flash duration",
                 "standard_name": "flash_duration",
                 "units": "ms",
-                "default_data": lambda: np.maximum(1, np.round(np.random.normal(80, 40, nobs)))
+                "default_data": lambda: np.linspace(0, 1000, nobs)
             },
             "flash_filter_confidence": {
                 "format": "i1",

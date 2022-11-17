@@ -368,6 +368,21 @@ class TestLIL2():
 
         assert np.all(dset.values == ref_data)
 
+    def test_milliseconds_to_timedelta(self, filetype_infos):
+        """Should covert milliseconds to timedelta."""
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lfl_nc'))
+
+        # Check flash_duration:
+        dsid = make_dataid(name="flash_duration")
+        dset = handler.get_dataset(dsid)
+        assert dset.values.dtype == np.dtype('timedelta64[ns]')
+
+        nobs = dset.shape[0]
+        ref_data = np.linspace(0, 1000, nobs).astype('u2')
+        ref_data = (ref_data * 1e6).astype('timedelta64[ns]')
+
+        assert np.all(dset.values == ref_data)
+
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
         handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
