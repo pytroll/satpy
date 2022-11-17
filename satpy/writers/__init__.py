@@ -542,7 +542,7 @@ def group_results_by_output_file(sources, targets):
         :meth:`Scene.save_datasets`.
     """
     ofs = {}
-    for (src, targ) in zip(sources, targets, strict=True):
+    for (src, targ) in zip(sources, targets):
         fn = targ.rfile.path
         if fn not in ofs:
             ofs[fn] = ([], [])
