@@ -273,6 +273,22 @@ class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
         return data
 
 
+class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
+    """Mock HRFI data."""
+
+    def _get_test_content_all_channels(self):
+        chan_patterns = {
+            "vis_{:>02d}_hr": [6],
+            "nir_{:>02d}_hr": [22],
+            "ir_{:>02d}_hr": [38, 105],
+        }
+        data = {}
+        for pat in chan_patterns:
+            for ch_num in chan_patterns[pat]:
+                data.update(self._get_test_content_for_channel(pat, ch_num))
+        return data
+
+
 @pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
@@ -291,29 +307,80 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
 
 class TestFCIL1cNCReader:
     """Initialize the unittest TestCase for the FCI L1c NetCDF Reader."""
-
     yaml_file = "fci_l1c_nc.yaml"
-
-    _alt_handler = FakeFCIFileHandlerFDHSI
-
-    @pytest.fixture(autouse=True, scope="class")
-    def fake_handler(self):
-        """Wrap NetCDF4 FileHandler with our own fake handler."""
-        # implementation strongly inspired by test_viirs_l1b.py
-        from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
-        p = mock.patch.object(
-                FCIL1cNCFileHandler,
-                "__bases__",
-                (self._alt_handler,))
-        with p:
-            p.is_local = True
-            yield p
 
 
 class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
-    """Test FCI L1c NetCDF reader."""
+    """Test FCI L1c NetCDF reader with good data, on the FDHSI example."""
 
-    _alt_handler = FakeFCIFileHandlerFDHSI
+    _alt_handler_FDHSI = FakeFCIFileHandlerFDHSI
+    _alt_handler_HRFI = FakeFCIFileHandlerHRFI
+    #
+    # @pytest.fixture(autouse=True, scope="function")
+    # def fake_handler(self):
+    #     """Wrap NetCDF4 FileHandler with our own fake handler."""
+    #     # implementation strongly inspired by test_viirs_l1b.py
+    #     from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
+    #     p = mock.patch.object(
+    #             FCIL1cNCFileHandler,
+    #             "__bases__",
+    #             (self._alt_handler,))
+    #     with p:
+    #         p.is_local = True
+    #         yield p
+
+    _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
+                        "nir_13", "nir_16", "nir_22"],
+              "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
+                         "ir_123", "ir_133"]}
+
+    _chans_hrfi = {"solar": ["vis_06", "nir_22"],
+              "terran": ["ir_38", "ir_105"]}
+
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+            "20170410113934_20170410113942_N__C_0070_0068.nc",
+        ], 16),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+            "20170410113934_20170410113942_N__C_0070_0068.nc",
+        ], 4),
+
+    ])
+    def test_load_counts(self, reader_configs, filehandler, channels, filenames,
+                         expected_res_n):
+        """Test loading with counts."""
+        from satpy.tests.utils import make_dataid
+        self._alt_handler = filehandler
+        from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
+        p = mock.patch.object(FCIL1cNCFileHandler, "__bases__", (self._alt_handler,))
+        with p:
+            p.is_local = True
+            self._chans = channels
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [make_dataid(name=name, calibration="counts") for name in
+                 self._chans["solar"] + self._chans["terran"]], pad_data=False)
+            assert expected_res_n == len(res)
+            for ch in self._chans["solar"] + self._chans["terran"]:
+                assert res[ch].shape == (200 * 2, 11136)
+                assert res[ch].dtype == np.uint16
+                assert res[ch].attrs["calibration"] == "counts"
+                assert res[ch].attrs["units"] == "count"
+                if ch == 'ir_38':
+                    numpy.testing.assert_array_equal(res[ch][~0], 1)
+                    numpy.testing.assert_array_equal(res[ch][0], 5000)
+                else:
+                    numpy.testing.assert_array_equal(res[ch], 1)
 
     def test_file_pattern(self, reader_configs):
         """Test file pattern matching."""
@@ -342,41 +409,6 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
         files = reader.select_files_from_pathnames(filenames)
         # only 4 FDHSI should match, the TRAIL should be ignored
         assert len(files) == 4
-
-    _chans = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
-                        "nir_13", "nir_16", "nir_22"],
-              "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
-                         "ir_123", "ir_133"]}
-
-    def test_load_counts(self, reader_configs):
-        """Test loading with counts."""
-        from satpy.tests.utils import make_dataid
-
-        # testing two filenames to test correctly combined
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
-            "20170410113934_20170410113942_N__C_0070_0068.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [make_dataid(name=name, calibration="counts") for name in
-             self._chans["solar"] + self._chans["terran"]], pad_data=False)
-        assert 16 == len(res)
-        for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch].shape == (200 * 2, 11136)
-            assert res[ch].dtype == np.uint16
-            assert res[ch].attrs["calibration"] == "counts"
-            assert res[ch].attrs["units"] == "count"
-            if ch == 'ir_38':
-                numpy.testing.assert_array_equal(res[ch][~0], 1)
-                numpy.testing.assert_array_equal(res[ch][0], 5000)
-            else:
-                numpy.testing.assert_array_equal(res[ch], 1)
 
     def test_load_radiance(self, reader_configs):
         """Test loading with radiance."""
@@ -690,3 +722,46 @@ class TestFCIL1cNCReaderBadDataFromIDPF(TestFCIL1cNCReader):
         np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
                                              np.array([-5568062.270889, 5168057.806632,
                                                        16704186.298937, 5568062.270889]))
+
+
+# class TestFCIL1cNCReaderHRFI(TestFCIL1cNCReaderGoodData):
+#     """Test FCI L1c NetCDF reader for the HRFI case."""
+#
+#     _alt_handler = FakeFCIFileHandlerHRFI
+#
+#     def test_file_pattern(self, reader_configs):
+#         """Test file pattern matching."""
+#         from satpy.readers import load_reader
+#
+#         filenames = [
+#             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+#             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+#             "20170410113925_20170410113934_N__C_0070_0038.nc",
+#             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+#             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+#             "20170410113934_20170410113942_N__C_0070_0039.nc",
+#             # this is a TRAIL file, which we don't use/read
+#             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+#             "CHK-TRAIL--L2P-NC4E_C_EUMT_20170410114600_GTT_DEV_"
+#             "20170410113000_20170410114000_N__C_0070_0071.nc",
+#         ]
+#
+#         reader = load_reader(reader_configs)
+#         files = reader.select_files_from_pathnames(filenames)
+#         # only 2 HRFI should match, the TRAIL should be ignored
+#         assert len(files) == 2
+#
+#     _chans = {"solar": ["vis_06", "nir_22"],
+#               "terran": ["ir_38", "ir_105"]}
+#
+#     def test_load_counts(self, reader_configs):
+#         # testing two filenames to test correctly combined
+#         filenames = [
+#             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+#             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+#             "20170410113925_20170410113934_N__C_0070_0038.nc",
+#             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+#             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+#             "20170410113934_20170410113942_N__C_0070_0039.nc",
+#         ]
+#         self._check_load_counts(reader_configs, filenames)
