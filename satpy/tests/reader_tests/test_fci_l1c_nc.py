@@ -203,7 +203,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data = {}
         attrs = {"platform": "MTI1"}
         for (k, v) in attrs.items():
-            data["/attr/" + k] = v
+            data["attr/" + k] = v
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
@@ -356,7 +356,6 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
             "20170410113934_20170410113942_N__C_0070_0068.nc",
         ]
-
         reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [make_dataid(name=name, calibration="counts") for name in
