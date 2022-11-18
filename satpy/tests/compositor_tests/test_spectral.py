@@ -17,20 +17,18 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for spectral correction compositors."""
 
-import unittest
-
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.composites.spectral import HybridGreen, NDVIHybridGreen, SpectralBlender
+from satpy.composites.spectral import GreenCorrector, HybridGreen, NDVIHybridGreen, SpectralBlender
 
 
-class TestSpectralComposites(unittest.TestCase):
+class TestSpectralComposites:
     """Test composites for spectral channel corrections."""
 
-    def setUp(self):
+    def setup_method(self):
         """Initialize channels."""
         rows = 5
         cols = 10
@@ -50,10 +48,10 @@ class TestSpectralComposites(unittest.TestCase):
         comp = SpectralBlender('blended_channel', fractions=(0.3, 0.4, 0.3), prerequisites=(0.51, 0.65, 0.85),
                                standard_name='toa_bidirectional_reflectance')
         res = comp((self.c01, self.c02, self.c03))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'blended_channel')
-        self.assertEqual(res.attrs['standard_name'], 'toa_bidirectional_reflectance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'blended_channel'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
         data = res.compute()
         np.testing.assert_allclose(data, 0.3)
 
@@ -62,10 +60,10 @@ class TestSpectralComposites(unittest.TestCase):
         comp = HybridGreen('hybrid_green', fraction=0.15, prerequisites=(0.51, 0.85),
                            standard_name='toa_bidirectional_reflectance')
         res = comp((self.c01, self.c03))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'hybrid_green')
-        self.assertEqual(res.attrs['standard_name'], 'toa_bidirectional_reflectance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'hybrid_green'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
         data = res.compute()
         np.testing.assert_allclose(data, 0.23)
 
@@ -82,10 +80,21 @@ class TestSpectralComposites(unittest.TestCase):
                                standard_name='toa_bidirectional_reflectance')
 
         res = comp((self.c01, self.c02, self.c03))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'ndvi_hybrid_green')
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_bidirectional_reflectance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'ndvi_hybrid_green'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
         data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+
+    def test_green_corrector(self):
+        """Test the deprecated class for green corrections."""
+        comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
+                              standard_name='toa_bidirectional_reflectance')
+        res = comp((self.c01, self.c03))
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'blended_channel'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
+        data = res.compute()
+        np.testing.assert_allclose(data, 0.23)

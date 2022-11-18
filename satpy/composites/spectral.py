@@ -16,6 +16,7 @@
 """Composite classes for spectral adjustments."""
 
 import logging
+import warnings
 
 import dask.array as da
 
@@ -76,7 +77,7 @@ class HybridGreen(SpectralBlender):
     affects true colour RGBs, because vegetation looks brown rather than green
     and barren surface types typically gets a reddish hue.
 
-    To correct for this the hybrid green approach proposed by Miller et al. (2016) :doi:`10.1175/BAMS-D-15-00154.2`
+    To correct for this the hybrid green approach proposed by Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`)
     is used. The basic idea is to include some contribution also from the 0.86 micron
     channel, which is known for its sensitivity to vegetation. The formula used for this is:
 
@@ -104,7 +105,7 @@ class HybridGreen(SpectralBlender):
     files in the satpy distribution.
     """
 
-    def __init__(self, *args, fraction=0.07, **kwargs):
+    def __init__(self, *args, fraction=0.15, **kwargs):
         """Set default keyword argument values."""
         fractions = (1 - fraction, fraction)
         super().__init__(fractions=fractions, *args, **kwargs)
@@ -159,3 +160,20 @@ class NDVIHybridGreen(SpectralBlender):
         self.fractions = (1 - fraction, fraction)
 
         return super().__call__([projectables[0], projectables[2]], **attrs)
+
+
+class GreenCorrector(SpectralBlender):
+    """Previous class used to blend channels for green band corrections.
+
+    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' wich computes
+    a weghted average based on N number of channels and N number fo corresponding weights/fractions. A new class
+    called 'HybridGreen' has been created, which performs a correction of green bands centered at 0.51 microns
+    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to imrpove true color imagery.
+    """
+
+    def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
+        """Set default keyword argument values."""
+        warnings.warn(
+            "'GreenCorrector' is deprecated, use 'SpectralBlender' instead, or 'HybridGreen' for hybrid green"
+            " correction following Miller et al. (2016).", RuntimeWarning)
+        super().__init__(fractions=fractions, *args, **kwargs)
