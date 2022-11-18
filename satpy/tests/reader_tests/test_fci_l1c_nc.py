@@ -215,7 +215,7 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
     """Mock FDHSI data."""
 
     chan_patterns = {
-        "vis_{:>02d}": [4, 5, 6, 8, ],
+        "vis_{:>02d}": [4, 5, 6, 8, 9],
         "nir_{:>02d}": [13, 16, 22],
         "ir_{:>02d}": [38, 87, 97, 105, 123, 133],
         "wv_{:>02d}": [63, 73],
@@ -364,7 +364,7 @@ class TestFCIL1cNCReader:
                 assert res[ch].attrs["calibration"] == "counts"
                 assert res[ch].attrs["units"] == "count"
                 if ch == 'ir_38':
-                    numpy.testing.assert_array_equal(res[ch][~0], 1)
+                    numpy.testing.assert_array_equal(res[ch][-1], 1)
                     numpy.testing.assert_array_equal(res[ch][0], 5000)
                 else:
                     numpy.testing.assert_array_equal(res[ch], 1)
@@ -390,7 +390,7 @@ class TestFCIL1cNCReader:
                 assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
                 assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
                 if ch == 'ir_38':
-                    numpy.testing.assert_array_equal(res[ch][~0], 15)
+                    numpy.testing.assert_array_equal(res[ch][-1], 15)
                     numpy.testing.assert_array_equal(res[ch][0], 9700)
                 else:
                     numpy.testing.assert_array_equal(res[ch], 15)
@@ -439,7 +439,7 @@ class TestFCIL1cNCReader:
                 assert res[ch].attrs["units"] == "K"
 
                 if ch == 'ir_38':
-                    numpy.testing.assert_array_almost_equal(res[ch][~0], 209.68274099)
+                    numpy.testing.assert_array_almost_equal(res[ch][-1], 209.68274099)
                     numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
                 else:
                     numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
