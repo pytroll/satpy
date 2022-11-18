@@ -379,6 +379,26 @@ class TestLIL2():
 
         assert np.all(dset.values == ref_data)
 
+    def test_apply_accumulate_index_offset(self, filetype_infos):
+        """Should accumulate index offsets."""
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_le_nc'))
+
+        # Check time offset:
+        dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
+        dset = handler.get_dataset(dsid)
+
+        nobs = dset.shape[0]
+        ref_data = (np.arange(nobs)).astype('u4')
+        # check first execution without offset
+        assert np.all(dset.values == ref_data)
+
+        # check execution with offset value
+        ds_info = dset.attrs
+        ds_info.update({'__index_offset': 1000,
+                        'accumulate_index_offset': "{sector_name}/l1b_window"})
+        dset = handler.get_dataset(dsid, ds_info)
+        assert np.all(dset.values == ref_data + 1000)
+
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
         handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))

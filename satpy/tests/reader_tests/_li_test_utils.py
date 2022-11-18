@@ -91,7 +91,7 @@ def l2_le_schema(settings=None):
                 "shape": ('unfiltered_events',),
                 "fill_value": 4294967295,
                 "long_name": "window index of associated L1b event",
-                "default_data": lambda: np.random.randint(low=1, high=1170, size=(nobs), dtype=np.int16)
+                "default_data": lambda: (np.arange(nobs) + 10000)
             },
             "filter_values": {
                 "format": "u1",
