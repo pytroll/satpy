@@ -400,7 +400,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         # We could not find a variable with that path, this might be an error:
         raise Exception(f"Could not find variable with paths: {var_paths}")
 
-    def get_measured_variable(self, var_paths, slice_index=None, fill_value=np.nan):
+    def get_measured_variable(self, var_paths, fill_value=np.nan):
         """Retrieve a measured variable path taking into account the potential old data formatting schema.
 
         And also replace the missing values with the provided fill_value (except if this is explicitly
@@ -424,9 +424,6 @@ class LINCFileHandler(NetCDF4FileHandler):
         all_var_paths = self.get_variable_search_paths(var_paths)
 
         arr = self.get_first_valid_variable(all_var_paths)
-
-        if slice_index is not None:
-            arr = arr[slice_index]
 
         # Also handle fill value here (but only if it is not None, so that we can still bypass this
         # step if needed)
@@ -663,7 +660,7 @@ class LINCFileHandler(NetCDF4FileHandler):
             var_path = var_path.replace("{sector_name}", ds_info['sector_name'])
 
         # get the variable on that path:
-        ref_var = self.get_measured_variable(var_path, slice_index=None)
+        ref_var = self.get_measured_variable(var_path)
 
         return ref_var
 
@@ -702,8 +699,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         var_paths = vname if sname is None else f"{sname}/{vname}"
 
         # Note that this includes the case where sname == None:
-        img_idx = ds_info.get('image_index', None)
-        data_array = self.get_measured_variable(var_paths, slice_index=img_idx)
+        data_array = self.get_measured_variable(var_paths)
         data_array = self.apply_transforms(data_array, ds_info)
         return data_array
 
