@@ -1,7 +1,7 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
 from contextlib import suppress
 from datetime import datetime
-from functools import cached_property, lru_cache
+from functools import cached_property
 
 import dask.array as da
 import numpy as np
@@ -54,47 +54,49 @@ def get_lonlat_suffix(resolution):
     return lonlat_suffix
 
 
-@lru_cache
 def open_dataset(filename, resolution=1000):
     """Open a dataset for a given resolution."""
+    if resolution not in [1000, 4000, 8000]:
+        raise ValueError(f"Resolution {resolution} not available. Available resolutions: 1000, 4000, 8000")
+
     h5ds = xr.open_dataset(filename, engine="h5netcdf", chunks="auto")
     h5ds_raw = xr.open_dataset(filename, engine="h5netcdf", chunks="auto", mask_and_scale=False)
     ds = xr.Dataset()
     ds.attrs = h5ds.attrs
-    if resolution in [1000, 4000, 8000]:
-        for channel in CHANNELS_BY_RESOLUTION[resolution]:
-            var_name = "IMG_" + channel.upper()
-            channel_data = h5ds_raw[var_name]
-            ds[var_name] = channel_data
+    for channel in CHANNELS_BY_RESOLUTION[resolution]:
+        var_name = "IMG_" + channel.upper()
+        channel_data = h5ds_raw[var_name]
+        ds[var_name] = channel_data
 
-            for name in [var_name + "_" + suffix for suffix in LUT_SUFFIXES[channel]]:
-                lut = h5ds[name]
-                decoded = decode_lut_arr(channel_data, lut)
-                ds[name] = decoded
+        for name in [var_name + "_" + suffix for suffix in LUT_SUFFIXES[channel]]:
+            lut = h5ds[name]
+            decoded = decode_lut_arr(channel_data, lut)
+            ds[name] = decoded
 
-            lonlat_suffix = get_lonlat_suffix(resolution)
+        lonlat_suffix = get_lonlat_suffix(resolution)
 
-            for coord in ["Longitude", "Latitude"]:
-                var_name = coord + lonlat_suffix
-                ds[var_name] = h5ds[var_name]
+        for coord in ["Longitude", "Latitude"]:
+            var_name = coord + lonlat_suffix
+            ds[var_name] = h5ds[var_name]
 
-        for x_dim in ["GeoX", "GeoX1", "GeoX2"]:
-            with suppress(ValueError):
-                ds = ds.rename({x_dim: "x"})
+    ds = _rename_dims(ds)
+    return ds
 
-        for y_dim in ["GeoY", "GeoY1", "GeoY2"]:
-            with suppress(ValueError):
-                ds = ds.rename({y_dim: "y"})
 
-        for lons in ["Longitude_VIS", "Longitude_WV"]:
-            with suppress(ValueError):
-                ds = ds.rename({lons: "Longitude"})
-
-        for lats in ["Latitude_VIS", "Latitude_WV"]:
-            with suppress(ValueError):
-                ds = ds.rename({lats: "Latitude"})
-    else:
-        raise ValueError(f"Resolution {resolution} not available. Available resolutions: 1000, 4000, 8000")
+def _rename_dims(ds):
+    """Rename dimensions to satpy standards."""
+    for x_dim in ["GeoX", "GeoX1", "GeoX2"]:
+        with suppress(ValueError):
+            ds = ds.rename({x_dim: "x"})
+    for y_dim in ["GeoY", "GeoY1", "GeoY2"]:
+        with suppress(ValueError):
+            ds = ds.rename({y_dim: "y"})
+    for lons in ["Longitude_VIS", "Longitude_WV"]:
+        with suppress(ValueError):
+            ds = ds.rename({lons: "Longitude"})
+    for lats in ["Latitude_VIS", "Latitude_WV"]:
+        with suppress(ValueError):
+            ds = ds.rename({lats: "Latitude"})
     return ds
 
 
