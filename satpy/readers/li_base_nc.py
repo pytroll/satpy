@@ -618,7 +618,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         ref_var = self.get_transform_reference('accumulate_index_offset', ds_info)
 
         # Apply the current index_offset already reached on the indices we have in the current dataset:
-        data_array += offset
+        data_array = data_array + offset
 
         # Now update the __index_offset adding the number of elements in the reference array:
         ds_info['__index_offset'] = offset + ref_var.size
