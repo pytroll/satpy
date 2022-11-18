@@ -18,7 +18,7 @@ composites:
   green:
     # Deprecated green composite using deprecated class 'GreenCorrector'. Use 'hybrid_green' instead.
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector
-      # FUTURE: Set a wavelength...see what happens. Dependency finding
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
@@ -47,7 +47,7 @@ composites:
   green_nocorr:
     # Deprecated green composite using deprecated class 'GreenCorrector'. Use 'hybrid_green_nocorr' instead.
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector
-      # FUTURE: Set a wavelength...see what happens. Dependency finding
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
