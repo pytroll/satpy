@@ -30,7 +30,7 @@ file_types:
         l1b_chunk_offsets:
           accumulate_index_offset: "{sector_name}/l1b_window"
         epoch_time:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
           broadcast_to: "{sector_name}/time_offset"
         time_offset:
           seconds_to_timedelta: true
@@ -57,7 +57,7 @@ file_types:
                   'group_filter_qa']
       variable_transforms:
         group_time:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
       swath_coordinates:
         latitude: 'latitude'
         longitude: 'longitude'
@@ -87,7 +87,7 @@ file_types:
                   'l1b_radiometric_warning']
       variable_transforms:
         epoch_time:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
           broadcast_to: "{sector_name}/time_offset"
         time_offset:
           seconds_to_timedelta: true
@@ -115,7 +115,7 @@ file_types:
                   'radiance']
       variable_transforms:
         flash_time:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
         flash_duration:
           milliseconds_to_timedelta: true
       swath_coordinates:
@@ -139,7 +139,7 @@ file_types:
                   'y']
       variable_transforms:
         accumulation_start_times:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
       swath_coordinates:
         azimuth: 'x'
         elevation: 'y'
@@ -162,7 +162,7 @@ file_types:
                   'average_flash_qa']
       variable_transforms:
         accumulation_start_times:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
       swath_coordinates:
         azimuth: 'x'
         elevation: 'y'
@@ -185,7 +185,7 @@ file_types:
                   'average_flash_qa']
       variable_transforms:
         accumulation_start_times:
-          seconds_to_datetime: "2000-01-01T00:00:00.000000"
+          seconds_to_datetime: true
       swath_coordinates:
         azimuth: 'x'
         elevation: 'y'

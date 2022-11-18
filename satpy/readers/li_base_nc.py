@@ -630,7 +630,7 @@ class LINCFileHandler(NetCDF4FileHandler):
     def apply_seconds_to_datetime(self, data_array, ds_info):
         """Apply the seconds_to_datetime transform on a given array."""
         # Retrieve the epoch timestamp:
-        epoch_ts = np.datetime64(ds_info['seconds_to_datetime'])
+        epoch_ts = np.datetime64('2000-01-01T00:00:00.000000')
 
         # And add our values as delta times in seconds:
         # note that we use a resolution of 1ns here:
