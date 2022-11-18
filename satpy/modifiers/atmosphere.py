@@ -77,9 +77,6 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs['wavelength'][1],
                                                       red.data)
-
-        # refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band, 70., 90., 1.0)
-
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
