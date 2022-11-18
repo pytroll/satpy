@@ -19,6 +19,7 @@
 import contextlib
 import logging
 import os
+from typing import Dict, List
 from unittest import mock
 
 import dask.array as da
@@ -36,26 +37,24 @@ class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
     # overwritten by FDHSI and HRFI FIle Handlers
-    chan_patterns = {}
+    chan_patterns: Dict[str, List[int]] = {}
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
         from pyspectral.blackbody import C_SPEED as c
         from pyspectral.blackbody import H_PLANCK as h
         from pyspectral.blackbody import K_BOLTZMANN as k
         xrda = xr.DataArray
-        data = {}
-        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)
-        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1)
-        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(0.4)
-        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11 * 2 * h * c ** 2)
-        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2 * h * c / k)
+        data = {meas + "/radiance_to_bt_conversion_coefficient_wavenumber": xrda(955),
+                meas + "/radiance_to_bt_conversion_coefficient_a": xrda(1),
+                meas + "/radiance_to_bt_conversion_coefficient_b": xrda(0.4),
+                meas + "/radiance_to_bt_conversion_constant_c1": xrda(1e11 * 2 * h * c ** 2),
+                meas + "/radiance_to_bt_conversion_constant_c2": xrda(1e2 * h * c / k)}
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
         xrda = xr.DataArray
-        data = {}
-        data["state/celestial/earth_sun_distance"] = xrda(da.repeat(da.array([149597870.7]), 6000))
-        data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
+        data = {"state/celestial/earth_sun_distance": xrda(da.repeat(da.array([149597870.7]), 6000)),
+                meas + "/channel_effective_solar_irradiance": xrda(50)}
         return data
 
     def _get_test_content_for_channel(self, pat, ch):
@@ -204,14 +203,6 @@ class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Get the content of the test data."""
-        # mock global attributes
-        # - root groups global
-        # - other groups global
-        # mock data variables
-        # mock dimensions
-        #
-        # ... but only what satpy is using ...
-
         D = {}
         D.update(self._get_test_content_all_channels())
         D.update(self._get_test_content_areadef())
@@ -224,11 +215,11 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
     """Mock FDHSI data."""
 
     chan_patterns = {
-            "vis_{:>02d}": (4, 5, 6, 8, 9),
-            "nir_{:>02d}": (13, 16, 22),
-            "ir_{:>02d}": (38, 87, 97, 105, 123, 133),
-            "wv_{:>02d}": (63, 73),
-        }
+        "vis_{:>02d}": [4, 5, 6, 8, ],
+        "nir_{:>02d}": [13, 16, 22],
+        "ir_{:>02d}": [38, 87, 97, 105, 123, 133],
+        "wv_{:>02d}": [63, 73],
+    }
 
 
 class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
@@ -279,10 +270,11 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
     """Mock HRFI data."""
 
     chan_patterns = {
-            "vis_{:>02d}_hr": [6],
-            "nir_{:>02d}_hr": [22],
-            "ir_{:>02d}_hr": [38, 105],
-        }
+        "vis_{:>02d}_hr": [6],
+        "nir_{:>02d}_hr": [22],
+        "ir_{:>02d}_hr": [38, 105],
+    }
+
 
 @pytest.fixture
 def reader_configs():
@@ -308,33 +300,30 @@ _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
 _chans_hrfi = {"solar": ["vis_06", "nir_22"],
                "terran": ["ir_38", "ir_105"]}
 
-_test_filenames = {'fdhsi' : [
-        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-        "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-        "20170410113925_20170410113934_N__C_0070_0067.nc"
-    ],
-'hrfi': [
+_test_filenames = {'fdhsi': [
+    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+    "20170410113925_20170410113934_N__C_0070_0067.nc"
+],
+    'hrfi': [
         "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
         "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
         "20170410113925_20170410113934_N__C_0070_0067.nc"
     ]
 }
 
+
 @contextlib.contextmanager
 def mocked_basefilehandler(filehandler):
+    """Mock patch the base class of the FCIL1cNCFileHandler with the content of our fake files (filehandler)."""
     p = mock.patch.object(FCIL1cNCFileHandler, "__bases__", (filehandler,))
     with p:
         p.is_local = True
         yield
 
+
 class TestFCIL1cNCReader:
-    """Initialize the unittest TestCase for the FCI L1c NetCDF Reader."""
-
-
-class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
-    """Test FCI L1c NetCDF reader with good data, on the FDHSI example."""
-
-
+    """Test FCI L1c NetCDF reader with nominal data."""
 
     @pytest.mark.parametrize('filenames', [_test_filenames['fdhsi'], _test_filenames['hrfi']])
     def test_file_pattern(self, reader_configs, filenames):
@@ -381,14 +370,13 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
                     numpy.testing.assert_array_equal(res[ch], 1)
 
     @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'] , 16),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'] , 4),
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 16),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 4),
 
     ])
     def test_load_radiance(self, reader_configs, filehandler, channels, filenames,
                            expected_res_n):
         """Test loading with radiance."""
-
         with mocked_basefilehandler(filehandler):
             reader = _get_reader_with_filehandlers(filenames, reader_configs)
             res = reader.load(
@@ -413,7 +401,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
 
     ])
     def test_load_reflectance(self, reader_configs, filehandler, channels, filenames,
-                           expected_res_n):
+                              expected_res_n):
         """Test loading with reflectance."""
         with mocked_basefilehandler(filehandler):
             reader = _get_reader_with_filehandlers(filenames, reader_configs)
@@ -434,7 +422,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
 
     ])
     def test_load_bt(self, reader_configs, caplog, filehandler, channels, filenames,
-                           expected_res_n):
+                     expected_res_n):
         """Test loading with bt."""
         with mocked_basefilehandler(filehandler):
             reader = _get_reader_with_filehandlers(filenames, reader_configs)
@@ -565,7 +553,6 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
 
     def test_excs(self, reader_configs):
         """Test that exceptions are raised where expected."""
-
         with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
 
@@ -610,7 +597,6 @@ class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
-
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
             with caplog.at_level("ERROR"):
@@ -637,8 +623,8 @@ class TestFCIL1cNCReaderBadDataFromIDPF(TestFCIL1cNCReader):
         """Test handling of bad earth-sun distance data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-
             res = reader.load([make_dataid(name=["vis_06"], calibration="reflectance")], pad_data=False)
+
             numpy.testing.assert_array_almost_equal(res["vis_06"], 100 * 15 * 1 * np.pi / 50)
 
     def test_bad_xy_coords(self, reader_configs):
