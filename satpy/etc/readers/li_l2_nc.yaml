@@ -175,14 +175,14 @@ file_types:
     file_desc:
       product_type: '2-AFA'
       variables: ['mtg_geos_projection',
-                   'accumulation_start_times',
-                   'accumulation_offsets',
-                   'x',
-                   'y',
-                   'accumulated_flash_area',
-                   'l1b_geolocation_warning',
-                   'l1b_radiometric_warning',
-                   'average_flash_qa']
+                  'accumulation_start_times',
+                  'accumulation_offsets',
+                  'x',
+                  'y',
+                  'accumulated_flash_area',
+                  'l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'average_flash_qa']
       variable_transforms:
         accumulation_start_times:
           seconds_to_datetime: "2000-01-01T00:00:00.000000"
