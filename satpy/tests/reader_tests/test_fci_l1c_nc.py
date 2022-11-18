@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'fci_l1c_nc' reader."""
-
+import contextlib
 import logging
 import os
 from unittest import mock
@@ -27,7 +27,9 @@ import numpy.testing
 import pytest
 import xarray as xr
 
+from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import make_dataid
 
 
 class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
@@ -183,7 +185,7 @@ class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
         # compute the last data entry to simulate the FCI caching
         data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
-        data['index'] = xrda(da.arange(indices_dim, dtype="uint16")+100, dims=("index"))
+        data['index'] = xrda(da.arange(indices_dim, dtype="uint16") + 100, dims=("index"))
         return data
 
     def _get_global_attributes(self):
@@ -305,37 +307,55 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     return reader
 
 
+@contextlib.contextmanager
+def mocked_basefilehandler(filehandler):
+    p = mock.patch.object(FCIL1cNCFileHandler, "__bases__", (filehandler,))
+    with p:
+        p.is_local = True
+        yield
+
 class TestFCIL1cNCReader:
     """Initialize the unittest TestCase for the FCI L1c NetCDF Reader."""
-    yaml_file = "fci_l1c_nc.yaml"
 
 
 class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
     """Test FCI L1c NetCDF reader with good data, on the FDHSI example."""
 
-    _alt_handler_FDHSI = FakeFCIFileHandlerFDHSI
-    _alt_handler_HRFI = FakeFCIFileHandlerHRFI
-    #
-    # @pytest.fixture(autouse=True, scope="function")
-    # def fake_handler(self):
-    #     """Wrap NetCDF4 FileHandler with our own fake handler."""
-    #     # implementation strongly inspired by test_viirs_l1b.py
-    #     from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
-    #     p = mock.patch.object(
-    #             FCIL1cNCFileHandler,
-    #             "__bases__",
-    #             (self._alt_handler,))
-    #     with p:
-    #         p.is_local = True
-    #         yield p
-
     _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
-                        "nir_13", "nir_16", "nir_22"],
-              "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
-                         "ir_123", "ir_133"]}
+                              "nir_13", "nir_16", "nir_22"],
+                    "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
+                               "ir_123", "ir_133"]}
 
     _chans_hrfi = {"solar": ["vis_06", "nir_22"],
-              "terran": ["ir_38", "ir_105"]}
+                   "terran": ["ir_38", "ir_105"]}
+
+    @pytest.mark.parametrize('filenames', [
+        [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+            "20170410113934_20170410113942_N__C_0070_0068.nc",
+        ],
+        [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
+            "20170410113934_20170410113942_N__C_0070_0068.nc",
+        ]
+
+    ])
+    def test_file_pattern(self, reader_configs, filenames):
+        """Test file pattern matching."""
+        from satpy.readers import load_reader
+
+        reader = load_reader(reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        # only 2 should match, the TRAIL should be ignored
+        assert len(files) == 2
 
     @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
         (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
@@ -359,19 +379,13 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
     def test_load_counts(self, reader_configs, filehandler, channels, filenames,
                          expected_res_n):
         """Test loading with counts."""
-        from satpy.tests.utils import make_dataid
-        self._alt_handler = filehandler
-        from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
-        p = mock.patch.object(FCIL1cNCFileHandler, "__bases__", (self._alt_handler,))
-        with p:
-            p.is_local = True
-            self._chans = channels
+        with mocked_basefilehandler(filehandler):
             reader = _get_reader_with_filehandlers(filenames, reader_configs)
             res = reader.load(
                 [make_dataid(name=name, calibration="counts") for name in
-                 self._chans["solar"] + self._chans["terran"]], pad_data=False)
+                 channels["solar"] + channels["terran"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch in self._chans["solar"] + self._chans["terran"]:
+            for ch in channels["solar"] + channels["terran"]:
                 assert res[ch].shape == (200 * 2, 11136)
                 assert res[ch].dtype == np.uint16
                 assert res[ch].attrs["calibration"] == "counts"
@@ -382,176 +396,192 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
                 else:
                     numpy.testing.assert_array_equal(res[ch], 1)
 
-    def test_file_pattern(self, reader_configs):
-        """Test file pattern matching."""
-        from satpy.readers import load_reader
-
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114442_GTT_DEV_"
-            "20170410113934_20170410113942_N__C_0070_0068.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114451_GTT_DEV_"
-            "20170410113942_20170410113951_N__C_0070_0069.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114500_GTT_DEV_"
-            "20170410113951_20170410114000_N__C_0070_0070.nc",
-            # this is a TRAIL file, which we don't use/read
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-TRAIL--L2P-NC4E_C_EUMT_20170410114600_GTT_DEV_"
-            "20170410113000_20170410114000_N__C_0070_0071.nc",
-        ]
-
-        reader = load_reader(reader_configs)
-        files = reader.select_files_from_pathnames(filenames)
-        # only 4 FDHSI should match, the TRAIL should be ignored
-        assert len(files) == 4
-
-    def test_load_radiance(self, reader_configs):
-        """Test loading with radiance."""
-        from satpy.tests.utils import make_dataid
-
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [make_dataid(name=name, calibration="radiance") for name in
-             self._chans["solar"] + self._chans["terran"]], pad_data=False)
-        assert 16 == len(res)
-        for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch].shape == (200, 11136)
-            assert res[ch].dtype == np.float64
-            assert res[ch].attrs["calibration"] == "radiance"
-            assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
-            assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
-            if ch == 'ir_38':
-                numpy.testing.assert_array_equal(res[ch][~0], 15)
-                numpy.testing.assert_array_equal(res[ch][0], 9700)
-            else:
-                numpy.testing.assert_array_equal(res[ch], 15)
-
-    def test_load_reflectance(self, reader_configs):
-        """Test loading with reflectance."""
-        from satpy.tests.utils import make_dataid
-
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [make_dataid(name=name, calibration="reflectance") for name in
-             self._chans["solar"]], pad_data=False)
-        assert 8 == len(res)
-        for ch in self._chans["solar"]:
-            assert res[ch].shape == (200, 11136)
-            assert res[ch].dtype == np.float64
-            assert res[ch].attrs["calibration"] == "reflectance"
-            assert res[ch].attrs["units"] == "%"
-            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
-
-    def test_load_bt(self, reader_configs, caplog):
-        """Test loading with bt."""
-        from satpy.tests.utils import make_dataid
-
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        with caplog.at_level(logging.WARNING):
-            res = reader.load(
-                [make_dataid(name=name, calibration="brightness_temperature") for
-                 name in self._chans["terran"]], pad_data=False)
-            assert caplog.text == ""
-        for ch in self._chans["terran"]:
-            assert res[ch].shape == (200, 11136)
-            assert res[ch].dtype == np.float64
-            assert res[ch].attrs["calibration"] == "brightness_temperature"
-            assert res[ch].attrs["units"] == "K"
-
-            if ch == 'ir_38':
-                numpy.testing.assert_array_almost_equal(res[ch][~0], 209.68274099)
-                numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
-            else:
-                numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
-
-    def test_orbital_parameters_attr(self, reader_configs):
-        """Test the orbital parameter attribute."""
-        from satpy.tests.utils import make_dataid
-
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [make_dataid(name=name) for name in
-             self._chans["solar"] + self._chans["terran"]], pad_data=False)
-
-        for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch].attrs["orbital_parameters"] == {
-                'satellite_actual_longitude': np.mean(np.arange(6000)),
-                'satellite_actual_latitude': np.mean(np.arange(6000)),
-                'satellite_actual_altitude': np.mean(np.arange(6000)),
-                'satellite_nominal_longitude': 0.0,
-                'satellite_nominal_latitude': 0,
-                'satellite_nominal_altitude': 35786400.0,
-                'projection_longitude': 0.0,
-                'projection_latitude': 0,
-                'projection_altitude': 35786400.0,
-            }
-
-    def test_load_index_map(self, reader_configs):
-        """Test loading of index_map."""
-        filenames = [
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc"
-        ]
+        ], 16),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 4),
 
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [name + '_index_map' for name in
-             self._chans["solar"] + self._chans["terran"]], pad_data=False)
-        assert 16 == len(res)
-        for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch + '_index_map'].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5237)
+    ])
+    def test_load_radiance(self, reader_configs, filehandler, channels, filenames,
+                           expected_res_n):
+        """Test loading with radiance."""
 
-    def test_load_aux_data(self, reader_configs):
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [make_dataid(name=name, calibration="radiance") for name in
+                 channels["solar"] + channels["terran"]], pad_data=False)
+            assert expected_res_n == len(res)
+            for ch in channels["solar"] + channels["terran"]:
+                assert res[ch].shape == (200, 11136)
+                assert res[ch].dtype == np.float64
+                assert res[ch].attrs["calibration"] == "radiance"
+                assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
+                assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
+                if ch == 'ir_38':
+                    numpy.testing.assert_array_equal(res[ch][~0], 15)
+                    numpy.testing.assert_array_equal(res[ch][0], 9700)
+                else:
+                    numpy.testing.assert_array_equal(res[ch], 15)
+
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 8),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 2),
+
+    ])
+    def test_load_reflectance(self, reader_configs, filehandler, channels, filenames,
+                           expected_res_n):
+        """Test loading with reflectance."""
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [make_dataid(name=name, calibration="reflectance") for name in
+                 channels["solar"]], pad_data=False)
+            assert expected_res_n == len(res)
+            for ch in channels["solar"]:
+                assert res[ch].shape == (200, 11136)
+                assert res[ch].dtype == np.float64
+                assert res[ch].attrs["calibration"] == "reflectance"
+                assert res[ch].attrs["units"] == "%"
+                numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 8),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 2),
+
+    ])
+    def test_load_bt(self, reader_configs, caplog, filehandler, channels, filenames,
+                           expected_res_n):
+        """Test loading with bt."""
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            with caplog.at_level(logging.WARNING):
+                res = reader.load(
+                    [make_dataid(name=name, calibration="brightness_temperature") for
+                     name in channels["terran"]], pad_data=False)
+                assert caplog.text == ""
+            assert expected_res_n == len(res)
+            for ch in channels["terran"]:
+                assert res[ch].shape == (200, 11136)
+                assert res[ch].dtype == np.float64
+                assert res[ch].attrs["calibration"] == "brightness_temperature"
+                assert res[ch].attrs["units"] == "K"
+
+                if ch == 'ir_38':
+                    numpy.testing.assert_array_almost_equal(res[ch][~0], 209.68274099)
+                    numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
+                else:
+                    numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
+
+    @pytest.mark.parametrize('filehandler,channels,filenames', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+
+    ])
+    def test_orbital_parameters_attr(self, reader_configs, filehandler, channels, filenames):
+        """Test the orbital parameter attribute."""
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [make_dataid(name=name) for name in
+                 channels["solar"] + channels["terran"]], pad_data=False)
+
+            for ch in channels["solar"] + channels["terran"]:
+                assert res[ch].attrs["orbital_parameters"] == {
+                    'satellite_actual_longitude': np.mean(np.arange(6000)),
+                    'satellite_actual_latitude': np.mean(np.arange(6000)),
+                    'satellite_actual_altitude': np.mean(np.arange(6000)),
+                    'satellite_nominal_longitude': 0.0,
+                    'satellite_nominal_latitude': 0,
+                    'satellite_nominal_altitude': 35786400.0,
+                    'projection_longitude': 0.0,
+                    'projection_latitude': 0,
+                    'projection_altitude': 35786400.0,
+                }
+
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 16),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 4),
+
+    ])
+    def test_load_index_map(self, reader_configs, filehandler, channels, filenames, expected_res_n):
+        """Test loading of index_map."""
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [name + '_index_map' for name in
+                 channels["solar"] + channels["terran"]], pad_data=False)
+            assert expected_res_n == len(res)
+            for ch in channels["solar"] + channels["terran"]:
+                assert res[ch + '_index_map'].shape == (200, 11136)
+                numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5237)
+
+    @pytest.mark.parametrize('filehandler,filenames', [
+        (FakeFCIFileHandlerFDHSI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+        (FakeFCIFileHandlerHRFI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+
+    ])
+    def test_load_aux_data(self, reader_configs, filehandler, filenames):
         """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_nc import AUX_DATA
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(['vis_06_' + key for key in AUX_DATA.keys()],
+                              pad_data=False)
+            for aux in ['vis_06_' + key for key in AUX_DATA.keys()]:
 
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc"
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(['vis_04_' + key for key in AUX_DATA.keys()],
-                          pad_data=False)
-        for aux in ['vis_04_' + key for key in AUX_DATA.keys()]:
-
-            assert res[aux].shape == (200, 11136)
-            if aux == 'vis_04_earth_sun_distance':
-                numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
-            else:
-                numpy.testing.assert_array_equal(res[aux][1, 1], 5137)
+                assert res[aux].shape == (200, 11136)
+                if aux == 'vis_06_earth_sun_distance':
+                    numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
+                else:
+                    numpy.testing.assert_array_equal(res[aux][1, 1], 5137)
 
     def test_load_composite(self):
         """Test that composites are loadable."""
@@ -564,86 +594,107 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
         assert len(comps["fci"]) > 0
         assert len(mods["fci"]) > 0
 
-    def test_load_quality_only(self, reader_configs):
-        """Test that loading quality only works."""
-        filenames = [
+    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
+        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 16),
+        (FakeFCIFileHandlerHRFI, _chans_hrfi, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], 4),
 
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(
-            [name + '_pixel_quality' for name in
-             self._chans["solar"] + self._chans["terran"]], pad_data=False)
-        assert 16 == len(res)
-        for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch + '_pixel_quality'].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 1)
-            assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
+    ])
+    def test_load_quality_only(self, reader_configs, filehandler, channels, filenames, expected_res_n):
+        """Test that loading quality only works."""
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(
+                [name + '_pixel_quality' for name in
+                 channels["solar"] + channels["terran"]], pad_data=False)
+            assert expected_res_n == len(res)
+            for ch in channels["solar"] + channels["terran"]:
+                assert res[ch + '_pixel_quality'].shape == (200, 11136)
+                numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 1)
+                assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
 
-    def test_platform_name(self, reader_configs):
+    @pytest.mark.parametrize('filehandler,filenames', [
+        (FakeFCIFileHandlerFDHSI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+        (FakeFCIFileHandlerHRFI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]),
+    ])
+    def test_platform_name(self, reader_configs, filehandler, filenames):
         """Test that platform name is exposed.
 
         Test that the FCI reader exposes the platform name.  Corresponds
         to GH issue 1014.
         """
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
-
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(["ir_123"], pad_data=False)
-        assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(["vis_06"], pad_data=False)
+            assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
     def test_excs(self, reader_configs):
         """Test that exceptions are raised where expected."""
-        from satpy.tests.utils import make_dataid
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
+        with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
 
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            with pytest.raises(ValueError):
+                reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
+            with pytest.raises(ValueError):
+                reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
+                    make_dataid(name="ir_123", calibration="unknown"),
+                    {"units": "unknown"})
 
-        with pytest.raises(ValueError):
-            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
-        with pytest.raises(ValueError):
-            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
-                make_dataid(name="ir_123", calibration="unknown"),
-                {"units": "unknown"})
-
-    def test_area_definition_computation(self, reader_configs):
+    @pytest.mark.parametrize('filehandler,filenames, expected_area', [
+        (FakeFCIFileHandlerFDHSI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
+        (FakeFCIFileHandlerHRFI, [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ], ['mtg_fci_fdss_500m', 'mtg_fci_fdss_1km']),
+    ])
+    def test_area_definition_computation(self, reader_configs, filehandler, filenames, expected_area):
         """Test that the geolocation computation is correct."""
-        filenames = [
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-            "20170410113925_20170410113934_N__C_0070_0067.nc",
-        ]
+        with mocked_basefilehandler(filehandler):
+            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+            res = reader.load(['ir_105', 'vis_06'], pad_data=False)
 
-        reader = _get_reader_with_filehandlers(filenames, reader_configs)
-        res = reader.load(['ir_105', 'vis_06'], pad_data=False)
+            # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
+            assert res['vis_06'].attrs['area'].area_id == expected_area[0]
+            assert res['ir_105'].attrs['area'].area_id == expected_area[1]
 
-        # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
-        assert res['vis_06'].attrs['area'].area_id == 'mtg_fci_fdss_1km'
-        assert res['ir_105'].attrs['area'].area_id == 'mtg_fci_fdss_2km'
+            area_def = res['ir_105'].attrs['area']
+            # test area extents computation
+            np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
+                                                 np.array([-5568062.23065902, 5168057.7600648,
+                                                           16704186.692027, 5568062.23065902]))
 
-        area_def = res['ir_105'].attrs['area']
-        # test area extents computation
-        np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
-                                             np.array([-5568062.23065902, 5168057.7600648,
-                                                       16704186.692027, 5568062.23065902]))
-
-        # check that the projection is read in properly
-        assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
-        assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
-        assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
-        assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
-        assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
-        assert area_def.crs.ellipsoid.is_semi_minor_computed
+            # check that the projection is read in properly
+            assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
+            assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
+            assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
+            assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
+            assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
+            assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
 class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
@@ -722,7 +773,6 @@ class TestFCIL1cNCReaderBadDataFromIDPF(TestFCIL1cNCReader):
         np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
                                              np.array([-5568062.270889, 5168057.806632,
                                                        16704186.298937, 5568062.270889]))
-
 
 # class TestFCIL1cNCReaderHRFI(TestFCIL1cNCReaderGoodData):
 #     """Test FCI L1c NetCDF reader for the HRFI case."""
