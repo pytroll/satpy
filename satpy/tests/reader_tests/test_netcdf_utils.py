@@ -179,6 +179,34 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         assert 'test_group/attr/test_attr_str' in file_handler.file_content
         assert 'attr/test_attr_str' in file_handler.file_content
 
+    def test_listed_variables_with_composing(self):
+        """Test that composing for listed variables is performed."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        filetype_info = {
+            'required_netcdf_variables': [
+                'test_group/{some_parameter}/attr/test_attr_str',
+                'test_group/attr/test_attr_str',
+            ],
+            'variable_name_replacements': {
+                'some_parameter': [
+                    'ds1_f',
+                    'ds1_i',
+                ],
+                'another_parameter': [
+                    'not_used'
+                ],
+            }
+        }
+        file_handler = NetCDF4FileHandler('test.nc', {}, filetype_info)
+        assert len(file_handler.file_content) == 3
+        assert 'test_group/ds1_f/attr/test_attr_str' in file_handler.file_content
+        assert 'test_group/ds1_i/attr/test_attr_str' in file_handler.file_content
+        assert not any('not_used' in var for var in file_handler.file_content)
+        assert not any('some_parameter' in var for var in file_handler.file_content)
+        assert not any('another_parameter' in var for var in file_handler.file_content)
+        assert 'test_group/attr/test_attr_str' in file_handler.file_content
+
     def test_caching(self):
         """Test that caching works as intended."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
