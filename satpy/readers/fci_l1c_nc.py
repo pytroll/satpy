@@ -28,8 +28,8 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
-    will be implemented when corresponding test datasets will be available.
+    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data. RSS data is
+    not supported yet.
 
 Geolocation is based on information from the data files.  It uses:
 
