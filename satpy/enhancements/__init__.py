@@ -22,6 +22,7 @@ import warnings
 from collections import namedtuple
 from functools import wraps
 from numbers import Number
+from typing import Optional
 
 import dask
 import dask.array as da
@@ -135,7 +136,7 @@ def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
-        reference_scale_factor: Number = None,
+        reference_scale_factor: Optional[Number] = None,
         **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
