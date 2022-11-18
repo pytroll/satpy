@@ -340,4 +340,4 @@ def _compose_replacement_names(variable_name_replacements, var, variable_names):
         vals = variable_name_replacements[key]
         for val in vals:
             if key in var:
-                variable_names.append(var.replace('{' + key + '}', val))
+                variable_names.append(var.format(**{key: val}))
