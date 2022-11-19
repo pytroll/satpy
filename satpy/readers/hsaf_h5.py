@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""A reader for HDF5 Snow Cover (SC)  file produced by the Hydrology SAF.
-
-"""
+"""A reader for HDF5 Snow Cover (SC) file produced by the Hydrology SAF."""
 import logging
 import os
 from datetime import datetime
@@ -32,6 +30,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
+
 
 class HSAFFileHandler(BaseFileHandler):
     """File handler for HSAF H5 files."""
@@ -115,7 +114,6 @@ class HSAFFileHandler(BaseFileHandler):
             upper_right_xy: [3770006.7195370505, 5384223.683413638]
             units: m
         """
-
         fd_def = get_area_def('msg_seviri_fes_3km')
         hsaf_def = fd_def[62:62+916, 1211:1211+1902]
 
