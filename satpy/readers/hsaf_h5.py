@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""A reader for HDF5 Snow Cover (SC) daily file produced by the Hydrology SAF.
+"""A reader for HDF5 Snow Cover (SC)  file produced by the Hydrology SAF.
 
 """
 import logging
@@ -67,7 +67,7 @@ class HSAFFileHandler(BaseFileHandler):
         """Get the metadata."""
         if name == 'SC':
             ds_info = {
-                'name' : 'SC',
+                'name': 'SC',
                 'filename': self.filename,
                 'data_time': self._analysis_time,
                 'nx': msg.shape[1],
@@ -75,21 +75,25 @@ class HSAFFileHandler(BaseFileHandler):
             }
         elif name == 'SC_pal':
             ds_info = {
-                'name' : 'SC_pal'
+                'name': 'SC_pal'
             }
         return ds_info
 
     def get_area_def(self, dsid):
-        """Area definition not available in the HDF5 message,
-           so using hardcoded one (it's known).
+        """Area definition for h10 SC dataset.
+
+        Since it is not available in the HDF5 message,
+        using hardcoded one (it's known).
         """
         if dsid['name'] == 'SC':
             return self._get_area_def()
         raise NotImplementedError
 
     def _get_area_def(self):
-        """Area definition not available in the HDF5 message,
-           so using hardcoded one (it's known).
+        """Area definition for h10 - hardcoded.
+
+        Area definition not available in the HDF5 message,
+        so using hardcoded one (it's known).
 
         hsaf_h10:
           description: H SAF H10 area definition
@@ -117,9 +121,8 @@ class HSAFFileHandler(BaseFileHandler):
 
         return hsaf_def
 
-
     def _get_message(self, idx):
-        h5file = h5py.File(self.filename,'r')
+        h5file = h5py.File(self.filename, 'r')
         if idx == 1:
             msg = h5file.get('SC')
         if idx == 2:
