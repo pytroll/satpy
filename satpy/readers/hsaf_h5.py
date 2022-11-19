@@ -19,17 +19,17 @@
 
 """
 import logging
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
 
 import dask.array as da
-import numpy as np
 import h5py
+import numpy as np
 import xarray as xr
-from pyresample import geometry
-from satpy.resample import get_area_def
-import os
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
 
@@ -64,13 +64,13 @@ class HSAFFileHandler(BaseFileHandler):
         return xr.DataArray(colormap, attrs=ds_info, dims=('idx', 'RGB'))
 
     def get_metadata(self, msg, name):
-        """Get the metadata."""     
+        """Get the metadata."""
         if name == 'SC':
             ds_info = {
                 'name' : 'SC',
                 'filename': self.filename,
                 'data_time': self._analysis_time,
-                'nx': msg.shape[1],	
+                'nx': msg.shape[1],
                 'ny': msg.shape[0]
             }
         elif name == 'SC_pal':
@@ -84,15 +84,13 @@ class HSAFFileHandler(BaseFileHandler):
            so using hardcoded one (it's known).
         """
         if dsid['name'] == 'SC':
-            msg = self._get_message(1)
-            return self._get_area_def(msg)
-        else:
-            raise NotImplementedError
+            return self._get_area_def()
+        raise NotImplementedError
 
-    def _get_area_def(self, msg):
+    def _get_area_def(self):
         """Area definition not available in the HDF5 message,
            so using hardcoded one (it's known).
-           
+
         hsaf_h10:
           description: H SAF H10 area definition
           projection:
@@ -121,37 +119,37 @@ class HSAFFileHandler(BaseFileHandler):
 
 
     def _get_message(self, idx):
-        hf = h5py.File(self.filename,'r')
-        if (idx == 1):
-            msg = hf.get('SC')
-        if (idx == 2):
-            msg = hf.get('colormap')
+        h5file = h5py.File(self.filename,'r')
+        if idx == 1:
+            msg = h5file.get('SC')
+        if idx == 2:
+            msg = h5file.get('colormap')
         return msg
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
         variable = None
-        if (ds_id['name'] == 'SC'):
+        if ds_id['name'] == 'SC':
             msg = self._get_message(1)
             ds_info = self.get_metadata(msg, ds_id['name'])
 
             fname = os.path.basename(msg.file.filename)
             dtstr = fname.split('_')[1].zfill(4)
             h10_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
-        
+
             ds_info['start_time'] = h10_time
             ds_info['end_time'] = h10_time
-        
+
             data = np.array(msg)
             data = da.from_array(data, chunks=CHUNK_SIZE)
             variable = xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
-        
-        elif (ds_id['name'] == 'SC_pal'):
+
+        elif ds_id['name'] == 'SC_pal':
             msg = self._get_message(2)
             ds_info = self.get_metadata(msg, ds_id['name'])
             variable = self._prepare_variable_for_palette(msg, ds_info)
-            
+
         else:
-            raise IOError("File does not contain {} data".format(ds_id['name']))
+            raise IOError("File does not contain " + ds_id['name'] + " data")
 
         return variable
