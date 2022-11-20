@@ -111,6 +111,7 @@ def _cf_scene_i():
             scene[key].attrs.update(common_attrs)
     return scene
 
+
 @pytest.fixture(scope="session")
 def _cf_scene():
     tstart = datetime(2019, 4, 1, 12, 0)
@@ -256,6 +257,7 @@ def _nc_filename_i(tmp_path):
     now = datetime.utcnow()
     filename = f'testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc'
     return str(tmp_path / filename)
+
 
 class TestCFReader:
     """Test case for CF reader."""
