@@ -391,6 +391,19 @@ class TestNativeResampler:
         with pytest.raises(ValueError):
             NativeResampler._expand_reduce(self.d_arr, {0: dim0_factor, 1: 1.})
 
+    def test_expand_reduce_agg_rechunk(self):
+        """Test that an incompatible factor for the chunk size is rechunked.
+
+        This can happen when a user chunks their data that makes sense for
+        the overall shape of the array and for their local machine's
+        performance, but the resulting resampling factor does not divide evenly
+        into that chunk size.
+
+        """
+        d_arr = da.zeros((6, 20), chunks=3)
+        new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        assert new_data.shape == (3, 10)
+
     def test_expand_reduce_numpy(self):
         """Test classmethod 'expand_reduce' converts numpy arrays to dask arrays."""
         n_arr = np.zeros((6, 20))

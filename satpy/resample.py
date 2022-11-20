@@ -140,6 +140,7 @@ defined.
 """
 import hashlib
 import json
+import math
 import os
 import warnings
 from logging import getLogger
@@ -154,6 +155,8 @@ import zarr
 from packaging import version
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+
+from satpy.utils import PerformanceWarning
 
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
@@ -993,18 +996,32 @@ class NativeResampler(BaseResampler):
                              "more than 2 dimensions.")
         if not (x_size.is_integer() and y_size.is_integer()):
             raise ValueError("Aggregation factors are not integers")
-        for agg_size, chunks in zip([y_size, x_size], d.chunks):
-            for chunk_size in chunks:
-                if chunk_size % agg_size != 0:
-                    raise ValueError("Aggregation requires arrays with "
-                                     "shapes and chunks divisible by the "
-                                     "factor")
-
+        y_size = int(y_size)
+        x_size = int(x_size)
+        d = NativeResampler._rechunk_if_nonfactor_chunks(d, y_size, x_size)
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
         return da.core.map_blocks(_mean, d, y_size, x_size,
                                   meta=np.array((), dtype=d.dtype),
                                   dtype=d.dtype, chunks=new_chunks)
+
+    @staticmethod
+    def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
+        need_rechunk = False
+        new_chunks = list(dask_arr.chunks)
+        for dim_idx, agg_size in enumerate([y_size, x_size]):
+            if dask_arr.shape[dim_idx] % agg_size != 0:
+                raise ValueError("Aggregation requires arrays with shapes divisible by the factor.")
+            for chunk_size in dask_arr.chunks[dim_idx]:
+                if chunk_size % agg_size != 0:
+                    need_rechunk = True
+                    new_dim_chunk = math.lcm(chunk_size, agg_size)
+                    new_chunks[dim_idx] = new_dim_chunk
+        if need_rechunk:
+            warnings.warn("Array chunk size is not divisible by aggregation factor. "
+                          "Re-chunking to continue native resampling.", PerformanceWarning)
+            dask_arr = dask_arr.rechunk(tuple(new_chunks))
+        return dask_arr
 
     @staticmethod
     def _replicate(d_arr, repeats):
