@@ -22,8 +22,6 @@ dimensions = {"SC": shape_sc,
 start_time = datetime(2022, 11, 15, 0, 0)
 end_time = datetime(2022, 11, 15, 0, 0)
 
-time_pattern = "%Y%m%d%H%M"
-
 
 @pytest.fixture(scope="session")
 def hsaf_filename(tmp_path_factory):
