@@ -24,42 +24,42 @@ end_time = datetime(2022, 11, 15, 0, 0)
 
 
 @pytest.fixture(scope="session")
-def hsaf_filename(tmp_path_factory):
+def hsaf_filename():
     """Create a fake HSAF SC HDF5 file."""
-    filename = tmp_path_factory.mktemp("data") / "h10_20221115_day_merged.H5"
+    filename = "h10_20221115_day_merged.H5"
     with h5py.File(filename, mode="w") as h5f:
         h5f.create_dataset('SC', shape_sc, dtype=np.uint8)
         h5f.create_dataset('colormap', shape_sc_colormap, dtype=np.uint8)
     return filename
 
 
-def test_hsaf_sc_dataset(tmp_hsaf_filename):
+def test_hsaf_sc_dataset(hsaf_filename):
     """Test the H-SAF SC dataset."""
-    scn = Scene(filenames=[str(tmp_hsaf_filename)], reader="hsaf_h5")
+    scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
     assert scn['SC'].shape == shape_sc
 
 
-def test_hsaf_sc_colormap_dataset(tmp_hsaf_filename):
+def test_hsaf_sc_colormap_dataset(hsaf_filename):
     """Test the H-SAF SC_pal dataset."""
-    scn = Scene(filenames=[str(tmp_hsaf_filename)], reader="hsaf_h5")
+    scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC_pal'])
     assert scn['SC_pal'].shape == shape_sc_colormap
 
 
-def test_hsaf_sc_datetime(tmp_hsaf_filename):
+def test_hsaf_sc_datetime(hsaf_filename):
     """Test the H-SAF reference time."""
-    scn = Scene(filenames=[str(tmp_hsaf_filename)], reader="hsaf_h5")
+    scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
-    fname = str(tmp_hsaf_filename)
+    fname = str(hsaf_filename)
     dtstr = fname.split('_')[1].zfill(4)
     obs_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
     assert scn['SC'].attrs['data_time'] == obs_time
 
 
-def test_hsaf_sc_areadef(tmp_hsaf_filename):
+def test_hsaf_sc_areadef(hsaf_filename):
     """Test the H-SAF SC area definition."""
-    scn = Scene(filenames=[str(tmp_hsaf_filename)], reader="hsaf_h5")
+    scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
     fd_def = get_area_def('msg_seviri_fes_3km')
     hsaf_def = fd_def[62:62+916, 1211:1211+1902]
