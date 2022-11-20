@@ -385,9 +385,9 @@ class TestNativeResampler:
         assert new_data.shape == (6, 20)
         assert new_data is self.d_arr
 
-    @pytest.mark.parametrize("dim0_factor", [1. / 3, 0.333323423, 1.333323423])
+    @pytest.mark.parametrize("dim0_factor", [1. / 4, 0.333323423, 1.333323423])
     def test_expand_reduce_aggregate_invalid(self, dim0_factor):
-        """Test classmethod 'expand_reduce' fails when factor is not an integer."""
+        """Test classmethod 'expand_reduce' fails when factor does not divide evenly."""
         with pytest.raises(ValueError):
             NativeResampler._expand_reduce(self.d_arr, {0: dim0_factor, 1: 1.})
 
