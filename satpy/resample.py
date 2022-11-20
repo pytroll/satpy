@@ -140,7 +140,6 @@ defined.
 """
 import hashlib
 import json
-import math
 import os
 import warnings
 from logging import getLogger
@@ -157,6 +156,14 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 
 from satpy.utils import PerformanceWarning
+
+try:
+    from math import lcm  # type: ignore
+except ImportError:
+    def lcm(a, b):
+        """Get 'Least Common Multiple' with Python 3.8 compatibility."""
+        from math import gcd
+        return abs(a * b) // gcd(a, b)
 
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
@@ -1065,7 +1072,7 @@ def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
         for chunk_size in dask_arr.chunks[dim_idx]:
             if chunk_size % agg_size != 0:
                 need_rechunk = True
-                new_dim_chunk = math.lcm(chunk_size, agg_size)
+                new_dim_chunk = lcm(chunk_size, agg_size)
                 new_chunks[dim_idx] = new_dim_chunk
     if need_rechunk:
         warnings.warn("Array chunk size is not divisible by aggregation factor. "
