@@ -365,23 +365,34 @@ class TestEWAResampler(unittest.TestCase):
 class TestNativeResampler:
     """Tests for the 'native' resampling method."""
 
-    def test_expand_reduce(self):
-        """Test class method 'expand_reduce' basics."""
-        d_arr = da.zeros((6, 20), chunks=4)
-        new_data = NativeResampler._expand_reduce(d_arr, {0: 2., 1: 2.})
-        assert new_data.shape == (12, 40)
-        new_data = NativeResampler._expand_reduce(d_arr, {0: .5, 1: .5})
-        assert new_data.shape == (3, 10)
-        with pytest.raises(ValueError):
-            NativeResampler._expand_reduce(d_arr, {0: 1. / 3, 1: 1.})
-        new_data = NativeResampler._expand_reduce(d_arr, {0: 1., 1: 1.})
-        assert new_data.shape == (6, 20)
-        assert new_data is d_arr
-        with pytest.raises(ValueError):
-            NativeResampler._expand_reduce(d_arr, {0: 0.333323423, 1: 1.})
-        with pytest.raises(ValueError):
-            NativeResampler._expand_reduce(d_arr, {0: 1.333323423, 1: 1.})
+    def setup_method(self):
+        """Create test data used by multiple tests."""
+        self.d_arr = da.zeros((6, 20), chunks=4)
 
+    def test_expand_reduce_replicate(self):
+        """Test classmethod 'expand_reduce' to replicate by 2."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: 2., 1: 2.})
+        assert new_data.shape == (12, 40)
+
+    def test_expand_reduce_aggregate(self):
+        """Test classmethod 'expand_reduce' to aggregate by half."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: .5, 1: .5})
+        assert new_data.shape == (3, 10)
+
+    def test_expand_reduce_aggregate_identity(self):
+        """Test classmethod 'expand_reduce' returns the original dask array when factor is 1."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: 1., 1: 1.})
+        assert new_data.shape == (6, 20)
+        assert new_data is self.d_arr
+
+    @pytest.mark.parametrize("dim0_factor", [1. / 3, 0.333323423, 1.333323423])
+    def test_expand_reduce_aggregate_invalid(self, dim0_factor):
+        """Test classmethod 'expand_reduce' fails when factor is not an integer."""
+        with pytest.raises(ValueError):
+            NativeResampler._expand_reduce(self.d_arr, {0: dim0_factor, 1: 1.})
+
+    def test_expand_reduce_numpy(self):
+        """Test classmethod 'expand_reduce' converts numpy arrays to dask arrays."""
         n_arr = np.zeros((6, 20))
         new_data = NativeResampler._expand_reduce(n_arr, {0: 2., 1: 1.0})
         np.testing.assert_equal(new_data.compute()[::2, :], n_arr)
