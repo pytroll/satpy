@@ -1076,31 +1076,22 @@ def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
 
 def _replicate(d_arr, repeats):
     """Repeat data pixels by the per-axis factors specified."""
-    # rechunk so new chunks are the same size as old chunks
-    c_size = max(x[0] for x in d_arr.chunks)
+    repeated_chunks = _get_replicated_chunk_sizes(d_arr, repeats)
+    d_arr = d_arr.map_blocks(_repeat_by_factor,
+                             meta=np.array((), dtype=d_arr.dtype),
+                             dtype=d_arr.dtype,
+                             chunks=repeated_chunks)
+    return d_arr
 
-    def _calc_chunks(c, c_size):
-        whole_chunks = [c_size] * int(sum(c) // c_size)
-        remaining = sum(c) - sum(whole_chunks)
-        if remaining:
-            whole_chunks += [remaining]
-        return tuple(whole_chunks)
-    new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
-                  for axis, x in enumerate(d_arr.chunks)]
-    d_arr = d_arr.rechunk(new_chunks)
 
+def _get_replicated_chunk_sizes(d_arr, repeats):
     repeated_chunks = []
     for axis, axis_chunks in enumerate(d_arr.chunks):
         factor = repeats[axis]
         if not factor.is_integer():
             raise ValueError("Expand factor must be a whole number")
         repeated_chunks.append(tuple(x * int(factor) for x in axis_chunks))
-    repeated_chunks = tuple(repeated_chunks)
-    d_arr = d_arr.map_blocks(_repeat_by_factor,
-                             meta=np.array((), dtype=d_arr.dtype),
-                             dtype=d_arr.dtype,
-                             chunks=repeated_chunks)
-    return d_arr
+    return tuple(repeated_chunks)
 
 
 def _get_arg_to_pass_for_skipna_handling(**kwargs):
