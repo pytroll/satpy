@@ -181,8 +181,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
