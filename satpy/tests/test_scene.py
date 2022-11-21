@@ -1521,6 +1521,33 @@ class TestSceneLoading:
         available_comp_ids = scene.available_composite_ids()
         assert make_cid(name='static_image') in available_comp_ids
 
+    def test_available_when_sensor_none_in_preloaded_dataarrays(self):
+        """Test Scene available composites when existing loaded arrays have sensor set to None.
+
+        Some readers or composites (ex. static images) don't have a sensor and
+        developers choose to set it to `None`. This test makes sure this
+        doesn't break available composite IDs.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene['my_data'] = _data_array_none_sensor("my_data")
+        available_comp_ids = scene.available_composite_ids()
+        assert make_cid(name='static_image') in available_comp_ids
+
+    def test_load_when_sensor_none_in_preloaded_dataarrays(self):
+        """Test Scene loading when existing loaded arrays have sensor set to None.
+
+        Some readers or composites (ex. static images) don't have a sensor and
+        developers choose to set it to `None`. This test makes sure this
+        doesn't break loading.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene['my_data'] = _data_array_none_sensor("my_data")
+        scene.load(["static_image"])
+        assert "static_image" in scene
+        assert "my_data" in scene
+
     def test_compute_pass_through(self):
         """Test pass through of xarray compute."""
         import numpy as np
@@ -1545,6 +1572,16 @@ class TestSceneLoading:
         scene.load(['ds1'])
         scene = scene.chunk(chunks=2)
         assert scene['ds1'].data.chunksize == (2, 2)
+
+
+def _data_array_none_sensor(name: str) -> xr.DataArray:
+    """Create a DataArray with sensor set to ``None``."""
+    return xr.DataArray(
+        da.zeros((2, 2)),
+        attrs={
+            "name": name,
+            "sensor": None,
+        })
 
 
 class TestSceneResampling:
