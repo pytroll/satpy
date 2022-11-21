@@ -79,9 +79,9 @@ class HybridGreen(SpectralBlender):
 
     To correct for this the hybrid green approach proposed by Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`)
     is used. The basic idea is to include some contribution also from the 0.86 micron
-    channel, which is known for its sensitivity to vegetation. The formula used for this is:
+    channel, which is known for its sensitivity to vegetation. The formula used for this is::
 
-    hybrid_green = (1 - F) * R(0.51) + F * R(0.86)
+      hybrid_green = (1 - F) * R(0.51) + F * R(0.86)
 
     where F is a constant value. The validation against VIIRS presented in the paper suggests
     F = 0.07 as an optimal value to reconstruct a green band optimized for true color imagery
@@ -119,9 +119,9 @@ class NDVIHybridGreen(SpectralBlender):
     smaller the contribution from the nir channel will be, following a liner relationship between the two ranges
     [ndvi_min, ndvi_max] and `limits`.
 
-    A new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like:
+    A new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
 
-    ndvi_hybrid_green:
+      ndvi_hybrid_green:
         compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
         limits: [0.15, 0.05]
         prerequisites:
