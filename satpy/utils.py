@@ -25,6 +25,7 @@ import datetime
 import logging
 import os
 import warnings
+from contextlib import contextmanager
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
@@ -680,3 +681,12 @@ def _merge_storage_options(storage_options, storage_opt_dict):
         storage_options = storage_opt_dict
 
     return storage_options
+
+
+@contextmanager
+def import_error_helper(dependency_name):
+    """Give more info on an import error."""
+    try:
+        yield
+    except ImportError as err:
+        raise ImportError(err.msg + f" It can be installed with the {dependency_name} package.")
