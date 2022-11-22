@@ -169,7 +169,7 @@ enhancements:
           min_in: 163.0
           max_in: 330.0
 
-  # EumetSat cloud phase and cloud type RGB recipes
+  # EUMETSAT cloud phase and cloud type RGB recipes
   # https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
   cloud_phase:
     standard_name: cloud_phase
