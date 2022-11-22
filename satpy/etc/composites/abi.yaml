@@ -601,7 +601,7 @@ composites:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
     ## adapted from etc/composites/visir.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -617,7 +617,7 @@ composites:
     description: >
       SEVIRI Day Microphysics RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
     ## adapted from etc/composites/ahi.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -645,8 +645,8 @@ composites:
     description: >
       EUMETSAT Cloud Phase RGB product
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
-      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05

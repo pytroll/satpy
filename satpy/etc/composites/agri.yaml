@@ -157,7 +157,7 @@ composites:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
     ## adapted from etc/composites/visir.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -173,7 +173,7 @@ composites:
     description: >
       SEVIRI Day Microphysics RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
     ## adapted from etc/composites/ahi.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -203,7 +203,7 @@ composites:
       Day Cloud Phase RGB, for EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_2861499.html)
       "When we use the NIR2.3 instead of the VIS0.8 on the green beam, we can devise a new RGB product (let us call it 'Day Cloud Phase RGB') that has similar cloud colours than the Natural Colour RGB, but with improved separation of ice and water clouds."
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      EUMETRAIN Quick Guide: http://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
       Cloud Phase recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13&RevisionSelectionMethod=LatestReleased&Rendition=Web
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
