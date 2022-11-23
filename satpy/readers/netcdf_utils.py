@@ -19,17 +19,13 @@
 
 import logging
 
-try:
-    from functools import cache  # type: ignore
-except ImportError:
-    from functools import lru_cache as cache
-
 import dask.array as da
 import netCDF4
 import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cache
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
 

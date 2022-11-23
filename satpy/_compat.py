@@ -50,7 +50,7 @@ class CachedPropertyBackport:
             raise TypeError(
                 "Cannot use cached_property instance without calling __set_name__ on it.")
         try:
-            cache = instance.__dict__
+            cache = instance.__dict__  # noqa
         except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
             msg = (
                 f"No '__dict__' attribute on {type(instance).__name__!r} "
@@ -88,3 +88,9 @@ except ImportError:
     # numpy <1.20
     from numpy import dtype as DTypeLike  # noqa
     from numpy import ndarray as ArrayLike  # noqa
+
+
+try:
+    from functools import cache  # type: ignore
+except ImportError:
+    from functools import lru_cache as cache  # noqa
