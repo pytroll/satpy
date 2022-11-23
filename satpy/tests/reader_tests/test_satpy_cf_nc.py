@@ -452,10 +452,10 @@ class TestCFReader:
     def test_write_and_read_from_two_files(self, _cf_scene_m, _cf_scene_i, _nc_filename, _nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
         _cf_scene_m.save_datasets(writer='cf',
-                                 filename=_nc_filename,
-                                 engine='h5netcdf',
-                                 flatten_attrs=True,
-                                 pretty=True)
+                                  filename=_nc_filename,
+                                  engine='h5netcdf',
+                                  flatten_attrs=True,
+                                  pretty=True)
         _cf_scene_i.save_datasets(writer='cf',
                                   filename=_nc_filename_i,
                                   engine='h5netcdf',
