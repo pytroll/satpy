@@ -38,38 +38,15 @@ def _cf_scene_i():
     tstart = datetime(2019, 4, 1, 12, 0)
     tend = datetime(2019, 4, 1, 12, 15)
 
-    proj_dict = {
-        'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
-        'lon_0': 0.0, 'proj': 'geos', 'units': 'm'
-    }
-    area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
+    data_visir_i = np.array([[1, 2, 3 ,4], [5, 6, 7, 8],
+                             [9, 10, 11, 12], [13, 14, 15, 16]])
+    lat_i = 33.0 * np.array([np.arange(1, 2.1, 1/3), np.arange(3, 4.1, 1/3),
+                             np.arange(5, 6.1, 1/3), np.arange(7, 8.1, 1/3)])
+    lon_i = -13.0 * np.array([np.arange(1, 2.1, 1/3), np.arange(3, 4.1, 1/3),
+                             np.arange(5, 6.1, 1/3), np.arange(7, 8.1, 1/3)])
 
-    data_visir_i = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    lat_i = 33.0 * np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    lon_i = -13.0 * np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    x_size_i, y_size_i = data_visir_i.shape
-
-    area_i = AreaDefinition(
-        'test',
-        'test',
-        'test',
-        proj_dict,
-        x_size_i,
-        y_size_i,
-        area_extent,
-    )
-
-    x_i, y_i = area_i.get_proj_coords()
-    print(x_i, y_i)
-    x_visir_i = x_i[:, 0]
-    y_visir_i = y_i[0, :]
-
-    print(lat_i)
-    print(lat_i.shape)
-    print(len(y_visir_i), len(x_visir_i))
     lat_i = xr.DataArray(lat_i,
                          dims=('y', 'x'),
-                         coords={'y': y_visir_i, 'x': x_visir_i},
                          attrs={
                              'name': 'lat',
                              'standard_name': 'latitude',
@@ -77,7 +54,6 @@ def _cf_scene_i():
                          })
     lon_i = xr.DataArray(lon_i,
                          dims=('y', 'x'),
-                         coords={'y': y_visir_i, 'x': x_visir_i},
                          attrs={
                              'name': 'lon',
                              'standard_name': 'longitude',
@@ -86,7 +62,6 @@ def _cf_scene_i():
 
     solar_zenith_angle_i = xr.DataArray(data_visir_i,
                                         dims=('y', 'x'),
-                                        coords={'y': y_visir_i, 'x': x_visir_i},
                                         attrs={'name': 'solar_zenith_angle',
                                                'coordinates': 'lat lon',
                                                'resolution': 371})
@@ -94,15 +69,68 @@ def _cf_scene_i():
     scene = Scene()
     scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
     scene_dict = {
-        'solar_zenith_angle_i': solar_zenith_angle_i
+        'lat': lat_i,
+        'lon': lon_i,
+        'solar_zenith_angle': solar_zenith_angle_i
     }
 
     common_attrs = {
         'start_time': tstart,
         'end_time': tend,
         'platform_name': 'tirosn',
-        'orbit_number': 99999,
-        'area': area_i
+        'orbit_number': 99999
+    }
+
+    for key in scene_dict:
+        scene[key] = scene_dict[key]
+        if key != 'swath_data':
+            scene[key].attrs.update(common_attrs)
+    return scene
+
+
+@pytest.fixture(scope="session")
+def _cf_scene_m():
+    tstart = datetime(2019, 4, 1, 12, 0)
+    tend = datetime(2019, 4, 1, 12, 15)
+
+    data_visir_m = np.array([[1, 2], [3, 4]])
+    lat_m = 33.0 * np.array([[1, 2], [3, 4]])
+    lon_m = -13.0 * np.array([[1, 2], [3, 4]])
+
+    lat_m = xr.DataArray(lat_m,
+                         dims=('y', 'x'),
+                         attrs={
+                             'name': 'lat',
+                             'standard_name': 'latitude',
+                             'modifiers': np.array([])
+                         })
+    lon_m = xr.DataArray(lon_m,
+                         dims=('y', 'x'),
+                         attrs={
+                             'name': 'lon',
+                             'standard_name': 'longitude',
+                             'modifiers': np.array([])
+                         })
+
+    solar_zenith_angle_m = xr.DataArray(data_visir_m,
+                                        dims=('y', 'x'),
+                                        attrs={'name': 'solar_zenith_angle',
+                                               'coordinates': 'lat lon',
+                                               'resolution': 742})
+
+    scene = Scene()
+    scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
+    scene_dict = {
+        'lat': lat_m,
+        'lon': lon_m,
+        'solar_zenith_angle': solar_zenith_angle_m
+    }
+
+    common_attrs = {
+        'start_time': tstart,
+        'end_time': tend,
+        'platform_name': 'tirosn',
+        'orbit_number': 99999
     }
 
     for key in scene_dict:
@@ -213,13 +241,6 @@ def _cf_scene():
                                    'area': area
                                })
 
-    solar_zenith_angle = xr.DataArray(data_visir,
-                                      dims=('y', 'x'),
-                                      coords={'y': y_visir, 'x': x_visir},
-                                      attrs={'name': 'solar_zenith_angle',
-                                             'coordinates': 'lat lon',
-                                             'resolution': 742})
-
     # for swath testing
     area = SwathDefinition(lons=lon, lats=lat)
     swath_data = prefix_data.copy()
@@ -234,8 +255,7 @@ def _cf_scene():
         '1': prefix_data,
         'lat': lat,
         'lon': lon,
-        'qual_flags': qual_f,
-        'solar_zenith_angle': solar_zenith_angle
+        'qual_flags': qual_f
     }
 
     for key in scene_dict:
@@ -429,9 +449,9 @@ class TestCFReader:
         for key in orig_attrs:
             assert orig_attrs[key] == new_attrs[key]
 
-    def test_write_and_read_from_two_files(self, _cf_scene, _cf_scene_i, _nc_filename, _nc_filename_i):
+    def test_write_and_read_from_two_files(self, _cf_scene_m, _cf_scene_i, _nc_filename, _nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
-        _cf_scene.save_datasets(writer='cf',
+        _cf_scene_m.save_datasets(writer='cf',
                                 filename=_nc_filename,
                                 engine='h5netcdf',
                                 flatten_attrs=True,
@@ -443,4 +463,8 @@ class TestCFReader:
                                   pretty=True)
         scn_ = Scene(reader='satpy_cf_nc',
                      filenames=[_nc_filename, _nc_filename_i])
-        scn_.load(['solar_zenith_angle'])
+        scn_.load(['solar_zenith_angle'], resolution=742)
+        assert scn_['solar_zenith_angle'].attrs['resolution'] == 742
+        scn_.unload()
+        scn_.load(['solar_zenith_angle'], resolution=371)
+        assert scn_['solar_zenith_angle'].attrs['resolution'] == 371
