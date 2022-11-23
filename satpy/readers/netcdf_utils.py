@@ -95,6 +95,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Initialize object."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
+        # Cache wrapper for getting variable as DataArray[numpy]
+        self.get_and_cache_npxr = cache(self._get_and_cache_npxr)
         self.file_content = {}
         self.cached_file_content = {}
         try:
@@ -322,18 +324,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             return default
 
-    def get_and_cache_npxr(self, var_name):
-        """Get item as numpy-xarray and keep in cache."""
+    def _get_and_cache_npxr(self, var_name):
         v = self.file_content[var_name]
-        return _cache_npxr(v)
-
-
-@cache  # noqa
-def _cache_npxr(v):
-    if isinstance(v, xr.DataArray):
-        return v
-    return xr.DataArray(
-        v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+        if isinstance(v, xr.DataArray):
+            return v
+        return xr.DataArray(
+            v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
 
 
 def _compose_replacement_names(variable_name_replacements, var, variable_names):
