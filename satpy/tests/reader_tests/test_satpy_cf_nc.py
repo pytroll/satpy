@@ -38,7 +38,7 @@ def _cf_scene_i():
     tstart = datetime(2019, 4, 1, 12, 0)
     tend = datetime(2019, 4, 1, 12, 15)
 
-    data_visir_i = np.array([[1, 2, 3 ,4], [5, 6, 7, 8],
+    data_visir_i = np.array([[1, 2, 3, 4], [5, 6, 7, 8],
                              [9, 10, 11, 12], [13, 14, 15, 16]])
     lat_i = 33.0 * np.array([np.arange(1, 2.1, 1/3), np.arange(3, 4.1, 1/3),
                              np.arange(5, 6.1, 1/3), np.arange(7, 8.1, 1/3)])
@@ -452,10 +452,10 @@ class TestCFReader:
     def test_write_and_read_from_two_files(self, _cf_scene_m, _cf_scene_i, _nc_filename, _nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
         _cf_scene_m.save_datasets(writer='cf',
-                                filename=_nc_filename,
-                                engine='h5netcdf',
-                                flatten_attrs=True,
-                                pretty=True)
+                                 filename=_nc_filename,
+                                 engine='h5netcdf',
+                                 flatten_attrs=True,
+                                 pretty=True)
         _cf_scene_i.save_datasets(writer='cf',
                                   filename=_nc_filename_i,
                                   engine='h5netcdf',
