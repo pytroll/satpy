@@ -282,6 +282,25 @@ class SatpyCFFileHandler(BaseFileHandler):
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
+    def _attrs_equal(self, ds_id, data):
+        _ds_id_dict = ds_id.to_dict()
+        for key in _ds_id_dict:
+            if key in ['name', 'modifiers']:
+                continue
+            if key == 'wavelength':
+                try:
+                    if ds_id[key] != WavelengthRange.from_cf(data.attrs[key]):
+                        return False
+                except KeyError:
+                    pass
+            else:
+                try:
+                    if data.attrs[key] != ds_id[key]:
+                        return False
+                except KeyError:
+                    pass
+        return True
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", ds_id['name'])
@@ -290,6 +309,8 @@ class SatpyCFFileHandler(BaseFileHandler):
         name = ds_info.get('nc_store_name', ds_id['name'])
         file_key = ds_info.get('file_key', name)
         data = nc[file_key]
+        if not self._attrs_equal(ds_id, data):
+            return
         if name != ds_id['name']:
             data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
