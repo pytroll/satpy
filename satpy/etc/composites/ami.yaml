@@ -36,9 +36,9 @@ composites:
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
-        modifiers: [ sunz_corrected ]
+        modifiers: [sunz_corrected]
       - name: VI008
-        modifiers: [ sunz_corrected ]
+        modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
     fraction: 0.15
 
@@ -46,9 +46,9 @@ composites:
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        modifiers: [sunz_corrected, rayleigh_corrected]
       - name: VI008
-        modifiers: [ sunz_corrected ]
+        modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
     fraction: 0.15
 
