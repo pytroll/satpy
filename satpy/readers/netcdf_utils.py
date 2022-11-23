@@ -19,6 +19,11 @@
 
 import logging
 
+try:
+    from functools import cache  # type: ignore
+except ImportError:
+    from functools import lru_cache as cache
+
 import dask.array as da
 import netCDF4
 import numpy as np
@@ -321,18 +326,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             return default
 
+    @cache  # noqa
     def get_and_cache_npxr(self, var_name):
         """Get item as numpy-xarray and keep in cache."""
-        if var_name in self.cached_file_content:
-            return self.cached_file_content[var_name]
-
         v = self.file_content[var_name]
         if isinstance(v, xr.DataArray):
             return v
-        self.cached_file_content[var_name] = xr.DataArray(
+        return xr.DataArray(
             v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
-
-        return self.cached_file_content[var_name]
 
 
 def _compose_replacement_names(variable_name_replacements, var, variable_names):
