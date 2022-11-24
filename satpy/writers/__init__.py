@@ -549,12 +549,14 @@ def group_results_by_output_file(sources, targets):
 
     .. warning::
 
-        For large calculations involving large amounts of RAM, it appears the
-        total runtime may increase when wrappers are used.  The reasons for
-        this are unclear.  For small calculations there does not appear to be
-        any delay and in some cases adding a wrapper even shortens the total
-        runtime.  More information, see `this GitHub comment
-        <https://github.com/pytroll/satpy/pull/2281#issuecomment-1324910253>`_.
+        Adding a callback may impact runtime and RAM.  The pattern or cause is
+        unclear.  Tests with FCI data show that for resampling with high RAM
+        use (from around 15 GB), runtime increases when a callback is added.
+        Tests with ABI or low RAM consumption rather show a decrease in runtime.
+        More information, see `these GitHub comments
+        <https://github.com/pytroll/satpy/pull/2281#issuecomment-1324910253>`_
+        Users who find out more are encouraged to contact the Satpy developers
+        with clues.
 
     Args:
         sources: List of sources (typically dask.array) as returned by
