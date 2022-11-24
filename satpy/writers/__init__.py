@@ -530,6 +530,32 @@ def group_results_by_output_file(sources, targets):
     something with the file as soon as it's finished.  This function unflattens
     the flat lists into a list of (src, target) tuples.
 
+    For example, to close files as soon as computation is completed::
+
+        >>> @dask.delayed
+        >>> def closer(obj, targs):
+        ...     for targ in targs:
+        ...         targ.close()
+        ...     return obj
+        >>> (srcs, targs) = sc.save_datasets(writer="ninjogeotiff", compute=False, **ninjo_tags)
+        >>> for (src, targ) in group_results_by_output_file(srcs, targs):
+        ...     delayed_store = da.store(src, targ, compute=False)
+        ...     wrapped_store = closer(delayed_store, targ)
+        ...     wrapped.append(wrapped_store)
+        >>> compute_writer_results(wrapped)
+
+    In the wrapper you can do other useful tasks, such as writing a log message
+    or moving files to a different directory.
+
+    .. warning::
+
+        For large calculations involving large amounts of RAM, it appears the
+        total runtime may increase when wrappers are used.  The reasons for
+        this are unclear.  For small calculations there does not appear to be
+        any delay and in some cases adding a wrapper even shortens the total
+        runtime.  More information, see `this GitHub comment
+        <https://github.com/pytroll/satpy/pull/2281#issuecomment-1324910253>`_.
+
     Args:
         sources: List of sources (typically dask.array) as returned by
             :meth:`Scene.save_datasets`.
