@@ -479,7 +479,7 @@ class TestCFReader:
         data = _cf_scene
         assert reader._attrs_equal(ds_id, data['image0']) is False
         ds_id_wavelength = DataID(default_id_keys_config, name='image0', resolution=1000, modifiers=(),
-                         wavelength=WavelengthRange(min=0.1, central=0.63, max=1000, unit='µm'))
+                                  wavelength=WavelengthRange(min=0.1, central=0.63, max=1000, unit='µm'))
         assert reader._attrs_equal(ds_id_wavelength, data['image0']) is False
         ds_id_key_error = DataID(default_id_keys_config, name='image0', resolution=1000)
         del data['image0'].attrs['resolution']
