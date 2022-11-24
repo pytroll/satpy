@@ -22,6 +22,8 @@ import unittest
 
 import numpy as np
 
+from satpy._compat import cache
+
 try:
     from satpy.readers.netcdf_utils import NetCDF4FileHandler
 except ImportError:
@@ -45,6 +47,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
             raise ImportError("Base 'NetCDF4FileHandler' could not be "
                               "imported.")
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.get_and_cache_npxr = cache(self._get_and_cache_npxr)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         if extra_file_content:
             self.file_content.update(extra_file_content)
