@@ -134,6 +134,15 @@ AUX_DATA = {
     'swath_direction': 'data/swath_direction',
 }
 
+HIGH_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '500m',
+                                       'width': 22272},
+                      'fci_l1c_fdhsi': {'grid_type': '1km',
+                                        'width': 11136}}
+LOW_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '1km',
+                                      'width': 11136},
+                     'fci_l1c_fdhsi': {'grid_type': '2km',
+                                       'width': 5568}}
+
 
 def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
@@ -213,23 +222,32 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         return measured_group_path
 
     def get_segment_position_info(self):
-        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+        """Get information about the size and the position of the chunk.
 
-        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        As the final array is composed by stacking chunks (aka segments) vertically, the position of a chunk
+        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the chunk.
+        This info is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
         vis_06_measured_path = self.get_channel_measured_group_path('vis_06')
         ir_105_measured_path = self.get_channel_measured_group_path('ir_105')
+
+        file_type = self.filetype_info['file_type']
+
         segment_position_info = {
-            '1km': {'start_position_row': self[vis_06_measured_path+'/start_position_row'].item(),
-                    'end_position_row': self[vis_06_measured_path+'/end_position_row'].item(),
-                    'segment_height': self[vis_06_measured_path+'/end_position_row'].item() -
-                    self[vis_06_measured_path+'/start_position_row'].item() + 1,
-                    'segment_width': 11136},
-            '2km': {'start_position_row': self[ir_105_measured_path+'/start_position_row'].item(),
-                    'end_position_row': self[ir_105_measured_path+'/end_position_row'].item(),
-                    'segment_height': self[ir_105_measured_path+'/end_position_row'].item() -
-                    self[ir_105_measured_path+'/start_position_row'].item() + 1,
-                    'segment_width': 5568}
+            HIGH_RES_GRID_INFO[file_type]['grid_type']: {
+                'start_position_row': self[vis_06_measured_path + '/start_position_row'].item(),
+                'end_position_row': self[vis_06_measured_path + '/end_position_row'].item(),
+                'segment_height': self[vis_06_measured_path + '/end_position_row'].item() -
+                self[vis_06_measured_path + '/start_position_row'].item() + 1,
+                'segment_width': HIGH_RES_GRID_INFO[file_type]['width']
+            },
+            LOW_RES_GRID_INFO[file_type]['grid_type']: {
+                'start_position_row': self[ir_105_measured_path + '/start_position_row'].item(),
+                'end_position_row': self[ir_105_measured_path + '/end_position_row'].item(),
+                'segment_height': self[ir_105_measured_path + '/end_position_row'].item() -
+                self[ir_105_measured_path + '/start_position_row'].item() + 1,
+                'segment_width': LOW_RES_GRID_INFO[file_type]['width']
+            }
         }
 
         return segment_position_info
