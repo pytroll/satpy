@@ -26,7 +26,6 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from contextlib import suppress
 from fnmatch import fnmatch
-from functools import lru_cache
 from weakref import WeakValueDictionary
 
 import numpy as np
@@ -38,6 +37,7 @@ from trollsift.parser import globify, parse
 from yaml import UnsafeLoader
 
 from satpy import DatasetDict
+from satpy._compat import cache
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
@@ -1380,51 +1380,47 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
                  **kwargs):
         """Initialise the GEOVariableSegmentYAMLReader object."""
         super().__init__(config_dict, filter_parameters, filter_filenames, **kwargs)
-        self.segment_heights = lru_cache(self._segment_heights)
-
-    def create_filehandlers(self, filenames, fh_kwargs=None):
-        """Create file handler objects and collect the location information."""
-        created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
-        self._extract_segment_location_dicts(created_fhs)
-        return created_fhs
-
-    def _extract_segment_location_dicts(self, created_fhs):
+        self.segment_heights = cache(self._segment_heights)
         self.segment_infos = dict()
-        for filetype, filetype_fhs in created_fhs.items():
-            self._initialise_segment_infos(filetype, filetype_fhs)
-            self._collect_segment_position_infos(filetype, filetype_fhs)
+
+    def _extract_segment_location_dicts(self, filetype):
+        self._initialise_segment_infos(filetype)
+        self._collect_segment_position_infos(filetype)
         return
 
-    def _collect_segment_position_infos(self, filetype, filetype_fhs):
+    def _collect_segment_position_infos(self, filetype):
         # collect the segment positioning infos for all available segments
+        filetype_fhs = self.file_handlers[filetype]
         for fh in filetype_fhs:
             chk_infos = fh.get_segment_position_info()
             chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
             self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
 
-    def _initialise_segment_infos(self, filetype, filetype_fhs):
+    def _initialise_segment_infos(self, filetype):
         # initialise the segment info for this filetype
+        filetype_fhs = self.file_handlers[filetype]
         exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
-        width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+        grid_width_to_grid_type = _get_grid_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
         self.segment_infos.update({filetype: {'available_segment_infos': [],
                                               'expected_segments': exp_segment_nr,
-                                              'width_to_grid_type': width_to_grid_type}})
+                                              'grid_width_to_grid_type': grid_width_to_grid_type}})
 
     def _get_empty_segment(self, dim=None, idx=None, filetype=None):
-        width = self.empty_segment.shape[1]
-        segment_height = self.segment_heights(filetype, width)[idx]
+        grid_width = self.empty_segment.shape[1]
+        segment_height = self.segment_heights(filetype, grid_width)[idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
 
-    def _segment_heights(self, filetype, width):
+    def _segment_heights(self, filetype, grid_width):
         """Compute optimal padded segment heights (in number of pixels) based on the location of available segments."""
-        grid_type = self.segment_infos[filetype]['width_to_grid_type'][width]
-        segment_heights = _compute_optimal_missing_segment_heights(self.segment_infos[filetype], grid_type, width)
+        self._extract_segment_location_dicts(filetype)
+        grid_type = self.segment_infos[filetype]['grid_width_to_grid_type'][grid_width]
+        segment_heights = _compute_optimal_missing_segment_heights(self.segment_infos[filetype], grid_type, grid_width)
         return segment_heights
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None, filetype=None):
         # retrieve the segment height in number of pixels
-        width = previous_seg_size[1]
-        new_height_px = self.segment_heights(filetype, width)[segment_n - 1]
+        grid_width = previous_seg_size[1]
+        new_height_px = self.segment_heights(filetype, grid_width)[segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
@@ -1432,11 +1428,11 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         return new_height_proj_coord, new_height_px
 
 
-def _get_width_to_grid_type(seg_info):
-    width_to_grid_type = dict()
+def _get_grid_width_to_grid_type(seg_info):
+    grid_width_to_grid_type = dict()
     for grid_type, grid_type_seg_info in seg_info.items():
-        width_to_grid_type.update({grid_type_seg_info['segment_width']: grid_type})
-    return width_to_grid_type
+        grid_width_to_grid_type.update({grid_type_seg_info['grid_width']: grid_type})
+    return grid_width_to_grid_type
 
 
 def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vertical_size):

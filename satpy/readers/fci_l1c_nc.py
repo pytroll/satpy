@@ -135,13 +135,13 @@ AUX_DATA = {
 }
 
 HIGH_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '500m',
-                                       'width': 22272},
+                                       'grid_width': 22272},
                       'fci_l1c_fdhsi': {'grid_type': '1km',
-                                        'width': 11136}}
+                                        'grid_width': 11136}}
 LOW_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '1km',
-                                      'width': 11136},
+                                      'grid_width': 11136},
                      'fci_l1c_fdhsi': {'grid_type': '2km',
-                                       'width': 5568}}
+                                       'grid_width': 5568}}
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -239,14 +239,14 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                 'end_position_row': self[vis_06_measured_path + '/end_position_row'].item(),
                 'segment_height': self[vis_06_measured_path + '/end_position_row'].item() -
                 self[vis_06_measured_path + '/start_position_row'].item() + 1,
-                'segment_width': HIGH_RES_GRID_INFO[file_type]['width']
+                'grid_width': HIGH_RES_GRID_INFO[file_type]['grid_width']
             },
             LOW_RES_GRID_INFO[file_type]['grid_type']: {
                 'start_position_row': self[ir_105_measured_path + '/start_position_row'].item(),
                 'end_position_row': self[ir_105_measured_path + '/end_position_row'].item(),
                 'segment_height': self[ir_105_measured_path + '/end_position_row'].item() -
                 self[ir_105_measured_path + '/start_position_row'].item() + 1,
-                'segment_width': LOW_RES_GRID_INFO[file_type]['width']
+                'grid_width': LOW_RES_GRID_INFO[file_type]['grid_width']
             }
         }
 
