@@ -222,7 +222,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         return measured_group_path
 
     def get_segment_position_info(self):
-        """Get information about the size and the position of the chunk.
+        """Get information about the size and the position of the chunk inside the final image array.
 
         As the final array is composed by stacking chunks (aka segments) vertically, the position of a chunk
         inside the array is defined by the numbers of the start (lowest) and end (highest) row of the chunk.
