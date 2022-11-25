@@ -412,8 +412,8 @@ mtg_fci_fdss_6km:
     height: 1856
     width: 1856
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 mtg_fci_fdss_32km:
@@ -432,8 +432,8 @@ mtg_fci_fdss_32km:
     height: 348
     width: 348
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 # Geostationary Operational Environmental Satellite (GOES) / ABI Instrument
