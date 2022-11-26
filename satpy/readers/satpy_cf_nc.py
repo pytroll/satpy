@@ -293,7 +293,7 @@ class SatpyCFFileHandler(BaseFileHandler):
                 return False
         return True
 
-    def _attrs_equal(self, ds_id, data):
+    def _dataid_attrs_equal(self, ds_id, data):
         _ds_id_dict = ds_id.to_dict()
         for key in _ds_id_dict:
             try:
@@ -311,7 +311,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         name = ds_info.get('nc_store_name', ds_id['name'])
         file_key = ds_info.get('file_key', name)
         data = nc[file_key]
-        if not self._attrs_equal(ds_id, data):
+        if not self._dataid_attrs_equal(ds_id, data):
             return
         if name != ds_id['name']:
             data = data.rename(ds_id['name'])
