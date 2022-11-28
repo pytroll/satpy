@@ -235,3 +235,25 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         with self.assertRaises(IOError):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+
+    def test_get_and_cache_npxr_is_xr(self):
+        """Test that get_and_cache_npxr() returns xr.DataArray."""
+        import xarray as xr
+
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        file_handler = NetCDF4FileHandler('test.nc', {}, {}, cache_handle=True)
+
+        data = file_handler.get_and_cache_npxr('test_group/ds1_f')
+        assert isinstance(data, xr.DataArray)
+
+    def test_get_and_cache_npxr_data_is_cached(self):
+        """Test that the data are cached when get_and_cache_npxr() is called."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler('test.nc', {}, {}, cache_handle=True)
+        data = file_handler.get_and_cache_npxr('test_group/ds1_f')
+
+        # Delete the dataset from the file content dict, it should be available from the cache
+        del file_handler.file_content["test_group/ds1_f"]
+        data2 = file_handler.get_and_cache_npxr('test_group/ds1_f')
+        assert np.all(data == data2)
