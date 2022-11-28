@@ -24,9 +24,9 @@ composites:
       # should we be using the most corrected or least corrected inputs?
       # what happens if something requests more modifiers on top of this?
       - wavelength: 0.51
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        modifiers: [sunz_corrected, rayleigh_corrected]
       - wavelength: 0.85
-        modifiers: [ sunz_corrected ]
+        modifiers:  sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_true_color_reproduction:
@@ -34,14 +34,14 @@ composites:
     # JMA True Color Reproduction green band
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector
-    fractions: [ 0.6321, 0.2928, 0.0751 ]
+    fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
       - name: B02
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        modifiers: [sunz_corrected, rayleigh_corrected]
       - name: B03
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        modifiers: [sunz_corrected, rayleigh_corrected]
       - name: B04
-        modifiers: [ sunz_corrected ]
+        modifiers: [sunz_corrected]
     standard_name: none
 
   green_nocorr:

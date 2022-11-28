@@ -166,10 +166,10 @@ class NDVIHybridGreen(SpectralBlender):
 class GreenCorrector(SpectralBlender):
     """Previous class used to blend channels for green band corrections.
 
-    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' wich computes
-    a weghted average based on N number of channels and N number fo corresponding weights/fractions. A new class
+    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' which computes
+    a weighted average based on N number of channels and N number of corresponding weights/fractions. A new class
     called 'HybridGreen' has been created, which performs a correction of green bands centered at 0.51 microns
-    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to imrpove true color imagery.
+    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to improve true color imagery.
     """
 
     def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
