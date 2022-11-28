@@ -27,6 +27,7 @@ import numpy as np
 import numpy.testing
 import pytest
 import xarray as xr
+from netCDF4 import default_fillvals
 
 from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
@@ -54,188 +55,200 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
 }
 
 
+def _get_test_calib_for_channel_ir(data, meas_path):
+    from pyspectral.blackbody import C_SPEED as c
+    from pyspectral.blackbody import H_PLANCK as h
+    from pyspectral.blackbody import K_BOLTZMANN as k
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xr.DataArray(955)
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = xr.DataArray(1)
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = xr.DataArray(0.4)
+    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = xr.DataArray(1e11 * 2 * h * c ** 2)
+    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = xr.DataArray(1e2 * h * c / k)
+    return data
+
+
+def _get_test_calib_for_channel_vis(data, meas):
+    data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([149597870.7]), 6000))
+    data[meas + "/channel_effective_solar_irradiance"] = xr.DataArray(50)
+    return data
+
+
+def _get_test_calib_data_for_channel(data, ch_str):
+    meas_path = "data/{:s}/measured".format(ch_str)
+    if ch_str.startswith("ir") or ch_str.startswith("wv"):
+        _get_test_calib_for_channel_ir(data, meas_path)
+    elif ch_str.startswith("vis") or ch_str.startswith("nir"):
+        _get_test_calib_for_channel_vis(data, meas_path)
+    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(1234.56)
+
+
+def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
+    ch_path = "data/{:s}/measured/effective_radiance".format(ch_str)
+
+    common_attrs = {
+        "scale_factor": 5,
+        "add_offset": 10,
+        "long_name": "Effective Radiance",
+        "units": "mW.m-2.sr-1.(cm-1)-1",
+        "ancillary_variables": "pixel_quality"
+    }
+    if "38" in ch_path:
+        fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
+        data_without_fires = da.ones((n_rows_cols[0] - 1, n_rows_cols[1]), dtype="uint16", chunks=1024)
+        d = xr.DataArray(
+            da.concatenate([fire_line, data_without_fires], axis=0),
+            dims=("y", "x"),
+            attrs={
+                "valid_range": [0, 8191],
+                "warm_scale_factor": 2,
+                "warm_add_offset": -300,
+                **common_attrs
+            }
+        )
+    else:
+        d = xr.DataArray(
+            da.ones(n_rows_cols, dtype="uint16", chunks=1024),
+            dims=("y", "x"),
+            attrs={
+                "valid_range": [0, 4095],
+                "warm_scale_factor": 1,
+                "warm_add_offset": 0,
+                **common_attrs
+            }
+        )
+
+    data[ch_path] = d
+    data[ch_path + '/shape'] = n_rows_cols
+
+
+def _get_test_chunk_position_for_channel(data, ch_str, n_rows_cols):
+    pos = "data/{:s}/measured/{:s}_position_{:s}"
+    data[pos.format(ch_str, "start", "row")] = xr.DataArray(0)
+    data[pos.format(ch_str, "start", "column")] = xr.DataArray(0)
+    data[pos.format(ch_str, "end", "row")] = xr.DataArray(n_rows_cols[0])
+    data[pos.format(ch_str, "end", "column")] = xr.DataArray(n_rows_cols[1])
+
+
+def _get_test_index_map_for_channel(data, ch_str, n_rows_cols):
+    index_map_path = "data/{:s}/measured/index_map".format(ch_str)
+    data[index_map_path] = xr.DataArray((da.ones(n_rows_cols)) * 110, dims=("y", "x"))
+
+
+def _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols):
+    qual_path = "data/{:s}/measured/pixel_quality".format(ch_str)
+    data[qual_path] = xr.DataArray((da.ones(n_rows_cols)) * 3, dims=("y", "x"))
+
+
+def _get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols):
+    x_path = "data/{:s}/measured/x".format(ch_str)
+    data[x_path] = xr.DataArray(
+        da.arange(1, n_rows_cols[1] + 1, dtype=np.dtype("uint16")),
+        dims=("x",),
+        attrs={
+            "scale_factor": -GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['scale_factor'],
+            "add_offset": GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['add_offset'],
+        }
+    )
+
+    y_path = "data/{:s}/measured/y".format(ch_str)
+    data[y_path] = xr.DataArray(
+        da.arange(1, n_rows_cols[0] + 1, dtype=np.dtype("uint16")),
+        dims=("y",),
+        attrs={
+            "scale_factor": GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['scale_factor'],
+            "add_offset": -GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['add_offset'],
+        }
+    )
+
+
+def _get_test_content_areadef():
+    data = {}
+
+    proj = "data/mtg_geos_projection"
+
+    attrs = {
+        "sweep_angle_axis": "y",
+        "perspective_point_height": "35786400.0",
+        "semi_major_axis": "6378137.0",
+        "longitude_of_projection_origin": "0.0",
+        "inverse_flattening": "298.257223563",
+        "units": "m"}
+    data[proj] = xr.DataArray(
+        0,
+        dims=(),
+        attrs=attrs)
+
+    # also set attributes cached, as this may be how they are accessed with
+    # the NetCDF4FileHandler
+    for (k, v) in attrs.items():
+        data[proj + "/attr/" + k] = v
+
+    return data
+
+
+def _get_test_content_aux_data():
+    from satpy.readers.fci_l1c_nc import AUX_DATA
+    data = {}
+    indices_dim = 6000
+    for key, value in AUX_DATA.items():
+        # skip population of earth_sun_distance as this is already defined for reflectance calculation
+        if key == 'earth_sun_distance':
+            continue
+        data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
+
+    # compute the last data entry to simulate the FCI caching
+    data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
+
+    data['index'] = xr.DataArray(da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
+    return data
+
+
+def _get_global_attributes():
+    data = {}
+    attrs = {"platform": "MTI1"}
+    for (k, v) in attrs.items():
+        data["/attr/" + k] = v
+    return data
+
+
+def _get_test_content_for_channel(ch_str, grid_type):
+
+    nrows = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows']
+    ncols = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols']
+    n_rows_cols = (nrows, ncols)
+
+    data = {}
+
+    _get_test_image_data_for_channel(data, ch_str, n_rows_cols)
+    _get_test_calib_data_for_channel(data, ch_str)
+    _get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols)
+    _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols)
+    _get_test_index_map_for_channel(data, ch_str, n_rows_cols)
+    _get_test_chunk_position_for_channel(data, ch_str, n_rows_cols)
+
+    return data
+
+
 class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
     # overwritten by FDHSI and HRFI FIle Handlers
     chan_patterns: Dict[str, Dict[str, Union[List[int], str]]] = {}
 
-    def _get_test_calib_for_channel_ir(self, meas_path):
-        from pyspectral.blackbody import C_SPEED as c
-        from pyspectral.blackbody import H_PLANCK as h
-        from pyspectral.blackbody import K_BOLTZMANN as k
-        data = {meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber": xr.DataArray(955),
-                meas_path + "/radiance_to_bt_conversion_coefficient_a": xr.DataArray(1),
-                meas_path + "/radiance_to_bt_conversion_coefficient_b": xr.DataArray(0.4),
-                meas_path + "/radiance_to_bt_conversion_constant_c1": xr.DataArray(1e11 * 2 * h * c ** 2),
-                meas_path + "/radiance_to_bt_conversion_constant_c2": xr.DataArray(1e2 * h * c / k)}
-        return data
-
-    def _get_test_calib_for_channel_vis(self, meas):
-        data = {"state/celestial/earth_sun_distance": xr.DataArray(da.repeat(da.array([149597870.7]), 6000)),
-                meas + "/channel_effective_solar_irradiance": xr.DataArray(50)}
-        return data
-
-    def _get_test_content_for_channel(self, ch_str, grid_type):
-
-        nrows = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows']
-        ncols = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols']
-        n_rows_cols = (nrows, ncols)
-
-        data = {}
-
-        self._get_test_image_data_for_channel(data, ch_str, n_rows_cols)
-        self._get_test_calib_data_for_channel(data, ch_str)
-        self._get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols)
-        self._get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols)
-        self._get_test_index_map_for_channel(data, ch_str, n_rows_cols)
-        self._get_test_chunk_position_for_channel(data, ch_str, n_rows_cols)
-
-        return data
-
-    def _get_test_calib_data_for_channel(self, data, ch_str):
-        meas_path = "data/{:s}/measured".format(ch_str)
-        if ch_str.startswith("ir") or ch_str.startswith("wv"):
-            data.update(self._get_test_calib_for_channel_ir(meas_path))
-        elif ch_str.startswith("vis") or ch_str.startswith("nir"):
-            data.update(self._get_test_calib_for_channel_vis(meas_path))
-        data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(1234.56)
-
-    def _get_test_image_data_for_channel(self, data, ch_str, n_rows_cols):
-        ch_path = "data/{:s}/measured/effective_radiance".format(ch_str)
-
-        common_attrs = {
-            "scale_factor": 5,
-            "add_offset": 10,
-            "long_name": "Effective Radiance",
-            "units": "mW.m-2.sr-1.(cm-1)-1",
-            "ancillary_variables": "pixel_quality"
-        }
-        if "38" in ch_path:
-            fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
-            data_without_fires = da.ones((n_rows_cols[0] - 1, n_rows_cols[1]), dtype="uint16", chunks=1024)
-            d = xr.DataArray(
-                da.concatenate([fire_line, data_without_fires], axis=0),
-                dims=("y", "x"),
-                attrs={
-                    "valid_range": [0, 8191],
-                    "warm_scale_factor": 2,
-                    "warm_add_offset": -300,
-                    **common_attrs
-                }
-            )
-        else:
-            d = xr.DataArray(
-                da.ones(n_rows_cols, dtype="uint16", chunks=1024),
-                dims=("y", "x"),
-                attrs={
-                    "valid_range": [0, 4095],
-                    "warm_scale_factor": 1,
-                    "warm_add_offset": 0,
-                    **common_attrs
-                }
-            )
-
-        data[ch_path] = d
-        data[ch_path+'/shape'] = n_rows_cols
-
-    def _get_test_chunk_position_for_channel(self, data, ch_str, n_rows_cols):
-        pos = "data/{:s}/measured/{:s}_position_{:s}"
-        data[pos.format(ch_str, "start", "row")] = xr.DataArray(0)
-        data[pos.format(ch_str, "start", "column")] = xr.DataArray(0)
-        data[pos.format(ch_str, "end", "row")] = xr.DataArray(n_rows_cols[0])
-        data[pos.format(ch_str, "end", "column")] = xr.DataArray(n_rows_cols[1])
-
-    def _get_test_index_map_for_channel(self, data, ch_str, n_rows_cols):
-        index_map_path = "data/{:s}/measured/index_map".format(ch_str)
-        data[index_map_path] = xr.DataArray((da.ones(n_rows_cols)) * 110, dims=("y", "x"))
-
-    def _get_test_pixel_quality_for_channel(self, data, ch_str, n_rows_cols):
-        qual_path = "data/{:s}/measured/pixel_quality".format(ch_str)
-        data[qual_path] = xr.DataArray((da.ones(n_rows_cols)) * 3, dims=("y", "x"))
-
-    def _get_test_geolocation_for_channel(self, data, ch_str, grid_type, n_rows_cols):
-        x_path = "data/{:s}/measured/x".format(ch_str)
-        data[x_path] = xr.DataArray(
-            da.arange(1, n_rows_cols[1] + 1, dtype=np.dtype("uint16")),
-            dims=("x",),
-            attrs={
-                "scale_factor": -GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['scale_factor'],
-                "add_offset": GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['add_offset'],
-            }
-        )
-
-        y_path = "data/{:s}/measured/y".format(ch_str)
-        data[y_path] = xr.DataArray(
-            da.arange(1, n_rows_cols[0] + 1, dtype=np.dtype("uint16")),
-            dims=("y",),
-            attrs={
-                "scale_factor": GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['scale_factor'],
-                "add_offset": -GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['add_offset'],
-            }
-        )
-
     def _get_test_content_all_channels(self):
         data = {}
         for pat in self.chan_patterns:
             for ch in self.chan_patterns[pat]['channels']:
-                data.update(self._get_test_content_for_channel(pat.format(ch), self.chan_patterns[pat]['grid_type']))
-        return data
-
-    def _get_test_content_areadef(self):
-        data = {}
-
-        proj = "data/mtg_geos_projection"
-
-        attrs = {
-            "sweep_angle_axis": "y",
-            "perspective_point_height": "35786400.0",
-            "semi_major_axis": "6378137.0",
-            "longitude_of_projection_origin": "0.0",
-            "inverse_flattening": "298.257223563",
-            "units": "m"}
-        data[proj] = xr.DataArray(
-            0,
-            dims=(),
-            attrs=attrs)
-
-        # also set attributes cached, as this may be how they are accessed with
-        # the NetCDF4FileHandler
-        for (k, v) in attrs.items():
-            data[proj + "/attr/" + k] = v
-
-        return data
-
-    def _get_test_content_aux_data(self):
-        from satpy.readers.fci_l1c_nc import AUX_DATA
-        data = {}
-        indices_dim = 6000
-        for key, value in AUX_DATA.items():
-            # skip population of earth_sun_distance as this is already defined for reflectance calculation
-            if key == 'earth_sun_distance':
-                continue
-            data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
-
-        # compute the last data entry to simulate the FCI caching
-        data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
-
-        data['index'] = xr.DataArray(da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
-        return data
-
-    def _get_global_attributes(self):
-        data = {}
-        attrs = {"platform": "MTI1"}
-        for (k, v) in attrs.items():
-            data["/attr/" + k] = v
+                data.update(_get_test_content_for_channel(pat.format(ch), self.chan_patterns[pat]['grid_type']))
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Get the content of the test data."""
         D = {}
         D.update(self._get_test_content_all_channels())
-        D.update(self._get_test_content_areadef())
-        D.update(self._get_test_content_aux_data())
-        D.update(self._get_global_attributes())
+        D.update(_get_test_content_areadef())
+        D.update(_get_test_content_aux_data())
+        D.update(_get_global_attributes())
         return D
 
 
@@ -257,31 +270,22 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
 class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
     """Mock bad data."""
 
-    def _get_test_calib_for_channel_ir(self, meas):
-        from netCDF4 import default_fillvals
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
         v = xr.DataArray(default_fillvals["f4"])
-        data = {meas + "/radiance_to_bt_conversion_coefficient_wavenumber": v,
-                meas + "/radiance_to_bt_conversion_coefficient_a": v,
-                meas + "/radiance_to_bt_conversion_coefficient_b": v,
-                meas + "/radiance_to_bt_conversion_constant_c1": v,
-                meas + "/radiance_to_bt_conversion_constant_c2": v}
-        return data
 
-    def _get_test_calib_for_channel_vis(self, meas):
-        data = super()._get_test_calib_for_channel_vis(meas)
-        from netCDF4 import default_fillvals
-        v = xr.DataArray(default_fillvals["f4"])
-        data[meas + "/channel_effective_solar_irradiance"] = v
+        data.update({"data/ir_105/measured/radiance_to_bt_conversion_coefficient_wavenumber": v,
+                     "data/ir_105/measured/radiance_to_bt_conversion_coefficient_a": v,
+                     "data/ir_105/measured/radiance_to_bt_conversion_coefficient_b": v,
+                     "data/ir_105/measured/radiance_to_bt_conversion_constant_c1": v,
+                     "data/ir_105/measured/radiance_to_bt_conversion_constant_c2": v,
+                     "data/vis_06/measured/channel_effective_solar_irradiance": v})
+
         return data
 
 
 class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
     """Mock bad data for IDPF TO-DO's."""
-
-    def _get_test_calib_for_channel_vis(self, meas):
-        data = super()._get_test_calib_for_channel_vis(meas)
-        data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([30000000]), 6000))
-        return data
 
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
@@ -295,6 +299,7 @@ class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
         data['data/vis_06/measured/y'].attrs['add_offset'] = \
             np.float32(data['data/vis_06/measured/y'].attrs['add_offset'])
 
+        data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([30000000]), 6000))
         return data
 
 
