@@ -369,6 +369,19 @@ def mocked_basefilehandler(filehandler):
 class TestFCIL1cNCReader:
     """Test FCI L1c NetCDF reader with nominal data."""
 
+    fh_param_for_filetype = {
+        'fdhsi': {
+            'filehandler': FakeFCIFileHandlerFDHSI,
+            'channels': _chans_fdhsi,
+            'filenames': _test_filenames['fdhsi']
+        },
+        'hrfi': {
+            'filehandler': FakeFCIFileHandlerHRFI,
+            'channels': _chans_hrfi,
+            'filenames': _test_filenames['hrfi']
+        }
+    }
+
     @pytest.mark.parametrize('filenames', [_test_filenames['fdhsi'], _test_filenames['hrfi']])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
@@ -388,21 +401,22 @@ class TestFCIL1cNCReader:
         files = reader.select_files_from_pathnames(filenames)
         assert len(files) == 0
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 16),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 4)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 16),
+        (fh_param_for_filetype['hrfi'], 4)
     ])
-    def test_load_counts(self, reader_configs, filehandler, channels, filenames,
+    def test_load_counts(self, reader_configs, fh_param,
                          expected_res_n):
         """Test loading with counts."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [make_dataid(name=name, calibration="counts") for name in
-                 channels["solar"] + channels["terran"]], pad_data=False)
+                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["solar"] + channels["terran"],
-                                     channels["solar_grid_type"] + channels["terran_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                     fh_param['channels']["solar_grid_type"] +
+                                     fh_param['channels']["terran_grid_type"]):
                 assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                          GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 assert res[ch].dtype == np.uint16
@@ -414,21 +428,22 @@ class TestFCIL1cNCReader:
                 else:
                     numpy.testing.assert_array_equal(res[ch], 1)
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 16),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 4)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 16),
+        (fh_param_for_filetype['hrfi'], 4)
     ])
-    def test_load_radiance(self, reader_configs, filehandler, channels, filenames,
+    def test_load_radiance(self, reader_configs, fh_param,
                            expected_res_n):
         """Test loading with radiance."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [make_dataid(name=name, calibration="radiance") for name in
-                 channels["solar"] + channels["terran"]], pad_data=False)
+                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["solar"] + channels["terran"],
-                                     channels["solar_grid_type"] + channels["terran_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                     fh_param['channels']["solar_grid_type"] +
+                                     fh_param['channels']["terran_grid_type"]):
                 assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                          GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 assert res[ch].dtype == np.float64
@@ -441,20 +456,20 @@ class TestFCIL1cNCReader:
                 else:
                     numpy.testing.assert_array_equal(res[ch], 15)
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 8),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 2)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 8),
+        (fh_param_for_filetype['hrfi'], 2)
     ])
-    def test_load_reflectance(self, reader_configs, filehandler, channels, filenames,
+    def test_load_reflectance(self, reader_configs, fh_param,
                               expected_res_n):
         """Test loading with reflectance."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [make_dataid(name=name, calibration="reflectance") for name in
-                 channels["solar"]], pad_data=False)
+                 fh_param['channels']["solar"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["solar"], channels["solar_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["solar"], fh_param['channels']["solar_grid_type"]):
                 assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                          GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 assert res[ch].dtype == np.float64
@@ -462,22 +477,22 @@ class TestFCIL1cNCReader:
                 assert res[ch].attrs["units"] == "%"
                 numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 8),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 2)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 8),
+        (fh_param_for_filetype['hrfi'], 2)
     ])
-    def test_load_bt(self, reader_configs, caplog, filehandler, channels, filenames,
+    def test_load_bt(self, reader_configs, caplog, fh_param,
                      expected_res_n):
         """Test loading with bt."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             with caplog.at_level(logging.WARNING):
                 res = reader.load(
                     [make_dataid(name=name, calibration="brightness_temperature") for
-                     name in channels["terran"]], pad_data=False)
+                     name in fh_param['channels']["terran"]], pad_data=False)
                 assert caplog.text == ""
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["terran"], channels["terran_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["terran"], fh_param['channels']["terran_grid_type"]):
                 assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                          GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 assert res[ch].dtype == np.float64
@@ -490,19 +505,19 @@ class TestFCIL1cNCReader:
                 else:
                     numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
-    @pytest.mark.parametrize('filehandler,channels,filenames', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi']),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'])
+    @pytest.mark.parametrize('fh_param', [
+        (fh_param_for_filetype['fdhsi']),
+        (fh_param_for_filetype['hrfi'])
     ])
-    def test_orbital_parameters_attr(self, reader_configs, filehandler, channels, filenames):
+    def test_orbital_parameters_attr(self, reader_configs, fh_param):
         """Test the orbital parameter attribute."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [make_dataid(name=name) for name in
-                 channels["solar"] + channels["terran"]], pad_data=False)
+                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
 
-            for ch in channels["solar"] + channels["terran"]:
+            for ch in fh_param['channels']["solar"] + fh_param['channels']["terran"]:
                 assert res[ch].attrs["orbital_parameters"] == {
                     'satellite_actual_longitude': np.mean(np.arange(6000)),
                     'satellite_actual_latitude': np.mean(np.arange(6000)),
@@ -515,40 +530,41 @@ class TestFCIL1cNCReader:
                     'projection_altitude': 35786400.0,
                 }
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 16),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 4)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 16),
+        (fh_param_for_filetype['hrfi'], 4)
     ])
-    def test_load_index_map(self, reader_configs, filehandler, channels, filenames, expected_res_n):
+    def test_load_index_map(self, reader_configs, fh_param, expected_res_n):
         """Test loading of index_map."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [name + '_index_map' for name in
-                 channels["solar"] + channels["terran"]], pad_data=False)
+                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["solar"] + channels["terran"],
-                                     channels["solar_grid_type"] + channels["terran_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                     fh_param['channels']["solar_grid_type"] +
+                                     fh_param['channels']["terran_grid_type"]):
                 assert res[ch + '_index_map'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 110)
 
-    @pytest.mark.parametrize('filehandler,channels,filenames', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi']),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'])
+    @pytest.mark.parametrize('fh_param', [
+        (fh_param_for_filetype['fdhsi']),
+        (fh_param_for_filetype['hrfi'])
     ])
-    def test_load_aux_data(self, reader_configs, filehandler, channels, filenames):
+    def test_load_aux_data(self, reader_configs, fh_param):
         """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_nc import AUX_DATA
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
-            res = reader.load([channels['solar'][0] + '_' + key for key in AUX_DATA.keys()],
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+            res = reader.load([fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()],
                               pad_data=False)
-            grid_type = channels['solar_grid_type'][0]
-            for aux in [channels['solar'][0] + '_' + key for key in AUX_DATA.keys()]:
+            grid_type = fh_param['channels']['solar_grid_type'][0]
+            for aux in [fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()]:
                 assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                           GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                if aux == channels['solar'][0] + '_earth_sun_distance':
+                if aux == fh_param['channels']['solar'][0] + '_earth_sun_distance':
                     numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
                 else:
                     numpy.testing.assert_array_equal(res[aux][1, 1], 10)
@@ -564,37 +580,38 @@ class TestFCIL1cNCReader:
         assert len(comps["fci"]) > 0
         assert len(mods["fci"]) > 0
 
-    @pytest.mark.parametrize('filehandler,channels,filenames,expected_res_n', [
-        (FakeFCIFileHandlerFDHSI, _chans_fdhsi, _test_filenames['fdhsi'], 16),
-        (FakeFCIFileHandlerHRFI, _chans_hrfi, _test_filenames['hrfi'], 4)
+    @pytest.mark.parametrize('fh_param,expected_res_n', [
+        (fh_param_for_filetype['fdhsi'], 16),
+        (fh_param_for_filetype['hrfi'], 4)
     ])
-    def test_load_quality_only(self, reader_configs, filehandler, channels, filenames, expected_res_n):
+    def test_load_quality_only(self, reader_configs, fh_param, expected_res_n):
         """Test that loading quality only works."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(
                 [name + '_pixel_quality' for name in
-                 channels["solar"] + channels["terran"]], pad_data=False)
+                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
             assert expected_res_n == len(res)
-            for ch, grid_type in zip(channels["solar"] + channels["terran"],
-                                     channels["solar_grid_type"] + channels["terran_grid_type"]):
+            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                     fh_param['channels']["solar_grid_type"] +
+                                     fh_param['channels']["terran_grid_type"]):
                 assert res[ch + '_pixel_quality'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
                                                             GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
                 numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 3)
                 assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
 
-    @pytest.mark.parametrize('filehandler,filenames', [
-        (FakeFCIFileHandlerFDHSI, _test_filenames['fdhsi']),
-        (FakeFCIFileHandlerHRFI, _test_filenames['hrfi']),
+    @pytest.mark.parametrize('fh_param', [
+        (fh_param_for_filetype['fdhsi']),
+        (fh_param_for_filetype['hrfi'])
     ])
-    def test_platform_name(self, reader_configs, filehandler, filenames):
+    def test_platform_name(self, reader_configs, fh_param):
         """Test that platform name is exposed.
 
         Test that the FCI reader exposes the platform name.  Corresponds
         to GH issue 1014.
         """
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(["vis_06"], pad_data=False)
             assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
@@ -610,14 +627,14 @@ class TestFCIL1cNCReader:
                     make_dataid(name="ir_123", calibration="unknown"),
                     {"units": "unknown"})
 
-    @pytest.mark.parametrize('filehandler,filenames, expected_area', [
-        (FakeFCIFileHandlerFDHSI, _test_filenames['fdhsi'], ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
-        (FakeFCIFileHandlerHRFI, _test_filenames['hrfi'], ['mtg_fci_fdss_500m', 'mtg_fci_fdss_1km']),
+    @pytest.mark.parametrize('fh_param, expected_area', [
+        (fh_param_for_filetype['fdhsi'], ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
+        (fh_param_for_filetype['hrfi'], ['mtg_fci_fdss_500m', 'mtg_fci_fdss_1km']),
     ])
-    def test_area_definition_computation(self, reader_configs, filehandler, filenames, expected_area):
+    def test_area_definition_computation(self, reader_configs, fh_param, expected_area):
         """Test that the geolocation computation is correct."""
-        with mocked_basefilehandler(filehandler):
-            reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
             res = reader.load(['ir_105', 'vis_06'], pad_data=False)
 
             # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
