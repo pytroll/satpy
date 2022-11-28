@@ -58,6 +58,7 @@ datasets:
     key: 'latitude'
     resolution: [48006.450653072,9001.209497451]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
+    long_name: Latitude
     standard_name: latitude
     units: degree_north
     fill_value: -1.e+100
@@ -67,6 +68,7 @@ datasets:
     key: 'longitude'
     resolution: [48006.450653072,9001.209497451]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
+    long_name: Longitude
     standard_name: longitude
     units: degree_east
     fill_value: -1.e+100
@@ -77,6 +79,7 @@ datasets:
     key: '#19#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -90,6 +93,7 @@ datasets:
     key: '#20#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -103,6 +107,7 @@ datasets:
     key: '#21#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -116,6 +121,7 @@ datasets:
     key: '#22#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (low clouds pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -129,6 +135,7 @@ datasets:
     key: '#23#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -142,6 +149,7 @@ datasets:
     key: '#24#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [ 3.48, 3.92, 4.36 ]
+    long_name: TOA Brightness Temperature at 3.9um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -155,6 +163,7 @@ datasets:
     key: '#25#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -168,6 +177,7 @@ datasets:
     key: '#26#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -181,6 +191,7 @@ datasets:
     key: '#27#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -194,6 +205,7 @@ datasets:
     key: '#28#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -207,6 +219,7 @@ datasets:
     key: '#29#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -220,6 +233,7 @@ datasets:
     key: '#30#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -233,6 +247,7 @@ datasets:
     key: '#31#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -246,6 +261,7 @@ datasets:
     key: '#32#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -259,6 +275,7 @@ datasets:
     key: '#33#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -272,6 +289,7 @@ datasets:
     key: '#34#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -285,6 +303,7 @@ datasets:
     key: '#35#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -298,6 +317,7 @@ datasets:
     key: '#36#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -311,6 +331,7 @@ datasets:
     key: '#37#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -324,6 +345,7 @@ datasets:
     key: '#38#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -337,6 +359,7 @@ datasets:
     key: '#39#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -350,6 +373,7 @@ datasets:
     key: '#40#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -363,6 +387,7 @@ datasets:
     key: '#41#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -376,6 +401,7 @@ datasets:
     key: '#42#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -389,6 +415,7 @@ datasets:
     key: '#43#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -402,6 +429,7 @@ datasets:
     key: '#44#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -415,6 +443,7 @@ datasets:
     key: '#45#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -428,6 +457,7 @@ datasets:
     key: '#46#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -441,6 +471,7 @@ datasets:
     key: '#47#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -454,6 +485,7 @@ datasets:
     key: '#48#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -467,6 +499,7 @@ datasets:
     key: '#49#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -480,6 +513,7 @@ datasets:
     key: '#50#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -493,6 +527,7 @@ datasets:
     key: '#51#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -506,6 +541,7 @@ datasets:
     key: '#52#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -519,6 +555,7 @@ datasets:
     key: '#53#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -532,6 +569,7 @@ datasets:
     key: '#54#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -545,6 +583,7 @@ datasets:
     key: '#55#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -558,6 +597,7 @@ datasets:
     key: '#56#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -571,6 +611,7 @@ datasets:
     key: '#57#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -584,6 +625,7 @@ datasets:
     key: '#58#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -597,6 +639,7 @@ datasets:
     key: '#59#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -610,6 +653,7 @@ datasets:
     key: '#60#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -623,6 +667,7 @@ datasets:
     key: '#61#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (all pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -636,6 +681,7 @@ datasets:
     key: '#62#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (clear pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -649,6 +695,7 @@ datasets:
     key: '#63#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (cloudy pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -662,6 +709,7 @@ datasets:
     key: '#64#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (low cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -675,6 +723,7 @@ datasets:
     key: '#65#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (medium cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -688,6 +737,7 @@ datasets:
     key: '#66#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um (high cloud pixels)
     standard_name: toa_brightness_temperature
     units: K
     file_type: seviri_l2_bufr_asr
@@ -700,6 +750,7 @@ datasets:
     name: pcld
     key: '#1#cloudAmountInSegment'
     resolution: 48006.450653072
+    long_name: Cloud Fraction in Segment
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_asr
@@ -712,6 +763,7 @@ datasets:
     name: pclr
     key: '#1#amountSegmentCloudFree'
     resolution: 48006.450653072
+    long_name: Clear Sky Fraction in Segment
     standard_name: clear_sky_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_asr
@@ -724,6 +776,7 @@ datasets:
     name: pclrs
     key: '#2#amountSegmentCloudFree'
     resolution: 48006.450653072
+    long_name: Clear Sky Fraction in Segment
     standard_name: clar_sky_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_asr
@@ -737,6 +790,7 @@ datasets:
     name: hca
     key: '#1#amountOfHighClouds'
     resolution: 48006.450653072
+    long_name: High Cloud Fraction in Segment
     standard_name: cloud_area_fraction
     units: '%'
     file_type:  seviri_l2_bufr_cla
@@ -749,6 +803,7 @@ datasets:
     name: lca
     key: '#1#amountOfLowClouds'
     resolution: 48006.450653072
+    long_name: Low Cloud Fraction in Segment
     standard_name: cloud_area_fraction
     units: '%'
     file_type:  seviri_l2_bufr_cla
@@ -761,6 +816,7 @@ datasets:
     name: mca
     key: '#1#amountOfMiddleClouds'
     resolution: 48006.450653072
+    long_name: Medium Cloud Fraction in Segment
     standard_name: cloud_area_fraction
     units: '%'
     file_type:  seviri_l2_bufr_cla
@@ -773,6 +829,7 @@ datasets:
     name: tca
     key: '#1#cloudAmountInSegment'
     resolution: 48006.450653072
+    long_name: Cloud Fraction in Segment
     standard_name: cloud_area_fraction
     units: '%'
     file_type:  seviri_l2_bufr_cla
@@ -787,6 +844,7 @@ datasets:
     key: '#4#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [3.48, 3.92, 4.36]
+    long_name: TOA Brightness Temperature at 3.9um
     standard_name: toa_brightness_temperature
     units:  "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -800,6 +858,7 @@ datasets:
     key: '#4#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [3.48, 3.92, 4.36]
+    long_name: Cloud Fraction in Segment at 3.9um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -813,6 +872,7 @@ datasets:
     key: '#5#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: TOA Brightness Temperature at 6.2um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -826,6 +886,7 @@ datasets:
     key: '#5#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [5.35, 6.25, 7.15]
+    long_name: Cloud Fraction in Segment at 6.2um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -839,6 +900,7 @@ datasets:
     key: '#6#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: TOA Brightness Temperature at 7.3um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -852,6 +914,7 @@ datasets:
     key: '#6#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [6.85, 7.35, 7.85]
+    long_name: Cloud Fraction in Segment at 7.3um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -865,6 +928,7 @@ datasets:
     key: '#7#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: TOA Brightness Temperature at 8.7um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -878,6 +942,7 @@ datasets:
     key: '#7#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [8.3, 8.7, 9.1]
+    long_name: Cloud Fraction in Segment at 8.7um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -891,6 +956,7 @@ datasets:
     key: '#8#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: TOA Brightness Temperature at 9.7um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -904,6 +970,7 @@ datasets:
     key: '#8#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [9.38, 9.66, 9.94]
+    long_name: Cloud Fraction in Segment at 9.7um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -917,6 +984,7 @@ datasets:
     key: '#9#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: TOA Brightness Temperature at 10.8um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -930,6 +998,7 @@ datasets:
     key: '#9#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [9.8, 10.8, 11.8]
+    long_name: Cloud Fraction in Segment at 10.8um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -943,6 +1012,7 @@ datasets:
     key: '#10#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: TOA Brightness Temperature at 12.0um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -956,6 +1026,7 @@ datasets:
     key: '#10#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [11.0, 12.0, 13.0]
+    long_name: Cloud Fraction in Segment at 12.0um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -969,6 +1040,7 @@ datasets:
     key: '#11#brightnessTemperature'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: TOA Brightness Temperature at 13.4um
     standard_name: toa_brightness_temperature
     units: "W/sr-1/m-2"
     file_type: seviri_l2_bufr_csr
@@ -982,6 +1054,7 @@ datasets:
     key: '#11#cloudAmountInSegment'
     resolution: 48006.450653072
     wavelength: [12.4, 13.4, 14.4]
+    long_name: Cloud Fraction in Segment at 13.4um
     standard_name: cloud_area_fraction
     units: '%'
     file_type: seviri_l2_bufr_csr
@@ -996,6 +1069,7 @@ datasets:
     name: ki
     key: '#1#kIndex'
     resolution: 9001.209497451
+    long_name: Atmospheric Stability K-Index
     standard_name: atmosphere_stability_k_index
     coordinates:
        - longitude
@@ -1008,7 +1082,8 @@ datasets:
     name: ko
     key: '#1#koIndex'
     resolution: 9001.209497451
-    standard_name: atmosphere_stability_ko_index
+    long_name: Atmospheric Stability K0-Index
+    standard_name: atmosphere_stability_k0_index
     coordinates:
        - longitude
        - latitude
@@ -1020,6 +1095,7 @@ datasets:
     name: li
     key: '#1#parcelLiftedIndexTo500Hpa'
     resolution: 9001.209497451
+    long_name: Atmospheric Stability LI-Index
     standard_name: atmosphere_stability_lifted_index
     coordinates:
        - longitude
@@ -1032,6 +1108,7 @@ datasets:
     name: lpw1
     key: '#2#precipitableWater'
     resolution: 9001.209497451
+    long_name: Lower Layer Precipitable Water Vapour Amount
     standard_name: lwe_thickness_of_precipitation_amount
     coordinates:
        - longitude
@@ -1044,6 +1121,7 @@ datasets:
     name: lpw2
     key: '#3#precipitableWater'
     resolution: 9001.209497451
+    long_name: Medium Layer Precipitable Water Vapour Amount
     standard_name: lwe_thickness_of_precipitation_amount
     coordinates:
        - longitude
@@ -1056,6 +1134,7 @@ datasets:
     name: lpw3
     key: '#4#precipitableWater'
     resolution: 9001.209497451
+    long_name: Higher Layer Precipitable Water Vapour Amount
     standard_name: lwe_thickness_of_precipitation_amount
     coordinates:
        - longitude
@@ -1068,7 +1147,8 @@ datasets:
     name: mb
     key: '#1#maximumBuoyancy'
     resolution: 9001.209497451
-    standard_name: atmosphere_stability_maximum_bouyancy_index
+    long_name: Atmospheric Stability Maximum Buoyancy Index
+    standard_name: atmosphere_stability_maximum_buoyancy_index
     coordinates:
        - longitude
        - latitude
@@ -1080,6 +1160,7 @@ datasets:
     name: stza
     key: '#1#satelliteZenithAngle'
     resolution: 9001.209497451
+    long_name: Instrument view Zenith Angle
     standard_name: sensor_zenith_angle
     coordinates:
        - longitude
@@ -1092,6 +1173,7 @@ datasets:
     name: tpw
     key: '#1#precipitableWater'
     resolution: 9001.209497451
+    long_name: Total Column Precipitable Water Vapour Amount
     standard_name: lwe_thickness_of_precipitation_amount
     coordinates:
        - longitude
@@ -1105,6 +1187,7 @@ datasets:
     name: thu62
     key: '#1#relativeHumidity'
     resolution: 48006.450653072
+    long_name: Relative Humidity at 6.2um
     standard_name: relative_humidity
     units: '%'
     file_type: seviri_l2_bufr_thu
@@ -1117,6 +1200,7 @@ datasets:
     name: thu73
     key: '#2#relativeHumidity'
     resolution: 48006.450653072
+    long_name: Relative Humidity at 7.3um
     standard_name: relative_humidity
     units: '%'
     file_type: seviri_l2_bufr_thu
@@ -1130,6 +1214,7 @@ datasets:
     name: toz
     key: '#1#totalOzone'
     resolution: 9001.209497451
+    long_name: Total Column Ozone Amount
     standard_name: atmosphere_mass_content_of_ozone
     units: dobson
     file_type: seviri_l2_bufr_toz
@@ -1142,7 +1227,8 @@ datasets:
     name: qual
     key: '#1#totalOzone->totalOzoneQuality'
     resolution: 9001.209497451
-    standard_name: total_ozone_quality
+    long_name: Total Column Ozone Quality Index
+    standard_name: atmosphere_mass_content_of_ozone quality_flag
     units: ""
     file_type: seviri_l2_bufr_toz
     coordinates:
