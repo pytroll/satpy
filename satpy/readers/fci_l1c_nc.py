@@ -226,6 +226,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         As the final array is composed by stacking chunks (aka segments) vertically, the position of a chunk
         inside the array is defined by the numbers of the start (lowest) and end (highest) row of the chunk.
+        The row numbering is assumed to start with 1.
         This info is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
         vis_06_measured_path = self.get_channel_measured_group_path('vis_06')

@@ -123,8 +123,8 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
 
 def _get_test_chunk_position_for_channel(data, ch_str, n_rows_cols):
     pos = "data/{:s}/measured/{:s}_position_{:s}"
-    data[pos.format(ch_str, "start", "row")] = xr.DataArray(0)
-    data[pos.format(ch_str, "start", "column")] = xr.DataArray(0)
+    data[pos.format(ch_str, "start", "row")] = xr.DataArray(1)
+    data[pos.format(ch_str, "start", "column")] = xr.DataArray(1)
     data[pos.format(ch_str, "end", "row")] = xr.DataArray(n_rows_cols[0])
     data[pos.format(ch_str, "end", "column")] = xr.DataArray(n_rows_cols[1])
 
@@ -212,7 +212,6 @@ def _get_global_attributes():
 
 
 def _get_test_content_for_channel(ch_str, grid_type):
-
     nrows = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows']
     ncols = GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols']
     n_rows_cols = (nrows, ncols)
@@ -529,6 +528,37 @@ class TestFCIL1cNCReader:
                     'projection_latitude': 0,
                     'projection_altitude': 35786400.0,
                 }
+
+    expected_pos_info_for_filetype = {
+        'fdhsi': {'1km': {'start_position_row': 1,
+                          'end_position_row': 200,
+                          'segment_height': 200,
+                          'grid_width': 11136},
+                  '2km': {'start_position_row': 1,
+                          'end_position_row': 100,
+                          'segment_height': 100,
+                          'grid_width': 5568}},
+        'hrfi': {'500m': {'start_position_row': 1,
+                          'end_position_row': 400,
+                          'segment_height': 400,
+                          'grid_width': 22272},
+                 '1km': {'start_position_row': 1,
+                         'end_position_row': 200,
+                         'grid_width': 11136,
+                         'segment_height': 200}}
+    }
+
+    @pytest.mark.parametrize('fh_param, expected_pos_info', [
+        (fh_param_for_filetype['fdhsi'], expected_pos_info_for_filetype['fdhsi']),
+        (fh_param_for_filetype['hrfi'], expected_pos_info_for_filetype['hrfi'])
+    ])
+    def test_get_segment_position_info(self, reader_configs, fh_param, expected_pos_info):
+        """Test the segment position info method."""
+        with mocked_basefilehandler(fh_param['filehandler']):
+            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+            for filetype_handler in list(reader.file_handlers.values())[0]:
+                segpos_info = filetype_handler.get_segment_position_info()
+                assert segpos_info == expected_pos_info
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
         (fh_param_for_filetype['fdhsi'], 16),
