@@ -83,17 +83,15 @@ class HybridGreen(SpectralBlender):
 
       hybrid_green = (1 - F) * R(0.51) + F * R(0.86)
 
-    where F is a constant value. The validation against VIIRS presented in the paper suggests
-    F = 0.07 as an optimal value to reconstruct a green band optimized for true color imagery
-    from AHI. This is the default value currently used for the hybrid green correction in Satpy.
+    where F is a constant value, that is set to 0.15 by default in Satpy.
 
-    For example, to construct the hybrid green for AHI, one should use
-    a combination of 93% from the green band (B02) and 7% from the
-    near-infrared 0.85 µm band (B04)::
+    For example, the HybridGreen compositor can be used as follows to construct a hybrid green channel for
+    AHI, with 15% contibution from the near-infrared 0.85 µm band (B04) and the remaining 85% from the native
+    green 0.51 µm band (B02)::
 
       hybrid_green:
         compositor: !!python/name:satpy.composites.spectral.HybridGreen
-        fraction: 0.07
+        fraction: 0.15
         prerequisites:
           - name: B02
             modifiers: [sunz_corrected, rayleigh_corrected]
@@ -101,7 +99,7 @@ class HybridGreen(SpectralBlender):
             modifiers: [sunz_corrected, rayleigh_corrected]
         standard_name: toa_bidirectional_reflectance
 
-    Other examples can be found in the ``fci.yaml`` and ``ahi.yaml`` composite
+    Other examples can be found in the ``ahi.yaml`` and ``ami.yaml`` composite
     files in the satpy distribution.
     """
 
@@ -117,12 +115,14 @@ class NDVIHybridGreen(SpectralBlender):
     This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
     factor `f` that depends on the pixel-level Normalized Differece Vegetation Index (NDVI). The higher the NDVI, the
     smaller the contribution from the nir channel will be, following a liner relationship between the two ranges
-    [ndvi_min, ndvi_max] and `limits`.
+    `[ndvi_min, ndvi_max]` and `limits`.
 
-    A new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
+    As an example, a new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
 
       ndvi_hybrid_green:
         compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+        ndvi_min: 0.0
+        ndvi_max: 1.0
         limits: [0.15, 0.05]
         prerequisites:
           - name: vis_05
@@ -133,10 +133,11 @@ class NDVIHybridGreen(SpectralBlender):
             modifiers: [sunz_corrected ]
         standard_name: toa_bidirectional_reflectance
 
-    In this example, pixels with NDVI=0.0 (default `ndvi_min`) will be a weighted average with 85% contribution from the
-    native green vis_05 channel and 15% from the near-infrared vis_08 channel, whereas pixels with an NDVI=1.0 (default
-    `ndvi_max`) will be a weighted average with 95% contribution from the native green vis_05 channel and 5% from the
-    near-infrared vis_08 channel. For other values of NDVI (within this range) a linear interpolation will be performed.
+    In this example, pixels with NDVI=0.0 will be a weighted average with 15% contribution from the
+    near-infrared vis_08 channel and the remaining 85% from the native green vis_05 channel, whereas
+    pixels with NDVI=1.0 will be a weighted average with 5% contribution from the near-infrared
+    vis_08 channel and the remaining 95% from the native green vis_05 channel. For other values of
+    NDVI a linear interpolation between these values will be performed.
     """
 
     def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), **kwargs):
