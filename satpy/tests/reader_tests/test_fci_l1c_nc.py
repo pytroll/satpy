@@ -28,6 +28,7 @@ import numpy.testing
 import pytest
 import xarray as xr
 from netCDF4 import default_fillvals
+from pytest_lazyfixture import lazy_fixture
 
 from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
@@ -365,20 +366,41 @@ def mocked_basefilehandler(filehandler):
         yield
 
 
+@pytest.fixture
+def FakeFCIFileHandlerHRFI_fixture():
+    """Get a fixture for the fake HRFI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
+        param_dict = {
+            'channels': _chans_hrfi,
+            'filenames': _test_filenames['hrfi']
+        }
+        yield param_dict
+
+
+@pytest.fixture
+def FakeFCIFileHandlerFDHSI_fixture():
+    """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+        param_dict = {
+            'channels': _chans_fdhsi,
+            'filenames': _test_filenames['fdhsi']
+        }
+        yield param_dict
+
+
 class TestFCIL1cNCReader:
     """Test FCI L1c NetCDF reader with nominal data."""
 
     fh_param_for_filetype = {
+        'hrfi': {
+            'channels': _chans_hrfi,
+            'filenames': _test_filenames['hrfi']
+        },
         'fdhsi': {
-            'filehandler': FakeFCIFileHandlerFDHSI,
             'channels': _chans_fdhsi,
             'filenames': _test_filenames['fdhsi']
         },
-        'hrfi': {
-            'filehandler': FakeFCIFileHandlerHRFI,
-            'channels': _chans_hrfi,
-            'filenames': _test_filenames['hrfi']
-        }
+
     }
 
     @pytest.mark.parametrize('filenames', [_test_filenames['fdhsi'], _test_filenames['hrfi']])
@@ -401,133 +423,128 @@ class TestFCIL1cNCReader:
         assert len(files) == 0
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 16),
-        (fh_param_for_filetype['hrfi'], 4)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
     ])
     def test_load_counts(self, reader_configs, fh_param,
                          expected_res_n):
         """Test loading with counts."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [make_dataid(name=name, calibration="counts") for name in
-                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
-                                     fh_param['channels']["solar_grid_type"] +
-                                     fh_param['channels']["terran_grid_type"]):
-                assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                assert res[ch].dtype == np.uint16
-                assert res[ch].attrs["calibration"] == "counts"
-                assert res[ch].attrs["units"] == "count"
-                if ch == 'ir_38':
-                    numpy.testing.assert_array_equal(res[ch][-1], 1)
-                    numpy.testing.assert_array_equal(res[ch][0], 5000)
-                else:
-                    numpy.testing.assert_array_equal(res[ch], 1)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [make_dataid(name=name, calibration="counts") for name in
+             fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                 fh_param['channels']["solar_grid_type"] +
+                                 fh_param['channels']["terran_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            assert res[ch].dtype == np.uint16
+            assert res[ch].attrs["calibration"] == "counts"
+            assert res[ch].attrs["units"] == "count"
+            if ch == 'ir_38':
+                numpy.testing.assert_array_equal(res[ch][-1], 1)
+                numpy.testing.assert_array_equal(res[ch][0], 5000)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 1)
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 16),
-        (fh_param_for_filetype['hrfi'], 4)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
     ])
     def test_load_radiance(self, reader_configs, fh_param,
                            expected_res_n):
         """Test loading with radiance."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [make_dataid(name=name, calibration="radiance") for name in
-                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
-                                     fh_param['channels']["solar_grid_type"] +
-                                     fh_param['channels']["terran_grid_type"]):
-                assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                assert res[ch].dtype == np.float64
-                assert res[ch].attrs["calibration"] == "radiance"
-                assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
-                assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
-                if ch == 'ir_38':
-                    numpy.testing.assert_array_equal(res[ch][-1], 15)
-                    numpy.testing.assert_array_equal(res[ch][0], 9700)
-                else:
-                    numpy.testing.assert_array_equal(res[ch], 15)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [make_dataid(name=name, calibration="radiance") for name in
+             fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                 fh_param['channels']["solar_grid_type"] +
+                                 fh_param['channels']["terran_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "radiance"
+            assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
+            assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
+            if ch == 'ir_38':
+                numpy.testing.assert_array_equal(res[ch][-1], 15)
+                numpy.testing.assert_array_equal(res[ch][0], 9700)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 15)
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 8),
-        (fh_param_for_filetype['hrfi'], 2)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)
     ])
     def test_load_reflectance(self, reader_configs, fh_param,
                               expected_res_n):
         """Test loading with reflectance."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [make_dataid(name=name, calibration="reflectance") for name in
-                 fh_param['channels']["solar"]], pad_data=False)
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["solar"], fh_param['channels']["solar_grid_type"]):
-                assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                assert res[ch].dtype == np.float64
-                assert res[ch].attrs["calibration"] == "reflectance"
-                assert res[ch].attrs["units"] == "%"
-                numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [make_dataid(name=name, calibration="reflectance") for name in
+             fh_param['channels']["solar"]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["solar"], fh_param['channels']["solar_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "reflectance"
+            assert res[ch].attrs["units"] == "%"
+            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 8),
-        (fh_param_for_filetype['hrfi'], 2)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)
     ])
     def test_load_bt(self, reader_configs, caplog, fh_param,
                      expected_res_n):
         """Test loading with bt."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            with caplog.at_level(logging.WARNING):
-                res = reader.load(
-                    [make_dataid(name=name, calibration="brightness_temperature") for
-                     name in fh_param['channels']["terran"]], pad_data=False)
-                assert caplog.text == ""
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["terran"], fh_param['channels']["terran_grid_type"]):
-                assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                assert res[ch].dtype == np.float64
-                assert res[ch].attrs["calibration"] == "brightness_temperature"
-                assert res[ch].attrs["units"] == "K"
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        with caplog.at_level(logging.WARNING):
+            res = reader.load(
+                [make_dataid(name=name, calibration="brightness_temperature") for
+                 name in fh_param['channels']["terran"]], pad_data=False)
+            assert caplog.text == ""
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["terran"], fh_param['channels']["terran_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "brightness_temperature"
+            assert res[ch].attrs["units"] == "K"
 
-                if ch == 'ir_38':
-                    numpy.testing.assert_array_almost_equal(res[ch][-1], 209.68274099)
-                    numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
-                else:
-                    numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
+            if ch == 'ir_38':
+                numpy.testing.assert_array_almost_equal(res[ch][-1], 209.68274099)
+                numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
+            else:
+                numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
     @pytest.mark.parametrize('fh_param', [
-        (fh_param_for_filetype['fdhsi']),
-        (fh_param_for_filetype['hrfi'])
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
     ])
     def test_orbital_parameters_attr(self, reader_configs, fh_param):
         """Test the orbital parameter attribute."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [make_dataid(name=name) for name in
-                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [make_dataid(name=name) for name in
+             fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
 
-            for ch in fh_param['channels']["solar"] + fh_param['channels']["terran"]:
-                assert res[ch].attrs["orbital_parameters"] == {
-                    'satellite_actual_longitude': np.mean(np.arange(6000)),
-                    'satellite_actual_latitude': np.mean(np.arange(6000)),
-                    'satellite_actual_altitude': np.mean(np.arange(6000)),
-                    'satellite_nominal_longitude': 0.0,
-                    'satellite_nominal_latitude': 0,
-                    'satellite_nominal_altitude': 35786400.0,
-                    'projection_longitude': 0.0,
-                    'projection_latitude': 0,
-                    'projection_altitude': 35786400.0,
-                }
+        for ch in fh_param['channels']["solar"] + fh_param['channels']["terran"]:
+            assert res[ch].attrs["orbital_parameters"] == {
+                'satellite_actual_longitude': np.mean(np.arange(6000)),
+                'satellite_actual_latitude': np.mean(np.arange(6000)),
+                'satellite_actual_altitude': np.mean(np.arange(6000)),
+                'satellite_nominal_longitude': 0.0,
+                'satellite_nominal_latitude': 0,
+                'satellite_nominal_altitude': 35786400.0,
+                'projection_longitude': 0.0,
+                'projection_latitude': 0,
+                'projection_altitude': 35786400.0,
+            }
 
     expected_pos_info_for_filetype = {
         'fdhsi': {'1km': {'start_position_row': 1,
@@ -549,55 +566,52 @@ class TestFCIL1cNCReader:
     }
 
     @pytest.mark.parametrize('fh_param, expected_pos_info', [
-        (fh_param_for_filetype['fdhsi'], expected_pos_info_for_filetype['fdhsi']),
-        (fh_param_for_filetype['hrfi'], expected_pos_info_for_filetype['hrfi'])
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), expected_pos_info_for_filetype['fdhsi']),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), expected_pos_info_for_filetype['hrfi'])
     ])
     def test_get_segment_position_info(self, reader_configs, fh_param, expected_pos_info):
         """Test the segment position info method."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            for filetype_handler in list(reader.file_handlers.values())[0]:
-                segpos_info = filetype_handler.get_segment_position_info()
-                assert segpos_info == expected_pos_info
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        for filetype_handler in list(reader.file_handlers.values())[0]:
+            segpos_info = filetype_handler.get_segment_position_info()
+            assert segpos_info == expected_pos_info
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 16),
-        (fh_param_for_filetype['hrfi'], 4)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
     ])
     def test_load_index_map(self, reader_configs, fh_param, expected_res_n):
         """Test loading of index_map."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [name + '_index_map' for name in
-                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
-                                     fh_param['channels']["solar_grid_type"] +
-                                     fh_param['channels']["terran_grid_type"]):
-                assert res[ch + '_index_map'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                                        GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 110)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [name + '_index_map' for name in
+             fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                 fh_param['channels']["solar_grid_type"] +
+                                 fh_param['channels']["terran_grid_type"]):
+            assert res[ch + '_index_map'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                                    GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 110)
 
     @pytest.mark.parametrize('fh_param', [
-        (fh_param_for_filetype['fdhsi']),
-        (fh_param_for_filetype['hrfi'])
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
     ])
     def test_load_aux_data(self, reader_configs, fh_param):
         """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_nc import AUX_DATA
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load([fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()],
-                              pad_data=False)
-            grid_type = fh_param['channels']['solar_grid_type'][0]
-            for aux in [fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()]:
-                assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                          GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                if aux == fh_param['channels']['solar'][0] + '_earth_sun_distance':
-                    numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
-                else:
-                    numpy.testing.assert_array_equal(res[aux][1, 1], 10)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load([fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()],
+                          pad_data=False)
+        grid_type = fh_param['channels']['solar_grid_type'][0]
+        for aux in [fh_param['channels']['solar'][0] + '_' + key for key in AUX_DATA.keys()]:
+            assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            if aux == fh_param['channels']['solar'][0] + '_earth_sun_distance':
+                numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
+            else:
+                numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
     def test_load_composite(self):
         """Test that composites are loadable."""
@@ -611,28 +625,27 @@ class TestFCIL1cNCReader:
         assert len(mods["fci"]) > 0
 
     @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (fh_param_for_filetype['fdhsi'], 16),
-        (fh_param_for_filetype['hrfi'], 4)
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
     ])
     def test_load_quality_only(self, reader_configs, fh_param, expected_res_n):
         """Test that loading quality only works."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(
-                [name + '_pixel_quality' for name in
-                 fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
-            assert expected_res_n == len(res)
-            for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
-                                     fh_param['channels']["solar_grid_type"] +
-                                     fh_param['channels']["terran_grid_type"]):
-                assert res[ch + '_pixel_quality'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
-                                                            GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
-                numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 3)
-                assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(
+            [name + '_pixel_quality' for name in
+             fh_param['channels']["solar"] + fh_param['channels']["terran"]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param['channels']["solar"] + fh_param['channels']["terran"],
+                                 fh_param['channels']["solar_grid_type"] +
+                                 fh_param['channels']["terran_grid_type"]):
+            assert res[ch + '_pixel_quality'].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['nrows'],
+                                                        GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
+            numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 3)
+            assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
 
     @pytest.mark.parametrize('fh_param', [
-        (fh_param_for_filetype['fdhsi']),
-        (fh_param_for_filetype['hrfi'])
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
     ])
     def test_platform_name(self, reader_configs, fh_param):
         """Test that platform name is exposed.
@@ -640,51 +653,48 @@ class TestFCIL1cNCReader:
         Test that the FCI reader exposes the platform name.  Corresponds
         to GH issue 1014.
         """
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(["vis_06"], pad_data=False)
-            assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(["vis_06"], pad_data=False)
+        assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
-    def test_excs(self, reader_configs):
+    def test_excs(self, reader_configs, FakeFCIFileHandlerFDHSI_fixture):
         """Test that exceptions are raised where expected."""
-        with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
-            reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
+        reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
 
-            with pytest.raises(ValueError):
-                reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
-            with pytest.raises(ValueError):
-                reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
-                    make_dataid(name="ir_123", calibration="unknown"),
-                    {"units": "unknown"})
+        with pytest.raises(ValueError):
+            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
+        with pytest.raises(ValueError):
+            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
+                make_dataid(name="ir_123", calibration="unknown"),
+                {"units": "unknown"})
 
     @pytest.mark.parametrize('fh_param, expected_area', [
-        (fh_param_for_filetype['fdhsi'], ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
-        (fh_param_for_filetype['hrfi'], ['mtg_fci_fdss_500m', 'mtg_fci_fdss_1km']),
+        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
+        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), ['mtg_fci_fdss_500m', 'mtg_fci_fdss_1km']),
     ])
     def test_area_definition_computation(self, reader_configs, fh_param, expected_area):
         """Test that the geolocation computation is correct."""
-        with mocked_basefilehandler(fh_param['filehandler']):
-            reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
-            res = reader.load(['ir_105', 'vis_06'], pad_data=False)
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+        res = reader.load(['ir_105', 'vis_06'], pad_data=False)
 
-            # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
-            assert res['vis_06'].attrs['area'].area_id == expected_area[0]
-            assert res['ir_105'].attrs['area'].area_id == expected_area[1]
+        # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
+        assert res['vis_06'].attrs['area'].area_id == expected_area[0]
+        assert res['ir_105'].attrs['area'].area_id == expected_area[1]
 
-            area_def = res['ir_105'].attrs['area']
-            # test area extents computation
-            np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
-                                                 np.array([-5567999.994203, -5367999.994411,
-                                                           5567999.994203, -5567999.994203]),
-                                                 decimal=2)
+        area_def = res['ir_105'].attrs['area']
+        # test area extents computation
+        np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
+                                             np.array([-5567999.994203, -5367999.994411,
+                                                       5567999.994203, -5567999.994203]),
+                                             decimal=2)
 
-            # check that the projection is read in properly
-            assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
-            assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
-            assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
-            assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
-            assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
-            assert area_def.crs.ellipsoid.is_semi_minor_computed
+        # check that the projection is read in properly
+        assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
+        assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
+        assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
+        assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
+        assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
+        assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
 class TestFCIL1cNCReaderBadData:
