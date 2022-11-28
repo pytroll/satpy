@@ -25,7 +25,6 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy._compat import cache
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
 
@@ -95,8 +94,6 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Initialize object."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
-        # Cache wrapper for getting variable as DataArray[numpy]
-        self.get_and_cache_npxr = cache(self._get_and_cache_npxr)
         self.file_content = {}
         self.cached_file_content = {}
         try:
@@ -324,12 +321,16 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             return default
 
-    def _get_and_cache_npxr(self, var_name):
+    def get_and_cache_npxr(self, var_name):
+        """Get and cache variable as DataArray[numpy]."""
+        if var_name in self.cached_file_content:
+            return self.cached_file_content[var_name]
         v = self.file_content[var_name]
         if isinstance(v, xr.DataArray):
             return v
-        return xr.DataArray(
+        self.cached_file_content[var_name] = xr.DataArray(
             v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+        return self.cached_file_content[var_name]
 
 
 def _compose_replacement_names(variable_name_replacements, var, variable_names):
