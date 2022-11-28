@@ -680,6 +680,27 @@ class TestColorizeCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
+def test_pmode_compositor():
+    """Test pmode compositor."""
+    from satpy.composites import PModeCompositor
+    from satpy.writers import get_enhanced_image
+    comp = PModeCompositor("test_pmode_compositor")
+    palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                           dims=['value', 'band'])
+    palette.attrs['palette_meanings'] = [2, 3, 4]
+    data = xr.DataArray(np.array([[4, 3, 2],
+                                  [2, 3, 4]],
+                                 dtype=np.uint8),
+                        dims=['y', 'x'])
+    res = comp([data, palette])
+    # this has not changed the values!
+    np.testing.assert_allclose(data, res.sel(bands="P"))
+    im = get_enhanced_image(res)
+    assert im.mode == "P"
+    np.testing.assert_allclose(im.data.sel(bands="P"), data)
+    np.testing.assert_allclose(im.palette, palette)
+
+
 class TestCloudTopHeightCompositor(unittest.TestCase):
     """Test the CloudTopHeightCompositor."""
 

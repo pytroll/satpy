@@ -516,7 +516,12 @@ class RGBCompositor(GenericCompositor):
 
 
 class ColormapCompositor(GenericCompositor):
-    """A compositor that uses colormaps."""
+    """A compositor that uses colormaps.
+
+    This produces a dataset with three or four bands, thus in modes RGB or
+    RGBA.  To produce an image with mode P, use the :class:`PModeCompositor`
+    and corresponding enhancement.
+    """
 
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -609,7 +614,12 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
+    """A compositor colorizing the data, not interpolating the palette colors.
+
+    This produces a dataset with three or four bands, thus in modes RGB or
+    RGBA.  To produce an image with mode P, use the :class:`PModeCompositor`
+    and corresponding enhancement.
+    """
 
     @staticmethod
     def _apply_colormap(colormap, data, palette):
@@ -617,6 +627,23 @@ class PaletteCompositor(ColormapCompositor):
         channels = channels.map_blocks(_insert_palette_colors, palette, dtype=palette.dtype,
                                        new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
         return [channels[:, :, i] for i in range(channels.shape[2])]
+
+
+class PModeCompositor(SingleBandCompositor):
+    """Compositor for palette images.
+
+    This compositor creates palette images in mode P.
+    """
+
+    def __call__(self, projectables, **info):
+        """Create the composite."""
+        (data, palette) = projectables
+        ds = super().__call__([data], **info)
+        ds.attrs["palette"] = palette
+        ds.attrs["mode"] = "P"
+        ds = ds.expand_dims(dim={"bands": 1})
+        ds = ds.assign_coords(bands=["P"])
+        return ds
 
 
 def _insert_palette_colors(channels, palette):
