@@ -318,10 +318,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
-
-        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
+        nominal_and_proj_subsat_lon = float(mtg_geos_proj.longitude_of_projection_origin)
         nominal_and_proj_subsat_lat = 0
-        nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+        nominal_and_proj_sat_alt = float(mtg_geos_proj.perspective_point_height)
 
         orb_param_dict = {
             'orbital_parameters': {
@@ -372,7 +372,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         # get index map
         index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
         # subtract minimum of index variable (index_offset)
-        index_map -= np.min(self['index'])
+        index_map -= np.min(self.get_and_cache_npxr('index'))
 
         # get lut values from 1-d vector variable
         lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
@@ -408,11 +408,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
-        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
+        h = float(mtg_geos_proj.perspective_point_height)
 
         extents = {}
         for coord in "xy":
-            coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
+            coord_radian = self.get_and_cache_npxr("data/{:s}/measured/{:s}".format(channel_name, coord))
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
             if coord == "x" and coord_radian.scale_factor > 0:
@@ -475,11 +476,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         if key['resolution'] in self._cache:
             return self._cache[key['resolution']]
 
-        a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
-        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
-        rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
-        lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
-        sweep = str(self["data/mtg_geos_projection/attr/sweep_angle_axis"])
+        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
+        a = float(mtg_geos_proj.semi_major_axis)
+        h = float(mtg_geos_proj.perspective_point_height)
+        rf = float(mtg_geos_proj.inverse_flattening)
+        lon_0 = float(mtg_geos_proj.longitude_of_projection_origin)
+        sweep = str(mtg_geos_proj.sweep_angle_axis)
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
