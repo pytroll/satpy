@@ -102,33 +102,32 @@ class NetCDF4FileHandler(BaseFileHandler):
             LOG.exception(
                 'Failed reading file %s. Possibly corrupted file', self.filename)
             raise
-        self.auto_maskandscale = auto_maskandscale
-        if hasattr(file_handle, "set_auto_maskandscale"):
-            file_handle.set_auto_maskandscale(auto_maskandscale)
+
+        self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
+        self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
-        variable_name_replacements = filetype_info.get("variable_name_replacements")
         if listed_variables:
-            self._collect_listed_variables(file_handle, listed_variables,
-                                           variable_name_replacements=variable_name_replacements)
+            self._collect_listed_variables(file_handle, listed_variables)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
-        if cache_var_size > 0:
-            self.collect_cache_vars(
-                    [varname for (varname, var)
-                        in self.file_content.items()
-                        if isinstance(var, netCDF4.Variable)
-                        and isinstance(var.dtype, np.dtype)  # vlen may be str
-                        and var.size * var.dtype.itemsize < cache_var_size],
-                    file_handle)
+        self.collect_cache_vars(cache_var_size)
+
         if cache_handle:
             self.file_handle = file_handle
         else:
             file_handle.close()
+
+    @staticmethod
+    def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
+        if hasattr(file_handle, "set_auto_maskandscale"):
+            file_handle.set_auto_maskandscale(auto_maskandscale)
+
+    def _set_xarray_kwargs(self, xarray_kwargs, auto_maskandscale):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
-        self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
+        self._xarray_kwargs.setdefault('mask_and_scale', auto_maskandscale)
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -163,7 +162,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content[var_name + "/dimensions"] = var_obj.dimensions
         self._collect_attrs(var_name, var_obj)
 
-    def _collect_listed_variables(self, file_handle, listed_variables, variable_name_replacements=None):
+    def _collect_listed_variables(self, file_handle, listed_variables):
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
         for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
             parts = itm.split('/')
             grp = file_handle
@@ -226,7 +226,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             dim_name = "{}/dimension/{}".format(name, dim_name)
             self.file_content[dim_name] = len(dim_obj)
 
-    def collect_cache_vars(self, cache_vars, obj):
+    def collect_cache_vars(self, cache_var_size):
         """Collect data variables for caching.
 
         This method will collect some data variables and store them in RAM.
@@ -237,14 +237,24 @@ class NetCDF4FileHandler(BaseFileHandler):
         Should be called later than `collect_metadata`.
 
         Args:
-            cache_vars (List[str]): Names of data variables to be cached.
-            obj (netCDF4.Dataset): Dataset object from which to read them.
+            cache_var_size (int): Maximum size of the collected variables in bytes
 
         """
+        if cache_var_size == 0:
+            return
+
+        cache_vars = self._collect_cache_var_names(cache_var_size)
         for var_name in cache_vars:
             v = self.file_content[var_name]
             self.cached_file_content[var_name] = xr.DataArray(
                     v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+
+    def _collect_cache_var_names(self, cache_var_size):
+        return [varname for (varname, var)
+                in self.file_content.items()
+                if isinstance(var, netCDF4.Variable)
+                and isinstance(var.dtype, np.dtype)  # vlen may be str
+                and var.size * var.dtype.itemsize < cache_var_size]
 
     def __getitem__(self, key):
         """Get item for given key."""
