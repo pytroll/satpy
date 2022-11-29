@@ -1390,17 +1390,16 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
 
     def _collect_segment_position_infos(self, filetype):
         # collect the segment positioning infos for all available segments
-        filetype_fhs = self.file_handlers[filetype]
-        for fh in filetype_fhs:
+        for fh in self.file_handlers[filetype]:
             chk_infos = fh.get_segment_position_info()
             chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
             self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
 
     def _initialise_segment_infos(self, filetype):
         # initialise the segment info for this filetype
-        filetype_fhs = self.file_handlers[filetype]
-        exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
-        grid_width_to_grid_type = _get_grid_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+        filetype_fhs_sample = self.file_handlers[filetype][0]
+        exp_segment_nr = filetype_fhs_sample.filetype_info['expected_segments']
+        grid_width_to_grid_type = _get_grid_width_to_grid_type(filetype_fhs_sample.get_segment_position_info())
         self.segment_infos.update({filetype: {'available_segment_infos': [],
                                               'expected_segments': exp_segment_nr,
                                               'grid_width_to_grid_type': grid_width_to_grid_type}})

@@ -56,6 +56,10 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
 }
 
 
+# ----------------------------------------------------
+# Filehandlers preparation ---------------------------
+# ----------------------------------------------------
+
 def _get_test_calib_for_channel_ir(data, meas_path):
     from pyspectral.blackbody import C_SPEED as c
     from pyspectral.blackbody import H_PLANCK as h
@@ -316,6 +320,10 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
     }
 
 
+# ----------------------------------------------------
+# Fixtures preparation -------------------------------
+# ----------------------------------------------------
+
 @pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
@@ -367,41 +375,41 @@ def mocked_basefilehandler(filehandler):
 
 
 @pytest.fixture
-def FakeFCIFileHandlerHRFI_fixture():
-    """Get a fixture for the fake HRFI filehandler, including channel and file names."""
-    with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
+def FakeFCIFileHandlerFDHSI_fixture():
+    """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
-            'channels': _chans_hrfi,
-            'filenames': _test_filenames['hrfi']
+            'filetype': 'fci_l1c_fdhsi',
+            'channels': _chans_fdhsi,
+            'filenames': _test_filenames['fdhsi']
         }
         yield param_dict
 
 
 @pytest.fixture
-def FakeFCIFileHandlerFDHSI_fixture():
-    """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
-    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+def FakeFCIFileHandlerHRFI_fixture():
+    """Get a fixture for the fake HRFI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
         param_dict = {
-            'channels': _chans_fdhsi,
-            'filenames': _test_filenames['fdhsi']
+            'filetype': 'fci_l1c_hrfi',
+            'channels': _chans_hrfi,
+            'filenames': _test_filenames['hrfi']
         }
         yield param_dict
+
+
+# ----------------------------------------------------
+# Tests ----------------------------------------------
+# ----------------------------------------------------
 
 
 class TestFCIL1cNCReader:
     """Test FCI L1c NetCDF reader with nominal data."""
 
-    fh_param_for_filetype = {
-        'hrfi': {
-            'channels': _chans_hrfi,
-            'filenames': _test_filenames['hrfi']
-        },
-        'fdhsi': {
-            'channels': _chans_fdhsi,
-            'filenames': _test_filenames['fdhsi']
-        },
-
-    }
+    fh_param_for_filetype = {'hrfi': {'channels': _chans_hrfi,
+                                      'filenames': _test_filenames['hrfi']},
+                             'fdhsi': {'channels': _chans_fdhsi,
+                                       'filenames': _test_filenames['fdhsi']}}
 
     @pytest.mark.parametrize('filenames', [_test_filenames['fdhsi'], _test_filenames['hrfi']])
     def test_file_pattern(self, reader_configs, filenames):
@@ -422,10 +430,8 @@ class TestFCIL1cNCReader:
         files = reader.select_files_from_pathnames(filenames)
         assert len(files) == 0
 
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)])
     def test_load_counts(self, reader_configs, fh_param,
                          expected_res_n):
         """Test loading with counts."""
@@ -448,10 +454,8 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_equal(res[ch], 1)
 
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)])
     def test_load_radiance(self, reader_configs, fh_param,
                            expected_res_n):
         """Test loading with radiance."""
@@ -475,10 +479,8 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_equal(res[ch], 15)
 
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)])
     def test_load_reflectance(self, reader_configs, fh_param,
                               expected_res_n):
         """Test loading with reflectance."""
@@ -495,10 +497,8 @@ class TestFCIL1cNCReader:
             assert res[ch].attrs["units"] == "%"
             numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 8),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 2)])
     def test_load_bt(self, reader_configs, caplog, fh_param,
                      expected_res_n):
         """Test loading with bt."""
@@ -522,10 +522,8 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
-    @pytest.mark.parametrize('fh_param', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
-    ])
+    @pytest.mark.parametrize('fh_param', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+                                          (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))])
     def test_orbital_parameters_attr(self, reader_configs, fh_param):
         """Test the orbital parameter attribute."""
         reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
@@ -576,10 +574,8 @@ class TestFCIL1cNCReader:
             segpos_info = filetype_handler.get_segment_position_info()
             assert segpos_info == expected_pos_info
 
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)])
     def test_load_index_map(self, reader_configs, fh_param, expected_res_n):
         """Test loading of index_map."""
         reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
@@ -594,10 +590,8 @@ class TestFCIL1cNCReader:
                                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]['ncols'])
             numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 110)
 
-    @pytest.mark.parametrize('fh_param', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
-    ])
+    @pytest.mark.parametrize('fh_param', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+                                          (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))])
     def test_load_aux_data(self, reader_configs, fh_param):
         """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_nc import AUX_DATA
@@ -613,21 +607,8 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
-    def test_load_composite(self):
-        """Test that composites are loadable."""
-        # when dedicated composites for FCI are implemented in satpy,
-        # this method should probably move to a dedicated class and module
-        # in the tests.compositor_tests package
-
-        from satpy.composites.config_loader import load_compositor_configs_for_sensors
-        comps, mods = load_compositor_configs_for_sensors(['fci'])
-        assert len(comps["fci"]) > 0
-        assert len(mods["fci"]) > 0
-
-    @pytest.mark.parametrize('fh_param,expected_res_n', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)
-    ])
+    @pytest.mark.parametrize('fh_param,expected_res_n', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), 16),
+                                                         (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'), 4)])
     def test_load_quality_only(self, reader_configs, fh_param, expected_res_n):
         """Test that loading quality only works."""
         reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
@@ -643,10 +624,8 @@ class TestFCIL1cNCReader:
             numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 3)
             assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
 
-    @pytest.mark.parametrize('fh_param', [
-        (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
-        (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))
-    ])
+    @pytest.mark.parametrize('fh_param', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+                                          (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))])
     def test_platform_name(self, reader_configs, fh_param):
         """Test that platform name is exposed.
 
@@ -656,17 +635,6 @@ class TestFCIL1cNCReader:
         reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
         res = reader.load(["vis_06"], pad_data=False)
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
-
-    def test_excs(self, reader_configs, FakeFCIFileHandlerFDHSI_fixture):
-        """Test that exceptions are raised where expected."""
-        reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-
-        with pytest.raises(ValueError):
-            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
-        with pytest.raises(ValueError):
-            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
-                make_dataid(name="ir_123", calibration="unknown"),
-                {"units": "unknown"})
 
     @pytest.mark.parametrize('fh_param, expected_area', [
         (lazy_fixture('FakeFCIFileHandlerFDHSI_fixture'), ['mtg_fci_fdss_1km', 'mtg_fci_fdss_2km']),
@@ -695,6 +663,30 @@ class TestFCIL1cNCReader:
         assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
         assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
         assert area_def.crs.ellipsoid.is_semi_minor_computed
+
+    @pytest.mark.parametrize('fh_param', [(lazy_fixture('FakeFCIFileHandlerFDHSI_fixture')),
+                                          (lazy_fixture('FakeFCIFileHandlerHRFI_fixture'))])
+    def test_excs(self, reader_configs, fh_param):
+        """Test that exceptions are raised where expected."""
+        reader = _get_reader_with_filehandlers(fh_param['filenames'], reader_configs)
+
+        with pytest.raises(ValueError):
+            reader.file_handlers[fh_param['filetype']][0].get_dataset(make_dataid(name="invalid"), {})
+        with pytest.raises(ValueError):
+            reader.file_handlers[fh_param['filetype']][0].get_dataset(
+                make_dataid(name="ir_123", calibration="unknown"),
+                {"units": "unknown"})
+
+    def test_load_composite(self):
+        """Test that composites are loadable."""
+        # when dedicated composites for FCI are implemented in satpy,
+        # this method should probably move to a dedicated class and module
+        # in the tests.compositor_tests package
+
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        comps, mods = load_compositor_configs_for_sensors(['fci'])
+        assert len(comps["fci"]) > 0
+        assert len(mods["fci"]) > 0
 
 
 class TestFCIL1cNCReaderBadData:
