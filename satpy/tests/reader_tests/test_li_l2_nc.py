@@ -188,16 +188,23 @@ class TestLIL2():
         """Test loading of an unregistered dataset."""
         # Iterate on all the available product types:
 
-        filename_info = {
-            'start_time': "0000",
-            'end_time': "1000"
-        }
-
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
 
         dataset_id = make_dataid(name='test_dataset')
         with pytest.raises(Exception):
             handler.get_dataset(dataset_id)
+
+    def test_dataset_not_in_provided_dataset(self, filetype_infos):
+        """Test loading of a dataset that is not provided."""
+        # Iterate on all the available product types:
+
+        dataset_dict = {'name': 'test_dataset'}
+
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+
+        dataset_id = make_dataid(name='test_dataset')
+
+        assert handler.get_dataset(dataset_id, ds_info=dataset_dict) is None
 
     def test_filename_infos(self, filetype_infos):
         """Test settings retrieved from filename."""
