@@ -42,9 +42,9 @@ def test_hsaf_sc_datetime(hsaf_filename):
     """Test the H-SAF reference time."""
     scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
-    fname = str(os.path.basename(hsaf_filename))
-    dtstr = fname.split('_')[1]+"0000"
-    obs_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
+    fname = os.path.basename(hsaf_filename)
+    dtstr = fname.split('_')[1]
+    obs_time = datetime.strptime(dtstr, "%Y%m%d")
     assert scn['SC'].attrs['data_time'] == obs_time
 
 
