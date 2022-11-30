@@ -325,14 +325,17 @@ class TestLIL2():
 
     def test_available_datasets(self, filetype_infos):
         """Test available_datasets from li reader."""
-        filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416",
-        }
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+        # get current ds_infos. These should all be returned by the available_datasets
+        ds_infos_to_compare = handler.dataset_infos.copy()
 
-        assert handler.dataset_infos == [ds[1] for ds in handler.available_datasets()]
+        # now add a dummy configured dataset to make sure that it is included in the available_datasets output
+        ds_info_dummy = {'test': 'test'}
+        conf_ds_dummy = [(True, ds_info_dummy)]
+        ds_infos_to_compare.insert(0, ds_info_dummy)
+
+        assert ds_infos_to_compare == [ds[1] for ds in handler.available_datasets(configured_datasets=conf_ds_dummy)]
 
     def test_variable_scaling(self, filetype_infos):
         """Test automatic rescaling with offset and scale attributes."""
