@@ -286,12 +286,9 @@ class SatpyCFFileHandler(BaseFileHandler):
         if key in ['name', 'modifiers']:
             return True
         elif key == 'wavelength':
-            if _ds_id_dict[key] != WavelengthRange.from_cf(data.attrs[key]):
-                return False
+            return _ds_id_dict[key] == WavelengthRange.from_cf(data.attrs[key])
         else:
-            if data.attrs[key] != _ds_id_dict[key]:
-                return False
-        return True
+            return data.attrs[key] == _ds_id_dict[key]
 
     def _dataid_attrs_equal(self, ds_id, data):
         _ds_id_dict = ds_id.to_dict()
