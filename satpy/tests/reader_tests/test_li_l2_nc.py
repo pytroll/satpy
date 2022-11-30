@@ -227,6 +227,11 @@ class TestLIL2():
         assert handler.search_paths is not None
         assert handler.dataset_infos is not None
 
+        # calling register_available_datasets again should not change things (early return)
+        ds_infos_current = handler.dataset_infos.copy()
+        handler.register_available_datasets()
+        assert handler.dataset_infos == ds_infos_current
+
         # Should have some datasets:
         assert len(handler.provided_datasets) > 0
 
