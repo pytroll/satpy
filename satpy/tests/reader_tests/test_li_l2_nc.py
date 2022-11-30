@@ -449,13 +449,31 @@ class TestLIL2():
         ref_data = (np.arange(nobs)).astype('u4')
         # check first execution without offset
         assert np.all(dset.values == ref_data)
+        # check that the offset is being stored
+        assert handler.current_ds_info['__index_offset'] == 123
 
         # check execution with offset value
-        ds_info = dset.attrs
-        ds_info.update({'__index_offset': 1000,
-                        'accumulate_index_offset': "{sector_name}/l1b_window"})
-        dset = handler.get_dataset(dsid, ds_info)
-        assert np.all(dset.values == ref_data + 1000)
+        # this simulates the case where we are loading this variable from multiple files and concatenating it
+        dset = handler.get_dataset(dsid, handler.current_ds_info)
+        assert np.all(dset.values == ref_data + 123)
+
+    def test_combine_info(self, filetype_infos):
+        """Test overridden combine_info."""
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_le_nc'))
+
+        # get a dataset including the index_offset in the ds_info
+        dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
+        ds_info = {'name': 'l1b_chunk_offsets_north_sector',
+                   'variable_name': 'l1b_chunk_offsets',
+                   'sector_name': 'north',
+                   '__index_offset': 1000,
+                   'accumulate_index_offset': "{sector_name}/l1b_window"}
+        dset = handler.get_dataset(dsid, ds_info=ds_info)
+        handler.combine_info([dset.attrs])
+        # combine_info should have removed the index_offset key from the ds_info passed to get_dataset
+        assert '__index_offset' not in ds_info
+        # and reset the current_ds_info dict, in order to avoid failures if we call combine_info again
+        assert handler.current_ds_info is None
 
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
