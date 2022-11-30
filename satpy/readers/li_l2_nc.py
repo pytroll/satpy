@@ -39,6 +39,7 @@ from satpy.readers.li_base_nc import LINCFileHandler
 from satpy.resample import get_area_def
 
 logger = logging.getLogger(__name__)
+LI_GRID_SHAPE = (5568, 5568)
 
 
 class LIL2NCFileHandler(LINCFileHandler):
@@ -93,15 +94,15 @@ class LIL2NCFileHandler(LINCFileHandler):
         # origin is in the south-west corner, so we flip the rows (applying
         # offset of 1 implicitly)
         # And we manually offset the columns by 1 too:
-        rows = (5568 - rows.astype(int))
+        rows = (LI_GRID_SHAPE[0] - rows.astype(int))
         cols = cols.astype(int) - 1
 
         # Create an empyt 1-D array for the results
-        flattened_result = np.nan * da.zeros((5568 * 5568), dtype=data_array.dtype)
+        flattened_result = np.nan * da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[0]), dtype=data_array.dtype)
         # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
-        flattened_result[rows * 5568 + cols] = data_array
+        flattened_result[rows * LI_GRID_SHAPE[0] + cols] = data_array
         # ... reshape to final 2D grid
-        data_2d = da.reshape(flattened_result, (5568, 5568))
+        data_2d = da.reshape(flattened_result, LI_GRID_SHAPE)
         xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=('y', 'x'))
         xarr.attrs = attrs
 

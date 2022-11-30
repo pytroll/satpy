@@ -24,7 +24,7 @@ from pyproj import Proj
 
 from satpy._config import config_search_paths
 from satpy.readers.li_base_nc import LINCFileHandler
-from satpy.readers.li_l2_nc import LIL2NCFileHandler
+from satpy.readers.li_l2_nc import LI_GRID_SHAPE, LIL2NCFileHandler
 from satpy.readers.yaml_reader import load_yaml_configs
 from satpy.tests.reader_tests._li_test_utils import (
     FakeLIFileHandlerBase,
@@ -615,7 +615,7 @@ class TestLIL2():
         dsid = make_dataid(name="flash_accumulation")
 
         area_def = handler.get_area_def(dsid)
-        assert area_def.shape == (5568, 5568)
+        assert area_def.shape == LI_GRID_SHAPE
 
         # Should throw for non-accum variables:
         with pytest.raises(NotImplementedError):
@@ -643,7 +643,7 @@ class TestLIL2():
         dsid = make_dataid(name="flash_accumulation")
         # Retrieve the 2D array:
         arr = handler.get_dataset(dsid).values
-        assert arr.shape == (5568, 5568)
+        assert arr.shape == LI_GRID_SHAPE
 
     def test_without_area_def(self, filetype_infos):
         """Test accumulated products data array without area definition."""
@@ -696,9 +696,9 @@ class TestLIL2():
 
         # prepare reference array
         data = handler_without_area_def.get_dataset(dsid).values
-        ref_arr = np.empty((5568, 5568), dtype=arr.dtype)
+        ref_arr = np.empty(LI_GRID_SHAPE, dtype=arr.dtype)
         ref_arr[:] = np.nan
-        rows = (5568 - yarr)
+        rows = (LI_GRID_SHAPE[0] - yarr)
         cols = xarr - 1
         ref_arr[rows, cols] = data
 
