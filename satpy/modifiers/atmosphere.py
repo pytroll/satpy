@@ -135,7 +135,7 @@ class CO2Corrector(ModifierBase):
 
     Derived from D. Rosenfeld, "CO2 Correction of Brightness Temperature of Channel IR3.9"
     References:
-        - http://www.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
+        - https://resources.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):
