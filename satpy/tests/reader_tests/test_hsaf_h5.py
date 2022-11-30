@@ -1,4 +1,5 @@
 """Tests for the H-SAF H5 reader."""
+import os
 from datetime import datetime
 
 import h5py
@@ -51,7 +52,7 @@ def test_hsaf_sc_datetime(hsaf_filename):
     """Test the H-SAF reference time."""
     scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
-    fname = str(hsaf_filename)
+    fname = str(os.path.basename(hsaf_filename))
     dtstr = fname.split('_')[1].zfill(4)
     obs_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
     assert scn['SC'].attrs['data_time'] == obs_time
