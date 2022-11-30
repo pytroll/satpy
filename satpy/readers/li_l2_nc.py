@@ -88,7 +88,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         cols = self.get_measured_variable('x')
         attrs = data_array.attrs
 
-        rows, cols, data = da.compute(rows, cols, data_array)
+        rows, cols = da.compute(rows, cols)
 
         # origin is in the south-west corner, so we flip the rows (applying
         # offset of 1 implicitly)
@@ -96,12 +96,13 @@ class LIL2NCFileHandler(LINCFileHandler):
         rows = (5568 - rows.astype(int))
         cols = cols.astype(int) - 1
 
-        data_2d = np.empty((5568, 5568), dtype=data_array.dtype)
-        data_2d[:] = np.nan
-
-        data_2d[rows, cols] = data
-
-        xarr = xr.DataArray(da.from_array(data_2d, CHUNK_SIZE), dims=('y', 'x'))
+        # Create an empyt 1-D array for the results
+        flattened_result = np.nan * da.zeros((5568 * 5568), dtype=data_array.dtype)
+        # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
+        flattened_result[rows * 5568 + cols] = data_array
+        # ... reshape to final 2D grid
+        data_2d = da.reshape(flattened_result, (5568, 5568))
+        xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=('y', 'x'))
         xarr.attrs = attrs
 
         return xarr
