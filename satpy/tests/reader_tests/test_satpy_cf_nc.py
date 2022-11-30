@@ -33,99 +33,41 @@ from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 # - tmp_path
 
 
-@pytest.fixture(scope="session")
-def _cf_scene_i():
-    tstart = datetime(2019, 4, 1, 12, 0)
-    tend = datetime(2019, 4, 1, 12, 15)
+def _create_test_netcdf(filename, resolution=742):
+    res = 2
+    if resolution == 371:
+        res = 4
+    data_visir = np.array(np.arange(1, res * res + 1)).reshape(res, res)
+    lat = 33.0 * data_visir
+    lon = -13.0 * data_visir
 
-    data_visir_i = np.array([[1, 2, 3, 4], [5, 6, 7, 8],
-                             [9, 10, 11, 12], [13, 14, 15, 16]])
-    lat_i = 33.0 * np.array([np.arange(1, 2.1, 1/3), np.arange(3, 4.1, 1/3),
-                             np.arange(5, 6.1, 1/3), np.arange(7, 8.1, 1/3)])
-    lon_i = -13.0 * np.array([np.arange(1, 2.1, 1/3), np.arange(3, 4.1, 1/3),
-                             np.arange(5, 6.1, 1/3), np.arange(7, 8.1, 1/3)])
+    lat = xr.DataArray(lat,
+                       dims=('y', 'x'),
+                       attrs={'name': 'lat',
+                              'standard_name': 'latitude',
+                              'modifiers': np.array([])})
+    lon = xr.DataArray(lon,
+                       dims=('y', 'x'),
+                       attrs={'name': 'lon',
+                              'standard_name': 'longitude',
+                              'modifiers': np.array([])})
 
-    lat_i = xr.DataArray(lat_i,
-                         dims=('y', 'x'),
-                         attrs={
-                             'name': 'lat',
-                             'standard_name': 'latitude',
-                             'modifiers': np.array([])
-                         })
-    lon_i = xr.DataArray(lon_i,
-                         dims=('y', 'x'),
-                         attrs={
-                             'name': 'lon',
-                             'standard_name': 'longitude',
-                             'modifiers': np.array([])
-                         })
-
-    solar_zenith_angle_i = xr.DataArray(data_visir_i,
+    solar_zenith_angle_i = xr.DataArray(data_visir,
                                         dims=('y', 'x'),
                                         attrs={'name': 'solar_zenith_angle',
                                                'coordinates': 'lat lon',
-                                               'resolution': 371})
+                                               'resolution': resolution})
 
     scene = Scene()
     scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
     scene_dict = {
-        'lat': lat_i,
-        'lon': lon_i,
+        'lat': lat,
+        'lon': lon,
         'solar_zenith_angle': solar_zenith_angle_i
     }
 
-    common_attrs = {
-        'start_time': tstart,
-        'end_time': tend,
-        'platform_name': 'tirosn',
-        'orbit_number': 99999
-    }
-
-    for key in scene_dict:
-        scene[key] = scene_dict[key]
-        if key != 'swath_data':
-            scene[key].attrs.update(common_attrs)
-    return scene
-
-
-@pytest.fixture(scope="session")
-def _cf_scene_m():
     tstart = datetime(2019, 4, 1, 12, 0)
     tend = datetime(2019, 4, 1, 12, 15)
-
-    data_visir_m = np.array([[1, 2], [3, 4]])
-    lat_m = 33.0 * np.array([[1, 2], [3, 4]])
-    lon_m = -13.0 * np.array([[1, 2], [3, 4]])
-
-    lat_m = xr.DataArray(lat_m,
-                         dims=('y', 'x'),
-                         attrs={
-                             'name': 'lat',
-                             'standard_name': 'latitude',
-                             'modifiers': np.array([])
-                         })
-    lon_m = xr.DataArray(lon_m,
-                         dims=('y', 'x'),
-                         attrs={
-                             'name': 'lon',
-                             'standard_name': 'longitude',
-                             'modifiers': np.array([])
-                         })
-
-    solar_zenith_angle_m = xr.DataArray(data_visir_m,
-                                        dims=('y', 'x'),
-                                        attrs={'name': 'solar_zenith_angle',
-                                               'coordinates': 'lat lon',
-                                               'resolution': 742})
-
-    scene = Scene()
-    scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
-    scene_dict = {
-        'lat': lat_m,
-        'lon': lon_m,
-        'solar_zenith_angle': solar_zenith_angle_m
-    }
-
     common_attrs = {
         'start_time': tstart,
         'end_time': tend,
@@ -137,7 +79,12 @@ def _cf_scene_m():
         scene[key] = scene_dict[key]
         if key != 'swath_data':
             scene[key].attrs.update(common_attrs)
-    return scene
+    scene.save_datasets(writer='cf',
+                        filename=filename,
+                        engine='h5netcdf',
+                        flatten_attrs=True,
+                        pretty=True)
+    return filename
 
 
 @pytest.fixture(scope="session")
@@ -449,18 +396,10 @@ class TestCFReader:
         for key in orig_attrs:
             assert orig_attrs[key] == new_attrs[key]
 
-    def test_write_and_read_from_two_files(self, _cf_scene_m, _cf_scene_i, _nc_filename, _nc_filename_i):
+    def test_write_and_read_from_two_files(self, _nc_filename, _nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
-        _cf_scene_m.save_datasets(writer='cf',
-                                  filename=_nc_filename,
-                                  engine='h5netcdf',
-                                  flatten_attrs=True,
-                                  pretty=True)
-        _cf_scene_i.save_datasets(writer='cf',
-                                  filename=_nc_filename_i,
-                                  engine='h5netcdf',
-                                  flatten_attrs=True,
-                                  pretty=True)
+        _create_test_netcdf(_nc_filename, resolution=742)
+        _create_test_netcdf(_nc_filename_i, resolution=371)
         scn_ = Scene(reader='satpy_cf_nc',
                      filenames=[_nc_filename, _nc_filename_i])
         scn_.load(['solar_zenith_angle'], resolution=742)
