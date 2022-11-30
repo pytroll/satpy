@@ -184,6 +184,21 @@ class TestLIL2():
             if 'sector_variables' in settings:
                 self._test_dataset_sector_variables(settings, ds_desc, handler)
 
+    def test_unregistered_dataset_loading(self, filetype_infos):
+        """Test loading of an unregistered dataset."""
+        # Iterate on all the available product types:
+
+        filename_info = {
+            'start_time': "0000",
+            'end_time': "1000"
+        }
+
+        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+
+        dataset_id = make_dataid(name='test_dataset')
+        with pytest.raises(Exception):
+            handler.get_dataset(dataset_id)
+
     def test_filename_infos(self, filetype_infos):
         """Test settings retrieved from filename."""
         filename_info = {
