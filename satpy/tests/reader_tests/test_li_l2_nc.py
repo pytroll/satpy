@@ -302,6 +302,18 @@ class TestLIL2():
         assert var1.attrs.get('_FillValue') == 65535
         assert var2.attrs.get('_FillValue') == 65535
 
+    def test_get_first_valid_variable_not_found(self, filetype_infos):
+        """Test get_first_valid_variable from li reader if the variable is not found."""
+        filename_info = {
+            'start_time': "20101112131415",
+            'end_time': "20101112131416",
+        }
+
+        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+
+        with pytest.raises(Exception):
+            handler.get_first_valid_variable(["dummy/path", "data/test/test_var"])
+
     def test_available_datasets(self, filetype_infos):
         """Test available_datasets from li reader."""
         filename_info = {
