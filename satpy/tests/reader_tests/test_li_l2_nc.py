@@ -74,7 +74,11 @@ class TestLIL2():
         var_path = settings.get('variable_path', '')
 
         # Compute shape from dimensions:
-        shape = tuple([dims[dim_name] for dim_name in desc['shape']])
+        if desc['shape'] == ():
+            # scalar case, dim should have been added in the code by validate_array_dimensions
+            shape = (1,)
+        else:
+            shape = tuple([dims[dim_name] for dim_name in desc['shape']])
 
         dataset_info = {
             'name': dname,

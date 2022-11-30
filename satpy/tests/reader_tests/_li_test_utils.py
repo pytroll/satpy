@@ -145,7 +145,7 @@ def l2_lef_schema(settings=None):
         'variables': {
             "l1b_geolocation_warning": {
                 "format": "i1",
-                "shape": ('scalar',),
+                "shape": (),  # test explicitly the scalar case
                 "default_data": lambda: 0
             },
             "l1b_missing_warning": {
@@ -604,7 +604,11 @@ def populate_dummy_data(data, names, details):
         data[:] = prov(vname, sname, settings) if callable(prov) else prov
     else:
         # Otherwise we write the default data:
-        data[:] = desc['default_data']()
+        if data.shape == ():
+            # scalar case
+            data = desc['default_data']()
+        else:
+            data[:] = desc['default_data']()
 
 
 def add_attributes(attribs, ignored_attrs, desc):
