@@ -279,6 +279,17 @@ class TestLIL2():
         assert var1.attrs.get('_FillValue') == 65535
         assert var2.attrs.get('_FillValue') == 65535
 
+    def test_available_datasets(self, filetype_infos):
+        """Test available_datasets from li reader."""
+        filename_info = {
+            'start_time': "20101112131415",
+            'end_time': "20101112131416",
+        }
+
+        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+
+        assert handler.dataset_infos == [ds[1] for ds in handler.available_datasets()]
+
     def test_variable_scaling(self, filetype_infos):
         """Test automatic rescaling with offset and scale attributes."""
         filename_info = {
