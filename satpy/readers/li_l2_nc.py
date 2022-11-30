@@ -98,7 +98,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         cols = cols.astype(int) - 1
 
         # Create an empyt 1-D array for the results
-        flattened_result = np.nan * da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[0]), dtype=data_array.dtype)
+        flattened_result = np.nan * da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[1]), dtype=data_array.dtype)
         # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
         flattened_result[rows * LI_GRID_SHAPE[0] + cols] = data_array
         # ... reshape to final 2D grid
