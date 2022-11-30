@@ -50,7 +50,7 @@ class HSAFFileHandler(BaseFileHandler):
     @staticmethod
     def _get_datetime(filename):
         fname = os.path.basename(filename)
-        dtstr = fname.split('_')[1].zfill(4)
+        dtstr = fname.split('_')[1]+"000"
         return datetime.strptime(dtstr, "%Y%m%d%H%M")
 
     @property
@@ -135,7 +135,7 @@ class HSAFFileHandler(BaseFileHandler):
             ds_info = self.get_metadata(msg, ds_id['name'])
 
             fname = os.path.basename(msg.file.filename)
-            dtstr = fname.split('_')[1].zfill(4)
+            dtstr = fname.split('_')[1]+"0000"
             h10_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
 
             ds_info['start_time'] = h10_time

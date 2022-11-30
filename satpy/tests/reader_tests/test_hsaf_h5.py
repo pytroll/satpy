@@ -12,16 +12,6 @@ from satpy.resample import get_area_def
 # real shape is 916, 1902
 shape_sc = (916, 1902)
 shape_sc_colormap = (256, 3)
-values_sc = np.random.randint(0, 9, shape_sc, dtype=np.uint8)
-
-dataset_names = {"SC": "Snow Cover",
-                 "SC_pal": "Snow Cover Palette"}
-
-dimensions = {"SC": shape_sc,
-              "colormap": shape_sc_colormap, }
-
-start_time = datetime(2022, 11, 15, 0, 0)
-end_time = datetime(2022, 11, 15, 0, 0)
 
 
 @pytest.fixture(scope="session")
@@ -53,7 +43,7 @@ def test_hsaf_sc_datetime(hsaf_filename):
     scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
     scn.load(['SC'])
     fname = str(os.path.basename(hsaf_filename))
-    dtstr = fname.split('_')[1].zfill(4)
+    dtstr = fname.split('_')[1]+"0000"
     obs_time = datetime.strptime(dtstr, "%Y%m%d%H%M")
     assert scn['SC'].attrs['data_time'] == obs_time
 
@@ -64,4 +54,5 @@ def test_hsaf_sc_areadef(hsaf_filename):
     scn.load(['SC'])
     fd_def = get_area_def('msg_seviri_fes_3km')
     hsaf_def = fd_def[62:62+916, 1211:1211+1902]
+    os.remove(hsaf_filename)
     assert scn['SC'].area == hsaf_def
