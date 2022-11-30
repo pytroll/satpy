@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2015-2018 Satpy developers
 #
 # This file is part of satpy.
@@ -25,7 +24,12 @@ import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
 
-import fsspec
+try:
+    import fsspec
+    fsspec_module = True
+except ModuleNotFoundError:
+    fsspec_module = False
+
 import yaml
 
 try:
@@ -58,7 +62,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     Args:
         files_to_sort (iterable): File paths to sort in to group
-        reader (str or Collection[str]): Reader or readers whose file patterns
+        reader (Union[str, Collection[str]]): Reader or readers whose file patterns
             should be used to sort files.  If not given, try all readers (slow,
             adding a list of readers is strongly recommended).
         time_threshold (int): Number of seconds used to consider time elements
@@ -66,7 +70,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             is used to group files then any time within `time_threshold`
             seconds of the first file's 'start_time' will be seen as occurring
             at the same time.
-        group_keys (list or tuple): File pattern information to use to group
+        group_keys (Union[list, tuple]): File pattern information to use to group
             files. Keys are sorted in order and only the first key is used when
             comparing datetime elements with `time_threshold` (see above). This
             means it is recommended that datetime values should only come from
@@ -90,7 +94,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             more readers have no files associated.
 
     Returns:
-        List of dictionaries mapping 'reader' to a list of filenames.
+        list[dict]: List of dictionaries mapping 'reader' to a list of filenames.
         Each of these dictionaries can be passed as ``filenames`` to
         a `Scene` object.
 
@@ -170,8 +174,12 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
 
     Internal helper for group_files.
 
+    Args:
+        reader_files (dict): {reader_name: (reader_instance, files_to_sort)}.
+        group_keys (Optional[tuple[str]]): keys to group by. Defaults to ``start_time``.
+
     Returns:
-        Mapping[str, List[Tuple[Tuple, str]]], as described.
+        Mapping[str, List[Tuple[Tuple, str]]]: As described above.
     """
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
@@ -200,14 +208,14 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):
     mapping a tuple of keys to a mapping of reader names to files.  The files
     listed in each list item are considered to be grouped within the same time.
 
+    Internal helper for group_files.
+
     Args:
-        all_file_keys, as returned by _get_file_keys_for_reader_files
-        time_threshold: temporal threshold
+        all_file_keys: As returned by :func:`_get_file_keys_for_reader_files`
+        time_threshold (str): temporal threshold
 
     Returns:
         List[Mapping[Tuple, Mapping[str, List[str]]]], as described
-
-    Internal helper for group_files.
     """
     # flatten to get an overall sorting; put the name in the middle in the
     # interest of sorting
@@ -302,7 +310,15 @@ def _get_keys_with_empty_values(grp):
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
-    """Read the reader `config_files` and return the extracted reader metadata."""
+    """Read the reader `config_files` and return the extracted reader metadata.
+
+    Args:
+        config_files (str): Filepathes to yaml config fils.
+        loader (Optional[yaml.Loader]): The yaml loader to use defaults to `UnsafeLoader`
+
+    Returns:
+        dict: reader metadata
+    """
     reader_config = load_yaml_reader_configs(*config_files, loader=loader)
     return reader_config['reader']
 
@@ -318,7 +334,7 @@ def configs_for_reader(reader=None):
     Args:
         reader (Optional[str]): Yield configs only for this reader
 
-    Returns: Generator of lists of configuration files
+    Yields: Lists of configuration files
 
     """
     if reader is not None:
@@ -350,7 +366,14 @@ def configs_for_reader(reader=None):
 
 
 def get_valid_reader_names(reader):
-    """Check for old reader names or readers pending deprecation."""
+    """Check for old reader names or readers pending deprecation.
+
+    Args:
+        reader (str): Reader name.
+
+    Returns:
+        list: List of reader names.
+    """
     new_readers = []
     for reader_name in reader:
         if reader_name in OLD_READER_NAMES:
@@ -378,9 +401,10 @@ def available_readers(as_dict=False):
         as_dict (bool): Optionally return reader information as a dictionary.
                         Default: False
 
-    Returns: List of available reader names. If `as_dict` is `True` then
-             a list of dictionaries including additionally reader information
-             is returned.
+    Returns:
+        list: List of available reader names. If `as_dict` is `True` then
+              a list of dictionaries including additionally reader information
+              is returned.
 
     """
     readers = []
@@ -397,6 +421,30 @@ def available_readers(as_dict=False):
     else:
         readers = sorted(readers)
     return readers
+
+
+def _assign_loadables_to_reader_name(fs, loadables, reader_instance_name, reader_files):
+    """Assign files (loadables) to reader names.
+
+    If a :class:`fsspec.spec.AbstractFileSystem` is passed the file pathes are converted to
+    :class:`FSFile` objects.
+
+    Args:
+        fs (:class:`fsspec.spec.AbstractFileSystem`): fsspec filesystem instance.
+        loadables (list[str]): List of filepathes.
+        reader_instance_name (str): Reader name.
+        reader_files (dict): Dictionary with list of filepathes associated with each reader name.
+
+    Returns:
+        dict: Dictionary with list of filepathes associated with each reader name.
+
+    """
+    if fsspec_module and fs is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
+        reader_files[reader_instance_name] = [FSFile(fn, fs=fs) for fn in loadables]
+    else:
+        reader_files[reader_instance_name] = list(loadables)
+
+    return reader_files
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
@@ -445,8 +493,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         end_time (datetime): Limit used files by ending time.
         base_dir (str): The directory to search for files containing the
             data to load. Defaults to the current directory.
-        reader (str or list): The name of the reader to use for loading the data or a list of names.
-        sensor (str or list): Limit used files by provided sensors.
+        reader (Union[str, list[str]]): The name of the reader to use for loading the data or a list of names.
+        sensor (Union[str, list[str]]): Limit used files by provided sensors.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
             automatically added to this dictionary. Shortcut for `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances to further
@@ -476,10 +524,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                 base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
         sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
-            if fs is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
-                reader_files[reader_instance.name] = [FSFile(fn, fs=fs) for fn in loadables]
-            else:
-                reader_files[reader_instance.name] = list(loadables)
+            reader_files.update(_assign_loadables_to_reader_name(fs, loadables, reader_instance.name, reader_files))
 
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
@@ -496,13 +541,17 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
     Helper for find_files_and_readers.
 
     Args:
-        base_dir: as for `find_files_and_readers`
-        reader: as for `find_files_and_readers`
-        sensor: as for `find_files_and_readers`
+        base_dir (str): as for `find_files_and_readers`
+        reader (Union[str, list[str]]): as for `find_files_and_readers`
+        sensor (Union[str, list[str]]): as for `find_files_and_readers`
         reader_configs: reader metadata such as returned by
-            `configs_for_reader`.
-        reader_kwargs: Keyword arguments to be passed to reader.
-        fs (FileSystem): as for `find_files_and_readers`
+            :func:`configs_for_reader`.
+        reader_kwargs (dict): Keyword arguments to be passed to reader.
+        fs (:class:`fsspec.spec.AbstractFileSystem`): as for `find_files_and_readers`
+
+    Returns:
+        tuple[Union[AbstractYAMLReader, None], list, bool]:
+            Tuple of yaml reader instance, list of file pathes and if the sensor is supported.
     """
     sensor_supported = False
     try:
@@ -531,9 +580,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     """Create specified readers and assign files to them.
 
     Args:
-        filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+        filenames (Union[iterable, dict]): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
-        reader (str or list): The name of the reader to use for loading the data or a list of names.
+        reader (Union[str, list]): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
             This can either be a single dictionary that will be passed to all
             reader instances, or a mapping of reader names to dictionaries.  If
@@ -541,7 +590,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
             ``reader`` or the keys of filenames, each reader instance will get its
             own keyword arguments accordingly.
 
-    Returns: Dictionary mapping reader name to reader instance
+    Returns:
+        dict: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
@@ -609,6 +659,7 @@ def _get_reader_and_filenames(reader, filenames):
         remaining_filenames = set(filenames or [])
     else:
         remaining_filenames = set(filenames or [])
+
     return reader, filenames, remaining_filenames
 
 
@@ -631,6 +682,13 @@ def _get_reader_kwargs(reader, reader_kwargs):
 
     Helper for load_readers to get reader_kwargs and
     reader_kwargs_without_filter in the desirable form.
+
+    Args:
+        reader (str): Reader name.
+        reader_kwargs (dict): Keyword arguments for reader.
+
+    Returns:
+        tuple[dict, dict]: Reader kwargs and reaader kwargs without filter.
     """
     reader_kwargs = reader_kwargs or {}
 
@@ -652,7 +710,7 @@ def _get_reader_kwargs(reader, reader_kwargs):
 class FSFile(os.PathLike):
     """Implementation of a PathLike file object, that can be opened.
 
-    Giving the filenames to :class:`Scene` with valid transfer protocols will automatically
+    Giving the filenames to :class:`~satpy.scene.Scene` with valid transfer protocols will automatically
     use this class so manual usage of this class is needed mainly for fine-grained control.
 
     This class is made to be used in conjuction with fsspec or s3fs. For example::
@@ -676,12 +734,12 @@ class FSFile(os.PathLike):
         """Initialise the FSFile instance.
 
         Args:
-            file (str, Pathlike, or OpenFile):
+            file (Union[str, Pathlike, OpenFile]):
                 String, object implementing the `os.PathLike` protocol, or
                 an `fsspec.OpenFile` instance.  If passed an instance of
                 `fsspec.OpenFile`, the following argument ``fs`` has no
                 effect.
-            fs (fsspec filesystem, optional)
+            fs (Optional[fsspec.spec.AbstractFileSystem]):
                 Object implementing the fsspec filesystem protocol.
         """
         try:
