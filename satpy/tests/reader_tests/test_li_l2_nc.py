@@ -121,6 +121,7 @@ class TestLIL2():
         dataset_info, desc, dname, handler, shape, var_path = var_params
         res = self.get_variable_dataset(dataset_info, dname, handler)
         assert res.shape == shape
+        assert res.dims[0] == 'y'
         # Should retrieve content with fullname key:
         full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below
