@@ -1039,7 +1039,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         es = created_fhs['ft1'][0].filetype_info['expected_segments']
         self.assertEqual(es, 3)
 
-        # check correct FCI chunk number reading into segment
+        # check correct FCI segment (aka chunk in the FCI world) number reading into segment
         fake_fh.filename_info = {'count_in_repeat_cycle': 5}
         created_fhs = reader.create_filehandlers(['fake.nc'])
         es = created_fhs['ft1'][0].filename_info['segment']
@@ -1352,9 +1352,9 @@ class TestGEOVariableSegmentYAMLReader:
         res = GVSYReader._pad_earlier_segments_area([fh_2], dataid, area_defs)
         assert len(res) == 2
 
-        # The later vertical chunk (nr. 2) size is 278, which is exactly double the size
-        # of the gap left by the missing first chunk (139, as the second chunk starts at line 140).
-        # Therefore, the new vertical area extent for the first chunk should be
+        # The later vertical segment (nr. 2) size is 278, which is exactly double the size
+        # of the gap left by the missing first segment (139, as the second segment starts at line 140).
+        # Therefore, the new vertical area extent for the first segment should be
         # half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 500-250=250
         seg1_extent = (0, 500, 200, 250)
@@ -1384,8 +1384,8 @@ class TestGEOVariableSegmentYAMLReader:
         res = GVSYReader._pad_later_segments_area([fh_1], dataid)
         assert len(res) == 2
 
-        # The previous chunk size is 556, which is exactly double the size of the gap left
-        # by the missing last chunk (278, as the second-to-last chunk ends at line 11136 - 278 )
+        # The previous segment size is 556, which is exactly double the size of the gap left
+        # by the missing last segment (278, as the second-to-last segment ends at line 11136 - 278 )
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
@@ -1393,8 +1393,8 @@ class TestGEOVariableSegmentYAMLReader:
                          seg2_extent)
         fake_adef.assert_called_once_with(*expected_call)
 
-    def test_pad_later_segments_area_for_multiple_chunks_gap(self, GVSYReader, fake_adef):
-        """Test _pad_later_segments_area() in the variable padding case for multiple gaps with multiple chunks."""
+    def test_pad_later_segments_area_for_multiple_segments_gap(self, GVSYReader, fake_adef):
+        """Test _pad_later_segments_area() in the variable padding case for multiple gaps with multiple segments."""
 
         def side_effect_areadef(a, b, c, crs, width, height, aex):
             m = MagicMock()
@@ -1448,30 +1448,30 @@ class TestGEOVariableSegmentYAMLReader:
         res = GVSYReader._pad_later_segments_area([fh_1, fh_4, fh_8], dataid)
         assert len(res) == 8
 
-        # Regarding the chunk sizes:
-        # First group of missing chunks:
-        # The end position row of the gap is the start row of the last available chunk-1:11136-300-100+1-1=10736
-        # The start position row of the gap is the end row fo the first available chunk+1: 11136-600+1=10837
+        # Regarding the segment sizes:
+        # First group of missing segments:
+        # The end position row of the gap is the start row of the last available segment-1:11136-300-100+1-1=10736
+        # The start position row of the gap is the end row fo the first available segment+1: 11136-600+1=10837
         # hence the gap is 10736-10537+1=200 px high
-        # The 200px have to be split between two missing chunks, the most equal way to do it is with
+        # The 200px have to be split between two missing segments, the most equal way to do it is with
         # sizes 100: 100+100=200
         # Second group:
-        # The end position row of the gap is the start row of the last chunk -1: 11136-100+1-1=11036
-        # The start position row of the gap is the end row fo the first chunk +1: 11136-300+1=10837
+        # The end position row of the gap is the start row of the last segment -1: 11136-100+1-1=11036
+        # The start position row of the gap is the end row fo the first segment +1: 11136-300+1=10837
         # hence the gap is 11036-10837+1=200 px high
-        # The 200px have to be split between three missing chunks, the most equal way to do it is with
+        # The 200px have to be split between three missing segments, the most equal way to do it is with
         # sizes 66 and 67: 66+67+67=200
 
         # Regarding the heights:
         # First group:
-        # The first chunk has 100px height and 500 area extent height.
-        # The first padded chunk has 100px height -> 500*100/100=500 area extent height ->1000+500=1500
-        # The second padded chunk has 100px height -> 500*100/100=500 area extent height ->1500+500=2000
+        # The first segment has 100px height and 500 area extent height.
+        # The first padded segment has 100px height -> 500*100/100=500 area extent height ->1000+500=1500
+        # The second padded segment has 100px height -> 500*100/100=500 area extent height ->1500+500=2000
         # Second group:
-        # The first chunk has 100px height and 500 area extent height.
-        # The first padded chunk has 66px height -> 500*66/100=330 area extent height ->1000+330=1330
-        # The second padded chunk has 67px height -> 500*67/100=335 area extent height ->1330+335=1665
-        # The first padded chunk has 67px height -> 500*67/100=335 area extent height ->1665+335=2000
+        # The first segment has 100px height and 500 area extent height.
+        # The first padded segment has 66px height -> 500*66/100=330 area extent height ->1000+330=1330
+        # The second padded segment has 67px height -> 500*67/100=335 area extent height ->1330+335=1665
+        # The first padded segment has 67px height -> 500*67/100=335 area extent height ->1665+335=2000
         assert fake_adef.call_count == 5
         expected_call1 = ('fill', 'fill', 'fill', 'some_crs', 11136, 100,
                           (0, 1500.0, 200, 1000))

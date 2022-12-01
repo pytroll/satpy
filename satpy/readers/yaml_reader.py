@@ -1358,7 +1358,7 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
 
 
 class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
-    """GEOVariableSegmentYAMLReader for handling chunked/segmented GEO products with segments of variable height.
+    """GEOVariableSegmentYAMLReader for handling segmented GEO products with segments of variable height.
 
     This YAMLReader overrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
     have variable heights. It computes the sizes of the padded segments using the information available in the
@@ -1367,7 +1367,7 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     This implementation was motivated by the FCI L1c format, where the segments (called chunks in the FCI world)
     can have variable heights. It is however generic, so that any future reader can use it. The requirement
     for the reader is to have a method called `get_segment_position_info`, returning a dictionary containing
-    the positioning info for each chunk (see example in
+    the positioning info for each segment (see example in
     :func:`satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info`).
 
     For more information on please see the documentation of :func:`satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
@@ -1501,13 +1501,13 @@ def _init_positioning_arrays_for_variable_padding(chk_infos, grid_type, exp_segm
     segment_start_rows = np.zeros(exp_segment_nr)
     segment_end_rows = np.zeros(exp_segment_nr)
 
-    _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
-                                                           segment_heights)
+    _populate_positioning_arrays_with_available_segment_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                             segment_heights)
     return segment_start_rows, segment_end_rows, segment_heights
 
 
-def _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
-                                                           segment_heights):
+def _populate_positioning_arrays_with_available_segment_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                             segment_heights):
     for chk_info in chk_infos:
         current_fh_segment_nr = chk_info['segment_nr']
         segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']

@@ -229,12 +229,15 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         return measured_group_path
 
     def get_segment_position_info(self):
-        """Get information about the size and the position of the chunk inside the final image array.
+        """Get information about the size and the position of the segment inside the final image array.
 
-        As the final array is composed by stacking chunks (aka segments) vertically, the position of a chunk
-        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the chunk.
+        As the final array is composed by stacking segments vertically, the position of a segment
+        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
         The row numbering is assumed to start with 1.
-        This info is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
+
+        Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
+        of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
         """
         vis_06_measured_path = self.get_channel_measured_group_path('vis_06')
         ir_105_measured_path = self.get_channel_measured_group_path('ir_105')
@@ -350,7 +353,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     @cached_property
     def orbital_param(self):
-        """Compute the orbital parameters for the current chunk."""
+        """Compute the orbital parameters for the current segment."""
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))

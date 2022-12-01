@@ -126,7 +126,7 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
     data[ch_path + '/shape'] = n_rows_cols
 
 
-def _get_test_chunk_position_for_channel(data, ch_str, n_rows_cols):
+def _get_test_segment_position_for_channel(data, ch_str, n_rows_cols):
     pos = "data/{:s}/measured/{:s}_position_{:s}"
     data[pos.format(ch_str, "start", "row")] = xr.DataArray(1)
     data[pos.format(ch_str, "start", "column")] = xr.DataArray(1)
@@ -228,7 +228,7 @@ def _get_test_content_for_channel(ch_str, grid_type):
     _get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols)
     _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols)
     _get_test_index_map_for_channel(data, ch_str, n_rows_cols)
-    _get_test_chunk_position_for_channel(data, ch_str, n_rows_cols)
+    _get_test_segment_position_for_channel(data, ch_str, n_rows_cols)
 
     return data
 
