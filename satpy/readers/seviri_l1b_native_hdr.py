@@ -713,7 +713,6 @@ class Msg15NativeTrailerRecord(object):
             ('GeometricQuality', self.geometric_quality),
             ('TimelinessAndCompleteness', self.timeliness_and_completeness)
         ]
-
         return record
 
     @property

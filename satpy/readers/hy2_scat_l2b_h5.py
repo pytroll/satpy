@@ -107,11 +107,13 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         else:
             dim_map = {curr_dim: new_dim for curr_dim, new_dim in zip(data.dims, dims)}
             data = data.rename(dim_map)
-            data = self._mask_data(key['name'], data)
-            data = self._scale_data(key['name'], data)
+            data = self._mask_data(data)
+            data = self._scale_data(data)
 
             if key['name'] in 'wvc_lon':
+                _attrs = data.attrs
                 data = xr.where(data > 180, data - 360., data)
+                data.attrs.update(_attrs)
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
         data.attrs.update(self.get_variable_metadata())
@@ -120,13 +122,14 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
 
         return data
 
-    def _scale_data(self, key_name, data):
-        return data * self[key_name].attrs['scale_factor'] + self[key_name].attrs['add_offset']
+    def _scale_data(self, data):
+        return data * data.attrs['scale_factor'] + data.attrs['add_offset']
 
-    def _mask_data(self, key_name, data):
-        data = xr.where(data == self[key_name].attrs['fill_value'], np.nan, data)
-
-        valid_range = self[key_name].attrs['valid_range']
+    def _mask_data(self, data):
+        _attrs = data.attrs
+        valid_range = data.attrs['valid_range']
+        data = xr.where(data == data.attrs['fill_value'], np.nan, data)
         data = xr.where(data < valid_range[0], np.nan, data)
         data = xr.where(data > valid_range[1], np.nan, data)
+        data.attrs.update(_attrs)
         return data

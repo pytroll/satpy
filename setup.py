@@ -31,7 +31,7 @@ except ImportError:
     pass
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
-            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'trollimage >1.10.1', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
             'pooch', 'pyorbital']
 
@@ -65,6 +65,7 @@ extras_require = {
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
     'remote_reading': ['fsspec'],
+    'insat_3d': ['xarray-datatree'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],

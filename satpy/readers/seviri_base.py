@@ -414,8 +414,7 @@ def dec10216(inbuf):
     arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
     arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
     arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
-    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
-    arr16 = da.rechunk(arr16, arr16.shape[0])
+    arr16 = np.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
 
     return arr16
 
@@ -450,8 +449,8 @@ class MpefProductHeader(object):
             ('EncodingVersion', np.uint16),
             ('Channel', np.uint8),
             ('ImageLocation', 'S3'),
-            ('GsicsCalMode', np.bool),
-            ('GsicsCalValidity', np.bool),
+            ('GsicsCalMode', np.bool_),
+            ('GsicsCalValidity', np.bool_),
             ('Padding', 'S2'),
             ('OffsetToData', np.uint32),
             ('Padding2', 'S9'),

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019, 2021 Satpy developers
+# Copyright (c) 2016-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -26,22 +26,16 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from contextlib import suppress
 from fnmatch import fnmatch
+from functools import cached_property
 from weakref import WeakValueDictionary
 
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
-from functools import cached_property
-
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
+from yaml import UnsafeLoader
 
 from satpy import DatasetDict
 from satpy.aux_download import DataDownloadMixin
@@ -748,34 +742,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Load the area definition of *dsid*."""
         return _load_area_def(dsid, file_handlers)
 
-    def _get_coordinates_for_dataset_key(self, dsid):
-        """Get the coordinate dataset keys for *dsid*."""
-        ds_info = self.all_ids[dsid]
-        cids = []
-        for cinfo in ds_info.get('coordinates', []):
-            if not isinstance(cinfo, dict):
-                cinfo = {'name': cinfo}
-
-            for key in self._co_keys:
-                if key == 'name':
-                    continue
-                if key in ds_info:
-                    if ds_info[key] is not None:
-                        cinfo[key] = ds_info[key]
-            cid = DataQuery.from_dict(cinfo)
-
-            cids.append(self.get_dataset_key(cid))
-
-        return cids
-
-    def _get_coordinates_for_dataset_keys(self, dsids):
-        """Get all coordinates."""
-        coordinates = {}
-        for dsid in dsids:
-            cids = self._get_coordinates_for_dataset_key(dsid)
-            coordinates.setdefault(dsid, []).extend(cids)
-        return coordinates
-
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
         ds_info = self.all_ids[dsid]
@@ -786,6 +752,21 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                            "'%s'", ds_info['file_type'], dsid['name'])
         else:
             return self.file_handlers[filetype]
+
+    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
+        """Get the area for *dsid*."""
+        try:
+            return self._load_area_def(dsid, file_handlers, **kwargs)
+        except NotImplementedError:
+            if any(x is None for x in coords):
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
+                return None
+
+            area = self._make_area_from_coords(coords)
+            if area is None:
+                logger.debug("No coordinates found for %s", str(dsid))
+            return area
 
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
@@ -827,21 +808,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             if key is not None:
                 FileYAMLReader._coords_cache[key] = sdef
         return sdef
-
-    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
-        """Get the area for *dsid*."""
-        try:
-            return self._load_area_def(dsid, file_handlers, **kwargs)
-        except NotImplementedError:
-            if any(x is None for x in coords):
-                logger.warning(
-                    "Failed to load coordinates for '{}'".format(dsid))
-                return None
-
-            area = self._make_area_from_coords(coords)
-            if area is None:
-                logger.debug("No coordinates found for %s", str(dsid))
-            return area
 
     def _load_dataset_with_area(self, dsid, coords, **kwargs):
         """Load *dsid* and its area if available."""
@@ -970,6 +936,34 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         self._load_ancillary_variables(all_datasets, **kwargs)
 
         return datasets
+
+    def _get_coordinates_for_dataset_keys(self, dsids):
+        """Get all coordinates."""
+        coordinates = {}
+        for dsid in dsids:
+            cids = self._get_coordinates_for_dataset_key(dsid)
+            coordinates.setdefault(dsid, []).extend(cids)
+        return coordinates
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for *dsid*."""
+        ds_info = self.all_ids[dsid]
+        cids = []
+        for cinfo in ds_info.get('coordinates', []):
+            if not isinstance(cinfo, dict):
+                cinfo = {'name': cinfo}
+
+            for key in self._co_keys:
+                if key == 'name':
+                    continue
+                if key in ds_info:
+                    if ds_info[key] is not None:
+                        cinfo[key] = ds_info[key]
+            cid = DataQuery.from_dict(cinfo)
+
+            cids.append(self.get_dataset_key(cid))
+
+        return cids
 
 
 def _load_area_def(dsid, file_handlers):

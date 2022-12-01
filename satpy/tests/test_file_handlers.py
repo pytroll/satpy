@@ -47,8 +47,6 @@ class TestBaseFileHandler(unittest.TestCase):
 
     def setUp(self):
         """Set up the test."""
-        self._old_set = BaseFileHandler.__abstractmethods__
-        BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
             'filename', {'filename_info': 'bla'}, 'filetype_info')
 
@@ -190,10 +188,6 @@ class TestBaseFileHandler(unittest.TestCase):
         filename = Path('/bla/bla.nc')
         bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
         assert isinstance(bfh.filename, Path)
-
-    def tearDown(self):
-        """Tear down the test."""
-        BaseFileHandler.__abstractmethods__ = self._old_set
 
 
 @pytest.mark.parametrize(

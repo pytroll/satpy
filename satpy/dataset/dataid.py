@@ -508,7 +508,7 @@ class DataQuery:
     """The data query object.
 
     A DataQuery can be used in Satpy to query for a Dataset. This way
-    a fully qualified DataID can be found even if some of the DataID
+    a fully qualified DataID can be found even if some DataID
     elements are unknown. In this case a `*` signifies something that is
     unknown or not applicable to the requested Dataset.
     """

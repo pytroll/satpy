@@ -31,11 +31,7 @@ except ModuleNotFoundError:
     fsspec_module = False
 
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
+from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 
@@ -394,23 +390,24 @@ def get_valid_reader_names(reader):
     return new_readers
 
 
-def available_readers(as_dict=False):
+def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
     """Available readers based on current configuration.
 
     Args:
         as_dict (bool): Optionally return reader information as a dictionary.
-                        Default: False
+                        Default: False.
+        yaml_loader (Optional[Union[yaml.BaseLoader, yaml.FullLoader, yaml.UnsafeLoader]]):
+            The yaml loader type. Default: ``yaml.UnsafeLoader``.
 
     Returns:
-        list: List of available reader names. If `as_dict` is `True` then
-              a list of dictionaries including additionally reader information
-              is returned.
+        Union[list[str], list[dict]]: List of available reader names. If `as_dict` is `True` then
+        a list of dictionaries including additionally reader information is returned.
 
     """
     readers = []
     for reader_configs in configs_for_reader():
         try:
-            reader_info = read_reader_config(reader_configs)
+            reader_info = read_reader_config(reader_configs, loader=yaml_loader)
         except (KeyError, IOError, yaml.YAMLError):
             LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
@@ -507,7 +504,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     Returns:
         dict: Dictionary mapping reader name string to list of string filenames or :class:`FSFile` objects.
-
     """
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
@@ -742,6 +738,7 @@ class FSFile(os.PathLike):
             fs (Optional[fsspec.spec.AbstractFileSystem]):
                 Object implementing the fsspec filesystem protocol.
         """
+        self._fs_open_kwargs = _get_fs_open_kwargs(file)
         try:
             self._file = file.path
             self._fs = file.fs
@@ -766,10 +763,17 @@ class FSFile(os.PathLike):
 
         This is read-only.
         """
+        fs_open_kwargs = self._update_with_fs_open_kwargs(kwargs)
         try:
-            return self._fs.open(self._file, *args, **kwargs)
+            return self._fs.open(self._file, *args, **fs_open_kwargs)
         except AttributeError:
             return open(self._file, *args, **kwargs)
+
+    def _update_with_fs_open_kwargs(self, user_kwargs):
+        """Complement keyword arguments for opening a file via file system."""
+        kwargs = user_kwargs.copy()
+        kwargs.update(self._fs_open_kwargs)
+        return kwargs
 
     def __lt__(self, other):
         """Implement ordering.
@@ -807,6 +811,23 @@ class FSFile(os.PathLike):
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
             fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
+
+
+def _get_fs_open_kwargs(file):
+    """Get keyword arguments for opening a file via file system.
+
+    For example compression.
+    """
+    return {
+        "compression": _get_compression(file)
+    }
+
+
+def _get_compression(file):
+    try:
+        return file.compression
+    except AttributeError:
+        return None
 
 
 def open_file_or_filename(unknown_file_thing):
