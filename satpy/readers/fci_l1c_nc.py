@@ -20,16 +20,23 @@
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
 Imager (FCI) Level-1c data.  FCI will fly
-on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
-in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
+on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
+scheduled to be launched on the 13th of December 2022.
+For more information about FCI, see `EUMETSAT`_.
 
-For simulated test data to be used with this reader, see `test data release`_.
+For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
-    will be implemented when corresponding test datasets will be available.
+    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
+    Satpy will automatically read the channels from the source with the finest resolution,
+    i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
+    If needed, the desired resolution can be explicitly requested using e.g.:
+    ``scn.load(['vis_06'], resolution=1000)``.
+
+    Note that RSS data is not supported yet.
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -99,7 +106,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
-.. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
+.. _test data releases: https://www.eumetsat.int/mtg-test-data
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -133,6 +140,15 @@ AUX_DATA = {
     'swath_number': 'data/swath_number',
     'swath_direction': 'data/swath_direction',
 }
+
+HIGH_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '500m',
+                                       'grid_width': 22272},
+                      'fci_l1c_fdhsi': {'grid_type': '1km',
+                                        'grid_width': 11136}}
+LOW_RES_GRID_INFO = {'fci_l1c_hrfi': {'grid_type': '1km',
+                                      'grid_width': 11136},
+                     'fci_l1c_fdhsi': {'grid_type': '2km',
+                                       'grid_width': 5568}}
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -204,22 +220,45 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get end time."""
         return self.filename_info['end_time']
 
-    def get_segment_position_info(self):
-        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+    def get_channel_measured_group_path(self, channel):
+        """Get the channel's measured group path."""
+        if self.filetype_info['file_type'] == 'fci_l1c_hrfi':
+            channel += '_hr'
+        measured_group_path = 'data/{}/measured'.format(channel)
 
-        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        return measured_group_path
+
+    def get_segment_position_info(self):
+        """Get information about the size and the position of the segment inside the final image array.
+
+        As the final array is composed by stacking segments vertically, the position of a segment
+        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
+        The row numbering is assumed to start with 1.
+        This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
+
+        Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
+        of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
         """
+        vis_06_measured_path = self.get_channel_measured_group_path('vis_06')
+        ir_105_measured_path = self.get_channel_measured_group_path('ir_105')
+
+        file_type = self.filetype_info['file_type']
+
         segment_position_info = {
-            '1km': {'start_position_row': self.get_and_cache_npxr("data/vis_04/measured/start_position_row").item(),
-                    'end_position_row': self.get_and_cache_npxr('data/vis_04/measured/end_position_row').item(),
-                    'segment_height': self.get_and_cache_npxr('data/vis_04/measured/end_position_row').item() -
-                    self.get_and_cache_npxr('data/vis_04/measured/start_position_row').item() + 1,
-                    'segment_width': 11136},
-            '2km': {'start_position_row': self.get_and_cache_npxr('data/ir_105/measured/start_position_row').item(),
-                    'end_position_row': self.get_and_cache_npxr('data/ir_105/measured/end_position_row').item(),
-                    'segment_height': self.get_and_cache_npxr('data/ir_105/measured/end_position_row').item() -
-                    self.get_and_cache_npxr('data/ir_105/measured/start_position_row').item() + 1,
-                    'segment_width': 5568}
+            HIGH_RES_GRID_INFO[file_type]['grid_type']: {
+                'start_position_row': self.get_and_cache_npxr(vis_06_measured_path + '/start_position_row').item(),
+                'end_position_row': self.get_and_cache_npxr(vis_06_measured_path + '/end_position_row').item(),
+                'segment_height': self.get_and_cache_npxr(vis_06_measured_path + '/end_position_row').item() -
+                self.get_and_cache_npxr(vis_06_measured_path + '/start_position_row').item() + 1,
+                'grid_width': HIGH_RES_GRID_INFO[file_type]['grid_width']
+            },
+            LOW_RES_GRID_INFO[file_type]['grid_type']: {
+                'start_position_row': self.get_and_cache_npxr(ir_105_measured_path + '/start_position_row').item(),
+                'end_position_row': self.get_and_cache_npxr(ir_105_measured_path + '/end_position_row').item(),
+                'segment_height': self.get_and_cache_npxr(ir_105_measured_path + '/end_position_row').item() -
+                self.get_and_cache_npxr(ir_105_measured_path + '/start_position_row').item() + 1,
+                'grid_width': LOW_RES_GRID_INFO[file_type]['grid_width']
+            }
         }
 
         return segment_position_info
@@ -314,7 +353,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     @cached_property
     def orbital_param(self):
-        """Compute the orbital parameters for the current chunk."""
+        """Compute the orbital parameters for the current segment."""
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
@@ -386,13 +425,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         return aux
 
-    @staticmethod
-    def get_channel_measured_group_path(channel):
-        """Get the channel's measured group path."""
-        measured_group_path = 'data/{}/measured'.format(channel)
-
-        return measured_group_path
-
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
         # if a user requests a pixel quality or index map before the channel data, the
@@ -413,7 +445,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         extents = {}
         for coord in "xy":
-            coord_radian = self.get_and_cache_npxr("data/{:s}/measured/{:s}".format(channel_name, coord))
+            coord_radian = self.get_and_cache_npxr(measured + "/{:s}".format(coord))
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
             if coord == "x" and coord_radian.scale_factor > 0:
