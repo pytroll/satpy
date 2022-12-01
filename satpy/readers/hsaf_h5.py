@@ -17,8 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """A reader for HDF5 Snow Cover (SC) file produced by the Hydrology SAF."""
 import logging
-import os
-from datetime import datetime
+from datetime import timedelta
 
 import dask.array as da
 import h5py
@@ -30,6 +29,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
+area_x_offset = 1211
+area_y_offset = 62
 
 
 class HSAFFileHandler(BaseFileHandler):
@@ -42,21 +43,13 @@ class HSAFFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self._msg_datasets = {}
-        self._start_time = None
-        self._end_time = None
-        analysis_time = self._get_datetime(filename)
-        self._analysis_time = analysis_time
-
-    @staticmethod
-    def _get_datetime(filename):
-        fname = os.path.basename(filename)
-        dtstr = fname.split('_')[1]
-        return datetime.strptime(dtstr, "%Y%m%d")
+        self._h5fh = h5py.File(self.filename, 'r')
+        self._data_time = self.filename_info['sensing_time']
 
     @property
-    def analysis_time(self):
-        """Get validity time of this file."""
-        return self._analysis_time
+    def end_time(self):
+        """Get end time."""
+        return self._data_time + timedelta(hours=23, minutes=59, seconds=59)
 
     def _prepare_variable_for_palette(self, msg, ds_info):
         colormap = np.array(np.array(msg))
@@ -68,7 +61,7 @@ class HSAFFileHandler(BaseFileHandler):
             ds_info = {
                 'name': 'SC',
                 'filename': self.filename,
-                'data_time': self._analysis_time,
+                'data_time': self.start_time,
                 'nx': msg.shape[1],
                 'ny': msg.shape[0]
             }
@@ -115,40 +108,33 @@ class HSAFFileHandler(BaseFileHandler):
             units: m
         """
         fd_def = get_area_def('msg_seviri_fes_3km')
-        hsaf_def = fd_def[62:62+916, 1211:1211+1902]
+        hsaf_def = fd_def[area_y_offset:area_y_offset+916,
+                          area_x_offset:area_x_offset+1902]
 
         return hsaf_def
 
-    def _get_message(self, idx):
-        h5file = h5py.File(self.filename, 'r')
-        if idx == 1:
-            msg = h5file.get('SC')
-        if idx == 2:
-            msg = h5file.get('colormap')
-        return msg
+    def _get_dataset(self, ds_name):
+        if ds_name == 'SC_pal':
+            _ds_name = 'colormap'
+        else:
+            _ds_name = ds_name
+        return self._h5fh.get(_ds_name)
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
         variable = None
+        ds = self._get_dataset(ds_id['name'])
+        ds_info = self.get_metadata(ds, ds_id['name'])
+
         if ds_id['name'] == 'SC':
-            msg = self._get_message(1)
-            ds_info = self.get_metadata(msg, ds_id['name'])
+            ds_info['start_time'] = self._data_time
+            ds_info['data_time'] = self._data_time
 
-            fname = os.path.basename(msg.file.filename)
-            dtstr = fname.split('_')[1]
-            h10_time = datetime.strptime(dtstr, "%Y%m%d")
-
-            ds_info['start_time'] = h10_time
-            ds_info['end_time'] = h10_time
-
-            data = np.array(msg)
-            data = da.from_array(data, chunks=CHUNK_SIZE)
+            data = da.from_array(ds, chunks=CHUNK_SIZE)
             variable = xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
 
         elif ds_id['name'] == 'SC_pal':
-            msg = self._get_message(2)
-            ds_info = self.get_metadata(msg, ds_id['name'])
-            variable = self._prepare_variable_for_palette(msg, ds_info)
+            variable = self._prepare_variable_for_palette(ds, ds_info)
 
         else:
             raise IOError("File does not contain " + ds_id['name'] + " data")

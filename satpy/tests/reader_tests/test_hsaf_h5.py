@@ -50,9 +50,11 @@ def test_hsaf_sc_datetime(hsaf_filename):
 
 def test_hsaf_sc_areadef(hsaf_filename):
     """Test the H-SAF SC area definition."""
-    scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
-    scn.load(['SC'])
-    fd_def = get_area_def('msg_seviri_fes_3km')
-    hsaf_def = fd_def[62:62+916, 1211:1211+1902]
-    os.remove(hsaf_filename)
+    try:
+        scn = Scene(filenames=[str(hsaf_filename)], reader="hsaf_h5")
+        scn.load(['SC'])
+        fd_def = get_area_def('msg_seviri_fes_3km')
+        hsaf_def = fd_def[62:62+916, 1211:1211+1902]
+    finally:
+        os.remove(hsaf_filename)
     assert scn['SC'].area == hsaf_def
