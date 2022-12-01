@@ -212,7 +212,7 @@ def _get_global_attributes():
     data = {}
     attrs = {"platform": "MTI1"}
     for (k, v) in attrs.items():
-        data["/attr/" + k] = v
+        data["attr/" + k] = v
     return data
 
 
