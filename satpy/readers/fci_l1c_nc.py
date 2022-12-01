@@ -20,16 +20,23 @@
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
 Imager (FCI) Level-1c data.  FCI will fly
-on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
-in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
+on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
+scheduled to be launched on the 13th of December 2022.
+For more information about FCI, see `EUMETSAT`_.
 
-For simulated test data to be used with this reader, see `test data release`_.
+For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data. RSS data is
-    not supported yet.
+    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
+    Satpy will automatically read the channels from the source with the finest resolution,
+    i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
+    If needed, the desired resolution can be explicitly requested using e.g.:
+    ``scn.load(['vis_06'], resolution=1000)``.
+
+    Note that RSS data is not supported yet.
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -99,7 +106,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
-.. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
+.. _test data releases: https://www.eumetsat.int/mtg-test-data
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
