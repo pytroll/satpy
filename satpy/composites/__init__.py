@@ -929,7 +929,6 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_color))
-        kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):

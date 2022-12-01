@@ -51,6 +51,7 @@ dependencies:
   - pip
   - skyfield
   - astropy
+  - xarray-datatree
   - pip:
     - trollsift
     - trollimage

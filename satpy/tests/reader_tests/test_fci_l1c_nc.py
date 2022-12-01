@@ -236,6 +236,7 @@ def _get_test_content_for_channel(ch_str, grid_type):
 class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
+    cached_file_content: Dict[str, xr.DataArray] = {}
     # overwritten by FDHSI and HRFI FIle Handlers
     chan_patterns: Dict[str, Dict[str, Union[List[int], str]]] = {}
 
