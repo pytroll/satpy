@@ -632,7 +632,9 @@ class PaletteCompositor(ColormapCompositor):
 class PModeCompositor(SingleBandCompositor):
     """Compositor for palette images.
 
-    This compositor creates palette images in mode P.
+    This compositor prepares a dataset for the creation of palette images in
+    mode P.  Composites using this compositor must have an associated
+    enhancement that uses
     """
 
     def __call__(self, projectables, **info):
@@ -640,9 +642,8 @@ class PModeCompositor(SingleBandCompositor):
         (data, palette) = projectables
         ds = super().__call__([data], **info)
         ds.attrs["palette"] = palette
-        ds.attrs["mode"] = "P"
-        ds = ds.expand_dims(dim={"bands": 1})
-        ds = ds.assign_coords(bands=["P"])
+        # mode should remain L until it's time for enhancing, because
+        # XRImage.palettize experts mode L (or LA)
         return ds
 
 

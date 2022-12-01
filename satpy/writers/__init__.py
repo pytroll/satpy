@@ -480,8 +480,7 @@ def to_image(dataset):
         Instance of :class:`~trollimage.xrimage.XRImage`.
 
     """
-    if not dataset.coords.get("bands") == ["P"]:
-        dataset = dataset.squeeze()
+    dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     return XRImage(dataset)

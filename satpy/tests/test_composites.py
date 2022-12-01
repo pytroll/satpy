@@ -680,25 +680,39 @@ class TestColorizeCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
-def test_pmode_compositor():
+def test_pmode_compositor(fake_area, tmp_path):
     """Test pmode compositor."""
-    from satpy.composites import PModeCompositor
     from satpy.writers import get_enhanced_image
-    comp = PModeCompositor("test_pmode_compositor")
-    palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                           dims=['value', 'band'])
-    palette.attrs['palette_meanings'] = [2, 3, 4]
-    data = xr.DataArray(np.array([[4, 3, 2],
-                                  [2, 3, 4]],
-                                 dtype=np.uint8),
-                        dims=['y', 'x'])
-    res = comp([data, palette])
-    # this has not changed the values!
-    np.testing.assert_allclose(data, res.sel(bands="P"))
-    im = get_enhanced_image(res)
+
+    from .. import Scene
+    fk = tmp_path / "S_NWC_CTTH_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
+    # create a minimally fake netCDF file, otherwise satpy won't load the
+    # composite
+    ds = xr.Dataset(
+            coords={"nx": [0], "ny": [0]},
+            attrs={
+                "source": "satpy unit test",
+                "satellite_identifier": "pranksat",
+                "time_coverage_start": "0001-01-01T00:00:00Z",
+                "time_coverage_end": "0001-01-01T01:00:00Z"
+                })
+    ds.to_netcdf(fk)
+    sc = Scene(filenames=[os.fspath(fk)], reader=["nwcsaf-geo"])
+    sc["ctth_alti_pal"] = xr.DataArray(
+            da.linspace(0, 255, 3*256, dtype="uint8").reshape(256, 3),
+            dims=("pal02_colors", "pal_RGB"))
+    fake_alti = da.full((2, 2), 8, chunks=2, dtype="uint8")
+    sc["ctth_alti"] = xr.DataArray(
+            fake_alti,
+            dims=("y", "x"),
+            attrs={
+                "area": fake_area,
+                "ancillary_variables": [sc["ctth_alti_pal"]]})
+    sc.load(["cloud_top_height"], image_mode="P")
+    im = get_enhanced_image(sc["cloud_top_height"])
     assert im.mode == "P"
-    np.testing.assert_allclose(im.data.sel(bands="P"), data)
-    np.testing.assert_allclose(im.palette, palette)
+    np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
+    np.testing.assert_array_equal(im.data.sel(bands="P"), fake_alti)
 
 
 class TestCloudTopHeightCompositor(unittest.TestCase):
