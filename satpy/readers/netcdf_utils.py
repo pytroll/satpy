@@ -103,27 +103,90 @@ class NetCDF4FileHandler(BaseFileHandler):
                 'Failed reading file %s. Possibly corrupted file', self.filename)
             raise
 
-        self.auto_maskandscale = auto_maskandscale
-        if hasattr(file_handle, "set_auto_maskandscale"):
-            file_handle.set_auto_maskandscale(auto_maskandscale)
+        self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
+        self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
-        self.collect_metadata("", file_handle)
-        self.collect_dimensions("", file_handle)
-        if cache_var_size > 0:
-            self.collect_cache_vars(
-                    [varname for (varname, var)
-                        in self.file_content.items()
-                        if isinstance(var, netCDF4.Variable)
-                        and isinstance(var.dtype, np.dtype)  # vlen may be str
-                        and var.size * var.dtype.itemsize < cache_var_size],
-                    file_handle)
+        listed_variables = filetype_info.get("required_netcdf_variables")
+        if listed_variables:
+            self._collect_listed_variables(file_handle, listed_variables)
+        else:
+            self.collect_metadata("", file_handle)
+            self.collect_dimensions("", file_handle)
+        self.collect_cache_vars(cache_var_size)
+
         if cache_handle:
             self.file_handle = file_handle
         else:
             file_handle.close()
+
+    @staticmethod
+    def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
+        if hasattr(file_handle, "set_auto_maskandscale"):
+            file_handle.set_auto_maskandscale(auto_maskandscale)
+
+    def _set_xarray_kwargs(self, xarray_kwargs, auto_maskandscale):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
-        self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
+        self._xarray_kwargs.setdefault('mask_and_scale', auto_maskandscale)
+
+    def collect_metadata(self, name, obj):
+        """Collect all file variables and attributes for the provided file object.
+
+        This method also iterates through subgroups of the provided object.
+        """
+        # Look through each subgroup
+        base_name = name + "/" if name else ""
+        self._collect_groups_info(base_name, obj)
+        self._collect_variables_info(base_name, obj)
+        if not name:
+            self._collect_global_attrs(obj)
+        else:
+            self._collect_attrs(name, obj)
+
+    def _collect_groups_info(self, base_name, obj):
+        for group_name, group_obj in obj.groups.items():
+            full_group_name = base_name + group_name
+            self.file_content[full_group_name] = group_obj
+            self._collect_attrs(full_group_name, group_obj)
+            self.collect_metadata(full_group_name, group_obj)
+
+    def _collect_variables_info(self, base_name, obj):
+        for var_name, var_obj in obj.variables.items():
+            var_name = base_name + var_name
+            self._collect_variable_info(var_name, var_obj)
+
+    def _collect_variable_info(self, var_name, var_obj):
+        self.file_content[var_name] = var_obj
+        self.file_content[var_name + "/dtype"] = var_obj.dtype
+        self.file_content[var_name + "/shape"] = var_obj.shape
+        self.file_content[var_name + "/dimensions"] = var_obj.dimensions
+        self._collect_attrs(var_name, var_obj)
+
+    def _collect_listed_variables(self, file_handle, listed_variables):
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
+            parts = itm.split('/')
+            grp = file_handle
+            for p in parts[:-1]:
+                if p == "attr":
+                    n = '/'.join(parts)
+                    self.file_content[n] = self._get_attr_value(grp, parts[-1])
+                    break
+                grp = grp[p]
+            if p != "attr":
+                var_obj = grp[parts[-1]]
+                self._collect_variable_info(itm, var_obj)
+                self.collect_dimensions(itm, grp)
+
+    @staticmethod
+    def _get_required_variable_names(listed_variables, variable_name_replacements):
+        variable_names = []
+        for var in listed_variables:
+            if variable_name_replacements and '{' in var:
+                _compose_replacement_names(variable_name_replacements, var, variable_names)
+            else:
+                variable_names.append(var)
+        return variable_names
 
     def __del__(self):
         """Delete the file handler."""
@@ -157,43 +220,13 @@ class NetCDF4FileHandler(BaseFileHandler):
             pass
         return value
 
-    def collect_metadata(self, name, obj):
-        """Collect all file variables and attributes for the provided file object.
-
-        This method also iterates through subgroups of the provided object.
-        """
-        # Look through each subgroup
-        base_name = name + "/" if name else ""
-        self._collect_groups_info(base_name, obj)
-        self._collect_variables_info(base_name, obj)
-        if not name:
-            self._collect_global_attrs(obj)
-        else:
-            self._collect_attrs(name, obj)
-
-    def _collect_groups_info(self, base_name, obj):
-        for group_name, group_obj in obj.groups.items():
-            full_group_name = base_name + group_name
-            self.file_content[full_group_name] = group_obj
-            self._collect_attrs(full_group_name, group_obj)
-            self.collect_metadata(full_group_name, group_obj)
-
-    def _collect_variables_info(self, base_name, obj):
-        for var_name, var_obj in obj.variables.items():
-            var_name = base_name + var_name
-            self.file_content[var_name] = var_obj
-            self.file_content[var_name + "/dtype"] = var_obj.dtype
-            self.file_content[var_name + "/shape"] = var_obj.shape
-            self.file_content[var_name + "/dimensions"] = var_obj.dimensions
-            self._collect_attrs(var_name, var_obj)
-
     def collect_dimensions(self, name, obj):
         """Collect dimensions."""
         for dim_name, dim_obj in obj.dimensions.items():
             dim_name = "{}/dimension/{}".format(name, dim_name)
             self.file_content[dim_name] = len(dim_obj)
 
-    def collect_cache_vars(self, cache_vars, obj):
+    def collect_cache_vars(self, cache_var_size):
         """Collect data variables for caching.
 
         This method will collect some data variables and store them in RAM.
@@ -204,14 +237,24 @@ class NetCDF4FileHandler(BaseFileHandler):
         Should be called later than `collect_metadata`.
 
         Args:
-            cache_vars (List[str]): Names of data variables to be cached.
-            obj (netCDF4.Dataset): Dataset object from which to read them.
+            cache_var_size (int): Maximum size of the collected variables in bytes
 
         """
+        if cache_var_size == 0:
+            return
+
+        cache_vars = self._collect_cache_var_names(cache_var_size)
         for var_name in cache_vars:
             v = self.file_content[var_name]
             self.cached_file_content[var_name] = xr.DataArray(
                     v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+
+    def _collect_cache_var_names(self, cache_var_size):
+        return [varname for (varname, var)
+                in self.file_content.items()
+                if isinstance(var, netCDF4.Variable)
+                and isinstance(var.dtype, np.dtype)  # vlen may be str
+                and var.size * var.dtype.itemsize < cache_var_size]
 
     def __getitem__(self, key):
         """Get item for given key."""
@@ -287,3 +330,22 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self[item]
         else:
             return default
+
+    def get_and_cache_npxr(self, var_name):
+        """Get and cache variable as DataArray[numpy]."""
+        if var_name in self.cached_file_content:
+            return self.cached_file_content[var_name]
+        v = self.file_content[var_name]
+        if isinstance(v, xr.DataArray):
+            return v
+        self.cached_file_content[var_name] = xr.DataArray(
+            v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+        return self.cached_file_content[var_name]
+
+
+def _compose_replacement_names(variable_name_replacements, var, variable_names):
+    for key in variable_name_replacements:
+        vals = variable_name_replacements[key]
+        for val in vals:
+            if key in var:
+                variable_names.append(var.format(**{key: val}))
