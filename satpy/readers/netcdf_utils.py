@@ -209,6 +209,9 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
+    def _get_object_attrs(self, obj):
+        return obj.__dict__
+
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
         for key in self._get_object_attrs(obj):
@@ -223,6 +226,9 @@ class NetCDF4FileHandler(BaseFileHandler):
         except ValueError:
             pass
         return value
+
+    def _get_attr(self, obj, key):
+        return getattr(obj, key)
 
     def collect_dimensions(self, name, obj):
         """Collect dimensions."""
@@ -325,10 +331,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             g = self.file_handle[group]
         v = g[key]
-        try:
-            attrs = dict(v.attrs)
-        except AttributeError:
-            attrs = v.__attrs__
+        attrs = self._get_object_attrs(v)
         x = xr.DataArray(
                 da.from_array(v), dims=v.dimensions, attrs=attrs,
                 name=v.name)
