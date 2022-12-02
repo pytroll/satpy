@@ -63,13 +63,22 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
 class FakeH5Variable:
     """Class for faking h5netcdf.Variable class."""
 
-    def __init__(self, dims, data, name, attrs=None):
+    def __init__(self, data):
         """Initialize the class."""
-        self.dimensions = dims
+        self.dimensions = ()
+        self.name = "name"
+        self.attrs = {}
+        self.dtype = None
         self._data = data
-        self.name = name
-        self.dtype = data.dtype
-        self.attrs = attrs or {}
+        self._set_meta()
+
+    def _set_meta(self):
+        if hasattr(self._data, "dims"):
+            self.dimensions = self._data.dims
+        if hasattr(self._data, "dtype"):
+            self.dtype = self._data.dtype
+        if hasattr(self._data, "attrs"):
+            self.attrs = self._data.attrs
 
     def __array__(self):
         """Get the array data.."""
@@ -103,23 +112,18 @@ def _get_test_calib_for_channel_ir(data, meas_path):
     from pyspectral.blackbody import C_SPEED as c
     from pyspectral.blackbody import H_PLANCK as h
     from pyspectral.blackbody import K_BOLTZMANN as k
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(
-        (), xr.DataArray(955), "name")
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(
-        (), xr.DataArray(1), "name")
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(
-        (), xr.DataArray(0.4), "name")
-    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(
-        (), xr.DataArray(1e11 * 2 * h * c ** 2), "name")
-    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(
-        (), xr.DataArray(1e2 * h * c / k), "name")
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(xr.DataArray(955))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(xr.DataArray(1))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(xr.DataArray(0.4))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(xr.DataArray(1e11 * 2 * h * c ** 2))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(xr.DataArray(1e2 * h * c / k))
     return data
 
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
-        ('x'), xr.DataArray(da.repeat(da.array([149597870.7]), 6000)), "name")
-    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable((), xr.DataArray(50), "name")
+        xr.DataArray(da.repeat(da.array([149597870.7]), 6000), dims=("x")))
+    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(xr.DataArray(50))
     return data
 
 
@@ -146,27 +150,29 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
         data_without_fires = da.ones((n_rows_cols[0] - 1, n_rows_cols[1]), dtype="uint16", chunks=1024)
         d = FakeH5Variable(
-            ("y", "x"),
-            xr.DataArray(da.concatenate([fire_line, data_without_fires], axis=0)),
-            "name",
-            attrs={
-                "valid_range": [0, 8191],
-                "warm_scale_factor": 2,
-                "warm_add_offset": -300,
-                **common_attrs
-            }
+            xr.DataArray(
+                da.concatenate([fire_line, data_without_fires], axis=0),
+                dims=('y', 'x'),
+                attrs={
+                    "valid_range": [0, 8191],
+                    "warm_scale_factor": 2,
+                    "warm_add_offset": -300,
+                    **common_attrs
+                }
+            )
         )
     else:
         d = FakeH5Variable(
-            ("y", "x"),
-            xr.DataArray(da.ones(n_rows_cols, dtype="uint16", chunks=1024)),
-            "name",
-            attrs={
-                "valid_range": [0, 4095],
-                "warm_scale_factor": 1,
-                "warm_add_offset": 0,
-                **common_attrs
-            }
+            xr.DataArray(
+                da.ones(n_rows_cols, dtype="uint16", chunks=1024),
+                dims=("y", "x"),
+                attrs={
+                    "valid_range": [0, 4095],
+                    "warm_scale_factor": 1,
+                    "warm_add_offset": 0,
+                    **common_attrs
+                }
+            )
         )
 
     data[ch_path] = d
@@ -175,21 +181,21 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
 
 def _get_test_segment_position_for_channel(data, ch_str, n_rows_cols):
     pos = "data/{:s}/measured/{:s}_position_{:s}"
-    data[pos.format(ch_str, "start", "row")] = FakeH5Variable((), xr.DataArray(1), "name")
-    data[pos.format(ch_str, "start", "column")] = FakeH5Variable((), xr.DataArray(1), "name")
-    data[pos.format(ch_str, "end", "row")] = FakeH5Variable((), xr.DataArray(n_rows_cols[0]), "name")
-    data[pos.format(ch_str, "end", "column")] = FakeH5Variable((), xr.DataArray(n_rows_cols[1]), "name")
+    data[pos.format(ch_str, "start", "row")] = FakeH5Variable(xr.DataArray(1))
+    data[pos.format(ch_str, "start", "column")] = FakeH5Variable(xr.DataArray(1))
+    data[pos.format(ch_str, "end", "row")] = FakeH5Variable(xr.DataArray(n_rows_cols[0]))
+    data[pos.format(ch_str, "end", "column")] = FakeH5Variable(xr.DataArray(n_rows_cols[1]))
 
 
 def _get_test_index_map_for_channel(data, ch_str, n_rows_cols):
     index_map_path = "data/{:s}/measured/index_map".format(ch_str)
-    data[index_map_path] = FakeH5Variable(("y", "x"), xr.DataArray(
-        (da.ones(n_rows_cols)) * 110, dims=("y", "x")), "name")
+    data[index_map_path] = FakeH5Variable(xr.DataArray(
+        (da.ones(n_rows_cols)) * 110, dims=("y", "x")))
 
 
 def _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols):
     qual_path = "data/{:s}/measured/pixel_quality".format(ch_str)
-    data[qual_path] = FakeH5Variable(("y", "x"), xr.DataArray((da.ones(n_rows_cols)) * 3, dims=("y", "x")), "name")
+    data[qual_path] = FakeH5Variable(xr.DataArray((da.ones(n_rows_cols)) * 3, dims=("y", "x")))
 
 
 def _get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols):
@@ -247,14 +253,13 @@ def _get_test_content_aux_data():
         # skip population of earth_sun_distance as this is already defined for reflectance calculation
         if key == 'earth_sun_distance':
             continue
-        data[value] = FakeH5Variable(
-            ("index"), xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index")), "name")
+        data[value] = FakeH5Variable(xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index")))
 
     # compute the last data entry to simulate the FCI caching
     # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
     data['index'] = FakeH5Variable(
-        ("index"), xr.DataArray(da.ones(indices_dim, dtype="uint16") * 100, dims=("index")), "name")
+        xr.DataArray(da.ones(indices_dim, dtype="uint16") * 100, dims=("index")))
     return data
 
 
