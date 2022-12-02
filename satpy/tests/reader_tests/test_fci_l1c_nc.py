@@ -186,13 +186,13 @@ def _get_test_segment_position_for_channel(data, ch_str, n_rows_cols):
 
 def _get_test_index_map_for_channel(data, ch_str, n_rows_cols):
     index_map_path = "data/{:s}/measured/index_map".format(ch_str)
-    data[index_map_path] = FakeH5Variable(
+    data[index_map_path] = xr.DataArray(
         (da.ones(n_rows_cols)) * 110, dims=("y", "x"))
 
 
 def _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols):
     qual_path = "data/{:s}/measured/pixel_quality".format(ch_str)
-    data[qual_path] = FakeH5Variable((da.ones(n_rows_cols)) * 3, dims=("y", "x"))
+    data[qual_path] = xr.DataArray((da.ones(n_rows_cols)) * 3, dims=("y", "x"))
 
 
 def _get_test_geolocation_for_channel(data, ch_str, grid_type, n_rows_cols):
@@ -250,12 +250,12 @@ def _get_test_content_aux_data():
         # skip population of earth_sun_distance as this is already defined for reflectance calculation
         if key == 'earth_sun_distance':
             continue
-        data[value] = FakeH5Variable(da.arange(indices_dim, dtype="float32"), dims=("index"))
+        data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
 
     # compute the last data entry to simulate the FCI caching
     # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
-    data['index'] = FakeH5Variable(
+    data['index'] = xr.DataArray(
         da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
     return data
 
