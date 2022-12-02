@@ -420,13 +420,6 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
             it is up to the caller to "finalize" the image before using it
             except if calling ``img.show()`` or providing the image to
             a writer as these will finalize the image.
-
-    .. versionchanged:: 0.10
-
-        Deprecated `enhancement_config_file` and 'enhancer' in favor of
-        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
-        instead.
-
     """
     if enhance is False:
         # no enhancement

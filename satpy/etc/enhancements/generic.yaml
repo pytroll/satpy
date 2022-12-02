@@ -381,12 +381,15 @@ enhancements:
   cloud_top_height:
     standard_name: cloud_top_height
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_alti_pal
+            color_scale: 255
+            min_value: 0
+            max_value: 255
+
   cloud_top_pressure:
     standard_name: cloud_top_pressure
     operations:

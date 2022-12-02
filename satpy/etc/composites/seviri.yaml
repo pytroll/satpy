@@ -219,11 +219,17 @@ composites:
     - ct_pal
     standard_name: cloudtype
 
+    #  cloud_top_height:
+    #    compositor: !!python/name:satpy.composites.PaletteCompositor
+    #    prerequisites:
+    #    - ctth_alti
+    #    - ctth_alti_pal
+    #    standard_name: cloud_top_height
+
   cloud_top_height:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_alti
-    - ctth_alti_pal
     standard_name: cloud_top_height
 
   cloud_top_pressure:

@@ -326,17 +326,17 @@ def colorize(img, **kwargs):
     If multiple palettes are supplied, they are concatenated before applied.
 
     """
-    full_cmap = _merge_colormaps(kwargs)
+    full_cmap = _merge_colormaps(kwargs, img)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
     """Palettize the given image (no color interpolation)."""
-    full_cmap = _merge_colormaps(kwargs)
+    full_cmap = _merge_colormaps(kwargs, img)
     img.palettize(full_cmap)
 
 
-def _merge_colormaps(kwargs):
+def _merge_colormaps(kwargs, img):
     """Merge colormaps listed in kwargs."""
     from trollimage.colormap import Colormap
     full_cmap = None
@@ -346,7 +346,7 @@ def _merge_colormaps(kwargs):
         full_cmap = palette
     else:
         for itm in palette:
-            cmap = create_colormap(itm)
+            cmap = create_colormap(itm, img)
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -355,7 +355,7 @@ def _merge_colormaps(kwargs):
     return full_cmap
 
 
-def create_colormap(palette):
+def create_colormap(palette, img):
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -415,6 +415,11 @@ def create_colormap(palette):
     key in the provided dictionary (ex. ``{'colors': 'blues'}``).
     See :doc:`trollimage:colormap` for the full list of available colormaps.
 
+    **From an auxiliary variable**
+
+    If the colormap is defined in the same dataset as the data to which the
+    colormap shall be applied,
+
     **Color Scale**
 
     By default colors are expected to be in a 0-255 range. This
@@ -436,6 +441,7 @@ def create_colormap(palette):
     """
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
+    dataset = palette.get("dataset", None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
@@ -447,6 +453,8 @@ def create_colormap(palette):
 
         from trollimage import colormap
         cmap = copy.copy(getattr(colormap, colors))
+    elif isinstance(dataset, str):
+        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
 
@@ -476,8 +484,13 @@ def _create_colormap_from_sequence(colors, palette, color_scale):
 
 
 def _create_colormap_from_file(filename, palette, color_scale):
-    from trollimage.colormap import Colormap
     data = _read_colormap_data_from_file(filename)
+    return _create_colormap_from_data(data, palette, color_scale)
+
+
+def _create_colormap_from_data(data, palette, color_scale):
+    """Create a colormap from an array that came from a file."""
+    from trollimage.colormap import Colormap
     cols = data.shape[1]
     default_modes = {
         3: 'RGB',
@@ -516,6 +529,22 @@ def _read_colormap_data_from_file(filename):
         return file_content
     # CSV
     return np.loadtxt(filename, delimiter=",")
+
+
+def _create_colormap_from_dataset(img, dataset, color_scale):
+    """Create a colormap from an auxiliary variable in a source file."""
+    matches = [x for x in img.data.ancillary_variables if x.attrs.get("name") == dataset]
+    cnt = len(matches)
+    if cnt < 0:
+        raise ValueError(
+            f"Could not find colormap named {dataset:s} in ancillary "
+            f"variables for dataset '{img.data.attrs.get('name'):s}'")
+    if cnt > 1:
+        raise ValueError(
+            f"Expected exactly one colormap named {dataset:s} in ancillary "
+            f"variables for dataset '{img.data.attrs.get('name'):s}', "
+            f"found {cnt:d}")
+    return _create_colormap_from_data(matches[0], {}, color_scale)
 
 
 def three_d_effect(img, **kwargs):
