@@ -358,7 +358,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             try:
                 val = v[:]
-                val = xr.DataArray(val, dims=v.dimensions, attrs=dict(v.attrs), name=v.name)
+                val = xr.DataArray(val, dims=v.dimensions, attrs=self._get_object_attrs(v), name=v.name)
             except IndexError:
                 # Handle scalars
                 val = v.__array__().item()
