@@ -114,6 +114,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from functools import cached_property
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -122,7 +123,7 @@ from pyresample import geometry
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FileHandler
+from .netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FileHandler):
+class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -290,8 +291,11 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         measured = self.get_channel_measured_group_path(key['name'])
         data = self[measured + "/effective_radiance"]
 
-        attrs = data.attrs.copy()
+        attrs = dict(data.attrs).copy()
         info = info.copy()
+        if not isinstance(data, xr.DataArray):
+            data = xr.DataArray(
+                da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
 
         fv = attrs.pop(
             "FillValue",
@@ -396,7 +400,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
-
+        if not isinstance(lut, xr.DataArray):
+            attrs = dict(lut.attrs.items()).copy()
+            lut = xr.DataArray(
+                da.from_array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
 
@@ -448,16 +455,16 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             coord_radian = self.get_and_cache_npxr(measured + "/{:s}".format(coord))
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.scale_factor > 0:
+            if coord == "x" and coord_radian.attrs['scale_factor'] > 0:
                 coord_radian.attrs['scale_factor'] *= -1
 
             # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-            if type(coord_radian.scale_factor) is np.float32:
+            if type(coord_radian.attrs['scale_factor']) is np.float32:
                 coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
-            if type(coord_radian.add_offset) is np.float32:
+            if type(coord_radian.attrs['add_offset']) is np.float32:
                 coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
 
-            coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
+            coord_radian_num = coord_radian[:] * coord_radian.attrs['scale_factor'] + coord_radian.attrs['add_offset']
 
             # FCI defines pixels by centroids (see PUG), while pyresample
             # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
@@ -471,9 +478,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
 
             # South-West corner (x positive, y negative)
-            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor / 2
+            first_coord_radian = coord_radian_num[0] - coord_radian.attrs['scale_factor'] / 2
             # North-East corner (x negative, y positive)
-            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor / 2
+            last_coord_radian = coord_radian_num[-1] + coord_radian.attrs['scale_factor'] / 2
 
             # convert to arc length in m
             first_coord = first_coord_radian * h  # arc length in m
