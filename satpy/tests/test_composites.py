@@ -708,8 +708,8 @@ def test_pmode_compositor(fake_area, tmp_path):
             attrs={
                 "area": fake_area,
                 "ancillary_variables": [sc["ctth_alti_pal"]]})
-    sc.load(["cloud_top_height"], image_mode="P")
-    im = get_enhanced_image(sc["cloud_top_height"])
+    sc.load(["cloud_top_height"])
+    im = get_enhanced_image(sc["cloud_top_height"], image_mode="P")
     assert im.mode == "P"
     np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
     np.testing.assert_array_equal(im.data.sel(bands="P"), fake_alti)
