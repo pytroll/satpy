@@ -361,10 +361,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        nominal_and_proj_subsat_lon = float(mtg_geos_proj.longitude_of_projection_origin)
+        nominal_and_proj_subsat_lon = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         nominal_and_proj_subsat_lat = 0
-        nominal_and_proj_sat_alt = float(mtg_geos_proj.perspective_point_height)
+        nominal_and_proj_sat_alt = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
         orb_param_dict = {
             'orbital_parameters': {
@@ -447,8 +448,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        h = float(mtg_geos_proj.perspective_point_height)
+        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
         extents = {}
         for coord in "xy":
@@ -515,12 +515,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         if key['resolution'] in self._cache:
             return self._cache[key['resolution']]
 
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        a = float(mtg_geos_proj.semi_major_axis)
-        h = float(mtg_geos_proj.perspective_point_height)
-        rf = float(mtg_geos_proj.inverse_flattening)
-        lon_0 = float(mtg_geos_proj.longitude_of_projection_origin)
-        sweep = str(mtg_geos_proj.sweep_angle_axis)
+        a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
+        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
+        lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'

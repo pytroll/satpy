@@ -325,8 +325,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             g = self.file_handle[group]
         v = g[key]
+        try:
+            attrs = dict(v.attrs)
+        except AttributeError:
+            attrs = v.__attrs__
         x = xr.DataArray(
-                da.from_array(v), dims=v.dimensions, attrs=v.__dict__,
+                da.from_array(v), dims=v.dimensions, attrs=attrs,
                 name=v.name)
         return x
 
@@ -347,9 +351,19 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self.cached_file_content[var_name]
         v = self.file_content[var_name]
         if isinstance(v, xr.DataArray):
-            return v
-        self.cached_file_content[var_name] = xr.DataArray(
-            v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+            val = v
+        else:
+            try:
+                val = v[:]
+                val = xr.DataArray(val, dims=v.dimensions, attrs=dict(v.attrs), name=v.name)
+            except IndexError:
+                # Handle scalars
+                val = v.__array__().item()
+                val = xr.DataArray(val, dims=(), attrs={}, name=var_name)
+            except AttributeError:
+                # Handle strings
+                val = v
+        self.cached_file_content[var_name] = val
         return self.cached_file_content[var_name]
 
 
@@ -363,6 +377,16 @@ def _compose_replacement_names(variable_name_replacements, var, variable_names):
 
 class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
     """NetCDF4 file handler using fsspec to read files remotely."""
+
+    def __getitem__(self, key):
+        """Get item for given key."""
+        from h5netcdf import Group, Variable
+        val = self.file_content[key]
+        if isinstance(val, Variable):
+            return self._get_variable(key, val)
+        if isinstance(val, Group):
+            return self._get_group(key, val)
+        return val
 
     def _get_file_handle(self):
         import h5netcdf
