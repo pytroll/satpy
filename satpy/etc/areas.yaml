@@ -338,7 +338,7 @@ SouthAmerica:
 mtg_fci_fdss_500m:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 1 km resolution
+    with 500 m SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -358,7 +358,7 @@ mtg_fci_fdss_500m:
 mtg_fci_fdss_1km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 1 km resolution
+    with 1 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -378,7 +378,7 @@ mtg_fci_fdss_1km:
 mtg_fci_fdss_2km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 2 km resolution
+    with 2 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -399,7 +399,7 @@ mtg_fci_fdss_2km:
 mtg_fci_fdss_6km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 6 km resolution
+    with 6 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -419,7 +419,7 @@ mtg_fci_fdss_6km:
 mtg_fci_fdss_32km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 32 km resolution
+    with 32 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
