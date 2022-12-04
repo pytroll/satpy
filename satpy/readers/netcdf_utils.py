@@ -97,6 +97,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
         self.file_content = {}
         self.cached_file_content = {}
+        self._use_h5netcdf = False
         try:
             file_handle = self._get_file_handle()
         except IOError:
@@ -381,8 +382,23 @@ def _compose_replacement_names(variable_name_replacements, var, variable_names):
 class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
     """NetCDF4 file handler using fsspec to read files remotely."""
 
+    def _get_file_handle(self):
+        try:
+            # Default to using NetCDF4 backend for local files
+            return super()._get_file_handle()
+        except FileNotFoundError:
+            import h5netcdf
+            f_obj = open_file_or_filename(self.filename)
+            self._use_h5netcdf = True
+            return h5netcdf.File(f_obj, 'r')
+
     def __getitem__(self, key):
         """Get item for given key."""
+        if self._use_h5netcdf:
+            return self._getitem_h5netcdf(key)
+        return super().__getitem__(key)
+
+    def _getitem_h5netcdf(self, key):
         from h5netcdf import Group, Variable
         val = self.file_content[key]
         if isinstance(val, Variable):
@@ -391,12 +407,12 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
             return self._get_group(key, val)
         return val
 
-    def _get_file_handle(self):
-        import h5netcdf
-        f_obj = open_file_or_filename(self.filename)
-        return h5netcdf.File(f_obj, 'r')
-
     def _collect_cache_var_names(self, cache_var_size):
+        if self._use_h5netcdf:
+            return self._collect_cache_var_names_h5netcdf(cache_var_size)
+        return super()._collect_cache_var_names(cache_var_size)
+
+    def _collect_cache_var_names_h5netcdf(self, cache_var_size):
         from h5netcdf import Variable
         return [varname for (varname, var)
                 in self.file_content.items()
@@ -405,7 +421,11 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
                 and np.prod(var.shape) * var.dtype.itemsize < cache_var_size]
 
     def _get_object_attrs(self, obj):
-        return obj.attrs
+        if self._use_h5netcdf:
+            return obj.attrs
+        return super()._get_object_attrs(obj)
 
     def _get_attr(self, obj, key):
-        return obj.attrs[key]
+        if self._use_h5netcdf:
+            return obj.attrs[key]
+        return super()._get_object_attrs(obj)
