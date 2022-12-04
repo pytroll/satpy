@@ -749,7 +749,7 @@ class TestFCIL1cNCReaderBadData:
         """Test handling of bad IR data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-            with caplog.at_level("ERROR"):
+            with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="ir_105",
                     calibration="brightness_temperature")], pad_data=False)
@@ -759,7 +759,7 @@ class TestFCIL1cNCReaderBadData:
         """Test handling of bad VIS data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-            with caplog.at_level("ERROR"):
+            with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="vis_06",
                     calibration="reflectance")], pad_data=False)
