@@ -769,7 +769,7 @@ class TestFCIL1cNCReaderBadData:
 class TestFCIL1cNCReaderBadDataFromIDPF:
     """Test the FCI L1c NetCDF Reader for bad data input, specifically the IDPF issues."""
 
-    def test_handling_bad_earthsun_distance(self, reader_configs, caplog):
+    def test_handling_bad_earthsun_distance(self, reader_configs):
         """Test handling of bad earth-sun distance data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
