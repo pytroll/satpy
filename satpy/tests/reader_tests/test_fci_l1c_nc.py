@@ -390,7 +390,19 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables)
+    clear_cache(reader)
     return reader
+
+
+def clear_cache(reader):
+    """Clear the cache for file handlres in reader."""
+    for key in reader.file_handlers:
+        fhs = reader.file_handlers[key]
+        for fh in fhs:
+            try:
+                fh.cached_file_content = {}
+            except AttributeError:
+                pass
 
 
 _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
