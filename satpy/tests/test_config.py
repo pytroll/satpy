@@ -480,6 +480,22 @@ class TestConfigObject:
         with satpy.config.set(config_path='/single/string/paths/are/bad'):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
 
+    def test_defaults(self):
+        """Check default config."""
+        import satpy
+        keys_exp = {
+            'tmp_dir',
+            'cache_dir',
+            'cache_lonlats',
+            'cache_sensor_angles',
+            'config_path',
+            'data_dir',
+            'demo_data_dir',
+            'download_aux',
+            'sensor_angles_position_preference',
+        }
+        assert set(satpy.config.to_dict().keys()) == keys_exp
+
 
 def _os_specific_multipaths():
     exp_paths = ['/my/configs1', '/my/configs2', '/my/configs3']

@@ -163,14 +163,15 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Download the LUTs needed for count->Refl/BT conversion."""
         import pathlib
         import shutil
-        import tempfile
+
+        from satpy import config
 
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)
 
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
-        tempdir = tempfile.gettempdir()
+        tempdir = config["tmp_dir"]
         fname = os.path.join(tempdir, 'tmp.tgz')
         # Download the LUTs
         self._download_luts(fname)
