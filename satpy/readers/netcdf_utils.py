@@ -386,7 +386,8 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         try:
             # Default to using NetCDF4 backend for local files
             return super()._get_file_handle()
-        except FileNotFoundError:
+        except OSError:
+            # The netCDF4 lib raises either FileNotFoundError or OSError for remote files. OSError catches both.
             import h5netcdf
             f_obj = open_file_or_filename(self.filename)
             self._use_h5netcdf = True
