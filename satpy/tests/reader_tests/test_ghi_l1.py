@@ -338,7 +338,6 @@ class Test_HDF_GHI_L1_cal:
         res = reader.load(band_names)
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
-        print("\n\n\n")
         for band_name in band_names:
             np.testing.assert_allclose(np.array(res[band_name].attrs['area'].area_extent),
                                        np.array(AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]))
