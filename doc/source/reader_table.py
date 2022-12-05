@@ -38,7 +38,7 @@ def rst_table_row(columns=None):
     return row
 
 
-def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
+def rst_table_header(name=None, header=None, header_rows=1, widths="auto", class_name="datatable"):
     """Create header for rst table.
 
     Args:
@@ -59,7 +59,7 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
     table_header = (f".. list-table:: {name}\n"
                     f"    :header-rows: {header_rows}\n"
                     f"    :widths: {widths}\n"
-                    f"    :class: datatable\n\n"
+                    f"    :class: {class_name}\n\n"
                     f"{header}")
 
     return table_header
