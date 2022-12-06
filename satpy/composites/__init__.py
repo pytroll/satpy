@@ -23,6 +23,7 @@ import warnings
 import dask.array as da
 import numpy as np
 import xarray as xr
+from trollimage.colormap import Colormap
 
 import satpy
 from satpy.aux_download import DataDownloadMixin
@@ -533,36 +534,10 @@ class ColormapCompositor(GenericCompositor):
           will be used as values of the colormap.
 
         """
-        from trollimage.colormap import Colormap
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
-        set_range = True
-        if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
-            set_range = False
-            meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, squeezed_palette)
-        else:
-            iterator = enumerate(squeezed_palette[:-1])
+        cmap = Colormap.from_xrda(palette, dtype, info)
 
-        if dtype == np.dtype('uint8'):
-            tups = [(val, tuple(tup))
-                    for (val, tup) in iterator]
-            colormap = Colormap(*tups)
-
-        elif 'valid_range' in info:
-            tups = [(val, tuple(tup))
-                    for (val, tup) in iterator]
-            colormap = Colormap(*tups)
-
-            if set_range:
-                sf = info.get('scale_factor', np.array(1))
-                colormap.set_range(
-                    *(np.array(info['valid_range']) * sf
-                      + info.get('add_offset', 0)))
-        else:
-            raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
-                                 " in order to be displayable with an attached color-palette!")
-
-        return colormap, squeezed_palette
+        return cmap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
