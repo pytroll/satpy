@@ -480,21 +480,19 @@ class TestConfigObject:
         with satpy.config.set(config_path='/single/string/paths/are/bad'):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
 
-    def test_defaults(self):
-        """Check default config."""
+    def test_tmp_dir_is_writable(self):
+        """Check that the default temporary directory is writable."""
         import satpy
-        keys_exp = {
-            'tmp_dir',
-            'cache_dir',
-            'cache_lonlats',
-            'cache_sensor_angles',
-            'config_path',
-            'data_dir',
-            'demo_data_dir',
-            'download_aux',
-            'sensor_angles_position_preference',
-        }
-        assert set(satpy.config.to_dict().keys()) == keys_exp
+        assert _is_writable(satpy.config["tmp_dir"])
+
+
+def _is_writable(directory):
+    import tempfile
+    try:
+        with tempfile.TemporaryFile(dir=directory):
+            return True
+    except OSError:
+        return False
 
 
 def _os_specific_multipaths():
