@@ -138,9 +138,8 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
-        if (dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature'] and
-            self.mask_bad_quality_scan_lines):  # noqa: E129
-
+        is_calibration = dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
             dataset = self._mask_bad_quality(dataset, dataset_info)
 
         self._update_attrs(dataset, dataset_info)

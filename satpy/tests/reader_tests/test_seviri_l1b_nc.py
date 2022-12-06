@@ -257,37 +257,9 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         res = fh.calibrate(fh.nc[key], dataset_id)
         xr.testing.assert_allclose(res, expected)
 
-    @pytest.mark.parametrize(
-        ('channel', 'calibration', 'use_ext_coefs'),
-        [
-            # VIS channel, internal coefficients
-            ('VIS006', 'counts', False),
-            ('VIS006', 'radiance', False),
-            ('VIS006', 'reflectance', False),
-            # VIS channel, external coefficients
-            ('VIS006', 'radiance', True),
-            ('VIS006', 'reflectance', True),
-            # IR channel, internal coefficients
-            ('IR_108', 'counts', False),
-            ('IR_108', 'radiance', False),
-            ('IR_108', 'brightness_temperature', False),
-            # IR channel, external coefficients
-            ('IR_108', 'radiance', True),
-            ('IR_108', 'brightness_temperature', True),
-            # FUTURE: Enable once HRV reading has been fixed.
-            # # HRV channel, internal coefficiens
-            # ('HRV', 'counts', False),
-            # ('HRV', 'radiance', False),
-            # ('HRV', 'reflectance', False),
-            # # HRV channel, external coefficients (mode should have no effect)
-            # ('HRV', 'radiance', True),
-            # ('HRV', 'reflectance', True),
-        ]
-    )
-    def test_mask_bad_quality(
-            self, file_handler, channel, calibration, use_ext_coefs
-    ):
-        """Test the calibration."""
+    def test_mask_bad_quality(self, file_handler):
+        """Test masking of bad quality scan lines."""
+        channel = 'VIS006'
         key = channel_keys_dict[channel]
         dataset_info = {
             'nc_key': key,
@@ -295,15 +267,14 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
         }
-        external_coefs = self.external_coefs if use_ext_coefs else {}
         expected = self._get_expected(
             channel=channel,
-            calibration=calibration,
+            calibration='radiance',
             calib_mode='NOMINAL',
-            use_ext_coefs=use_ext_coefs
+            use_ext_coefs=False
         )
+
         fh = file_handler
-        fh.ext_calib_coefs = external_coefs
 
         res = fh._mask_bad_quality(fh.nc[key], dataset_info)
         new_data = np.zeros_like(expected.data).astype('float32')

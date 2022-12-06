@@ -629,9 +629,9 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key['calibration'])
-        if (key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature'] and
-            self.mask_bad_quality_scan_lines):  # noqa: E129
 
+        is_calibration = key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
             res = self._mask_bad_quality(res)
 
         if key['name'] == 'HRV' and self.fill_hrv:
