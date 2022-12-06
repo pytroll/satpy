@@ -151,7 +151,7 @@ def _calibrate(data,
     if calib_type == 'counts':
         return channel
 
-    channel = channel.astype(np.float)
+    channel = channel.astype(np.float_)
 
     return da.where(mask, channel, np.nan)
 

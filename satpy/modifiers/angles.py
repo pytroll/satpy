@@ -111,7 +111,7 @@ class ZarrCacheHelper:
                  func: Callable,
                  cache_config_key: str,
                  uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
-                 sanitize_args_func: Callable = None,
+                 sanitize_args_func: Optional[Callable] = None,
                  cache_version: int = 1,
                  ):
         """Hold on to provided arguments for future use."""
@@ -131,7 +131,7 @@ class ZarrCacheHelper:
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
             shutil.rmtree(zarr_dir, ignore_errors=True)
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: Union[None, int, str] = None) -> str:
         if cache_version is None:
             cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
@@ -222,7 +222,7 @@ def _get_output_chunks_from_func_arguments(args):
 def cache_to_zarr_if(
         cache_config_key: str,
         uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
-        sanitize_args_func: Callable = None,
+        sanitize_args_func: Optional[Callable] = None,
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
 
