@@ -26,7 +26,7 @@ composites:
       - wavelength: 0.51
         modifiers: [sunz_corrected, rayleigh_corrected]
       - wavelength: 0.85
-        modifiers:  sunz_corrected]
+        modifiers:  [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_true_color_reproduction:
