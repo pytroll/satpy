@@ -25,6 +25,8 @@ import numpy as np
 from satpy.dataset import DataID, DataQuery
 from satpy.writers import ImageWriter, get_enhanced_image
 
+from PIL import Image
+
 IMAGEDESCRIPTION = 270
 
 LOG = logging.getLogger(__name__)
@@ -672,11 +674,20 @@ class MITIFFWriter(ImageWriter):
 
         """
         from libtiff import TIFF
+        import os
 
-        tif = TIFF.open(gen_filename, mode='wb')
-
+        bs, ex = os.path.splitext(gen_filename)
+        tmp_gen_filename = gen_filename
+        if ex.endswith('mitiff'):
+            bd = os.path.dirname(bs)
+            bn = os.path.basename(bs)
+            tmp_gen_filename = os.path.join(bd, '.' + bn + '.tif')
+        tif = TIFF.open("test.mitiff", mode='wb')
         tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
+        tiffinfo = {}
+        tiffinfo[IMAGEDESCRIPTION] = (image_description).encode('utf-8')
 
+        mitiff_frames = []
         cns = self.translate_channel_name.get(kwargs['sensor'], {})
         if isinstance(datasets, list):
             LOG.debug("Saving datasets as list")
@@ -688,8 +699,11 @@ class MITIFFWriter(ImageWriter):
                         data = self._calibrate_data(dataset, dataset.attrs['calibration'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
-                        tif.write_image(data.astype(np.uint8), compression='deflate')
+                        #tif.write_image(data.astype(np.uint8), compression='deflate')
+                        mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
                         break
+            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:], 
+                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
         elif 'dataset' in datasets.attrs['name']:
             self._save_single_dataset(datasets, cns, tif, kwargs)
         elif self.palette:
@@ -698,7 +712,9 @@ class MITIFFWriter(ImageWriter):
         else:
             LOG.debug("Saving datasets as enhanced image")
             self._save_as_enhanced(tif, datasets, **kwargs)
-        del tif
+        #del tif
+        os.rename(tmp_gen_filename, gen_filename)
+        
 
     def _save_single_dataset(self, datasets, cns, tif, kwargs):
         LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
