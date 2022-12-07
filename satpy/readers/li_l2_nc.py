@@ -47,23 +47,29 @@ class LIL2NCFileHandler(LINCFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
         """Initialize LIL2NCFileHandler."""
-        self.with_area_def = with_area_definition
         super(LIL2NCFileHandler, self).__init__(filename, filename_info, filetype_info)
+
+        if with_area_definition and not self.prod_in_accumulation_grid:
+            logger.debug(f"The current product {filetype_info['file_desc']['product_type']} "
+                         f"is not an accumulated product so it will not be regridded.")
+            self.with_area_def = False
+        else:
+            self.with_area_def = with_area_definition
 
     def get_dataset(self, dataset_id, ds_info=None):
         """Get the dataset and apply gridding if requested."""
         data_array = super().get_dataset(dataset_id, ds_info)
         # variable_patterns are compiled to regex patterns
         # hence search variable name from swath_coordinate
-        is_var_with_swath_coord = self.is_var_with_swath_coord(dataset_id)
-        if is_var_with_swath_coord and self.with_area_def:
+        var_with_swath_coord = self.is_var_with_swath_coord(dataset_id)
+        if var_with_swath_coord and self.with_area_def:
             data_array = self.get_array_on_fci_grid(data_array)
         return data_array
 
     def get_area_def(self, dsid):
         """Compute area definition for a dataset, only supported for accumulated products."""
-        is_var_with_swath_coord = self.is_var_with_swath_coord(dsid)
-        if is_var_with_swath_coord and self.with_area_def:
+        var_with_swath_coord = self.is_var_with_swath_coord(dsid)
+        if var_with_swath_coord and self.with_area_def:
             return get_area_def('mtg_fci_fdss_2km')
 
         raise NotImplementedError('Area definition is not supported for accumulated products.')

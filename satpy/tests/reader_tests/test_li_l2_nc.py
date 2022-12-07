@@ -637,7 +637,7 @@ class TestLIL2():
             np.testing.assert_equal(lon, lon_ref)
             np.testing.assert_equal(lat, lat_ref)
 
-    def test_get_area_def(self, filetype_infos):
+    def test_get_area_def_acc_products(self, filetype_infos):
         """Test retrieval of area def for accumulated products."""
         handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'),
                                     with_area_definition=True)
@@ -647,9 +647,17 @@ class TestLIL2():
         area_def = handler.get_area_def(dsid)
         assert area_def.shape == LI_GRID_SHAPE
 
-        # Should throw for non-accum variables:
+        # Should throw for non-gridded variables:
         with pytest.raises(NotImplementedError):
             handler.get_area_def(make_dataid(name="accumulation_offsets"))
+
+    def test_get_area_def_non_acc_products(self, filetype_infos):
+        """Test retrieval of area def for non-accumulated products."""
+        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lgr_nc'),
+                                    with_area_definition=True)
+        # Should throw for non-accum products:
+        with pytest.raises(NotImplementedError):
+            handler.get_area_def(make_dataid(name="radiance"))
 
     @staticmethod
     def param_provider(_filename, filename_info, _fileype_info):
@@ -667,14 +675,6 @@ class TestLIL2():
             }
         }
 
-    def test_with_area_def(self, filetype_infos):
-        """Test accumulated products data array with area definition."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
-        dsid = make_dataid(name="flash_accumulation")
-        # Retrieve the 2D array:
-        arr = handler.get_dataset(dsid).values
-        assert arr.shape == LI_GRID_SHAPE
-
     def test_without_area_def(self, filetype_infos):
         """Test accumulated products data array without area definition."""
         # without area definition
@@ -686,6 +686,38 @@ class TestLIL2():
         # Keep the data array:
         data = handler_without_area_def.get_dataset(dsid).values
         assert data.shape == (1234,)
+
+    def test_with_area_def(self, filetype_infos):
+        """Test accumulated products data array with area definition."""
+        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        dsid = make_dataid(name="flash_accumulation")
+        # Retrieve the 2D array:
+        arr = handler.get_dataset(dsid).values
+        assert arr.shape == LI_GRID_SHAPE
+
+    def test_get_on_fci_grid_exc(self, filetype_infos):
+        """Test the execution of the get_on_fci_grid function for an accumulated gridded variable."""
+        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
+        dsid = make_dataid(name="flash_accumulation")
+        handler.get_dataset(dsid)
+        assert handler.get_array_on_fci_grid.called
+
+    def test_get_on_fci_grid_exc_non_grid(self, filetype_infos):
+        """Test the non-execution of the get_on_fci_grid function for an accumulated non-gridded variable."""
+        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
+        dsid = make_dataid(name="accumulation_offsets")
+        handler.get_dataset(dsid)
+        assert not handler.get_array_on_fci_grid.called
+
+    def test_get_on_fci_grid_exc_non_accum(self, filetype_infos):
+        """Test the non-execution of the get_on_fci_grid function for a non-accumulated variable."""
+        handler = self.handler_with_area(filetype_infos, 'li_l2_lef_nc')
+        handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
+        dsid = make_dataid(name="radiance_north_sector")
+        handler.get_dataset(dsid)
+        assert not handler.get_array_on_fci_grid.called
 
     def test_with_area_def_vars_with_no_pattern(self, filetype_infos):
         """Test accumulated products variable with no patterns and with area definition."""

@@ -248,6 +248,9 @@ class LINCFileHandler(NetCDF4FileHandler):
         patterns = self.swath_coordinates.get('variable_patterns', [])
         self.swath_coordinates['patterns'] = [re.compile(pstr) for pstr in patterns]
 
+        # check if the current product is in an accumulation grid
+        self.prod_in_accumulation_grid = self.is_prod_in_accumulation_grid()
+
         # list of paths where we should be looking for data when trying to retrieve
         # "measured variables" from the netcdf file attached to this file handler.
         self.search_paths = None
@@ -284,6 +287,11 @@ class LINCFileHandler(NetCDF4FileHandler):
     def sensor_names(self):
         """List of sensors represented in this file."""
         return self.sensors
+
+    def is_prod_in_accumulation_grid(self):
+        """Check if the current product is an accumulated product in geos grid."""
+        in_grid = self.swath_coordinates.get('projection', None) == 'mtg_geos_projection'
+        return in_grid
 
     def get_latlon_names(self):
         """Retrieve the user specified names for latitude/longitude coordinates.
@@ -531,7 +539,7 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # Register our coordinates from azimuth/elevation data
         # if the product is accumulated
-        if 'projection' in self.swath_coordinates:
+        if self.prod_in_accumulation_grid:
             self.register_coords_from_scan_angles()
 
         # First we check if we have support for sectors for this product:
@@ -747,9 +755,8 @@ class LINCFileHandler(NetCDF4FileHandler):
         # (i.e. longitude and latitude for accumulated products)
         coord_names = self.get_latlon_names()
         is_coord = ds_name in coord_names
-        is_accum = 'projection' in self.swath_coordinates
         # call only when internal variable is empty, to avoid multiple call.
-        if ds_name not in self.internal_variables and is_coord and is_accum:
+        if ds_name not in self.internal_variables and is_coord and self.prod_in_accumulation_grid:
             self.generate_coords_from_scan_angles()
 
         # Retrieve the transformed data array:
