@@ -257,7 +257,10 @@ class TestLIL2():
         assert handler.variable_path_exists("data/l1b_geolocation_warning") is True
         assert handler.variable_path_exists("data/north/event_id") is True
         assert handler.variable_path_exists("data/none/event_id") is False
-        assert handler.variable_path_exists("state/processor/north/event_id") is False
+        assert handler.variable_path_exists("/attr") is False
+        assert handler.variable_path_exists("data/l1b_geolocation_warning/dtype") is False
+        assert handler.variable_path_exists("data/l1b_geolocation_warning/shape") is False
+        assert handler.variable_path_exists("data/l1b_geolocation_warning/dimensions") is False
 
     def test_get_first_valid_variable(self, filetype_infos):
         """Test get_first_valid_variable from li reader."""
