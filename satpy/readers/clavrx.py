@@ -261,7 +261,7 @@ class _CLAVRxHelper:
             i['flag_meanings'] = '<flag_meanings_unknown>'
             i.setdefault('flag_values', [None])
         elif not i.get('SCALED', 1) and isinstance(flag_meanings, str):
-            flag_meanings = flag_meanings.split("  ")
+            i["flag_meanings"] = flag_meanings.split("  ")
         u = i.get('units')
         if u in CF_UNITS:
             # CF compliance
