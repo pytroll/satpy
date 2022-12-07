@@ -486,6 +486,12 @@ class TestConfigObject:
         assert _is_writable(satpy.config["tmp_dir"])
 
 
+def test_is_writable():
+    """Test writable directory check."""
+    assert _is_writable(os.getcwd())
+    assert not _is_writable("/foo/bar")
+
+
 def _is_writable(directory):
     import tempfile
     try:
