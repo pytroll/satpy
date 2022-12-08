@@ -429,4 +429,4 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
     def _get_attr(self, obj, key):
         if self._use_h5netcdf:
             return obj.attrs[key]
-        return super()._get_object_attrs(obj)
+        return super()._get_attr(obj, key)
