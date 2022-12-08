@@ -21,6 +21,7 @@ Based on the test for geotiff writer
 
 """
 import unittest
+from PIL import Image
 
 
 class TestMITIFFWriter(unittest.TestCase):
@@ -593,27 +594,25 @@ class TestMITIFFWriter(unittest.TestCase):
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
         pillow_tif = Image.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
-        #tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         IMAGEDESCRIPTION = 270
-        print(pillow_tif.tag_v2())
-        # imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
-        # for key in imgdesc:
-        #     if 'In this file' in key:
-        #         self.assertEqual(key, ' Channels: 1 In this file: 1')
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        for key in imgdesc:
+            if 'In this file' in key:
+                self.assertEqual(key, ' Channels: 1 In this file: 1')
 
-    def test_save_one_dataset_sesnor_set(self):
+    def test_save_one_dataset_sensor_set(self):
         """Test basic writer operation with one dataset ie. no bands."""
         import os
 
-        from libtiff import TIFF
+        from PIL import Image
 
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset_sensor_set()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
-        tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
+        pillow_tif = Image.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         IMAGEDESCRIPTION = 270
-        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
         for key in imgdesc:
             if 'In this file' in key:
                 self.assertEqual(key, ' Channels: 1 In this file: 1')
@@ -623,7 +622,7 @@ class TestMITIFFWriter(unittest.TestCase):
         import os
 
         import numpy as np
-        from libtiff import TIFF
+        from PIL import Image
 
         from satpy.writers.mitiff import MITIFFWriter
 
@@ -760,9 +759,10 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
         filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset.attrs['start_time'])
-        tif = TIFF.open(os.path.join(self.base_dir, filename))
+
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
         IMAGEDESCRIPTION = 270
-        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
         found_table_calibration = False
         number_of_calibrations = 0
         for key in imgdesc:
@@ -790,15 +790,18 @@ class TestMITIFFWriter(unittest.TestCase):
                     self.fail("Not a valid channel description i the given key.")
         self.assertTrue(found_table_calibration, "Table_calibration is not found in the imagedescription.")
         self.assertEqual(number_of_calibrations, 6)
-        for i, image in enumerate(tif.iter_images()):
-            np.testing.assert_allclose(image, expected[i], atol=1.e-6, rtol=0)
+        # for i, image in enumerate(tif.iter_images()):
+        #     np.testing.assert_allclose(image, expected[i], atol=1.e-6, rtol=0)
+        for frame_no in range(pillow_tif.n_frames):
+            pillow_tif.seek(frame_no)
+            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
+                                       expected[frame_no], atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_calibration_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel."""
         import os
 
         import numpy as np
-        from libtiff import TIFF
 
         from satpy.writers.mitiff import MITIFFWriter
 
@@ -831,9 +834,10 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
         filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset.attrs['start_time'])
-        tif = TIFF.open(os.path.join(self.base_dir, filename))
+
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
         IMAGEDESCRIPTION = 270
-        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
         found_table_calibration = False
         number_of_calibrations = 0
         for key in imgdesc:
@@ -844,15 +848,18 @@ class TestMITIFFWriter(unittest.TestCase):
                     number_of_calibrations += 1
         self.assertTrue(found_table_calibration, "Expected table_calibration is not found in the imagedescription.")
         self.assertEqual(number_of_calibrations, 1)
-        for image in tif.iter_images():
-            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+        for frame_no in range(pillow_tif.n_frames):
+            pillow_tif.seek(frame_no)
+            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
+                                       expected, atol=1.e-6, rtol=0)
+        # for image in tif.iter_images():
+        #     np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_bad_value(self):
         """Test writer operation with bad values."""
         import os
 
         import numpy as np
-        from libtiff import TIFF
 
         from satpy.writers.mitiff import MITIFFWriter
 
@@ -864,9 +871,11 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
         filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
                                                          dataset.attrs['start_time'])
-        tif = TIFF.open(os.path.join(self.base_dir, filename))
-        for image in tif.iter_images():
-            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
+        for frame_no in range(pillow_tif.n_frames):
+            pillow_tif.seek(frame_no)
+            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((2, 5)),
+                                       expected, atol=1.e-6, rtol=0)
 
     def test_convert_proj4_string(self):
         """Test conversion of geolocations."""
@@ -921,39 +930,38 @@ class TestMITIFFWriter(unittest.TestCase):
         import os
 
         import numpy as np
-        from libtiff import TIFF
 
         from satpy.writers.mitiff import MITIFFWriter
 
         expected = np.full((100, 200), 0)
 
-        exp_c = ([0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                 [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                 [2, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        exp_c = [0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 2, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-        color_map = [[0, 3], [1, 4], [2, 5]]
+        color_map = (0, 1, 2, 3, 4, 5)
         pal_desc = ['test', 'test2']
         unit = "Test"
 
@@ -968,14 +976,15 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset, **palette)
         filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
                                                          dataset.attrs['start_time'])
-        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
         # Need to check PHOTOMETRIC is 3, ie palette
-        self.assertEqual(tif.GetField('PHOTOMETRIC'), 3)
-        colormap = tif.GetField('COLORMAP')
+        self.assertEqual(pillow_tif.tag_v2.get(262), 3)
         # Check the colormap of the palette image
+        palette = pillow_tif.palette
+        colormap = list((palette.getdata())[1])
         self.assertEqual(colormap, exp_c)
         IMAGEDESCRIPTION = 270
-        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
         found_color_info = False
         unit_name_found = False
         name_length_found = False
@@ -1002,8 +1011,10 @@ class TestMITIFFWriter(unittest.TestCase):
         self.assertEqual(unit_name, ' Test')
         # Check the palette description of the palette
         self.assertEqual(names, [' test', ' test2'])
-        for image in tif.iter_images():
-            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+        for frame_no in range(pillow_tif.n_frames):
+            pillow_tif.seek(frame_no)
+            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
+                                       expected, atol=1.e-6, rtol=0)
 
     def test_simple_write_two_bands(self):
         """Test basic writer operation with 3 bands from 2 prerequisites."""
@@ -1016,8 +1027,6 @@ class TestMITIFFWriter(unittest.TestCase):
         """Test basic writer operation with 3 bands with DataQuery prerequisites with missing name."""
         import os
 
-        from libtiff import TIFF
-
         from satpy.writers.mitiff import MITIFFWriter
         IMAGEDESCRIPTION = 270
 
@@ -1026,8 +1035,8 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
         filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
                                                          dataset.attrs['start_time'])
-        tif = TIFF.open(os.path.join(self.base_dir, filename))
-        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
         for element in imgdesc:
             if ' Channels:' in element:
                 self.assertEqual(element, ' Channels: 3 In this file: 1 2 3')
