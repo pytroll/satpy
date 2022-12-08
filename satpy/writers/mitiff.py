@@ -369,7 +369,7 @@ class MITIFFWriter(ImageWriter):
                     elif ds.attrs['prerequisites'][i].get('calibration') == 'brightness_temperature':
                         found_calibration = True
                         _table_calibration += ', BT, '
-                        _table_calibration += f"\N{DEGREE SIGN}"
+                        _table_calibration += "\N{DEGREE SIGN}"
                         _table_calibration += u'[C]'
 
                         _reverse_offset = 255.
