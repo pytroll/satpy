@@ -21,11 +21,10 @@ import logging
 
 import dask
 import numpy as np
+from PIL import Image, ImagePalette
 
 from satpy.dataset import DataID, DataQuery
 from satpy.writers import ImageWriter, get_enhanced_image
-
-from PIL import Image, ImagePalette
 
 IMAGEDESCRIPTION = 270
 
