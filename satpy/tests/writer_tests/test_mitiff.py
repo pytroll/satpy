@@ -20,8 +20,9 @@
 Based on the test for geotiff writer
 
 """
-import unittest
 import logging
+import unittest
+
 from PIL import Image
 
 logger = logging.getLogger()
