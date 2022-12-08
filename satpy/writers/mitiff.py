@@ -369,7 +369,7 @@ class MITIFFWriter(ImageWriter):
                     elif ds.attrs['prerequisites'][i].get('calibration') == 'brightness_temperature':
                         found_calibration = True
                         _table_calibration += ', BT, '
-                        _table_calibration += f"\N{DEGREE SIGN}"  #u'\u00B0'  # '\u2103'
+                        _table_calibration += f"\N{DEGREE SIGN}"
                         _table_calibration += u'[C]'
 
                         _reverse_offset = 255.
@@ -650,14 +650,14 @@ class MITIFFWriter(ImageWriter):
             LOG.debug("Needs to regenerate mitiff image description")
         image_description = self._make_image_description(img.data, **kwargs)
         tiffinfo[IMAGEDESCRIPTION] = (image_description).encode('utf-8')
-            
+
         mitiff_frames = []
         for band in img.data['bands']:
             chn = img.data.sel(bands=band)
             data = chn.values.clip(0, 1) * 254. + 1
             data = data.clip(0, 255)
             mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
-        mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:], 
+        mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
                               compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
 
     def _save_datasets_as_mitiff(self, datasets, image_description,
@@ -692,7 +692,7 @@ class MITIFFWriter(ImageWriter):
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
                         mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
                         break
-            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:], 
+            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
                                   compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
         elif 'dataset' in datasets.attrs['name']:
             self._save_single_dataset(datasets, cns, tmp_gen_filename, tiffinfo, kwargs)
@@ -703,7 +703,6 @@ class MITIFFWriter(ImageWriter):
             LOG.debug("Saving datasets as enhanced image")
             self._save_as_enhanced(datasets, tmp_gen_filename, **kwargs)
         os.rename(tmp_gen_filename, gen_filename)
-        
 
     def _save_single_dataset(self, datasets, cns, tmp_gen_filename, tiffinfo, kwargs):
         LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
@@ -717,7 +716,8 @@ class MITIFFWriter(ImageWriter):
             data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0].get('calibration'),
                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
-            Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+            Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
+                                                        compress_level=9, tiffinfo=tiffinfo)
         else:
             for _cn_i, _cn in enumerate(self.channel_order[kwargs['sensor']]):
                 for band in datasets['bands']:
@@ -731,5 +731,6 @@ class MITIFFWriter(ImageWriter):
                                                     self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
-                        Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+                        Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
+                                                                    compress_level=9, tiffinfo=tiffinfo)
                         break
