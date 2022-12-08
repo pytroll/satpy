@@ -190,7 +190,7 @@ class TestCLAVRXReaderGeo:
                     assert v.attrs['units'] == '1'
                     assert isinstance(v.attrs['area'], AreaDefinition)
                     assert v.attrs['platform_name'] == 'himawari8'
-                    assert v.attrs['sensor'] == 'AHI'
+                    assert v.attrs['sensor'] == 'ahi'
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
                     if v.attrs["name"] in ["variable1", "variable2"]:
                         assert isinstance(v.attrs["valid_range"], list)
