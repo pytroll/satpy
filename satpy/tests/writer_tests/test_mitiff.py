@@ -21,8 +21,10 @@ Based on the test for geotiff writer
 
 """
 import unittest
-
+import logging
 from PIL import Image
+
+logger = logging.getLogger()
 
 
 class TestMITIFFWriter(unittest.TestCase):
@@ -1042,3 +1044,59 @@ class TestMITIFFWriter(unittest.TestCase):
         for element in imgdesc:
             if ' Channels:' in element:
                 self.assertEqual(element, ' Channels: 3 In this file: 1 2 3')
+
+    def test_save_dataset_with_calibration_error_one_dataset(self):
+        """Test saving if mitiff as dataset with only one channel with invalid calibration."""
+        import sys
+
+        from satpy.tests.utils import make_dsq
+        from satpy.writers.mitiff import MITIFFWriter
+        logger.level = logging.DEBUG
+
+        dataset = self._get_test_dataset_calibration_one_dataset()
+        prereqs = [make_dsq(name='4', calibration='not_valid_calibration_name')]
+        dataset.attrs['prerequisites'] = prereqs
+        w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
+        _reverse_offset = 0.
+        _reverse_scale = 1.
+        _decimals = 2
+        stream_handler = logging.StreamHandler(sys.stdout)
+        logger.addHandler(stream_handler)
+        try:
+            with self.assertLogs(logger) as lc:
+                w._add_calibration_datasets(4, dataset, _reverse_offset, _reverse_scale, _decimals)
+                for _op in lc.output:
+                    self.assertIn("Unknown calib type. Must be Radiance, Reflectance or BT.", _op)
+        finally:
+            logger.removeHandler(stream_handler)
+
+    def test_save_dataset_with_missing_palette(self):
+        """Test saving if mitiff missing palette."""
+        import os
+        import sys
+
+        from satpy.writers.mitiff import MITIFFWriter
+        stream_handler = logging.StreamHandler(sys.stdout)
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.DEBUG)
+
+        dataset = self._get_test_one_dataset()
+        pal_desc = ['test', 'test2']
+        unit = "Test"
+        palette = {'palette': True,
+                   'palette_description': pal_desc,
+                   'palette_unit': unit,
+                   'palette_channel_name': dataset.attrs['name']}
+        w = MITIFFWriter(base_dir=self.base_dir)
+        tiffinfo = {}
+        tiffinfo[270] = "Just dummy image desc".encode('utf-8')
+        filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
+                                                         dataset.attrs['start_time'])
+        try:
+            with self.assertLogs(logger, logging.ERROR) as lc:
+                w._save_as_palette(dataset.compute(), os.path.join(self.base_dir, filename), tiffinfo, **palette)
+            for _op in lc.output:
+                self.assertIn(("In a mitiff palette image a color map must be provided: "
+                               "palette_color_map is missing."), _op)
+        finally:
+            logger.removeHandler(stream_handler)

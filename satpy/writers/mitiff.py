@@ -636,7 +636,8 @@ class MITIFFWriter(ImageWriter):
             if 'palette_color_map' in kwargs:
                 img.putpalette(ImagePalette.ImagePalette('RGB', kwargs['palette_color_map']))
             else:
-                LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+                LOG.error("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+                return
 
             img.save(tmp_gen_filename, compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
 
@@ -694,6 +695,7 @@ class MITIFFWriter(ImageWriter):
             mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
                                   compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
         elif 'dataset' in datasets.attrs['name']:
+            LOG.debug("Saving dataset as single dataset.")
             self._save_single_dataset(datasets, cns, tmp_gen_filename, tiffinfo, kwargs)
         elif self.palette:
             LOG.debug("Saving dataset as palette.")
