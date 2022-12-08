@@ -415,8 +415,8 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         mda = {
             'image_segment_line_quality': {
                 'line_validity': np.array([3, 3]),
-                'line_radiometric_quality': np.array([3, 3]),
-                'line_geometric_quality': np.array([3, 3])
+                'line_radiometric_quality': np.array([4, 4]),
+                'line_geometric_quality': np.array([4, 4])
             },
         }
 
@@ -496,6 +496,7 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         fh = file_handler
 
         res = fh._mask_bad_quality(expected)
+        print(res)
         new_data = np.zeros_like(expected.data).astype('float32')
         new_data[:, :] = np.nan
         expected = expected.copy(data=new_data)

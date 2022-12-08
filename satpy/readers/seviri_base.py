@@ -948,7 +948,7 @@ def _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_r
             Quality flags with shape (nlines,).
 
     Returns:
-        numpy.ndarray
+        numpy.ndarray: Indicating if the scan line is bad.
     """
     # Based on missing (2) or corrupted (3) data
     line_mask = line_validity >= 2
@@ -977,5 +977,5 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     """
     line_mask = _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality)
     line_mask = line_mask[:, np.newaxis]
-    data = data.where(line_mask, np.nan).astype(np.float32)
+    data = data.where(~line_mask, np.nan).astype(np.float32)
     return data
