@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
 
+import os
 import logging
 
 import dask
@@ -660,6 +661,16 @@ class MITIFFWriter(ImageWriter):
         mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
                               compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
 
+    def _generate_intermediate_filename(self, gen_filename):
+        """Replace mitiff ext because pillow doesn't recognise the file type."""
+        bs, ex = os.path.splitext(gen_filename)
+        tmp_gen_filename = gen_filename
+        if ex.endswith('mitiff'):
+            bd = os.path.dirname(bs)
+            bn = os.path.basename(bs)
+            tmp_gen_filename = os.path.join(bd, '.' + bn + '.tif')
+        return tmp_gen_filename
+
     def _save_datasets_as_mitiff(self, datasets, image_description,
                                  gen_filename, **kwargs):
         """Put all together and save as a tiff file.
@@ -667,14 +678,7 @@ class MITIFFWriter(ImageWriter):
         Include the special tags making it a mitiff file.
 
         """
-        import os
-
-        bs, ex = os.path.splitext(gen_filename)
-        tmp_gen_filename = gen_filename
-        if ex.endswith('mitiff'):
-            bd = os.path.dirname(bs)
-            bn = os.path.basename(bs)
-            tmp_gen_filename = os.path.join(bd, '.' + bn + '.tif')
+        tmp_gen_filename = self._generate_intermediate_filename(gen_filename)
         tiffinfo = {}
         tiffinfo[IMAGEDESCRIPTION] = (image_description).encode('latin-1')
 

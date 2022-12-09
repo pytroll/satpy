@@ -20,8 +20,10 @@
 Based on the test for geotiff writer
 
 """
+import os
 import logging
 import unittest
+import numpy as np
 
 from PIL import Image
 
@@ -275,7 +277,6 @@ class TestMITIFFWriter(unittest.TestCase):
         """Create a single test dataset."""
         from datetime import datetime
 
-        import numpy as np
         import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
@@ -536,6 +537,19 @@ class TestMITIFFWriter(unittest.TestCase):
                                      10.8]})
         return ds1
 
+    def _read_back_mitiff_and_check(self, filename, expected, test_shape=(100, 200)):
+        pillow_tif = Image.open(filename)
+        for frame_no in range(pillow_tif.n_frames):
+            pillow_tif.seek(frame_no)
+            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape(test_shape),
+                                       expected[frame_no], atol=1.e-6, rtol=0)
+
+    def _imagedescription_from_mitiff(self, filename):
+        pillow_tif = Image.open(filename)
+        IMAGEDESCRIPTION = 270
+        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        return imgdesc
+
     def test_init(self):
         """Test creating the writer with no arguments."""
         from satpy.writers.mitiff import MITIFFWriter
@@ -550,81 +564,50 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_datasets(self):
         """Test basic writer operation save_datasets."""
-        import os
-
-        import numpy as np
-
         from satpy.writers.mitiff import MITIFFWriter
-        expected = np.full((100, 200), 0)
+        expected = [np.full((100, 200), 0)]
         dataset = self._get_test_datasets()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_datasets(dataset)
         filename = (dataset[0].attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset[0].attrs['start_time'])
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
-                                       expected, atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_datasets_sensor_set(self):
         """Test basic writer operation save_datasets."""
-        import os
-
-        import numpy as np
-
         from satpy.writers.mitiff import MITIFFWriter
-        expected = np.full((100, 200), 0)
+        expected = [np.full((100, 200), 0)]
         dataset = self._get_test_datasets_sensor_set()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_datasets(dataset)
         filename = (dataset[0].attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset[0].attrs['start_time'])
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
-                                       expected, atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_one_dataset(self):
         """Test basic writer operation with one dataset ie. no bands."""
-        import os
-
-
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
-        pillow_tif = Image.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
-        IMAGEDESCRIPTION = 270
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         for key in imgdesc:
             if 'In this file' in key:
                 self.assertEqual(key, ' Channels: 1 In this file: 1')
 
     def test_save_one_dataset_sensor_set(self):
         """Test basic writer operation with one dataset ie. no bands."""
-        import os
-
-
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset_sensor_set()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
-        pillow_tif = Image.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
-        IMAGEDESCRIPTION = 270
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         for key in imgdesc:
             if 'In this file' in key:
                 self.assertEqual(key, ' Channels: 1 In this file: 1')
 
     def test_save_dataset_with_calibration(self):
         """Test writer operation with calibration."""
-        import os
-
-        import numpy as np
-        from PIL import Image
-
         from satpy.writers.mitiff import MITIFFWriter
 
         expected_ir = np.full((100, 200), 255)
@@ -761,9 +744,7 @@ class TestMITIFFWriter(unittest.TestCase):
         filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset.attrs['start_time'])
 
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        IMAGEDESCRIPTION = 270
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         found_table_calibration = False
         number_of_calibrations = 0
         for key in imgdesc:
@@ -791,22 +772,13 @@ class TestMITIFFWriter(unittest.TestCase):
                     self.fail("Not a valid channel description i the given key.")
         self.assertTrue(found_table_calibration, "Table_calibration is not found in the imagedescription.")
         self.assertEqual(number_of_calibrations, 6)
-        # for i, image in enumerate(tif.iter_images()):
-        #     np.testing.assert_allclose(image, expected[i], atol=1.e-6, rtol=0)
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
-                                       expected[frame_no], atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_dataset_with_calibration_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel."""
-        import os
-
-        import numpy as np
-
         from satpy.writers.mitiff import MITIFFWriter
 
-        expected = np.full((100, 200), 255)
+        expected = [np.full((100, 200), 255)]
         expected_key_channel = [u'Table_calibration: BT, BT, °[C], 8, [ 50.00 49.22 48.43 47.65 46.86 46.08 45.29 '
                                 '44.51 43.73 42.94 42.16 41.37 40.59 39.80 39.02 38.24 37.45 36.67 35.88 35.10 34.31 '
                                 '33.53 32.75 31.96 31.18 30.39 29.61 28.82 28.04 27.25 26.47 25.69 24.90 24.12 23.33 '
@@ -836,9 +808,7 @@ class TestMITIFFWriter(unittest.TestCase):
         filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset.attrs['start_time'])
 
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        IMAGEDESCRIPTION = 270
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         found_table_calibration = False
         number_of_calibrations = 0
         for key in imgdesc:
@@ -849,32 +819,21 @@ class TestMITIFFWriter(unittest.TestCase):
                     number_of_calibrations += 1
         self.assertTrue(found_table_calibration, "Expected table_calibration is not found in the imagedescription.")
         self.assertEqual(number_of_calibrations, 1)
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
-                                       expected, atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_dataset_with_bad_value(self):
         """Test writer operation with bad values."""
-        import os
-
-        import numpy as np
-
         from satpy.writers.mitiff import MITIFFWriter
 
-        expected = np.array([[0, 4, 1, 37, 73],
-                             [110, 146, 183, 219, 255]])
-
+        _expected = np.array([[0, 4, 1, 37, 73],
+                              [110, 146, 183, 219, 255]])
+        expected = [_expected, _expected, _expected]
         dataset = self._get_test_dataset_with_bad_values()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
         filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
                                                          dataset.attrs['start_time'])
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((2, 5)),
-                                       expected, atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected, test_shape=(2, 5))
 
     def test_convert_proj4_string(self):
         """Test conversion of geolocations."""
@@ -926,13 +885,9 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
-        import os
-
-        import numpy as np
-
         from satpy.writers.mitiff import MITIFFWriter
 
-        expected = np.full((100, 200), 0)
+        expected = [np.full((100, 200), 0)]
 
         exp_c = [0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -982,8 +937,7 @@ class TestMITIFFWriter(unittest.TestCase):
         palette = pillow_tif.palette
         colormap = list((palette.getdata())[1])
         self.assertEqual(colormap, exp_c)
-        IMAGEDESCRIPTION = 270
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         found_color_info = False
         unit_name_found = False
         name_length_found = False
@@ -1010,10 +964,7 @@ class TestMITIFFWriter(unittest.TestCase):
         self.assertEqual(unit_name, ' Test')
         # Check the palette description of the palette
         self.assertEqual(names, [' test', ' test2'])
-        for frame_no in range(pillow_tif.n_frames):
-            pillow_tif.seek(frame_no)
-            np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
-                                       expected, atol=1.e-6, rtol=0)
+        self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_simple_write_two_bands(self):
         """Test basic writer operation with 3 bands from 2 prerequisites."""
@@ -1024,18 +975,14 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_get_test_dataset_three_bands_prereq(self):
         """Test basic writer operation with 3 bands with DataQuery prerequisites with missing name."""
-        import os
-
         from satpy.writers.mitiff import MITIFFWriter
-        IMAGEDESCRIPTION = 270
 
         dataset = self._get_test_dataset_three_bands_prereq()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
         filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
                                                          dataset.attrs['start_time'])
-        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        imgdesc = (pillow_tif.tag_v2.get(IMAGEDESCRIPTION)).split('\n')
+        imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         for element in imgdesc:
             if ' Channels:' in element:
                 self.assertEqual(element, ' Channels: 3 In this file: 1 2 3')
@@ -1067,7 +1014,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_dataset_with_missing_palette(self):
         """Test saving if mitiff missing palette."""
-        import os
         import sys
 
         from satpy.writers.mitiff import MITIFFWriter
