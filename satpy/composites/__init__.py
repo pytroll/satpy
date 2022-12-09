@@ -535,7 +535,11 @@ class ColormapCompositor(GenericCompositor):
 
         """
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
-        cmap = Colormap.from_xrda(palette, dtype, info)
+        cmap = Colormap.from_array_with_metadata(
+                palette,
+                dtype,
+                color_scale=255,
+                **info)
 
         return cmap, squeezed_palette
 
