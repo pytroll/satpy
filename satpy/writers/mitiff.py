@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
 
-import os
 import logging
+import os
 
 import dask
 import numpy as np

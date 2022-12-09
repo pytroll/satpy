@@ -20,11 +20,11 @@
 Based on the test for geotiff writer
 
 """
-import os
 import logging
+import os
 import unittest
-import numpy as np
 
+import numpy as np
 from PIL import Image
 
 logger = logging.getLogger()
