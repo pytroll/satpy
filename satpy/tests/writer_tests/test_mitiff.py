@@ -553,7 +553,6 @@ class TestMITIFFWriter(unittest.TestCase):
         import os
 
         import numpy as np
-        from PIL import Image
 
         from satpy.writers.mitiff import MITIFFWriter
         expected = np.full((100, 200), 0)
