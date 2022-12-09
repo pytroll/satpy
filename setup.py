@@ -35,7 +35,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
             'pooch', 'pyorbital']
 
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
                  's3fs']
@@ -70,7 +70,6 @@ extras_require = {
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
-    'mitiff': ['pylibtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
