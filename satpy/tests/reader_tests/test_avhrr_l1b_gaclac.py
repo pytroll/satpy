@@ -519,7 +519,7 @@ class TestGetDataset(GACLACFilePatcher):
 
         key = make_dataid(name='1', calibration='reflectance')
         info = {'name': '1', 'standard_name': 'my_standard_name'}
-        res = fh.get_dataset(dsid=key, info=info)
+        res = fh.get_dataset(key=key, info=info)
         return key, res
 
     @staticmethod
@@ -577,5 +577,5 @@ class TestGetDataset(GACLACFilePatcher):
 
         for key in [make_dataid(name='1', calibration='counts'),
                     make_dataid(name='5', calibration='brightness_temperature')]:
-            fh.get_dataset(dsid=key, info={'name': 1})
+            fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(key)
