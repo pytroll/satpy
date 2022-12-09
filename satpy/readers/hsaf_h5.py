@@ -29,8 +29,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
-area_x_offset = 1211
-area_y_offset = 62
+AREA_X_OFFSET = 1211
+AREA_Y_OFFSET = 62
 
 
 class HSAFFileHandler(BaseFileHandler):
@@ -49,7 +49,12 @@ class HSAFFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get end time."""
-        return self._data_time + timedelta(hours=23, minutes=59, seconds=59)
+        return self.start_time + timedelta(hours=23, minutes=59, seconds=59)
+
+    @property
+    def start_time(self):
+        """Get start time."""
+        return self.filename_info['sensing_time']
 
     def _prepare_variable_for_palette(self, msg, ds_info):
         colormap = np.array(np.array(msg))
@@ -57,18 +62,14 @@ class HSAFFileHandler(BaseFileHandler):
 
     def get_metadata(self, msg, name):
         """Get the metadata."""
+        ds_info = {'name': name}
         if name == 'SC':
-            ds_info = {
-                'name': 'SC',
+            ds_info.update({
                 'filename': self.filename,
                 'data_time': self.start_time,
                 'nx': msg.shape[1],
                 'ny': msg.shape[0]
-            }
-        elif name == 'SC_pal':
-            ds_info = {
-                'name': 'SC_pal'
-            }
+            })
         return ds_info
 
     def get_area_def(self, dsid):
@@ -108,8 +109,8 @@ class HSAFFileHandler(BaseFileHandler):
             units: m
         """
         fd_def = get_area_def('msg_seviri_fes_3km')
-        hsaf_def = fd_def[area_y_offset:area_y_offset+916,
-                          area_x_offset:area_x_offset+1902]
+        hsaf_def = fd_def[AREA_Y_OFFSET:AREA_Y_OFFSET+916,
+                          AREA_X_OFFSET:AREA_X_OFFSET+1902]
 
         return hsaf_def
 
@@ -122,21 +123,18 @@ class HSAFFileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-        variable = None
         ds = self._get_dataset(ds_id['name'])
         ds_info = self.get_metadata(ds, ds_id['name'])
 
         if ds_id['name'] == 'SC':
-            ds_info['start_time'] = self._data_time
-            ds_info['data_time'] = self._data_time
+            ds_info['start_time'] = self.start_time
+            ds_info['data_time'] = self.start_time
+            ds_info['end_time'] = self.end_time
 
             data = da.from_array(ds, chunks=CHUNK_SIZE)
-            variable = xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
+            return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
 
         elif ds_id['name'] == 'SC_pal':
-            variable = self._prepare_variable_for_palette(ds, ds_info)
+            return self._prepare_variable_for_palette(ds, ds_info)
 
-        else:
-            raise IOError("File does not contain " + ds_id['name'] + " data")
-
-        return variable
+        raise IOError("File does not contain " + ds_id['name'] + " data")
