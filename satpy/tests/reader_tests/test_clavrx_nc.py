@@ -29,6 +29,8 @@ DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+DEFAULT_FILE_FLAGS = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                               dtype=np.byte).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
 DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
@@ -89,13 +91,11 @@ def fake_test_content(filename, **kwargs):
     variable2 = variable2.where(variable2 % 2 != 0)
 
     # category
-    variable3 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.byte),
+    variable3 = xr.DataArray(DEFAULT_FILE_FLAGS,
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
                              attrs={'SCALED': 0,
                                     '_FillValue': -128,
-                                    'flag_meanings': 'clear water supercooled mixed ice unknown',
-                                    'flag_values': [0, 1, 2, 3, 4, 5],
                                     'units': '1',
                                     })
 
@@ -197,5 +197,6 @@ class TestCLAVRXReaderGeo:
                         assert v.dtype == np.float32
                     else:
                         assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
-                        assert "_FillValue" in v.attrs.keys()
+                        assert (datasets['variable3'].attrs.get('flag_meanings') == '<flag_meanings_unknown>')
+                        assert "_FillValue" not in v.attrs.keys()
                         assert np.issubdtype(v.dtype, np.integer)
