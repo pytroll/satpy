@@ -302,6 +302,7 @@ class DataID(dict):
         self._hash = None
         self._orig_id_keys = id_keys
         self._id_keys = self.fix_id_keys(id_keys or {})
+        print(keyval_dict)
         if keyval_dict:
             curated = self.convert_dict(keyval_dict)
         else:
