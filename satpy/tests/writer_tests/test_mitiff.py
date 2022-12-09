@@ -590,7 +590,6 @@ class TestMITIFFWriter(unittest.TestCase):
         """Test basic writer operation with one dataset ie. no bands."""
         import os
 
-        from PIL import Image
 
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset()
