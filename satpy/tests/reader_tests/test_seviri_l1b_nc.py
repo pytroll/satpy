@@ -59,7 +59,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         """
         acq_time_day = np.repeat([1, 1], 11).reshape(2, 11)
         acq_time_msec = np.repeat([1000, 2000], 11).reshape(2, 11)
-        quality = np.repeat([0, 3], 11).reshape(2, 11)
+        line_validity = np.repeat([3, 3], 11).reshape(2, 11)
+        line_geom_radio_quality = np.repeat([4, 4], 11).reshape(2, 11)
         orbit_poly_start_day, orbit_poly_start_msec = to_cds_time(
             np.array([datetime(2019, 12, 31, 18),
                       datetime(2019, 12, 31, 22)],
@@ -93,15 +94,15 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 ),
                 'channel_data_visir_data_line_validity': (
                     ('num_rows_vis_ir', 'channels_vis_ir_dim'),
-                    quality
+                    line_validity
                 ),
                 'channel_data_visir_data_line_geometric_quality': (
                     ('num_rows_vis_ir', 'channels_vis_ir_dim'),
-                    quality
+                    line_geom_radio_quality
                 ),
                 'channel_data_visir_data_line_radiometric_quality': (
                     ('num_rows_vis_ir', 'channels_vis_ir_dim'),
-                    quality
+                    line_geom_radio_quality
                 ),
                 'orbit_polynomial_x': (
                     ('orbit_polynomial_dim_row',
