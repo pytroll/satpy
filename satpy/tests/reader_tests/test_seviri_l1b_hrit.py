@@ -496,8 +496,7 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         fh = file_handler
 
         res = fh._mask_bad_quality(expected)
-        print(res)
         new_data = np.zeros_like(expected.data).astype('float32')
         new_data[:, :] = np.nan
         expected = expected.copy(data=new_data)
-        xr.testing.assert_allclose(res, expected)
+        xr.testing.assert_equal(res, expected)
