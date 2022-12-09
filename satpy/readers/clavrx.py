@@ -20,7 +20,7 @@
 import logging
 import os
 from glob import glob
-from typing import Optional
+from typing import Any, Optional, Union
 
 import netCDF4
 import numpy as np
@@ -107,7 +107,7 @@ class _CLAVRxHelper:
         return attrs
 
     @staticmethod
-    def _scale_data(data_arr, scale_factor: float, add_offset: float) -> xr.DataArray:
+    def _scale_data(data_arr: Union[Any], scale_factor: float, add_offset: float) -> xr.DataArray:
         """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
         if scaling_needed:
