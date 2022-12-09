@@ -853,8 +853,6 @@ class TestMITIFFWriter(unittest.TestCase):
             pillow_tif.seek(frame_no)
             np.testing.assert_allclose(np.asarray(pillow_tif.getdata()).reshape((100, 200)),
                                        expected, atol=1.e-6, rtol=0)
-        # for image in tif.iter_images():
-        #     np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_bad_value(self):
         """Test writer operation with bad values."""
