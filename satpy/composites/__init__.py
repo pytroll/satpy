@@ -523,7 +523,7 @@ class ColormapCompositor(GenericCompositor):
 
         Deprecated since Satpy 0.39.
 
-    This compositor is deprecated.  To apply a coloramp, use a
+    This compositor is deprecated.  To apply a colormap, use a
     :class:`SingleBandCompositor` composite with a
     :func:`~satpy.enhancements.colorize` or
     :func:`~satpy.enhancements.palettize` enhancement instead.

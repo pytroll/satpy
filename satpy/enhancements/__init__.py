@@ -323,6 +323,10 @@ def colorize(img, **kwargs):
                'min_value': <float, min value to match colors to>,
                'max_value': <float, min value to match colors to>,
                'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'dataset': <str, referring to dataset containing palette>,
+               'color_scale': <int, value to be interpreted as white>,
+               'min_value': <float, see above>,
+               'max_value': <float, see above>}
 
     If multiple palettes are supplied, they are concatenated before applied.
 
@@ -332,7 +336,14 @@ def colorize(img, **kwargs):
 
 
 def palettize(img, **kwargs):
-    """Palettize the given image (no color interpolation)."""
+    """Palettize the given image (no color interpolation).
+
+    Arguments as for :func:`colorize`.
+
+    NB: to retain the palette when saving the resulting image, pass
+    ``keep_palette=True`` to the save method (either via the Scene class or
+    directly in trollimage).
+    """
     full_cmap = _merge_colormaps(kwargs, img)
     img.palettize(full_cmap)
 
