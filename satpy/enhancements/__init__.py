@@ -337,7 +337,7 @@ def palettize(img, **kwargs):
     img.palettize(full_cmap)
 
 
-def _merge_colormaps(kwargs, img):
+def _merge_colormaps(kwargs, img=None):
     """Merge colormaps listed in kwargs."""
     from trollimage.colormap import Colormap
     full_cmap = None
@@ -356,7 +356,7 @@ def _merge_colormaps(kwargs, img):
     return full_cmap
 
 
-def create_colormap(palette, img):
+def create_colormap(palette, img=None):
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -482,7 +482,11 @@ def _create_colormap_from_dataset(img, dataset, color_scale):
             f"variables for dataset '{img.data.attrs.get('name'):s}', "
             f"found {cnt:d}")
     return Colormap.from_array_with_metadata(
-            matches[0], img.data.dtype, color_scale, **img.data.attrs)
+            matches[0], img.data.dtype, color_scale,
+            valid_range=img.data.attrs.get("valid_range"),
+            scale_factor=img.data.attrs.get("scale_factor", 1),
+            add_offset=img.data.attrs.get("add_offset", 0),
+            remove_last=False)
 
 
 def three_d_effect(img, **kwargs):

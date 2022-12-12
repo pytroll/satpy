@@ -699,7 +699,7 @@ def test_pmode_compositor(fake_area, tmp_path):
     ds.to_netcdf(fk)
     sc = Scene(filenames=[os.fspath(fk)], reader=["nwcsaf-geo"])
     sc["ctth_alti_pal"] = xr.DataArray(
-            da.linspace(0, 255, 3*256, dtype="uint8").reshape(256, 3),
+            da.tile(da.arange(256), [3, 1]).T,
             dims=("pal02_colors", "pal_RGB"))
     fake_alti = da.full((2, 2), 8, chunks=2, dtype="uint8")
     sc["ctth_alti"] = xr.DataArray(

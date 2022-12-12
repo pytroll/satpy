@@ -571,7 +571,9 @@ class ColormapCompositor(GenericCompositor):
                 palette,
                 dtype,
                 color_scale=255,
-                **info)
+                valid_range=info.get("valid_range"),
+                scale_factor=info.get("scale_factor", 1),
+                add_offset=info.get("add_offset", 0))
 
         return cmap, squeezed_palette
 
