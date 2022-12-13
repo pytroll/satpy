@@ -66,7 +66,7 @@ from satpy.readers.seviri_l1b_native_hdr import (
 )
 from satpy.readers.utils import reduce_mda
 
-logger = logging.getLogger('native_msg')
+logger = logging.getLogger(__name__)
 
 
 class NativeMSGFileHandler(BaseFileHandler):
@@ -209,7 +209,7 @@ class NativeMSGFileHandler(BaseFileHandler):
                              offset=hdr_size, mode="r")
 
     def _read_header(self):
-        """Read the header info."""
+        """Read product header."""
         data = np.fromfile(self.filename,
                            dtype=self.header_type, count=1)
 
@@ -300,7 +300,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             warnings.warn("The quality flag for this file indicates not OK. Use this data with caution!", UserWarning)
 
     def _read_trailer(self):
-
+        """Read product trailer."""
         hdr_size = self.header_type.itemsize
         data_size = (self._get_data_dtype().itemsize *
                      self.mda['number_of_lines'])
@@ -475,7 +475,17 @@ class NativeMSGFileHandler(BaseFileHandler):
         return not self.mda['is_full_disk'] and not (is_rapid_scan and is_top3segments)
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get the dataset."""
+        """Get requested dataset from the FileHandler.
+
+        Args:
+            dataset_id (satpy.dataset.DataID) : DataID constructed from reader YAML-file
+            dataset_info (dict) : Additional Dataset info from YAML-file
+
+        Returns:
+            xarr (xarray.DataArray) : Xarray DataArray containing the loaded data for the
+                                      requested DataID
+
+        """
         if dataset_id['name'] not in self.mda['channel_list']:
             raise KeyError('Channel % s not available in the file' % dataset_id['name'])
         elif dataset_id['name'] not in ['HRV']:
@@ -501,6 +511,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         return dataset
 
     def _get_visir_channel(self, dataset_id):
+        """Get data for channels with nominal 3km resolution."""
         shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
         # Check if there is only 1 channel in the list as a change
         # is needed in the arrray assignment ie channl id is not present
@@ -514,6 +525,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         return data
 
     def _get_hrv_channel(self):
+        """Get data for high resolution visible (HRV) channel with 1km resolution."""
         shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
         shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
 
@@ -616,6 +628,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             )
 
     def _get_orbital_parameters(self):
+        """Get orbital parameters from metadata."""
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -722,21 +735,25 @@ class ImageBoundaries:
         return img_bounds
 
     def _get_hrv_img_shape(self):
+        """Get data shape for HRV channel."""
         nlines = int(self._mda['hrv_number_of_lines'])
         ncolumns = int(self._mda['hrv_number_of_columns'])
         return nlines, ncolumns
 
     def _get_visir_img_shape(self):
+        """Get data shape for channels with nominal 3km resolution."""
         nlines = int(self._mda['number_of_lines'])
         ncolumns = int(self._mda['number_of_columns'])
         return nlines, ncolumns
 
     @staticmethod
     def _convert_visir_bound_to_hrv(bound):
+        """Convert VIR/IR bounds to HRV."""
         return 3 * bound - 2
 
     @staticmethod
     def _check_for_valid_bounds(img_bounds):
+        """Check bounds validity."""
         len_img_bounds = [len(bound) for bound in img_bounds.values()]
 
         same_lengths = (len(set(len_img_bounds)) == 1)
