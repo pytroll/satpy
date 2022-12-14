@@ -803,11 +803,25 @@ class Scene:
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
-        self._datasets[key] = value
-        # this could raise a KeyError but never should in this case
-        ds_id = self._datasets.get_key(key)
-        self._wishlist.add(ds_id)
-        self._dependency_tree.add_leaf(ds_id)
+        if key in self:
+            old_key = self._datasets.get_key(key)
+            self._wishlist.discard(old_key)
+            del self._datasets[old_key]
+
+        name = key
+        if isinstance(key, DataID):
+            name = key['name']
+
+        # todo: handle case where name is in attrs but not equal to desired key name
+        if value.attrs.get('name', None) is None or value.attrs['name'] != name:
+            # need to handle if key is a dataid and not string
+            value.attrs['name'] = name
+
+        new_id = DataID.new_id_from_dataarray(value)
+
+        self._datasets[new_id] = value
+        self._wishlist.add(new_id)
+        self._dependency_tree.add_leaf(new_id)
 
     def __delitem__(self, key):
         """Remove the item from the scene."""
