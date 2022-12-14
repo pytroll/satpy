@@ -1,6 +1,10 @@
 reader:
-  description: FY-3D Medium Resolution Spectral Imager 2 (MERSI-2) L1B Reader
   name: mersi2_l1b
+  short_name: MERSI-2 l1b
+  long_name: MERSI-2 L1B data in HDF5 format
+  description: FY-3D Medium Resolution Spectral Imager 2 (MERSI-2) L1B Reader
+  status: Beta
+  supports_fsspec: false
   sensors: [mersi-2]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 

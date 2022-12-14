@@ -25,7 +25,7 @@ import xarray as xr
 
 from satpy.modifiers import ModifierBase
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
-from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
+from satpy.modifiers.angles import compute_relative_azimuth, get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,9 @@ class PSPRayleighReflectance(ModifierBase):
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
+            # First make sure the two azimuth angles are in the range 0-360:
+            sata = sata % 360.
+            suna = suna % 360.
 
         # get the dask array underneath
         sata = sata.data
@@ -52,11 +55,7 @@ class PSPRayleighReflectance(ModifierBase):
         suna = suna.data
         sunz = sunz.data
 
-        # First make sure the two azimuth angles are in the range 0-360:
-        sata = sata % 360.
-        suna = suna % 360.
-        ssadiff = da.absolute(suna - sata)
-        ssadiff = da.minimum(ssadiff, 360 - ssadiff)
+        ssadiff = compute_relative_azimuth(sata, suna)
         del sata, suna
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
@@ -136,7 +135,7 @@ class CO2Corrector(ModifierBase):
 
     Derived from D. Rosenfeld, "CO2 Correction of Brightness Temperature of Channel IR3.9"
     References:
-        - http://www.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
+        - https://resources.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):

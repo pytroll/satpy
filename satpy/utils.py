@@ -21,26 +21,25 @@
 from __future__ import annotations
 
 import contextlib
+import datetime
 import logging
 import os
 import warnings
+from contextlib import contextmanager
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
 import numpy as np
 import xarray as xr
 import yaml
-from yaml import BaseLoader
+from yaml import BaseLoader, UnsafeLoader
 
 from satpy import CHUNK_SIZE
 
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
 _is_logging_on = False
 TRACE_LEVEL = 5
+
+logger = logging.getLogger(__name__)
 
 
 class PerformanceWarning(Warning):
@@ -183,7 +182,18 @@ def in_ipynb():
 
 
 def lonlat2xyz(lon, lat):
-    """Convert lon lat to cartesian."""
+    """Convert lon lat to cartesian.
+
+    For a sphere with unit radius, convert the spherical coordinates
+    longitude and latitude to cartesian coordinates.
+
+    Args:
+        lon (number or array of numbers): Longitude in °.
+        lat (number or array of numbers): Latitude in °.
+
+    Returns:
+        (x, y, z) Cartesian coordinates [1]
+    """
     lat = np.deg2rad(lat)
     lon = np.deg2rad(lon)
     x = np.cos(lat) * np.cos(lon)
@@ -193,7 +203,21 @@ def lonlat2xyz(lon, lat):
 
 
 def xyz2lonlat(x, y, z, asin=False):
-    """Convert cartesian to lon lat."""
+    """Convert cartesian to lon lat.
+
+    For a sphere with unit radius, convert cartesian coordinates to spherical
+    coordinates longitude and latitude.
+
+    Args:
+        x (number or array of numbers): x-coordinate, unitless
+        y (number or array of numbers): y-coordinate, unitless
+        z (number or array of numbers): z-coordinate, unitless
+        asin (optional, bool): If true, use arcsin for calculations.
+            If false, use arctan2 for calculations.
+
+    Returns:
+        (lon, lat): Longitude and latitude in °.
+    """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:
         lat = np.rad2deg(np.arcsin(z))
@@ -291,6 +315,7 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
 def get_satpos(
         data_arr: xr.DataArray,
         preference: Optional[str] = None,
+        use_tle: bool = False
 ) -> tuple[float, float, float]:
     """Get satellite position from dataset attributes.
 
@@ -309,9 +334,14 @@ def get_satpos(
             preference is not available then the original preference list is
             used. A warning is issued when projection values have to be used because
             nothing else is available and it wasn't provided as the ``preference``.
+        use_tle: If true, try to obtain position via satellite name
+            and TLE if it can't be determined otherwise.  This requires pyorbital, skyfield,
+            and astropy to be installed and may need network access to obtain the TLE.
+            Note that even if ``use_tle`` is true, the TLE will not be used if
+            the dataset metadata contain the satellite position directly.
 
     Returns:
-        Geodetic longitude, latitude, altitude
+        Geodetic longitude, latitude, altitude [km]
 
     """
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
@@ -323,6 +353,11 @@ def get_satpos(
         lon, lat = _get_sat_lonlat(data_arr, lonlat_prefixes)
         alt = _get_sat_altitude(data_arr, alt_prefixes)
     except KeyError:
+        if use_tle:
+            logger.warning(
+                    "Orbital parameters missing from metadata.  "
+                    "Calculating from TLE using skyfield and astropy.")
+            return _get_satpos_from_platform_name(data_arr)
         raise KeyError("Unable to determine satellite position. Either the "
                        "reader doesn't provide that information or "
                        "geolocation datasets were not available.")
@@ -361,6 +396,30 @@ def _get_sat_lonlat(data_arr, key_prefixes):
         lat = orb_params['projection_latitude']
         warnings.warn('Actual satellite lon/lat not available, using projection center instead.')
     return lon, lat
+
+
+def _get_satpos_from_platform_name(cth_dataset):
+    """Get satellite position if no orbital parameters in metadata.
+
+    Some cloud top height datasets lack orbital parameter information in
+    metadata.  Here, orbital parameters are calculated based on the platform
+    name and start time, via Two Line Element (TLE) information.
+
+    Needs pyorbital, skyfield, and astropy to be installed.
+    """
+    from pyorbital.orbital import tlefile
+    from skyfield.api import EarthSatellite, load
+    from skyfield.toposlib import wgs84
+
+    name = cth_dataset.attrs["platform_name"]
+    tle = tlefile.read(name)
+    es = EarthSatellite(tle.line1, tle.line2, name)
+    ts = load.timescale()
+    gc = es.at(ts.from_datetime(
+        cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
+    (lat, lon) = wgs84.latlon_of(gc)
+    height = wgs84.height_of(gc).to("km")
+    return (lon.degrees, lat.degrees, height.value)
 
 
 def _get_first_available_item(data_dict, possible_keys):
@@ -622,3 +681,12 @@ def _merge_storage_options(storage_options, storage_opt_dict):
         storage_options = storage_opt_dict
 
     return storage_options
+
+
+@contextmanager
+def import_error_helper(dependency_name):
+    """Give more info on an import error."""
+    try:
+        yield
+    except ImportError as err:
+        raise ImportError(err.msg + f" It can be installed with the {dependency_name} package.")

@@ -1,6 +1,10 @@
 reader:
   name: amsr2_l1b
+  short_name: AMSR2 l1b
+  long_name: GCOM-W1 AMSR2 data in HDF5 format
   description: GCOM-W1 AMSR2 instrument HDF5 reader
+  status: Nominal
+  supports_fsspec: false
   # could this be a python hook ?
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [amsr2]

@@ -26,6 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+from reader_table import generate_reader_table  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -75,13 +76,18 @@ autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4'
                         'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
+# auto generate reader table from reader config files
+with open("reader_table.rst", mode="w") as f:
+    f.write(generate_reader_table())
+
 # -- General configuration -----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc',
+              'sphinx.ext.mathjax']
 
 # API docs
 apidoc_module_dir = "../../satpy"
@@ -185,7 +191,14 @@ html_static_path = ['_static']
 
 html_css_files = [
     'theme_overrides.css',  # override wide tables in RTD theme
+    'https://cdn.datatables.net/1.10.23/css/jquery.dataTables.min.css',
 ]
+
+html_js_files = [
+    'https://cdn.datatables.net/1.10.23/js/jquery.dataTables.min.js',
+    'main.js',
+]
+
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

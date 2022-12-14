@@ -29,6 +29,8 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy
+
 
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
@@ -139,7 +141,9 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                  'calibration': 'reflectance',
                  'units': '%',
                  'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+        low_res_data = np.ones((2, 2), dtype=np.float64) + 4
+        low_res_data[1, 1] = 0.0  # produces infinite ratio
+        ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         self.ds1 = ds1
@@ -153,15 +157,19 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds3.attrs['name'] += '3'
         self.ds3 = ds3
-        ds4 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 4,
+
+        # high resolution version
+        high_res_data = np.ones((2, 2), dtype=np.float64)
+        high_res_data[1, 0] = np.nan  # invalid value in one band
+        ds4 = xr.DataArray(da.from_array(high_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds4.attrs['name'] += '4'
         ds4.attrs['resolution'] = 500
         self.ds4 = ds4
 
-        # high res version
-        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
+        # high resolution version - but too big
+        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
                            attrs=attrs.copy(), dims=('y', 'x'),
                            coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
         ds4.attrs['name'] += '4'
@@ -178,7 +186,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
 
     def test_match_data_arrays(self):
-        """Test that all of the areas have to be the same resolution."""
+        """Test that all areas have to be the same resolution."""
         from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
@@ -212,8 +220,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds4.values)
-        np.testing.assert_allclose(res[1], np.array([[4.5, 4.5], [4.5, 4.5]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[6, 6], [6, 6]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[0.6, 0.6], [np.nan, 3.0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high res band is specified."""
@@ -229,8 +237,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds1.values)
-        np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[4, 4], [4, 0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[5.333333, 5.333333], [5.333333, 0]], dtype=np.float64))
 
     def test_no_units(self):
         """Test that the computed RGB has no units attribute."""
@@ -292,6 +300,39 @@ class TestDifferenceCompositor(unittest.TestCase):
         self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds2_big))
         # different resolution
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
+
+
+@pytest.fixture
+def fake_area():
+    """Return a fake 2×2 area."""
+    from pyresample.geometry import create_area_def
+    return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
+
+
+@pytest.fixture
+def fake_dataset_pair(fake_area):
+    """Return a fake pair of 2×2 datasets."""
+    ds1 = xr.DataArray(
+            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(
+            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    return (ds1, ds2)
+
+
+def test_ratio_compositor(fake_dataset_pair):
+    """Test the ratio compositor."""
+    from satpy.composites import RatioCompositor
+    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 2)
+
+
+def test_sum_compositor(fake_dataset_pair):
+    """Test the sum compositor."""
+    from satpy.composites import SumCompositor
+    comp = SumCompositor(name="sum", standard_name="channel_sum")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 12)
 
 
 class TestDayNightCompositor(unittest.TestCase):
@@ -415,14 +456,27 @@ class TestMultiFiller(unittest.TestCase):
         """Test filling."""
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
-        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
-        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
-        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
-        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
-        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
+        attrs = {"units": "K"}
+        a = xr.DataArray(
+                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        b = xr.DataArray(
+                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        c = xr.DataArray(
+                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
+                attrs=attrs.copy())
+        d = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
+                attrs=attrs.copy())
+        e = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
+                attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
 
 class TestLuminanceSharpeningCompositor(unittest.TestCase):
@@ -1025,7 +1079,6 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
-        import satpy
         from satpy.composites import StaticImageCompositor
 
         satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
@@ -1579,12 +1632,15 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         area = mock.MagicMock()
         lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
         area.get_lonlats = mock.MagicMock(return_value=[lons, []])
-        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]), attrs={'area': area})
+        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]),
+                         attrs={'area': area, 'units': 'K'})
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))
@@ -1600,3 +1656,41 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+
+
+def test_bad_sensor_yaml_configs(tmp_path):
+    """Test composite YAML file with no sensor isn't loaded.
+
+    But the bad YAML also shouldn't crash composite configuration loading.
+
+    """
+    from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+    comp_dir = tmp_path / "composites"
+    comp_dir.mkdir()
+    comp_yaml = comp_dir / "fake_sensor.yaml"
+    with satpy.config.set(config_path=[tmp_path]):
+        _create_fake_composite_config(comp_yaml)
+
+        # no sensor_name in YAML, quietly ignored
+        comps, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+        assert "fake_sensor" in comps
+        assert "fake_composite" not in comps["fake_sensor"]
+
+
+def _create_fake_composite_config(yaml_filename: str):
+    import yaml
+
+    from satpy.composites import StaticImageCompositor
+
+    with open(yaml_filename, "w") as comp_file:
+        yaml.dump({
+            "composites": {
+                "fake_composite": {
+                    "compositor": StaticImageCompositor,
+                    "url": "http://example.com/image.png",
+                },
+            },
+        },
+            comp_file,
+        )
