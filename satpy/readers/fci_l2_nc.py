@@ -123,7 +123,7 @@ class FciL2CommonFunctions(object):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        with suppress(OSError):
+        with suppress(AttributeError, OSError):
             self.nc.close()
 
 
