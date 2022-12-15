@@ -489,7 +489,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.palettize
       kwargs:
         palettes:
-          - dataset: cmic_pc_pal
+          - dataset: pc_pal
             color_scale: 255
             min_value: 0
             max_value: 255
@@ -501,7 +501,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.palettize
       kwargs:
         palettes:
-          - dataset: cmic_crr_pal
+          - dataset: crr_pal
             color_scale: 255
             min_value: 0
             max_value: 255
@@ -513,7 +513,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.palettize
       kwargs:
         palettes:
-          - dataset: cmic_crr_accum_pal
+          - dataset: crr_pal
             color_scale: 255
             min_value: 0
             max_value: 255
@@ -609,7 +609,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.palettize
       kwargs:
         palettes:
-          - dataset: assi_turb_prob_pal
+          - dataset: asii_turb_prob_pal
             color_scale: 255
             min_value: 0
             max_value: 255

@@ -680,12 +680,36 @@ class TestColorizeCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
-def test_pmode_compositor(fake_area, tmp_path):
+@pytest.mark.parametrize(
+        "data,palette,comp,label",
+        [("cma", "cma_pal", "cloudmask", "CMA"),
+         ("ct", "ct_pal", "cloudtype", "CT"),
+         ("ctth_alti", "ctth_alti_pal", "cloud_top_height", "CTTH"),
+         ("ctth_pres", "ctth_pres_pal", "cloud_top_pressure", "CTTH"),
+         ("ctth_tempe", "ctth_tempe_pal", "cloud_top_temperature", "CTTH"),
+         ("cmic_phase", "cmic_phase_pal", "cloud_top_phase", "CMIC"),
+         ("cmic_reff", "cmic_reff_pal", "cloud_drop_effective_radius", "CMIC"),
+         ("cmic_cot", "cmic_cot_pal", "cloud_optical_thickness", "CMIC"),
+         ("cmic_lwp", "cmic_lwp_pal", "cloud_liquid_water_path", "CMIC"),
+         ("cmic_iwp", "cmic_iwp_pal", "cloud_ice_water_path", "CMIC"),
+         ("pc", "pc_pal", "precipitation_probability", "PC"),
+         ("crr", "crr_pal", "convective_rain_rate", "CRR"),
+         ("crr_accum", "crr_pal", "convective_precipitation_hourly_accumulation", "CRR"),
+         ("ishai_tpw", "ishai_tpw_pal", "total_precipitable_water", "iSHAI"),
+         ("ishai_shw", "ishai_shw_pal", "showalter_index", "iSHAI"),
+         ("ishai_li", "ishai_li_pal", "lifted_index", "iSHAI"),
+         ("ci_prob30", "ci_pal", "convection_initiation_prob30", "CI"),
+         ("ci_prob60", "ci_pal", "convection_initiation_prob60", "CI"),
+         ("ci_prob90", "ci_pal", "convection_initiation_prob90", "CI"),
+         ("asii_turb_trop_prob", "asii_turb_prob_pal", "asii_prob", "ASII-NG"),
+         ("MapCellCatType", "MapCellCatType_pal", "rdt_cell_type", "RDT-CW"),
+         ])
+def test_pmode_compositor(fake_area, tmp_path, data, palette, comp, label):
     """Test pmode compositor."""
     from satpy.writers import get_enhanced_image
 
     from .. import Scene
-    fk = tmp_path / "S_NWC_CTTH_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
+    fk = tmp_path / f"S_NWC_{label:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
     # create a minimally fake netCDF file, otherwise satpy won't load the
     # composite
     ds = xr.Dataset(
@@ -698,18 +722,18 @@ def test_pmode_compositor(fake_area, tmp_path):
                 })
     ds.to_netcdf(fk)
     sc = Scene(filenames=[os.fspath(fk)], reader=["nwcsaf-geo"])
-    sc["ctth_alti_pal"] = xr.DataArray(
+    sc[palette] = xr.DataArray(
             da.tile(da.arange(256), [3, 1]).T,
             dims=("pal02_colors", "pal_RGB"))
     fake_alti = da.full((2, 2), 8, chunks=2, dtype="uint8")
-    sc["ctth_alti"] = xr.DataArray(
+    sc[data] = xr.DataArray(
             fake_alti,
             dims=("y", "x"),
             attrs={
                 "area": fake_area,
-                "ancillary_variables": [sc["ctth_alti_pal"]]})
-    sc.load(["cloud_top_height"])
-    im = get_enhanced_image(sc["cloud_top_height"])
+                "ancillary_variables": [sc[palette]]})
+    sc.load([comp])
+    im = get_enhanced_image(sc[comp])
     assert im.mode == "P"
     np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
     np.testing.assert_array_equal(im.data.sel(bands="P"), fake_alti)

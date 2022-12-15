@@ -483,7 +483,7 @@ def _create_colormap_from_dataset(img, dataset, color_scale):
     """Create a colormap from an auxiliary variable in a source file."""
     matches = [x for x in img.data.ancillary_variables if x.attrs.get("name") == dataset]
     cnt = len(matches)
-    if cnt < 0:
+    if cnt < 1:
         raise ValueError(
             f"Could not find colormap named {dataset:s} in ancillary "
             f"variables for dataset '{img.data.attrs.get('name'):s}'")
