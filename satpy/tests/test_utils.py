@@ -586,3 +586,34 @@ def test_import_error_helper():
         with import_error_helper(module):
             import unknow_dependency_module  # noqa
     assert module in str(err)
+
+
+def test_find_in_ancillary():
+    """Test finding a dataset in ancillary variables."""
+    from satpy.utils import find_in_ancillary
+    index_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "index-finger"})
+    ring_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "ring-finger"})
+
+    hand = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "hand",
+                   "ancillary_variables": [index_finger, index_finger, ring_finger]})
+
+    assert find_in_ancillary(hand, "ring-finger") is ring_finger
+    with pytest.raises(
+            ValueError,
+            match=("Expected exactly one dataset named index-finger in "
+                   "ancillary variables for dataset 'hand', found 2")):
+        find_in_ancillary(hand, "index-finger")
+    with pytest.raises(
+            ValueError,
+            match=("Could not find dataset named thumb in "
+                   "ancillary variables for dataset 'hand'")):
+        find_in_ancillary(hand, "thumb")

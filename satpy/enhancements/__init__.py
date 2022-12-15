@@ -34,6 +34,8 @@ from trollimage.xrimage import XRImage
 from satpy._compat import ArrayLike
 from satpy._config import get_config_path
 
+from ..utils import find_in_ancillary
+
 LOG = logging.getLogger(__name__)
 
 
@@ -481,19 +483,9 @@ def create_colormap(palette, img=None):
 
 def _create_colormap_from_dataset(img, dataset, color_scale):
     """Create a colormap from an auxiliary variable in a source file."""
-    matches = [x for x in img.data.ancillary_variables if x.attrs.get("name") == dataset]
-    cnt = len(matches)
-    if cnt < 1:
-        raise ValueError(
-            f"Could not find colormap named {dataset:s} in ancillary "
-            f"variables for dataset '{img.data.attrs.get('name'):s}'")
-    if cnt > 1:
-        raise ValueError(
-            f"Expected exactly one colormap named {dataset:s} in ancillary "
-            f"variables for dataset '{img.data.attrs.get('name'):s}', "
-            f"found {cnt:d}")
+    match = find_in_ancillary(img.data, dataset)
     return Colormap.from_array_with_metadata(
-            matches[0], img.data.dtype, color_scale,
+            match, img.data.dtype, color_scale,
             valid_range=img.data.attrs.get("valid_range"),
             scale_factor=img.data.attrs.get("scale_factor", 1),
             add_offset=img.data.attrs.get("add_offset", 0),
