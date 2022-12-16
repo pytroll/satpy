@@ -808,14 +808,18 @@ class Scene:
             self._wishlist.discard(old_key)
             del self._datasets[old_key]
 
+        if isinstance(value, np.ndarray):
+            value = xr.DataArray(value)
+
         name = key
         if isinstance(key, DataID):
             name = key['name']
 
-        # todo: handle case where name is in attrs but not equal to desired key name
         if value.attrs.get('name', None) is None or value.attrs['name'] != name:
-            # need to handle if key is a dataid and not string
             value.attrs['name'] = name
+
+        # not used yet but still set .name property of xr.DataArray
+        value = value.rename(name)
 
         new_id = DataID.new_id_from_dataarray(value)
 
