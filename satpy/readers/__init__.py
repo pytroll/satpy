@@ -26,9 +26,8 @@ from functools import total_ordering
 
 try:
     import fsspec
-    fsspec_module = True
 except ModuleNotFoundError:
-    fsspec_module = False
+    fsspec = None
 
 import yaml
 from yaml import UnsafeLoader
@@ -436,7 +435,7 @@ def _assign_loadables_to_reader_name(fs, loadables, reader_instance_name, reader
         dict: Dictionary with list of filepathes associated with each reader name.
 
     """
-    if fsspec_module and fs is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
+    if fsspec and fs is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
         reader_files[reader_instance_name] = [FSFile(fn, fs=fs) for fn in loadables]
     else:
         reader_files[reader_instance_name] = list(loadables)

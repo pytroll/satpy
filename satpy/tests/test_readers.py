@@ -24,17 +24,11 @@ import unittest
 from contextlib import suppress
 from unittest import mock
 
+import fsspec
 import pytest
 
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-
-try:
-    import fsspec.implementations.local
-except ImportError:
-    has_fsspec = False
-else:
-    has_fsspec = True
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -633,9 +627,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
             get_valid_reader_names([test_reader])
 
 
-@pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
+# @pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
 def test_find_files_and_readers_fsspec_fsfile(tmp_path):
-    """Test that iff an fsspec instance is passed, fsfile is returned."""
+    """Test that if an fsspec instance is passed, fsfile is returned."""
     p = (tmp_path /
          "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
          "_c20152950029000.nc")
@@ -652,6 +646,28 @@ def test_find_files_and_readers_fsspec_fsfile(tmp_path):
     assert len(ri["abi_l1b"]) == 1
     assert isinstance(ri["abi_l1b"][0], FSFile)
     assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
+
+
+def test_find_files_and_readers_fsspec_not_available(tmp_path):
+    """Test that if fsspec is not installed filepath is returned as a string."""
+    p = (tmp_path /
+         "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
+         "_c20152950029000.nc")
+    p.touch()
+
+    with mock.patch.dict('sys.modules', {'fsspec': None}):
+        # delete find_files_and_readers import and reload
+        del sys.modules['satpy.readers']
+        from satpy.readers import FSFile, find_files_and_readers
+
+        ri = find_files_and_readers(
+                base_dir=p.parent,
+                reader="abi_l1b")
+
+        assert ri.keys() == {"abi_l1b"}
+        assert len(ri["abi_l1b"]) == 1
+        assert not isinstance(ri["abi_l1b"][0], FSFile)
+        assert os.path.normpath(ri["abi_l1b"][0]) == os.path.normpath(str(p))
 
 
 class TestYAMLFiles(unittest.TestCase):
