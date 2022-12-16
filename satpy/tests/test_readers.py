@@ -627,7 +627,6 @@ class TestFindFilesAndReaders(unittest.TestCase):
             get_valid_reader_names([test_reader])
 
 
-# @pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
 def test_find_files_and_readers_fsspec_fsfile(tmp_path):
     """Test that if an fsspec instance is passed, fsfile is returned."""
     p = (tmp_path /
