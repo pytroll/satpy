@@ -70,8 +70,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   reproduced_green:
-    # JMA True Color Reproduction green band
-    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    # JMA True Color Reproduction corrected green band.
     compositor: !!python/name:satpy.composites.spectral.SpectralBlender
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
@@ -312,6 +311,8 @@ composites:
       - true_color_reproduction_corr
       - true_color_reproduction_uncorr
 
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: B03
