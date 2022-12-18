@@ -21,3 +21,13 @@ enhancements:
          stretch: log
          min_stretch: [3.,3.,3.]
          max_stretch: [150., 150., 150.]
+
+  true_color_reproduction:
+    standard_name: true_color_reproduction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: crude
+         min_stretch: [0,0,0]
+         max_stretch: [1,1,1]
