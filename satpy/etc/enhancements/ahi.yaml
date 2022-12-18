@@ -19,7 +19,7 @@ enhancements:
         method: !!python/name:satpy.enhancements.stretch
         kwargs:
          stretch: log
-         min_stretch: [3.,3.,3.]
+         min_stretch: [3.,3.,3.] # tweak min/max values for desired contrast
          max_stretch: [150., 150., 150.]
 
   true_color_reproduction:
