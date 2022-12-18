@@ -136,5 +136,3 @@ class HSAFFileHandler(BaseFileHandler):
 
         elif ds_id['name'] == 'SC_pal':
             return self._prepare_variable_for_palette(ds, ds_info)
-
-        raise IOError("File does not contain " + ds_id['name'] + " data")
