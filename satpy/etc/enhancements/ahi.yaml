@@ -10,8 +10,8 @@ enhancements:
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
 
-  true_color_reproduction:
-    standard_name: true_color_reproduction
+  true_color_reproduction_color_stretch:
+    standard_name: true_color_reproduction_color_stretch
     operations:
       - name: color
         method: !!python/name:satpy.enhancements.ahi.jma_true_color_reproduction

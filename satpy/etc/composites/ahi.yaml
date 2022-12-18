@@ -304,7 +304,7 @@ composites:
     # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
     compositor: !!python/name:satpy.composites.DayNightCompositor
-    standard_name: non_enhanced_crude_stretch_1
+    standard_name: true_color_reproduction
     lim_low: 73.
     lim_high: 85.
     prerequisites:
@@ -320,7 +320,7 @@ composites:
       - name: reproduced_green
       - name: B01
         modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: true_color_reproduction
+    standard_name: true_color_reproduction_color_stretch
 
   true_color_reproduction_uncorr:
     # JMA True Color Reproduction uncorrected composite.
@@ -329,7 +329,7 @@ composites:
       - name: B03
       - name: reproduced_green_uncorr
       - name: B01
-    standard_name: true_color_reproduction
+    standard_name: true_color_reproduction_color_stretch
 
 #  true_color_reducedsize_land:
 #    compositor: !!python/name:satpy.composites.GenericCompositor
