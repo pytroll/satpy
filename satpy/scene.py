@@ -818,12 +818,15 @@ class Scene:
         if value.attrs.get('name', None) is None or value.attrs['name'] != name:
             value.attrs['name'] = name
 
+        value.attrs.pop('_satpy_id', None)
         # not used yet but still set .name property of xr.DataArray
-        value = value.rename(name)
+        if value.name != name:
+            value = value.rename(name)
 
-        new_id = DataID.new_id_from_dataarray(value)
+        # new_id = DataID.new_id_from_dataarray(value)
 
-        self._datasets[new_id] = value
+        self._datasets[key] = value
+        new_id = self._datasets.get_key(key)
         self._wishlist.add(new_id)
         self._dependency_tree.add_leaf(new_id)
 
