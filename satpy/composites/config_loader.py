@@ -25,11 +25,7 @@ from functools import lru_cache, update_wrapper
 from typing import Callable, Iterable
 
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
+from yaml import UnsafeLoader
 
 import satpy
 from satpy import DataID, DataQuery

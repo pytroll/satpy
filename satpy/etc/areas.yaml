@@ -86,7 +86,7 @@ msg_seviri_iodc_3km:
     with 3 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -103,7 +103,7 @@ msg_seviri_iodc_1km:
     with 1 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -155,7 +155,7 @@ msg_seviri_iodc_9km:
     with 9 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -206,7 +206,7 @@ msg_seviri_iodc_9km_ext:
     with 9 km resolution (extended outside original 3km grid)
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -257,7 +257,7 @@ msg_seviri_iodc_48km:
     with 48 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -335,10 +335,30 @@ SouthAmerica:
 # ---------- Meteosat Third Generation (MTG) / FCI Instrument -----------------
 
 # Full disk
+mtg_fci_fdss_500m:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 500 m SSP resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 22272
+    width: 22272
+  area_extent:
+    lower_left_xy: [-5567999.999637696, -5567999.999637696]
+    upper_right_xy: [5567999.999637678,  5567999.999637678]
+    units: m
+
 mtg_fci_fdss_1km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 1 km resolution
+    with 1 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -351,14 +371,14 @@ mtg_fci_fdss_1km:
     height: 11136
     width: 11136
   area_extent:
-    lower_left_xy: [-5567999.998577303, -5567999.998577303]
-    upper_right_xy: [5567999.998527619,  5567999.998527619]
+    lower_left_xy: [-5567999.998550739, -5567999.998550739]
+    upper_right_xy: [5567999.998550762,  5567999.998550762]
     units: m
 
 mtg_fci_fdss_2km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 2 km resolution
+    with 2 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -371,15 +391,15 @@ mtg_fci_fdss_2km:
     height: 5568
     width: 5568
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 # Full disk - segmented products
 mtg_fci_fdss_6km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 6 km resolution
+    with 6 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -392,14 +412,14 @@ mtg_fci_fdss_6km:
     height: 1856
     width: 1856
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 mtg_fci_fdss_32km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 32 km resolution
+    with 32 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -412,8 +432,8 @@ mtg_fci_fdss_32km:
     height: 348
     width: 348
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 # Geostationary Operational Environmental Satellite (GOES) / ABI Instrument

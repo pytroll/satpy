@@ -164,6 +164,49 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertIsNone(file_handler.file_handle)
         self.assertEqual(file_handler["ds2_sc"], 42)
 
+    def test_listed_variables(self):
+        """Test that only listed variables/attributes area collected."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        filetype_info = {
+            'required_netcdf_variables': [
+                'test_group/attr/test_attr_str',
+                'attr/test_attr_str',
+            ]
+        }
+        file_handler = NetCDF4FileHandler('test.nc', {}, filetype_info)
+        assert len(file_handler.file_content) == 2
+        assert 'test_group/attr/test_attr_str' in file_handler.file_content
+        assert 'attr/test_attr_str' in file_handler.file_content
+
+    def test_listed_variables_with_composing(self):
+        """Test that composing for listed variables is performed."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        filetype_info = {
+            'required_netcdf_variables': [
+                'test_group/{some_parameter}/attr/test_attr_str',
+                'test_group/attr/test_attr_str',
+            ],
+            'variable_name_replacements': {
+                'some_parameter': [
+                    'ds1_f',
+                    'ds1_i',
+                ],
+                'another_parameter': [
+                    'not_used'
+                ],
+            }
+        }
+        file_handler = NetCDF4FileHandler('test.nc', {}, filetype_info)
+        assert len(file_handler.file_content) == 3
+        assert 'test_group/ds1_f/attr/test_attr_str' in file_handler.file_content
+        assert 'test_group/ds1_i/attr/test_attr_str' in file_handler.file_content
+        assert not any('not_used' in var for var in file_handler.file_content)
+        assert not any('some_parameter' in var for var in file_handler.file_content)
+        assert not any('another_parameter' in var for var in file_handler.file_content)
+        assert 'test_group/attr/test_attr_str' in file_handler.file_content
+
     def test_caching(self):
         """Test that caching works as intended."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
@@ -192,3 +235,25 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         with self.assertRaises(IOError):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+
+    def test_get_and_cache_npxr_is_xr(self):
+        """Test that get_and_cache_npxr() returns xr.DataArray."""
+        import xarray as xr
+
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        file_handler = NetCDF4FileHandler('test.nc', {}, {}, cache_handle=True)
+
+        data = file_handler.get_and_cache_npxr('test_group/ds1_f')
+        assert isinstance(data, xr.DataArray)
+
+    def test_get_and_cache_npxr_data_is_cached(self):
+        """Test that the data are cached when get_and_cache_npxr() is called."""
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler('test.nc', {}, {}, cache_handle=True)
+        data = file_handler.get_and_cache_npxr('test_group/ds1_f')
+
+        # Delete the dataset from the file content dict, it should be available from the cache
+        del file_handler.file_content["test_group/ds1_f"]
+        data2 = file_handler.get_and_cache_npxr('test_group/ds1_f')
+        assert np.all(data == data2)

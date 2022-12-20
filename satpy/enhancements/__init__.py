@@ -22,6 +22,7 @@ import warnings
 from collections import namedtuple
 from functools import wraps
 from numbers import Number
+from typing import Optional
 
 import dask
 import dask.array as da
@@ -135,7 +136,7 @@ def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
-        reference_scale_factor: Number = None,
+        reference_scale_factor: Optional[Number] = None,
         **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
@@ -277,11 +278,6 @@ def _srgb_gamma(arr):
     return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
 
 
-def _lookup_delayed(luts, band_data):
-    # can't use luts.__getitem__ for some reason
-    return luts[band_data]
-
-
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
@@ -295,11 +291,7 @@ def _lookup_table(band_data, luts=None, index=-1):
     # NaN/null values will become 0
     lut = luts[:, index] if len(luts.shape) == 2 else luts
     band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
-
-    new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
-    new_data = da.from_delayed(new_delay, shape=band_data.shape,
-                               dtype=luts.dtype)
-    return new_data
+    return lut[band_data]
 
 
 def colorize(img, **kwargs):
@@ -596,6 +588,6 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs
 @using_map_blocks
 def _bt_threshold(band_data, threshold, high_coeffs, low_coeffs):
     # expects dask array to be passed
-    return da.where(band_data >= threshold,
+    return np.where(band_data >= threshold,
                     high_coeffs.offset - high_coeffs.factor * band_data,
                     low_coeffs.offset - low_coeffs.factor * band_data)

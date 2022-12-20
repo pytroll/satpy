@@ -272,6 +272,29 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
             assert v.attrs['sensor'] == "viirs"
 
+    def test_load_i_band_angles(self):
+        """Test loading all M bands as radiances."""
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'VL1BI_snpp_d20161130_t012400_c20161130054822.nc',
+            'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOI_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOM_snpp_d20161130_t012400_c20161130054822.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load([
+            make_dataid(name='satellite_zenith_angle'),
+            make_dataid(name='satellite_azimuth_angle'),
+            make_dataid(name='solar_azimuth_angle'),
+            make_dataid(name='solar_zenith_angle'),
+        ])
+        assert len(datasets) == 4
+        for v in datasets.values():
+            assert v.attrs['resolution'] == 371
+            assert v.attrs['sensor'] == "viirs"
+
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
         from satpy.readers import load_reader

@@ -33,9 +33,9 @@ LOG = logging.getLogger(__name__)
 
 
 ROWS_PER_SCAN = {
-    'MODIS': 10,
-    'VIIRS': 16,
-    'AVHRR': None,
+    'modis': 10,
+    'viirs': 16,
+    'avhrr': None,
 }
 
 

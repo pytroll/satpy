@@ -25,20 +25,16 @@ import datetime
 import logging
 import os
 import warnings
+from contextlib import contextmanager
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
 import numpy as np
 import xarray as xr
 import yaml
-from yaml import BaseLoader
+from yaml import BaseLoader, UnsafeLoader
 
 from satpy import CHUNK_SIZE
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -685,3 +681,12 @@ def _merge_storage_options(storage_options, storage_opt_dict):
         storage_options = storage_opt_dict
 
     return storage_options
+
+
+@contextmanager
+def import_error_helper(dependency_name):
+    """Give more info on an import error."""
+    try:
+        yield
+    except ImportError as err:
+        raise ImportError(err.msg + f" It can be installed with the {dependency_name} package.")

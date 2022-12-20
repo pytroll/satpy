@@ -23,30 +23,35 @@ file_types:
         file_patterns:
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS.gz'
 
     hrit_ir1:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1.gz'
 
     hrit_ir2:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2.gz'
 
     hrit_ir3:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3.gz'
 
     hrit_ir4:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
         - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4.gz'
 
     hrit_vis_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
