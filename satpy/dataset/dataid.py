@@ -261,7 +261,7 @@ default_id_keys_config = {'name': {
                               'transitive': True,
                           },
                           'modifiers': {
-                              'default': ModifierTuple(),
+                              # 'default': ModifierTuple(),
                               'type': ModifierTuple,
                           },
                           }

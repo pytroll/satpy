@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from .dataid import DataID, create_filtered_query, minimal_default_keys_config
+from .dataid import DataID, create_filtered_query, default_id_keys_config, minimal_default_keys_config
 
 
 class TooManyResults(KeyError):
@@ -190,7 +190,7 @@ class DatasetDict(dict):
 
         # use value information to make a more complete DataID
         if not isinstance(key, DataID):
-            key = DataID.from_dataarray(value)
+            key = DataID.from_dataarray(value, default_keys=default_id_keys_config)
             # key = self._create_dataid_key(key, value_info)
 
         # update the 'value' with the information contained in the key

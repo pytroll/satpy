@@ -823,10 +823,9 @@ class Scene:
         if value.name != name:
             value = value.rename(name)
 
-        # new_id = DataID.new_id_from_dataarray(value)
-
         self._datasets[key] = value
-        new_id = self._datasets.get_key(key)
+        new_id = DataID.new_id_from_dataarray(value)
+        # new_id = self._datasets.get_key(key)
         self._wishlist.add(new_id)
         self._dependency_tree.add_leaf(new_id)
 
