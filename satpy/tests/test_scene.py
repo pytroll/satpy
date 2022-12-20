@@ -281,11 +281,6 @@ class TestScene:
                 assert area_obj is None
                 assert ds_list_names == {'3'}
 
-    def test_bad_setitem(self):
-        """Test setting an item wrongly."""
-        scene = Scene()
-        pytest.raises(ValueError, scene.__setitem__, '1', np.arange(5))
-
     def test_setitem(self):
         """Test setting an item."""
         # test:
@@ -317,9 +312,9 @@ class TestScene:
         assert len(scene._datasets.keys()) == 2
         assert set(scene._datasets.keys()[1]) == {new_id}
         assert set(scene._wishlist[1]) == {new_id}
-        # assert scene["3"].attrs["name"] == "1"
-        # assert scene["3"].attrs["_satpy_id"] == new_id
-        # assert scene["3"].name == "1"
+        assert scene[new_id].attrs["name"] == "1"
+        assert scene[new_id].attrs["_satpy_id"] == new_id
+        assert scene[new_id].name == "1"
 
         # assignment of DataArray with attributes relevant to DataID
         scene = Scene()
@@ -335,7 +330,7 @@ class TestScene:
         # assignment of DataArray with name attribute different from key
         scene = Scene()
         scene["3"] = ds3 = xr.DataArray(np.arange(5), attrs={"name": "4"})
-        expected_id = make_dataid(**ds3.attrs)
+        expected_id = make_cid(**ds3.attrs)
         assert set(scene._datasets.keys()) == {expected_id}
         assert set(scene._wishlist) == {expected_id}
         assert scene["3"].attrs["name"] == "3"
@@ -359,21 +354,11 @@ class TestScene:
         new_id = make_dataid(**ds4.attrs)
         scene[new_id] = ds4
         assert set(scene._datasets.keys()) == {new_id}
+        assert len(scene._datasets.keys()) == 1
         assert set(scene._wishlist) == {new_id}
         assert scene["3"].attrs["name"] == "3"
         assert scene["3"].attrs["_satpy_id"] == new_id
         assert scene["3"].name == "3"
-
-        did = make_dataid(name='oranges')
-        scene[did] = ds1
-        assert 'oranges' in scene
-        nparray = np.arange(5*5).reshape(5, 5)
-        # with pytest.raises(ValueError):
-            # scene['apples'] = nparray  # noqa E116
-        # assert 'apples' not in scene
-        did = make_dataid(name='apples')
-        scene[did] = nparray
-        assert 'apples' in scene
 
     def test_getitem(self):
         """Test __getitem__ with names only."""
