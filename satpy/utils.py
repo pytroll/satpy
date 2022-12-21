@@ -26,6 +26,7 @@ import logging
 import os
 import warnings
 from contextlib import contextmanager
+from copy import deepcopy
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
@@ -658,11 +659,12 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
     """Read and clean storage options from reader_kwargs."""
     if reader_kwargs is None:
         return None, None
-    storage_options = reader_kwargs.pop('storage_options', None)
-    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
+    new_reader_kwargs = deepcopy(reader_kwargs)  # don't modify user provided dict
+    storage_options = new_reader_kwargs.pop('storage_options', None)
+    storage_opt_dict = _get_storage_dictionary_options(new_reader_kwargs)
     storage_options = _merge_storage_options(storage_options, storage_opt_dict)
 
-    return storage_options, reader_kwargs
+    return storage_options, new_reader_kwargs
 
 
 def _get_storage_dictionary_options(reader_kwargs):
