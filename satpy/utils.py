@@ -23,9 +23,9 @@ from __future__ import annotations
 import contextlib
 import datetime
 import logging
-import os
 import warnings
 from contextlib import contextmanager
+from copy import deepcopy
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
@@ -44,13 +44,6 @@ logger = logging.getLogger(__name__)
 
 class PerformanceWarning(Warning):
     """Warning raised when there is a possible performance impact."""
-
-
-def ensure_dir(filename):
-    """Check if the dir of f exists, otherwise create it."""
-    directory = os.path.dirname(filename)
-    if directory and not os.path.isdir(directory):
-        os.makedirs(directory)
 
 
 def debug_on(deprecation_warnings=True):
@@ -658,29 +651,24 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
     """Read and clean storage options from reader_kwargs."""
     if reader_kwargs is None:
         return None, None
-    storage_options = reader_kwargs.pop('storage_options', None)
-    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
-    storage_options = _merge_storage_options(storage_options, storage_opt_dict)
-
-    return storage_options, reader_kwargs
+    new_reader_kwargs = deepcopy(reader_kwargs)  # don't modify user provided dict
+    storage_options = _get_storage_dictionary_options(new_reader_kwargs)
+    return storage_options, new_reader_kwargs
 
 
 def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
-    for k, v in reader_kwargs.items():
-        if isinstance(v, dict):
-            storage_opt_dict[k] = v.pop('storage_options', None)
-
+    shared_storage_options = reader_kwargs.pop("storage_options", {})
+    for reader_name, rkwargs in reader_kwargs.items():
+        if not isinstance(rkwargs, dict):
+            # reader kwargs are not per-reader, return a single dictonary of storage options
+            return shared_storage_options
+        if shared_storage_options:
+            # set base storage options if there are any
+            storage_opt_dict[reader_name] = shared_storage_options.copy()
+        if isinstance(rkwargs, dict) and "storage_options" in rkwargs:
+            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop('storage_options'))
     return storage_opt_dict
-
-
-def _merge_storage_options(storage_options, storage_opt_dict):
-    if storage_opt_dict:
-        if storage_options:
-            storage_opt_dict['storage_options'] = storage_options
-        storage_options = storage_opt_dict
-
-    return storage_options
 
 
 @contextmanager
