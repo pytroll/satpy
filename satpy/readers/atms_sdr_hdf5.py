@@ -125,7 +125,8 @@ class ATMS_SDR_FileHandler(VIIRSSDRFileHandler):
         # check if these are single per-granule value
         if variable.size != scans.size:
             for gscans in scans.values:
-                data_chunks.append(variable.isel(y=slice(start_scan, start_scan + gscans * scan_size)))
+                data_chunks.append(variable.isel(y=slice(start_scan,
+                                                         start_scan + gscans * scan_size)))
                 start_scan += gscans * scan_size
             data = xr.concat(data_chunks, 'y')
         else:
