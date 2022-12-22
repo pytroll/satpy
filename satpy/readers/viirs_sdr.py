@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2019 Satpy developers
+# Copyright (c) 2011-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -107,8 +107,10 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
                 'SVM14': 'VIIRS-M14-SDR',
                 'SVM15': 'VIIRS-M15-SDR',
                 'SVM16': 'VIIRS-M16-SDR',
-                'IVCDB': 'VIIRS-DualGain-Cal-IP'
-                }
+                'IVCDB': 'VIIRS-DualGain-Cal-IP',
+                'SATMS': 'ATMS-SDR',
+                'GATMO': 'ATMS-SDR-GEO',
+                'TATMS': 'ATMS-TDR'}
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
@@ -315,7 +317,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     def _scan_size(self, dataset_group_name):
         """Get how many rows of data constitute one scanline."""
-        if 'I' in dataset_group_name:
+        if 'ATM' in dataset_group_name:
+            scan_size = 1
+        elif 'I' in dataset_group_name:
             scan_size = 32
         else:
             scan_size = 16
