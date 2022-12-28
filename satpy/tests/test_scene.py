@@ -2036,6 +2036,36 @@ class TestSceneConversions(unittest.TestCase):
         assert len(xrds.variables) == 0
         assert len(xrds.coords) == 0
 
+    def test_to_xarray_dataset_with_conflicting_variables(self):
+        """Test converting Scene with DataArrays with conflicting variables.
+
+        E.g. "acq_time" in the seviri_l1b_nc reader
+        """
+        scn = Scene()
+
+        acq_time_1 = ('y', [np.datetime64('1958-01-02 00:00:01'),
+                            np.datetime64('1958-01-02 00:00:02')])
+        ds = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                          attrs={'start_time': datetime(2018, 1, 1)})
+        ds['acq_time'] = acq_time_1
+
+        scn['ds1'] = ds
+
+        acq_time_2 = ('y', [np.datetime64('1958-02-02 00:00:01'),
+                            np.datetime64('1958-02-02 00:00:02')])
+        ds['acq_time'] = acq_time_2
+
+        scn['ds2'] = ds
+
+        xrds = scn.to_xarray_dataset()
+        assert isinstance(xrds, xr.Dataset)
+        assert 'acq_time' not in xrds.coords
+
+        xrds = scn.to_xarray_dataset(compat='override')
+        assert isinstance(xrds, xr.Dataset)
+        assert 'acq_time' in xrds.coords
+        assert xrds['acq_time'] == acq_time_1
+
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from pyresample.geometry import AreaDefinition
