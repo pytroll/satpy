@@ -108,7 +108,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '4':
     name: '4'
     file_type: atms_sdr_hdf5
@@ -124,7 +124,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '5':
     name: '5'
     file_type: atms_sdr_hdf5
@@ -140,7 +140,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '6':
     name: '6'
     file_type: atms_sdr_hdf5
@@ -157,7 +157,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '7':
     name: '7'
     file_type: atms_sdr_hdf5
@@ -173,7 +173,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '8':
     name: '8'
     file_type: atms_sdr_hdf5
@@ -189,7 +189,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '9':
     name: '9'
     file_type: atms_sdr_hdf5
@@ -205,7 +205,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '10':
     name: '10'
     file_type: atms_sdr_hdf5
@@ -221,7 +221,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '11':
     name: '11'
     file_type: atms_sdr_hdf5
@@ -238,7 +238,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '12':
     name: '12'
     file_type: atms_sdr_hdf5
@@ -256,7 +256,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '13':
     name: '13'
     file_type: atms_sdr_hdf5
@@ -274,7 +274,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '14':
     name: '14'
     file_type: atms_sdr_hdf5
@@ -292,7 +292,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '15':
     name: '15'
     file_type: atms_sdr_hdf5
@@ -310,7 +310,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '16':
     name: '16'
     file_type: atms_sdr_hdf5
@@ -326,7 +326,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '17':
     name: '17'
     file_type: atms_sdr_hdf5
@@ -342,7 +342,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '18':
     name: '18'
     file_type: atms_sdr_hdf5
@@ -359,7 +359,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '19':
     name: '19'
     file_type: atms_sdr_hdf5
@@ -376,7 +376,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '20':
     name: '20'
     file_type: atms_sdr_hdf5
@@ -393,7 +393,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '21':
     name: '21'
     file_type: atms_sdr_hdf5
@@ -410,7 +410,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
   '22':
     name: '22'
     file_type: atms_sdr_hdf5
@@ -427,7 +427,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        file_unites: K
+        file_units: K
 
 # --- Navigation data ---
 
