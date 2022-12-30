@@ -37,16 +37,14 @@ import logging
 
 import dask.array as da
 import h5py
+import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
+from satpy.readers.viirs_sdr import VIIRSSDRFileHandler, get_file_units
 
 LOG = logging.getLogger(__name__)
-
-DATASET_KEYS = {'SATMS': 'ATMS-SDR',
-                'GATMO': 'ATMS-SDR-GEO',
-                'TATMS': 'ATMS-TDR'}
 
 ATMS_CHANNEL_NAMES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
                       '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
@@ -55,10 +53,9 @@ ATMS_CHANNEL_NAMES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
 class ATMS_SDR_FileHandler(VIIRSSDRFileHandler):
     """ATMS HDF5 File Reader."""
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize file handler."""
         self.datasets = filename_info['datasets'].split('-')
-        self.use_tc = use_tc
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, key):
@@ -93,6 +90,37 @@ class ATMS_SDR_FileHandler(VIIRSSDRFileHandler):
             factors = self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
         factors = self._adjust_scaling_factors(factors, file_units, output_units)
         return factors
+
+    def _generate_file_key(self, ds_id, ds_info, factors=False):
+        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
+        calibration = {
+            'brightness_temperature': 'BrightnessTemperature',
+        }.get(ds_id.get('calibration'))
+        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
+        return var_path
+
+    def _get_scans_per_granule(self, dataset_group):
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
+        return scans
+
+    def mask_fill_values(self, data, ds_info):
+        """Mask fill values."""
+        is_floating = np.issubdtype(data.dtype, np.floating)
+
+        if is_floating:
+            # If the data is a float then we mask everything <= -999.0
+            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
+            return data.where(data > fill_max, np.float32(np.nan))
+        else:
+            # If the data is an integer then we mask everything >= fill_min_int
+            fill_min = int(ds_info.pop("fill_min_int", 65528))
+            return data.where(data < fill_min, np.float32(np.nan))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
@@ -133,7 +161,7 @@ class ATMS_SDR_FileHandler(VIIRSSDRFileHandler):
             data = self.expand_single_values(variable, scans)
 
         data = self.mask_fill_values(data, ds_info)
-        file_units = self.get_file_units(dataset_id, ds_info)
+        file_units = get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path, ch_index)
 

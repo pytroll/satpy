@@ -39,6 +39,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
 from satpy.readers.yaml_reader import FileYAMLReader
 
 NO_DATE = datetime(1958, 1, 1)
@@ -80,37 +81,12 @@ def _get_invalid_info(granule_data):
     return msg
 
 
-DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
-                'SVDNB': 'VIIRS-DNB-SDR',
-                'GITCO': 'VIIRS-IMG-GEO-TC',
-                'GIMGO': 'VIIRS-IMG-GEO',
-                'SVI01': 'VIIRS-I1-SDR',
-                'SVI02': 'VIIRS-I2-SDR',
-                'SVI03': 'VIIRS-I3-SDR',
-                'SVI04': 'VIIRS-I4-SDR',
-                'SVI05': 'VIIRS-I5-SDR',
-                'GMTCO': 'VIIRS-MOD-GEO-TC',
-                'GMODO': 'VIIRS-MOD-GEO',
-                'SVM01': 'VIIRS-M1-SDR',
-                'SVM02': 'VIIRS-M2-SDR',
-                'SVM03': 'VIIRS-M3-SDR',
-                'SVM04': 'VIIRS-M4-SDR',
-                'SVM05': 'VIIRS-M5-SDR',
-                'SVM06': 'VIIRS-M6-SDR',
-                'SVM07': 'VIIRS-M7-SDR',
-                'SVM08': 'VIIRS-M8-SDR',
-                'SVM09': 'VIIRS-M9-SDR',
-                'SVM10': 'VIIRS-M10-SDR',
-                'SVM11': 'VIIRS-M11-SDR',
-                'SVM12': 'VIIRS-M12-SDR',
-                'SVM13': 'VIIRS-M13-SDR',
-                'SVM14': 'VIIRS-M14-SDR',
-                'SVM15': 'VIIRS-M15-SDR',
-                'SVM16': 'VIIRS-M16-SDR',
-                'IVCDB': 'VIIRS-DualGain-Cal-IP',
-                'SATMS': 'ATMS-SDR',
-                'GATMO': 'ATMS-SDR-GEO',
-                'TATMS': 'ATMS-TDR'}
+def get_file_units(dataset_id, ds_info):
+    """Get file units from metadata."""
+    file_units = ds_info.get("file_units")
+    if file_units is None:
+        LOG.debug("Unknown units for file key '%s'", dataset_id)
+    return file_units
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
@@ -214,13 +190,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         sensor_path = self.filetype_info.get(
             'sensor_name', default).format(dataset_group=dataset_group)
         return self[sensor_path].lower()
-
-    def get_file_units(self, dataset_id, ds_info):
-        """Get file units from metadata."""
-        file_units = ds_info.get("file_units")
-        if file_units is None:
-            LOG.debug("Unknown units for file key '%s'", dataset_id)
-        return file_units
 
     def scale_swath_data(self, data, scaling_factors, dataset_group):
         """Scale swath data using scaling factors and offsets.
@@ -389,7 +358,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         data = self.concatenate_dataset(dataset_group, var_path)
         data = self.mask_fill_values(data, ds_info)
-        file_units = self.get_file_units(dataset_id, ds_info)
+        file_units = get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:
