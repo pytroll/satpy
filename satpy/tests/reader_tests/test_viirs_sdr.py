@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from unittest import mock
 
 import numpy as np
+import pytest
 
 from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
@@ -53,7 +54,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                      month=start_time.month,
                                                      day=start_time.day)
         begin_date = start_time.strftime('%Y%m%d')
+        begin_date = np.array(begin_date)
+
         begin_time = start_time.strftime('%H%M%S.%fZ')
+        begin_time = np.array(begin_time)
+
         ending_date = end_time.strftime('%Y%m%d')
         ending_time = end_time.strftime('%H%M%S.%fZ')
         new_file_content = {
@@ -338,6 +343,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
+    def test_init_start_time_is_nodate(self):
+        """Test basic init with start_time being set to the no-date 1/1-1958."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with pytest.raises(ValueError) as exec_info:
+            _ = r.create_filehandlers([
+                'SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5',
+            ])
+        expected = 'Datetime invalid 1958-01-01 00:00:00'
+        assert str(exec_info.value) == expected
+
     def test_init_start_time_beyond(self):
         """Test basic init with start_time after the provided files."""
         from datetime import datetime
@@ -371,6 +387,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         from datetime import datetime
 
         from satpy.readers import load_reader
+
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             'start_time': datetime(2012, 2, 24),

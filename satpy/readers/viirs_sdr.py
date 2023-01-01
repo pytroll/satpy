@@ -41,7 +41,7 @@ from satpy.readers.viirs_atms_sdr_utils import (
     DATASET_KEYS,
     VIIRS_DATASET_KEYS,
     JPSS_SDR_FileHandler,
-    get_file_units,
+    _get_file_units,
 )
 from satpy.readers.yaml_reader import FileYAMLReader
 
@@ -151,7 +151,7 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
 
         data = self.concatenate_dataset(dataset_group, var_path)
         data = self.mask_fill_values(data, ds_info)
-        file_units = get_file_units(dataset_id, ds_info)
+        file_units = _get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:

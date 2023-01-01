@@ -69,7 +69,7 @@ DATASET_KEYS.update(VIIRS_DATASET_KEYS)
 DATASET_KEYS.update(ATMS_DATASET_KEYS)
 
 
-def get_file_units(dataset_id, ds_info):
+def _get_file_units(dataset_id, ds_info):
     """Get file units from metadata."""
     file_units = ds_info.get("file_units")
     if file_units is None:
@@ -88,7 +88,9 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         try:
             datetime_str = datestr + timestr
         except TypeError:
-            datetime_str = str(datestr.astype(str)) + str(timestr.astype(str))
+            datetime_str = (str(datestr.data.compute().astype(str)) +
+                            str(timestr.data.compute().astype(str)))
+
         time_val = datetime.strptime(datetime_str, '%Y%m%d%H%M%S.%fZ')
         if abs(time_val - NO_DATE) < EPSILON_TIME:
             # catch rare case when SDR files have incorrect date
