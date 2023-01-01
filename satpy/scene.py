@@ -1052,6 +1052,10 @@ class Scene:
             return xr.Dataset()
 
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
+        # remove the coordinates conflicts with DataArray names
+        for key in ds_dict.keys():
+            remove_coords = list(set(ds_dict[key].coords).intersection(ds_dict.keys()))
+            ds_dict[key] = ds_dict[key].drop(remove_coords)
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
             # either don't know what the area is or we have an AreaDefinition
@@ -1059,6 +1063,10 @@ class Scene:
         else:
             # we have a swath definition and should use lon/lat values
             lons, lats = mdata['area'].get_lonlats()
+            # remove lons and lats, because we add them later as the coordinates
+            var_to_remove = ('longitude', 'latitude')
+            for var in var_to_remove:
+                ds_dict.pop(var, None)
             if not isinstance(lons, DataArray):
                 lons = DataArray(lons, dims=('y', 'x'))
                 lats = DataArray(lats, dims=('y', 'x'))
