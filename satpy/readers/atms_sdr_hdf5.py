@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2022 Satpy Developers
+# Copyright (c) 2022, 2023 Satpy Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,11 +37,10 @@ import logging
 
 import dask.array as da
 import h5py
-import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, get_file_units
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, _get_file_units
 
 LOG = logging.getLogger(__name__)
 
@@ -108,19 +107,6 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
             scans.append(self[scans_path])
         return scans
 
-    def mask_fill_values(self, data, ds_info):
-        """Mask fill values."""
-        is_floating = np.issubdtype(data.dtype, np.floating)
-
-        if is_floating:
-            # If the data is a float then we mask everything <= -999.0
-            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
-            return data.where(data > fill_max, np.float32(np.nan))
-        else:
-            # If the data is an integer then we mask everything >= fill_min_int
-            fill_min = int(ds_info.pop("fill_min_int", 65528))
-            return data.where(data < fill_min, np.float32(np.nan))
-
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
 
@@ -160,7 +146,7 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
             data = self.expand_single_values(variable, scans)
 
         data = self.mask_fill_values(data, ds_info)
-        file_units = get_file_units(dataset_id, ds_info)
+        file_units = _get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path, ch_index)
 

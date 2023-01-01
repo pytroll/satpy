@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2022 Pytroll developers
+# Copyright (c) 2022-2023 Pytroll developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import xarray as xr
 
 from satpy._config import config_search_paths
 from satpy.readers import load_reader
-from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES, ATMS_SDR_FileHandler
+from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES
 from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
@@ -316,9 +316,11 @@ class TestATMS_SDR_Reader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
+        from satpy.readers.viirs_atms_sdr_utils import JPSS_SDR_FileHandler
+
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(ATMS_SDR_FileHandler, '__bases__', (FakeHDF5_ATMS_SDR_FileHandler,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeHDF5_ATMS_SDR_FileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -354,7 +356,7 @@ class TestATMS_SDR_Reader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_all_bands(self):
-        """Load brightness temperatures for the first five of the 22 channels."""
+        """Load brightness temperatures for all 22 ATMS channels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([

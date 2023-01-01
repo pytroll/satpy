@@ -69,6 +69,21 @@ DATASET_KEYS.update(VIIRS_DATASET_KEYS)
 DATASET_KEYS.update(ATMS_DATASET_KEYS)
 
 
+def _get_scale_factors_for_units(factors, file_units, output_units):
+    if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
+        LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                  file_units, output_units)
+        factors = factors * 10000.
+    elif file_units == "1" and output_units == "%":
+        LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                  file_units, output_units)
+        factors = factors * 100.
+    else:
+        raise ValueError("Don't know how to convert '{}' to '{}'".format(
+            file_units, output_units))
+    return factors
+
+
 def _get_file_units(dataset_id, ds_info):
     """Get file units from metadata."""
     file_units = ds_info.get("file_units")
@@ -186,18 +201,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
 
     @staticmethod
     def _scale_factors_for_units(factors, file_units, output_units):
-        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
-            factors = factors * 10000.
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
-            factors = factors * 100.
-        else:
-            raise ValueError("Don't know how to convert '{}' to '{}'".format(
-                file_units, output_units))
-        return factors
+        return _get_scale_factors_for_units(factors, file_units, output_units)
 
     @staticmethod
     def _get_valid_scaling_factors(factors):
@@ -258,6 +262,8 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
                 start_scan += gscans * scan_size
             return xr.concat(data_chunks, 'y')
         else:
+            # This is not tested - Not sure this code is ever going to be used? A. Dybbroe
+            # Mon Jan  2 13:31:21 2023
             return self.expand_single_values(variable, scans)
 
     def _get_rows_per_granule(self, dataset_group):
