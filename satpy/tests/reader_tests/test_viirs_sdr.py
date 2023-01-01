@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019, 2022 Satpy developers
+# Copyright (c) 2017-2019, 2022, 2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -315,10 +315,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.viirs_atms_sdr_utils import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -872,10 +872,10 @@ class TestShortAggrVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.viirs_atms_sdr_utils import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeShortHDF5FileHandlerAggr,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeShortHDF5FileHandlerAggr,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 

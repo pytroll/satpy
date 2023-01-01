@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2022 Satpy developers
+# Copyright (c) 2011-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -34,12 +34,15 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from glob import glob
 
-import dask.array as da
 import numpy as np
-import xarray as xr
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
+from satpy.readers.viirs_atms_sdr_utils import (
+    ATMS_DATASET_KEYS,
+    DATASET_KEYS,
+    VIIRS_DATASET_KEYS,
+    JPSS_SDR_FileHandler,
+    get_file_units,
+)
 from satpy.readers.yaml_reader import FileYAMLReader
 
 NO_DATE = datetime(1958, 1, 1)
@@ -81,22 +84,14 @@ def _get_invalid_info(granule_data):
     return msg
 
 
-def get_file_units(dataset_id, ds_info):
-    """Get file units from metadata."""
-    file_units = ds_info.get("file_units")
-    if file_units is None:
-        LOG.debug("Unknown units for file key '%s'", dataset_id)
-    return file_units
-
-
-class VIIRSSDRFileHandler(HDF5FileHandler):
-    """VIIRS HDF5 File Reader."""
+class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
+    """VIIRS SDR HDF5 File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
         """Initialize file handler."""
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
-        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info, **kwargs)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, item):
         """Get item."""
@@ -109,7 +104,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             result = []
             while True:
                 try:
-                    res = super(VIIRSSDRFileHandler, self).__getitem__(item)
+                    res = super().__getitem__(item)
                     result.append(res)
                 except KeyError:
                     # no more granule keys
@@ -120,143 +115,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                 item = base_item.replace('*', str(idx))
             return result
         else:
-            return super(VIIRSSDRFileHandler, self).__getitem__(item)
-
-    def _parse_datetime(self, datestr, timestr):
-        try:
-            datetime_str = datestr + timestr
-        except TypeError:
-            datetime_str = str(datestr.astype(str)) + str(timestr.astype(str))
-        time_val = datetime.strptime(datetime_str, '%Y%m%d%H%M%S.%fZ')
-        if abs(time_val - NO_DATE) < EPSILON_TIME:
-            # catch rare case when SDR files have incorrect date
-            raise ValueError("Datetime invalid {}".format(time_val))
-        return time_val
-
-    @property
-    def start_time(self):
-        """Get start time."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default_start_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningDate'
-        default_start_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningTime'
-        date_var_path = self.filetype_info.get('start_date', default_start_date).format(dataset_group=dataset_group)
-        time_var_path = self.filetype_info.get('start_time', default_start_time).format(dataset_group=dataset_group)
-        return self._parse_datetime(self[date_var_path], self[time_var_path])
-
-    @property
-    def end_time(self):
-        """Get end time."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default_end_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingDate'
-        default_end_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingTime'
-        date_var_path = self.filetype_info.get('end_date', default_end_date).format(dataset_group=dataset_group)
-        time_var_path = self.filetype_info.get('end_time', default_end_time).format(dataset_group=dataset_group)
-        return self._parse_datetime(self[date_var_path], self[time_var_path])
-
-    @property
-    def start_orbit_number(self):
-        """Get start orbit number."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningOrbitNumber'
-        start_orbit_path = self.filetype_info.get('start_orbit', default).format(dataset_group=dataset_group)
-        return int(self[start_orbit_path])
-
-    @property
-    def end_orbit_number(self):
-        """Get end orbit number."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingOrbitNumber'
-        end_orbit_path = self.filetype_info.get('end_orbit', default).format(dataset_group=dataset_group)
-        return int(self[end_orbit_path])
-
-    @property
-    def platform_name(self):
-        """Get platform name."""
-        default = '/attr/Platform_Short_Name'
-        platform_path = self.filetype_info.get(
-            'platform_name', default).format(**self.filetype_info)
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'J01': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21',
-                         'J02': 'NOAA-21'}
-        return platform_dict.get(self[platform_path], self[platform_path])
-
-    @property
-    def sensor_name(self):
-        """Get sensor name."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/attr/Instrument_Short_Name'
-        sensor_path = self.filetype_info.get(
-            'sensor_name', default).format(dataset_group=dataset_group)
-        return self[sensor_path].lower()
-
-    def scale_swath_data(self, data, scaling_factors, dataset_group):
-        """Scale swath data using scaling factors and offsets.
-
-        Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
-        """
-        rows_per_gran = self._get_rows_per_granule(dataset_group)
-        factors = self._mask_and_reshape_factors(scaling_factors)
-        data = self._map_and_apply_factors(data, factors, rows_per_gran)
-        return data
-
-    @staticmethod
-    def _mask_and_reshape_factors(factors):
-        factors = factors.where(factors > -999, np.float32(np.nan))
-        return factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
-
-    @staticmethod
-    def _map_and_apply_factors(data, factors, rows_per_gran):
-        # The user may have requested a different chunking scheme, but we need
-        # per granule chunking right now so factor chunks map 1:1 to data chunks
-        old_chunks = data.chunks
-        dask_data = data.data.rechunk((tuple(rows_per_gran), data.data.chunks[1]))
-        dask_data = da.map_blocks(_apply_factors, dask_data, factors,
-                                  chunks=dask_data.chunks, dtype=data.dtype,
-                                  meta=np.array([[]], dtype=data.dtype))
-        data = xr.DataArray(dask_data.rechunk(old_chunks),
-                            dims=data.dims, coords=data.coords,
-                            attrs=data.attrs)
-        return data
-
-    @staticmethod
-    def _scale_factors_for_units(factors, file_units, output_units):
-        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
-            factors = factors * 10000.
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
-            factors = factors * 100.
-        else:
-            raise ValueError("Don't know how to convert '{}' to '{}'".format(
-                file_units, output_units))
-        return factors
-
-    @staticmethod
-    def _get_valid_scaling_factors(factors):
-        if factors is None:
-            factors = np.array([1, 0], dtype=np.float32)
-            factors = xr.DataArray(da.from_array(factors, chunks=1))
-        else:
-            factors = factors.where(factors != -999., np.float32(np.nan))
-        return factors
-
-    def _adjust_scaling_factors(self, factors, file_units, output_units):
-        """Adjust scaling factors ."""
-        if file_units == output_units:
-            LOG.debug("File units and output units are the same (%s)", file_units)
-            return factors
-        factors = self._get_valid_scaling_factors(factors)
-        return self._scale_factors_for_units(factors, file_units, output_units)
-
-    def _get_scaling_factors(self, file_units, output_units, factor_var_path):
-        """Get file scaling factors and scale according to expected units."""
-        factors = self.get(factor_var_path)
-        factors = self._adjust_scaling_factors(factors, file_units, output_units)
-        return factors
+            return super().__getitem__(item)
 
     def _generate_file_key(self, ds_id, ds_info, factors=False):
         var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
@@ -272,72 +131,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             if self.use_tc is None and var_path + '_TC' in self.file_content:
                 return var_path + '_TC'
         return var_path
-
-    @staticmethod
-    def expand_single_values(var, scans):
-        """Expand single valued variable to full scan lengths."""
-        if scans.size == 1:
-            return var
-        else:
-            expanded = np.repeat(var, scans)
-            expanded.attrs = var.attrs
-            expanded.rename({expanded.dims[0]: 'y'})
-            return expanded
-
-    def _scan_size(self, dataset_group_name):
-        """Get how many rows of data constitute one scanline."""
-        if 'ATM' in dataset_group_name:
-            scan_size = 1
-        elif 'I' in dataset_group_name:
-            scan_size = 32
-        else:
-            scan_size = 16
-        return scan_size
-
-    def concatenate_dataset(self, dataset_group, var_path):
-        """Concatenate dataset."""
-        scan_size = self._scan_size(dataset_group)
-        scans = self._get_scans_per_granule(dataset_group)
-        start_scan = 0
-        data_chunks = []
-        scans = xr.DataArray(scans)
-        variable = self[var_path]
-        # check if these are single per-granule value
-        if variable.size != scans.size:
-            for gscans in scans.values:
-                data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
-                start_scan += gscans * scan_size
-            return xr.concat(data_chunks, 'y')
-        else:
-            return self.expand_single_values(variable, scans)
-
-    def _get_rows_per_granule(self, dataset_group):
-        scan_size = self._scan_size(dataset_group)
-        scans_per_gran = self._get_scans_per_granule(dataset_group)
-        return [scan_size * gran_scans for gran_scans in scans_per_gran]
-
-    def _get_scans_per_granule(self, dataset_group):
-        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
-        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
-        scans = []
-        for granule in range(self[nb_granules_path]):
-            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
-            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
-            scans.append(self[scans_path])
-        return scans
-
-    def mask_fill_values(self, data, ds_info):
-        """Mask fill values."""
-        is_floating = np.issubdtype(data.dtype, np.floating)
-
-        if is_floating:
-            # If the data is a float then we mask everything <= -999.0
-            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
-            return data.where(data > fill_max, np.float32(np.nan))
-        else:
-            # If the data is an integer then we mask everything >= fill_min_int
-            fill_min = int(ds_info.pop("fill_min_int", 65528))
-            return data.where(data < fill_min, np.float32(np.nan))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
@@ -414,24 +207,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return lons_ring, lats_ring
 
-    def available_datasets(self, configured_datasets=None):
-        """Generate dataset info and their availablity.
-
-        See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
-        for details.
-
-        """
-        for is_avail, ds_info in (configured_datasets or []):
-            if is_avail is not None:
-                yield is_avail, ds_info
-                continue
-            dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
-            if dataset_group:
-                yield True, ds_info
-            elif is_avail is None:
-                yield is_avail, ds_info
-
 
 def split_desired_other(fhs, prime_geo, second_geo):
     """Split the provided filehandlers *fhs* into desired filehandlers and others."""
@@ -443,10 +218,6 @@ def split_desired_other(fhs, prime_geo, second_geo):
         elif second_geo in fh.datasets:
             other.append(fh)
     return desired, other
-
-
-def _apply_factors(data, factor_set):
-    return data * factor_set[0, 0] + factor_set[0, 1]
 
 
 class VIIRSSDRReader(FileYAMLReader):
@@ -462,8 +233,14 @@ class VIIRSSDRReader(FileYAMLReader):
                               `None` (default), use TC if available, non-TC otherwise.
 
         """
-        super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
+        super().__init__(config_files, **kwargs)
         self.use_tc = use_tc
+
+    def _is_viirs_dataset(self, datasets):
+        for dataset in VIIRS_DATASET_KEYS:
+            if dataset in datasets:
+                return True
+        return False
 
     def filter_filenames_by_info(self, filename_items):
         """Filter out file using metadata from the filenames.
@@ -474,8 +251,12 @@ class VIIRSSDRReader(FileYAMLReader):
         filename_items = list(filename_items)
         geo_keep = []
         geo_del = []
+        viirs_del = []
         for filename, filename_info in filename_items:
             datasets = filename_info['datasets'].split('-')
+            if not self._is_viirs_dataset(datasets):
+                viirs_del.append(filename)
+
             if ('GITCO' in datasets) or ('GMTCO' in datasets):
                 if self.use_tc is False:
                     geo_del.append(filename)
@@ -488,13 +269,23 @@ class VIIRSSDRReader(FileYAMLReader):
                     geo_keep.append(filename)
         if geo_keep:
             filename_items = self._remove_geo_datasets_from_files(filename_items, geo_del)
-        return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
+
+        filename_items = self._remove_non_viirs_datasets_from_files(filename_items, viirs_del)
+        return super().filter_filenames_by_info(filename_items)
+
+    def _remove_non_viirs_datasets_from_files(self, filename_items, files_to_edit):
+        no_viirs = ATMS_DATASET_KEYS
+        return self._remove_datasets_from_files(filename_items, files_to_edit, no_viirs)
 
     def _remove_geo_datasets_from_files(self, filename_items, files_to_edit):
+        datasets_to_consider = ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']
+        return self._remove_datasets_from_files(filename_items, files_to_edit, datasets_to_consider)
+
+    def _remove_datasets_from_files(self, filename_items, files_to_edit, considered_datasets):
         fdict = dict(filename_items)
         for to_del in files_to_edit:
             fdict[to_del]['datasets'] = fdict[to_del]['datasets'].split('-')
-            for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
+            for dataset in considered_datasets:
                 with suppress(ValueError):
                     fdict[to_del]['datasets'].remove(dataset)
             if not fdict[to_del]['datasets']:
@@ -587,7 +378,7 @@ class VIIRSSDRReader(FileYAMLReader):
         Wraps the base class method in order to load geolocation files
         from the geo reference attribute in the datasets file.
         """
-        coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
+        coords = super()._get_coordinates_for_dataset_key(dsid)
         for c_id in coords:
             c_info = self.all_ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
             self._get_file_handlers(c_id)

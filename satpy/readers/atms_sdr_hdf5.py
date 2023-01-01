@@ -41,8 +41,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
-from satpy.readers.viirs_sdr import VIIRSSDRFileHandler, get_file_units
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, get_file_units
 
 LOG = logging.getLogger(__name__)
 
@@ -50,12 +49,12 @@ ATMS_CHANNEL_NAMES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
                       '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
 
 
-class ATMS_SDR_FileHandler(VIIRSSDRFileHandler):
-    """ATMS HDF5 File Reader."""
+class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
+    """ATMS SDR HDF5 File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize file handler."""
-        self.datasets = filename_info['datasets'].split('-')
+        self.datasets = filename.split('_')[0].split('-')
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, key):

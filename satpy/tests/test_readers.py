@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -267,7 +267,7 @@ class TestReaderLoader(unittest.TestCase):
         from satpy.readers import load_readers
         self.assertRaises(ValueError, load_readers, reader='i_dont_exist', filenames=[
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
-            ])
+        ])
 
     def test_filenames_as_path(self):
         """Test with filenames specified as pathlib.Path."""
@@ -554,6 +554,20 @@ class TestFindFilesAndReaders(unittest.TestCase):
             test_file.close()
             os.remove(fn)
 
+    def test_no_parameters_atms(self):
+        """Test with no limiting parameters."""
+        from satpy.readers import find_files_and_readers
+        fn = 'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5'
+        # touch the file so it exists on disk
+        test_file = open(fn, 'w')
+        try:
+            ri = find_files_and_readers()
+            self.assertListEqual(list(ri.keys()), ['atms_sdr_hdf5'])
+            self.assertListEqual(ri['atms_sdr_hdf5'], [fn])
+        finally:
+            test_file.close()
+            os.remove(fn)
+
     def test_bad_sensor(self):
         """Test bad sensor doesn't find any files."""
         from satpy.readers import find_files_and_readers
@@ -590,8 +604,8 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
         self.assertEqual(
-                find_files_and_readers(sensor='viirs', missing_ok=True),
-                {})
+            find_files_and_readers(sensor='viirs', missing_ok=True),
+            {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -742,8 +756,8 @@ class TestGroupFiles(unittest.TestCase):
             "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
         ]
         self.unknown_files = [
-                "ʌsɔ˙pıʃɐʌuı",
-                "no such"]
+            "ʌsɔ˙pıʃɐʌuı",
+            "no such"]
 
     def test_no_reader(self):
         """Test that reader does not need to be provided."""
@@ -876,25 +890,25 @@ class TestGroupFiles(unittest.TestCase):
         """Test passing multiple readers."""
         from satpy.readers import group_files
         groups = group_files(
-                self.g16_files + self.noaa20_files,
-                reader=("abi_l1b", "viirs_sdr"))
+            self.g16_files + self.noaa20_files,
+            reader=("abi_l1b", "viirs_sdr"))
         assert len(groups) == 11
         # test that they're grouped together when time threshold is huge and
         # only time is used to group
         groups = group_files(
-                self.g16_files + self.noaa20_files,
-                reader=("abi_l1b", "viirs_sdr"),
-                group_keys=("start_time",),
-                time_threshold=10**9)
+            self.g16_files + self.noaa20_files,
+            reader=("abi_l1b", "viirs_sdr"),
+            group_keys=("start_time",),
+            time_threshold=10**9)
         assert len(groups) == 1
         # test that a warning is raised when a string is passed (meaning no
         # group keys found in common)
         with pytest.warns(UserWarning):
             groups = group_files(
-                    self.g16_files + self.noaa20_files,
-                    reader=("abi_l1b", "viirs_sdr"),
-                    group_keys=("start_time"),
-                    time_threshold=10**9)
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"),
+                group_keys=("start_time"),
+                time_threshold=10**9)
 
     _filenames_abi_glm = [
         "OR_ABI-L1b-RadF-M6C14_G16_s19000010000000_e19000010005000_c20403662359590.nc",
