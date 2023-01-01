@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2022 Satpy Developers
+# Copyright (c) 2022, 2023 Satpy Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, get_file_units
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, _get_file_units
 
 LOG = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
             data = self.expand_single_values(variable, scans)
 
         data = self.mask_fill_values(data, ds_info)
-        file_units = get_file_units(dataset_id, ds_info)
+        file_units = _get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path, ch_index)
 
