@@ -20,7 +20,6 @@
 
 import os
 import unittest
-from contextlib import contextmanager
 from datetime import datetime
 from unittest import mock
 
@@ -250,51 +249,6 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
             factors = np.array([1.0, 0], dtype=np.float32)
             factors = xr.DataArray(da.from_array(factors, chunks=1))
         return factors
-
-    @property
-    def platform_name(self):
-        """Get platform name."""
-        return 'NOAA-20'
-
-    @property
-    def sensor_name(self):
-        """Get sensor name."""
-        return 'atms'
-
-    @property
-    def start_orbit_number(self):
-        """Get start orbit number."""
-        return 26361
-
-    @property
-    def end_orbit_number(self):
-        """Get end orbit number."""
-        return 26361
-
-    def _scan_size(self, dataset_group_name):
-        """Get how many rows of data constitute one scanline."""
-        return 1
-
-    def scale_swath_data(self, data, factors, dataset_group):
-        """Faking the scale_swath_data function - apply no scaling."""
-        return data
-
-
-@contextmanager
-def touch_geo_files(*prefixes):
-    """Create and then remove ATMS SDR geolocation files."""
-    geofiles = [_touch_geo_file(prefix) for prefix in prefixes]
-    try:
-        yield geofiles
-    finally:
-        for filename in geofiles:
-            os.remove(filename)
-
-
-def _touch_geo_file(prefix):
-    geo_fn = prefix + '_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5'
-    open(geo_fn, 'w')
-    return geo_fn
 
 
 class TestATMS_SDR_Reader(unittest.TestCase):
