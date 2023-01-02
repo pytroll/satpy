@@ -287,7 +287,7 @@ class TestATMS_SDR_Reader(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
+            '/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
         ])
         self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)

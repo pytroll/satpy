@@ -34,6 +34,7 @@ https://www.nesdis.noaa.gov/about/documents-reports/jpss-technical-documents/jps
 """
 
 import logging
+import os
 
 import dask.array as da
 import h5py
@@ -53,7 +54,7 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize file handler."""
-        self.datasets = filename.split('_')[0].split('-')
+        self.datasets = os.path.basename(filename).split('_')[0].split('-')
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, key):

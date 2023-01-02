@@ -478,3 +478,21 @@ datasets:
     dataset_groups: [GATMO]
     file_type: atms_sdr_hdf5
     file_key: 'All_Data/{dataset_group}_All/Height'
+
+  gain_calibration:
+    name: gain_calibration
+    dataset_groups: [SATMS]
+    file_type: atms_sdr_hdf5
+    file_key: All_Data/{dataset_group}_All/GainCalibration
+
+  nedt_cold:
+    name: nedt_cold
+    dataset_groups: [SATMS]
+    file_type: atms_sdr_hdf5
+    file_key: All_Data/{dataset_group}_All/NEdTCold
+
+  nedt_warm:
+    name: nedt_warm
+    dataset_groups: [SATMS]
+    file_type: atms_sdr_hdf5
+    file_key: All_Data/{dataset_group}_All/NEdTWarm
