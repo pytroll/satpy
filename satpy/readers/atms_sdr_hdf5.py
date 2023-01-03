@@ -108,6 +108,11 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
             scans.append(self[scans_path])
         return scans
 
+    def _get_variable(self, var_path, channel_index=None):
+        if channel_index is not None:
+            return self[var_path][:, :, channel_index]
+        return super()._get_variable(var_path)
+
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
 
@@ -124,27 +129,8 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
-        scan_size = 1
-        scans = self._get_scans_per_granule(dataset_group)
-        start_scan = 0
-        data_chunks = []
-        scans = xr.DataArray(scans)
-
         ch_index = self._get_atms_channel_index(ds_info['name'])
-        if ch_index is not None:
-            variable = self[var_path][:, :, ch_index]
-        else:
-            variable = self[var_path]
-
-        # check if these are single per-granule value
-        if variable.size != scans.size:
-            for gscans in scans.values:
-                data_chunks.append(variable.isel(y=slice(start_scan,
-                                                         start_scan + gscans * scan_size)))
-                start_scan += gscans * scan_size
-            data = xr.concat(data_chunks, 'y')
-        else:
-            data = self.expand_single_values(variable, scans)
+        data = self.concatenate_dataset(dataset_group, var_path, channel_index=ch_index)
 
         data = self.mask_fill_values(data, ds_info)
         file_units = _get_file_units(dataset_id, ds_info)
@@ -156,16 +142,6 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         else:
             LOG.debug("No scaling factors found for %s", dataset_id)
 
-        i = getattr(data, 'attrs', {})
-        i.update(ds_info)
-        i.update({
-            "units": output_units,
-            "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
-            "start_orbit": self.start_orbit_number,
-            "end_orbit": self.end_orbit_number,
-            "rows_per_scan": self._scan_size(dataset_group),
-        })
-        i.update(dataset_id.to_dict())
-        data.attrs.update(i)
+        data = self._update_data_attributes(data, dataset_id, ds_info)
+        data.attrs.update({"units": output_units})
         return data

@@ -247,18 +247,37 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             scan_size = 16
         return scan_size
 
-    def concatenate_dataset(self, dataset_group, var_path):
+    def _update_data_attributes(self, data, dataset_id, ds_info):
+        i = getattr(data, 'attrs', {})
+        i.update(ds_info)
+        i.update({
+            "platform_name": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+            "rows_per_scan": self._scan_size(ds_info['dataset_group']),
+        })
+        i.update(dataset_id.to_dict())
+        data.attrs.update(i)
+        return data
+
+    def _get_variable(self, var_path, **kwargs):
+        return self[var_path]
+
+    def concatenate_dataset(self, dataset_group, var_path, **kwargs):
         """Concatenate dataset."""
         scan_size = self._scan_size(dataset_group)
         scans = self._get_scans_per_granule(dataset_group)
         start_scan = 0
         data_chunks = []
         scans = xr.DataArray(scans)
-        variable = self[var_path]
+
+        variable = self._get_variable(var_path, **kwargs)
         # check if these are single per-granule value
         if variable.size != scans.size:
             for gscans in scans.values:
-                data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
+                data_chunks.append(variable.isel(y=slice(start_scan,
+                                                         start_scan + gscans * scan_size)))
                 start_scan += gscans * scan_size
             return xr.concat(data_chunks, 'y')
         else:

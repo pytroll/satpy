@@ -159,18 +159,8 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
         else:
             LOG.debug("No scaling factors found for %s", dataset_id)
 
-        i = getattr(data, 'attrs', {})
-        i.update(ds_info)
-        i.update({
-            "units": output_units,
-            "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
-            "start_orbit": self.start_orbit_number,
-            "end_orbit": self.end_orbit_number,
-            "rows_per_scan": self._scan_size(dataset_group),
-        })
-        i.update(dataset_id.to_dict())
-        data.attrs.update(i)
+        data = self._update_data_attributes(data, dataset_id, ds_info)
+        data.attrs.update({"units": output_units})
         return data
 
     def get_bounding_box(self):
