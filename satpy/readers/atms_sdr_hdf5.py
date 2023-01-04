@@ -41,7 +41,7 @@ import h5py
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler, _get_file_units
+from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -76,27 +76,17 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         except ValueError:
             return None
 
-    def _get_scaling_factors(self, file_units, output_units, factor_var_path, ch_idx):
+    def _get_scaling_factors(self, factor_var_path, ch_idx):
         """Get file scaling factors and scale according to expected units."""
         if ch_idx is None:
-            factors = self.get(factor_var_path)
-        else:
-            if ch_idx == 21:
-                ch_idx = 20  # The BrightnessTemperatureFactors array is only
-                # 42 long!? But there are 22 ATMS bands to be scaled! We assume
-                # the scale/pffset values are the same for all bands!
-                # FIXME!
-            factors = self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
-        factors = self._adjust_scaling_factors(factors, file_units, output_units)
-        return factors
+            return self.get(factor_var_path)
 
-    def _generate_file_key(self, ds_id, ds_info, factors=False):
-        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
-        calibration = {
-            'brightness_temperature': 'BrightnessTemperature',
-        }.get(ds_id.get('calibration'))
-        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        return var_path
+        if ch_idx == 21:
+            ch_idx = 20  # The BrightnessTemperatureFactors array is only
+            # 42 long!? But there are 22 ATMS bands to be scaled! We assume
+            # the scale/pffset values are the same for all bands!
+            # FIXME!
+        return self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
 
     def _get_scans_per_granule(self, dataset_group):
         number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
@@ -127,21 +117,12 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         dataset_group = dataset_group[0]
         ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
-        factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
         ch_index = self._get_atms_channel_index(ds_info['name'])
         data = self.concatenate_dataset(dataset_group, var_path, channel_index=ch_index)
-
         data = self.mask_fill_values(data, ds_info)
-        file_units = _get_file_units(dataset_id, ds_info)
-        output_units = ds_info.get("units", file_units)
-        factors = self._get_scaling_factors(file_units, output_units, factor_var_path, ch_index)
 
-        if factors is not None:
-            data = self.scale_swath_data(data, factors, dataset_group)
-        else:
-            LOG.debug("No scaling factors found for %s", dataset_id)
-
+        data = self.scale_data_to_specified_unit(data, dataset_id, ds_info, channel_index=ch_index)
         data = self._update_data_attributes(data, dataset_id, ds_info)
-        data.attrs.update({"units": output_units})
+
         return data

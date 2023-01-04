@@ -36,13 +36,7 @@ from glob import glob
 
 import numpy as np
 
-from satpy.readers.viirs_atms_sdr_utils import (
-    ATMS_DATASET_KEYS,
-    DATASET_KEYS,
-    VIIRS_DATASET_KEYS,
-    JPSS_SDR_FileHandler,
-    _get_file_units,
-)
+from satpy.readers.viirs_atms_sdr_utils import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
 NO_DATE = datetime(1958, 1, 1)
@@ -117,21 +111,6 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
         else:
             return super().__getitem__(item)
 
-    def _generate_file_key(self, ds_id, ds_info, factors=False):
-        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
-        calibration = {
-            'radiance': 'Radiance',
-            'reflectance': 'Reflectance',
-            'brightness_temperature': 'BrightnessTemperature',
-        }.get(ds_id.get('calibration'))
-        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
-            if self.use_tc is True:
-                return var_path + '_TC'
-            if self.use_tc is None and var_path + '_TC' in self.file_content:
-                return var_path + '_TC'
-        return var_path
-
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
 
@@ -147,20 +126,13 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
         dataset_group = dataset_group[0]
         ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
-        factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
         data = self.concatenate_dataset(dataset_group, var_path)
         data = self.mask_fill_values(data, ds_info)
-        file_units = _get_file_units(dataset_id, ds_info)
-        output_units = ds_info.get("units", file_units)
-        factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
-        if factors is not None:
-            data = self.scale_swath_data(data, factors, dataset_group)
-        else:
-            LOG.debug("No scaling factors found for %s", dataset_id)
 
+        data = self.scale_data_to_specified_unit(data, dataset_id, ds_info)
         data = self._update_data_attributes(data, dataset_id, ds_info)
-        data.attrs.update({"units": output_units})
+
         return data
 
     def get_bounding_box(self):

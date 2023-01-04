@@ -180,6 +180,23 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         data = self._map_and_apply_factors(data, factors, rows_per_gran)
         return data
 
+    def scale_data_to_specified_unit(self, data, dataset_id, ds_info, channel_index=None):
+        """Get sscale and offset factors and convert/scale data to given physical unit."""
+        var_path = self._generate_file_key(dataset_id, ds_info)
+        dataset_group = ds_info['dataset_group']
+        file_units = _get_file_units(dataset_id, ds_info)
+        output_units = ds_info.get("units", file_units)
+
+        factor_var_path = ds_info.get("factors_key", var_path + "Factors")
+        factors = self._get_scaling_factors(factor_var_path, channel_index)
+        factors = self._adjust_scaling_factors(factors, file_units, output_units)
+
+        if factors is not None:
+            return self.scale_swath_data(data, factors, dataset_group)
+
+        LOG.debug("No scaling factors found for %s", dataset_id)
+        return data
+
     @staticmethod
     def _mask_and_reshape_factors(factors):
         factors = factors.where(factors > -999, np.float32(np.nan))
@@ -220,11 +237,11 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         factors = self._get_valid_scaling_factors(factors)
         return self._scale_factors_for_units(factors, file_units, output_units)
 
-    def _get_scaling_factors(self, file_units, output_units, factor_var_path):
-        """Get file scaling factors and scale according to expected units."""
-        factors = self.get(factor_var_path)
-        factors = self._adjust_scaling_factors(factors, file_units, output_units)
-        return factors
+    def _get_scaling_factors(self, factor_var_path, ch_idx=None):
+        """Get file scaling factors from the file."""
+        if ch_idx is None:
+            return self.get(factor_var_path)
+        return self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
 
     @staticmethod
     def expand_single_values(var, scans):
@@ -247,7 +264,24 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             scan_size = 16
         return scan_size
 
+    def _generate_file_key(self, ds_id, ds_info, factors=False):
+        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
+        calibration = {
+            'radiance': 'Radiance',
+            'reflectance': 'Reflectance',
+            'brightness_temperature': 'BrightnessTemperature',
+        }.get(ds_id.get('calibration'))
+        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
+        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
+            if self.use_tc is True:
+                return var_path + '_TC'
+            if self.use_tc is None and var_path + '_TC' in self.file_content:
+                return var_path + '_TC'
+        return var_path
+
     def _update_data_attributes(self, data, dataset_id, ds_info):
+        file_units = _get_file_units(dataset_id, ds_info)
+        output_units = ds_info.get("units", file_units)
         i = getattr(data, 'attrs', {})
         i.update(ds_info)
         i.update({
@@ -255,6 +289,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
+            "units": output_units,
             "rows_per_scan": self._scan_size(ds_info['dataset_group']),
         })
         i.update(dataset_id.to_dict())
