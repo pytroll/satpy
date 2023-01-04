@@ -3,7 +3,7 @@ reader:
   short_name: SEVIRI l2 BUFR
   long_name: MSG (Meteosat 8 to 11) Level 2 products in BUFR format
   description: SEVIRI L2 BUFR Product Reader
-  status: Alpha, AMV BUFR products not supported yet
+  status: Alpha
   supports_fsspec: false
   sensors: [seviri]
   default_channels: []
@@ -51,24 +51,29 @@ file_types:
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
+  seviri_l2_bufr_amv:
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_patterns:
+        - 'AMVBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
+        - '{spacecraft:s}-SEVI-MSGAMVE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
+        - '{spacecraft:s}-SEVI-MSGAMVE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
+
 datasets:
 
   latitude:
     name: latitude
     key: 'latitude'
-    long_name: Latitude
+    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     standard_name: latitude
-    resolution: [48006.450653072,9001.209497451]
-    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
     units: degree_north
     fill_value: -1.e+100
 
   longitude:
     name: longitude
     key: 'longitude'
-    resolution: [48006.450653072,9001.209497451]
-    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
-    long_name: Longitude
+    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     standard_name: longitude
     units: degree_east
     fill_value: -1.e+100
@@ -1235,3 +1240,40 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
+
+  # ---- AMV products ------------
+  speed:
+    name: speed
+    key: '#1#windSpeed'
+    resolution: 72009.675979608
+    file_type: seviri_l2_bufr_amv
+    standard_name: wind_speed
+    units: m s-1
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
+
+  direction:
+    name: direction
+    key: '#1#windDirection'
+    resolution: 72009.675979608
+    file_type: seviri_l2_bufr_amv
+    standard_name: wind_to_direction
+    units: deg
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
+
+  pressure:
+    name: pressure
+    key: '#1#pressure'
+    resolution: 72009.675979608
+    file_type: seviri_l2_bufr_amv
+    standard_name: wind_pressure
+    units: Pa
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude

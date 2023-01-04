@@ -38,7 +38,7 @@ def water_detection(img, **kwargs):
 @exclude_alpha
 @using_map_blocks
 def _water_detection(img_data):
-    data = np.asarray(img_data)
+    data = np.asarray(img_data).copy()
     data[data == 150] = 31
     data[data == 199] = 18
     data[data >= 200] = data[data >= 200] - 100

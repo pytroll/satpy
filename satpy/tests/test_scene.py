@@ -17,10 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for scene.py."""
 
+import math
 import os
 import random
 import string
 import unittest
+from copy import deepcopy
 from datetime import datetime
 from unittest import mock
 
@@ -665,20 +667,20 @@ class TestScene:
         expected_reader_kwargs = reader_kwargs.copy()
         storage_options = {'option1': '1'}
         reader_kwargs['storage_options'] = storage_options
+        orig_reader_kwargs = deepcopy(reader_kwargs)
         with mock.patch('satpy.scene.load_readers') as load_readers:
             with mock.patch('fsspec.open_files') as open_files:
                 Scene(filenames=filenames, reader_kwargs=reader_kwargs)
                 call_ = load_readers.mock_calls[0]
                 assert call_.kwargs['reader_kwargs'] == expected_reader_kwargs
                 open_files.assert_called_once_with(filenames, **storage_options)
+                assert reader_kwargs == orig_reader_kwargs
 
     def test_storage_options_from_reader_kwargs_per_reader(self):
         """Test getting storage options from reader kwargs.
 
         Case where each reader have their own storage options.
         """
-        from copy import deepcopy
-
         filenames = {
             "reader1": ["s3://data-bucket/file1"],
             "reader2": ["s3://data-bucket/file2"],
@@ -696,6 +698,7 @@ class TestScene:
         reader_kwargs['reader1']['storage_options'] = storage_options_1
         reader_kwargs['reader2']['storage_options'] = storage_options_2
         reader_kwargs['reader3']['storage_options'] = storage_options_3
+        orig_reader_kwargs = deepcopy(reader_kwargs)
 
         with mock.patch('satpy.scene.load_readers') as load_readers:
             with mock.patch('fsspec.open_files') as open_files:
@@ -705,11 +708,37 @@ class TestScene:
                 assert mock.call(filenames["reader1"], **storage_options_1) in open_files.mock_calls
                 assert mock.call(filenames["reader2"], **storage_options_2) in open_files.mock_calls
                 assert mock.call(filenames["reader3"], **storage_options_3) in open_files.mock_calls
+                assert reader_kwargs == orig_reader_kwargs
+
+    def test_storage_options_from_reader_kwargs_per_reader_and_global(self):
+        """Test getting storage options from reader kwargs.
+
+        Case where each reader have their own storage options and there are
+        global options to merge.
+        """
+        filenames = {
+            "reader1": ["s3://data-bucket/file1"],
+            "reader2": ["s3://data-bucket/file2"],
+            "reader3": ["s3://data-bucket/file3"],
+        }
+        reader_kwargs = {
+            "reader1": {'reader_opt_1': 'foo', 'storage_options': {'option1': '1'}},
+            "reader2": {'reader_opt_2': 'bar', 'storage_options': {'option2': '2'}},
+            "storage_options": {"endpoint_url": "url"},
+        }
+        orig_reader_kwargs = deepcopy(reader_kwargs)
+
+        with mock.patch('satpy.scene.load_readers'):
+            with mock.patch('fsspec.open_files') as open_files:
+                Scene(filenames=filenames, reader_kwargs=reader_kwargs)
+                assert mock.call(filenames["reader1"], option1='1', endpoint_url='url') in open_files.mock_calls
+                assert mock.call(filenames["reader2"], option2='2', endpoint_url='url') in open_files.mock_calls
+                assert reader_kwargs == orig_reader_kwargs
 
 
 def _create_coarest_finest_data_array(shape, area_def, attrs=None):
     data_arr = xr.DataArray(
-        da.arange(shape[0] * shape[1]).reshape(shape),
+        da.arange(math.prod(shape)).reshape(shape),
         attrs={
             'area': area_def,
         })
@@ -735,8 +764,12 @@ def _create_coarsest_finest_area_def(shape, extents):
 
 def _create_coarsest_finest_swath_def(shape, extents, name_suffix):
     from pyresample import SwathDefinition
-    lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
-    lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
+    if len(shape) == 1:
+        lons_arr = da.linspace(extents[0], extents[2], shape[0], dtype=np.float32)
+        lats_arr = da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)
+    else:
+        lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
+        lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
     lons_data_arr = xr.DataArray(lons_arr, attrs={"name": f"longitude{name_suffix}"})
     lats_data_arr = xr.DataArray(lats_arr, attrs={"name": f"latitude1{name_suffix}"})
     return SwathDefinition(lons_data_arr, lats_data_arr)
@@ -754,6 +787,8 @@ class TestFinestCoarsestArea:
              _create_coarsest_finest_area_def((4, 10), (-1000.0, -1500.0, 1000.0, 1500.0))),
             (_create_coarsest_finest_swath_def((2, 5), (1000.0, 1500.0, -1000.0, -1500.0), "1"),
              _create_coarsest_finest_swath_def((4, 10), (1000.0, 1500.0, -1000.0, -1500.0), "1")),
+            (_create_coarsest_finest_swath_def((5,), (1000.0, 1500.0, -1000.0, -1500.0), "1"),
+             _create_coarsest_finest_swath_def((10,), (1000.0, 1500.0, -1000.0, -1500.0), "1")),
         ]
     )
     def test_coarsest_finest_area_different_shape(self, coarse_area, fine_area):
@@ -826,7 +861,7 @@ class TestSceneAvailableDatasets:
         num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 29
+        assert len(id_list) == num_reader_ds + 33
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
@@ -1297,6 +1332,14 @@ class TestSceneLoading:
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
 
+    def test_load_modified_with_load_kwarg(self):
+        """Test loading a modified dataset using the ``Scene.load`` keyword argument."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'], modifiers=('mod1', 'mod2'))
+        loaded_ids = list(scene._datasets.keys())
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
+
     def test_load_multiple_modified(self):
         """Test loading multiple modified datasets."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
@@ -1506,6 +1549,33 @@ class TestSceneLoading:
         available_comp_ids = scene.available_composite_ids()
         assert make_cid(name='static_image') in available_comp_ids
 
+    def test_available_when_sensor_none_in_preloaded_dataarrays(self):
+        """Test Scene available composites when existing loaded arrays have sensor set to None.
+
+        Some readers or composites (ex. static images) don't have a sensor and
+        developers choose to set it to `None`. This test makes sure this
+        doesn't break available composite IDs.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene['my_data'] = _data_array_none_sensor("my_data")
+        available_comp_ids = scene.available_composite_ids()
+        assert make_cid(name='static_image') in available_comp_ids
+
+    def test_load_when_sensor_none_in_preloaded_dataarrays(self):
+        """Test Scene loading when existing loaded arrays have sensor set to None.
+
+        Some readers or composites (ex. static images) don't have a sensor and
+        developers choose to set it to `None`. This test makes sure this
+        doesn't break loading.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene['my_data'] = _data_array_none_sensor("my_data")
+        scene.load(["static_image"])
+        assert "static_image" in scene
+        assert "my_data" in scene
+
     def test_compute_pass_through(self):
         """Test pass through of xarray compute."""
         import numpy as np
@@ -1530,6 +1600,16 @@ class TestSceneLoading:
         scene.load(['ds1'])
         scene = scene.chunk(chunks=2)
         assert scene['ds1'].data.chunksize == (2, 2)
+
+
+def _data_array_none_sensor(name: str) -> xr.DataArray:
+    """Create a DataArray with sensor set to ``None``."""
+    return xr.DataArray(
+        da.zeros((2, 2)),
+        attrs={
+            "name": name,
+            "sensor": None,
+        })
 
 
 class TestSceneResampling:

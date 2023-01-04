@@ -185,7 +185,7 @@ datasets:
     coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I_SOLZ:
-    name: i_solar_zenith_angle
+    name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 371
     units: degrees
@@ -193,7 +193,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/solar_zenith
   I_SOLA:
-    name: i_solar_azimuth_angle
+    name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     resolution: 371
     units: degrees
@@ -201,7 +201,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/solar_azimuth
   I_SENZ:
-    name: i_satellite_zenith_angle
+    name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
     resolution: 371
     units: degrees
@@ -209,7 +209,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/sensor_zenith
   I_SENA:
-    name: i_satellite_azimuth_angle
+    name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 371
     units: degrees

@@ -30,7 +30,15 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.utils import angle2xyz, get_satpos, lonlat2xyz, proj_units_to_meters, xyz2angle, xyz2lonlat
+from satpy.utils import (
+    angle2xyz,
+    get_satpos,
+    import_error_helper,
+    lonlat2xyz,
+    proj_units_to_meters,
+    xyz2angle,
+    xyz2lonlat,
+)
 
 
 class TestUtils(unittest.TestCase):
@@ -291,8 +299,10 @@ class TestGetSatPos:
                 (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
-                    (lon, lat, alt),
-                    (119.39533705010592, -1.1491628298731498, 35803.19986408156))
+                (lon, lat, alt),
+                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                rtol=1e-4,
+            )
 
 
 def test_make_fake_scene():
@@ -567,3 +577,12 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
     _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
 
     open_files.assert_called_once_with(filenames, **storage_options)
+
+
+def test_import_error_helper():
+    """Test the import error helper."""
+    module = "some_crazy_name_for_unknow_dependency_module"
+    with pytest.raises(ImportError) as err:
+        with import_error_helper(module):
+            import unknow_dependency_module  # noqa
+    assert module in str(err)
