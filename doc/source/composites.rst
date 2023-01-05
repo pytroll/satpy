@@ -107,7 +107,7 @@ being visualized.
 
 .. note::
 
-   Deprecated since Satpy 0.39.
+   Deprecated since Satpy 0.40.
 
    Composites produced with :class:`PaletteCompositor` will result in
    an RGB image when enhanced.  To produce an image with mode P, use
