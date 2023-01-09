@@ -258,9 +258,6 @@ as part of the :func:`~satpy.modifiers.angles.get_angles` and
 used by multiple modifiers and composites including the default rayleigh
 correction.
 
-.. _component_configuration:
-
-
 Temporary Directory
 ^^^^^^^^^^^^^^^^^^^
 
@@ -273,6 +270,8 @@ input files. Default depends on the operating system.
 
 .. _tempfile.gettempdir(): https://docs.python.org/3/library/tempfile.html?highlight=gettempdir#tempfile.gettempdir
 
+
+.. _component_configuration:
 
 Component Configuration
 -----------------------
