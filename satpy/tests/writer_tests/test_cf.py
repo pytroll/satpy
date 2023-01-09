@@ -441,7 +441,7 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename) as f:
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
-    def test_header_attrs(self):
+    def test_header_group_attrs(self):
         """Check global attributes are set."""
         import xarray as xr
 
@@ -462,10 +462,15 @@ class TestCFWriter(unittest.TestCase):
                             'nested': {'outer': {'inner1': 1, 'inner2': 2}},
                             'bool': True,
                             'bool_': np.bool_(True)}
+            group_attrs = {'grp_name': 'test-group'}
+
             scn.save_datasets(filename=filename,
+                              groups={'test-group': ['test-array']},
                               header_attrs=header_attrs,
+                              group_attrs=group_attrs,
                               flatten_attrs=True,
                               writer='cf')
+
             with xr.open_dataset(filename) as f:
                 self.assertIn('history', f.attrs)
                 self.assertEqual(f.attrs['sensor'], 'SEVIRI')
@@ -479,6 +484,8 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f.attrs['bool'], 'true')
                 self.assertEqual(f.attrs['bool_'], 'true')
                 self.assertTrue('none' not in f.attrs.keys())
+            with xr.open_dataset(filename, group='test-group') as f:
+                self.assertEqual(f.attrs['grp_name'], 'test-group')
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
