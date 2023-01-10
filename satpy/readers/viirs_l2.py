@@ -15,12 +15,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS L2 files."""
 
-import logging
 from datetime import datetime
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-
-LOG = logging.getLogger(__name__)
 
 
 class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
