@@ -3,7 +3,7 @@ reader:
   short_name: VIIRS CSPP Cloud Mask
   long_name: VIIRS CSPP Cloud Mask data in NetCDF4 format
   description: VIIRS CSPP Cloud Mask reader
-  status: alpha
+  status: beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs]
