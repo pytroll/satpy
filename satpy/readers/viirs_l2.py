@@ -80,10 +80,10 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(ds_info, var_path)
 
-        i = getattr(self[var_path], 'attrs', {})
-        i.update(ds_info)
-        i.update(dataset_id.to_dict())
-        i.update({
+        attr = getattr(self[var_path], 'attrs', {})
+        attr.update(ds_info)
+        attr.update(dataset_id.to_dict())
+        attr.update({
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
@@ -92,8 +92,8 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        i.update(dataset_id.to_dict())
-        return i
+        attr.update(dataset_id.to_dict())
+        return attr
 
     def _get_dataset_file_units(self, ds_info, var_path):
         file_units = ds_info.get('file_units')
