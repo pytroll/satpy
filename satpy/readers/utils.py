@@ -33,7 +33,7 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
+from satpy import CHUNK_SIZE, config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -211,7 +211,8 @@ def unzip_file(filename, prefix=None):
 
     """
     if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                            dir=config["tmp_dir"])
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
         pbzip = which('pbzip2')

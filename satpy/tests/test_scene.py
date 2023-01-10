@@ -22,6 +22,7 @@ import os
 import random
 import string
 import unittest
+from copy import deepcopy
 from datetime import datetime
 from unittest import mock
 
@@ -666,20 +667,20 @@ class TestScene:
         expected_reader_kwargs = reader_kwargs.copy()
         storage_options = {'option1': '1'}
         reader_kwargs['storage_options'] = storage_options
+        orig_reader_kwargs = deepcopy(reader_kwargs)
         with mock.patch('satpy.scene.load_readers') as load_readers:
             with mock.patch('fsspec.open_files') as open_files:
                 Scene(filenames=filenames, reader_kwargs=reader_kwargs)
                 call_ = load_readers.mock_calls[0]
                 assert call_.kwargs['reader_kwargs'] == expected_reader_kwargs
                 open_files.assert_called_once_with(filenames, **storage_options)
+                assert reader_kwargs == orig_reader_kwargs
 
     def test_storage_options_from_reader_kwargs_per_reader(self):
         """Test getting storage options from reader kwargs.
 
         Case where each reader have their own storage options.
         """
-        from copy import deepcopy
-
         filenames = {
             "reader1": ["s3://data-bucket/file1"],
             "reader2": ["s3://data-bucket/file2"],
@@ -697,6 +698,7 @@ class TestScene:
         reader_kwargs['reader1']['storage_options'] = storage_options_1
         reader_kwargs['reader2']['storage_options'] = storage_options_2
         reader_kwargs['reader3']['storage_options'] = storage_options_3
+        orig_reader_kwargs = deepcopy(reader_kwargs)
 
         with mock.patch('satpy.scene.load_readers') as load_readers:
             with mock.patch('fsspec.open_files') as open_files:
@@ -706,6 +708,32 @@ class TestScene:
                 assert mock.call(filenames["reader1"], **storage_options_1) in open_files.mock_calls
                 assert mock.call(filenames["reader2"], **storage_options_2) in open_files.mock_calls
                 assert mock.call(filenames["reader3"], **storage_options_3) in open_files.mock_calls
+                assert reader_kwargs == orig_reader_kwargs
+
+    def test_storage_options_from_reader_kwargs_per_reader_and_global(self):
+        """Test getting storage options from reader kwargs.
+
+        Case where each reader have their own storage options and there are
+        global options to merge.
+        """
+        filenames = {
+            "reader1": ["s3://data-bucket/file1"],
+            "reader2": ["s3://data-bucket/file2"],
+            "reader3": ["s3://data-bucket/file3"],
+        }
+        reader_kwargs = {
+            "reader1": {'reader_opt_1': 'foo', 'storage_options': {'option1': '1'}},
+            "reader2": {'reader_opt_2': 'bar', 'storage_options': {'option2': '2'}},
+            "storage_options": {"endpoint_url": "url"},
+        }
+        orig_reader_kwargs = deepcopy(reader_kwargs)
+
+        with mock.patch('satpy.scene.load_readers'):
+            with mock.patch('fsspec.open_files') as open_files:
+                Scene(filenames=filenames, reader_kwargs=reader_kwargs)
+                assert mock.call(filenames["reader1"], option1='1', endpoint_url='url') in open_files.mock_calls
+                assert mock.call(filenames["reader2"], option2='2', endpoint_url='url') in open_files.mock_calls
+                assert reader_kwargs == orig_reader_kwargs
 
 
 def _create_coarest_finest_data_array(shape, area_def, attrs=None):

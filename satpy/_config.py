@@ -23,6 +23,7 @@ import glob
 import logging
 import os
 import sys
+import tempfile
 from collections import OrderedDict
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -49,6 +50,7 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
+    'tmp_dir': tempfile.gettempdir(),
     'cache_dir': _satpy_dirs.user_cache_dir,
     'cache_lonlats': False,
     'cache_sensor_angles': False,
