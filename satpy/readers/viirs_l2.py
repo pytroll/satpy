@@ -78,7 +78,7 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
         """Get metadata."""
         var_path = ds_info['file_key']
         shape = self.get_shape(dataset_id, ds_info)
-        file_units = self._get_dataset_file_units(ds_info, var_path)
+        file_units = ds_info.get('file_units')
 
         attr = getattr(self[var_path], 'attrs', {})
         attr.update(ds_info)
@@ -94,13 +94,6 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
         })
         attr.update(dataset_id.to_dict())
         return attr
-
-    def _get_dataset_file_units(self, ds_info, var_path):
-        file_units = ds_info.get('file_units')
-        if file_units is None:
-            file_units = self.get(var_path + '/attr/units')
-
-        return file_units
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
