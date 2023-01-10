@@ -151,3 +151,4 @@ def _read_viirs_l2_cloud_mask_nc_data(fname, dset_name):
 
 def _assert_common(data):
     assert data.dims == ('y', 'x')
+    assert "units" in data.attrs
