@@ -26,6 +26,15 @@ from satpy.dataset import combine_metadata
 LOG = logging.getLogger(__name__)
 
 
+def _calc_norm_index(band1, band2):
+    """Calculate an index (such as NDVI) from two input bands: `band2` will be subtracted from `band1`.
+
+    For example, to calculate NDVI:
+    `ndvi = _calc_norm_index(nir_band, red_band)`
+    """
+    return (band1 - band2) / (band1 + band2)
+
+
 class SpectralBlender(GenericCompositor):
     """Construct new channel by blending contributions from a set of channels.
 
@@ -151,7 +160,46 @@ class NDVIHybridGreen(SpectralBlender):
         """Construct the hybrid green channel weighted by NDVI."""
         ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
 
-        ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
+        ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
+
+        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
+        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+
+        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
+            + self.limits[0]
+        self.fractions = (1 - fraction, fraction)
+
+        return super().__call__([projectables[0], projectables[2]], **attrs)
+
+
+class IndexedGreen(SpectralBlender):
+    """Construct an index-weighted hybrid green channel.
+
+    This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
+    factor `f` that depends on the pixel-level vegetation (NDVI) and soil parameters (NDBI). In addition, two
+    sensor-specific constants, veg_fac and soil_fac, are used that define the difference between the sensor spectral
+    response and an idealised spectral response suited for vegetation.
+    NDVI is calculated via: `(NIR - RED) / (NIR + RED)`
+    NDBI is calculated via: `(RED - GRN) / (RED + GRN)`
+    The final weighting factor is then found via:
+    `f = max( ndvi * veg_fac, ndbi * soil_fac)`
+    If `soil_fac` and `veg_fac` are not supplied, this method will produce results equivalent to `NDVIHybridGreen`
+    """
+
+    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, veg_fac=1., soil_fac=0., limits=(0.15, 0.05), **kwargs):
+        """Initialize class and set the NDVI limits and the corresponding blending fraction limits."""
+        self.ndvi_min = ndvi_min
+        self.ndvi_max = ndvi_max
+        self.veg_fac = veg_fac
+        self.soil_fac = soil_fac
+        self.limits = limits
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, projectables, optional_datasets=None, **attrs):
+        """Construct the hybrid green channel weighted by NDVI."""
+        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+
+        ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
 
         ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
         ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)

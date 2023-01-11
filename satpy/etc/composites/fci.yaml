@@ -63,4 +63,4 @@ composites:
       - name: vis_06
       - name: ndvi_hybrid_green_raw
       - name: vis_04
-    standard_name: true_color_raw
+    standard_name: true_color
