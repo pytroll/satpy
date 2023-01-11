@@ -28,6 +28,7 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
+from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
@@ -439,14 +440,13 @@ def create_colormap(palette):
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        cmap = _create_colormap_from_file(fname, palette, color_scale)
+        if not os.path.exists(fname):
+            fname = get_config_path(fname)
+        cmap = Colormap.from_file(fname, palette.get("colormap_mode", None), color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
+        cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
     elif isinstance(colors, str):
-        import copy
-
-        from trollimage import colormap
-        cmap = copy.copy(getattr(colormap, colors))
+        cmap = Colormap.from_name(colors)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
 
@@ -455,67 +455,9 @@ def create_colormap(palette):
     if 'min_value' in palette and 'max_value' in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
     elif 'min_value' in palette or 'max_value' in palette:
-        raise ValueError("Both 'min_value' and 'max_value' must be specified")
+        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
 
     return cmap
-
-
-def _create_colormap_from_sequence(colors, palette, color_scale):
-    from trollimage.colormap import Colormap
-    cmap = []
-    values = palette.get('values', None)
-    for idx, color in enumerate(colors):
-        if values is not None:
-            value = values[idx]
-        else:
-            value = idx / float(len(colors) - 1)
-        if color_scale != 1:
-            color = tuple(elem / float(color_scale) for elem in color)
-        cmap.append((value, tuple(color)))
-    return Colormap(*cmap)
-
-
-def _create_colormap_from_file(filename, palette, color_scale):
-    from trollimage.colormap import Colormap
-    data = _read_colormap_data_from_file(filename)
-    cols = data.shape[1]
-    default_modes = {
-        3: 'RGB',
-        4: 'VRGB',
-        5: 'VRGBA'
-    }
-    default_mode = default_modes.get(cols)
-    mode = palette.setdefault('colormap_mode', default_mode)
-    if mode is None or len(mode) != cols:
-        raise ValueError(
-            "Unexpected colormap shape for mode '{}'".format(mode))
-    rows = data.shape[0]
-    if mode[0] == 'V':
-        colors = data[:, 1:]
-        if color_scale != 1:
-            colors = data[:, 1:] / float(color_scale)
-        values = data[:, 0]
-    else:
-        colors = data
-        if color_scale != 1:
-            colors = colors / float(color_scale)
-        values = np.arange(rows) / float(rows - 1)
-    return Colormap(*zip(values, colors))
-
-
-def _read_colormap_data_from_file(filename):
-    if not os.path.exists(filename):
-        filename = get_config_path(filename)
-    ext = os.path.splitext(filename)[1]
-    if ext in (".npy", ".npz"):
-        file_content = np.load(filename)
-        if ext == ".npz":
-            # .npz is a collection
-            # assume position list-like and get the first element
-            file_content = file_content["arr_0"]
-        return file_content
-    # CSV
-    return np.loadtxt(filename, delimiter=",")
 
 
 def three_d_effect(img, **kwargs):
