@@ -54,6 +54,6 @@ dependencies:
   - xarray-datatree
   - pip:
     - trollsift
-    - trollimage
+    - trollimage>=1.20
     - pyspectral
     - pyorbital
