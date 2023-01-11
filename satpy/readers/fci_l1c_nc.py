@@ -293,9 +293,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         attrs = dict(data.attrs).copy()
         info = info.copy()
-        if not isinstance(data, xr.DataArray):
-            data = xr.DataArray(
-                da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+        data = _ensure_dataarray(data)
 
         fv = attrs.pop(
             "FillValue",
@@ -401,10 +399,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
-        if not isinstance(lut, xr.DataArray):
-            attrs = dict(lut.attrs.items()).copy()
-            lut = xr.DataArray(
-                da.from_array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
+        lut = _ensure_dataarray(lut)
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
 
@@ -652,3 +647,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res
+
+
+def _ensure_dataarray(arr):
+    if not isinstance(arr, xr.DataArray):
+        attrs = dict(arr.attrs.items()).copy()
+        arr = xr.DataArray(da.from_array(arr), dims=arr.dimensions, attrs=attrs, name=arr.name)
+    return arr
