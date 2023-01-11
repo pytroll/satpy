@@ -258,6 +258,19 @@ as part of the :func:`~satpy.modifiers.angles.get_angles` and
 used by multiple modifiers and composites including the default rayleigh
 correction.
 
+Temporary Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_TMP_DIR``
+* **YAML/Config Key**: ``tmp_dir``
+* **Default**: `tempfile.gettempdir()`_
+
+Directory where Satpy creates temporary files, for example decompressed
+input files. Default depends on the operating system.
+
+.. _tempfile.gettempdir(): https://docs.python.org/3/library/tempfile.html?highlight=gettempdir#tempfile.gettempdir
+
+
 .. _component_configuration:
 
 Component Configuration
