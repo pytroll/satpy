@@ -198,14 +198,20 @@ class IndexedGreen(SpectralBlender):
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the hybrid green channel weighted by NDVI."""
         ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        ndbi_input = self.match_data_arrays([projectables[0], projectables[1]])
 
         ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
-
         ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
         ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
 
-        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
-            + self.limits[0]
+        ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
+        ndbi.data = da.where(ndbi > self.ndvi_min, ndbi, self.ndvi_min)
+        ndbi.data = da.where(ndbi < self.ndvi_max, ndbi, self.ndvi_max)
+
+        ndvi = ndvi * self.veg_fac
+        ndbi = ndbi * self.soil_fac
+
+        fraction = da.where(ndvi > ndbi, ndvi, ndbi)
         self.fractions = (1 - fraction, fraction)
 
         return super().__call__([projectables[0], projectables[2]], **attrs)

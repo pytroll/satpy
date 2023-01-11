@@ -11,6 +11,8 @@ composites:
       currently implemented are experimental and may change in future versions of Satpy.
     compositor: !!python/name:satpy.composites.spectral.IndexedGreen
     limits: [0.15, 0.05]
+    veg_fac: 0.1001379
+    soil_fac: 0.1987731
     prerequisites:
       - name: vis_05
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -36,6 +38,19 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: vis_08
         modifiers: [sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+  indexed_hybrid_green_raw:
+    description: >
+      Alternative to ndvi_hybrid_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    limits: [0.15, 0.05]
+    veg_fac: 0.1001379
+    soil_fac: 0.1987731
+    prerequisites:
+      - name: vis_05
+      - name: vis_06
+      - name: vis_08
     standard_name: toa_bidirectional_reflectance
 
   ndvi_hybrid_green_raw:
@@ -72,6 +87,21 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
+
+  true_color_indexed:
+      compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+      description: >
+        FCI true color composite.  The green band is simulated based on a combination of
+        channels.  This simulation may change in future versions of Satpy.  See the description
+        of the ndvi_hybrid_green composites for details.
+      prerequisites:
+        - name: vis_06
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+        - name: indexed_hybrid_green
+        - name: vis_04
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+      standard_name: true_color
+
   true_color_raw_with_corrected_green:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     description: >
@@ -80,5 +110,16 @@ composites:
     prerequisites:
       - name: vis_06
       - name: ndvi_hybrid_green_raw
+      - name: vis_04
+    standard_name: true_color
+
+  true_color_raw_with_indexed_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color without solar zenith or rayleigh corrections, but with the NDVI
+      hybrid green correction.
+    prerequisites:
+      - name: vis_06
+      - name: indexed_hybrid_green_raw
       - name: vis_04
     standard_name: true_color
