@@ -79,6 +79,8 @@ datasets:
     file_type: grib_seviri_clm
     parameter_number: 7
     units: "1"
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['clear sky over water','clear sky over land', 'cloudy', 'no data' ]
 
   pixel_scene_type:
     name: pixel_scene_type
@@ -88,6 +90,8 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 8
     units: "1"
+    flag_values: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,50,97,98,99,100]
+    flag_meanings: ['none','evergreen needleleaf forest','evergreen broadleaf forest', 'decidious needleleaf forest','decidious broadleaf forest','mixed forest','closed shrubland','open shrubland','woody savannahs','savannahs','grasslands','permananent wetlands','croplands','urban and build-up','cropland mosaics',' permanent snow/ice','bare soil and rocks','water bodies','tundra','mixed land/water','unknown scene','snow/ice over land','snow/ice over watter','clear sunglint','cloudy']
 
   measurement_cost:
     name: measurement_cost
@@ -205,6 +209,8 @@ datasets:
     file_type: grib_seviri_fir
     parameter_number: 9
     units: "1"
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['no fire','possible fire', 'probable fire', 'missing' ]
 
   aerosol_optical_thickness_vis06:
     name: aerosol_optical_thickness_vis06
@@ -250,6 +256,8 @@ datasets:
     file_type: grib_seviri_aes
     parameter_number: 192
     units: "1"
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['clear sky over water','clear sky over land', 'cloudy', 'no data' ]
 
   cloud_top_height:
     name: cloud_top_height
@@ -268,10 +276,12 @@ datasets:
     file_type: grib_seviri_cth
     parameter_number: 3
     units: "1"
+    flag_values: [0, 1]
+    flag_meanings: ['good quality retreival','poor quality retreival' ]
 
   vis_refl_06:
     name: vis_refl_06
-    long_name: TOA Bidirectional Reflectance at 0.6um
+    long_name: TOA Bidirectional Reflectance at 0.6um (7 days average)
     standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
@@ -281,7 +291,7 @@ datasets:
 
   vis_refl_08:
     name: vis_refl_08
-    long_name: TOA Bidirectional Reflectance at 0.8um
+    long_name: TOA Bidirectional Reflectance at 0.8um (7 days average)
     standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
@@ -291,7 +301,7 @@ datasets:
 
   vis_refl_16:
     name: vis_refl_16
-    long_name: TOA Bidirectional Reflectance at 1.6um
+    long_name: TOA Bidirectional Reflectance at 1.6um (7 days average)
     standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
@@ -301,7 +311,7 @@ datasets:
 
   nir_refl_39:
     name: nir_refl_39
-    long_name: TOA Bidirectional Reflectance at 3.9um
+    long_name: TOA Bidirectional Reflectance at 3.9um (7 days average)
     standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [3.48, 3.92, 4.36]
@@ -320,7 +330,7 @@ datasets:
 
   solar_zenith_angle:
     name: solar_zenith_angle
-    long_name: Solar Zenith Angle
+    long_name: Solar Zenith Angle (7 days average)
     standard_name: solar_zenith_angle
     resolution: 3000.403165817
     file_type: grib_seviri_crm
@@ -329,7 +339,7 @@ datasets:
 
   relative_azimuth_angle:
     name: relative_azimuth_angle
-    long_name: Relative Azimuth Angle
+    long_name: Relative Azimuth Angle (7 days average)
     standard_name: relative_sensor_azimuth_angle
     resolution: 3000.403165817
     file_type: grib_seviri_crm
