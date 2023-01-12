@@ -21,7 +21,6 @@ from __future__ import annotations
 import contextlib
 import datetime
 import logging
-import os
 import pathlib
 import warnings
 from contextlib import contextmanager
