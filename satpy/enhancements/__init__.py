@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -33,6 +32,8 @@ from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
 from satpy._config import get_config_path
+
+from ..utils import find_in_ancillary
 
 LOG = logging.getLogger(__name__)
 
@@ -323,21 +324,32 @@ def colorize(img, **kwargs):
                'min_value': <float, min value to match colors to>,
                'max_value': <float, min value to match colors to>,
                'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'dataset': <str, referring to dataset containing palette>,
+               'color_scale': <int, value to be interpreted as white>,
+               'min_value': <float, see above>,
+               'max_value': <float, see above>}
 
     If multiple palettes are supplied, they are concatenated before applied.
 
     """
-    full_cmap = _merge_colormaps(kwargs)
+    full_cmap = _merge_colormaps(kwargs, img)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
-    """Palettize the given image (no color interpolation)."""
-    full_cmap = _merge_colormaps(kwargs)
+    """Palettize the given image (no color interpolation).
+
+    Arguments as for :func:`colorize`.
+
+    NB: to retain the palette when saving the resulting image, pass
+    ``keep_palette=True`` to the save method (either via the Scene class or
+    directly in trollimage).
+    """
+    full_cmap = _merge_colormaps(kwargs, img)
     img.palettize(full_cmap)
 
 
-def _merge_colormaps(kwargs):
+def _merge_colormaps(kwargs, img=None):
     """Merge colormaps listed in kwargs."""
     from trollimage.colormap import Colormap
     full_cmap = None
@@ -347,7 +359,7 @@ def _merge_colormaps(kwargs):
         full_cmap = palette
     else:
         for itm in palette:
-            cmap = create_colormap(itm)
+            cmap = create_colormap(itm, img)
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -356,7 +368,7 @@ def _merge_colormaps(kwargs):
     return full_cmap
 
 
-def create_colormap(palette):
+def create_colormap(palette, img=None):
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -416,6 +428,11 @@ def create_colormap(palette):
     key in the provided dictionary (ex. ``{'colors': 'blues'}``).
     See :doc:`trollimage:colormap` for the full list of available colormaps.
 
+    **From an auxiliary variable**
+
+    If the colormap is defined in the same dataset as the data to which the
+    colormap shall be applied,
+
     **Color Scale**
 
     By default colors are expected to be in a 0-255 range. This
@@ -437,6 +454,7 @@ def create_colormap(palette):
     """
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
+    dataset = palette.get("dataset", None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
@@ -447,6 +465,8 @@ def create_colormap(palette):
         cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
     elif isinstance(colors, str):
         cmap = Colormap.from_name(colors)
+    elif isinstance(dataset, str):
+        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
 
@@ -458,6 +478,17 @@ def create_colormap(palette):
         raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
 
     return cmap
+
+
+def _create_colormap_from_dataset(img, dataset, color_scale):
+    """Create a colormap from an auxiliary variable in a source file."""
+    match = find_in_ancillary(img.data, dataset)
+    return Colormap.from_array_with_metadata(
+            match, img.data.dtype, color_scale,
+            valid_range=img.data.attrs.get("valid_range"),
+            scale_factor=img.data.attrs.get("scale_factor", 1),
+            add_offset=img.data.attrs.get("add_offset", 0),
+            remove_last=False)
 
 
 def three_d_effect(img, **kwargs):

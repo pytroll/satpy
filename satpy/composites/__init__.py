@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2022 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -517,7 +517,39 @@ class RGBCompositor(GenericCompositor):
 
 
 class ColormapCompositor(GenericCompositor):
-    """A compositor that uses colormaps."""
+    """A compositor that uses colormaps.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.
+
+    This compositor is deprecated.  To apply a colormap, use a
+    :class:`SingleBandCompositor` composite with a
+    :func:`~satpy.enhancements.colorize` or
+    :func:`~satpy.enhancements.palettize` enhancement instead.
+    For example, to make a ``cloud_top_height`` composite based on a dataset
+    ``ctth_alti`` palettized by ``ctth_alti_pal``, the composite would be::
+
+      cloud_top_height:
+        compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+        - ctth_alti
+        tandard_name: cloud_top_height
+
+    and the enhancement:
+
+      cloud_top_height:
+        standard_name: cloud_top_height
+        operations:
+        - name: palettize
+          method: !!python/name:satpy.enhancements.palettize
+          kwargs:
+            palettes:
+              - dataset: ctth_alti_pal
+                color_scale: 255
+                min_value: 0
+                max_value: 255
+    """
 
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -539,7 +571,9 @@ class ColormapCompositor(GenericCompositor):
                 palette,
                 dtype,
                 color_scale=255,
-                **info)
+                valid_range=info.get("valid_range"),
+                scale_factor=info.get("scale_factor", 1),
+                add_offset=info.get("add_offset", 0))
 
         return cmap, squeezed_palette
 
@@ -579,7 +613,13 @@ class ColormapCompositor(GenericCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
-    """A compositor colorizing the data, interpolating the palette colors when needed."""
+    """A compositor colorizing the data, interpolating the palette colors when needed.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.  See the :class:`ColormapCompositor`
+        docstring for documentation on the alternative.
+    """
 
     @staticmethod
     def _apply_colormap(colormap, data, palette):
@@ -588,7 +628,13 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
+    """A compositor colorizing the data, not interpolating the palette colors.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.  See the :class:`ColormapCompositor`
+        docstring for documentation on the alternative.
+    """
 
     @staticmethod
     def _apply_colormap(colormap, data, palette):

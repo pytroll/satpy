@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -678,3 +676,26 @@ def import_error_helper(dependency_name):
         yield
     except ImportError as err:
         raise ImportError(err.msg + f" It can be installed with the {dependency_name} package.")
+
+
+def find_in_ancillary(data, dataset):
+    """Find a dataset by name in the ancillary vars of another dataset.
+
+    Args:
+        data (xarray.DataArray):
+            Array for which to search the ancillary variables
+        dataset (str):
+            Name of ancillary variable to look for.
+    """
+    matches = [x for x in data.attrs["ancillary_variables"] if x.attrs.get("name") == dataset]
+    cnt = len(matches)
+    if cnt < 1:
+        raise ValueError(
+            f"Could not find dataset named {dataset:s} in ancillary "
+            f"variables for dataset '{data.attrs.get('name')!s}'")
+    if cnt > 1:
+        raise ValueError(
+            f"Expected exactly one dataset named {dataset:s} in ancillary "
+            f"variables for dataset '{data.attrs.get('name')!s}', "
+            f"found {cnt:d}")
+    return matches[0]
