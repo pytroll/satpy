@@ -44,10 +44,7 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
     @property
     def platform_name(self):
         """Get platform name."""
-        try:
-            res = self.filename_info['platform_shortname']
-        except KeyError:
-            res = 'Unknown'
+        res = self.filename_info['platform_shortname']
 
         return {
             'npp': 'Suomi-NPP',
