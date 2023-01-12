@@ -118,23 +118,3 @@ class VIIRSCloudMaskFileHandler(NetCDF4FileHandler):
         valid_max = valid_range[1]
 
         return valid_min, valid_max
-
-    def available_datasets(self, configured_datasets=None):
-        """Generate dataset info and their availablity.
-
-        See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
-        for details.
-
-        """
-        for is_avail, ds_info in (configured_datasets or []):
-            if is_avail is not None:
-                # some other file handler said it has this dataset
-                # we don't know any more information than the previous
-                # file handler so let's yield early
-                yield is_avail, ds_info
-                continue
-            ft_matches = self.file_type_matches(ds_info['file_type'])
-            var_path = ds_info['file_key']
-            is_in_file = var_path in self
-            yield ft_matches and is_in_file, ds_info
