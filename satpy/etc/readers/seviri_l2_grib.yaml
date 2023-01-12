@@ -73,8 +73,8 @@ datasets:
 
   cloud_mask:
     name: cloud_mask
-    long_name: Cloud Mask
-    standard_name: cloud_binary_mask
+    long_name: Cloud Classification
+    standard_name: cloud_classification
     resolution: 3000.403165817
     file_type: grib_seviri_clm
     parameter_number: 7
