@@ -15,6 +15,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the VIIRS CSPP L2 readers."""
 
+# NOTE:
+# The following Pytest fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 import numpy as np
 import pytest
 import xarray as xr
