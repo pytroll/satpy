@@ -162,8 +162,8 @@ def get_fake_mda(nlines, ncols, start_time):
         'image_segment_line_quality': {
             'line_mean_acquisition': tline,
             'line_validity': np.full(nlines, 3),
-            'line_radiometric_quality': np.full(nlines, 3),
-            'line_geometric_quality': np.full(nlines, 3)
+            'line_radiometric_quality': np.full(nlines, 4),
+            'line_geometric_quality': np.full(nlines, 4)
         }
     }
 

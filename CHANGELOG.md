@@ -1,3 +1,62 @@
+## Version 0.39.0 (2022/12/30)
+
+### Issues Closed
+
+* [Issue 2326](https://github.com/pytroll/satpy/issues/2326) - satpy installation failed with pip
+* [Issue 2325](https://github.com/pytroll/satpy/issues/2325) - VIIRS SDR DNB units and file_units are conflicting
+* [Issue 2323](https://github.com/pytroll/satpy/issues/2323) - use area def raise value different when process himawari datasets
+* [Issue 2311](https://github.com/pytroll/satpy/issues/2311) - scatsat1_l2b and caliop_l2_cloud readers fail to initialise due to failed `Dataset` import
+* [Issue 2289](https://github.com/pytroll/satpy/issues/2289) - Resampling from MSG Satellite projection to Dutch weather radar projection, area_extent missing
+* [Issue 2273](https://github.com/pytroll/satpy/issues/2273) - Add support for HRFI imagery in the FCI L1c reader ([PR2287](https://github.com/pytroll/satpy/pull/2287) by [@ameraner](https://github.com/ameraner))
+* [Issue 2270](https://github.com/pytroll/satpy/issues/2270) - Missing SEVIRI service mode for new IODC sub-satellite longitude of MET09
+* [Issue 2269](https://github.com/pytroll/satpy/issues/2269) - Occasional errors when closing FCI L2 NetCDF file
+* [Issue 2264](https://github.com/pytroll/satpy/issues/2264) - Can't load static image composite multiple times ([PR2292](https://github.com/pytroll/satpy/pull/2292) by [@djhoese](https://github.com/djhoese))
+* [Issue 2248](https://github.com/pytroll/satpy/issues/2248) - Test_scene failure on debian sid
+* [Issue 2245](https://github.com/pytroll/satpy/issues/2245) - `native` resampler fails for some chunk sizes ([PR2291](https://github.com/pytroll/satpy/pull/2291) by [@djhoese](https://github.com/djhoese))
+* [Issue 2213](https://github.com/pytroll/satpy/issues/2213) - Update `li_l2`-reader to read MTG LI L2 test data ([PR2271](https://github.com/pytroll/satpy/pull/2271) by [@seenno](https://github.com/seenno))
+* [Issue 2186](https://github.com/pytroll/satpy/issues/2186) - FCI L1c reader is single threaded ([PR2237](https://github.com/pytroll/satpy/pull/2237) by [@ameraner](https://github.com/ameraner))
+* [Issue 1595](https://github.com/pytroll/satpy/issues/1595) - Native resampler to coarsest_area fails for HRV channel due to indivisible chunk sizes
+* [Issue 1482](https://github.com/pytroll/satpy/issues/1482) - Add option to turn off masking in seviri_l1b_hrit ([PR1693](https://github.com/pytroll/satpy/pull/1693) by [@BENR0](https://github.com/BENR0))
+* [Issue 1381](https://github.com/pytroll/satpy/issues/1381) - fails to load all composites for abi_l1b
+* [Issue 658](https://github.com/pytroll/satpy/issues/658) - MTG LI reader is not Python 3 compatible
+* [Issue 650](https://github.com/pytroll/satpy/issues/650) - MTG LI reader fails
+* [Issue 499](https://github.com/pytroll/satpy/issues/499) - Graceful handling of saturated values in MODIS data
+* [Issue 370](https://github.com/pytroll/satpy/issues/370) - Make hdfeos_l1b geo interpolation use dask arrays
+
+In this release 20 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR2335](https://github.com/pytroll/satpy/pull/2335) - Fix Scene modifying user-provided reader_kwargs
+* [PR 2318](https://github.com/pytroll/satpy/pull/2318) - Remove pylibtiff dependencies
+* [PR 2317](https://github.com/pytroll/satpy/pull/2317) - Fix for bug regarding masking of good scan lines with seviri hrit reader introduced by #1693
+* [PR 2297](https://github.com/pytroll/satpy/pull/2297) - Replace np.bool by np.bool_
+* [PR 2292](https://github.com/pytroll/satpy/pull/2292) - Fix Scene not handling DataArrays with 'sensor' set to None ([2264](https://github.com/pytroll/satpy/issues/2264))
+* [PR 2291](https://github.com/pytroll/satpy/pull/2291) - Fix native resampler not working for some chunk sizes ([2245](https://github.com/pytroll/satpy/issues/2245))
+* [PR 2276](https://github.com/pytroll/satpy/pull/2276) - Update AGRI for fill values and cailbration LUTs.
+
+#### Features added
+
+* [PR 2315](https://github.com/pytroll/satpy/pull/2315) - Port mitiff writer to use pillow
+* [PR 2287](https://github.com/pytroll/satpy/pull/2287) - Feature: add support for HRFI imagery in the FCI L1c reader ([2273](https://github.com/pytroll/satpy/issues/2273))
+* [PR 2280](https://github.com/pytroll/satpy/pull/2280) - Add NDVI-scaled hybrid green correction
+* [PR 2271](https://github.com/pytroll/satpy/pull/2271) - Add LI L2 reader ([2213](https://github.com/pytroll/satpy/issues/2213))
+* [PR 2265](https://github.com/pytroll/satpy/pull/2265) - Add a reader for insat 3d imager data (`insat3d_img_l1b_h5`)
+* [PR 2237](https://github.com/pytroll/satpy/pull/2237) - Optimise the FCI L1c/netcdf_utils by introducing on-demand variables collection and caching ([2186](https://github.com/pytroll/satpy/issues/2186))
+* [PR 1693](https://github.com/pytroll/satpy/pull/1693) - Add masking of data with line quality flags to seviri nc reader ([1482](https://github.com/pytroll/satpy/issues/1482))
+* [PR 1678](https://github.com/pytroll/satpy/pull/1678) - Add a reader for Meris L2 data
+
+#### Documentation changes
+
+* [PR 2306](https://github.com/pytroll/satpy/pull/2306) - fix description for 500m resolution
+* [PR 2295](https://github.com/pytroll/satpy/pull/2295) - Fix documentation reference links to EUMeTrain webpages
+* [PR 2274](https://github.com/pytroll/satpy/pull/2274) - Documentation correction: Not all built-in compositors derive from GenericCompositor
+
+In this release 18 pull requests were closed.
+
+
 ## Version 0.38.0 (2022/11/11)
 
 ### Issues Closed
@@ -421,13 +480,13 @@ In this release 10 pull requests were closed.
 
 ### Issues Closed
 
-* [Isse1900](https://github.com/pytroll/satpy/issues/1900) - Load composites mixed from files or provided data ([PR1901](https://github.com/pytroll/satpy/pull/1901) by [@djhoese](https://github.com/djhoese))
-* [Isse1898](https://github.com/pytroll/satpy/issues/1898) - Loading composites without file handlers fails with KeyError ([PR1899](https://github.com/pytroll/satpy/pull/1899) by [@erritholl](https://github.com/gerritholl))
-* [Isse1893](https://github.com/pytroll/satpy/issues/1893) - Download and install Satpy for raspberry pi
-* [Isse1889](https://github.com/pytroll/satpy/issues/1889) - Question: How to release loaded data from memory?
-* [Isse1880](https://github.com/pytroll/satpy/issues/1880) - Add area definitions corresponding to geostationary imager fields of regard ([PR1881](https://github.com/pytroll/satpy/pull/1881) by [@erritholl](https://github.com/gerritholl))
-* [Isse1879](https://github.com/pytroll/satpy/issues/1879) - How to use histogram enhancement in yaml files?
-* [Isse1749](https://github.com/pytroll/satpy/issues/1749) - Load from blended scene ([PR 1797](https://github.com/pytroll/satpy/pull/1797) by [@djhoese](https://github.com/djhoese))
+* [Issue 1900](https://github.com/pytroll/satpy/issues/1900) - Load composites mixed from files or provided data ([PR1901](https://github.com/pytroll/satpy/pull/1901) by [@djhoese](https://github.com/djhoese))
+* [Issue 1898](https://github.com/pytroll/satpy/issues/1898) - Loading composites without file handlers fails with KeyError ([PR1899](https://github.com/pytroll/satpy/pull/1899) by [@erritholl](https://github.com/gerritholl))
+* [Issue 1893](https://github.com/pytroll/satpy/issues/1893) - Download and install Satpy for raspberry pi
+* [Issue 1889](https://github.com/pytroll/satpy/issues/1889) - Question: How to release loaded data from memory?
+* [Issue 1880](https://github.com/pytroll/satpy/issues/1880) - Add area definitions corresponding to geostationary imager fields of regard ([PR1881](https://github.com/pytroll/satpy/pull/1881) by [@erritholl](https://github.com/gerritholl))
+* [Issue 1879](https://github.com/pytroll/satpy/issues/1879) - How to use histogram enhancement in yaml files?
+* [Issue 1749](https://github.com/pytroll/satpy/issues/1749) - Load from blended scene ([PR 1797](https://github.com/pytroll/satpy/pull/1797) by [@djhoese](https://github.com/djhoese))
 * [Issue 1747](https://github.com/pytroll/satpy/issues/1747) - Load composites without file handlers. ([PR 1797](https://github.com/pytroll/satpy/pull/1797) by [@djhoese](https://github.com/djhoese))
 * [Issue 1456](https://github.com/pytroll/satpy/issues/1456) - Default cache directory should respect XDG Base Directory Specification.
 * [Issue 583](https://github.com/pytroll/satpy/issues/583) - PPP_CONFIG_DIR set locally does not include the global dir for the eps_l1b reader
@@ -464,9 +523,9 @@ In this release 12 pull requests were closed.
 
 ### Issues Closed
 
-* [Isse1866](https://github.com/pytroll/satpy/issues/1866) - Data Type of AHI NetCDF Output
-* [Isse1859](https://github.com/pytroll/satpy/issues/1859) - Yaml UnsafeLoader ImportErrror on colab.google ([PR1860](https://github.com/pytroll/satpy/pull/1860) by [@arammer](https://github.com/abrammer))
-* [Isse1853](https://m/pytroll/satpy/pull/1864) by [@djhoese](https://github.com/djhoese))
+* [Issue 1866](https://github.com/pytroll/satpy/issues/1866) - Data Type of AHI NetCDF Output
+* [Issue 1859](https://github.com/pytroll/satpy/issues/1859) - Yaml UnsafeLoader ImportErrror on colab.google ([PR1860](https://github.com/pytroll/satpy/pull/1860) by [@arammer](https://github.com/abrammer))
+* [Issue 1853](https://m/pytroll/satpy/pull/1864) by [@djhoese](https://github.com/djhoese))
 
 In this release 12 issues were closed.
 
@@ -500,12 +559,12 @@ In this release 12 pull requests were closed.
 
 ### Issues Closed
 
-* [Isse1835](https://github.com/pytroll/satpy/issues/1835) - scipy module error?
-* [Isse1832](https://github.com/pytroll/satpy/issues/1832) - variable from python to composite
-* [Isse1831](https://github.com/pytroll/satpy/issues/1831) - example yml files for other readers
-* [Isse1829](https://github.com/pytroll/satpy/issues/1829) - pytest satpy/tests does not work ([PR1830](https://github.com/pytroll/satpy/pull/1830) by [@djhoese](https://github.com/djhoese))
-* [Isse1828](https://github.com/pytroll/satpy/issues/1828) - Error occurred plotting Himawari-8
-* [Isse1484](https://github.com/pytroll/satpy/issues/1484) - Broken links to new EUMETSAT website ([PR1827](https://github.com/pytroll/satpy/pull/1827) by [@pdeyl](https://github.com/pdebuyl))
+* [Issue 1835](https://github.com/pytroll/satpy/issues/1835) - scipy module error?
+* [Issue 1832](https://github.com/pytroll/satpy/issues/1832) - variable from python to composite
+* [Issue 1831](https://github.com/pytroll/satpy/issues/1831) - example yml files for other readers
+* [Issue 1829](https://github.com/pytroll/satpy/issues/1829) - pytest satpy/tests does not work ([PR1830](https://github.com/pytroll/satpy/pull/1830) by [@djhoese](https://github.com/djhoese))
+* [Issue 1828](https://github.com/pytroll/satpy/issues/1828) - Error occurred plotting Himawari-8
+* [Issue 1484](https://github.com/pytroll/satpy/issues/1484) - Broken links to new EUMETSAT website ([PR1827](https://github.com/pytroll/satpy/pull/1827) by [@pdeyl](https://github.com/pdebuyl))
 
 In this release 6 issues were closed.
 
