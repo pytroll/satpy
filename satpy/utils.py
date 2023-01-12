@@ -21,6 +21,8 @@ from __future__ import annotations
 import contextlib
 import datetime
 import logging
+import os
+import pathlib
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
@@ -627,6 +629,8 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
     for f in filenames:
         if isinstance(f, FSFile):
             fs_files.append(f)
+        elif isinstance(f, pathlib.Path):
+            local_files.append(f)
         elif urlparse(f).scheme in ('', 'file') or "\\" in f:
             local_files.append(f)
         else:
