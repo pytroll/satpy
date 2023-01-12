@@ -15,6 +15,30 @@ modifiers:
     - solar_zenith_angle
 
 composites:
+  indexed_hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    limits: [0.15, 0.05]
+    veg_fac: 0.10655814
+    soil_fac: 0.19019079
+    prerequisites:
+      - name: B02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B04
+        modifiers: [sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+  indexed_hybrid_green_raw:
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    limits: [0.15, 0.05]
+    veg_fac: 0.10655814
+    soil_fac: 0.19019079
+    prerequisites:
+      - name: B02
+      - name: B03
+      - name: B04
+    standard_name: toa_bidirectional_reflectance
   green:
     # Deprecated green composite using deprecated class 'GreenCorrector'. Use 'hybrid_green' instead.
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector
@@ -461,3 +485,22 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+
+  true_color_indexed:
+      compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+      prerequisites:
+        - name: B03
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+        - name: indexed_hybrid_green
+        - name: B01
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+      standard_name: true_color
+
+  true_color_raw_with_indexed_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+      - name: indexed_hybrid_green_raw
+      - name: B01
+    standard_name: true_color

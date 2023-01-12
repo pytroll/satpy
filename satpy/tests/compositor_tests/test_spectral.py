@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.composites.spectral import GreenCorrector, HybridGreen, NDVIHybridGreen, SpectralBlender
+from satpy.composites.spectral import GreenCorrector, HybridGreen, IndexedGreen, NDVIHybridGreen, SpectralBlender
 
 
 class TestSpectralComposites:
@@ -84,6 +84,27 @@ class TestSpectralComposites:
         assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
         data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+
+    def test_indexed_hybrid_green(self):
+        """Test NDVI/NDBI-scaled hybrid green correction of 'green' band."""
+        self.c01 = xr.DataArray(da.from_array([[0.25, 0.30, 0.67, 0.88], [0.20, 0.30, 0.21, 0.64]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C02'})
+        self.c02 = xr.DataArray(da.from_array([[0.25, 0.30, 0.13, 0.93], [0.25, 0.35, 0.82, 0.55]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C03'})
+        self.c03 = xr.DataArray(da.from_array([[0.35, 0.35, 0.18, 0.42], [0.28, 0.65, 0.67, 0.19]], chunks=25),
+                                dims=('y', 'x'), attrs={'name': 'C04'})
+
+        comp = IndexedGreen('ndvi_hybrid_green', limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+                            standard_name='toa_bidirectional_reflectance')
+
+        res = comp((self.c01, self.c02, self.c03))
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'ndvi_hybrid_green'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
+        data = res.values
+        np.testing.assert_array_almost_equal(data, np.array([[0.2667, 0.3038, 0.591, 0.88],
+                                                             [0.2045, 0.405, 0.21, 0.64]]), decimal=4)
 
     def test_green_corrector(self):
         """Test the deprecated class for green corrections."""

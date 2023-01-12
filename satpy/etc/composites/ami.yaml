@@ -1,6 +1,31 @@
 sensor_name: visir/ami
 
 composites:
+  indexed_hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    limits: [0.15, 0.05]
+    veg_fac: 0.11603345
+    soil_fac: 0.19371803
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI006
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+  indexed_hybrid_green_raw:
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    limits: [0.15, 0.05]
+    veg_fac: 0.11603345
+    soil_fac: 0.19371803
+    prerequisites:
+      - name: VI005
+      - name: VI006
+      - name: VI008
+    standard_name: toa_bidirectional_reflectance
+
   green_raw:
     # Deprecated green composite using deprecated class 'GreenCorrector'. Use 'hybrid_green_raw' instead.
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector
@@ -259,3 +284,21 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  true_color_indexed:
+      compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+      prerequisites:
+        - name: VI006
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+        - name: indexed_hybrid_green
+        - name: VI004
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+      standard_name: true_color
+
+  true_color_raw_with_indexed_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: VI006
+      - name: indexed_hybrid_green_raw
+      - name: VI004
+    standard_name: true_color
