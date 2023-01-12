@@ -15,11 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the VIIRS CSPP L2 readers."""
 
-import os
-import shutil
-import tempfile
-
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy import Scene
@@ -30,31 +27,22 @@ NUM_ROWS = 768
 DATASETS = ['Latitude', 'Longitude', 'CloudMask', 'CloudMaskBinary']
 
 
-class JRRCloudMaskFile:
-    """Write a test JRR CloudMask file."""
+@pytest.fixture
+def cloud_mask_file(tmp_path):
+    """Create a temporary JRR CloudMask file as a fixture."""
+    file_path = tmp_path / CLOUD_MASK_FILE
+    _write_cloud_mask_file(file_path)
+    yield file_path
 
-    def __init__(self):
-        """Initialize the class."""
-        self._dir = tempfile.mkdtemp()
-        self.name = os.path.join(self._dir, CLOUD_MASK_FILE)
 
-    def __enter__(self):
-        """Create the file when entering the context manager."""
-        self._write_file()
-        return self.name
-
-    def _write_file(self):
-        dset = xr.Dataset()
-        dset.attrs = _get_global_attrs()
-        dset['Latitude'] = _get_lat_arr()
-        dset['Longitude'] = _get_lon_arr()
-        dset['CloudMask'] = _get_cloud_mask_arr()
-        dset['CloudMaskBinary'] = _get_cloud_mask_binary_arr()
-        dset.to_netcdf(self.name, 'w')
-
-    def __exit__(self, type, value, traceback):
-        """Delete the file when exiting the context manager."""
-        shutil.rmtree(self._dir, ignore_errors=True)
+def _write_cloud_mask_file(file_path):
+    dset = xr.Dataset()
+    dset.attrs = _get_global_attrs()
+    dset['Latitude'] = _get_lat_arr()
+    dset['Longitude'] = _get_lon_arr()
+    dset['CloudMask'] = _get_cloud_mask_arr()
+    dset['CloudMaskBinary'] = _get_cloud_mask_binary_arr()
+    dset.to_netcdf(file_path, 'w')
 
 
 def _get_global_attrs():
@@ -113,34 +101,30 @@ def _get_cloud_mask_binary_arr():
     return xr.DataArray(arr, attrs=attrs, dims=('Rows', 'Columns'))
 
 
-def test_cloud_mask_read_latitude():
+def test_cloud_mask_read_latitude(cloud_mask_file):
     """Test reading latitude dataset."""
-    with JRRCloudMaskFile() as fname:
-        data = _read_viirs_l2_cloud_mask_nc_data(fname, 'latitude')
-        _assert_common(data)
+    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'latitude')
+    _assert_common(data)
 
 
-def test_cloud_mask_read_longitude():
+def test_cloud_mask_read_longitude(cloud_mask_file):
     """Test reading longitude dataset."""
-    with JRRCloudMaskFile() as fname:
-        data = _read_viirs_l2_cloud_mask_nc_data(fname, 'longitude')
-        _assert_common(data)
+    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'longitude')
+    _assert_common(data)
 
 
-def test_cloud_mask_read_cloud_mask():
+def test_cloud_mask_read_cloud_mask(cloud_mask_file):
     """Test reading cloud mask dataset."""
-    with JRRCloudMaskFile() as fname:
-        data = _read_viirs_l2_cloud_mask_nc_data(fname, 'cloud_mask')
-        _assert_common(data)
-        np.testing.assert_equal(data.attrs['flag_values'], [0, 1, 2, 3])
-        assert data.attrs['flag_meanings'] == ['clear', 'probably_clear', 'probably_cloudy', 'cloudy']
+    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'cloud_mask')
+    _assert_common(data)
+    np.testing.assert_equal(data.attrs['flag_values'], [0, 1, 2, 3])
+    assert data.attrs['flag_meanings'] == ['clear', 'probably_clear', 'probably_cloudy', 'cloudy']
 
 
-def test_cloud_mas_read_binary_cloud_mask():
+def test_cloud_mas_read_binary_cloud_mask(cloud_mask_file):
     """Test reading binary cloud mask dataset."""
-    with JRRCloudMaskFile() as fname:
-        data = _read_viirs_l2_cloud_mask_nc_data(fname, 'cloud_mask_binary')
-        _assert_common(data)
+    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'cloud_mask_binary')
+    _assert_common(data)
 
 
 def _read_viirs_l2_cloud_mask_nc_data(fname, dset_name):
