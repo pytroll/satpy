@@ -13,7 +13,7 @@ is encouraged for code re-usability.
 
 As the builtin fixtures (and those defined in ``conftest.py`` file) are injected by
 Pytest without them being imported explicitly, their usage can be very confusing for
-the new developers. To lessen the confusion, it is encouraged to add a note at the
+new developers. To lessen the confusion, it is encouraged to add a note at the
 top of the test modules listing all the automatically injected external fixtures
 that are used in the module::
 
