@@ -84,15 +84,6 @@ class FakeH5Variable:
         """Get item for the key."""
         return self._data[key]
 
-    def __eq__(self, other):
-        """Check for equality."""
-        if isinstance(other, type(self)):
-            return (np.all(np.equal(self.dimensions, other.dimensions)) &
-                    np.all(np.equal(self._data, other._data)) &
-                    self.dtype == other.dtype &
-                    self.attrs == other.attrs)
-        return np.all(np.equal(self._data, other))
-
     @property
     def shape(self):
         """Get the shape."""
@@ -102,11 +93,6 @@ class FakeH5Variable:
     def ndim(self):
         """Get the number of dimensions."""
         return self._data.ndim
-
-    @property
-    def dims(self):
-        """Get the dimensions."""
-        return self.dimensions
 
 
 def _get_test_calib_for_channel_ir(data, meas_path):
@@ -399,10 +385,7 @@ def clear_cache(reader):
     for key in reader.file_handlers:
         fhs = reader.file_handlers[key]
         for fh in fhs:
-            try:
-                fh.cached_file_content = {}
-            except AttributeError:
-                pass
+            fh.cached_file_content = {}
 
 
 _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
