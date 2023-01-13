@@ -1,4 +1,42 @@
-"""File handler for DSCOVR EPIC L1B data in hdf5 format."""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2023 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""File handler for DSCOVR EPIC L1B data in hdf5 format.
+
+The ``epic_l1b_h5`` reader reads and calibrates EPIC L1B image data in hdf5 format.
+
+This reader supports all image and most ancillary datasets.
+Once the reader is initialised:
+
+`` scn = Scene([epic_filename], reader='epic_l1b_h5')``
+
+Channels can be loaded with the 'B' prefix and their wavelength in nanometers:
+
+``scn.load(['B317', 'B688'])``
+
+while ancillary data can be loaded by its name:
+
+``scn.load(['solar_zenith_angle'])``
+
+Note that ancillary dataset names use common standards and not the dataset names in the file.
+By default, channel data is loaded as calibrated reflectances, but counts data is also available.
+
+"""
+
 import logging
 from datetime import datetime
 
