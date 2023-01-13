@@ -15,15 +15,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the VIIRS CSPP L2 readers."""
 
-# NOTE:
-# The following Pytest fixtures are not defined in this file, but are used and injected by Pytest:
-# - tmp_path
-
 import numpy as np
 import pytest
 import xarray as xr
 
 from satpy import Scene
+
+# NOTE:
+# The following Pytest fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 CLOUD_MASK_FILE = "JRR-CloudMask_v3r0_npp_s202212070905565_e202212070907207_c202212071932513.nc"
 NUM_COLUMNS = 3200
