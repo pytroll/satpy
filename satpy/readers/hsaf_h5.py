@@ -41,10 +41,7 @@ class HSAFFileHandler(BaseFileHandler):
         super(HSAFFileHandler, self).__init__(filename,
                                               filename_info,
                                               filetype_info)
-
-        self._msg_datasets = {}
         self._h5fh = h5py.File(self.filename, 'r')
-        self._data_time = self.filename_info['sensing_time']
 
     @property
     def end_time(self):
@@ -56,19 +53,19 @@ class HSAFFileHandler(BaseFileHandler):
         """Get start time."""
         return self.filename_info['sensing_time']
 
-    def _prepare_variable_for_palette(self, msg, ds_info):
-        colormap = np.array(np.array(msg))
+    def _prepare_variable_for_palette(self, dset, ds_info):
+        colormap = np.array(np.array(dset))
         return xr.DataArray(colormap, attrs=ds_info, dims=('idx', 'RGB'))
 
-    def get_metadata(self, msg, name):
+    def get_metadata(self, dset, name):
         """Get the metadata."""
         ds_info = {'name': name}
         if name == 'SC':
             ds_info.update({
                 'filename': self.filename,
                 'data_time': self.start_time,
-                'nx': msg.shape[1],
-                'ny': msg.shape[0]
+                'nx': dset.shape[1],
+                'ny': dset.shape[0]
             })
         return ds_info
 
