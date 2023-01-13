@@ -84,7 +84,7 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         if ch_idx == 21:
             ch_idx = 20  # The BrightnessTemperatureFactors array is only
             # 42 long!? But there are 22 ATMS bands to be scaled! We assume
-            # the scale/pffset values are the same for all bands!
+            # the scale/offset values are the same for all bands!
             # FIXME!
         return self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
 
