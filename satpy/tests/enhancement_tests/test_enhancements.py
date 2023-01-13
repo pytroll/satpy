@@ -27,6 +27,10 @@ import xarray as xr
 
 from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands, using_map_blocks
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 def run_and_check_enhancement(func, data, expected, **kwargs):
     """Perform basic checks that apply to multiple tests."""
