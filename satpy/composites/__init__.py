@@ -536,7 +536,7 @@ class ColormapCompositor(GenericCompositor):
         - ctth_alti
         tandard_name: cloud_top_height
 
-    and the enhancement:
+    and the enhancement::
 
       cloud_top_height:
         standard_name: cloud_top_height
