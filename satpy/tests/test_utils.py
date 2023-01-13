@@ -498,6 +498,20 @@ def test_convert_remote_files_to_fsspec_local_files():
     assert res == filenames
 
 
+def test_convert_remote_files_to_fsspec_local_pathlib_files():
+    """Test convertion of remote files to fsspec objects.
+
+    Case using pathlib objects as filenames.
+    """
+    import pathlib
+
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = [pathlib.Path("/tmp/file1.nc"), pathlib.Path("c:\tmp\file2.nc")]
+    res = convert_remote_files_to_fsspec(filenames)
+    assert res == filenames
+
+
 def test_convert_remote_files_to_fsspec_mixed_sources():
     """Test convertion of remote files to fsspec objects.
 
