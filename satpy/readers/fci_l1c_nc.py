@@ -651,6 +651,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
 def _ensure_dataarray(arr):
     if not isinstance(arr, xr.DataArray):
-        attrs = dict(arr.attrs.items()).copy()
+        attrs = dict(arr.attrs).copy()
         arr = xr.DataArray(da.from_array(arr), dims=arr.dimensions, attrs=attrs, name=arr.name)
     return arr
