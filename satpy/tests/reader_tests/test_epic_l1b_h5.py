@@ -54,7 +54,7 @@ def make_fake_hdf_epic(fname):
     g4 = g3.create_group('Earth')
     g4.create_dataset('SunAngleZenith', shape=(100, 100), dtype=np.float32, data=sza_data)
     g4.create_dataset('ViewAngleAzimuth', shape=(100, 100), dtype=np.float32, data=vaa_data)
-    g4.create_dataset('Mask', shape=(100, 100), dtype=np.int, data=mas_data)
+    g4.create_dataset('Mask', shape=(100, 100), dtype=int, data=mas_data)
     g4.create_dataset('Latitude', shape=(100, 100), dtype=np.float32, data=lat_data)
     g4.create_dataset('Longitude', shape=(100, 100), dtype=np.float32, data=lon_data)
 
