@@ -126,8 +126,16 @@ class NcNWCSAF(BaseFileHandler):
             data = var[0, :, :]
             data.attrs = var.attrs
             var = data
-
         return var
+
+    def drop_xycoords(self, variable):
+        """Drop x, y coords when y is scan line number."""
+        try:
+            if variable.coords['y'].attrs['long_name'] == "scan line number":
+                return variable.drop_vars(['y', 'x'])
+        except KeyError:
+            pass
+        return variable
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
@@ -148,7 +156,7 @@ class NcNWCSAF(BaseFileHandler):
         variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
-
+        variable = self.drop_xycoords(variable)
         return variable
 
     def _get_varname_in_file(self, info, info_type="file_key"):
@@ -279,6 +287,8 @@ class NcNWCSAF(BaseFileHandler):
         lons, lats = satint.interpolate()
         lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
         lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        lat = self.drop_xycoords(lat)
+        lon = self.drop_xycoords(lon)
         return lon, lat
 
     def get_area_def(self, dsid):

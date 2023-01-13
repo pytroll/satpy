@@ -327,7 +327,7 @@ def test_combine_dicts_close():
             'b': 'foo',
             'c': [1, 2, 3],
             'd': {
-                'e': np.str('bar'),
+                'e': np.str_('bar'),
                 'f': datetime(2020, 1, 1, 12, 15, 30),
                 'g': np.array([1, 2, 3]),
             },
@@ -340,7 +340,7 @@ def test_combine_dicts_close():
             'b': 'foo',
             'c': np.array([1, 2, 3]) + 1E-12,
             'd': {
-                'e': np.str('bar'),
+                'e': np.str_('bar'),
                 'f': datetime(2020, 1, 1, 12, 15, 30),
                 'g': np.array([1, 2, 3]) + 1E-12
             },

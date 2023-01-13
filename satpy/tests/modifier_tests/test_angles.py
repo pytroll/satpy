@@ -61,7 +61,7 @@ def _angle_cache_stacked_area_def():
 def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
                          chunks: Optional[Union[int, tuple]] = 2,
                          shape: tuple = (5, 5),
-                         dims: tuple = None,
+                         dims: Optional[tuple] = None,
                          ) -> xr.DataArray:
     if area_def is None:
         area_def = _angle_cache_area_def()
