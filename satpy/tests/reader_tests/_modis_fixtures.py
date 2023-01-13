@@ -25,6 +25,10 @@ import numpy as np
 import pytest
 from pyhdf.SD import SD, SDC
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmpdir_factory
+
 # Level 1 Fixtures
 
 AVAILABLE_1KM_VIS_PRODUCT_NAMES = [str(x) for x in range(8, 13)]

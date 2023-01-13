@@ -29,6 +29,10 @@ from pyresample.geometry import AreaDefinition
 from satpy.readers.goes_imager_nc import is_vis_channel
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - request
+
 
 class GOESNCBaseFileHandlerTest(unittest.TestCase):
     """Testing the file handler."""

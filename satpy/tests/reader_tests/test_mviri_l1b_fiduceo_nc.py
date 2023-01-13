@@ -39,6 +39,10 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
 )
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - request
+
 attrs_exp: dict = {
     'platform': 'MET7',
     'raw_metadata': {'foo': 'bar'},
