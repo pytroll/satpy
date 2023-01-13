@@ -41,7 +41,7 @@ import h5py
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS, JPSS_SDR_FileHandler
 
 LOG = logging.getLogger(__name__)
 

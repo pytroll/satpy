@@ -19,18 +19,16 @@
 """Module for testing the ATMS SDR HDF5 reader."""
 
 import os
-import unittest
 from datetime import datetime
 from unittest import mock
 
-import dask.array as da
 import numpy as np
-import xarray as xr
+import pytest
 
 from satpy._config import config_search_paths
 from satpy.readers import load_reader
 from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES
-from satpy.readers.viirs_atms_sdr_utils import DATASET_KEYS
+from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -241,36 +239,28 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
         self._convert_numpy_content_to_dataarray(final_content)
         return final_content
 
-    def _adjust_scaling_factors(self, factors, file_units, output_units):
-        """Adjust scaling factors ."""
-        if file_units == output_units:
-            return factors
-        else:
-            factors = np.array([1.0, 0], dtype=np.float32)
-            factors = xr.DataArray(da.from_array(factors, chunks=1))
-        return factors
 
-
-class TestATMS_SDR_Reader(unittest.TestCase):
+class TestATMS_SDR_Reader:
     """Test ATMS SDR Reader."""
 
     yaml_file = "atms_sdr_hdf5.yaml"
 
     def _assert_bt_properties(self, data_arr, num_scans=1, with_area=True):
-        self.assertTrue(np.issubdtype(data_arr.dtype, np.float32))
-        self.assertEqual(data_arr.attrs['calibration'], 'brightness_temperature')
-        self.assertEqual(data_arr.attrs['units'], 'K')
-        self.assertEqual(data_arr.attrs['rows_per_scan'], num_scans)
-        if with_area:
-            self.assertIn('area', data_arr.attrs)
-            self.assertIsNotNone(data_arr.attrs['area'])
-            self.assertEqual(data_arr.attrs['area'].shape, data_arr.shape)
-        else:
-            self.assertNotIn('area', data_arr.attrs)
+        assert np.issubdtype(data_arr.dtype, np.float32)
 
-    def setUp(self):
+        assert data_arr.attrs['calibration'] == 'brightness_temperature'
+        assert data_arr.attrs['units'] == 'K'
+        assert data_arr.attrs['rows_per_scan'] == num_scans
+        if with_area:
+            assert 'area' in data_arr.attrs
+            assert data_arr.attrs['area'] is not None
+            assert data_arr.attrs['area'].shape == data_arr.shape
+        else:
+            assert 'area' not in data_arr.attrs
+
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.viirs_atms_sdr_utils import JPSS_SDR_FileHandler
+        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
 
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -278,7 +268,7 @@ class TestATMS_SDR_Reader(unittest.TestCase):
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
@@ -289,10 +279,10 @@ class TestATMS_SDR_Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             '/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_init_start_end_time(self):
         """Test basic init with start and end times around the start/end times of the provided file."""
@@ -304,34 +294,25 @@ class TestATMS_SDR_Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
-    def test_load_all_bands(self):
-        """Load brightness temperatures for all 22 ATMS channels."""
+    @pytest.mark.parametrize("files, expected",
+                             [(['SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
+                                'GATMO_j01_d20221220_t0910240_e0921356_b26361_c20221220100456680030_cspp_dev.h5'],
+                               True),
+                              (['SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5', ],
+                               False)]
+                             )
+    def test_load_all_bands(self, files, expected):
+        """Load brightness temperatures for all 22 ATMS channels, with/without geolocation."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
-            'GATMO_j01_d20221220_t0910240_e0921356_b26361_c20221220100456680030_cspp_dev.h5',
-        ])
+        loadables = r.select_files_from_pathnames(files)
         r.create_filehandlers(loadables)
         ds = r.load(ATMS_CHANNEL_NAMES)
-        self.assertEqual(len(ds), 22)
+        assert len(ds) == 22
         for d in ds.values():
-            self._assert_bt_properties(d, with_area=True)
-
-    def test_load_all_bands_no_geo(self):
-        """Load brightness temperatures for all of the 22 channels, but without geolocation."""
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
-        ])
-        r.create_filehandlers(loadables)
-        ds = r.load(ATMS_CHANNEL_NAMES)
-        self.assertEqual(len(ds), 22)
-        for d in ds.values():
-            self._assert_bt_properties(d, with_area=False)
+            self._assert_bt_properties(d, with_area=expected)

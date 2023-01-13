@@ -4,6 +4,8 @@ reader:
   long_name: S-NPP and JPSS ATMS SDR (hdf5)
   description: >
     Reader for the S-NPP and JPSS-1/2/3 Advanced Technology Microwave Sounder SDR files in HDF5.
+    (474-00001-03_JPSS-CDFCB-X-Vol-III_0124C.pdf)
+    https://www.nesdis.noaa.gov/about/documents-reports/jpss-technical-documents/jpss-science-documents
   status: Beta
   sensors: [atms]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

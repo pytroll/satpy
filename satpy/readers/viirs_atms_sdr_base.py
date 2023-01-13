@@ -95,7 +95,7 @@ def _get_file_units(dataset_id, ds_info):
 class JPSS_SDR_FileHandler(HDF5FileHandler):
     """Base class for reading JPSS VIIRS & ATMS SDR HDF5 Files."""
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
