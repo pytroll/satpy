@@ -24,6 +24,10 @@ import numpy as np
 from satpy import Scene
 from satpy.tests.reader_tests.test_viirs_compact import fake_dnb, fake_dnb_file  # noqa
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 def test_cf_roundtrip(fake_dnb_file, tmp_path):  # noqa
     """Test the cf writing reading cycle."""

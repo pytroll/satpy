@@ -29,6 +29,10 @@ import pytest
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - monkeypatch
+
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
 os.environ.pop("SATPY_CONFIG_PATH", None)

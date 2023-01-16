@@ -14,12 +14,12 @@ Built-in Compositors
 
 .. py:currentmodule:: satpy.composites
 
-There are several built-in compositors available in SatPy.
-All of them use the :class:`GenericCompositor` base class
+There are many built-in compositors available in Satpy.
+The majority use the :class:`GenericCompositor` base class
 which handles various image modes (`L`, `LA`, `RGB`, and
 `RGBA` at the moment) and updates attributes.
 
-The below sections summarize the composites that come with SatPy and
+The below sections summarize the composites that come with Satpy and
 show basic examples of creating and using them with an existing
 :class:`~satpy.scene.Scene` object. It is recommended that any composites
 that are used repeatedly be configured in YAML configuration files.
@@ -59,6 +59,12 @@ is generated.  To get an image out of the above composite::
 This part is called `enhancement`, and is covered in more detail in
 :doc:`enhancements`.
 
+Single channel composites can also be generated with the
+:class:`GenericCompositor`, but in some cases, the
+:class:`SingleBandCompositor` may be more appropriate.  For example,
+the :class:`GenericCompositor` removes attributes such as ``units``
+because they are typically not meaningful for an RGB image.  Such attributes
+are retained in the :class:`SingleBandCompositor`.
 
 DifferenceCompositor
 --------------------
@@ -98,6 +104,23 @@ The palette should have a single entry for all the (possible) values
 in the dataset mapping the value to an RGB triplet.  Typically the
 palette comes with the categorical (e.g. cloud mask) product that is
 being visualized.
+
+.. deprecated:: 0.40
+
+   Composites produced with :class:`PaletteCompositor` will result in
+   an image with mode RGB when enhanced.  To produce an image with mode P, use
+   the :class:`SingleBandCompositor` with an associated
+   :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
+   to :meth:`~satpy.Scene.save_datasets`.  If the colormap is sourced from
+   the same dataset as the dataset to be palettized, it must be contained
+   in the auxiliary datasets.
+
+   Since Satpy 0.40, all built-in composites that used
+   :class:`PaletteCompositor` have been migrated to use
+   :class:`SingleBandCompositor` instead.  This has no impact on resulting
+   images unless ``keep_palette=True`` is passed to
+   :meth:`~satpy.Scene.save_datasets`, but the loaded composite now has only
+   one band (previously three).
 
 DayNightCompositor
 ------------------
@@ -492,7 +515,7 @@ Enhancing the images
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called ``stretching``, and in SatPy it is implemented by
+procedure is called ``stretching``, and in Satpy it is implemented by
 ``enhancements``.
 
 The first step is to convert the composite to an
@@ -553,7 +576,7 @@ the file) as::
    the default, in case the default should change in future versions of
    Satpy.
 
-More examples can be found in SatPy source code directory
+More examples can be found in Satpy source code directory
 ``satpy/etc/enhancements/generic.yaml``.
 
 See the :doc:`enhancements` documentation for more information on
