@@ -694,11 +694,11 @@ def find_in_ancillary(data, dataset):
     cnt = len(matches)
     if cnt < 1:
         raise ValueError(
-            f"Could not find dataset named {dataset:s} in ancillary "
-            f"variables for dataset '{data.attrs.get('name')!s}'")
+            f"Could not find dataset named {dataset!r} in ancillary "
+            f"variables for dataset {data.attrs.get('name')!r}")
     if cnt > 1:
         raise ValueError(
             f"Expected exactly one dataset named {dataset:s} in ancillary "
-            f"variables for dataset '{data.attrs.get('name')!s}', "
+            f"variables for dataset {data.attrs.get('name')!r}, "
             f"found {cnt:d}")
     return matches[0]
