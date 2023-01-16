@@ -16,7 +16,6 @@ file_types:
 datasets:
   SC:
     name: SC
-    msg_name: SC
     sensor: hsaf
     resolution: 3000
     standard_name: seviri_snow_cover

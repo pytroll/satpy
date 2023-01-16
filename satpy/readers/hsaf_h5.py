@@ -54,7 +54,7 @@ class HSAFFileHandler(BaseFileHandler):
         return self.filename_info['sensing_time']
 
     def _prepare_variable_for_palette(self, dset, ds_info):
-        colormap = np.array(np.array(dset))
+        colormap = np.array(dset)
         return xr.DataArray(colormap, attrs=ds_info, dims=('idx', 'RGB'))
 
     def get_metadata(self, dset, name):

@@ -27,7 +27,7 @@ def sc_h5_file(tmp_path_factory):
 
 
 def _get_scene_with_loaded_sc_datasets(filename):
-    """Create a fake HSAF SC HDF5 file."""
+    """Return a scene with SC and SC_pal loaded."""
     loaded_scene = Scene(filenames=[filename], reader="hsaf_h5")
     loaded_scene.load(['SC', 'SC_pal'])
     return loaded_scene
