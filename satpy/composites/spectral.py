@@ -187,10 +187,16 @@ class IndexedGreen(SpectralBlender):
     If `soil_fac` and `veg_fac` are not supplied, this method will produce results equivalent to `NDVIHybridGreen`
     """
 
-    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, veg_fac=1., soil_fac=0., limits=(0.15, 0.05), **kwargs):
-        """Initialize class and set the NDVI limits and the corresponding blending fraction limits."""
+    def __init__(self, *args,
+                 ndvi_min=0.2, ndvi_max=0.7,
+                 ndbi_min=0.2, ndbi_max=0.7,
+                 veg_fac=1., soil_fac=0.,
+                 limits=(0.15, 0.05), **kwargs):
+        """Initialize class and set the index limits and the corresponding blending fraction limits."""
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
+        self.ndbi_min = ndbi_min
+        self.ndbi_max = ndbi_max
         self.veg_fac = veg_fac
         self.soil_fac = soil_fac
         self.limits = limits
@@ -205,7 +211,7 @@ class IndexedGreen(SpectralBlender):
         ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
 
         ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
-        ndbi.data = np.clip(ndbi.data, self.ndvi_min, self.ndvi_max, ndbi.data)
+        ndbi.data = np.clip(ndbi.data, self.ndbi_min, self.ndbi_max, ndbi.data)
 
         ndvi = ndvi * self.veg_fac
         ndbi = ndbi * self.soil_fac

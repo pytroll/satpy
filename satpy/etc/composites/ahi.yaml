@@ -32,8 +32,8 @@ composites:
   indexed_hybrid_green_raw:
     compositor: !!python/name:satpy.composites.spectral.IndexedGreen
     limits: [0.15, 0.05]
-    veg_fac: 0.10655814
-    soil_fac: 0.19019079
+    veg_fac: 0.14516473379851189
+    soil_fac: 0.2679960660489893
     prerequisites:
       - name: B02
       - name: B03
