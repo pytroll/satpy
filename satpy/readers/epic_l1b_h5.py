@@ -84,9 +84,16 @@ class DSCOVREPICL1BH5FileHandler(HDF5FileHandler):
         return end_time
 
     @staticmethod
-    def calibrate(data, ds_name):
-        """Convert counts into reflectance."""
-        return data * CALIB_COEFS[ds_name] * 100.
+    def _mask_infinite(band):
+        band.data = da.where(np.isfinite(band.data), band.data, np.nan)
+        return band
+
+    @staticmethod
+    def calibrate(data, ds_name, calibration=None):
+        """Convert counts input reflectance."""
+        if calibration == "reflectance":
+            return data * CALIB_COEFS[ds_name] * 100.
+        return data
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
@@ -95,13 +102,14 @@ class DSCOVREPICL1BH5FileHandler(HDF5FileHandler):
         logger.debug('Reading in get_dataset %s.', ds_name)
         file_key = ds_info.get('file_key', ds_name)
 
-        band = self.get(file_key)
-        band.data = da.where(np.isfinite(band.data), band.data, np.nan)
-        if dataset_id.get('calibration') == "reflectance":
-            band = self.calibrate(band, ds_name)
+        band = self._mask_infinite(self.get(file_key))
+        band = self.calibrate(band, ds_name, calibration=dataset_id.get('calibration'))
+        band = self._update_metadata(band)
 
+        return band
+
+    def _update_metadata(self, band):
         band = band.rename({band.dims[0]: 'x', band.dims[1]: 'y'})
-
         band.attrs.update({'platform_name': self.platform_name, 'sensor': self.sensor})
 
         return band
