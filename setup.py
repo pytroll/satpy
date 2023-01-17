@@ -137,6 +137,12 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
+      download_url="https://pypi.python.org/pypi/satpy",
+      project_urls={
+            "Bug Tracker": "https://github.com/pytroll/satpy/issues",
+            "Documentation": "https://satpy.readthedocs.io/en/stable/",
+            "Source Code": "https://github.com/pytroll/satpy",
+        },
       packages=find_packages(),
       # Always use forward '/', even on Windows
       # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support
