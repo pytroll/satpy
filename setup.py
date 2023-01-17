@@ -142,6 +142,7 @@ setup(name=NAME,
             "Bug Tracker": "https://github.com/pytroll/satpy/issues",
             "Documentation": "https://satpy.readthedocs.io/en/stable/",
             "Source Code": "https://github.com/pytroll/satpy",
+            "Organization": "https://pytroll.github.io/",
         },
       packages=find_packages(),
       # Always use forward '/', even on Windows
