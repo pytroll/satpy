@@ -19,6 +19,7 @@ import logging
 import warnings
 
 import dask.array as da
+import numpy as np
 
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
@@ -201,12 +202,10 @@ class IndexedGreen(SpectralBlender):
         ndbi_input = self.match_data_arrays([projectables[0], projectables[2]])
 
         ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
-        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
-        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+        ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
 
         ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
-        ndbi.data = da.where(ndbi > self.ndvi_min, ndbi, self.ndvi_min)
-        ndbi.data = da.where(ndbi < self.ndvi_max, ndbi, self.ndvi_max)
+        ndbi.data = np.clip(ndbi.data, self.ndvi_min, self.ndvi_max, ndbi.data)
 
         ndvi = ndvi * self.veg_fac
         ndbi = ndbi * self.soil_fac
