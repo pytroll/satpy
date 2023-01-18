@@ -39,6 +39,7 @@ composites:
       - name: B03
       - name: B04
     standard_name: toa_bidirectional_reflectance
+
   green:
     # Deprecated green composite using deprecated class 'GreenCorrector'. Use 'hybrid_green' instead.
     compositor: !!python/name:satpy.composites.spectral.GreenCorrector

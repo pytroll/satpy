@@ -188,6 +188,56 @@ class IndexedGreen(SpectralBlender):
     """
 
     def __init__(self, *args,
+                 ndvi_min=0.0, ndvi_max=0.7,
+                 ndbi_min=0.0, ndbi_max=1.0,
+                 veg_fac=1., soil_fac=0.,
+                 limits=(0.15, 0.05), **kwargs):
+        """Initialize class and set the index limits and the corresponding blending fraction limits."""
+        self.ndvi_min = ndvi_min
+        self.ndvi_max = ndvi_max
+        self.ndbi_min = ndbi_min
+        self.ndbi_max = ndbi_max
+        self.veg_fac = veg_fac
+        self.soil_fac = soil_fac
+        self.limits = limits
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, projectables, optional_datasets=None, **attrs):
+        """Construct the hybrid green channel weighted by NDVI."""
+        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        ndbi_input = self.match_data_arrays([projectables[0], projectables[1]])
+
+        ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
+        ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
+
+        ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
+        ndbi.data = np.clip(ndbi.data, self.ndbi_min, self.ndbi_max, ndbi.data)
+
+        ndvi = ndvi * self.veg_fac
+        ndbi = ndbi * self.soil_fac
+
+        fraction = 0.5 * (ndvi + ndbi)
+        self.fractions = (1 - fraction, fraction)
+
+        tmp = super().__call__([projectables[0], projectables[2]], **attrs)
+
+        return tmp
+
+
+class IndexedRed(SpectralBlender):
+    """Construct an index-weighted hybrid red channel.
+
+    This red band correction follows the same approach as the IndexedGreen compositor, but with a dynamic blend
+    factor `f` that depends on the pixel-level vegetation (NDVI) and soil parameters (NDBI). In addition, two
+    sensor-specific constants, veg_fac and soil_fac, are used that define the difference between the sensor spectral
+    response and an idealised spectral response suited for vegetation.
+    NDVI is calculated via: `(NIR - RED) / (NIR + RED)`
+    NDBI is calculated via: `(RED - GRN) / (RED + GRN)`
+    The final weighting factor is then found via:
+    `f = ndvi * blue * veg_frac + NDBI * nir * soil_frac + [1 - (NDVI * veg_frac + NDVI * soil_frac) * red`
+    """
+
+    def __init__(self, *args,
                  ndvi_min=0.2, ndvi_max=0.7,
                  ndbi_min=0.2, ndbi_max=0.7,
                  veg_fac=1., soil_fac=0.,
@@ -205,7 +255,7 @@ class IndexedGreen(SpectralBlender):
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the hybrid green channel weighted by NDVI."""
         ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
-        ndbi_input = self.match_data_arrays([projectables[0], projectables[2]])
+        ndbi_input = self.match_data_arrays([projectables[0], projectables[1]])
 
         ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
         ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
