@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019, 2022 Satpy developers
+# Copyright (c) 2019, 2022, 2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -69,6 +69,17 @@ real_import = builtins.__import__
 def viirs_file(tmp_path, monkeypatch):
     """Create a dummy viirs file."""
     filename = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
+
+    monkeypatch.chdir(tmp_path)
+    # touch the file so it exists on disk
+    open(filename, 'w').close()
+    return filename
+
+
+@pytest.fixture
+def atms_file(tmp_path, monkeypatch):
+    """Create a dummy atms file."""
+    filename = 'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5'
 
     monkeypatch.chdir(tmp_path)
     # touch the file so it exists on disk
@@ -505,24 +516,18 @@ class TestFindFilesAndReaders:
     def test_no_parameters(self, viirs_file):
         """Test with no limiting parameters."""
         from satpy.readers import find_files_and_readers
-        
+
         ri = find_files_and_readers()
         assert list(ri.keys()) == ['viirs_sdr']
         assert ri['viirs_sdr'] == [viirs_file]
 
-    def test_no_parameters_atms(self):
+    def test_no_parameters_atms(self, atms_file):
         """Test with no limiting parameters."""
         from satpy.readers import find_files_and_readers
-        fn = 'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5'
-        # touch the file so it exists on disk
-        test_file = open(fn, 'w')
-        try:
-            ri = find_files_and_readers()
-            assert list(ri.keys() == ['atms_sdr_hdf5']
-            assert ri['atms_sdr_hdf5'] == [fn]
-        finally:
-            test_file.close()
-            os.remove(fn)
+
+        ri = find_files_and_readers()
+        assert list(ri.keys()) == ['atms_sdr_hdf5']
+        assert ri['atms_sdr_hdf5'] == [atms_file]
 
     def test_bad_sensor(self):
         """Test bad sensor doesn't find any files."""
