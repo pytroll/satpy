@@ -180,7 +180,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         data = self._map_and_apply_factors(data, factors, rows_per_gran)
         return data
 
-    def scale_data_to_specified_unit(self, data, dataset_id, ds_info, channel_index=None):
+    def scale_data_to_specified_unit(self, data, dataset_id, ds_info):
         """Get sscale and offset factors and convert/scale data to given physical unit."""
         var_path = self._generate_file_key(dataset_id, ds_info)
         dataset_group = ds_info['dataset_group']
@@ -188,7 +188,8 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         output_units = ds_info.get("units", file_units)
 
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
-        factors = self._get_scaling_factors(factor_var_path, channel_index)
+
+        factors = self.get(factor_var_path)
         factors = self._adjust_scaling_factors(factors, file_units, output_units)
 
         if factors is not None:
@@ -236,12 +237,6 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             return factors
         factors = self._get_valid_scaling_factors(factors)
         return self._scale_factors_for_units(factors, file_units, output_units)
-
-    def _get_scaling_factors(self, factor_var_path, ch_idx=None):
-        """Get file scaling factors from the file."""
-        if ch_idx is None:
-            return self.get(factor_var_path)
-        return self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
 
     @staticmethod
     def expand_single_values(var, scans):

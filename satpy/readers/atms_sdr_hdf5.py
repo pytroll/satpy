@@ -76,18 +76,6 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         except ValueError:
             return None
 
-    def _get_scaling_factors(self, factor_var_path, ch_idx):
-        """Get file scaling factors and scale according to expected units."""
-        if ch_idx is None:
-            return self.get(factor_var_path)
-
-        if ch_idx == 21:
-            ch_idx = 20  # The BrightnessTemperatureFactors array is only
-            # 42 long!? But there are 22 ATMS bands to be scaled! We assume
-            # the scale/offset values are the same for all bands!
-            # FIXME!
-        return self.get(factor_var_path)[ch_idx*2:ch_idx*2+2]
-
     def _get_scans_per_granule(self, dataset_group):
         number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
         nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
@@ -122,7 +110,7 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         data = self.concatenate_dataset(dataset_group, var_path, channel_index=ch_index)
         data = self.mask_fill_values(data, ds_info)
 
-        data = self.scale_data_to_specified_unit(data, dataset_id, ds_info, channel_index=ch_index)
+        data = self.scale_data_to_specified_unit(data, dataset_id, ds_info)
         data = self._update_data_attributes(data, dataset_id, ds_info)
 
         return data
