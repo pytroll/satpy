@@ -105,6 +105,23 @@ in the dataset mapping the value to an RGB triplet.  Typically the
 palette comes with the categorical (e.g. cloud mask) product that is
 being visualized.
 
+.. deprecated:: 0.40
+
+   Composites produced with :class:`PaletteCompositor` will result in
+   an image with mode RGB when enhanced.  To produce an image with mode P, use
+   the :class:`SingleBandCompositor` with an associated
+   :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
+   to :meth:`~satpy.Scene.save_datasets`.  If the colormap is sourced from
+   the same dataset as the dataset to be palettized, it must be contained
+   in the auxiliary datasets.
+
+   Since Satpy 0.40, all built-in composites that used
+   :class:`PaletteCompositor` have been migrated to use
+   :class:`SingleBandCompositor` instead.  This has no impact on resulting
+   images unless ``keep_palette=True`` is passed to
+   :meth:`~satpy.Scene.save_datasets`, but the loaded composite now has only
+   one band (previously three).
+
 DayNightCompositor
 ------------------
 

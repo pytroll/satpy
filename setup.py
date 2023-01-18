@@ -31,7 +31,7 @@ except ImportError:
     pass
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
-            'trollimage >1.10.1', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
+            'trollimage >=1.20', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
             'pooch', 'pyorbital']
 
@@ -137,6 +137,16 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
+      download_url="https://pypi.python.org/pypi/satpy",
+      project_urls={
+            "Bug Tracker": "https://github.com/pytroll/satpy/issues",
+            "Documentation": "https://satpy.readthedocs.io/en/stable/",
+            "Source Code": "https://github.com/pytroll/satpy",
+            "Organization": "https://pytroll.github.io/",
+            "Slack": "https://pytroll.slack.com/",
+            "Twitter": "https://twitter.com/hashtag/satpy?src=hashtag_click",
+            "Release Notes": "https://github.com/pytroll/satpy/blob/main/CHANGELOG.md",
+        },
       packages=find_packages(),
       # Always use forward '/', even on Windows
       # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support

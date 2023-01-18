@@ -24,6 +24,10 @@ from pytest_lazyfixture import lazy_fixture
 
 from satpy import Scene, available_readers
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path_factory
+
 
 @pytest.fixture(scope="module")
 def seadas_l2_modis_chlor_a(tmp_path_factory):
