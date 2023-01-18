@@ -305,7 +305,7 @@ def _create_core_metadata(file_shortname: str) -> str:
                     "END_OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\n\n" \
                     "END_GROUP              = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"
     collection_metadata = "GROUP = COLLECTIONDESCRIPTIONCLASS\n\nOBJECT = SHORTNAME\nNUM_VAL = 1\n" \
-                          f"VALUE = \"{file_shortname}\"\nEND_OBJECT = SHORTNAME\n\n" \
+                          f"VALUE = {file_shortname!r}\nEND_OBJECT = SHORTNAME\n\n" \
                           "OBJECT = VERSIONID\nNUM_VAL = 1\nVALUE = 6\nEND_OBJECT = VERSIONID\n\n" \
                           "END_GROUP = COLLECTIONDESCRIPTIONCLASS\n\n"
     core_metadata_header += "\n\n" + inst_metadata + collection_metadata
