@@ -33,6 +33,10 @@ import satpy
 from satpy import DatasetDict
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 class TestBuiltinAreas(unittest.TestCase):
     """Test that the builtin areas are all valid."""

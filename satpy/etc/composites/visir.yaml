@@ -285,31 +285,27 @@ composites:
     standard_name: precipitation_probability
 
   cloudmask:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma
-    - cma_pal
     standard_name: cloudmask
 
   cloudmask_extended:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma_extended
-    - cma_extended_pal
     standard_name: cloudmask
 
   cloudmask_probability:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmaprob
-    - cmaprob_pal
     standard_name: cloudmask_probability
 
   cloudtype:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ct
-    - ct_pal
     standard_name: cloudtype
 
   cloud_top_height:
@@ -321,24 +317,21 @@ composites:
     standard_name: cloud_top_height
 
   cloud_top_pressure:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_pres
-    - ctth_pres_pal
     standard_name: cloud_top_pressure
 
   cloud_top_temperature:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_tempe
-    - ctth_tempe_pal
     standard_name: cloud_top_temperature
 
   cloud_top_phase:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_phase
-    - cmic_phase_pal
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:

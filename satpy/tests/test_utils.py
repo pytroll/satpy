@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -39,6 +37,10 @@ from satpy.utils import (
     xyz2angle,
     xyz2lonlat,
 )
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
 
 
 class TestUtils(unittest.TestCase):
@@ -500,6 +502,20 @@ def test_convert_remote_files_to_fsspec_local_files():
     assert res == filenames
 
 
+def test_convert_remote_files_to_fsspec_local_pathlib_files():
+    """Test convertion of remote files to fsspec objects.
+
+    Case using pathlib objects as filenames.
+    """
+    import pathlib
+
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = [pathlib.Path("/tmp/file1.nc"), pathlib.Path("c:\tmp\file2.nc")]
+    res = convert_remote_files_to_fsspec(filenames)
+    assert res == filenames
+
+
 def test_convert_remote_files_to_fsspec_mixed_sources():
     """Test convertion of remote files to fsspec objects.
 
@@ -586,3 +602,34 @@ def test_import_error_helper():
         with import_error_helper(module):
             import unknow_dependency_module  # noqa
     assert module in str(err)
+
+
+def test_find_in_ancillary():
+    """Test finding a dataset in ancillary variables."""
+    from satpy.utils import find_in_ancillary
+    index_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "index-finger"})
+    ring_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "ring-finger"})
+
+    hand = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "hand",
+                   "ancillary_variables": [index_finger, index_finger, ring_finger]})
+
+    assert find_in_ancillary(hand, "ring-finger") is ring_finger
+    with pytest.raises(
+            ValueError,
+            match=("Expected exactly one dataset named index-finger in "
+                   "ancillary variables for dataset 'hand', found 2")):
+        find_in_ancillary(hand, "index-finger")
+    with pytest.raises(
+            ValueError,
+            match=("Could not find dataset named thumb in "
+                   "ancillary variables for dataset 'hand'")):
+        find_in_ancillary(hand, "thumb")
