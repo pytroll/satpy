@@ -25,6 +25,7 @@ References:
 import functools
 import logging
 import os
+from contextlib import suppress
 from datetime import datetime
 
 import dask.array as da
@@ -157,7 +158,21 @@ class NcNWCSAF(BaseFileHandler):
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
         variable = self.drop_xycoords(variable)
+
+        self.get_orbital_parameters(variable)
+        variable.attrs["start_time"] = self.start_time
+        variable.attrs["end_time"] = self.end_time
+
         return variable
+
+    def get_orbital_parameters(self, variable):
+        """Get the orbital parameters from the file if possible (geo)."""
+        with suppress(KeyError):
+            gdal_params = dict(elt.strip("+").split("=") for elt in self.nc.attrs["gdal_projection"].split())
+            variable.attrs["orbital_parameters"] = dict(
+                satellite_nominal_altitude=float(gdal_params["h"]),
+                satellite_nominal_longitude=self.nc.attrs["sub-satellite_longitude"],
+                satellite_nominal_latitude=0)
 
     def _get_varname_in_file(self, info, info_type="file_key"):
         if isinstance(info[info_type], list):
@@ -344,34 +359,12 @@ class NcNWCSAF(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_start'])
 
     @property
     def end_time(self):
         """Return the end time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_end'])
 
     @property
     def sensor_names(self):
@@ -414,3 +407,16 @@ def remove_empties(variable):
             variable.attrs.pop(key)
 
     return variable
+
+
+def read_nwcsaf_time(time_value):
+    """Read the time, nwcsaf-style."""
+    try:
+        # MSG:
+        try:
+            return datetime.strptime(time_value, '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:
+            return datetime.strptime(time_value.astype(str), '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        # PPS:
+        return datetime.strptime(time_value, '%Y%m%dT%H%M%S%fZ')
