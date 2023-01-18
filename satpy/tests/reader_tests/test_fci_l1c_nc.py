@@ -34,6 +34,10 @@ from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
+
 GRID_TYPE_INFO_FOR_TEST_CONTENT = {
     '500m': {
         'nrows': 400,

@@ -34,6 +34,16 @@ from ._modis_fixtures import (
     _shape_for_resolution,
 )
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - modis_l1b_imapp_1000m_file
+# - modis_l1b_imapp_geo_file,
+# - modis_l1b_nasa_1km_mod03_files,
+# - modis_l1b_nasa_mod02hkm_file,
+# - modis_l1b_nasa_mod02qkm_file,
+# - modis_l1b_nasa_mod03_file,
+# - modis_l1b_nasa_mod021km_file
+
 
 def _check_shared_metadata(data_arr):
     assert data_arr.attrs["sensor"] == "modis"

@@ -34,6 +34,11 @@ try:
 except ImportError:
     CRS = None
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+
 
 class TempFile(object):
     """A temporary filename class."""
