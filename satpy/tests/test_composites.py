@@ -421,7 +421,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with night portion with alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", need_alpha=True)
-        res = comp((self.data_b))
+        res = comp(self.data_b)
         res = res.compute()
         expected = np.array([[np.nan, 0.], [0., 0.]])
         np.testing.assert_allclose(res.values[0], expected)
@@ -430,9 +430,9 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", need_alpha=False)
-        res = comp((self.data_b))
+        res = comp(self.data_b)
         res = res.compute()
-        expected = np.array([[np.nan, 0.], [0., 0.]])
+        expected = np.array([np.nan, 0.])
         np.testing.assert_allclose(res.values[0], expected)
 
     def test_day_only_sza_with_alpha(self):
@@ -457,7 +457,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", need_alpha=True)
-        res = comp((self.data_a))
+        res = comp(self.data_a)
         res = res.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
@@ -466,9 +466,9 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", need_alpha=False)
-        res = comp((self.data_a))
+        res = comp(self.data_a)
         res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected = np.array([0., 0.33164983])
         np.testing.assert_allclose(res.values[0], expected)
 
 
