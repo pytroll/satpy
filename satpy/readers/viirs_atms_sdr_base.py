@@ -143,10 +143,13 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
     @property
     def end_orbit_number(self):
         """Get end orbit number."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingOrbitNumber'
-        end_orbit_path = self.filetype_info.get('end_orbit', default).format(dataset_group=dataset_group)
+        end_orbit_path = self._get_aggr_path("end_orbit", "AggregateEndingOrbitNumber")
         return int(self[end_orbit_path])
+        
+    def _get_aggr_path(self, fileinfo_key, aggr_default):
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/' + aggr_default
+        return self.filetype_info.get(fileinfo_key, default).format(dataset_group=dataset_group)
 
     @property
     def platform_name(self):
