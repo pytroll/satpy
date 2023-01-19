@@ -521,13 +521,16 @@ class TestFindFilesAndReaders:
         assert list(ri.keys()) == ['viirs_sdr']
         assert ri['viirs_sdr'] == [viirs_file]
 
-    def test_no_parameters_atms(self, atms_file):
-        """Test with no limiting parameters."""
+    def test_no_parameters_both_atms_and_viirs(self, viirs_file, atms_file):
+        """Test with no limiting parameters when there area both atms and viirs files in the same directory."""
         from satpy.readers import find_files_and_readers
 
         ri = find_files_and_readers()
-        assert list(ri.keys()) == ['atms_sdr_hdf5']
+
+        assert 'atms_sdr_hdf5' in list(ri.keys())
+        assert 'viirs_sdr' in list(ri.keys())
         assert ri['atms_sdr_hdf5'] == [atms_file]
+        assert ri['viirs_sdr'] == [viirs_file]
 
     def test_bad_sensor(self):
         """Test bad sensor doesn't find any files."""
