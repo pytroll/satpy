@@ -33,6 +33,7 @@ from satpy.readers import find_files_and_readers
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - monkeypatch
+# - tmp_path
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
