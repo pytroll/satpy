@@ -668,6 +668,9 @@ class DayNightCompositor(GenericCompositor):
             day_night (string): "day_night" means both day and night portions will be kept
                                 "day_only" means only day portion will be kept
                                 "night_only" means only night portion will be kept
+            need_alpha (bool): This only affects "day only" or "night only" result
+                               True means an alpha band will be added to the output image for transparency
+                               False means the output is just a single-band image with masked-out area
 
         """
         self.lim_low = lim_low
@@ -701,7 +704,7 @@ class DayNightCompositor(GenericCompositor):
 
         if "only" in self.day_night:
             # Only one portion (day or night) is selected. One composite is requested.
-            # Add alpha band to single L/RGB composite to make the masked-out portion transparent
+            # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
             # L -> LA
             # RGB -> RGBA
             if self.need_alpha:
