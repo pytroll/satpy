@@ -115,21 +115,15 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default_start_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningDate'
-        default_start_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningTime'
-        date_var_path = self.filetype_info.get('start_date', default_start_date).format(dataset_group=dataset_group)
-        time_var_path = self.filetype_info.get('start_time', default_start_time).format(dataset_group=dataset_group)
+        date_var_path = self._get_aggr_path("start_date", "AggregateBeginningDate")
+        time_var_path = self._get_aggr_path("start_time", "AggregateBeginningTime")
         return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
     def end_time(self):
         """Get end time."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default_end_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingDate'
-        default_end_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingTime'
-        date_var_path = self.filetype_info.get('end_date', default_end_date).format(dataset_group=dataset_group)
-        time_var_path = self.filetype_info.get('end_time', default_end_time).format(dataset_group=dataset_group)
+        date_var_path = self._get_aggr_path("end_date", "AggregateEndingDate")
+        time_var_path = self._get_aggr_path("end_time", "AggregateEndingTime")
         return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
