@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2022 Satpy Developers
+# Copyright (c) 2022, 2023 Satpy Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -135,9 +135,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
     @property
     def start_orbit_number(self):
         """Get start orbit number."""
-        dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningOrbitNumber'
-        start_orbit_path = self.filetype_info.get('start_orbit', default).format(dataset_group=dataset_group)
+        start_orbit_path = self._get_aggr_path("start_orbit", "AggregateBeginningOrbitNumber")
         return int(self[start_orbit_path])
 
     @property
@@ -145,7 +143,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         """Get end orbit number."""
         end_orbit_path = self._get_aggr_path("end_orbit", "AggregateEndingOrbitNumber")
         return int(self[end_orbit_path])
-        
+
     def _get_aggr_path(self, fileinfo_key, aggr_default):
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/' + aggr_default
