@@ -146,7 +146,7 @@ They can be defined when initializing the compositor::
  - include_alpha (bool): This only affects the "day only" or "night only" result.
                          True means an alpha band will be added to the output image for transparency.
                          False means the output is a single-band image with undesired pixels being masked out
-                         (replaced with NaNs).					   
+                         (replaced with NaNs).
 
 Usage (with default values)::
 

@@ -432,7 +432,7 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
         res = comp(self.data_b)
         res = res.compute()
-        expected = np.array([[np.nan, np.nan]])
+        expected = np.array([np.nan, np.nan])
         np.testing.assert_allclose(res.values[0], expected)
 
     def test_day_only_sza_with_alpha(self):
