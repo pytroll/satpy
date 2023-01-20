@@ -46,6 +46,8 @@ dimensions = {"nx": 1530,
 NOMINAL_LONGITUDE = 0.0
 START_TIME = "2023-01-18T10:39:17Z"
 END_TIME = "2023-01-18T10:42:22Z"
+START_TIME_PPS = "20230118T103917000Z"
+END_TIME_PPS = "20230118T104222000Z"
 
 global_attrs = {"source": "NWC/GEO version v2021.1",
                 "satellite_identifier": "MSG4",
@@ -86,12 +88,12 @@ def nwcsaf_geo_ct_filename(tmp_path_factory):
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data"))
 
 
-def create_nwcsaf_geo_ct_file(directory):
+def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs):
     """Create a CT file."""
     filename = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
     with h5netcdf.File(filename, mode="w") as nc_file:
         nc_file.dimensions = dimensions
-        nc_file.attrs.update(global_attrs)
+        nc_file.attrs.update(attrs)
         var_name = "ct"
 
         var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16,
@@ -110,13 +112,25 @@ def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
 @pytest.fixture(scope="session")
 def nwcsaf_pps_cmic_filename(tmp_path_factory):
     """Create a CMIC file."""
-    filename = tmp_path_factory.mktemp("data") / "S_NWC_CMIC_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
+    attrs = global_attrs.copy()
+    attrs.update(PROJ_KM)
+    attrs["time_coverage_start"] = START_TIME_PPS
+    attrs["time_coverage_end"] = END_TIME_PPS
+
+    filename = create_cmic_file(tmp_path_factory.mktemp("data"), filetype="cmic", attrs=attrs)
+
+    return filename
+
+
+def create_cmic_file(path, filetype, attrs=global_attrs):
+    """Create a cmic file."""
+    filename = path / f"S_NWC_{filetype.upper()}_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
     with h5netcdf.File(filename, mode="w") as nc_file:
         nc_file.dimensions = dimensions
-        nc_file.attrs.update(global_attrs)
-        create_cot_variable(nc_file, "cmic_cot")
-        create_cot_pal_variable(nc_file, "cmic_cot_pal")
-        create_cre_variables(nc_file, "cmic_cre")
+        nc_file.attrs.update(attrs)
+        create_cot_variable(nc_file, f"{filetype}_cot")
+        create_cot_pal_variable(nc_file, f"{filetype}_cot_pal")
+        create_cre_variables(nc_file, f"{filetype}_cre")
 
     return filename
 
@@ -130,13 +144,7 @@ def nwcsaf_pps_cmic_filehandler(nwcsaf_pps_cmic_filename):
 @pytest.fixture(scope="session")
 def nwcsaf_pps_cpp_filename(tmp_path_factory):
     """Create a CPP file."""
-    filename = tmp_path_factory.mktemp("data") / "S_NWC_CPP_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
-    with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions
-        nc_file.attrs.update(global_attrs)
-        create_cot_variable(nc_file, "cpp_cot")
-        create_cot_pal_variable(nc_file, "cpp_cot_pal")
-        create_cre_variables(nc_file, "cpp_reff")
+    filename = create_cmic_file(tmp_path_factory.mktemp("data"), filetype="cpp")
 
     return filename
 
@@ -168,8 +176,23 @@ def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     return NcNWCSAF(nwcsaf_pps_cpp_filename, {}, {"file_key_prefix": "cpp_"})
 
 
+@pytest.fixture(scope="session")
+def nwcsaf_old_geo_ct_filename(tmp_path_factory):
+    """Create a CT file and return the filename."""
+    attrs = global_attrs.copy()
+    attrs.update(PROJ_KM)
+    attrs["time_coverage_start"] = np.array(["2023-01-18T10:39:17Z"], dtype="S20")
+    return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data-old"), attrs=attrs)
+
+
+@pytest.fixture
+def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
+    """Create a CT filehandler."""
+    return NcNWCSAF(nwcsaf_old_geo_ct_filename, {}, {})
+
+
 class TestNcNWCSAFGeo:
-    """Test the NcNWCSAF reader."""
+    """Test the NcNWCSAF reader for Geo products."""
 
     @pytest.mark.parametrize("platform, instrument", [("Metop-B", "avhrr-3"),
                                                       ("NOAA-20", "viirs"),
@@ -196,11 +219,10 @@ class TestNcNWCSAFGeo:
 
         _check_area_def(nwcsaf_geo_ct_filehandler.get_area_def(dsid))
 
-    def test_get_area_def_km(self, nwcsaf_geo_ct_filehandler):
+    def test_get_area_def_km(self, nwcsaf_old_geo_ct_filehandler):
         """Test that get_area_def() returns proper area when the projection is in km."""
         dsid = {'name': 'ct'}
-        nwcsaf_geo_ct_filehandler.nc.attrs = PROJ_KM
-        _check_area_def(nwcsaf_geo_ct_filehandler.get_area_def(dsid))
+        _check_area_def(nwcsaf_old_geo_ct_filehandler.get_area_def(dsid))
 
     def test_scale_dataset_attr_removal(self, nwcsaf_geo_ct_filehandler):
         """Test the scaling of the dataset and removal of obsolete attributes."""
@@ -277,8 +299,16 @@ class TestNcNWCSAFGeo:
         assert nwcsaf_geo_ct_filehandler.end_time == read_nwcsaf_time(END_TIME)
 
 
-class TestNcNWCSAF:
-    """Test the NcNWCSAF reader."""
+class TestNcNWCSAFPPS:
+    """Test the NcNWCSAF reader for PPS products."""
+
+    def test_start_time(self, nwcsaf_pps_cmic_filehandler):
+        """Test the start time property."""
+        assert nwcsaf_pps_cmic_filehandler.start_time == read_nwcsaf_time(START_TIME_PPS)
+
+    def test_end_time(self, nwcsaf_pps_cmic_filehandler):
+        """Test the start time property."""
+        assert nwcsaf_pps_cmic_filehandler.end_time == read_nwcsaf_time(END_TIME_PPS)
 
     def test_drop_xycoords(self, nwcsaf_pps_cmic_filehandler):
         """Test the drop of x and y coords."""

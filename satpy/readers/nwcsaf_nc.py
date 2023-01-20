@@ -415,7 +415,7 @@ def read_nwcsaf_time(time_value):
         # MSG:
         try:
             return datetime.strptime(time_value, '%Y-%m-%dT%H:%M:%SZ')
-        except TypeError:
+        except TypeError:  # Remove this in summer 2024 (this is not needed since h5netcdf 0.14)
             return datetime.strptime(time_value.astype(str), '%Y-%m-%dT%H:%M:%SZ')
     except ValueError:
         # PPS:
