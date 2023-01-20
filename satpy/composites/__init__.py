@@ -710,6 +710,9 @@ class DayNightCompositor(GenericCompositor):
             # RGB -> RGBA
             if self.include_alpha:
                 foreground_data = add_alpha_bands(foreground_data)
+
+            # Use coszen to determine the undesired pixels and replace the coszen of these pixels with NaN.
+            # They will be passed to subsequent calculation and therefore make sure those pixels being masked-out.
             if "day" in self.day_night:
                 coszen = da.where(coszen != 0, coszen, np.nan).compute()
             else:
