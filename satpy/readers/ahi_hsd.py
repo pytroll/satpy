@@ -505,7 +505,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         pdict['a_name'] = self.observation_area
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
-        pdict['p_id'] = 'geosh8'
+        pdict['p_id'] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
 
         return get_area_definition(pdict, aex)
 

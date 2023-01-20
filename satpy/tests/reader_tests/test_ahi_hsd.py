@@ -311,6 +311,9 @@ class TestAHIHSDFileHandler:
                 ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
                 np.testing.assert_equal(mask, ref_mask)
 
+                # Make sure proj_id is correct
+                assert fh.area.proj_id == f'geosh{FAKE_BASIC_INFO["satellite"][-1]}'
+
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""
         with _fake_hsd_handler() as fh:
