@@ -585,7 +585,7 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = rioxarray.open_rasterio(self.filename, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords['x'])),
                                       y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)
