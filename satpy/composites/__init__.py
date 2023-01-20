@@ -657,7 +657,7 @@ class DayNightCompositor(GenericCompositor):
     of the image (night or day). See the documentation below for more details.
     """
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", need_alpha=True, **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -677,7 +677,7 @@ class DayNightCompositor(GenericCompositor):
         self.lim_low = lim_low
         self.lim_high = lim_high
         self.day_night = day_night
-        self.need_alpha = need_alpha
+        self.include_alpha = include_alpha
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -708,7 +708,7 @@ class DayNightCompositor(GenericCompositor):
             # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
             # L -> LA
             # RGB -> RGBA
-            if self.need_alpha:
+            if self.include_alpha:
                 foreground_data = add_alpha_bands(foreground_data)
 
             # No need to replace missing channel data with zeros
