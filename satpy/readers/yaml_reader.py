@@ -34,7 +34,11 @@ import yaml
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
-from yaml import UnsafeLoader
+
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader  # type: ignore
 
 from satpy import DatasetDict
 from satpy._compat import cache
@@ -92,7 +96,7 @@ def _verify_reader_info_assign_config_files(config, config_files):
         reader_info['config_files'] = config_files
 
 
-def load_yaml_configs(*config_files, loader=UnsafeLoader):
+def load_yaml_configs(*config_files, loader=Loader):
     """Merge a series of YAML reader configuration files.
 
     Args:
@@ -100,7 +104,7 @@ def load_yaml_configs(*config_files, loader=UnsafeLoader):
             to YAML-based reader configuration files that will be merged
             to create a single configuration.
         loader: Yaml loader object to load the YAML with. Defaults to
-            `UnsafeLoader`.
+            `CLoader` if libyaml is available, `Loader` otherwise.
 
     Returns: dict
         Dictionary representing the entire YAML configuration with the
