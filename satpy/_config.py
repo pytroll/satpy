@@ -18,11 +18,6 @@
 """Satpy Configuration directory and file handling."""
 from __future__ import annotations
 
-try:
-    from functools import cache  # type: ignore
-except ImportError:  # for python < 3.9
-    from functools import lru_cache as cache
-
 import ast
 import glob
 import logging
@@ -46,6 +41,8 @@ except ImportError:
 
 import appdirs
 from donfig import Config
+
+from satpy._compat import cache
 
 LOG = logging.getLogger(__name__)
 
