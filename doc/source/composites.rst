@@ -166,10 +166,11 @@ provides only a day product with night portion masked-out::
 
 By default, the image under `day_only` or `night_only` flag will come out
 with an alpha band to display its transparency. It could be changed by
-setting `need_alpha` to False if there's no need for that alpha band.
+setting `include_alpha` to False if there's no need for that alpha band.
 In such cases, it is recommended to use it together with `fill_value=0`
-when saving to geotiff. In the case below, the image shows its day portion
-and day/night transition with night portion blacked-out instead of transparent::
+when saving to geotiff to get a single-band image with black background.
+In the case below, the image shows its day portion and day/night
+transition with night portion blacked-out instead of transparent::
 
     >>> from satpy.composites import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", need_alpha=False)
