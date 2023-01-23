@@ -114,6 +114,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from functools import cached_property
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -122,7 +123,7 @@ from pyresample import geometry
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FileHandler
+from .netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FileHandler):
+class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -290,8 +291,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         measured = self.get_channel_measured_group_path(key['name'])
         data = self[measured + "/effective_radiance"]
 
-        attrs = data.attrs.copy()
+        attrs = dict(data.attrs).copy()
         info = info.copy()
+        data = _ensure_dataarray(data)
 
         fv = attrs.pop(
             "FillValue",
@@ -357,10 +359,11 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        nominal_and_proj_subsat_lon = float(mtg_geos_proj.longitude_of_projection_origin)
+        nominal_and_proj_subsat_lon = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         nominal_and_proj_subsat_lat = 0
-        nominal_and_proj_sat_alt = float(mtg_geos_proj.perspective_point_height)
+        nominal_and_proj_sat_alt = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
         orb_param_dict = {
             'orbital_parameters': {
@@ -396,7 +399,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
-
+        lut = _ensure_dataarray(lut)
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
 
@@ -440,24 +443,23 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        h = float(mtg_geos_proj.perspective_point_height)
+        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
         extents = {}
         for coord in "xy":
             coord_radian = self.get_and_cache_npxr(measured + "/{:s}".format(coord))
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.scale_factor > 0:
+            if coord == "x" and coord_radian.attrs['scale_factor'] > 0:
                 coord_radian.attrs['scale_factor'] *= -1
 
             # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-            if type(coord_radian.scale_factor) is np.float32:
+            if type(coord_radian.attrs['scale_factor']) is np.float32:
                 coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
-            if type(coord_radian.add_offset) is np.float32:
+            if type(coord_radian.attrs['add_offset']) is np.float32:
                 coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
 
-            coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
+            coord_radian_num = coord_radian[:] * coord_radian.attrs['scale_factor'] + coord_radian.attrs['add_offset']
 
             # FCI defines pixels by centroids (see PUG), while pyresample
             # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
@@ -471,9 +473,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
 
             # South-West corner (x positive, y negative)
-            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor / 2
+            first_coord_radian = coord_radian_num[0] - coord_radian.attrs['scale_factor'] / 2
             # North-East corner (x negative, y positive)
-            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor / 2
+            last_coord_radian = coord_radian_num[-1] + coord_radian.attrs['scale_factor'] / 2
 
             # convert to arc length in m
             first_coord = first_coord_radian * h  # arc length in m
@@ -508,12 +510,11 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         if key['resolution'] in self._cache:
             return self._cache[key['resolution']]
 
-        mtg_geos_proj = self.get_and_cache_npxr("data/mtg_geos_projection")
-        a = float(mtg_geos_proj.semi_major_axis)
-        h = float(mtg_geos_proj.perspective_point_height)
-        rf = float(mtg_geos_proj.inverse_flattening)
-        lon_0 = float(mtg_geos_proj.longitude_of_projection_origin)
-        sweep = str(mtg_geos_proj.sweep_angle_axis)
+        a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
+        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
+        lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
@@ -646,3 +647,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res
+
+
+def _ensure_dataarray(arr):
+    if not isinstance(arr, xr.DataArray):
+        attrs = dict(arr.attrs).copy()
+        arr = xr.DataArray(da.from_array(arr), dims=arr.dimensions, attrs=attrs, name=arr.name)
+    return arr
