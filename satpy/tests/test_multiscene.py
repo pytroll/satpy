@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018, 2022 Satpy developers
+# Copyright (c) 2018, 2022, 2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -670,7 +670,9 @@ class TestBlendFuncs():
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
                                                    scene1_with_weights, scene2_with_weights):
         """Test stacking two scenes using weights."""
-        from satpy.multiscene import stack_weighted
+        from functools import partial
+
+        from satpy.multiscene import stack
 
         multi_scene, weights = multi_scene_and_weights
         scene1, weights1 = scene1_with_weights
@@ -680,7 +682,8 @@ class TestBlendFuncs():
         multi_scene.group(simple_groups)
 
         weights = [weights[0][0], weights[1][0]]
-        weighted_blend = multi_scene.blend(blend_function=stack_weighted, weights=weights)
+        stack_with_weights = partial(stack, weights=weights)
+        weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
 
         expected = scene2['polar-ct']
         expected[self._line, :] = scene1['geo-ct'][self._line, :]
@@ -728,14 +731,17 @@ class TestBlendFuncs():
                              )
     def test_blend_function_stack_weighted(self, datasets_and_weights, line, column):
         """Test the 'stack_weighted' function."""
-        from satpy.multiscene import stack_weighted
+        from functools import partial
+
+        from satpy.multiscene import stack
 
         input_data = datasets_and_weights
 
         input_data['weights'][1][line, :] = 2
         input_data['weights'][2][:, column] = 2
 
-        blend_result = stack_weighted(input_data['datasets'][0:3], input_data['weights'])
+        stack_with_weights = partial(stack, weights=input_data['weights'])
+        blend_result = stack_with_weights(input_data['datasets'][0:3])
 
         ds1 = input_data['datasets'][0]
         ds2 = input_data['datasets'][1]

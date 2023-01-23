@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019, 2022 Satpy developers
+# Copyright (c) 2016-2019, 2022, 2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -45,7 +45,29 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack_weighted(datasets, weights=None):
+def stack(datasets, weights=None):
+    """Combine a series of datasets together.
+
+    On default, datasets are stacked on top of each other, so the last one is
+    on top. But if a sequence of weights arrays are provided the datasets will
+    be combined according to those weights. The result will be a composite
+    dataset where the data in each pixel is coming from the dataset having the
+    highest weight.
+
+    """
+    if weights:
+        return _stack_weighted(datasets, weights)
+
+    base = datasets[0].copy()
+    for dataset in datasets[1:]:
+        try:
+            base = base.where(dataset == dataset._FillValue, dataset)
+        except AttributeError:
+            base = base.where(dataset.isnull(), dataset)
+    return base
+
+
+def _stack_weighted(datasets, weights):
     """Stack datasets using weights."""
     # Go through weights and set to zero where corresponding datasets have a value equals _FillValue or nan
     for i, dataset in enumerate(datasets):
@@ -60,17 +82,6 @@ def stack_weighted(datasets, weights=None):
     weighted_array = xr.DataArray(da.choose(indices, datasets),
                                   dims=dims, attrs=attrs)
     return weighted_array
-
-
-def stack(datasets):
-    """Overlay series of datasets on top of each other."""
-    base = datasets[0].copy()
-    for dataset in datasets[1:]:
-        try:
-            base = base.where(dataset == dataset._FillValue, dataset)
-        except AttributeError:
-            base = base.where(dataset.isnull(), dataset)
-    return base
 
 
 def timeseries(datasets):
@@ -359,7 +370,7 @@ class MultiScene(object):
         """Resample the multiscene."""
         return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
 
-    def blend(self, blend_function=stack, **kwargs):
+    def blend(self, blend_function=stack):
         """Blend the datasets into one scene.
 
         Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
@@ -384,7 +395,7 @@ class MultiScene(object):
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
             datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
-            new_scn[ds_id] = blend_function(datasets, **kwargs)
+            new_scn[ds_id] = blend_function(datasets)
 
         return new_scn
 
