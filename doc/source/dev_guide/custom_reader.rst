@@ -541,7 +541,7 @@ better idea.
    assigned to the attributes.
 
 .. note::
-   Also, be careful about the data types of the datasets your reader is returning.
+   Be careful about the types of the data your reader is returning.
    It is easy to let the data be coerced into double precision floats (`np.float64`). At the
    moment, satellite instruments are rarely measuring in a resolution greater
    than what can be encoded in 16 bits. As such, to preserve processing power,
