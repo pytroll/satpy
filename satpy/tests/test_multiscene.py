@@ -575,8 +575,8 @@ class TestMultiSceneSave(unittest.TestCase):
 class TestBlendFuncs():
     """Test individual functions used for blending."""
 
-    @pytest.fixture(autouse=True)
-    def _get_line_column(self):
+    def setup_method(self):
+        """Set up test functions."""
         self._line = 2
         self._column = 3
 
