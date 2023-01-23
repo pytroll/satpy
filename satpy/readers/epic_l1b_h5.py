@@ -68,8 +68,8 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         """Init filehandler."""
         super(DscovrEpicL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.sensor = 'EPIC'
-        self.platform_name = 'DSCOVR'
+        self.sensor = 'epic'
+        self.platform_name = 'dscovr'
 
     @property
     def start_time(self):
