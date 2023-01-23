@@ -535,12 +535,10 @@ the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
 
 .. note::
-   Be careful about the data types of the dataset attributes your reader is
-   returning.  JSON is used internally in Satpy to serialize the function
-   arguments so we can hash them and then use that hash as the filename for the
-   cached results. Numpy types don't serialize into JSON, therefore please make
-   sure the attributes being set upon reading does not contain numpy scalar
-   types.
+   Be careful about the data types of the DataArray attributes (`.attrs`) your reader is
+   returning. Satpy or other tools may attempt to serialize these attributes (ex. hashing for cache keys). For example, Numpy types don't serialize into JSON and
+   should therefore be cast to basic Python types (`float`, `int`, etc) before being
+   assigned to the attributes.
 
 .. note::
    Also, be careful about the data types of the datasets your reader is returning.
