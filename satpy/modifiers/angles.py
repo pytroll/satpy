@@ -265,8 +265,9 @@ def _sanitize_observer_look_args(*args):
         if isinstance(arg, datetime):
             new_args.append(STATIC_EARTH_INERTIAL_DATETIME)
         elif isinstance(arg, (float, np.float64, np.float32)):
-            # round floating point numbers to nearest tenth
-            # Hashing numpy float types doesn't seem to work:
+            # Round floating point numbers to nearest tenth. Numpy types don't
+            # serialize into JSON which is needed for hashing, thus the casting
+            # to float here:
             new_args.append(float(round(arg, 1)))
         elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
             new_chunks = _regular_chunks_from_irregular_chunks(arg)
