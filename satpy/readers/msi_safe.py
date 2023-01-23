@@ -255,7 +255,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
 
     def _area_extent(self, resolution):
         cols, rows = self._shape(resolution)
-        geoposition = self.geocoding.find(f'Geoposition[@resolution="{resolution}"]')
+        geoposition = self.geocoding.find('Geoposition[@resolution="' + str(resolution) + '"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)

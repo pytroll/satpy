@@ -406,7 +406,7 @@ class LINCFileHandler(NetCDF4FileHandler):
                 return self[vpath]
 
         # We could not find a variable with that path, this might be an error:
-        raise Exception(f"Could not find variable with paths: {var_paths}")
+        raise KeyError(f"Could not find variable with paths: {var_paths}")
 
     def get_measured_variable(self, var_paths, fill_value=np.nan):
         """Retrieve a measured variable path taking into account the potential old data formatting schema.
@@ -742,7 +742,7 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # check for potential error:
         if ds_info is None:
-            raise Exception(f"No dataset registered for {dataset_id}")
+            raise KeyError(f"No dataset registered for {dataset_id}")
 
         ds_name = ds_info['name']
         # In case this dataset name is not explicitly provided by this file handler then we

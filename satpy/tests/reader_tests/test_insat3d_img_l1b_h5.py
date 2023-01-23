@@ -18,6 +18,10 @@ from satpy.readers.insat3d_img_l1b_h5 import (
 )
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path_factory
+
 # real shape is 1, 11220, 11264
 shape_1km = (1, 1122, 1126)
 shape_4km = (1, 2816, 2805)

@@ -28,6 +28,10 @@ from satpy import Scene
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 @pytest.fixture(scope="session")
 def _cf_scene():
