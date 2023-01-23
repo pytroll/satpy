@@ -13,7 +13,7 @@ reader:
 
 file_types:
     h5_std:
-        file_reader: !!python/name:satpy.readers.epic_l1b_h5.DSCOVREPICL1BH5FileHandler
+        file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
         file_patterns: [
           "{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"
         ]

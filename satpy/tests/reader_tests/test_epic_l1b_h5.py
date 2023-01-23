@@ -66,6 +66,15 @@ def make_fake_hdf_epic(fname):
 class TestEPICL1bReader:
     """Test the EPIC L1b HDF5 reader."""
 
+    def _setup_h5(self, setup_hdf5_file):
+        """Initialise reader for the tests."""
+        from satpy.readers import load_reader
+        test_reader = load_reader(self.reader_configs)
+        loadables = test_reader.select_files_from_pathnames([setup_hdf5_file])
+        test_reader.create_filehandlers(loadables)
+
+        return test_reader
+
     def setup_method(self):
         """Set up the tests."""
         from satpy._config import config_search_paths
@@ -82,48 +91,51 @@ class TestEPICL1bReader:
         """Test start and end times load properly."""
         from datetime import datetime
 
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([setup_hdf5_file])
-        r.create_filehandlers(loadables)
+        test_reader = self._setup_h5(setup_hdf5_file)
+        assert test_reader.start_time == datetime(2015, 6, 13, 12, 0, 37)
+        assert test_reader.end_time == datetime(2015, 6, 13, 12, 5, 1)
 
-        assert r.start_time == datetime(2015, 6, 13, 12, 0, 37)
-        assert r.end_time == datetime(2015, 6, 13, 12, 5, 1)
-
-    def test_calibration(self, setup_hdf5_file):
+    def test_counts_calibration(self, setup_hdf5_file):
         """Test that data is correctly calibrated."""
-        from satpy.readers import load_reader
         from satpy.tests.utils import make_dsq
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([setup_hdf5_file])
-        r.create_filehandlers(loadables)
 
+        test_reader = self._setup_h5(setup_hdf5_file)
         # Test counts calibration
-        ds = r.load([make_dsq(name='B317', calibration='counts')])
+        ds = test_reader.load([make_dsq(name='B317', calibration='counts')])
         np.testing.assert_allclose(ds['B317'].data, b317_data)
 
+    def test_refl_calibration(self, setup_hdf5_file):
+        """Test that data is correctly calibrated into reflectances."""
+        from satpy.tests.utils import make_dsq
+
+        test_reader = self._setup_h5(setup_hdf5_file)
+
         # Test conversion to reflectance
-        ds = r.load([make_dsq(name='B317', calibration='reflectance')])
+        ds = test_reader.load([make_dsq(name='B317', calibration='reflectance')])
         np.testing.assert_allclose(ds['B317'].data, b317_data * CALIB_COEFS['B317'] * 100., rtol=1e-5)
+
+    def test_bad_calibration(self, setup_hdf5_file):
+        """Test that error is raised if a bad calibration is used."""
+        from satpy.tests.utils import make_dsq
+
+        test_reader = self._setup_h5(setup_hdf5_file)
 
         # Test nonsense calibration
         with pytest.raises(KeyError):
-            r.load([make_dsq(name='B317', calibration='potatoes')])
+            test_reader.load([make_dsq(name='B317', calibration='potatoes')])
 
     def test_load_ancillary(self, setup_hdf5_file):
         """Test that ancillary datasets load correctly."""
-        from satpy.readers import load_reader
         from satpy.tests.utils import make_dsq
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([setup_hdf5_file])
-        r.create_filehandlers(loadables)
+
+        test_reader = self._setup_h5(setup_hdf5_file)
 
         # Load sza
-        ds = r.load([make_dsq(name='solar_zenith_angle'),
-                     make_dsq(name='satellite_azimuth_angle'),
-                     make_dsq(name='latitude'),
-                     make_dsq(name='longitude'),
-                     make_dsq(name='earth_mask')])
+        ds = test_reader.load([make_dsq(name='solar_zenith_angle'),
+                               make_dsq(name='satellite_azimuth_angle'),
+                               make_dsq(name='latitude'),
+                               make_dsq(name='longitude'),
+                               make_dsq(name='earth_mask')])
 
         np.testing.assert_allclose(ds['solar_zenith_angle'].data, sza_data)
         np.testing.assert_allclose(ds['satellite_azimuth_angle'].data, vaa_data)

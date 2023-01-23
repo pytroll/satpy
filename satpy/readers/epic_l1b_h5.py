@@ -61,12 +61,12 @@ CALIB_COEFS = {'B317': 1.216e-4,
                'B780': 1.435e-5}
 
 
-class DSCOVREPICL1BH5FileHandler(HDF5FileHandler):
+class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
     """File handler for DSCOVR EPIC L1b data."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init filehandler."""
-        super(DSCOVREPICL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(DscovrEpicL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         self.sensor = 'EPIC'
         self.platform_name = 'DSCOVR'
