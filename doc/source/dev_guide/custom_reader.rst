@@ -535,7 +535,15 @@ the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
 
 .. note::
-   Be careful about the data types of the datasets your reader is returning.
+   Be careful about the data types of the dataset attributes your reader is
+   returning.  JSON is used internally in Satpy to serialize the function
+   arguments so we can hash them and then use that hash as the filename for the
+   cached results. Numpy types don't serialize into JSON, therefore please make
+   sure the attributes being set upon reading does not contain numpy scalar
+   types.
+
+.. note::
+   Also, be careful about the data types of the datasets your reader is returning.
    It is easy to let the data be coerced into double precision floats (`np.float64`). At the
    moment, satellite instruments are rarely measuring in a resolution greater
    than what can be encoded in 16 bits. As such, to preserve processing power,

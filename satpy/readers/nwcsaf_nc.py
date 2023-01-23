@@ -171,7 +171,7 @@ class NcNWCSAF(BaseFileHandler):
             gdal_params = dict(elt.strip("+").split("=") for elt in self.nc.attrs["gdal_projection"].split())
             variable.attrs["orbital_parameters"] = dict(
                 satellite_nominal_altitude=float(gdal_params["h"]),
-                satellite_nominal_longitude=self.nc.attrs["sub-satellite_longitude"],
+                satellite_nominal_longitude=float(self.nc.attrs["sub-satellite_longitude"]),
                 satellite_nominal_latitude=0)
 
     def _get_varname_in_file(self, info, info_type="file_key"):
