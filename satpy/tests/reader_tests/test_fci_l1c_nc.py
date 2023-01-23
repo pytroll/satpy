@@ -34,6 +34,10 @@ from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
+
 GRID_TYPE_INFO_FOR_TEST_CONTENT = {
     '500m': {
         'nrows': 400,
@@ -60,21 +64,57 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
 
+class FakeH5Variable:
+    """Class for faking h5netcdf.Variable class."""
+
+    def __init__(self, data, dims=(), attrs=None):
+        """Initialize the class."""
+        self.dimensions = dims
+        self.name = "name"
+        self.attrs = attrs if attrs else {}
+        self.dtype = None
+        self._data = data
+        self._set_meta()
+
+    def _set_meta(self):
+        if hasattr(self._data, "dtype"):
+            self.dtype = self._data.dtype
+
+    def __array__(self):
+        """Get the array data.."""
+        return self._data.__array__()
+
+    def __getitem__(self, key):
+        """Get item for the key."""
+        return self._data[key]
+
+    @property
+    def shape(self):
+        """Get the shape."""
+        return self._data.shape
+
+    @property
+    def ndim(self):
+        """Get the number of dimensions."""
+        return self._data.ndim
+
+
 def _get_test_calib_for_channel_ir(data, meas_path):
     from pyspectral.blackbody import C_SPEED as c
     from pyspectral.blackbody import H_PLANCK as h
     from pyspectral.blackbody import K_BOLTZMANN as k
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xr.DataArray(955)
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = xr.DataArray(1)
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = xr.DataArray(0.4)
-    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = xr.DataArray(1e11 * 2 * h * c ** 2)
-    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = xr.DataArray(1e2 * h * c / k)
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(da.array(955))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(da.array(1))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(da.array(0.4))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(da.array(1e11 * 2 * h * c ** 2))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(da.array(1e2 * h * c / k))
     return data
 
 
 def _get_test_calib_for_channel_vis(data, meas):
-    data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([149597870.7]), 6000))
-    data[meas + "/channel_effective_solar_irradiance"] = xr.DataArray(50)
+    data["state/celestial/earth_sun_distance"] = FakeH5Variable(
+        da.repeat(da.array([149597870.7]), 6000), dims=("x"))
+    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50))
     return data
 
 
@@ -84,7 +124,7 @@ def _get_test_calib_data_for_channel(data, ch_str):
         _get_test_calib_for_channel_ir(data, meas_path)
     elif ch_str.startswith("vis") or ch_str.startswith("nir"):
         _get_test_calib_for_channel_vis(data, meas_path)
-    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(1234.56)
+    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(da.array(1234.56))
 
 
 def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
@@ -100,9 +140,9 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
     if "38" in ch_path:
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
         data_without_fires = da.ones((n_rows_cols[0] - 1, n_rows_cols[1]), dtype="uint16", chunks=1024)
-        d = xr.DataArray(
+        d = FakeH5Variable(
             da.concatenate([fire_line, data_without_fires], axis=0),
-            dims=("y", "x"),
+            dims=('y', 'x'),
             attrs={
                 "valid_range": [0, 8191],
                 "warm_scale_factor": 2,
@@ -111,7 +151,7 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
             }
         )
     else:
-        d = xr.DataArray(
+        d = FakeH5Variable(
             da.ones(n_rows_cols, dtype="uint16", chunks=1024),
             dims=("y", "x"),
             attrs={
@@ -128,15 +168,16 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
 
 def _get_test_segment_position_for_channel(data, ch_str, n_rows_cols):
     pos = "data/{:s}/measured/{:s}_position_{:s}"
-    data[pos.format(ch_str, "start", "row")] = xr.DataArray(1)
-    data[pos.format(ch_str, "start", "column")] = xr.DataArray(1)
-    data[pos.format(ch_str, "end", "row")] = xr.DataArray(n_rows_cols[0])
-    data[pos.format(ch_str, "end", "column")] = xr.DataArray(n_rows_cols[1])
+    data[pos.format(ch_str, "start", "row")] = FakeH5Variable(da.array(1))
+    data[pos.format(ch_str, "start", "column")] = FakeH5Variable(da.array(1))
+    data[pos.format(ch_str, "end", "row")] = FakeH5Variable(da.array(n_rows_cols[0]))
+    data[pos.format(ch_str, "end", "column")] = FakeH5Variable(da.array(n_rows_cols[1]))
 
 
 def _get_test_index_map_for_channel(data, ch_str, n_rows_cols):
     index_map_path = "data/{:s}/measured/index_map".format(ch_str)
-    data[index_map_path] = xr.DataArray((da.ones(n_rows_cols)) * 110, dims=("y", "x"))
+    data[index_map_path] = xr.DataArray(
+        (da.ones(n_rows_cols)) * 110, dims=("y", "x"))
 
 
 def _get_test_pixel_quality_for_channel(data, ch_str, n_rows_cols):
@@ -202,9 +243,10 @@ def _get_test_content_aux_data():
         data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
 
     # compute the last data entry to simulate the FCI caching
-    data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
+    # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
-    data['index'] = xr.DataArray(da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
+    data['index'] = xr.DataArray(
+        da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
     return data
 
 
@@ -338,7 +380,16 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables)
+    clear_cache(reader)
     return reader
+
+
+def clear_cache(reader):
+    """Clear the cache for file handlres in reader."""
+    for key in reader.file_handlers:
+        fhs = reader.file_handlers[key]
+        for fh in fhs:
+            fh.cached_file_content = {}
 
 
 _chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
@@ -697,7 +748,7 @@ class TestFCIL1cNCReaderBadData:
         """Test handling of bad IR data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-            with caplog.at_level("ERROR"):
+            with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="ir_105",
                     calibration="brightness_temperature")], pad_data=False)
@@ -707,7 +758,7 @@ class TestFCIL1cNCReaderBadData:
         """Test handling of bad VIS data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)
-            with caplog.at_level("ERROR"):
+            with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="vis_06",
                     calibration="reflectance")], pad_data=False)
@@ -717,7 +768,7 @@ class TestFCIL1cNCReaderBadData:
 class TestFCIL1cNCReaderBadDataFromIDPF:
     """Test the FCI L1c NetCDF Reader for bad data input, specifically the IDPF issues."""
 
-    def test_handling_bad_earthsun_distance(self, reader_configs, caplog):
+    def test_handling_bad_earthsun_distance(self, reader_configs):
         """Test handling of bad earth-sun distance data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
             reader = _get_reader_with_filehandlers(_test_filenames['fdhsi'], reader_configs)

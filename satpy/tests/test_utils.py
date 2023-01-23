@@ -38,6 +38,10 @@ from satpy.utils import (
     xyz2lonlat,
 )
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
+
 
 class TestUtils(unittest.TestCase):
     """Testing utils."""

@@ -32,6 +32,10 @@ from pyresample.geometry import AreaDefinition
 from satpy import DataQuery
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 DEFAULT_SHAPE = (5, 10)
 
 local_id_keys_config = {'name': {

@@ -263,7 +263,7 @@ def _filter_groups(groups, missing="pass"):
         return
     if missing not in ("raise", "skip"):
         raise ValueError("Invalid value for ``missing`` argument.  Expected "
-                         f"'raise', 'skip', or 'pass', got '{missing!s}'")
+                         f"'raise', 'skip', or 'pass', got {missing!r}")
     for (i, grp) in enumerate(groups):
         readers_without_files = _get_keys_with_empty_values(grp)
         if readers_without_files:

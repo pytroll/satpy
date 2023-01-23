@@ -31,6 +31,10 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 import satpy
 from satpy.utils import PerformanceWarning
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 def _angle_cache_area_def():
     area = AreaDefinition(

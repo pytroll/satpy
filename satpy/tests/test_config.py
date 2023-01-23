@@ -31,7 +31,12 @@ import pytest
 
 import satpy
 from satpy import DatasetDict
+from satpy._config import cached_entry_points
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 
 class TestBuiltinAreas(unittest.TestCase):
@@ -291,6 +296,10 @@ def _create_yamlbased_plugin(
 
 class TestPluginsConfigs:
     """Test that plugins are working."""
+
+    def setup_method(self):
+        """Set up the test."""
+        cached_entry_points.cache_clear()
 
     def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
         """Check that the plugin configs are looked for."""

@@ -257,3 +257,39 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         del file_handler.file_content["test_group/ds1_f"]
         data2 = file_handler.get_and_cache_npxr('test_group/ds1_f')
         assert np.all(data == data2)
+
+
+class TestNetCDF4FsspecFileHandler:
+    """Test the remote reading class."""
+
+    def test_default_to_netcdf4_lib(self):
+        """Test that the NetCDF4 backend is used by default."""
+        import os
+        import tempfile
+
+        import h5py
+
+        from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create an empty HDF5
+            fname = os.path.join(tmpdir, "test.nc")
+            fid = h5py.File(fname, "w")
+            fid.close()
+
+            fh = NetCDF4FsspecFileHandler(fname, {}, {})
+            assert fh._use_h5netcdf is False
+
+    def test_use_h5netcdf_for_file_not_accessible_locally(self):
+        """Test that h5netcdf is used for files that are not accesible locally."""
+        from unittest.mock import patch
+
+        fname = "s3://bucket/object.nc"
+
+        with patch("h5netcdf.File") as h5_file:
+            with patch("satpy.readers.netcdf_utils.open_file_or_filename"):
+                from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
+
+                fh = NetCDF4FsspecFileHandler(fname, {}, {})
+                h5_file.assert_called_once()
+                assert fh._use_h5netcdf
