@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -266,7 +266,8 @@ def _sanitize_observer_look_args(*args):
             new_args.append(STATIC_EARTH_INERTIAL_DATETIME)
         elif isinstance(arg, (float, np.float64, np.float32)):
             # round floating point numbers to nearest tenth
-            new_args.append(round(arg, 1))
+            # Hashing numpy float types doesn't seem to work:
+            new_args.append(float(round(arg, 1)))
         elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
             new_chunks = _regular_chunks_from_irregular_chunks(arg)
             new_args.append(new_chunks)
