@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 
 def stack(datasets, weights=None):
-    """Combine a series of datasets together.
+    """Overlay a series of datasets together.
 
     On default, datasets are stacked on top of each other, so the last one is
     on top. But if a sequence of weights arrays are provided the datasets will
