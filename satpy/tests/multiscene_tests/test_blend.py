@@ -31,7 +31,7 @@ from satpy.tests.multiscene_tests import _create_test_area, _create_test_dataset
 from satpy.tests.utils import make_dataid
 
 
-class TestBlendFuncs():
+class TestBlendFuncs:
     """Test individual functions used for blending."""
 
     def setup_method(self):

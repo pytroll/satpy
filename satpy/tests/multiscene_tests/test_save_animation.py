@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 # Copyright (c) 2018-2023 Satpy developers
 #
 # This file is part of satpy.
@@ -16,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Unit tests for saving animations using Multiscene."""
 
 import os
