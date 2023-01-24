@@ -26,7 +26,7 @@ import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
+from satpy.dataset.dataid import ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
 
@@ -53,11 +53,6 @@ local_id_keys_config = {'name': {
     'type': ModifierTuple,
 },
 }
-
-
-def make_dataid(**items):
-    """Make a data id."""
-    return DataID(local_id_keys_config, **items)
 
 
 def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):

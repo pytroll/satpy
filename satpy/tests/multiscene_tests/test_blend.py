@@ -27,7 +27,8 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery
-from satpy.tests.multiscene_tests import _create_test_area, _create_test_dataset, _create_test_int8_dataset, make_dataid
+from satpy.tests.multiscene_tests import _create_test_area, _create_test_dataset, _create_test_int8_dataset
+from satpy.tests.utils import make_dataid
 
 
 class TestBlendFuncs():
