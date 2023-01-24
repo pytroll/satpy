@@ -30,7 +30,7 @@ from satpy import DataQuery
 from satpy.tests.multiscene_tests import _create_test_area, _create_test_dataset, _create_test_int8_dataset, make_dataid
 
 
-class TestBlendFuncs():
+class TestBlendFuncs:
     """Test individual functions used for blending."""
 
     def setup_method(self):
