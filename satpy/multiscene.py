@@ -72,8 +72,8 @@ def _stack_weighted(datasets, weights):
     # Go through weights and set to zero where corresponding datasets have a value equals _FillValue or nan
     for i, dataset in enumerate(datasets):
         try:
-            weights[i] = xr.where(dataset == dataset._FillValue, 0, weights[i])
-        except AttributeError:
+            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
             weights[i] = xr.where(dataset.isnull(), 0, weights[i])
 
     indices = da.argmax(da.dstack(weights), axis=-1)
