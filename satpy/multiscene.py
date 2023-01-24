@@ -61,8 +61,8 @@ def stack(datasets, weights=None):
     base = datasets[0].copy()
     for dataset in datasets[1:]:
         try:
-            base = base.where(dataset == dataset._FillValue, dataset)
-        except AttributeError:
+            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
+        except KeyError:
             base = base.where(dataset.isnull(), dataset)
     return base
 
