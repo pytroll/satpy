@@ -48,8 +48,8 @@ log = logging.getLogger(__name__)
 def stack(datasets, weights=None):
     """Overlay a series of datasets together.
 
-    On default, datasets are stacked on top of each other, so the last one is
-    on top. But if a sequence of weights arrays are provided the datasets will
+    By default, datasets are stacked on top of each other, so the last one applied is
+    on top. If a sequence of weights arrays are provided the datasets will
     be combined according to those weights. The result will be a composite
     dataset where the data in each pixel is coming from the dataset having the
     highest weight.
