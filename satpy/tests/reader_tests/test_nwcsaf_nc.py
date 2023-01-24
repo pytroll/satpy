@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2018-2022 Satpy developers
+# Copyright (c) 2018-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -279,6 +279,9 @@ class TestNcNWCSAFGeo:
         dsid = {'name': 'ct'}
         var = nwcsaf_geo_ct_filehandler.get_dataset(dsid, {})
         assert "orbital_parameters" in var.attrs
+        for param in var.attrs['orbital_parameters']:
+            assert isinstance(var.attrs['orbital_parameters'][param], (float, int))
+
         assert var.attrs["orbital_parameters"]["satellite_nominal_altitude"] == NOMINAL_ALTITUDE
         assert var.attrs["orbital_parameters"]["satellite_nominal_longitude"] == NOMINAL_LONGITUDE
         assert var.attrs["orbital_parameters"]["satellite_nominal_latitude"] == 0
