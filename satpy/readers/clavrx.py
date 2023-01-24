@@ -53,7 +53,8 @@ PLATFORMS = {
     'H08': 'himawari8',
     'H09': 'himawari9',
     'G16': 'GOES-16',
-    'G17': 'GOES-17'
+    'G17': 'GOES-17',
+    'G18': 'GOES-18',
 }
 ROWS_PER_SCAN = {
     'viirs': 16,
@@ -163,14 +164,14 @@ class _CLAVRxHelper:
         return area_extent, ncols, nlines
 
     @staticmethod
-    def _read_pug_fixed_grid(projection: netCDF4.Variable, distance_multiplier=1.0) -> dict:
+    def _read_pug_fixed_grid(projection_coordinates: netCDF4.Variable, distance_multiplier=1.0) -> dict:
         """Read from recent PUG format, where axes are in meters."""
-        a = projection.semi_major_axis
-        h = projection.perspective_point_height
-        b = projection.semi_minor_axis
+        a = projection_coordinates.semi_major_axis
+        h = projection_coordinates.perspective_point_height
+        b = projection_coordinates.semi_minor_axis
 
-        lon_0 = projection.longitude_of_projection_origin
-        sweep_axis = projection.sweep_angle_axis[0]
+        lon_0 = projection_coordinates.longitude_of_projection_origin
+        sweep_axis = projection_coordinates.sweep_angle_axis[0]
 
         proj_dict = {'a': float(a) * distance_multiplier,
                      'b': float(b) * distance_multiplier,
