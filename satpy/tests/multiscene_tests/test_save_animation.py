@@ -17,6 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for saving animations using Multiscene."""
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 import os
 import shutil
 import tempfile
@@ -24,7 +28,7 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
-from satpy.tests.multiscene_tests import (
+from satpy.tests.multiscene_tests.test_utils import (
     _create_test_area,
     _create_test_dataset,
     _create_test_scenes,

@@ -25,7 +25,7 @@ import pytest
 import xarray as xr
 
 from satpy import DataQuery
-from satpy.tests.multiscene_tests import _create_test_area, _create_test_dataset, _create_test_scenes
+from satpy.tests.multiscene_tests.test_utils import _create_test_area, _create_test_dataset, _create_test_scenes
 from satpy.tests.utils import make_dataid
 
 
