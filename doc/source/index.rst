@@ -50,7 +50,10 @@ the base Satpy installation.
 Getting Help
 ============
 
-Having trouble installing or using Satpy? Feel free to ask questions and any of the contact methods for the PyTroll group `here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on Satpy's GitHub page `here <https://github.com/pytroll/satpy/issues>`_.
+Having trouble installing or using Satpy? Feel free to ask questions at
+any of the contact methods for the PyTroll group
+`here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on
+Satpy's GitHub page `here <https://github.com/pytroll/satpy/issues>`_.
 
 Documentation
 =============
