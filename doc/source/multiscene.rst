@@ -85,6 +85,49 @@ iteratively overlays the remaining datasets on top.
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
 
+
+Stacking scenes using weights
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is also possible to blend scenes together in a bit more sophisticated manner
+using pixel based weighting instead of just stacking the scenes on top of each
+other as described above. This can for instance be useful to make a cloud
+parameter (cover, height, etc) composite combining cloud parameters derived
+from both geostationary and polar orbiting satellite data over aa given area
+(for instance at high latitudes where geostatioonary data degrade quickly with
+latitude and polar data are more frequent) scenes valid close in time to each
+other.
+
+This weighted blending can be accomplished via the use of the builtin
+:func:`~functools.partial` function (see `Partial
+<https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
+default :func:`~satpy.multiscene.stack` function. The
+:func:`~satpy.multiscene.stack` function can take the optional argument
+`weights` (`None` on default) which should be a sequence (of length equal to
+the number of scenes being blended) of arrays with pixel weights.
+
+The code below gives an example of how two clouud scenes can be blended using
+the satellite zenith angles to weight which pixels to take from each of the two
+scenes. The idea being that the reliability of the cloud parameter is higher
+when the satellite zenith angle is small.
+
+    >>> from satpy import Scene, MultiScene,  DataQuery
+    >>> from functools import partial
+    >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
+    >>> geo_scene.load(['ct'])
+    >>> polar_scene = Scene(filenames=glob('/data/to/nwcsaf/pps/noaa18/files/*nc'), reader='nwcsaf-pps_nc')
+    >>> polar_scene.load(['cma', 'ct'])
+    >>> mscn = MultiScene([geo_scene, polar_scene])
+    >>> groups = {DataQuery(name='CTY_group'): ['ct']}
+    >>> mscn.group(groups)
+    >>> resampled = mscn.resample(areaid, reduce_data=False)
+    >>> weights = [1./geo_satz, 1./n18_satz]
+    >>> stack_with_weights = partial(stack, weights=weights)
+    >>> blended = resampled.blend(blend_function=stack_with_weights)
+    >>> blended_scene.save_datasets()
+
+
+
 Grouping Similar Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
