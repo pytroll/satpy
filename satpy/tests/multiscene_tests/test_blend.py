@@ -27,6 +27,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery
+from satpy.multiscene import stack
 from satpy.tests.multiscene_tests.test_utils import _create_test_area, _create_test_dataset, _create_test_int8_dataset
 from satpy.tests.utils import make_dataid
 
@@ -52,6 +53,16 @@ class TestBlendFuncs:
             modifiers=()
         )
         scene[dsid1] = _create_test_int8_dataset(name='geo-ct', area=area, values=1)
+        scene[dsid1].attrs['platform_name'] = 'Meteosat-11'
+        scene[dsid1].attrs['sensor'] = set({'seviri'})
+        scene[dsid1].attrs['units'] = '1'
+        scene[dsid1].attrs['long_name'] = 'NWC GEO CT Cloud Type'
+        scene[dsid1].attrs['orbital_parameters'] = {'satellite_nominal_altitude': 35785863.0,
+                                                    'satellite_nominal_longitude': 0.0,
+                                                    'satellite_nominal_latitude': 0}
+        scene[dsid1].attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
+        scene[dsid1].attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
+
         wgt1 = _create_test_dataset(name='geo-ct-wgt', area=area, values=0)
 
         wgt1[self._line, :] = 2
@@ -63,6 +74,9 @@ class TestBlendFuncs:
             modifiers=()
         )
         scene[dsid2] = _create_test_int8_dataset(name='geo-cma', area=area, values=2)
+        scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
+        scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
+
         wgt2 = _create_test_dataset(name='geo-cma-wgt', area=area, values=0)
 
         return scene, [wgt1, wgt2]
@@ -76,17 +90,29 @@ class TestBlendFuncs:
         scene = Scene()
         dsid1 = make_dataid(
             name="polar-ct",
+            resolution=1000,
             modifiers=()
         )
         scene[dsid1] = _create_test_int8_dataset(name='polar-ct', area=area, values=3)
+        scene[dsid1].attrs['platform_name'] = 'NOAA-18'
+        scene[dsid1].attrs['sensor'] = set({'avhrr-3'})
+        scene[dsid1].attrs['units'] = '1'
+        scene[dsid1].attrs['long_name'] = 'SAFNWC PPS CT Cloud Type'
         scene[dsid1][-1, :] = scene[dsid1].attrs['_FillValue']
+        scene[dsid1].attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
+        scene[dsid1].attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
+
         wgt1 = _create_test_dataset(name='polar-ct-wgt', area=area, values=1)
 
         dsid2 = make_dataid(
             name="polar-cma",
+            resolution=1000,
             modifiers=()
         )
         scene[dsid2] = _create_test_int8_dataset(name='polar-cma', area=area, values=4)
+        scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
+        scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
+
         wgt2 = _create_test_dataset(name='polar-cma-wgt', area=area, values=1)
         return scene, [wgt1, wgt2]
 
@@ -110,8 +136,6 @@ class TestBlendFuncs:
     def test_blend_two_scenes_using_stack(self, multi_scene_and_weights, groups,
                                           scene1_with_weights, scene2_with_weights):
         """Test blending two scenes by stacking them on top of each other using function 'stack'."""
-        from satpy.multiscene import stack
-
         multi_scene, weights = multi_scene_and_weights
         scene1, weights1 = scene1_with_weights
         scene2, weights2 = scene2_with_weights
@@ -120,18 +144,32 @@ class TestBlendFuncs:
 
         resampled = multi_scene
         stacked = resampled.blend(blend_function=stack)
+        result = stacked['CloudType'].compute()
 
         expected = scene2['polar-ct'].copy()
         expected[-1, :] = scene1['geo-ct'][-1, :]
 
-        xr.testing.assert_equal(stacked['CloudType'].compute(), expected.compute())
+        xr.testing.assert_equal(result, expected.compute())
+        assert result.attrs['platform_name'] == 'Meteosat-11'
+        assert result.attrs['sensor'] == set({'seviri'})
+        assert result.attrs['long_name'] == 'NWC GEO CT Cloud Type'
+        assert result.attrs['units'] == '1'
+        assert result.attrs['name'] == 'CloudType'
+        assert result.attrs['_FillValue'] == 255
+        assert result.attrs['valid_range'] == [1, 15]
+
+        assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
+        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 12, 22)
 
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
                                                    scene1_with_weights, scene2_with_weights):
-        """Test stacking two scenes using weights."""
-        from functools import partial
+        """Test stacking two scenes using weights - testing that metadata are combined correctly.
 
-        from satpy.multiscene import stack
+        Here we test that the start and end times can be combined so that they
+        describe the start and times of the entire data series.
+
+        """
+        from functools import partial
 
         multi_scene, weights = multi_scene_and_weights
         scene1, weights1 = scene1_with_weights
@@ -151,6 +189,50 @@ class TestBlendFuncs:
 
         result = weighted_blend['CloudType'].compute()
         xr.testing.assert_equal(result, expected.compute())
+
+        expected_area = _create_test_area()
+        assert result.attrs['area'] == expected_area
+        assert 'sensor' not in result.attrs
+        assert 'platform_name' not in result.attrs
+        assert 'long_name' not in result.attrs
+        assert result.attrs['units'] == '1'
+        assert result.attrs['name'] == 'CloudType'
+        assert result.attrs['_FillValue'] == 255
+        assert result.attrs['valid_range'] == [1, 15]
+
+        assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
+        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
+
+    def test_blend_two_scenes_using_stack_weighted_no_time_combination(self, multi_scene_and_weights, groups,
+                                                                       scene1_with_weights, scene2_with_weights):
+        """Test stacking two scenes using weights - test that the start and end times are averaged and not combined."""
+        from functools import partial
+
+        multi_scene, weights = multi_scene_and_weights
+        scene1, weights1 = scene1_with_weights
+        scene2, weights2 = scene2_with_weights
+
+        simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
+        multi_scene.group(simple_groups)
+
+        weights = [weights[0][0], weights[1][0]]
+        stack_with_weights = partial(stack, weights=weights, combine_times=False)
+        weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
+
+        result = weighted_blend['CloudType'].compute()
+
+        expected_area = _create_test_area()
+        assert result.attrs['area'] == expected_area
+        assert 'sensor' not in result.attrs
+        assert 'platform_name' not in result.attrs
+        assert 'long_name' not in result.attrs
+        assert result.attrs['units'] == '1'
+        assert result.attrs['name'] == 'CloudType'
+        assert result.attrs['_FillValue'] == 255
+        assert result.attrs['valid_range'] == [1, 15]
+
+        assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 11, 7, 250000)
+        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 20, 11, 950000)
 
     @pytest.fixture
     def datasets_and_weights(self):
@@ -192,6 +274,7 @@ class TestBlendFuncs:
         """Test the 'stack_weighted' function."""
         from functools import partial
 
+        from satpy.dataset import combine_metadata
         from satpy.multiscene import stack
 
         input_data = datasets_and_weights
@@ -199,7 +282,7 @@ class TestBlendFuncs:
         input_data['weights'][1][line, :] = 2
         input_data['weights'][2][:, column] = 2
 
-        stack_with_weights = partial(stack, weights=input_data['weights'])
+        stack_with_weights = partial(stack, weights=input_data['weights'], combine_times=False)
         blend_result = stack_with_weights(input_data['datasets'][0:3])
 
         ds1 = input_data['datasets'][0]
@@ -208,8 +291,10 @@ class TestBlendFuncs:
         expected = ds1.copy()
         expected[:, column] = ds3[:, column]
         expected[line, :] = ds2[line, :]
+        expected.attrs = combine_metadata(*[x.attrs for x in input_data['datasets'][0:3]])
 
         xr.testing.assert_equal(blend_result.compute(), expected.compute())
+
         assert expected.attrs == blend_result.attrs
 
     def test_blend_function_stack(self, datasets_and_weights):
@@ -225,10 +310,6 @@ class TestBlendFuncs:
         expected = ds2.copy()
 
         xr.testing.assert_equal(res.compute(), expected.compute())
-        # assert expected.attrs == res.attrs
-        # FIXME! Looks like the attributes are taken from the first dataset. Should
-        # be like that?  So in this case the datetime is different from "expected"
-        # (= in this case the last dataset in the stack, the one on top)
 
     def test_timeseries(self, datasets_and_weights):
         """Test the 'timeseries' function."""

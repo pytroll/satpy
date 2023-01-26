@@ -20,6 +20,7 @@
 import copy
 import logging
 import warnings
+from datetime import datetime
 from queue import Queue
 from threading import Thread
 
@@ -45,7 +46,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None):
+def stack(datasets, weights=None, combine_times=True):
     """Overlay a series of datasets together.
 
     By default, datasets are stacked on top of each other, so the last one applied is
@@ -56,7 +57,7 @@ def stack(datasets, weights=None):
 
     """
     if weights:
-        return _stack_weighted(datasets, weights)
+        return _stack_weighted(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -64,24 +65,49 @@ def stack(datasets, weights=None):
             base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
         except KeyError:
             base = base.where(dataset.isnull(), dataset)
+
     return base
 
 
-def _stack_weighted(datasets, weights):
+def _stack_weighted(datasets, weights, combine_times):
     """Stack datasets using weights."""
-    # Go through weights and set to zero where corresponding datasets have a value equals _FillValue or nan
+    weights = set_weights_to_zero_where_invalid(datasets, weights)
+
+    indices = da.argmax(da.dstack(weights), axis=-1)
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        attrs['start_time'], attrs['end_time'] = get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    dims = datasets[0].dims
+    weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
+    return weighted_array
+
+
+def set_weights_to_zero_where_invalid(datasets, weights):
+    """Go through the weights and set to zero where corresponding datasets have a value equals _FillValue or nan."""
     for i, dataset in enumerate(datasets):
         try:
             weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
         except KeyError:
             weights[i] = xr.where(dataset.isnull(), 0, weights[i])
 
-    indices = da.argmax(da.dstack(weights), axis=-1)
-    dims = datasets[0].dims
-    attrs = datasets[0].attrs
-    weighted_array = xr.DataArray(da.choose(indices, datasets),
-                                  dims=dims, attrs=attrs)
-    return weighted_array
+    return weights
+
+
+def get_combined_start_end_times(*metadata_objects):
+    """Get the start and end times attributes valid for the entire dataset series."""
+    start_time = datetime.now()
+    for md_obj in metadata_objects:
+        if md_obj['start_time'] < start_time:
+            start_time = md_obj['start_time']
+
+    end_time = datetime.fromtimestamp(0)
+    for md_obj in metadata_objects:
+        if md_obj['end_time'] > end_time:
+            end_time = md_obj['end_time']
+
+    return start_time, end_time
 
 
 def timeseries(datasets):
