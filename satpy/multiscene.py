@@ -77,7 +77,7 @@ def _stack_weighted(datasets, weights, combine_times):
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
-        attrs['start_time'], attrs['end_time'] = get_combined_start_end_times(*[x.attrs for x in datasets])
+        attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
     dims = datasets[0].dims
     weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
@@ -95,15 +95,13 @@ def set_weights_to_zero_where_invalid(datasets, weights):
     return weights
 
 
-def get_combined_start_end_times(*metadata_objects):
+def _get_combined_start_end_times(*metadata_objects):
     """Get the start and end times attributes valid for the entire dataset series."""
     start_time = datetime.now()
+    end_time = datetime.fromtimestamp(0)
     for md_obj in metadata_objects:
         if md_obj['start_time'] < start_time:
             start_time = md_obj['start_time']
-
-    end_time = datetime.fromtimestamp(0)
-    for md_obj in metadata_objects:
         if md_obj['end_time'] > end_time:
             end_time = md_obj['end_time']
 
