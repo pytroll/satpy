@@ -100,7 +100,7 @@ frequent.
 
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
-<https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
+      <https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
 default :func:`~satpy.multiscene.stack` function. The
 :func:`~satpy.multiscene.stack` function can take the optional argument
 `weights` (`None` on default) which should be a sequence (of length equal to
@@ -113,6 +113,8 @@ when the satellite zenith angle is small.
 
     >>> from satpy import Scene, MultiScene,  DataQuery
     >>> from functools import partial
+    >>> from satpy.resample import get_area_def
+    >>> areaid = get_area_def("myarea")
     >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
     >>> geo_scene.load(['ct'])
     >>> polar_scene = Scene(filenames=glob('/data/to/nwcsaf/pps/noaa18/files/*nc'), reader='nwcsaf-pps_nc')
