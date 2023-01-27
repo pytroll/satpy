@@ -120,7 +120,7 @@ datasets:
     name: ct
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: ct
+    standard_name: cloudtype
 
   ct_conditions:
     name: ct_conditions
