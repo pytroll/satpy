@@ -126,7 +126,7 @@ when the satellite zenith angle is small.
     >>> weights = [1./geo_satz, 1./n18_satz]
     >>> stack_with_weights = partial(stack, weights=weights)
     >>> blended = resampled.blend(blend_function=stack_with_weights)
-    >>> blended_scene.save_datasets()
+    >>> blended_scene.save_dataset('CTY_group', filename='./blended_stack_weighted_geo_polar.nc')
 
 
 
