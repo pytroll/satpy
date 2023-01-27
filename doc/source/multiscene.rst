@@ -93,10 +93,10 @@ It is also possible to blend scenes together in a bit more sophisticated manner
 using pixel based weighting instead of just stacking the scenes on top of each
 other as described above. This can for instance be useful to make a cloud
 parameter (cover, height, etc) composite combining cloud parameters derived
-from both geostationary and polar orbiting satellite data over aa given area
-(for instance at high latitudes where geostatioonary data degrade quickly with
-latitude and polar data are more frequent) scenes valid close in time to each
-other.
+from both geostationary and polar orbiting satellite data close in time and
+over a given area. This is useful for instance at high latitudes where
+geostationary data degrade quickly with latitude and polar data are more
+frequent.
 
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
