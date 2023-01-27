@@ -106,7 +106,7 @@ default :func:`~satpy.multiscene.stack` function. The
 `weights` (`None` on default) which should be a sequence (of length equal to
 the number of scenes being blended) of arrays with pixel weights.
 
-The code below gives an example of how two clouud scenes can be blended using
+The code below gives an example of how two cloud scenes can be blended using
 the satellite zenith angles to weight which pixels to take from each of the two
 scenes. The idea being that the reliability of the cloud parameter is higher
 when the satellite zenith angle is small.
