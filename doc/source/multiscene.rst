@@ -100,7 +100,7 @@ frequent.
 
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
-      <https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
+<https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
 default :func:`~satpy.multiscene.stack` function. The
 :func:`~satpy.multiscene.stack` function can take the optional argument
 `weights` (`None` on default) which should be a sequence (of length equal to
