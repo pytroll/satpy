@@ -77,7 +77,8 @@ def _stack_weighted(datasets, weights, combine_times):
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
-        attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
     dims = datasets[0].dims
     weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
@@ -85,7 +86,7 @@ def _stack_weighted(datasets, weights, combine_times):
 
 
 def set_weights_to_zero_where_invalid(datasets, weights):
-    """Go through the weights and set to zero where corresponding datasets have a value equals _FillValue or nan."""
+    """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
     for i, dataset in enumerate(datasets):
         try:
             weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
