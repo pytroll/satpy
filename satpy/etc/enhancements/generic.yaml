@@ -395,8 +395,8 @@ enhancements:
         palettes:
           - dataset: ctth_alti_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
+            min_value: -2000
+            max_value: 25000
 
   cloud_top_pressure:
     standard_name: cloud_top_pressure
