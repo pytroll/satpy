@@ -502,27 +502,27 @@ def fake_area():
 
 
 _nwcsaf_props = {
-     'cma': ('cma_pal', 'cloudmask', 'CMA'),
-     'ct': ('ct_pal', 'cloudtype', 'CT'),
-     'ctth_alti': ('ctth_alti_pal', 'cloud_top_height', 'CTTH'),
-     'ctth_pres': ('ctth_pres_pal', 'cloud_top_pressure', 'CTTH'),
-     'ctth_tempe': ('ctth_tempe_pal', 'cloud_top_temperature', 'CTTH'),
-     'cmic_phase': ('cmic_phase_pal', 'cloud_top_phase', 'CMIC'),
-     'cmic_reff': ('cmic_reff_pal', 'cloud_drop_effective_radius', 'CMIC'),
-     'cmic_cot': ('cmic_cot_pal', 'cloud_optical_thickness', 'CMIC'),
-     'cmic_lwp': ('cmic_lwp_pal', 'cloud_liquid_water_path', 'CMIC'),
-     'cmic_iwp': ('cmic_iwp_pal', 'cloud_ice_water_path', 'CMIC'),
-     'pc': ('pc_pal', 'precipitation_probability', 'PC'),
-     'crr': ('crr_pal', 'convective_rain_rate', 'CRR'),
-     'crr_accum': ('crr_pal', 'convective_precipitation_hourly_accumulation', 'CRR'),
-     'ishai_tpw': ('ishai_tpw_pal', 'total_precipitable_water', 'iSHAI'),
-     'ishai_shw': ('ishai_shw_pal', 'showalter_index', 'iSHAI'),
-     'ishai_li': ('ishai_li_pal', 'lifted_index', 'iSHAI'),
-     'ci_prob30': ('ci_pal', 'convection_initiation_prob30', 'CI'),
-     'ci_prob60': ('ci_pal', 'convection_initiation_prob60', 'CI'),
-     'ci_prob90': ('ci_pal', 'convection_initiation_prob90', 'CI'),
-     'asii_turb_trop_prob': ('asii_turb_prob_pal', 'asii_prob', 'ASII-NG'),
-     'MapCellCatType': ('MapCellCatType_pal', 'rdt_cell_type', 'RDT-CW')}
+     'cma': ('cma_pal', 'cloudmask', 'CMA', "uint8"),
+     'ct': ('ct_pal', 'cloudtype', 'CT', "uint8"),
+     'ctth_alti': ('ctth_alti_pal', 'cloud_top_height', 'CTTH', "float64"),
+     'ctth_pres': ('ctth_pres_pal', 'cloud_top_pressure', 'CTTH', "float64"),
+     'ctth_tempe': ('ctth_tempe_pal', 'cloud_top_temperature', 'CTTH', "float64"),
+     'cmic_phase': ('cmic_phase_pal', 'cloud_top_phase', 'CMIC', "uint8"),
+     'cmic_reff': ('cmic_reff_pal', 'cloud_drop_effective_radius', 'CMIC', "float64"),
+     'cmic_cot': ('cmic_cot_pal', 'cloud_optical_thickness', 'CMIC', "float64"),
+     'cmic_lwp': ('cmic_lwp_pal', 'cloud_liquid_water_path', 'CMIC', "float64"),
+     'cmic_iwp': ('cmic_iwp_pal', 'cloud_ice_water_path', 'CMIC', "float64"),
+     'pc': ('pc_pal', 'precipitation_probability', 'PC', "uint8"),
+     'crr': ('crr_pal', 'convective_rain_rate', 'CRR', "uint8"),
+     'crr_accum': ('crr_pal', 'convective_precipitation_hourly_accumulation', 'CRR', "uint8"),
+     'ishai_tpw': ('ishai_tpw_pal', 'total_precipitable_water', 'iSHAI', "float64"),
+     'ishai_shw': ('ishai_shw_pal', 'showalter_index', 'iSHAI', "float64"),
+     'ishai_li': ('ishai_li_pal', 'lifted_index', 'iSHAI', "float64"),
+     'ci_prob30': ('ci_pal', 'convection_initiation_prob30', 'CI', "float64"),
+     'ci_prob60': ('ci_pal', 'convection_initiation_prob60', 'CI', "float64"),
+     'ci_prob90': ('ci_pal', 'convection_initiation_prob90', 'CI', "float64"),
+     'asii_turb_trop_prob': ('asii_turb_prob_pal', 'asii_prob', 'ASII-NG', "float64"),
+     'MapCellCatType': ('MapCellCatType_pal', 'rdt_cell_type', 'RDT-CW', "uint8")}
 
 
 @pytest.mark.parametrize(
@@ -537,7 +537,8 @@ def test_producing_mode_p(fake_area, tmp_path, data):
     from satpy.writers import get_enhanced_image
 
     from ... import Scene
-    (palette, comp, label) = _nwcsaf_props[data]
+    (palette, comp, label, dtp) = _nwcsaf_props[data]
+    rng = (0, 100) if dtp == "uint8" else (-100, 1000)
     fk = tmp_path / f"S_NWC_{label:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
     # create a minimally fake netCDF file, otherwise satpy won't load the
     # composite
@@ -554,13 +555,14 @@ def test_producing_mode_p(fake_area, tmp_path, data):
     sc[palette] = xr.DataArray(
             da.tile(da.arange(256), [3, 1]).T,
             dims=("pal02_colors", "pal_RGB"))
-    fake_alti = da.full((2, 2), 8, chunks=2, dtype="uint8")
+    fake_alti = da.linspace(rng[0], rng[1], 4, chunks=2, dtype=dtp).reshape(2, 2)
     sc[data] = xr.DataArray(
             fake_alti,
             dims=("y", "x"),
             attrs={
                 "area": fake_area,
-                "ancillary_variables": [sc[palette]]})
+                "ancillary_variables": [sc[palette]],
+                "valid_range": rng})
     sc.load([comp])
     im = get_enhanced_image(sc[comp])
     assert im.mode == "P"
