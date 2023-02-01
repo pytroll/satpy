@@ -70,8 +70,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   reproduced_green:
-    # JMA True Color Reproduction green band
-    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    # JMA True Color Reproduction corrected green band.
     compositor: !!python/name:satpy.composites.spectral.SpectralBlender
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
@@ -81,6 +80,16 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: B04
       modifiers: [sunz_corrected]
+    standard_name: none
+
+  reproduced_green_uncorr:
+    # JMA True Color Reproduction uncorrected green band.
+    compositor: !!python/name:satpy.composites.spectral.SpectralBlender
+    fractions: [0.6321, 0.2928, 0.0751]
+    prerequisites:
+    - name: B02
+    - name: B03
+    - name: B04
     standard_name: none
 
   hybrid_green_nocorr:
@@ -292,8 +301,18 @@ composites:
     standard_name: true_color
 
   true_color_reproduction:
-    # JMA True Color Reproduction
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 73.
+    lim_high: 85.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: B03
@@ -301,7 +320,16 @@ composites:
       - name: reproduced_green
       - name: B01
         modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: true_color_reproduction
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+      - name: reproduced_green_uncorr
+      - name: B01
+    standard_name: true_color_reproduction_color_stretch
 
 #  true_color_reducedsize_land:
 #    compositor: !!python/name:satpy.composites.GenericCompositor

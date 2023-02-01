@@ -40,7 +40,6 @@ References:
 
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
 import dask.array as da
@@ -109,7 +108,6 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.open_file = None
 
     @cached_property
     def nc(self):
@@ -139,11 +137,6 @@ class NCOLCIBase(BaseFileHandler):
         variable = self.nc[key['name']]
 
         return variable
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError, TypeError):
-            self.nc.close()
 
 
 class NCOLCICal(NCOLCIBase):

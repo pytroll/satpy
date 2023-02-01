@@ -27,6 +27,11 @@ from pyresample.geometry import AreaDefinition
 
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - request
+
 
 @pytest.fixture(
     params=[datetime.datetime(2017, 12, 5), datetime.datetime(2017, 12, 6)]
