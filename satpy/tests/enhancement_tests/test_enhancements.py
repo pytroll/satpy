@@ -501,35 +501,43 @@ def fake_area():
     return create_area_def("wingertsberg", 4087, area_extent=[-2_000, -2_000, 2_000, 2_000], shape=(2, 2))
 
 
+_nwcsaf_props = {
+     'cma': ('cma_pal', 'cloudmask', 'CMA'),
+     'ct': ('ct_pal', 'cloudtype', 'CT'),
+     'ctth_alti': ('ctth_alti_pal', 'cloud_top_height', 'CTTH'),
+     'ctth_pres': ('ctth_pres_pal', 'cloud_top_pressure', 'CTTH'),
+     'ctth_tempe': ('ctth_tempe_pal', 'cloud_top_temperature', 'CTTH'),
+     'cmic_phase': ('cmic_phase_pal', 'cloud_top_phase', 'CMIC'),
+     'cmic_reff': ('cmic_reff_pal', 'cloud_drop_effective_radius', 'CMIC'),
+     'cmic_cot': ('cmic_cot_pal', 'cloud_optical_thickness', 'CMIC'),
+     'cmic_lwp': ('cmic_lwp_pal', 'cloud_liquid_water_path', 'CMIC'),
+     'cmic_iwp': ('cmic_iwp_pal', 'cloud_ice_water_path', 'CMIC'),
+     'pc': ('pc_pal', 'precipitation_probability', 'PC'),
+     'crr': ('crr_pal', 'convective_rain_rate', 'CRR'),
+     'crr_accum': ('crr_pal', 'convective_precipitation_hourly_accumulation', 'CRR'),
+     'ishai_tpw': ('ishai_tpw_pal', 'total_precipitable_water', 'iSHAI'),
+     'ishai_shw': ('ishai_shw_pal', 'showalter_index', 'iSHAI'),
+     'ishai_li': ('ishai_li_pal', 'lifted_index', 'iSHAI'),
+     'ci_prob30': ('ci_pal', 'convection_initiation_prob30', 'CI'),
+     'ci_prob60': ('ci_pal', 'convection_initiation_prob60', 'CI'),
+     'ci_prob90': ('ci_pal', 'convection_initiation_prob90', 'CI'),
+     'asii_turb_trop_prob': ('asii_turb_prob_pal', 'asii_prob', 'ASII-NG'),
+     'MapCellCatType': ('MapCellCatType_pal', 'rdt_cell_type', 'RDT-CW')}
+
+
 @pytest.mark.parametrize(
-        "data,palette,comp,label",
-        [("cma", "cma_pal", "cloudmask", "CMA"),
-         ("ct", "ct_pal", "cloudtype", "CT"),
-         ("ctth_alti", "ctth_alti_pal", "cloud_top_height", "CTTH"),
-         ("ctth_pres", "ctth_pres_pal", "cloud_top_pressure", "CTTH"),
-         ("ctth_tempe", "ctth_tempe_pal", "cloud_top_temperature", "CTTH"),
-         ("cmic_phase", "cmic_phase_pal", "cloud_top_phase", "CMIC"),
-         ("cmic_reff", "cmic_reff_pal", "cloud_drop_effective_radius", "CMIC"),
-         ("cmic_cot", "cmic_cot_pal", "cloud_optical_thickness", "CMIC"),
-         ("cmic_lwp", "cmic_lwp_pal", "cloud_liquid_water_path", "CMIC"),
-         ("cmic_iwp", "cmic_iwp_pal", "cloud_ice_water_path", "CMIC"),
-         ("pc", "pc_pal", "precipitation_probability", "PC"),
-         ("crr", "crr_pal", "convective_rain_rate", "CRR"),
-         ("crr_accum", "crr_pal", "convective_precipitation_hourly_accumulation", "CRR"),
-         ("ishai_tpw", "ishai_tpw_pal", "total_precipitable_water", "iSHAI"),
-         ("ishai_shw", "ishai_shw_pal", "showalter_index", "iSHAI"),
-         ("ishai_li", "ishai_li_pal", "lifted_index", "iSHAI"),
-         ("ci_prob30", "ci_pal", "convection_initiation_prob30", "CI"),
-         ("ci_prob60", "ci_pal", "convection_initiation_prob60", "CI"),
-         ("ci_prob90", "ci_pal", "convection_initiation_prob90", "CI"),
-         ("asii_turb_trop_prob", "asii_turb_prob_pal", "asii_prob", "ASII-NG"),
-         ("MapCellCatType", "MapCellCatType_pal", "rdt_cell_type", "RDT-CW"),
-         ])
-def test_producing_mode_p(fake_area, tmp_path, data, palette, comp, label):
+        "data",
+        ['cma', 'ct', 'ctth_alti', 'ctth_pres', 'ctth_tempe', 'cmic_phase',
+            'cmic_reff', 'cmic_cot', 'cmic_lwp', 'cmic_iwp', 'pc', 'crr',
+            'crr_accum', 'ishai_tpw', 'ishai_shw', 'ishai_li', 'ci_prob30',
+            'ci_prob60', 'ci_prob90', 'asii_turb_trop_prob', 'MapCellCatType']
+        )
+def test_producing_mode_p(fake_area, tmp_path, data):
     """Test producing mode p with  palettizer and ancillary variables."""
     from satpy.writers import get_enhanced_image
 
     from ... import Scene
+    (palette, comp, label) = _nwcsaf_props[data]
     fk = tmp_path / f"S_NWC_{label:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
     # create a minimally fake netCDF file, otherwise satpy won't load the
     # composite
