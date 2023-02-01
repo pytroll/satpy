@@ -1805,20 +1805,17 @@ class TestSceneResampling:
         sc = Scene()
         n = 5
         ar = create_area_def("a", 4087, resolution=1000, center=(0, 0), shape=(n, n))
+        anc_vars = [xr.DataArray(
+            np.arange(n*n).reshape(n, n)*i,
+            dims=("y", "x"),
+            attrs={"name": f"anc{i:d}", "area": ar}) for i in range(2)]
         sc["test"] = xr.DataArray(
             np.arange(n*n).reshape(n, n),
             dims=("y", "x"),
             attrs={
                 "area": ar,
                 "name": "test",
-                "ancillary_variables": [
-                    xr.DataArray(
-                        np.arange(n*n).reshape(n, n)*i,
-                        dims=("y", "x"),
-                        attrs={
-                            "name": f"anc{i:d}",
-                            "area": ar})
-                        for i in range(2)]})
+                "ancillary_variables": anc_vars})
         subset = create_area_def("b", 4087, resolution=800, center=(0, 0),
                                  shape=(n-1, n-1))
         ls = sc.resample(subset)
