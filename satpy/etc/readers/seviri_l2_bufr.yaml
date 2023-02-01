@@ -1243,7 +1243,7 @@ datasets:
        - latitude
     fill_value: 0
     flag_values: [8, 9, 10, 11, 12]
-    flag_meanings: ['not processes', 'first guess', 'high cloud (not processed)', 'Success', 'bad retrieval']
+    flag_meanings: ['not processed', 'first guess', 'high cloud (not processed)', 'successful retrieval', 'bad retrieval']
 
   # ---- AMV products ------------
   speed:
@@ -1274,8 +1274,8 @@ datasets:
 
   pressure:
     name: pressure
-    long_name: Wind Pressure
-    standard_name: wind_pressure
+    long_name: Air Pressure at Wind Level
+    standard_name: air_pressure
     key: '#1#pressure'
     resolution: 72009.675979608
     file_type: seviri_l2_bufr_amv

@@ -84,14 +84,14 @@ datasets:
 
   pixel_scene_type:
     name: pixel_scene_type
-    long_name: Scene Type Classification
+    long_name: Cloud Type
     standard_name: scene_classification
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 8
     units: "1"
-    flag_values: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,50,97,98,99,100]
-    flag_meanings: ['none','evergreen needleleaf forest','evergreen broadleaf forest', 'decidious needleleaf forest','decidious broadleaf forest','mixed forest','closed shrubland','open shrubland','woody savannahs','savannahs','grasslands','permananent wetlands','croplands','urban and build-up','cropland mosaics',' permanent snow/ice','bare soil and rocks','water bodies','tundra','mixed land/water','unknown scene','snow/ice over land','snow/ice over watter','clear sunglint','cloudy']
+    flag_values: [24,111,112]
+    flag_meanings: ['multi-layered cloud','water cloud','ice cloud']
 
   measurement_cost:
     name: measurement_cost
