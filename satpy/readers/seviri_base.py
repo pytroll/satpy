@@ -383,7 +383,7 @@ def get_cds_time(days, msecs):
 
     time = (CDS_EPOCH.astype('datetime64[ms]') +
             days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]'))
-    time = np.where(time == CDS_EPOCH,  np.datetime64("NaT"), time)
+    time = np.where(time == CDS_EPOCH, np.datetime64("NaT"), time)
 
     if len(time) == 1:
         return time[0]
