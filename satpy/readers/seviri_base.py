@@ -398,6 +398,10 @@ def load_eumclim_nc(fname, ref_time):
     try:
         with Dataset(fname, 'r') as fid:
             jul_time = jdays(ref_time)
+            min_tdiff = np.min(abs(jul_time - fid['julian_time']))
+            if min_tdiff > 1:
+                warnings.warn("Closest EUMCLIM calibration coefficients differ from image time by more than one day.",
+                              UserWarning)
             jul_idx = np.argmin(abs(jul_time - fid['julian_time']))
 
             eum_coef = {}
