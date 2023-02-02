@@ -104,6 +104,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.platform_name = None
         self.calib_mode = calib_mode
         self.calib_file = calib_file
+        self.eumclim_cal_coef = {}
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
         self.include_raw_metadata = include_raw_metadata
@@ -124,9 +125,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Read the EUMETSAT climate calibration coefficients if available
         if self.calib_mode == 'EUMCLIM':
-            self.eumclim_cal_coef = load_eumclim_nc(self.calib_file, self.observation_start_time)
-        else:
-            self.eumclim_cal_coef = {}
+            self.ext_calib_coefs = self._sort_ext_eum_coefs()
 
     def _has_archive_header(self):
         """Check whether the file includes an ASCII archive header."""
@@ -554,8 +553,10 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         From: https://stackoverflow.com/questions/2365921/merging-python-dictionaries
         """
+        # Load the EUMETSAT coefficients
+        eumcoef = load_eumclim_nc(self.calib_file, self.observation_start_time)
         output = {k: self.ext_calib_coefs[k] for k in self.ext_calib_coefs}
-        output.update({k: self.eumclim_cal_coef[k] for k in self.eumclim_cal_coef if k not in self.ext_calib_coefs})
+        output.update({k: eumcoef[k] for k in eumcoef if k not in self.ext_calib_coefs})
         return output
 
     def _get_calib_coefs(self, channel_name):
@@ -573,10 +574,6 @@ class NativeMSGFileHandler(BaseFileHandler):
                 'Level15ImageProduction']['PlannedChanProcessing']
 
         # Merge potential external and EUMETSAT climatology coefficients
-        if self.calib_mode == 'EUMCLIM':
-            tmp_dict = self._sort_ext_eum_coefs()
-        else:
-            tmp_dict = self.ext_calib_coefs
 
         return create_coef_dict(
             coefs_nominal=(
@@ -587,7 +584,7 @@ class NativeMSGFileHandler(BaseFileHandler):
                 coefs_gsics['GSICSCalCoeff'][band_idx],
                 coefs_gsics['GSICSOffsetCount'][band_idx]
             ),
-            ext_coefs=tmp_dict.get(channel_name, {}),
+            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
             radiance_type=radiance_types[band_idx]
         )
 

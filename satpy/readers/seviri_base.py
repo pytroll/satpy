@@ -197,6 +197,16 @@ VISIR_NUM_LINES = 3712
 HRV_NUM_COLUMNS = 11136
 HRV_NUM_LINES = 11136
 
+CDS_EPOCH = np.datetime64('1958-01-01')
+
+EUMCLIM_COEF_MAP = {'WV_062': 'IR062',
+                    'WV_073': 'IR073',
+                    'IR_087': 'IR087',
+                    'IR_097': 'IR097',
+                    'IR_108': 'IR108',
+                    'IR_120': 'IR120',
+                    'IR_134': 'IR134'}
+
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
                  3: "IR_016",
@@ -371,9 +381,9 @@ def get_cds_time(days, msecs):
         days = np.array([days], dtype='int64')
         msecs = np.array([msecs], dtype='int64')
 
-    time = (np.datetime64('1958-01-01').astype('datetime64[ms]') +
+    time = (CDS_EPOCH.astype('datetime64[ms]') +
             days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]'))
-    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+    time = np.where(time == CDS_EPOCH,  np.datetime64("NaT"), time)
 
     if len(time) == 1:
         return time[0]
@@ -390,18 +400,10 @@ def load_eumclim_nc(fname, ref_time):
             jul_time = jdays(ref_time)
             jul_idx = np.argmin(abs(jul_time - fid['julian_time']))
 
-            coef_map = {'WV_062': 'IR062',
-                        'WV_073': 'IR073',
-                        'IR_087': 'IR087',
-                        'IR_097': 'IR097',
-                        'IR_108': 'IR108',
-                        'IR_120': 'IR120',
-                        'IR_134': 'IR134'}
-
             eum_coef = {}
-            for chan in coef_map.keys():
-                eum_coef[chan] = {'gain': float(fid[f'b_{coef_map[chan]}'][jul_idx]),
-                                  'offset': float(fid[f'a_{coef_map[chan]}'][jul_idx])}
+            for chan in EUMCLIM_COEF_MAP.keys():
+                eum_coef[chan] = {'gain': float(fid[f'b_{EUMCLIM_COEF_MAP[chan]}'][jul_idx]),
+                                  'offset': float(fid[f'a_{EUMCLIM_COEF_MAP[chan]}'][jul_idx])}
     except OSError:
         raise OSError(f'Error: EUM calibration file {fname} does not exist.')
 
