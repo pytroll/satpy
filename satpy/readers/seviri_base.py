@@ -401,7 +401,7 @@ def load_eumclim_nc(fname, ref_time):
             jul_idx = np.argmin(abs(jul_time - fid['julian_time']))
 
             eum_coef = {}
-            for chan in EUMCLIM_COEF_MAP.keys():
+            for chan in EUMCLIM_COEF_MAP:
                 eum_coef[chan] = {'gain': float(fid[f'b_{EUMCLIM_COEF_MAP[chan]}'][jul_idx]),
                                   'offset': float(fid[f'a_{EUMCLIM_COEF_MAP[chan]}'][jul_idx])}
     except OSError:
