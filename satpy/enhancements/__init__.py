@@ -431,7 +431,14 @@ def create_colormap(palette, img=None):
     **From an auxiliary variable**
 
     If the colormap is defined in the same dataset as the data to which the
-    colormap shall be applied,
+    colormap shall be applied, this can be indicated with
+    ``{'dataset': 'palette_variable'}``, where ``'palette_variable'`` is the
+    name of the variable containing the palette.  This variable must be an
+    auxiliary variable to the dataset to which the colours are applied.  When
+    using this, it is important that one should **not** set ``min_value`` and
+    ``max_value`` as those will be taken from the ``valid_range`` attribute
+    on the dataset and if those differ from ``min_value`` and ``max_value``,
+    the resulting colors will not match the ones in the palette.
 
     **Color Scale**
 
