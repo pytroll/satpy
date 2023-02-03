@@ -2,7 +2,7 @@ name: test-environment
 channels:
   - conda-forge
 dependencies:
-  - xarray
+  - xarray!=2022.9.0
   - dask
   - distributed
   - donfig
@@ -17,7 +17,7 @@ dependencies:
   - scipy
   - pyyaml
   - pyproj
-  - pyresample
+  - pyresample>=1.24
   - coveralls
   - coverage
   - codecov
@@ -45,12 +45,15 @@ dependencies:
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
-  - pylibtiff
+  - s3fs
   - python-geotiepoints
   - pooch
   - pip
+  - skyfield
+  - astropy
+  - xarray-datatree
   - pip:
     - trollsift
-    - trollimage
+    - trollimage>=1.20
     - pyspectral
     - pyorbital

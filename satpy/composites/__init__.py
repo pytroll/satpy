@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2022 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -25,6 +23,7 @@ import warnings
 import dask.array as da
 import numpy as np
 import xarray as xr
+from trollimage.colormap import Colormap
 
 import satpy
 from satpy.aux_download import DataDownloadMixin
@@ -265,6 +264,38 @@ class DifferenceCompositor(CompositeBase):
         return proj
 
 
+class RatioCompositor(CompositeBase):
+    """Make the ratio of two data arrays."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
+
+        proj = projectables[0] / projectables[1]
+        proj.attrs = info
+        return proj
+
+
+class SumCompositor(CompositeBase):
+    """Make the sum of two data arrays."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
+
+        proj = projectables[0] + projectables[1]
+        proj.attrs = info
+        return proj
+
+
 class SingleBandCompositor(CompositeBase):
     """Basic single-band composite builder.
 
@@ -458,7 +489,7 @@ class Filler(GenericCompositor):
         return super(Filler, self).__call__([filled_projectable], **info)
 
 
-class MultiFiller(GenericCompositor):
+class MultiFiller(SingleBandCompositor):
     """Fix holes in projectable 1 with data from the next projectables."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
@@ -471,7 +502,7 @@ class MultiFiller(GenericCompositor):
             for next_projectable in info['optional_datasets']:
                 filled_projectable = filled_projectable.fillna(next_projectable)
 
-        return super(MultiFiller, self).__call__([filled_projectable], **info)
+        return super().__call__([filled_projectable], **info)
 
 
 class RGBCompositor(GenericCompositor):
@@ -486,7 +517,39 @@ class RGBCompositor(GenericCompositor):
 
 
 class ColormapCompositor(GenericCompositor):
-    """A compositor that uses colormaps."""
+    """A compositor that uses colormaps.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.
+
+    This compositor is deprecated.  To apply a colormap, use a
+    :class:`SingleBandCompositor` composite with a
+    :func:`~satpy.enhancements.colorize` or
+    :func:`~satpy.enhancements.palettize` enhancement instead.
+    For example, to make a ``cloud_top_height`` composite based on a dataset
+    ``ctth_alti`` palettized by ``ctth_alti_pal``, the composite would be::
+
+      cloud_top_height:
+        compositor: !!python/name:satpy.composites.SingleBandCompositor
+        prerequisites:
+        - ctth_alti
+        tandard_name: cloud_top_height
+
+    and the enhancement::
+
+      cloud_top_height:
+        standard_name: cloud_top_height
+        operations:
+        - name: palettize
+          method: !!python/name:satpy.enhancements.palettize
+          kwargs:
+            palettes:
+              - dataset: ctth_alti_pal
+                color_scale: 255
+                min_value: 0
+                max_value: 255
+    """
 
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -503,36 +566,16 @@ class ColormapCompositor(GenericCompositor):
           will be used as values of the colormap.
 
         """
-        from trollimage.colormap import Colormap
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
-        set_range = True
-        if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
-            set_range = False
-            meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, squeezed_palette)
-        else:
-            iterator = enumerate(squeezed_palette[:-1])
+        cmap = Colormap.from_array_with_metadata(
+                palette,
+                dtype,
+                color_scale=255,
+                valid_range=info.get("valid_range"),
+                scale_factor=info.get("scale_factor", 1),
+                add_offset=info.get("add_offset", 0))
 
-        if dtype == np.dtype('uint8'):
-            tups = [(val, tuple(tup))
-                    for (val, tup) in iterator]
-            colormap = Colormap(*tups)
-
-        elif 'valid_range' in info:
-            tups = [(val, tuple(tup))
-                    for (val, tup) in iterator]
-            colormap = Colormap(*tups)
-
-            if set_range:
-                sf = info.get('scale_factor', np.array(1))
-                colormap.set_range(
-                    *(np.array(info['valid_range']) * sf
-                      + info.get('add_offset', 0)))
-        else:
-            raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
-                                 " in order to be displayable with an attached color-palette!")
-
-        return colormap, squeezed_palette
+        return cmap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
@@ -570,7 +613,13 @@ class ColormapCompositor(GenericCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
-    """A compositor colorizing the data, interpolating the palette colors when needed."""
+    """A compositor colorizing the data, interpolating the palette colors when needed.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.  See the :class:`ColormapCompositor`
+        docstring for documentation on the alternative.
+    """
 
     @staticmethod
     def _apply_colormap(colormap, data, palette):
@@ -579,7 +628,13 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
+    """A compositor colorizing the data, not interpolating the palette colors.
+
+    .. warning::
+
+        Deprecated since Satpy 0.39.  See the :class:`ColormapCompositor`
+        docstring for documentation on the alternative.
+    """
 
     @staticmethod
     def _apply_colormap(colormap, data, palette):
@@ -602,7 +657,7 @@ class DayNightCompositor(GenericCompositor):
     of the image (night or day). See the documentation below for more details.
     """
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -613,11 +668,16 @@ class DayNightCompositor(GenericCompositor):
             day_night (string): "day_night" means both day and night portions will be kept
                                 "day_only" means only day portion will be kept
                                 "night_only" means only night portion will be kept
+            include_alpha (bool): This only affects the "day only" or "night only" result.
+                                  True means an alpha band will be added to the output image for transparency.
+                                  False means the output is a single-band image with undesired pixels being masked out
+                                  (replaced with NaNs).
 
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
         self.day_night = day_night
+        self.include_alpha = include_alpha
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -631,18 +691,10 @@ class DayNightCompositor(GenericCompositor):
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
-            from pyorbital.astronomy import cos_zen
+            from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
-            try:
-                chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
-            except KeyError:
-                chunks = foreground_data.chunks
-            lons, lats = foreground_data.attrs["area"].get_lonlats(chunks=chunks)
-            coszen = xr.DataArray(cos_zen(foreground_data.attrs["start_time"],
-                                          lons, lats),
-                                  dims=['y', 'x'],
-                                  coords=[foreground_data['y'], foreground_data['x']])
+            coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
@@ -653,10 +705,18 @@ class DayNightCompositor(GenericCompositor):
 
         if "only" in self.day_night:
             # Only one portion (day or night) is selected. One composite is requested.
-            # Add alpha band to single L/RGB composite to make the masked-out portion transparent
+            # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
             # L -> LA
             # RGB -> RGBA
-            foreground_data = add_alpha_bands(foreground_data)
+            if self.include_alpha:
+                foreground_data = add_alpha_bands(foreground_data)
+
+            # Use coszen to determine the undesired pixels and replace the coszen of these pixels with NaN.
+            # They will be passed to subsequent calculation and therefore make sure those pixels being masked-out.
+            if "day" in self.day_night:
+                coszen = da.where(coszen != 0, coszen, np.nan).compute()
+            else:
+                coszen = da.where(coszen != 1, coszen, np.nan).compute()
 
             # No need to replace missing channel data with zeros
             # Get metadata
@@ -902,22 +962,12 @@ class RatioSharpenedRGB(GenericCompositor):
 
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
-        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        if self.high_resolution_band not in ['red', 'green', 'blue', None]:
+        self.high_resolution_color = kwargs.pop("high_resolution_band", "red")
+        if self.high_resolution_color not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
-                             "'{}'".format(self.high_resolution_band))
-        kwargs.setdefault('common_channel_mask', False)
+                             "'{}'".format(self.high_resolution_color))
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
-
-    def _get_band(self, high_res, low_res, color, ratio):
-        """Figure out what data should represent this color."""
-        if self.high_resolution_band == color:
-            ret = high_res
-        else:
-            ret = low_res * ratio
-            ret.attrs = low_res.attrs.copy()
-        return ret
 
     def __call__(self, datasets, optional_datasets=None, **info):
         """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``.
@@ -932,59 +982,67 @@ class RatioSharpenedRGB(GenericCompositor):
             raise IncompatibleAreas('RatioSharpening requires datasets of '
                                     'the same size. Must resample first.')
 
+        optional_datasets = tuple() if optional_datasets is None else optional_datasets
+        datasets = self.match_data_arrays(datasets + optional_datasets)
+        red, green, blue, new_attrs = self._get_and_sharpen_rgb_data_arrays_and_meta(datasets, optional_datasets)
+        combined_info = self._combined_sharpened_info(info, new_attrs)
+        res = super(RatioSharpenedRGB, self).__call__((red, green, blue,), **combined_info)
+        res.attrs.pop("units", None)
+        return res
+
+    def _get_and_sharpen_rgb_data_arrays_and_meta(self, datasets, optional_datasets):
         new_attrs = {}
-        if optional_datasets:
-            datasets = self.match_data_arrays(datasets + optional_datasets)
-            p1 = datasets[0]
-            p2 = datasets[1]
-            p3 = datasets[2]
+        low_res_red = datasets[0]
+        low_res_green = datasets[1]
+        low_res_blue = datasets[2]
+        if optional_datasets and self.high_resolution_color is not None:
+            LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_color))
             high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            colors = ['red', 'green', 'blue']
-
-            if self.high_resolution_band in colors:
-                LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
-                low_res = datasets[:3][colors.index(self.high_resolution_band)]
-                ratio = high_res / low_res
-                # make ratio a no-op (multiply by 1) where the ratio is NaN or
-                # infinity or it is negative.
-                ratio = ratio.where(np.isfinite(ratio) & (ratio >= 0), 1.)
-                # we don't need ridiculously high ratios, they just make bright pixels
-                ratio = ratio.clip(0, 1.5)
-            else:
-                LOG.debug("No sharpening band specified for ratio sharpening")
-                high_res = None
-                ratio = 1.
-
-            r = self._get_band(high_res, p1, 'red', ratio)
-            g = self._get_band(high_res, p2, 'green', ratio)
-            b = self._get_band(high_res, p3, 'blue', ratio)
+            low_res_colors = ['red', 'green', 'blue']
+            low_resolution_index = low_res_colors.index(self.high_resolution_color)
         else:
-            datasets = self.match_data_arrays(datasets)
-            r = datasets[0]
-            g = datasets[1]
-            b = datasets[2]
+            LOG.debug("No sharpening band specified for ratio sharpening")
+            high_res = None
+            low_resolution_index = 0
 
-        # combine the masks
-        mask = ~(r.isnull() | g.isnull() | b.isnull())
-        r = r.where(mask)
-        g = g.where(mask)
-        b = b.where(mask)
+        if high_res is not None:
+            low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
+            ratio = da.map_blocks(
+                _get_sharpening_ratio,
+                high_res.data,
+                low_res.data,
+                meta=np.array((), dtype=high_res.dtype),
+                dtype=high_res.dtype,
+                chunks=high_res.chunks,
+            )
+            with xr.set_options(keep_attrs=True):
+                low_res_red = high_res if low_resolution_index == 0 else low_res_red * ratio
+                low_res_green = high_res if low_resolution_index == 1 else low_res_green * ratio
+                low_res_blue = high_res if low_resolution_index == 2 else low_res_blue * ratio
+        return low_res_red, low_res_green, low_res_blue, new_attrs
 
-        # Collect information that is the same between the projectables
-        # we want to use the metadata from the original datasets since the
-        # new r, g, b arrays may have lost their metadata during calculations
-        info = combine_metadata(*datasets)
-        info.update(new_attrs)
+    def _combined_sharpened_info(self, info, new_attrs):
+        combined_info = {}
+        combined_info.update(info)
+        combined_info.update(new_attrs)
         # Update that information with configured information (including name)
-        info.update(self.attrs)
+        combined_info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
-        info.setdefault("standard_name", "true_color")
-        res = super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
-        res.attrs.pop("units", None)
-        return res
+        combined_info.setdefault("standard_name", "true_color")
+        return combined_info
+
+
+def _get_sharpening_ratio(high_res, low_res):
+    ratio = high_res / low_res
+    # make ratio a no-op (multiply by 1) where the ratio is NaN, infinity,
+    # or it is negative.
+    ratio[~np.isfinite(ratio) | (ratio < 0)] = 1.0
+    # we don't need ridiculously high ratios, they just make bright pixels
+    np.clip(ratio, 0, 1.5, out=ratio)
+    return ratio
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
@@ -1007,7 +1065,8 @@ def _mean4(data, offset=(0, 0), block_id=None):
 
     av_data = np.pad(data, pad, 'edge')
     new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-    data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
+    with np.errstate(invalid='ignore'):
+        data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
     data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
     data_mean = data_mean[row_offset:row_offset + rows, col_offset:col_offset + cols]
     return data_mean
@@ -1043,15 +1102,15 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
     def __call__(self, datasets, optional_datasets=None, **attrs):
         """Generate the composite."""
         colors = ['red', 'green', 'blue']
-        if self.high_resolution_band not in colors:
+        if self.high_resolution_color not in colors:
             raise ValueError("SelfSharpenedRGB requires at least one high resolution band, not "
-                             "'{}'".format(self.high_resolution_band))
+                             "'{}'".format(self.high_resolution_color))
 
-        high_res = datasets[colors.index(self.high_resolution_band)]
+        high_res = datasets[colors.index(self.high_resolution_color)]
         high_mean = self.four_element_average_dask(high_res)
-        red = high_mean if self.high_resolution_band == 'red' else datasets[0]
-        green = high_mean if self.high_resolution_band == 'green' else datasets[1]
-        blue = high_mean if self.high_resolution_band == 'blue' else datasets[2]
+        red = high_mean if self.high_resolution_color == 'red' else datasets[0]
+        green = high_mean if self.high_resolution_color == 'green' else datasets[1]
+        blue = high_mean if self.high_resolution_color == 'blue' else datasets[2]
         return super(SelfSharpenedRGB, self).__call__((red, green, blue), optional_datasets=(high_res,), **attrs)
 
 
@@ -1528,7 +1587,7 @@ def _get_flag_value(mask, val):
     return flag_values[index]
 
 
-class LongitudeMaskingCompositor(GenericCompositor):
+class LongitudeMaskingCompositor(SingleBandCompositor):
     """Masks areas outside defined longitudes."""
 
     def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
@@ -1547,7 +1606,7 @@ class LongitudeMaskingCompositor(GenericCompositor):
             self.lon_min = -180.
         if not self.lon_max:
             self.lon_max = 180.
-        super(LongitudeMaskingCompositor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
@@ -1560,4 +1619,4 @@ class LongitudeMaskingCompositor(GenericCompositor):
             lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
 
         masked_projectable = projectable.where(lon_min_max)
-        return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)
+        return super().__call__([masked_projectable], **info)

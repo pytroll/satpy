@@ -36,6 +36,7 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
+from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
 try:
@@ -114,21 +115,31 @@ class Scene:
                 sub-dictionaries to pass different arguments to different
                 reader instances.
 
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
+
         """
         self.attrs = dict()
+
+        storage_options, cleaned_reader_kwargs = get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)
@@ -177,8 +188,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
@@ -271,7 +280,8 @@ class Scene:
         def _key_func(swath_def: SwathDefinition) -> tuple:
             attrs = getattr(swath_def.lons, "attrs", {})
             lon_ds_name = attrs.get("name")
-            return swath_def.shape[1], swath_def.shape[0], lon_ds_name
+            rev_shape = swath_def.shape[::-1]
+            return rev_shape + (lon_ds_name,)
         return compare_func(swath_defs, key=_key_func)
 
     def _gather_all_areas(self, datasets):
@@ -312,6 +322,8 @@ class Scene:
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets. Deprecated.
 
+        Deprecated.  Use :meth:`finest_area` instead.
+
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
@@ -337,6 +349,8 @@ class Scene:
 
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets. Deprecated.
+
+        Deprecated.  Use :meth:`coarsest_area` instead.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -1352,7 +1366,7 @@ class Scene:
             del self._datasets[ds_id]
 
     def load(self, wishlist, calibration='*', resolution='*',
-             polarization='*', level='*', generate=True, unload=True,
+             polarization='*', level='*', modifiers='*', generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -1361,35 +1375,37 @@ class Scene:
         or they can not provide certain parameters and the "best" parameter
         will be chosen. For example, if a dataset is available in multiple
         resolutions and no resolution is specified in the wishlist's DataQuery
-        then the highest (smallest number) resolution will be chosen.
+        then the highest (the smallest number) resolution will be chosen.
 
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
             wishlist (iterable): List of names (str), wavelengths (float),
-                                 DataQuery objects or DataID of the requested
-                                 datasets to load. See `available_dataset_ids()`
-                                 for what datasets are available.
-            calibration (list, str): Calibration levels to limit available
-                                     datasets. This is a shortcut to
-                                     having to list each DataQuery/DataID in
-                                     `wishlist`.
+                DataQuery objects or DataID of the requested datasets to load.
+                See `available_dataset_ids()` for what datasets are available.
+            calibration (list | str): Calibration levels to limit available
+                datasets. This is a shortcut to having to list each
+                DataQuery/DataID in `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
-                                       This is a shortcut similar to
-                                       calibration.
+                This is a shortcut similar to calibration.
             polarization (list | str): Polarization ('V', 'H') to limit
-                                       available datasets. This is a shortcut
-                                       similar to calibration.
+                available datasets. This is a shortcut similar to calibration.
+            modifiers (tuple | str): Modifiers that should be applied to the
+                loaded datasets. This is a shortcut similar to calibration,
+                but only represents a single set of modifiers as a tuple.
+                For example, specifying
+                ``modifiers=('sunz_corrected', 'rayleigh_corrected')`` will
+                attempt to apply both of these modifiers to all loaded
+                datasets in the specified order ('sunz_corrected' first).
             level (list | str): Pressure level to limit available datasets.
-                                Pressure should be in hPa or mb. If an
-                                altitude is used it should be specified in
-                                inverse meters (1/m). The units of this
-                                parameter ultimately depend on the reader.
+                Pressure should be in hPa or mb. If an altitude is used it
+                should be specified in inverse meters (1/m). The units of this
+                parameter ultimately depend on the reader.
             generate (bool): Generate composites from the loaded datasets
-                             (default: True)
-            unload (bool): Unload datasets that were required to generate
-                           the requested datasets (composite dependencies)
-                           but are no longer needed.
+                (default: True)
+            unload (bool): Unload datasets that were required to generate the
+                requested datasets (composite dependencies) but are no longer
+                needed.
 
         """
         if isinstance(wishlist, str):
@@ -1399,6 +1415,7 @@ class Scene:
         query = DataQuery(calibration=calibration,
                           polarization=polarization,
                           resolution=resolution,
+                          modifiers=modifiers,
                           level=level)
         self._update_dependency_tree(needed_datasets, query)
 

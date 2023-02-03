@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,6 +20,7 @@
 import copy
 import logging
 import warnings
+from datetime import datetime
 from queue import Queue
 from threading import Thread
 
@@ -45,12 +46,67 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets):
-    """Overlay series of datasets on top of each other."""
+def stack(datasets, weights=None, combine_times=True):
+    """Overlay a series of datasets together.
+
+    By default, datasets are stacked on top of each other, so the last one applied is
+    on top. If a sequence of weights arrays are provided the datasets will
+    be combined according to those weights. The result will be a composite
+    dataset where the data in each pixel is coming from the dataset having the
+    highest weight.
+
+    """
+    if weights:
+        return _stack_weighted(datasets, weights, combine_times)
+
     base = datasets[0].copy()
     for dataset in datasets[1:]:
-        base = base.where(dataset.isnull(), dataset)
+        try:
+            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
+        except KeyError:
+            base = base.where(dataset.isnull(), dataset)
+
     return base
+
+
+def _stack_weighted(datasets, weights, combine_times):
+    """Stack datasets using weights."""
+    weights = set_weights_to_zero_where_invalid(datasets, weights)
+
+    indices = da.argmax(da.dstack(weights), axis=-1)
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    dims = datasets[0].dims
+    weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
+    return weighted_array
+
+
+def set_weights_to_zero_where_invalid(datasets, weights):
+    """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
+            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+
+    return weights
+
+
+def _get_combined_start_end_times(*metadata_objects):
+    """Get the start and end times attributes valid for the entire dataset series."""
+    start_time = datetime.now()
+    end_time = datetime.fromtimestamp(0)
+    for md_obj in metadata_objects:
+        if md_obj['start_time'] < start_time:
+            start_time = md_obj['start_time']
+        if md_obj['end_time'] > end_time:
+            end_time = md_obj['end_time']
+
+    return start_time, end_time
 
 
 def timeseries(datasets):
@@ -69,29 +125,73 @@ def timeseries(datasets):
     return res
 
 
-def add_group_aliases(scenes, groups):
-    """Add aliases for the groups datasets belong to."""
-    for scene in scenes:
-        scene = scene.copy()
-        for group_id, member_names in groups.items():
-            # Find out whether one of the datasets in this scene belongs
-            # to this group
-            member_ids = [scene[name].attrs['_satpy_id']
-                          for name in member_names if name in scene]
+def group_datasets_in_scenes(scenes, groups):
+    """Group different datasets in multiple scenes by adding aliases.
 
-            # Add an alias for the group it belongs to
-            if len(member_ids) == 1:
-                member_id = member_ids[0]
-                new_ds = scene[member_id].copy()
-                new_ds.attrs.update(group_id.to_dict())
-                scene[group_id] = new_ds
-            elif len(member_ids) > 1:
-                raise ValueError('Cannot add multiple datasets from the same '
-                                 'scene to a group')
-            else:
-                # Datasets in this scene don't belong to any group
-                pass
-        yield scene
+    Args:
+        scenes (iterable): Scenes to be processed.
+        groups (dict): Groups of datasets that shall be treated equally by
+            MultiScene. Keys specify the groups, values specify the dataset
+            names to be grouped. For example::
+
+                from satpy import DataQuery
+                groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                          DataQuery(name='even'): ['ds2', 'ds4']}
+
+    """
+    for scene in scenes:
+        grp = GroupAliasGenerator(scene, groups)
+        yield grp.duplicate_datasets_with_group_alias()
+
+
+class GroupAliasGenerator:
+    """Add group aliases to a scene."""
+
+    def __init__(self, scene, groups):
+        """Initialize the alias generator."""
+        self.scene = scene.copy()
+        self.groups = groups
+
+    def duplicate_datasets_with_group_alias(self):
+        """Duplicate datasets to be grouped with a group alias."""
+        for group_id, group_members in self.groups.items():
+            self._duplicate_dataset_with_group_alias(group_id, group_members)
+        return self.scene
+
+    def _duplicate_dataset_with_group_alias(self, group_id, group_members):
+        member_ids = self._get_dataset_id_of_group_members_in_scene(group_members)
+        if len(member_ids) == 1:
+            self._duplicate_dataset_with_different_id(
+                dataset_id=member_ids[0],
+                alias_id=group_id,
+            )
+        elif len(member_ids) > 1:
+            raise ValueError('Cannot add multiple datasets from a scene '
+                             'to the same group')
+
+    def _get_dataset_id_of_group_members_in_scene(self, group_members):
+        return [
+            self.scene[member].attrs['_satpy_id']
+            for member in group_members if member in self.scene
+        ]
+
+    def _duplicate_dataset_with_different_id(self, dataset_id, alias_id):
+        dataset = self.scene[dataset_id].copy()
+        self._prepare_dataset_for_duplication(dataset, alias_id)
+        self.scene[alias_id] = dataset
+
+    def _prepare_dataset_for_duplication(self, dataset, alias_id):
+        # Drop all identifier attributes from the original dataset. Otherwise
+        # they might invalidate the dataset ID of the alias.
+        self._drop_id_attrs(dataset)
+        dataset.attrs.update(alias_id.to_dict())
+
+    def _drop_id_attrs(self, dataset):
+        for drop_key in self._get_id_attrs(dataset):
+            dataset.attrs.pop(drop_key)
+
+    def _get_id_attrs(self, dataset):
+        return dataset.attrs["_satpy_id"].to_dict().keys()
 
 
 class _SceneGenerator(object):
@@ -338,7 +438,7 @@ class MultiScene(object):
                 DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
-        self._scenes = add_group_aliases(self._scenes, groups)
+        self._scenes = group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
@@ -464,7 +564,7 @@ class MultiScene(object):
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
-                    ds, enh_args["decorate"])
+                ds, enh_args["decorate"])
         img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
         if data.ndim == 3:
@@ -588,7 +688,7 @@ class MultiScene(object):
             info_datasets = [scn.get(dataset_id) for scn in info_scenes]
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
             data_to_write = self._get_animation_frames(
-                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+                all_datasets, shape, this_fill, ignore_missing, enh_args)
 
             writer = imageio.get_writer(this_fn, **imio_args)
             frames[dataset_id] = data_to_write
@@ -659,8 +759,8 @@ class MultiScene(object):
             raise ImportError("Missing required 'imageio' library")
 
         (writers, frames) = self._get_writers_and_frames(
-                filename, datasets, fill_value, ignore_missing,
-                enh_args, imio_args={"fps": fps, **kwargs})
+            filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames

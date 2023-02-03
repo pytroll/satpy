@@ -23,7 +23,7 @@ import os
 import shutil
 import tempfile
 import warnings
-from contextlib import closing
+from contextlib import closing, contextmanager
 from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
@@ -33,7 +33,7 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
+from satpy import CHUNK_SIZE, config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -198,10 +198,21 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
+def unzip_file(filename, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        filename: The file to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
     if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp()
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                            dir=config["tmp_dir"])
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
         pbzip = which('pbzip2')
@@ -252,8 +263,9 @@ def unzip_file(filename):
     return None
 
 
-class unzip_context():
-    """Context manager for uncompressing a .bz2 file on the fly.
+@contextmanager
+def unzip_context(filename):
+    """Context manager for decompressing a .bz2 file on the fly.
 
     Uses `unzip_file`. Removes the uncompressed file on exit of the context manager.
 
@@ -261,51 +273,31 @@ class unzip_context():
     compressed.
 
     """
-
-    def __init__(self, filename):
-        """Keep original filename."""
-        self.input_filename = filename
-
-    def __enter__(self):
-        """Uncompress file if necessary and return the relevant filename for the file handler."""
-        unzipped = unzip_file(self.input_filename)
-        if unzipped is not None:
-            self.unzipped_filename = unzipped
-            return unzipped
-        else:
-            self.unzipped_filename = None
-            return self.input_filename
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Remove temporary file."""
-        if self.unzipped_filename is not None:
-            os.remove(self.unzipped_filename)
+    unzipped = unzip_file(filename)
+    if unzipped is not None:
+        yield unzipped
+        os.remove(unzipped)
+    else:
+        yield filename
 
 
-class generic_open():
-    """Context manager for opening either a regular file or a bzip2 file."""
+@contextmanager
+def generic_open(filename, *args, **kwargs):
+    """Context manager for opening either a regular file or a bzip2 file.
 
-    def __init__(self, filename, *args, **kwargs):
-        """Keep filename and mode."""
-        self.filename = filename
-        self.open_args = args
-        self.open_kwargs = kwargs
+    Returns a file-like object.
+    """
+    if os.fspath(filename).endswith('.bz2'):
+        fp = bz2.open(filename, *args, **kwargs)
+    else:
+        try:
+            fp = filename.open(*args, **kwargs)
+        except AttributeError:
+            fp = open(filename, *args, **kwargs)
 
-    def __enter__(self):
-        """Return a file-like object."""
-        if os.fspath(self.filename).endswith('.bz2'):
-            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
-        else:
-            if hasattr(self.filename, "open"):
-                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
-            else:
-                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+    yield fp
 
-        return self.fp
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Close the file handler."""
-        self.fp.close()
+    fp.close()
 
 
 def bbox(img):

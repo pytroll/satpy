@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,17 +18,22 @@
 import logging
 import os
 import warnings
-from functools import partial
+from collections import namedtuple
+from functools import wraps
 from numbers import Number
+from typing import Optional
 
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
+from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
 from satpy._config import get_config_path
+
+from ..utils import find_in_ancillary
 
 LOG = logging.getLogger(__name__)
 
@@ -49,67 +53,77 @@ def invert(img, *args):
     return img.invert(*args)
 
 
-def apply_enhancement(data, func, exclude=None, separate=False,
-                      pass_dask=False):
-    """Apply `func` to the provided data.
+def exclude_alpha(func):
+    """Exclude the alpha channel from the DataArray before further processing."""
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        bands = data.coords['bands'].values
+        exclude = ['A'] if 'A' in bands else []
+        band_data = data.sel(bands=[b for b in bands
+                                    if b not in exclude])
+        band_data = func(band_data, **kwargs)
 
-    Args:
-        data (xarray.DataArray): Data to be modified inplace.
-        func (callable): Function to be applied to an xarray
-        exclude (iterable): Bands in the 'bands' dimension to not include
-                            in the calculations.
-        separate (bool): Apply `func` one band at a time. Default is False.
-        pass_dask (bool): Pass the underlying dask array instead of the
-                          xarray.DataArray.
+        attrs = data.attrs
+        attrs.update(band_data.attrs)
+        # combine the new data with the excluded data
+        new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                             dim='bands')
+        data.data = new_data.sel(bands=bands).data
+        data.attrs = attrs
+        return data
+    return wrapper
+
+
+def on_separate_bands(func):
+    """Apply `func` one band of the DataArray at a time.
+
+    If this decorator is to be applied along with `on_dask_array`, this decorator has to be applied first, eg::
+
+        @on_separate_bands
+        @on_dask_array
+        def my_enhancement_function(data):
+            ...
+
 
     """
-    attrs = data.attrs
-    bands = data.coords['bands'].values
-    if exclude is None:
-        exclude = ['A'] if 'A' in bands else []
-
-    if separate:
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        attrs = data.attrs
         data_arrs = []
-        for idx, band_name in enumerate(bands):
-            band_data = data.sel(bands=[band_name])
-            if band_name in exclude:
-                # don't modify alpha
-                data_arrs.append(band_data)
-                continue
-
-            if pass_dask:
-                dims = band_data.dims
-                coords = band_data.coords
-                d_arr = func(band_data.data, index=idx)
-                band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-            else:
-                band_data = func(band_data, index=idx)
+        for idx, band in enumerate(data.coords['bands'].values):
+            band_data = func(data.sel(bands=[band]), index=idx, **kwargs)
             data_arrs.append(band_data)
             # we assume that the func can add attrs
             attrs.update(band_data.attrs)
-
         data.data = xr.concat(data_arrs, dim='bands').data
         data.attrs = attrs
         return data
 
-    band_data = data.sel(bands=[b for b in bands
-                                if b not in exclude])
-    if pass_dask:
-        dims = band_data.dims
-        coords = band_data.coords
-        d_arr = func(band_data.data)
-        band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-    else:
-        band_data = func(band_data)
+    return wrapper
 
-    attrs.update(band_data.attrs)
-    # combine the new data with the excluded data
-    new_data = xr.concat([band_data, data.sel(bands=exclude)],
-                         dim='bands')
-    data.data = new_data.sel(bands=bands).data
-    data.attrs = attrs
 
-    return data
+def on_dask_array(func):
+    """Pass the underlying dask array to *func* instead of the xarray.DataArray."""
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        dims = data.dims
+        coords = data.coords
+        d_arr = func(data.data, **kwargs)
+        return xr.DataArray(d_arr, dims=dims, coords=coords)
+    return wrapper
+
+
+def using_map_blocks(func):
+    """Run the provided function using :func:`dask.array.core.map_blocks`.
+
+    This means dask will call the provided function with a single chunk
+    as a numpy array.
+    """
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        return da.map_blocks(func, data, meta=np.array((), dtype=data.dtype), dtype=data.dtype, chunks=data.chunks,
+                             **kwargs)
+    return on_dask_array(wrapper)
 
 
 def crefl_scaling(img, **kwargs):
@@ -124,7 +138,7 @@ def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
-        reference_scale_factor: Number = None,
+        reference_scale_factor: Optional[Number] = None,
         **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
@@ -185,15 +199,16 @@ def piecewise_linear_stretch(
         xp = np.asarray(xp) / reference_scale_factor
         fp = np.asarray(fp) / reference_scale_factor
 
-    def func(band_data, xp, fp, index=None):
-        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=xp, fp=fp), 0, 1),
-                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
-                                 attrs=band_data.attrs)
-        return band_data
+    return _piecewise_linear(img.data, xp=xp, fp=fp)
 
-    func_with_kwargs = partial(func, xp=xp, fp=fp)
-    return apply_enhancement(img.data, func_with_kwargs, separate=True)
+
+@exclude_alpha
+@using_map_blocks
+def _piecewise_linear(band_data, xp, fp):
+    # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
+    interp_data = np.interp(band_data, xp=xp, fp=fp)
+    interp_data = np.clip(interp_data, 0, 1, out=interp_data)
+    return interp_data
 
 
 def cira_stretch(img, **kwargs):
@@ -202,18 +217,19 @@ def cira_stretch(img, **kwargs):
     Applicable only for visible channels.
     """
     LOG.debug("Applying the cira-stretch")
+    return _cira_stretch(img.data)
 
-    def func(band_data):
-        log_root = np.log10(0.0223)
-        denom = (1.0 - log_root) * 0.75
-        band_data *= 0.01
-        band_data = band_data.clip(np.finfo(float).eps)
-        band_data = np.log10(band_data)
-        band_data -= log_root
-        band_data /= denom
-        return band_data
 
-    return apply_enhancement(img.data, func)
+@exclude_alpha
+def _cira_stretch(band_data):
+    log_root = np.log10(0.0223)
+    denom = (1.0 - log_root) * 0.75
+    band_data *= 0.01
+    band_data = band_data.clip(np.finfo(float).eps)
+    band_data = np.log10(band_data)
+    band_data -= log_root
+    band_data /= denom
+    return band_data
 
 
 def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
@@ -264,26 +280,20 @@ def _srgb_gamma(arr):
     return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
 
 
-def _lookup_delayed(luts, band_data):
-    # can't use luts.__getitem__ for some reason
-    return luts[band_data]
-
-
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
+    return _lookup_table(img.data, luts=luts)
 
-    def func(band_data, luts=luts, index=-1):
-        # NaN/null values will become 0
-        lut = luts[:, index] if len(luts.shape) == 2 else luts
-        band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
-        new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
-        new_data = da.from_delayed(new_delay, shape=band_data.shape,
-                                   dtype=luts.dtype)
-        return new_data
-
-    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+@exclude_alpha
+@on_separate_bands
+@using_map_blocks
+def _lookup_table(band_data, luts=None, index=-1):
+    # NaN/null values will become 0
+    lut = luts[:, index] if len(luts.shape) == 2 else luts
+    band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
+    return lut[band_data]
 
 
 def colorize(img, **kwargs):
@@ -314,21 +324,32 @@ def colorize(img, **kwargs):
                'min_value': <float, min value to match colors to>,
                'max_value': <float, min value to match colors to>,
                'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'dataset': <str, referring to dataset containing palette>,
+               'color_scale': <int, value to be interpreted as white>,
+               'min_value': <float, see above>,
+               'max_value': <float, see above>}
 
     If multiple palettes are supplied, they are concatenated before applied.
 
     """
-    full_cmap = _merge_colormaps(kwargs)
+    full_cmap = _merge_colormaps(kwargs, img)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
-    """Palettize the given image (no color interpolation)."""
-    full_cmap = _merge_colormaps(kwargs)
+    """Palettize the given image (no color interpolation).
+
+    Arguments as for :func:`colorize`.
+
+    NB: to retain the palette when saving the resulting image, pass
+    ``keep_palette=True`` to the save method (either via the Scene class or
+    directly in trollimage).
+    """
+    full_cmap = _merge_colormaps(kwargs, img)
     img.palettize(full_cmap)
 
 
-def _merge_colormaps(kwargs):
+def _merge_colormaps(kwargs, img=None):
     """Merge colormaps listed in kwargs."""
     from trollimage.colormap import Colormap
     full_cmap = None
@@ -338,7 +359,7 @@ def _merge_colormaps(kwargs):
         full_cmap = palette
     else:
         for itm in palette:
-            cmap = create_colormap(itm)
+            cmap = create_colormap(itm, img)
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -347,7 +368,7 @@ def _merge_colormaps(kwargs):
     return full_cmap
 
 
-def create_colormap(palette):
+def create_colormap(palette, img=None):
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -407,6 +428,18 @@ def create_colormap(palette):
     key in the provided dictionary (ex. ``{'colors': 'blues'}``).
     See :doc:`trollimage:colormap` for the full list of available colormaps.
 
+    **From an auxiliary variable**
+
+    If the colormap is defined in the same dataset as the data to which the
+    colormap shall be applied, this can be indicated with
+    ``{'dataset': 'palette_variable'}``, where ``'palette_variable'`` is the
+    name of the variable containing the palette.  This variable must be an
+    auxiliary variable to the dataset to which the colours are applied.  When
+    using this, it is important that one should **not** set ``min_value`` and
+    ``max_value`` as those will be taken from the ``valid_range`` attribute
+    on the dataset and if those differ from ``min_value`` and ``max_value``,
+    the resulting colors will not match the ones in the palette.
+
     **Color Scale**
 
     By default colors are expected to be in a 0-255 range. This
@@ -428,17 +461,19 @@ def create_colormap(palette):
     """
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
+    dataset = palette.get("dataset", None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        cmap = _create_colormap_from_file(fname, palette, color_scale)
+        if not os.path.exists(fname):
+            fname = get_config_path(fname)
+        cmap = Colormap.from_file(fname, palette.get("colormap_mode", None), color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
+        cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
     elif isinstance(colors, str):
-        import copy
-
-        from trollimage import colormap
-        cmap = copy.copy(getattr(colormap, colors))
+        cmap = Colormap.from_name(colors)
+    elif isinstance(dataset, str):
+        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
 
@@ -447,75 +482,20 @@ def create_colormap(palette):
     if 'min_value' in palette and 'max_value' in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
     elif 'min_value' in palette or 'max_value' in palette:
-        raise ValueError("Both 'min_value' and 'max_value' must be specified")
+        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
 
     return cmap
 
 
-def _create_colormap_from_sequence(colors, palette, color_scale):
-    from trollimage.colormap import Colormap
-    cmap = []
-    values = palette.get('values', None)
-    for idx, color in enumerate(colors):
-        if values is not None:
-            value = values[idx]
-        else:
-            value = idx / float(len(colors) - 1)
-        if color_scale != 1:
-            color = tuple(elem / float(color_scale) for elem in color)
-        cmap.append((value, tuple(color)))
-    return Colormap(*cmap)
-
-
-def _create_colormap_from_file(filename, palette, color_scale):
-    from trollimage.colormap import Colormap
-    data = _read_colormap_data_from_file(filename)
-    cols = data.shape[1]
-    default_modes = {
-        3: 'RGB',
-        4: 'VRGB',
-        5: 'VRGBA'
-    }
-    default_mode = default_modes.get(cols)
-    mode = palette.setdefault('colormap_mode', default_mode)
-    if mode is None or len(mode) != cols:
-        raise ValueError(
-            "Unexpected colormap shape for mode '{}'".format(mode))
-    rows = data.shape[0]
-    if mode[0] == 'V':
-        colors = data[:, 1:]
-        if color_scale != 1:
-            colors = data[:, 1:] / float(color_scale)
-        values = data[:, 0]
-    else:
-        colors = data
-        if color_scale != 1:
-            colors = colors / float(color_scale)
-        values = np.arange(rows) / float(rows - 1)
-    return Colormap(*zip(values, colors))
-
-
-def _read_colormap_data_from_file(filename):
-    if not os.path.exists(filename):
-        filename = get_config_path(filename)
-    ext = os.path.splitext(filename)[1]
-    if ext in (".npy", ".npz"):
-        file_content = np.load(filename)
-        if ext == ".npz":
-            # .npz is a collection
-            # assume position list-like and get the first element
-            file_content = file_content["arr_0"]
-        return file_content
-    # CSV
-    return np.loadtxt(filename, delimiter=",")
-
-
-def _three_d_effect_delayed(band_data, kernel, mode):
-    """Kernel for running delayed 3D effect creation."""
-    from scipy.signal import convolve2d
-    band_data = band_data.reshape(band_data.shape[1:])
-    new_data = convolve2d(band_data, kernel, mode=mode)
-    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
+def _create_colormap_from_dataset(img, dataset, color_scale):
+    """Create a colormap from an auxiliary variable in a source file."""
+    match = find_in_ancillary(img.data, dataset)
+    return Colormap.from_array_with_metadata(
+            match, img.data.dtype, color_scale,
+            valid_range=img.data.attrs.get("valid_range"),
+            scale_factor=img.data.attrs.get("scale_factor", 1),
+            add_offset=img.data.attrs.get("add_offset", 0),
+            remove_last=False)
 
 
 def three_d_effect(img, **kwargs):
@@ -526,15 +506,26 @@ def three_d_effect(img, **kwargs):
                        [-w, 1, w],
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
+    return _three_d_effect(img.data, kernel=kernel, mode=mode)
 
-    def func(band_data, kernel=kernel, mode=mode, index=None):
-        del index
 
-        delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
-        new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
-        return new_data
+@exclude_alpha
+@on_separate_bands
+@on_dask_array
+def _three_d_effect(band_data, kernel=None, mode=None, index=None):
+    del index
 
-    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+    delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
+    new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
+    return new_data
+
+
+def _three_d_effect_delayed(band_data, kernel, mode):
+    """Kernel for running delayed 3D effect creation."""
+    from scipy.signal import convolve2d
+    band_data = band_data.reshape(band_data.shape[1:])
+    new_data = convolve2d(band_data, kernel, mode=mode)
+    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
 
 
 def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
@@ -563,10 +554,20 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs
     high_factor = threshold_out / (max_in - threshold)
     high_offset = high_factor * max_in
 
-    def _bt_threshold(band_data):
-        # expects dask array to be passed
-        return da.where(band_data >= threshold,
-                        high_offset - high_factor * band_data,
-                        low_offset - low_factor * band_data)
+    Coeffs = namedtuple("Coeffs", "factor offset")
+    high = Coeffs(high_factor, high_offset)
+    low = Coeffs(low_factor, low_offset)
 
-    return apply_enhancement(img.data, _bt_threshold, pass_dask=True)
+    return _bt_threshold(img.data,
+                         threshold=threshold,
+                         high_coeffs=high,
+                         low_coeffs=low)
+
+
+@exclude_alpha
+@using_map_blocks
+def _bt_threshold(band_data, threshold, high_coeffs, low_coeffs):
+    # expects dask array to be passed
+    return np.where(band_data >= threshold,
+                    high_coeffs.offset - high_coeffs.factor * band_data,
+                    low_coeffs.offset - low_coeffs.factor * band_data)

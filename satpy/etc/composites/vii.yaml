@@ -1,0 +1,110 @@
+sensor_name: visir/vii
+modifiers:
+  nir_reflectance:
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
+    prerequisites:
+      - name: 'vii_10690'
+    optional_prerequisites:
+      - solar_zenith
+      - name: 'vii_13345'
+    sunz_threshold: 85.0
+
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+      - wavelength: 0.67
+        modifiers: [ sunz_corrected ]
+    optional_prerequisites:
+      - observation_azimuth
+      - observation_zenith
+      - solar_azimuth
+      - solar_zenith
+
+composites:
+  true_color_uncorrected:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'vii_668'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_555'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_443'
+        modifiers: [ sunz_corrected ]
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'vii_668'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: 'vii_555'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: 'vii_443'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'vii_1630'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_865'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_668'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+    standard_name: natural_color
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'vii_865'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_3740'
+        modifiers: [ nir_reflectance ]
+      - name: 'vii_10690'
+    standard_name: day_microphysics
+
+  snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'vii_865'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_1630'
+        modifiers: [ sunz_corrected ]
+      - name: 'vii_3740'
+        modifiers: [ nir_reflectance ]
+    standard_name: snow
+
+  convection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'vii_6725'
+          - name: 'vii_7325'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'vii_3740'
+            modifiers: [ co2_corrected ]
+          - name: 'vii_10690'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'vii_1630'
+          - name: 'vii_668'
+    standard_name: convection
+
+  dust:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'vii_12020'
+          - name: 'vii_10690'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'vii_10690'
+          - name: 'vii_8540'
+      - name: 'vii_10690'
+    standard_name: dust

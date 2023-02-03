@@ -32,6 +32,19 @@ enhancements:
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
 
+
+  true_color_with_night_fires:
+    standard_name: true_color_with_night_fires
+    sensor: abi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0., 0., 0.]
+          max_stretch: [1., 1., 1.]
+
+
   cira_fire_temperature:
     standard_name: cira_fire_temperature
     operations:
@@ -156,8 +169,8 @@ enhancements:
           min_in: 163.0
           max_in: 330.0
 
-  # EumetSat cloud phase and cloud type RGB recipes
-  # http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  # EUMETSAT cloud phase and cloud type RGB recipes
+  # https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
   cloud_phase:
     standard_name: cloud_phase
     operations:

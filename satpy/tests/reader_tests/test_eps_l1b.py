@@ -31,6 +31,10 @@ from satpy._config import get_config_path
 from satpy.readers import eps_l1b as eps
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
+
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
                       ("RECORD_SUBCLASS", "|i1"),
@@ -107,46 +111,46 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
     def test_read_all(self):
         """Test initialization."""
         self.fh._read_all()
-        assert(self.fh.scanlines == 1080)
-        assert(self.fh.pixels == 2048)
+        assert self.fh.scanlines == 1080
+        assert self.fh.pixels == 2048
 
     def test_dataset(self):
         """Test getting a dataset."""
         did = make_dataid(name='1', calibration='reflectance')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == '1')
-        assert(res.attrs['calibration'] == 'reflectance')
-        assert(res.attrs['units'] == '%')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == '1'
+        assert res.attrs['calibration'] == 'reflectance'
+        assert res.attrs['units'] == '%'
 
         did = make_dataid(name='4', calibration='brightness_temperature')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == '4')
-        assert(res.attrs['calibration'] == 'brightness_temperature')
-        assert(res.attrs['units'] == 'K')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == '4'
+        assert res.attrs['calibration'] == 'brightness_temperature'
+        assert res.attrs['units'] == 'K'
 
     def test_navigation(self):
         """Test the navigation."""
         did = make_dataid(name='longitude')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == 'longitude')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == 'longitude'
 
     def test_angles(self):
         """Test the navigation."""
         did = make_dataid(name='solar_zenith_angle')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == 'solar_zenith_angle')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == 'solar_zenith_angle'
 
     @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__')
     def test_get_full_angles_twice(self, mock__getitem__):
