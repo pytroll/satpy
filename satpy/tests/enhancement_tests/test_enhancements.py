@@ -567,6 +567,9 @@ def test_producing_mode_p(fake_area, tmp_path, data):
     im = get_enhanced_image(sc[comp])
     assert im.mode == "P"
     np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
-    np.testing.assert_allclose(
-            im.data.sel(bands="P"),
-            ((fake_alti - rng[0]) * (255/np.ptp(rng))).round())
+    if dtp == "float64":
+        np.testing.assert_allclose(
+                im.data.sel(bands="P"),
+                ((fake_alti - rng[0]) * (255/np.ptp(rng))).round())
+    else:
+        np.testing.assert_allclose(im.data.sel(bands="P"), fake_alti)
