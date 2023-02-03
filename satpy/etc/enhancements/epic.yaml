@@ -1,0 +1,10 @@
+enhancements:
+  true_color:
+    standard_name:   true_color
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [100, 100, 100]

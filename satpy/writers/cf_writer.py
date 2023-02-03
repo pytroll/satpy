@@ -34,6 +34,11 @@ format:
 * You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
   :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
+  If the area has a projected CRS, units are assumed to be in metre.  If the
+  area has a geographic CRS, units are assumed to be in degrees.  The writer
+  does not verify that the CRS is supported by the CF conventions.  One
+  commonly used projected CRS not supported by the CF conventions is the
+  equirectangular projection, such as EPSG 4087.
 * By default non-dimensional coordinates (such as scanline timestamps) are prefixed with the corresponding
   dataset name. This is because they are likely to be different for each dataset. If a non-dimensional
   coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
@@ -640,6 +645,9 @@ class CFWriter(Writer):
 
         CFWriter._remove_satpy_attributes(new_data)
 
+        new_data = CFWriter._encode_time(new_data, epoch)
+        new_data = CFWriter._encode_coords(new_data)
+
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
             new_data.attrs.pop(key, None)
@@ -654,9 +662,6 @@ class CFWriter(Writer):
 
         if compression is not None:
             new_data.encoding.update(compression)
-
-        new_data = CFWriter._encode_time(new_data, epoch)
-        new_data = CFWriter._encode_coords(new_data)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -685,14 +690,73 @@ class CFWriter(Writer):
 
     @staticmethod
     def _encode_coords(new_data):
+        """Encode coordinates."""
+        if not new_data.coords.keys() & {"x", "y", "crs"}:
+            # there are no coordinates
+            return new_data
+        is_projected = CFWriter._is_projected(new_data)
+        if is_projected:
+            new_data = CFWriter._encode_xy_coords_projected(new_data)
+        else:
+            new_data = CFWriter._encode_xy_coords_geographic(new_data)
+        if 'crs' in new_data.coords:
+            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _is_projected(new_data):
+        """Guess whether data are projected or not."""
+        crs = CFWriter._try_to_get_crs(new_data)
+        if crs:
+            return crs.is_projected
+        units = CFWriter._try_get_units_from_coords(new_data)
+        if units:
+            if units.endswith("m"):
+                return True
+            if units.startswith("degrees"):
+                return False
+        logger.warning("Failed to tell if data are projected. Assuming yes.")
+        return True
+
+    @staticmethod
+    def _try_to_get_crs(new_data):
+        """Try to get a CRS from attributes."""
+        if "area" in new_data.attrs:
+            if isinstance(new_data.attrs["area"], AreaDefinition):
+                return new_data.attrs["area"].crs
+            # at least one test case passes an area of type str
+            logger.warning(
+                f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                "Assuming projected CRS.")
+        if "crs" in new_data.coords:
+            return new_data.coords["crs"].item()
+
+    @staticmethod
+    def _try_get_units_from_coords(new_data):
+        for c in "xy":
+            if "units" in new_data.coords[c].attrs:
+                return new_data.coords[c].attrs["units"]
+
+    @staticmethod
+    def _encode_xy_coords_projected(new_data):
+        """Encode coordinates, assuming projected CRS."""
         if 'x' in new_data.coords:
             new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
             new_data['x'].attrs['units'] = 'm'
         if 'y' in new_data.coords:
             new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
             new_data['y'].attrs['units'] = 'm'
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _encode_xy_coords_geographic(new_data):
+        """Encode coordinates, assuming geographic CRS."""
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'longitude'
+            new_data['x'].attrs['units'] = 'degrees_east'
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'latitude'
+            new_data['y'].attrs['units'] = 'degrees_north'
         return new_data
 
     @staticmethod

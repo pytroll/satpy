@@ -27,6 +27,12 @@ import unittest
 from collections import defaultdict
 from unittest import mock
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - tmpdir
+# - monkeypatch
+
 
 class _GlobHelper(object):
     """Create side effect function for mocking gcsfs glob method."""

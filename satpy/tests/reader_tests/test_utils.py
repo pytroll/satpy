@@ -344,48 +344,6 @@ class TestHelpers(unittest.TestCase):
 
         assert mock_fn_open.read.called
 
-    def test_generic_open_text(self):
-        """Test the bz2 file unzipping context manager using dummy text data."""
-        dummy_text_data = 'Hello'
-        dummy_text_filename = 'dummy.txt'
-        with open(dummy_text_filename, 'w') as f:
-            f.write(dummy_text_data)
-
-        with hf.generic_open(dummy_text_filename, 'r') as f:
-            read_text_data = f.read()
-
-        assert read_text_data == dummy_text_data
-
-        dummy_text_filename = 'dummy.txt.bz2'
-        with hf.bz2.open(dummy_text_filename, 'wt') as f:
-            f.write(dummy_text_data)
-
-        with hf.generic_open(dummy_text_filename, 'rt') as f:
-            read_text_data = f.read()
-
-        assert read_text_data == dummy_text_data
-
-    def test_generic_open_binary(self):
-        """Test the bz2 file unzipping context manager using dummy binary data."""
-        dummy_binary_data = b'Hello'
-        dummy_binary_filename = 'dummy.dat'
-        with open(dummy_binary_filename, 'wb') as f:
-            f.write(dummy_binary_data)
-
-        with hf.generic_open(dummy_binary_filename, 'rb') as f:
-            read_binary_data = f.read()
-
-        assert read_binary_data == dummy_binary_data
-
-        dummy_binary_filename = 'dummy.dat.bz2'
-        with hf.bz2.open(dummy_binary_filename, 'wb') as f:
-            f.write(dummy_binary_data)
-
-        with hf.generic_open(dummy_binary_filename, 'rb') as f:
-            read_binary_data = f.read()
-
-        assert read_binary_data == dummy_binary_data
-
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
@@ -489,3 +447,28 @@ class TestSunEarthDistanceCorrection:
         np.testing.assert_allclose(out_refl, self.raw_refl)
         assert not out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
+
+
+@pytest.mark.parametrize("data, filename, mode",
+                         [(b"Hello", "dummy.dat", "b"),
+                          ("Hello", "dummy.txt", "t")])
+def test_generic_open_binary(tmp_path, data, filename, mode):
+    """Test the bz2 file unzipping context manager using dummy binary data."""
+    dummy_data = data
+    dummy_filename = os.fspath(tmp_path / filename)
+    with open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data
+
+    dummy_filename = os.fspath(tmp_path / (filename + '.bz2'))
+    with hf.bz2.open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data

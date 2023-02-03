@@ -73,244 +73,284 @@ datasets:
 
   cloud_mask:
     name: cloud_mask
+    long_name: Cloud Classification
+    standard_name: cloud_classification
     resolution: 3000.403165817
     file_type: grib_seviri_clm
     parameter_number: 7
     units: "1"
-    long_name: cloud_mask_classification
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['clear sky over water','clear sky over land', 'cloudy', 'no data' ]
 
   pixel_scene_type:
     name: pixel_scene_type
+    long_name: Cloud Type
+    standard_name: scene_classification
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 8
     units: "1"
-    long_name: scene_classification
+    flag_values: [24,111,112]
+    flag_meanings: ['multi-layered cloud','water cloud','ice cloud']
 
   measurement_cost:
     name: measurement_cost
+    long_name: OCA Cost Function - Measurement part
+    standard_name: cost_function
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 30
     units: "1"
-    long_name: cost_function
 
   upper_layer_cloud_optical_depth:
     name: upper_layer_cloud_optical_depth
+    long_name: Upper Cloud Layer Optical Depth
+    standard_name: atmosphere_optical_thickness_due_to_cloud
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 31
     units: "1"
-    long_name: cloud_optical_depth
 
   upper_layer_cloud_top_pressure:
     name: upper_layer_cloud_top_pressure
+    long_name: Upper Cloud Top Pressure
+    standard_name: air_pressure_at_cloud_top
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 32
     units: Pa
-    standard_name: air_pressure_at_cloud_top
 
   upper_layer_cloud_effective_radius:
     name: upper_layer_cloud_effective_radius
+    long_name: Upper Cloud Particule Effective Radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 33
     units: m
-    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
 
   error_in_upper_layer_cloud_optical_depth:
     name: error_in_upper_layer_cloud_optical_depth
+    long_name: Upper Cloud Optical Depth Error Estimate
+    standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 34
     units: "1"
-    long_name: cloud_optical_depth
 
   error_in_upper_layer_cloud_top_pressure:
     name: error_in_upper_layer_cloud_top_pressure
+    long_name: Upper Cloud Top Pressure Error Estimate
+    standard_name: air_pressure_at_cloud_top standard_error
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 35
     units: Pa
-    standard_name: air_pressure_at_cloud_top_standard_error
 
   error_in_upper_layer_cloud_effective_radius:
     name: error_in_upper_layer_cloud_effective_radius
+    long_name: Upper Cloud Particule Effective Radius Error Estimate
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top standard_error
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 36
     units: m
-    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
 
   lower_layer_cloud_optical_depth:
     name: lower_layer_cloud_optical_depth
+    long_name: Lower Cloud Optical Depth
+    standard_name: atmosphere_optical_thickness_due_to_cloud_in_lower_atmosphere_layer
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 37
     units: "1"
-    long_name: cloud_optical_depth
 
   lower_layer_cloud_top_pressure:
     name: lower_layer_cloud_top_pressure
+    long_name: Lower Cloud Top Pressure
+    standard_name: air_pressure_at_cloud_top_in_lower_atmosphere_layer
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 38
     units: Pa
-    standard_name: air_pressure_at_cloud_top
 
   error_in_lower_layer_cloud_optical_depth:
     name: error_in_lower_layer_cloud_optical_depth
+    long_name: Lower Cloud Optical Depth Error Estimate
+    standard_name: atmosphere_optical_thickness_due_to_cloud_in_lower_atmosphere_layer standard_error
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 39
     units: "1"
-    long_name: cloud_optical_depth_standard_error
 
   error_in_lower_layer_cloud_top_pressure:
     name: error_in_lower_layer_cloud_top_pressure
+    long_name: Lower Cloud Top Pressure Error Estimate
+    standard_name: air_pressure_at_cloud_top_in_lower_atmosphere_layer standard_error
     resolution: 3000.403165817
     file_type: grib_seviri_oca
     parameter_number: 40
     units: Pa
-    standard_name: air_pressure_at_cloud_top_standard_error
 
   fire_probability:
     name: fire_probability
+    long_name: Fire Probability
+    standard_name: fire_probability
     resolution: 3000.403165817
     file_type: grib_seviri_fir
     parameter_number: 192
     units: "%"
-    long_name: fire_probability
 
   active_fires:
     name: active_fires
+    long_name: Active Fire Classification
+    standard_name: active_fire_classification
     resolution: 3000.403165817
     file_type: grib_seviri_fir
     parameter_number: 9
     units: "1"
-    long_name: active_fire_classification
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['no fire','possible fire', 'probable fire', 'missing' ]
 
   aerosol_optical_thickness_vis06:
     name: aerosol_optical_thickness_vis06
+    long_name: Aerosol optical Thickness at 0.6um
+    standard_name: atmosphere_absorption_optical_thickness_due_to_ambient_aerosol
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 20
     units: "1"
-    long_name: aerosol_optical_thickness_vis06
 
   aerosol_optical_thickness_vis08:
     name: aerosol_optical_thickness_vis08
+    long_name: Aerosol optical Thickness at 0.8um
+    standard_name: atmosphere_absorption_optical_thickness_due_to_ambient_aerosol
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 21
     units: "1"
-    long_name: aerosol_optical_thickness_vis08
 
   aerosol_optical_thickness_vis16:
     name: aerosol_optical_thickness_vis16
+    long_name: Aerosol optical Thickness at 1.6um
+    standard_name: atmosphere_absorption_optical_thickness_due_to_ambient_aerosol
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 22
     units: "1"
-    long_name: aerosol_optical_thickness_vis16
 
   angstroem_coefficient:
     name: angstroem_coefficient
+    long_name: Angstroem Coefficient
+    standard_name: aerosol_angstrom_exponent
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 23
     units: "1"
-    long_name: angstroem_coefficient
 
   aes_quality:
     name: aes_quality
+    long_name: AES Product Quality Flag
+    standard_name: quality_flag
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 192
     units: "1"
-    long_name: aes_quality
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['clear sky over water','clear sky over land', 'cloudy', 'no data' ]
 
   cloud_top_height:
     name: cloud_top_height
+    long_name: Cloud Top Height
+    standard_name: height_at_cloud_top
     resolution: 9001.209497451
     file_type: grib_seviri_cth
     parameter_number: 2
     units: m
-    long_name: cloud_top_height
 
   cloud_top_quality:
     name: cloud_top_quality
+    long_name: CTH Product Quality Flag
+    standard_name: height_at_cloud_top quality_flag
     resolution: 9001.209497451
     file_type: grib_seviri_cth
     parameter_number: 3
     units: "1"
-    long_name: cloud_top_quality
+    flag_values: [0, 1]
+    flag_meanings: ['good quality retreival','poor quality retreival' ]
 
   vis_refl_06:
     name: vis_refl_06
+    long_name: TOA Bidirectional Reflectance at 0.6um (7 days average)
+    standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
     file_type: grib_seviri_crm
     parameter_number: 9
     units: "%"
-    long_name: vis_refl_06
 
   vis_refl_08:
     name: vis_refl_08
+    long_name: TOA Bidirectional Reflectance at 0.8um (7 days average)
+    standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
     file_type: grib_seviri_crm
     parameter_number: 10
     units: "%"
-    long_name: vis_refl_08
 
   vis_refl_16:
     name: vis_refl_16
+    long_name: TOA Bidirectional Reflectance at 1.6um (7 days average)
+    standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
     file_type: grib_seviri_crm
     parameter_number: 11
     units: "%"
-    long_name: vis_refl_16
 
   nir_refl_39:
     name: nir_refl_39
+    long_name: TOA Bidirectional Reflectance at 3.9um (7 days average)
+    standard_name: toa_bidirectional_reflectance
     resolution: 3000.403165817
     wavelength: [3.48, 3.92, 4.36]
     file_type: grib_seviri_crm
     parameter_number: 12
     units: "%"
-    long_name: nir_refl_39
 
   num_accumulations:
     name: num_accumulations
+    long_name: CRM Product Number of Accumulations
+    standard_name: number_of_accumulations
     resolution: 3000.403165817
     file_type: grib_seviri_crm
     parameter_number: 6
     units: "1"
-    long_name:  num_accumulations
 
   solar_zenith_angle:
     name: solar_zenith_angle
+    long_name: Solar Zenith Angle (7 days average)
+    standard_name: solar_zenith_angle
     resolution: 3000.403165817
     file_type: grib_seviri_crm
     parameter_number: 7
     units: degrees
-    long_name: solar_zenith_angle
 
   relative_azimuth_angle:
     name: relative_azimuth_angle
+    long_name: Relative Azimuth Angle (7 days average)
+    standard_name: relative_sensor_azimuth_angle
     resolution: 3000.403165817
     file_type: grib_seviri_crm
     parameter_number: 8
     units: degrees
-    long_name: relative_azimuth_angle
 
   instantaneous_rain_rate:
     name: instantaneous_rain_rate
+    long_name: MPE Product Instantaneous Rain Rate
+    standard_name: rainfall_rate
     resolution: 3000.403165817
     file_type: grib_seviri_mpe
     parameter_number: 1
     units: "kg m-2 s-1"
-    long_name: instantaneous_rain_rate

@@ -25,6 +25,10 @@ import yaml
 from satpy.aux_download import DataDownloadMixin
 from satpy.modifiers import ModifierBase
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmpdir
+
 pooch = pytest.importorskip("pooch")
 
 README_URL = "https://raw.githubusercontent.com/pytroll/satpy/main/README.rst"

@@ -31,6 +31,10 @@ from pyresample import AreaDefinition
 
 import satpy
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
@@ -141,7 +145,9 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                  'calibration': 'reflectance',
                  'units': '%',
                  'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+        low_res_data = np.ones((2, 2), dtype=np.float64) + 4
+        low_res_data[1, 1] = 0.0  # produces infinite ratio
+        ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         self.ds1 = ds1
@@ -155,15 +161,19 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds3.attrs['name'] += '3'
         self.ds3 = ds3
-        ds4 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 4,
+
+        # high resolution version
+        high_res_data = np.ones((2, 2), dtype=np.float64)
+        high_res_data[1, 0] = np.nan  # invalid value in one band
+        ds4 = xr.DataArray(da.from_array(high_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds4.attrs['name'] += '4'
         ds4.attrs['resolution'] = 500
         self.ds4 = ds4
 
-        # high res version
-        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
+        # high resolution version - but too big
+        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
                            attrs=attrs.copy(), dims=('y', 'x'),
                            coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
         ds4.attrs['name'] += '4'
@@ -180,7 +190,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
 
     def test_match_data_arrays(self):
-        """Test that all of the areas have to be the same resolution."""
+        """Test that all areas have to be the same resolution."""
         from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
@@ -214,8 +224,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds4.values)
-        np.testing.assert_allclose(res[1], np.array([[4.5, 4.5], [4.5, 4.5]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[6, 6], [6, 6]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[0.6, 0.6], [np.nan, 3.0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high res band is specified."""
@@ -231,8 +241,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         res = res.values
         self.assertEqual(res.shape, (3, 2, 2))
         np.testing.assert_allclose(res[0], self.ds1.values)
-        np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
+        np.testing.assert_allclose(res[1], np.array([[4, 4], [4, 0]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[5.333333, 5.333333], [5.333333, 0]], dtype=np.float64))
 
     def test_no_units(self):
         """Test that the computed RGB has no units attribute."""
@@ -389,40 +399,76 @@ class TestDayNightCompositor(unittest.TestCase):
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_night_only_sza(self):
-        """Test compositor with night portion when SZA data is included."""
+    def test_night_only_sza_with_alpha(self):
+        """Test compositor with night portion with alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
         res = comp((self.data_b, self.sza))
         res = res.compute()
         expected = np.array([[np.nan, 0.], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_night_only_area(self):
-        """Test compositor with night portion when SZA data is not provided."""
+    def test_night_only_sza_without_alpha(self):
+        """Test compositor with night portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only")
-        res = comp((self.data_b))
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
+        res = comp((self.data_b, self.sza))
         res = res.compute()
-        expected = np.array([[np.nan, 0.], [0., 0.]])
+        expected = np.array([[np.nan, 0.], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_day_only_sza(self):
-        """Test compositor with day portion when SZA data is included."""
+    def test_night_only_area_with_alpha(self):
+        """Test compositor with night portion with alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
+        res = comp(self.data_b)
+        res = res.compute()
+        expected = np.array([[np.nan, np.nan], [np.nan, np.nan]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_night_only_area_without_alpha(self):
+        """Test compositor with night portion without alpha band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
+        res = comp(self.data_b)
+        res = res.compute()
+        expected = np.array([np.nan, np.nan])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_sza_with_alpha(self):
+        """Test compositor with day portion with alpha band when SZA data is included."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [0., 0.]])
+        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_day_only_area(self):
-        """Test compositor with day portion when SZA data is not provided."""
+    def test_day_only_sza_without_alpha(self):
+        """Test compositor with day portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only")
-        res = comp((self.data_a))
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
+        res = comp((self.data_a, self.sza))
+        res = res.compute()
+        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_area_with_alpha(self):
+        """Test compositor with day portion with alpha_band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
+        res = comp(self.data_a)
         res = res.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_area_without_alpha(self):
+        """Test compositor with day portion without alpha_band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
+        res = comp(self.data_a)
+        res = res.compute()
+        expected = np.array([0., 0.33164983])
         np.testing.assert_allclose(res.values[0], expected)
 
 
@@ -450,14 +496,27 @@ class TestMultiFiller(unittest.TestCase):
         """Test filling."""
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
-        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
-        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
-        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
-        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
-        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
+        attrs = {"units": "K"}
+        a = xr.DataArray(
+                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        b = xr.DataArray(
+                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        c = xr.DataArray(
+                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
+                attrs=attrs.copy())
+        d = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
+                attrs=attrs.copy())
+        e = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
+                attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
 
 class TestLuminanceSharpeningCompositor(unittest.TestCase):
@@ -1613,12 +1672,15 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         area = mock.MagicMock()
         lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
         area.get_lonlats = mock.MagicMock(return_value=[lons, []])
-        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]), attrs={'area': area})
+        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]),
+                         attrs={'area': area, 'units': 'K'})
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))

@@ -30,6 +30,16 @@ from satpy import Scene, available_readers
 from ..utils import CustomScheduler, make_dataid
 from ._modis_fixtures import _shape_for_resolution
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - modis_l2_imapp_mask_byte1_file
+# - modis_l2_imapp_mask_byte1_geo_files
+# - modis_l2_imapp_snowmask_file
+# - modis_l2_imapp_snowmask_geo_files
+# - modis_l2_nasa_mod06_file
+# - modis_l2_nasa_mod35_file
+# - modis_l2_nasa_mod35_mod03_files
+
 
 def _check_shared_metadata(data_arr, expect_area=False):
     assert data_arr.attrs["sensor"] == "modis"
