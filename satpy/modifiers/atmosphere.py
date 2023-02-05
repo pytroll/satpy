@@ -97,7 +97,7 @@ class PSPRayleighReflectance(ModifierBase):
         reduced_correction = self.attrs.get('reduced_correction', False)
         lim_low = abs(self.attrs.get('lim_low', 70))
         lim_high = abs(self.attrs.get('lim_high', 95))
-        strength = clip(self.attrs.get('strength', 0.5), 0, 1)
+        strength = np.clip(self.attrs.get('strength', 0.5), 0, 1)
 
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
