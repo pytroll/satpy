@@ -60,6 +60,11 @@ class PSPRayleighReflectance(ModifierBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
+        reduced_correction = self.attrs.get('reduced_correction', False)
+        lim_low = self.attrs.get('lim_low', 70)
+        lim_high = self.attrs.get('lim_high', 95)
+        strength = self.attrs.get('strength', 0.5)
+
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs['name'])
@@ -77,6 +82,10 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs['wavelength'][1],
                                                       red.data)
+        if reduced_correction:
+            refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
+                                                                 lim_low, lim_high, strength)
+
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
