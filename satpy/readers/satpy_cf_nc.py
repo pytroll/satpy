@@ -306,8 +306,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
         name = ds_info.get('nc_store_name', ds_id['name'])
-        file_key = ds_info.get('file_key', name)
-        data = nc[file_key]
+        data = nc[ds_info.get('file_key', name)]
         if not self._dataid_attrs_equal(ds_id, data):
             return
         if name != ds_id['name']:
