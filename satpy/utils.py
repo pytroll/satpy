@@ -660,9 +660,12 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
 def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
     shared_storage_options = reader_kwargs.pop("storage_options", {})
+    if not reader_kwargs:
+        # no other reader kwargs
+        return shared_storage_options
     for reader_name, rkwargs in reader_kwargs.items():
         if not isinstance(rkwargs, dict):
-            # reader kwargs are not per-reader, return a single dictonary of storage options
+            # reader kwargs are not per-reader, return a single dictionary of storage options
             return shared_storage_options
         if shared_storage_options:
             # set base storage options if there are any
