@@ -45,6 +45,7 @@ class PSPRayleighReflectance(ModifierBase):
     To use this function in a YAML configuration file:
 
     .. code-block:: yaml
+    
       rayleigh_corrected_reduced:
         modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
         atmosphere: us-standard
