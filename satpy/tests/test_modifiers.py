@@ -423,6 +423,7 @@ class TestPSPRayleighReflectance(unittest.TestCase):
     )
     def test_rayleigh_corrector(self, name, wavelength, resolution, atmosphere, aerosol_type,
                                 lim_low, lim_high, strength, exp_mean, exp_unique):
+        """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
         ray_cor = PSPRayleighReflectance(name=name, atmosphere=atmosphere, aerosol_types=aerosol_type,
                                          lim_low=lim_low, lim_high=lim_high, strength=strength)
