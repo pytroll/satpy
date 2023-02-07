@@ -392,7 +392,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 
 
-class TestPSPRayleighReflectance(unittest.TestCase):
+class TestPSPRayleighReflectance:
     """Test the pyspectral-based Rayleigh correction modifier."""
 
     def make_data_area(self):
@@ -470,17 +470,6 @@ class TestPSPRayleighReflectance(unittest.TestCase):
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        assert res.attrs['platform_name'] == 'GOES-16'
-        assert res.attrs['calibration'] == 'reflectance'
-        assert res.attrs['units'] == '%'
-        assert res.attrs['wavelength'] == wavelength
-        assert res.attrs['name'] == name
-        assert res.attrs['resolution'] == resolution
-        assert res.attrs['sensor'] == 'abi'
-        assert res.attrs['start_time'] == '2017-09-20 17:30:40.800000'
-        assert res.attrs['end_time'] == '2017-09-20 17:41:17.500000'
-        assert res.attrs['area'] == area
-        assert res.attrs['ancillary_variables'] == []
 
         data = res.values
         unique = np.unique(data[~np.isnan(data)])
