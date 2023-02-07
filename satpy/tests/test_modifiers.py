@@ -409,7 +409,6 @@ class TestPSPRayleighReflectance:
         data = np.zeros((rows, cols)) + 25
         data[1, :] += 25
         data[2, :] += 50
-        # print(data)
         data = da.from_array(data, chunks=2)
         return area, data
 
