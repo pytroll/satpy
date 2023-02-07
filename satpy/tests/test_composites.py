@@ -1003,7 +1003,7 @@ class TestGenericCompositor(unittest.TestCase):
         """Test deprecation warning for dcprecated composite recipes."""
         warning_message = 'foo is a deprecated composite. Use composite bar instead.'
         self.comp.attrs['deprecation_warning'] = warning_message
-        with pytest.warns(RuntimeWarning, match=warning_message):
+        with pytest.warns(UserWarning, match=warning_message):
             self.comp([self.all_valid])
 
 
