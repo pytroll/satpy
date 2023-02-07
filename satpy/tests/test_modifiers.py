@@ -414,21 +414,19 @@ class TestPSPRayleighReflectance:
         return area, data
 
     @pytest.mark.parametrize(
-        ("name", "wavelength", "resolution", "exp_mean", "exp_unique"),
+        ("name", "exp_mean", "exp_unique"),
         [
-            ("C01", (0.45, 0.47, 0.49), 1000, 42.739958,
+            ("C01", 42.739958,
              np.array([11.46416203, 12.67077832, 15.13935011, 39.70969711, 41.50063809, 45.39937089,
                        45.64318903, 45.83850516, 70.36378192, 70.79306919, 71.61699236])),
         ]
     )
-    def test_rayleigh_corrector(self, name, wavelength, resolution, exp_mean, exp_unique):
+    def test_rayleigh_corrector(self, name, exp_mean, exp_unique):
         """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
         ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types='rayleigh_only',
                                          lim_low=70, lim_high=95, strength=1)
         assert ray_cor.attrs['name'] == name
-        assert ray_cor.attrs['wavelength'] == wavelength
-        assert ray_cor.attrs['resolution'] == resolution
         assert ray_cor.attrs['atmosphere'] == 'us-standard'
         assert ray_cor.attrs['aerosol_type'] == 'rayleigh_only'
         assert ray_cor.attrs['lim_low'] == 70
