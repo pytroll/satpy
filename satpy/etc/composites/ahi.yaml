@@ -16,7 +16,7 @@ modifiers:
 
 composites:
   green:
-    # Deprecated composite name. Use the equivalent 'hybrid_green' instead.
+    deprecation_warning: "'green' is a deprecated composite. Use the equivalent 'hybrid_green' instead."
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
@@ -30,9 +30,9 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   green_true_color_reproduction:
-    # Deprecated composite name. Use the equivalent 'reproduced_green' instead.
     # JMA True Color Reproduction green band
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    deprecation_warning: "'green_true_color_reproduction' is a deprecated composite. Use the equivalent 'reproduced_green' instead."
     compositor: !!python/name:satpy.composites.spectral.SpectralBlender
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
@@ -45,7 +45,7 @@ composites:
     standard_name: none
 
   green_nocorr:
-    # Deprecated composite name. Use the equivalent 'hybrid_green_nocorr' instead.
+    deprecation_warning: "'green_nocorr' is a deprecated composite. Use the equivalent 'hybrid_green_nocorr' instead."
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.

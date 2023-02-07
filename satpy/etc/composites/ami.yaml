@@ -2,7 +2,7 @@ sensor_name: visir/ami
 
 composites:
   green_raw:
-    # Deprecated composite name. Use the equivalent 'hybrid_green_raw' instead.
+    deprecation_warning: "'green_raw' is a deprecated composite. Use the equivalent 'hybrid_green_raw' instead."
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
@@ -13,7 +13,7 @@ composites:
     fraction: 0.15
 
   green:
-    # Deprecated composite name. Use the equivalent 'hybrid_green' instead.
+    deprecation_warning: "'green' is a deprecated composite. Use the equivalent 'hybrid_green' instead."
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
@@ -24,7 +24,7 @@ composites:
     fraction: 0.15
 
   green_nocorr:
-    # Deprecated  composite name. Use the equivalent 'hybrid_green_nocorr' instead.
+    deprecation_warning: "'green_nocorr' is a deprecated composite. Use the equivalent 'hybrid_green_nocorr' instead."
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005

@@ -424,6 +424,8 @@ class GenericCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
+        if 'deprecation_warning' in self.attrs:
+            warnings.warn(self.attrs['deprecation_warning'], RuntimeWarning)
         num = len(projectables)
         mode = attrs.get('mode')
         if mode is None:
