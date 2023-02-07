@@ -395,7 +395,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestPSPRayleighReflectance(unittest.TestCase):
     """Test the pyspectral-based Rayleigh correction modifier."""
 
-    def make_data_area_(self):
+    def make_data_area(self):
         """Create test area definition and data."""
         rows = 3
         cols = 5
@@ -435,7 +435,7 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         assert ray_cor.attrs['lim_high'] == lim_high
         assert ray_cor.attrs['strength'] == strength
 
-        area, dnb = data_area_ref_corrector()
+        area, dnb = self.make_data_area()
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={
@@ -466,7 +466,7 @@ class TestPSPRayleighReflectance(unittest.TestCase):
                                },
                            })
 
-        res = ref_cor([c01, c02])
+        res = ray_cor([c01, c02])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
