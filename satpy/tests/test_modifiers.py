@@ -421,20 +421,19 @@ class TestPSPRayleighReflectance(unittest.TestCase):
                        45.64318903, 45.83850516, 70.36378192, 70.79306919, 71.61699236])),
         ]
     )
-    def test_rayleigh_corrector(self, name, wavelength, resolution, atmosphere, aerosol_type,
-                                lim_low, lim_high, strength, exp_mean, exp_unique):
+    def test_rayleigh_corrector(self, name, wavelength, resolution, exp_mean, exp_unique):
         """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
-        ray_cor = PSPRayleighReflectance(name=name, atmosphere=atmosphere, aerosol_types=aerosol_type,
-                                         lim_low=lim_low, lim_high=lim_high, strength=strength)
+        ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types='rayleigh_only',
+                                         lim_low=70, lim_high=95, strength=1)
         assert ray_cor.attrs['name'] == name
         assert ray_cor.attrs['wavelength'] == wavelength
         assert ray_cor.attrs['resolution'] == resolution
-        assert ray_cor.attrs['atmosphere'] == atmosphere
-        assert ray_cor.attrs['aerosol_type'] == aerosol_type
-        assert ray_cor.attrs['lim_low'] == lim_low
-        assert ray_cor.attrs['lim_high'] == lim_high
-        assert ray_cor.attrs['strength'] == strength
+        assert ray_cor.attrs['atmosphere'] == 'us-standard'
+        assert ray_cor.attrs['aerosol_type'] == 'rayleigh_only'
+        assert ray_cor.attrs['lim_low'] == 70
+        assert ray_cor.attrs['lim_high'] == 95
+        assert ray_cor.attrs['strength'] == 1
 
         area, dnb = self.make_data_area()
         c01 = xr.DataArray(dnb,
