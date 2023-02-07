@@ -428,7 +428,7 @@ class TestPSPRayleighReflectance:
                                          lim_low=70, lim_high=95, strength=1)
         assert ray_cor.attrs['name'] == name
         assert ray_cor.attrs['atmosphere'] == 'us-standard'
-        assert ray_cor.attrs['aerosol_type'] == 'rayleigh_only'
+        assert ray_cor.attrs['aerosol_types'] == 'rayleigh_only'
         assert ray_cor.attrs['lim_low'] == 70
         assert ray_cor.attrs['lim_high'] == 95
         assert ray_cor.attrs['strength'] == 1
