@@ -392,6 +392,103 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 
 
+class TestPSPRayleighReflectance(unittest.TestCase):
+    """Test the pyspectral-based Rayleigh correction modifier."""
+
+    def make_data_area_(self):
+        """Create test area definition and data."""
+        rows = 3
+        cols = 5
+        area = AreaDefinition(
+            'some_area_name', 'On-the-fly area', 'geosabii',
+            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
+             'units': 'm'},
+            cols, rows,
+            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
+
+        data = np.zeros((rows, cols)) + 25
+        data[1, :] += 25
+        data[2, :] += 50
+        # print(data)
+        data = da.from_array(data, chunks=2)
+        return area, data
+
+    @pytest.mark.parametrize(
+        ("name", "wavelength", "resolution", "exp_mean", "exp_unique"),
+        [
+            ("C01", (0.45, 0.47, 0.49), 1000, 42.739958,
+             np.array([11.46416203, 12.67077832, 15.13935011, 39.70969711, 41.50063809, 45.39937089,
+                       45.64318903, 45.83850516, 70.36378192, 70.79306919, 71.61699236])),
+        ]
+    )
+    def test_rayleigh_corrector(self, name, wavelength, resolution, atmosphere, aerosol_type,
+                                lim_low, lim_high, strength, exp_mean, exp_unique):
+        from satpy.modifiers.atmosphere import PSPRayleighReflectance
+        ray_cor = PSPRayleighReflectance(name=name, atmosphere=atmosphere, aerosol_types=aerosol_type,
+                                         lim_low=lim_low, lim_high=lim_high, strength=strength)
+        assert ray_cor.attrs['name'] == name
+        assert ray_cor.attrs['wavelength'] == wavelength
+        assert ray_cor.attrs['resolution'] == resolution
+        assert ray_cor.attrs['atmosphere'] == atmosphere
+        assert ray_cor.attrs['aerosol_type'] == aerosol_type
+        assert ray_cor.attrs['lim_low'] == lim_low
+        assert ray_cor.attrs['lim_high'] == lim_high
+        assert ray_cor.attrs['strength'] == strength
+
+        area, dnb = data_area_ref_corrector()
+        c01 = xr.DataArray(dnb,
+                           dims=('y', 'x'),
+                           attrs={
+                               'platform_name': 'GOES-16',
+                               'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
+                               'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
+                               'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
+                               'area': area, 'ancillary_variables': [],
+                               'orbital_parameters': {
+                                   'satellite_nominal_longitude': -89.5,
+                                   'satellite_nominal_latitude': 0.0,
+                                   'satellite_nominal_altitude': 35786023.4375,
+                               },
+                           })
+
+        c02 = xr.DataArray(dnb,
+                           dims=('y', 'x'),
+                           attrs={
+                               'platform_name': 'GOES-16',
+                               'calibration': 'reflectance', 'units': '%', 'wavelength': (0.59, 0.64, 0.69),
+                               'name': 'C02', 'resolution': 500, 'sensor': 'abi',
+                               'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
+                               'area': area, 'ancillary_variables': [],
+                               'orbital_parameters': {
+                                   'satellite_nominal_longitude': -89.5,
+                                   'satellite_nominal_latitude': 0.0,
+                                   'satellite_nominal_altitude': 35786023.4375,
+                               },
+                           })
+
+        res = ref_cor([c01, c02])
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['platform_name'] == 'GOES-16'
+        assert res.attrs['calibration'] == 'reflectance'
+        assert res.attrs['units'] == '%'
+        assert res.attrs['wavelength'] == wavelength
+        assert res.attrs['name'] == name
+        assert res.attrs['resolution'] == resolution
+        assert res.attrs['sensor'] == 'abi'
+        assert res.attrs['start_time'] == '2017-09-20 17:30:40.800000'
+        assert res.attrs['end_time'] == '2017-09-20 17:41:17.500000'
+        assert res.attrs['area'] == area
+        assert res.attrs['ancillary_variables'] == []
+
+        data = res.values
+        unique = np.unique(data[~np.isnan(data)])
+        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
+        assert data.shape == (3, 5)
+        np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
+
+
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
