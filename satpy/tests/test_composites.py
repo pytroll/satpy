@@ -316,10 +316,8 @@ def fake_area():
 @pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
-    ds1 = xr.DataArray(
-            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
-    ds2 = xr.DataArray(
-            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
     return (ds1, ds2)
 
 
@@ -497,21 +495,11 @@ class TestMultiFiller(unittest.TestCase):
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
         attrs = {"units": "K"}
-        a = xr.DataArray(
-                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        b = xr.DataArray(
-                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        c = xr.DataArray(
-                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
-                attrs=attrs.copy())
-        d = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
-                attrs=attrs.copy())
-        e = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
-                attrs=attrs.copy())
+        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]), attrs=attrs.copy())
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]), attrs=attrs.copy())
+        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]), attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
@@ -1010,6 +998,13 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
         self.assertEqual(res.attrs['resolution'], 333)
+
+    def test_deprecation_warning(self):
+        """Test deprecation warning for dcprecated composite recipes."""
+        warning_message = 'foo is a deprecated composite. Use composite bar instead.'
+        self.comp.attrs['deprecation_warning'] = warning_message
+        with pytest.warns(RuntimeWarning, match=warning_message):
+            self.comp([self.all_valid])
 
 
 class TestAddBands(unittest.TestCase):
