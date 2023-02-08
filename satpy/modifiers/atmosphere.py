@@ -33,14 +33,14 @@ logger = logging.getLogger(__name__)
 class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels.
 
-    It is possible to use ``lim_low``, ``lim_high``
-    and ``strength`` together to reduce rayleigh correction at high solar zenith angle
-    and make the image transition from rayleigh-corrected to partially/none rayleigh-corrected
-    at day/night edge, therefore producing a more natural look. This reduction starts at
-    solar zenith angle of ``lim_low``, and ends in ``lim_high``. It's linearly scaled
-    between these two angles. The ``strength`` controls the amount of the reduction. When
-    the solar zenith angle reaches ``lim_high``, the rayleigh correction will remain
-    ``(1 - strength)`` of its initial strength.
+    It is possible to use ``reduce_lim_low``, ``reduce_lim_high`` and ``reduce_strength``
+    together to reduce rayleigh correction at high solar zenith angle and make the image
+    transition from rayleigh-corrected to partially/none rayleigh-corrected at day/night edge,
+    therefore producing a more natural look. This reduction starts at solar zenith angle of
+    ``reduce_lim_low``, and ends in ``reduce_lim_high``. It's linearly scaled between
+    these two angles. The ``reduce_strength`` controls the amount of the reduction. When the solar
+    zenith angle reaches ``reduce_lim_high``, the rayleigh correction will remain
+    ``(1 - reduce_strength)`` of its initial reduce_strength at ``reduce_lim_high``.
 
     To use this function in a YAML configuration file:
 
@@ -50,9 +50,9 @@ class PSPRayleighReflectance(ModifierBase):
         modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
         atmosphere: us-standard
         aerosol_type: rayleigh_only
-        lim_low: 70
-        lim_high: 95
-        strength: 0.5
+        reduce_lim_low: 70
+        reduce_lim_high: 95
+        reduce_strength: 0.6
         prerequisites:
           - name: B03
             modifiers: [sunz_corrected]
@@ -63,7 +63,7 @@ class PSPRayleighReflectance(ModifierBase):
           - solar_zenith_angle
 
     In the case above, rayleigh correction is reduced gradually starting at solar zenith angle 70°.
-    When reaching 95°, the correction will only remain half of its initial strength.
+    When reaching 95°, the correction will only remain 40% its initial strength at 95°.
 
     """
 
@@ -94,9 +94,9 @@ class PSPRayleighReflectance(ModifierBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        lim_low = abs(self.attrs.get('lim_low', 70))
-        lim_high = abs(self.attrs.get('lim_high', 95))
-        strength = np.clip(self.attrs.get('strength', 0), 0, 1)
+        reduce_lim_low = abs(self.attrs.get('reduce_lim_low', 70))
+        reduce_lim_high = abs(self.attrs.get('reduce_lim_high', 95))
+        reduce_strength = np.clip(self.attrs.get('reduce_strength', 0), 0, 1)
 
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
@@ -116,11 +116,11 @@ class PSPRayleighReflectance(ModifierBase):
                                                       vis.attrs['wavelength'][1],
                                                       red.data)
 
-        if lim_low > lim_high:
-            lim_low = lim_high
-        logger.info("Reducing Rayleigh correction at high zenith angles by strength %s.", strength)
-        refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
-                                                             lim_low, lim_high, strength)
+        if reduce_strength > 0:
+            if reduce_lim_low > reduce_lim_high:
+                reduce_lim_low = reduce_lim_high
+            refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
+                                                                 reduce_lim_low, reduce_lim_high, reduce_strength)
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs

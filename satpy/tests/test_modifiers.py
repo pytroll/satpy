@@ -424,13 +424,13 @@ class TestPSPRayleighReflectance:
         """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
         ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types='rayleigh_only',
-                                         lim_low=70, lim_high=95, strength=1)
+                                         reduce_lim_low=70, reduce_lim_high=95, reduce_strength=1)
         assert ray_cor.attrs['name'] == name
         assert ray_cor.attrs['atmosphere'] == 'us-standard'
         assert ray_cor.attrs['aerosol_types'] == 'rayleigh_only'
-        assert ray_cor.attrs['lim_low'] == 70
-        assert ray_cor.attrs['lim_high'] == 95
-        assert ray_cor.attrs['strength'] == 1
+        assert ray_cor.attrs['reduce_lim_low'] == 70
+        assert ray_cor.attrs['reduce_lim_high'] == 95
+        assert ray_cor.attrs['reduce_strength'] == 1
 
         area, dnb = self.make_data_area()
         c01 = xr.DataArray(dnb,
