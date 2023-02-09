@@ -23,11 +23,12 @@ import os
 import warnings
 from typing import Callable
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
-from xarray import DataArray
 
+from satpy import CHUNK_SIZE
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
@@ -288,7 +289,7 @@ class Scene:
             if isinstance(ds, BaseDefinition):
                 areas.append(ds)
                 continue
-            elif not isinstance(ds, DataArray):
+            elif not isinstance(ds, xr.DataArray):
                 ds = self[ds]
             area = ds.attrs.get('area')
             areas.append(area)
@@ -809,7 +810,10 @@ class Scene:
             del self._datasets[old_key]
 
         if isinstance(value, np.ndarray):
-            value = xr.DataArray(value)
+            value = xr.DataArray(da.from_array(value, chunks=CHUNK_SIZE))
+
+        if any([value.identical(ds) for ds in self.values()]):
+            value = value.copy()
 
         name = key
         if isinstance(key, DataID):
@@ -1079,9 +1083,9 @@ class Scene:
         else:
             # we have a swath definition and should use lon/lat values
             lons, lats = mdata['area'].get_lonlats()
-            if not isinstance(lons, DataArray):
-                lons = DataArray(lons, dims=('y', 'x'))
-                lats = DataArray(lats, dims=('y', 'x'))
+            if not isinstance(lons, xr.DataArray):
+                lons = xr.DataArray(lons, dims=('y', 'x'))
+                lats = xr.DataArray(lats, dims=('y', 'x'))
             ds = xr.Dataset(ds_dict, coords={"latitude": lats,
                                              "longitude": lons})
 

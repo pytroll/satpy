@@ -191,7 +191,7 @@ class DatasetDict(dict):
         # use value information to make a more complete DataID
         if not isinstance(key, DataID):
             key = DataID.from_dataarray(value, default_keys={k: v for k, v in default_id_keys_config.items() if k
-                                                             in value_info.keys()})
+                                                             in value_info})
 
         # update the 'value' with the information contained in the key
         new_info = key.to_dict()

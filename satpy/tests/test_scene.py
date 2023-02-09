@@ -286,11 +286,11 @@ class TestScene:
         # test:
             # - setting dataarray with attributes to supplied str key generates "full" dataid key  # noqa E116
             # - setting dataarray without attributes (without name attr) sets name attr from given str  # noqa E116
-            # key or dataid key  # noqa E116
+            #   key or dataid key  # noqa E116
             # - setting numpy array gives error -> deprecation warning!  # noqa E116
             # - setting (overwriting) existing key "updates" the dataid key from the dataarray attrs  # noqa E116
             # - dataid gets added to dependency tree => wrong id added in the case of overwriting  # noqa E116
-            # existing key!!!!!  # noqa E116
+            #   existing key!!!!!  # noqa E116
         from satpy.tests.utils import make_dataid
 
         # assignment of no attributes DataArray
@@ -327,38 +327,17 @@ class TestScene:
         assert scene["2"].attrs["_satpy_id"] == expected_id
         assert scene["2"].name == "2"
 
-        # assignment of DataArray with name attribute different from key
+    def test_setitem_copy(self):
+        """Test that copy of DataArray is made if DataArra is in Scene already."""
         scene = Scene()
-        scene["3"] = ds3 = xr.DataArray(np.arange(5), attrs={"name": "4"})
-        expected_id = make_cid(**ds3.attrs)
-        assert set(scene._datasets.keys()) == {expected_id}
-        assert set(scene._wishlist) == {expected_id}
-        assert scene["3"].attrs["name"] == "3"
-        assert scene["3"].attrs["_satpy_id"] == expected_id
-        assert scene["3"].name == "3"
+        scene["1"] = xr.DataArray(np.arange(5), attrs={"name": "1"})
 
-        # assignment of DataArray to exsisting string key
-        scene["3"] = ds4 = xr.DataArray(np.arange(5), attrs={"name": "3", "resolution": 2000,
-                                                             "modifiers": ("xy_corrected", )})
-        expected_id = make_dataid(**ds4.attrs)
-        assert set(scene._datasets.keys()) == {expected_id}
-        assert len(scene._datasets.keys()) == 1
-        assert set(scene._wishlist) == {expected_id}
-        assert scene["3"].attrs["name"] == "3"
-        assert scene["3"].attrs["_satpy_id"] == expected_id
-        assert scene["3"].name == "3"
-
-        # assignment of DataArray to exsisting dataid key
-        ds4 = xr.DataArray(np.arange(5), attrs={"name": "3", "resolution": 2000,
-                                                "modifiers": ("xy_corrected", )})
-        new_id = make_dataid(**ds4.attrs)
-        scene[new_id] = ds4
-        assert set(scene._datasets.keys()) == {new_id}
-        assert len(scene._datasets.keys()) == 1
-        assert set(scene._wishlist) == {new_id}
-        assert scene["3"].attrs["name"] == "3"
-        assert scene["3"].attrs["_satpy_id"] == new_id
-        assert scene["3"].name == "3"
+        # test that a copy of the DataArray is made if it is in the Scene already but assigned to a new key
+        expected = scene["1"].copy()
+        scene["2"] = scene["1"]
+        scene["2"][0:2] = np.arange(6, 8)
+        assert len(scene._datasets.keys()) == 2
+        xr.testing.assert_identical(scene["1"], expected)
 
     def test_getitem(self):
         """Test __getitem__ with names only."""
@@ -366,9 +345,6 @@ class TestScene:
         scene["1"] = ds1 = xr.DataArray(np.arange(5), name="1")
         scene["2"] = ds2 = xr.DataArray(np.arange(5), name="2")
         scene["3"] = ds3 = xr.DataArray(np.arange(5), name="3")
-        print("target", ds1)
-        print("------------------")
-        print(scene["1"])
         assert scene['1'] is ds1
         assert scene['2'] is ds2
         assert scene['3'] is ds3
@@ -383,7 +359,6 @@ class TestScene:
         scene['1'] = ds1_m0 = xr.DataArray(np.arange(5), name='1')
         scene[make_dataid(name='1', modifiers=('mod1',))
               ] = xr.DataArray(np.arange(5), name='1')
-        print(scene)
         assert scene['1'] is ds1_m0
         assert len(list(scene.keys())) == 2
 
