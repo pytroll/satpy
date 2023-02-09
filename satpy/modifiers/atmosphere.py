@@ -36,11 +36,12 @@ class PSPRayleighReflectance(ModifierBase):
     It is possible to use ``reduce_lim_low``, ``reduce_lim_high`` and ``reduce_strength``
     together to reduce rayleigh correction at high solar zenith angle and make the image
     transition from rayleigh-corrected to partially/none rayleigh-corrected at day/night edge,
-    therefore producing a more natural look. This reduction starts at solar zenith angle of
-    ``reduce_lim_low``, and ends in ``reduce_lim_high``. It's linearly scaled between
-    these two angles. The ``reduce_strength`` controls the amount of the reduction. When the solar
-    zenith angle reaches ``reduce_lim_high``, the rayleigh correction will remain
-    ``(1 - reduce_strength)`` of its initial reduce_strength at ``reduce_lim_high``.
+    therefore producing a more natural look, which could be especially helpful for geostationary
+    satellites. This reduction starts at solar zenith angle of ``reduce_lim_low``, and ends in
+    ``reduce_lim_high``. It's linearly scaled between these two angles. The ``reduce_strength``
+    controls the amount of the reduction. When the solar zenith angle reaches ``reduce_lim_high``,
+    the rayleigh correction will remain ``(1 - reduce_strength)`` of its initial reduce_strength
+    at ``reduce_lim_high``.
 
     To use this function in a YAML configuration file:
 
