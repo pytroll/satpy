@@ -388,7 +388,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self._check_sensor_platform_consistency(info['sensor'])
 
         # Calibrate and mask space pixels
-        res = self._mask_space(self.calibrate(res, key.calibration))
+        res = self._mask_space(self.calibrate(res, key['calibration']))
 
         # Add scanline acquisition time
         res.coords['acq_time'] = ('y', self.acq_time)
@@ -401,6 +401,12 @@ class HRITJMAFileHandler(HRITFileHandler):
             'projection_longitude': float(self.mda['projection_parameters']['SSP_longitude']),
             'projection_latitude': 0.,
             'projection_altitude': float(self.mda['projection_parameters']['h'])}
+        res.attrs['time_parameters'] = {
+            'observation_start_time': self.acq_time[0],
+            'observation_end_time': self.acq_time[-1],
+            'nominal_start_time': self._start_time,
+            'nominal_end_time': self.end_time,
+        }
 
         return res
 
@@ -452,8 +458,6 @@ class HRITJMAFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
-
         if calibration == 'counts':
             return data
         if calibration == 'radiance':
@@ -465,7 +469,6 @@ class HRITJMAFileHandler(HRITFileHandler):
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.where(data < 65535)
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
     @property
