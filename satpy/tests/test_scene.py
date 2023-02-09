@@ -657,13 +657,13 @@ class TestScene:
                 Scene(filenames=filenames, reader_kwargs=reader_kwargs)
                 open_files.assert_called_once_with(filenames)
 
-    def test_storage_options_from_reader_kwargs_single_dict(self):
+    @pytest.mark.parametrize("reader_kwargs", [{}, {'reader_opt': 'foo'}])
+    def test_storage_options_from_reader_kwargs_single_dict(self, reader_kwargs):
         """Test getting storage options from reader kwargs.
 
         Case where a single dict is given for all readers with some common storage options.
         """
         filenames = ["s3://data-bucket/file1", "s3://data-bucket/file2", "s3://data-bucket/file3"]
-        reader_kwargs = {'reader_opt': 'foo'}
         expected_reader_kwargs = reader_kwargs.copy()
         storage_options = {'option1': '1'}
         reader_kwargs['storage_options'] = storage_options
