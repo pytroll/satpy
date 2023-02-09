@@ -413,57 +413,71 @@ class TestPSPRayleighReflectance:
         return area, data
 
     @pytest.mark.parametrize(
-        ("name", "exp_mean", "exp_unique"),
+        ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength",
+         "exp_mean", "exp_unique"),
         [
-            ("C01", 41.579988,
-             np.array([9.29888576, 10.74522227, 13.63583329, 37.97577789, 40.18402343, 44.68939996,
-                       44.95296963, 45.0634016, 69.60695285, 70.13499835, 71.09240825])),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", 70, 95, 1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+            ("B02", (0.49, 0.51, 0.53), 1000, "rayleigh_only", 70, 95, 1, 43.663805,
+             np.array([13.15770104, 14.26526104, 16.49084485, 40.88633902, 42.60682921, 46.04288,
+                       46.2356062, 46.28276282, 70.92799823, 71.33561614, 72.07001693])),
+            ("B03", (0.62, 0.64, 0.66), 500, "rayleigh_only", 70, 95, 1, 46.916187,
+             np.array([19.22922328, 19.76884762, 20.91027446, 45.51075967, 46.39925968, 48.10221156,
+                       48.15715058, 48.18698356, 73.01115816, 73.21552816, 73.58666477])),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
         ]
     )
-    def test_rayleigh_corrector(self, name, exp_mean, exp_unique):
+    def test_rayleigh_corrector(self, name, wavelength, resolution, aerosol_type, reduce_lim_low, reduce_lim_high,
+                                reduce_strength, exp_mean, exp_unique):
         """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
-        ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types='rayleigh_only',
-                                         reduce_lim_low=70, reduce_lim_high=95, reduce_strength=1)
+        ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types=aerosol_type,
+                                         reduce_lim_low=reduce_lim_low, reduce_lim_high=reduce_lim_high,
+                                         reduce_strength=reduce_strength)
         assert ray_cor.attrs['name'] == name
         assert ray_cor.attrs['atmosphere'] == 'us-standard'
-        assert ray_cor.attrs['aerosol_types'] == 'rayleigh_only'
-        assert ray_cor.attrs['reduce_lim_low'] == 70
-        assert ray_cor.attrs['reduce_lim_high'] == 95
-        assert ray_cor.attrs['reduce_strength'] == 1
+        assert ray_cor.attrs['aerosol_types'] == aerosol_type
+        assert ray_cor.attrs['reduce_lim_low'] == reduce_lim_low
+        assert ray_cor.attrs['reduce_lim_high'] == reduce_lim_high
+        assert ray_cor.attrs['reduce_strength'] == reduce_strength
 
         area, dnb = self.make_data_area()
-        c01 = xr.DataArray(dnb,
-                           dims=('y', 'x'),
-                           attrs={
-                               'platform_name': 'GOES-16',
-                               'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
-                               'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
-                               'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
-                               'area': area, 'ancillary_variables': [],
-                               'orbital_parameters': {
-                                   'satellite_nominal_longitude': -89.5,
-                                   'satellite_nominal_latitude': 0.0,
-                                   'satellite_nominal_altitude': 35786023.4375,
-                               },
-                           })
+        input_band = xr.DataArray(dnb,
+                                  dims=('y', 'x'),
+                                  attrs={
+                                      'platform_name': 'Himawari-8',
+                                      'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                      'name': name, 'resolution': resolution, 'sensor': 'ahi',
+                                      'start_time': '2017-09-20 17:30:40.800000',
+                                      'end_time': '2017-09-20 17:41:17.500000',
+                                      'area': area, 'ancillary_variables': [],
+                                      'orbital_parameters': {
+                                          'satellite_nominal_longitude': -89.5,
+                                          'satellite_nominal_latitude': 0.0,
+                                          'satellite_nominal_altitude': 35786023.4375,
+                                      },
+                                  })
 
-        c02 = xr.DataArray(dnb,
-                           dims=('y', 'x'),
-                           attrs={
-                               'platform_name': 'GOES-16',
-                               'calibration': 'reflectance', 'units': '%', 'wavelength': (0.59, 0.64, 0.69),
-                               'name': 'C02', 'resolution': 500, 'sensor': 'abi',
-                               'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
-                               'area': area, 'ancillary_variables': [],
-                               'orbital_parameters': {
-                                   'satellite_nominal_longitude': -89.5,
-                                   'satellite_nominal_latitude': 0.0,
-                                   'satellite_nominal_altitude': 35786023.4375,
-                               },
-                           })
+        red_band = xr.DataArray(dnb,
+                                dims=('y', 'x'),
+                                attrs={
+                                    'platform_name': 'Himawari-8',
+                                    'calibration': 'reflectance', 'units': '%', 'wavelength': (0.62, 0.64, 0.66),
+                                    'name': 'B03', 'resolution': 500, 'sensor': 'ahi',
+                                    'start_time': '2017-09-20 17:30:40.800000',
+                                    'end_time': '2017-09-20 17:41:17.500000',
+                                    'area': area, 'ancillary_variables': [],
+                                    'orbital_parameters': {
+                                        'satellite_nominal_longitude': -89.5,
+                                        'satellite_nominal_latitude': 0.0,
+                                        'satellite_nominal_altitude': 35786023.4375,
+                                    },
+                                })
 
-        res = ray_cor([c01, c02])
+        res = ray_cor([input_band, red_band])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
