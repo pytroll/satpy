@@ -187,6 +187,7 @@ class DatasetDict(dict):
             value (xarray.DataArray): The 'Dataset' to be assigned.
         """
         value_info = value.attrs
+        value_info.pop('_satpy_id', None)
 
         # use value information to make a more complete DataID
         if not isinstance(key, DataID):
@@ -195,9 +196,8 @@ class DatasetDict(dict):
 
         # update the 'value' with the information contained in the key
         new_info = key.to_dict()
-        if isinstance(value_info, dict):
-            value_info.update(new_info)
-            value_info['_satpy_id'] = key
+        value_info.update(new_info)
+        value_info['_satpy_id'] = key
 
         return super(DatasetDict, self).__setitem__(key, value)
 

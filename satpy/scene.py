@@ -23,12 +23,12 @@ import os
 import warnings
 from typing import Callable
 
-import dask.array as da
+# import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 
-from satpy import CHUNK_SIZE
+# from satpy import CHUNK_SIZE
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
@@ -809,8 +809,11 @@ class Scene:
             self._wishlist.discard(old_key)
             del self._datasets[old_key]
 
-        if isinstance(value, np.ndarray):
-            value = xr.DataArray(da.from_array(value, chunks=CHUNK_SIZE))
+        if not isinstance(value, xr.DataArray):
+            raise TypeError("Only xarray.DataArrays can be assingned to a Scene!")
+
+        # if isinstance(value.data, np.ndarray):
+            # value.data = da.from_array(value.data, chunks=CHUNK_SIZE)
 
         if any([value.identical(ds) for ds in self.values()]):
             value = value.copy()
@@ -822,13 +825,12 @@ class Scene:
         if value.attrs.get('name', None) is None or value.attrs['name'] != name:
             value.attrs['name'] = name
 
-        value.attrs.pop('_satpy_id', None)
         # not used yet but still set .name property of xr.DataArray
         if value.name != name:
             value = value.rename(name)
 
         self._datasets[key] = value
-        new_id = DataID.new_id_from_dataarray(value)
+        new_id = DataID.from_dataarray(value)
         # new_id = self._datasets.get_key(key)
         self._wishlist.add(new_id)
         self._dependency_tree.add_leaf(new_id)

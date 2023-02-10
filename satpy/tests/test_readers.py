@@ -212,12 +212,12 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_setitem(self):
         """Test setitem method of DatasetDict."""
+        import numpy as np
+        import xarray as xr
+
         d = self.test_dict
-        d['new_ds'] = {'metadata': 'new_ds'}
-        self.assertEqual(d['new_ds']['metadata'], 'new_ds')
-        d[0.5] = {'calibration': 'radiance'}
-        self.assertEqual(d[0.5]['resolution'], 500)
-        self.assertEqual(d[0.5]['name'], 'testh')
+        d['new_ds'] = ds = xr.DataArray(np.arange(5), attrs={'name': 'new_ds'})
+        xr.testing.assert_equal(d['new_ds'], ds)
 
 
 class TestReaderLoader(unittest.TestCase):

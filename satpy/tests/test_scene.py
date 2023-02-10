@@ -327,6 +327,21 @@ class TestScene:
         assert scene["2"].attrs["_satpy_id"] == expected_id
         assert scene["2"].name == "2"
 
+    def test_setitem_non_dataarray(self):
+        """Test assigning a numpy/dask array to Scene."""
+        scene = Scene()
+        data = np.arange(5)
+
+        with pytest.raises(TypeError) as e_info:  # noqa F841
+            scene["1"] = data
+
+        with pytest.raises(TypeError) as e_info:  # noqa F841
+            scene["2"] = da.from_array(data)
+
+    def test_setitem_non_dask_array_conversion(self):
+        """Test that if xr.DataArray contains numpy array it is converted to a dask array."""
+        pass
+
     def test_setitem_copy(self):
         """Test that copy of DataArray is made if DataArra is in Scene already."""
         scene = Scene()
