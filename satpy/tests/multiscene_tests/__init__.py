@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2018-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,9 +15,4 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Classes and functions related to data identification and querying."""
-
-from .anc_vars import dataset_walker, replace_anc  # noqa
-from .data_dict import DatasetDict, get_key  # noqa
-from .dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, create_filtered_query  # noqa
-from .metadata import combine_metadata  # noqa
+"""Unit tests for Multiscene."""

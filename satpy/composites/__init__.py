@@ -424,6 +424,9 @@ class GenericCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
+        if 'deprecation_warning' in self.attrs:
+            warnings.warn(self.attrs['deprecation_warning'], UserWarning)
+            self.attrs.pop('deprecation_warning', None)
         num = len(projectables)
         mode = attrs.get('mode')
         if mode is None:
@@ -657,7 +660,7 @@ class DayNightCompositor(GenericCompositor):
     of the image (night or day). See the documentation below for more details.
     """
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -668,11 +671,16 @@ class DayNightCompositor(GenericCompositor):
             day_night (string): "day_night" means both day and night portions will be kept
                                 "day_only" means only day portion will be kept
                                 "night_only" means only night portion will be kept
+            include_alpha (bool): This only affects the "day only" or "night only" result.
+                                  True means an alpha band will be added to the output image for transparency.
+                                  False means the output is a single-band image with undesired pixels being masked out
+                                  (replaced with NaNs).
 
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
         self.day_night = day_night
+        self.include_alpha = include_alpha
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -700,10 +708,18 @@ class DayNightCompositor(GenericCompositor):
 
         if "only" in self.day_night:
             # Only one portion (day or night) is selected. One composite is requested.
-            # Add alpha band to single L/RGB composite to make the masked-out portion transparent
+            # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
             # L -> LA
             # RGB -> RGBA
-            foreground_data = add_alpha_bands(foreground_data)
+            if self.include_alpha:
+                foreground_data = add_alpha_bands(foreground_data)
+
+            # Use coszen to determine the undesired pixels and replace the coszen of these pixels with NaN.
+            # They will be passed to subsequent calculation and therefore make sure those pixels being masked-out.
+            if "day" in self.day_night:
+                coszen = da.where(coszen != 0, coszen, np.nan).compute()
+            else:
+                coszen = da.where(coszen != 1, coszen, np.nan).compute()
 
             # No need to replace missing channel data with zeros
             # Get metadata

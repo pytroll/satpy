@@ -359,8 +359,8 @@ enhancements:
         palettes:
           - dataset: ct_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
+            # NB: setting min_value and max_value that differ from the valid_range in the data
+            # will result in wrong colors.  It's safer to not set min_value and max_value at all.
 
   cloudmask:
     standard_name: cloudmask
@@ -371,8 +371,6 @@ enhancements:
         palettes:
           - dataset: cma_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloudmask_probability:
     standard_name: cloudmask_probability
@@ -383,8 +381,6 @@ enhancements:
         palettes:
           - dataset: cmaprob_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_top_height:
     standard_name: cloud_top_height
@@ -395,8 +391,6 @@ enhancements:
         palettes:
           - dataset: ctth_alti_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_top_pressure:
     standard_name: cloud_top_pressure
@@ -407,8 +401,6 @@ enhancements:
         palettes:
           - dataset: ctth_pres_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_top_temperature:
     standard_name: cloud_top_temperature
@@ -419,8 +411,6 @@ enhancements:
         palettes:
           - dataset: ctth_tempe_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_top_phase:
     standard_name: cloud_top_phase
@@ -431,8 +421,6 @@ enhancements:
         palettes:
           - dataset: cmic_phase_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_drop_effective_radius:
     standard_name: cloud_drop_effective_radius
@@ -443,8 +431,6 @@ enhancements:
         palettes:
           - dataset: cmic_reff_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_optical_thickness:
     standard_name: cloud_optical_thickness
@@ -455,8 +441,6 @@ enhancements:
         palettes:
           - dataset: cmic_cot_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_liquid_water_path:
     standard_name: cloud_liquid_water_path
@@ -467,8 +451,6 @@ enhancements:
         palettes:
           - dataset: cmic_lwp_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   cloud_ice_water_path:
     standard_name: cloud_ice_water_path
@@ -479,8 +461,6 @@ enhancements:
         palettes:
           - dataset: cmic_iwp_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   precipitation_probability:
     standard_name: precipitation_probability
@@ -491,8 +471,6 @@ enhancements:
         palettes:
           - dataset: pc_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   convective_rain_rate:
     standard_name: convective_rain_rate
@@ -503,8 +481,6 @@ enhancements:
         palettes:
           - dataset: crr_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   convective_precipitation_hourly_accumulation:
     standard_name: convective_precipitation_hourly_accumulation
@@ -515,8 +491,6 @@ enhancements:
         palettes:
           - dataset: crr_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   total_precipitable_water:
     standard_name: total_precipitable_water
@@ -527,8 +501,6 @@ enhancements:
         palettes:
           - dataset: ishai_tpw_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   showalter_index:
     standard_name: showalter_index
@@ -539,8 +511,6 @@ enhancements:
         palettes:
           - dataset: ishai_shw_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   lifted_index:
     standard_name: lifted_index
@@ -551,8 +521,6 @@ enhancements:
         palettes:
           - dataset: ishai_li_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   convection_initiation_prob30:
     standard_name: convection_initiation_prob30
@@ -563,8 +531,6 @@ enhancements:
         palettes:
           - dataset: ci_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   convection_initiation_prob60:
     standard_name: convection_initiation_prob60
@@ -575,8 +541,6 @@ enhancements:
         palettes:
           - dataset: ci_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   convection_initiation_prob90:
     standard_name: convection_initiation_prob90
@@ -587,8 +551,6 @@ enhancements:
         palettes:
           - dataset: ci_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   rdt_cell_type:
     standard_name: rdt_cell_type
@@ -599,8 +561,6 @@ enhancements:
         palettes:
           - dataset: MapCellCatType_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   asii_prob:
     standard_name: asii_prob
@@ -611,8 +571,6 @@ enhancements:
         palettes:
           - dataset: asii_turb_prob_pal
             color_scale: 255
-            min_value: 0
-            max_value: 255
 
   day_microphysics_ahi:
     standard_name: day_microphysics_ahi
@@ -1039,3 +997,13 @@ enhancements:
   day_essl_colorized_low_level_moisture:
     standard_name: day_essl_colorized_low_level_moisture
     operations: []
+
+  rocket_plume:
+    standard_name: rocket_plume
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273, 233, 0.]
+          max_stretch: [338, 253, 80.]

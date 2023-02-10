@@ -657,13 +657,13 @@ class TestScene:
                 Scene(filenames=filenames, reader_kwargs=reader_kwargs)
                 open_files.assert_called_once_with(filenames)
 
-    def test_storage_options_from_reader_kwargs_single_dict(self):
+    @pytest.mark.parametrize("reader_kwargs", [{}, {'reader_opt': 'foo'}])
+    def test_storage_options_from_reader_kwargs_single_dict(self, reader_kwargs):
         """Test getting storage options from reader kwargs.
 
         Case where a single dict is given for all readers with some common storage options.
         """
         filenames = ["s3://data-bucket/file1", "s3://data-bucket/file2", "s3://data-bucket/file3"]
-        reader_kwargs = {'reader_opt': 'foo'}
         expected_reader_kwargs = reader_kwargs.copy()
         storage_options = {'option1': '1'}
         reader_kwargs['storage_options'] = storage_options
@@ -1795,6 +1795,32 @@ class TestSceneResampling:
                                   )
         new_scene = scene.resample(dst_area)
         assert new_scene['comp20'] is new_scene['comp19'].attrs['ancillary_variables'][0]
+
+    def test_resample_multi_ancillary(self):
+        """Test that multiple ancillary variables are retained after resampling.
+
+        This test corresponds to GH#2329
+        """
+        from pyresample import create_area_def
+        sc = Scene()
+        n = 5
+        ar = create_area_def("a", 4087, resolution=1000, center=(0, 0), shape=(n, n))
+        anc_vars = [xr.DataArray(
+            np.arange(n*n).reshape(n, n)*i,
+            dims=("y", "x"),
+            attrs={"name": f"anc{i:d}", "area": ar}) for i in range(2)]
+        sc["test"] = xr.DataArray(
+            np.arange(n*n).reshape(n, n),
+            dims=("y", "x"),
+            attrs={
+                "area": ar,
+                "name": "test",
+                "ancillary_variables": anc_vars})
+        subset = create_area_def("b", 4087, resolution=800, center=(0, 0),
+                                 shape=(n-1, n-1))
+        ls = sc.resample(subset)
+        assert ([av.attrs["name"] for av in sc["test"].attrs["ancillary_variables"]] ==
+                [av.attrs["name"] for av in ls["test"].attrs["ancillary_variables"]])
 
     def test_resample_reduce_data(self):
         """Test that the Scene reducing data does not affect final output."""
