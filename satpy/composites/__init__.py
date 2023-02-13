@@ -713,21 +713,25 @@ class DayNightCompositor(GenericCompositor):
             # RGB -> RGBA
             if self.include_alpha:
                 foreground_data = add_alpha_bands(foreground_data)
-
-            # Use coszen to determine the undesired pixels and replace the coszen of these pixels with NaN.
-            # They will be passed to subsequent calculation and therefore make sure those pixels being masked-out.
-            if "day" in self.day_night:
-                coszen = da.where(coszen != 0, coszen, np.nan).compute()
             else:
-                coszen = da.where(coszen != 1, coszen, np.nan).compute()
+                if "day" in self.day_night:
+                    coszen = da.where(coszen != 0, coszen, np.nan).compute()
+                else:
+                    coszen = da.where(coszen != 1, coszen, np.nan).compute()
 
             # No need to replace missing channel data with zeros
             # Get metadata
             attrs = foreground_data.attrs.copy()
 
             # Determine the composite position
-            day_data = foreground_data if "day" in self.day_night else 0
-            night_data = foreground_data if "night" in self.day_night else 0
+            if "day" in self.day_night:
+                foreground_data[-1, :, :] = foreground_data[-1, :, :] * coszen
+                day_portion = foreground_data
+                night_portion = 0
+            else:
+                foreground_data[-1, :, :] = foreground_data[-1, :, :] * (1 - coszen)
+                night_portion = foreground_data
+                day_portion = 0
 
         else:
             # Both day and night portions are selected. Two composites are requested. Get the second one merged.
@@ -754,9 +758,10 @@ class DayNightCompositor(GenericCompositor):
             day_data = foreground_data
             night_data = background_data
 
-        # Blend the two images together
-        day_portion = coszen * day_data
-        night_portion = (1 - coszen) * night_data
+            # Blend the two images together
+            day_portion = coszen * day_data
+            night_portion = (1 - coszen) * night_data
+
         data = night_portion + day_portion
         data.attrs = attrs
 
