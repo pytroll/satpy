@@ -421,8 +421,10 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
         res = comp(self.data_b)
         res = res.compute()
-        expected = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_night_only_area_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
@@ -439,8 +441,10 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_alpha = np.array([[1., 0.66703944], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_sza_without_alpha(self):
         """Test compositor with day portion without alpha band when SZA data is included."""
@@ -448,8 +452,9 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[0., 0.33164983], [np.nan, np.nan]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        assert res.shape[0] == 3
 
     def test_day_only_area_with_alpha(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
