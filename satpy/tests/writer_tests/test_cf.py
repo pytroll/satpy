@@ -1403,6 +1403,21 @@ class TestEncodingKwarg:
             assert f["test-array"].encoding["complevel"] == expected["complevel"]
 
 
+class TestEncodingAttribute(TestEncodingKwarg):
+    """Test CF writer with 'encoding' dataset attribute."""
+
+    @pytest.fixture
+    def scene_with_encoding(self, scene, encoding):
+        """Create scene with a dataset providing the 'encoding' attribute."""
+        scene["test-array"].encoding = encoding["test-array"]
+        return scene
+
+    def test_encoding_attribute(self, scene_with_encoding, filename, expected):
+        """Test 'encoding' dataset attribute."""
+        scene_with_encoding.save_datasets(filename=filename, writer='cf')
+        self._assert_encoding_as_expected(filename, expected)
+
+
 def _get_compression_params(complevel):
     params = {"complevel": complevel}
     if _should_use_compression_keyword():
