@@ -871,6 +871,7 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
+        _check_backend_versions()
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
@@ -920,3 +921,39 @@ class CFWriter(Writer):
             written.append(res)
 
         return written
+
+
+def _check_backend_versions():
+    """Issue warning if backend versions do not match."""
+    if not _backend_versions_match():
+        warnings.warn(
+            "Backend version mismatch. Compression might fail or be ignored "
+            "silently. Recommended: All versions below or above "
+            "netCDF4-1.6.0/libnetcdf-4.9.0/xarray-2022.12.0.",
+            stacklevel=2
+        )
+
+
+def _backend_versions_match():
+    versions = _get_backend_versions()
+    reference = {
+        "netCDF4": Version("1.6.0"),
+        "libnetcdf": Version("4.9.0"),
+        "xarray": Version("2022.12.0")
+    }
+    is_newer = [
+        versions[module] >= reference[module]
+        for module in versions
+    ]
+    all_newer = all(is_newer)
+    all_older = not any(is_newer)
+    return all_newer or all_older
+
+
+def _get_backend_versions():
+    import netCDF4
+    return {
+        "netCDF4": Version(netCDF4.__version__),
+        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "xarray": Version(xr.__version__)
+    }

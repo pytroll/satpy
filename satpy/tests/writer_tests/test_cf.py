@@ -21,6 +21,7 @@ import logging
 import os
 import tempfile
 import unittest
+import warnings
 from collections import OrderedDict
 from datetime import datetime
 from unittest import mock
@@ -32,6 +33,7 @@ from packaging.version import Version
 
 from satpy import Scene
 from satpy.tests.utils import make_dsq
+from satpy.writers.cf_writer import _get_backend_versions
 
 try:
     from pyproj import CRS
@@ -1342,7 +1344,7 @@ class TestEncodingKwarg:
             "start_time": datetime(2018, 5, 30, 10, 0),
             "end_time": datetime(2018, 5, 30, 10, 15)
         }
-        scn['test-array'] = xr.DataArray([1, 2, 3], attrs=attrs)
+        scn['test-array'] = xr.DataArray([1., 2, 3], attrs=attrs)
         return scn
 
     @pytest.fixture(params=[True, False])
@@ -1402,6 +1404,26 @@ class TestEncodingKwarg:
             assert f['test-array'].dtype == expected["dtype"]
             assert f["test-array"].encoding["complevel"] == expected["complevel"]
 
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+        """Test warning if backends don't match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.5.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            with pytest.warns(UserWarning, match=r"Backend version mismatch"):
+                scene.save_datasets(filename=filename, writer="cf")
+
+    def test_no_warning_if_backends_match(self, scene, filename, monkeypatch):
+        """Make sure no warning is issued if backends match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.6.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.0")
+            m.setattr(xr, "__version__", "2022.12.0")
+            with warnings.catch_warnings():
+                scene.save_datasets(filename=filename, writer="cf")
+                warnings.simplefilter("error")
+
 
 class TestEncodingAttribute(TestEncodingKwarg):
     """Test CF writer with 'encoding' dataset attribute."""
@@ -1428,10 +1450,5 @@ def _get_compression_params(complevel):
 
 
 def _should_use_compression_keyword():
-    clib_version = _get_netcdf4_clib_version()
-    return clib_version >= Version("4.9.0")
-
-
-def _get_netcdf4_clib_version():
-    import netCDF4
-    return Version(netCDF4.__netcdf4libversion__)
+    versions = _get_backend_versions()
+    return versions["libnetcdf"] >= Version("4.9.0")
