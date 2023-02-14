@@ -145,11 +145,11 @@ import logging
 import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
+from packaging.version import Version
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from xarray.coding.times import CFDatetimeCoder
 
@@ -199,7 +199,7 @@ CF_VERSION = 'CF-1.7'
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     import pyproj
-    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+    if Version(pyproj.__version__) < Version('2.4.1'):
         # technically 2.2, but important bug fixes in 2.4.1
         raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
     # let pyproj do the heavily lifting
