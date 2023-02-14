@@ -71,14 +71,15 @@ Dataset encoding can be specified in two ways:
 
     >>> my_encoding = {
     ...    'my_dataset_1': {
-    ...        'zlib': True,
+    ...        'compression': 'zlib',
     ...        'complevel': 9,
     ...        'scale_factor': 0.01,
     ...        'add_offset': 100,
     ...        'dtype': np.int16
     ...     },
     ...    'my_dataset_2': {
-    ...        'zlib': False
+    ...        'compression': None,
+    ...        'dtype': np.float64
     ...     }
     ... }
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
@@ -86,10 +87,18 @@ Dataset encoding can be specified in two ways:
 
 2) Via the ``encoding`` attribute of the datasets in a scene. For example
 
-    >>> scn['my_dataset'].encoding = {'zlib': False}
+    >>> scn['my_dataset'].encoding = {'compression': 'zlib'}
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
 
 See the `xarray encoding documentation`_ for all encoding options.
+
+.. note::
+
+    Since netCDF4-1.6.0/libnetcdf-4.9.0/xarray-2022.12.0 the "zlib" keyword
+    argument is deprecated in favour of "compression". Make sure that the
+    versions of these modules are all above or all below that reference. If all
+    versions are above, use the "compression" keyword. If all of them are below,
+    use the "zlib" keyword. Else compression might fail or be ignored silently.
 
 
 Attribute Encoding
