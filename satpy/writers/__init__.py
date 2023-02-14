@@ -225,8 +225,12 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
 
     old_args = [color, width, resolution, grid, level_coast, level_borders]
     if any(arg is not None for arg in old_args):
-        warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
-                      " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
+        warnings.warn(
+            "'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
+            " arguments will be deprecated soon. Please use 'overlays' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
         res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
@@ -631,12 +635,19 @@ class Writer(Plugin, DataDownloadMixin):
         self.info = self.config.get('writer', {})
 
         if 'file_pattern' in self.info:
-            warnings.warn("Writer YAML config is using 'file_pattern' which "
-                          "has been deprecated, use 'filename' instead.")
+            warnings.warn(
+                "Writer YAML config is using 'file_pattern' which "
+                "has been deprecated, use 'filename' instead.",
+                stacklevel=2
+            )
             self.info['filename'] = self.info.pop('file_pattern')
 
         if 'file_pattern' in kwargs:
-            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            warnings.warn(
+                "'file_pattern' has been deprecated, use 'filename' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             filename = kwargs.pop('file_pattern')
 
         # Use options from the config file if they weren't passed as arguments

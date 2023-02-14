@@ -458,7 +458,10 @@ class AHIHSDFileHandler(BaseFileHandler):
         """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
         if not self._is_valid_timeline(timeline):
-            warnings.warn("Observation timeline is fill value, not rounding observation time.")
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=2
+            )
             return observation_time
 
         if self.observation_area == 'FLDK':
@@ -512,7 +515,10 @@ class AHIHSDFileHandler(BaseFileHandler):
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
         if fp_.tell() + offset != fpos:
-            warnings.warn(f"Actual {block} header size does not match expected")
+            warnings.warn(
+                f"Actual {block} header size does not match expected",
+                stacklevel=2
+            )
         return
 
     def _read_header(self, fp_):
