@@ -793,17 +793,6 @@ class CFWriter(Writer):
             new_data.attrs.pop(satpy_attr)
         new_data.attrs.pop('_last_resampler', None)
 
-    @staticmethod
-    def update_encoding(dataset, to_netcdf_kwargs):
-        """Update encoding info (deprecated)."""
-        warnings.warn(
-            'CFWriter.update_encoding is deprecated. '
-            'Use satpy.writers.cf_writer.update_encoding instead.',
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return update_encoding(dataset, to_netcdf_kwargs)
-
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
