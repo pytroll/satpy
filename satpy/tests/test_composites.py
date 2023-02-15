@@ -456,8 +456,9 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected_red_channel = np.array([[0., 0.22122352], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        expected_channel_data = np.array([[0., 0.22122352], [np.nan, np.nan]])
+        for i in range(3):
+            np.testing.assert_allclose(res.values[i], expected_channel_data)
         assert res.shape[0] == 3
 
     def test_day_only_area_with_alpha(self):

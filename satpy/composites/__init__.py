@@ -750,10 +750,11 @@ class DayNightCompositor(GenericCompositor):
         return da.where(coszen != 1, coszen, np.nan).compute()
 
     def _weight_single_side_data(self, foreground_data, coszen):
+        if self.include_alpha:
+            weight = coszen if "day" in self.day_night else (1 - coszen)
+            foreground_data[-1, :, :] = foreground_data[-1, :, :] * weight
         if "day" in self.day_night:
-            foreground_data[-1, :, :] = foreground_data[-1, :, :] * coszen
             return foreground_data, 0
-        foreground_data[-1, :, :] = foreground_data[-1, :, :] * (1 - coszen)
         return 0, foreground_data
 
     def _get_data_for_combined_product(self, day_data, night_data):
