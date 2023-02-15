@@ -425,7 +425,11 @@ class GenericCompositor(CompositeBase):
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         if 'deprecation_warning' in self.attrs:
-            warnings.warn(self.attrs['deprecation_warning'], UserWarning)
+            warnings.warn(
+                self.attrs['deprecation_warning'],
+                UserWarning,
+                stacklevel=2
+            )
             self.attrs.pop('deprecation_warning', None)
         num = len(projectables)
         mode = attrs.get('mode')
@@ -513,7 +517,11 @@ class RGBCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
-        warnings.warn("RGBCompositor is deprecated, use GenericCompositor instead.", DeprecationWarning)
+        warnings.warn(
+            "RGBCompositor is deprecated, use GenericCompositor instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
         return super(RGBCompositor, self).__call__(projectables, **info)

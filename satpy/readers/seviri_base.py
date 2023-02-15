@@ -781,7 +781,8 @@ class OrbitPolynomialFinder:
         except ValueError:
             warnings.warn(
                 'No orbit polynomial valid for {}. Using closest '
-                'match.'.format(time)
+                'match.'.format(time),
+                stacklevel=2
             )
             match = self._get_closest_interval_within(time, max_delta)
         return OrbitPolynomial(
