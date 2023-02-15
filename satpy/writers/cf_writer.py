@@ -576,7 +576,7 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
         else:
             warnings.warn(
                 'Invalid NetCDF dataset name: {} starts with a digit.'.format(name),
-                stacklevel=2
+                stacklevel=5
             )
     return original_name, name
 
@@ -585,7 +585,7 @@ def _get_compression(compression):
     warnings.warn(
         "The default behaviour of the CF writer will soon change to not compress data by default.",
         FutureWarning,
-        stacklevel=2
+        stacklevel=3
     )
     if compression is None:
         compression = {'zlib': True}
@@ -594,7 +594,7 @@ def _get_compression(compression):
             "The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
             "DataArrays to tune compression from now on.",
             FutureWarning,
-            stacklevel=2
+            stacklevel=3
         )
     return compression
 
@@ -828,7 +828,7 @@ class CFWriter(Writer):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn(
                     'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
-                    stacklevel=2
+                    stacklevel=3
                 )
             # we may be adding attributes, coordinates, or modifying the
             # structure of attributes

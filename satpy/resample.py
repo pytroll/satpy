@@ -525,7 +525,7 @@ class KDTreeResampler(BaseResampler):
         """Adjust radius of influence."""
         warnings.warn(
             "Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.",
-            stacklevel=2
+            stacklevel=3
         )
         try:
             radius_of_influence = self.source_geo_def.lons.resolution * 3
@@ -566,7 +566,7 @@ class KDTreeResampler(BaseResampler):
             import warnings
             warnings.warn(
                 "Using Numpy files as resampling cache is deprecated.",
-                stacklevel=2
+                stacklevel=3
             )
             LOG.warning("Converting resampling LUT from .npz to .zarr")
             zarr_out = xr.Dataset()
@@ -1093,7 +1093,7 @@ def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
             "Array chunk size is not divisible by aggregation factor. "
             "Re-chunking to continue native resampling.",
             PerformanceWarning,
-            stacklevel=2
+            stacklevel=5
         )
         dask_arr = dask_arr.rechunk(tuple(new_chunks))
     return dask_arr
@@ -1129,7 +1129,7 @@ def _get_arg_to_pass_for_skipna_handling(**kwargs):
                 'Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
                 'Continuing with default skipna=True, if not provided differently.',
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=3
             )
             kwargs.pop('mask_all_nan')
     else:
@@ -1138,7 +1138,7 @@ def _get_arg_to_pass_for_skipna_handling(**kwargs):
                 'Argument mask_all_nan is deprecated.'
                 'Please update Pyresample and use skipna for missing values handling.',
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=3
             )
         kwargs.setdefault('mask_all_nan', False)
         kwargs.pop('skipna')

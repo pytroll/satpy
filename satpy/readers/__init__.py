@@ -184,7 +184,7 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
                         "{reader_name:s}, but none of group keys found. "
                         "Group keys requested: " + ", ".join(group_keys),
                         UserWarning,
-                        stacklevel=2
+                        stacklevel=3
                     )
                 file_keys[reader_name].append((group_key, f))
     return file_keys

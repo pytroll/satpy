@@ -173,7 +173,7 @@ class NCSLSTR1B(BaseFileHandler):
                 warnings.warn(
                     "Warning: No radiance adjustment supplied " +
                     "for channel " + chan_name,
-                    stacklevel=2
+                    stacklevel=3
                 )
                 return radiances
         return radiances * adjust_fac

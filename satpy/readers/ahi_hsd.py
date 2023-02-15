@@ -460,7 +460,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         if not self._is_valid_timeline(timeline):
             warnings.warn(
                 "Observation timeline is fill value, not rounding observation time.",
-                stacklevel=2
+                stacklevel=3
             )
             return observation_time
 
@@ -517,7 +517,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         if fp_.tell() + offset != fpos:
             warnings.warn(
                 f"Actual {block} header size does not match expected",
-                stacklevel=2
+                stacklevel=3
             )
         return
 

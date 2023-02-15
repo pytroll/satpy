@@ -186,7 +186,7 @@ class ZarrCacheHelper:
                 "future calculations. "
                 f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
                 PerformanceWarning,
-                stacklevel=2
+                stacklevel=3
             )
 
     def _cache_results(self, res, zarr_format):

@@ -374,7 +374,7 @@ def _get_sat_altitude(data_arr, key_prefixes):
         alt = orb_params['projection_altitude']
         warnings.warn(
             'Actual satellite altitude not available, using projection altitude instead.',
-            stacklevel=2
+            stacklevel=3
         )
     return alt
 
@@ -391,7 +391,7 @@ def _get_sat_lonlat(data_arr, key_prefixes):
         lat = orb_params['projection_latitude']
         warnings.warn(
             'Actual satellite lon/lat not available, using projection center instead.',
-            stacklevel=2
+            stacklevel=3
         )
     return lon, lat
 

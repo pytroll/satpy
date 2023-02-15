@@ -135,7 +135,7 @@ class _ModifierConfigHelper:
                     "Modifier '{}' uses deprecated 'compositor' "
                     "key to point to Python class, replace "
                     "with 'modifier'.".format(modifier_name),
-                    stacklevel=2
+                    stacklevel=5
                 )
         except KeyError:
             raise ValueError("'modifier' key missing or empty for '{}'. Option keys = {}".format(

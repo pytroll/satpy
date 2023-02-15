@@ -390,7 +390,7 @@ class ParallaxCorrection:
         warnings.warn(
             "Overlap checking not impelemented. Waiting for "
             "fix for https://github.com/pytroll/pyresample/issues/329",
-            stacklevel=2
+            stacklevel=3
         )
 
     def _get_corrected_lon_lat(self, base_lon, base_lat, shifted_area):

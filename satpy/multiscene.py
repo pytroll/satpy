@@ -643,7 +643,7 @@ class MultiScene(object):
             import warnings
             warnings.warn(
                 "Background thread still alive after failing to die gracefully",
-                stacklevel=2
+                stacklevel=3
             )
         else:
             log.debug("Child thread died successfully")
