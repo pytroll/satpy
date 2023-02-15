@@ -370,7 +370,11 @@ def test_debug_on(caplog):
     def depwarn():
         logger = logging.getLogger("satpy.silly")
         logger.debug("But now it's just got SILLY.")
-        warnings.warn("Stop that! It's SILLY.", DeprecationWarning)
+        warnings.warn(
+            "Stop that! It's SILLY.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
