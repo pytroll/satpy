@@ -592,7 +592,7 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
         else:
             warnings.warn(
                 'Invalid NetCDF dataset name: {} starts with a digit.'.format(name),
-                stacklevel=2
+                stacklevel=5
             )
     return original_name, name
 
@@ -823,7 +823,7 @@ class CFWriter(Writer):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn(
                     'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
-                    stacklevel=2
+                    stacklevel=3
                 )
             # we may be adding attributes, coordinates, or modifying the
             # structure of attributes
@@ -946,7 +946,7 @@ def _check_backend_versions():
             "Backend version mismatch. Compression might fail or be ignored "
             "silently. Recommended: All versions below or above "
             "netCDF4-1.6.0/libnetcdf-4.9.0/xarray-2022.12.0.",
-            stacklevel=2
+            stacklevel=3
         )
 
 
