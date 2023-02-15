@@ -456,7 +456,7 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected_red_channel = np.array([[0., 0.33164983], [np.nan, np.nan]])
+        expected_red_channel = np.array([[0., 0.22122352], [np.nan, np.nan]])
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         assert res.shape[0] == 3
 

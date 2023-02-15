@@ -726,12 +726,12 @@ class DayNightCompositor(GenericCompositor):
             # Determine the composite position
             if "day" in self.day_night:
                 foreground_data[-1, :, :] = foreground_data[-1, :, :] * coszen
-                day_portion = foreground_data
-                night_portion = 0
+                day_data = foreground_data
+                night_data = 0
             else:
                 foreground_data[-1, :, :] = foreground_data[-1, :, :] * (1 - coszen)
-                night_portion = foreground_data
-                day_portion = 0
+                night_data = foreground_data
+                day_data = 0
 
         else:
             # Both day and night portions are selected. Two composites are requested. Get the second one merged.
@@ -758,11 +758,12 @@ class DayNightCompositor(GenericCompositor):
             day_data = foreground_data
             night_data = background_data
 
+        if "only" not in self.day_night or self.include_alpha is False:
             # Blend the two images together
-            day_portion = coszen * day_data
-            night_portion = (1 - coszen) * night_data
+            day_data = coszen * day_data
+            night_data = (1 - coszen) * night_data
 
-        data = night_portion + day_portion
+        data = night_data + day_data
         data.attrs = attrs
 
         # Split to separate bands so the mode is correct
