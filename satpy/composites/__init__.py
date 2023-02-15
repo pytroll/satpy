@@ -689,79 +689,23 @@ class DayNightCompositor(GenericCompositor):
         # At least one composite is requested.
         foreground_data = projectables[0]
 
-        lim_low = np.cos(np.deg2rad(self.lim_low))
-        lim_high = np.cos(np.deg2rad(self.lim_high))
-        try:
-            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
-        except IndexError:
-            from satpy.modifiers.angles import get_cos_sza
-            LOG.debug("Computing sun zenith angles.")
-            # Get chunking that matches the data
-            coszen = get_cos_sza(foreground_data)
-        # Calculate blending weights
-        coszen -= np.min((lim_high, lim_low))
-        coszen /= np.abs(lim_low - lim_high)
-        coszen = coszen.clip(0, 1)
+        weights = self._get_coszen_blending_weights(projectables)
 
-        # Apply enhancements
+        # Apply enhancements to the foreground data
         foreground_data = enhance2dataset(foreground_data)
 
         if "only" in self.day_night:
-            # Only one portion (day or night) is selected. One composite is requested.
-            # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
-            # L -> LA
-            # RGB -> RGBA
-            if self.include_alpha:
-                foreground_data = add_alpha_bands(foreground_data)
-            else:
-                if "day" in self.day_night:
-                    coszen = da.where(coszen != 0, coszen, np.nan).compute()
-                else:
-                    coszen = da.where(coszen != 1, coszen, np.nan).compute()
-
-            # No need to replace missing channel data with zeros
-            # Get metadata
             attrs = foreground_data.attrs.copy()
-
-            # Determine the composite position
-            if "day" in self.day_night:
-                foreground_data[-1, :, :] = foreground_data[-1, :, :] * coszen
-                day_data = foreground_data
-                night_data = 0
-            else:
-                foreground_data[-1, :, :] = foreground_data[-1, :, :] * (1 - coszen)
-                night_data = foreground_data
-                day_data = 0
-
+            day_data, night_data, weights = self._get_data_for_single_side_product(foreground_data, weights)
         else:
-            # Both day and night portions are selected. Two composites are requested. Get the second one merged.
-            background_data = projectables[1]
-
-            # Apply enhancements
-            background_data = enhance2dataset(background_data)
-
-            # Adjust bands so that they match
-            # L/RGB -> RGB/RGB
-            # LA/RGB -> RGBA/RGBA
-            # RGB/RGBA -> RGBA/RGBA
-            foreground_data = add_bands(foreground_data, background_data['bands'])
-            background_data = add_bands(background_data, foreground_data['bands'])
-
-            # Replace missing channel data with zeros
-            foreground_data = zero_missing_data(foreground_data, background_data)
-            background_data = zero_missing_data(background_data, foreground_data)
-
-            # Get merged metadata
-            attrs = combine_metadata(foreground_data, background_data)
-
-            # Determine the composite position
-            day_data = foreground_data
-            night_data = background_data
+            day_data, night_data, attrs = self._get_data_for_combined_product(foreground_data, projectables[1])
 
         if "only" not in self.day_night or self.include_alpha is False:
-            # Blend the two images together
-            day_data = coszen * day_data
-            night_data = (1 - coszen) * night_data
+            # Apply weights to all image bands when
+            # - two full images are used
+            # - alpha transition is discarded for day/night only product
+            day_data = weights * day_data
+            night_data = (1 - weights) * night_data
 
         data = night_data + day_data
         data.attrs = attrs
@@ -770,6 +714,67 @@ class DayNightCompositor(GenericCompositor):
         data = [data.sel(bands=b) for b in data['bands']]
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
+
+    def _get_coszen_blending_weights(self, projectables):
+        lim_low = np.cos(np.deg2rad(self.lim_low))
+        lim_high = np.cos(np.deg2rad(self.lim_high))
+        try:
+            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
+        except IndexError:
+            from satpy.modifiers.angles import get_cos_sza
+            LOG.debug("Computing sun zenith angles.")
+            # Get chunking that matches the data
+            coszen = get_cos_sza(projectables[0])
+        # Calculate blending weights
+        coszen -= np.min((lim_high, lim_low))
+        coszen /= np.abs(lim_low - lim_high)
+
+        return coszen.clip(0, 1)
+
+    def _get_data_for_single_side_product(self, foreground_data, coszen):
+        # Only one portion (day or night) is selected. One composite is requested.
+        # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
+        # L -> LA
+        # RGB -> RGBA
+        if self.include_alpha:
+            foreground_data = add_alpha_bands(foreground_data)
+        else:
+            coszen = self._mask_coszen(coszen)
+
+        day_data, night_data = self._weight_single_side_data(foreground_data, coszen)
+        return day_data, night_data, coszen
+
+    def _mask_coszen(self, coszen):
+        if "day" in self.day_night:
+            return da.where(coszen != 0, coszen, np.nan).compute()
+        return da.where(coszen != 1, coszen, np.nan).compute()
+
+    def _weight_single_side_data(self, foreground_data, coszen):
+        if "day" in self.day_night:
+            foreground_data[-1, :, :] = foreground_data[-1, :, :] * coszen
+            return foreground_data, 0
+        foreground_data[-1, :, :] = foreground_data[-1, :, :] * (1 - coszen)
+        return 0, foreground_data
+
+    def _get_data_for_combined_product(self, day_data, night_data):
+        # Apply enhancements also to night-side data
+        night_data = enhance2dataset(night_data)
+
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        day_data = add_bands(day_data, night_data['bands'])
+        night_data = add_bands(night_data, day_data['bands'])
+
+        # Replace missing channel data with zeros
+        day_data = zero_missing_data(day_data, night_data)
+        night_data = zero_missing_data(night_data, day_data)
+
+        # Get merged metadata
+        attrs = combine_metadata(day_data, night_data)
+
+        return day_data, night_data, attrs
 
 
 def add_alpha_bands(data):
