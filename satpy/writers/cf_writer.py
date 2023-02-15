@@ -94,7 +94,7 @@ See the `xarray encoding documentation`_ for all encoding options.
 
 .. note::
 
-    Chunk-based compression can be spezified with the ``compression`` keyword
+    Chunk-based compression can be specified with the ``compression`` keyword
     since
 
         .. code::
