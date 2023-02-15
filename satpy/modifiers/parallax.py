@@ -388,7 +388,7 @@ class ParallaxCorrection:
         by ``cth_dataset``, raise a `MissingHeightError`.
         """
         warnings.warn(
-            "Overlap checking not impelemented. Waiting for "
+            "Overlap checking not implemented. Waiting for "
             "fix for https://github.com/pytroll/pyresample/issues/329",
             stacklevel=3
         )
