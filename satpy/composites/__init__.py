@@ -733,11 +733,23 @@ class DayNightCompositor(GenericCompositor):
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
             coszen = get_cos_sza(projectables[0])
+            # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
+            # when creating day/night only images
+            coszen = self._mask_coszen_with_data(coszen, projectables[0])
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
 
         return coszen.clip(0, 1)
+
+    def _mask_coszen_with_data(self, coszen, data):
+        if "only" not in self.day_night:
+            return coszen
+        try:
+            nans = da.isnan(data[0, :, :])
+        except IndexError:
+            nans = da.isnan(data)
+        return da.where(nans, np.nan, coszen)
 
     def _get_data_for_single_side_product(self, foreground_data, weights):
         # Only one portion (day or night) is selected. One composite is requested.
