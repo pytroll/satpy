@@ -422,7 +422,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with night portion with alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
-        res = comp(self.data_b)
+        res = comp((self.data_b),)
         res = res.compute()
         expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
         expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
@@ -433,7 +433,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
-        res = comp(self.data_b)
+        res = comp((self.data_b),)
         res = res.compute()
         expected = np.array([np.nan, np.nan])
         np.testing.assert_allclose(res.values[0], expected)
@@ -465,7 +465,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp(self.data_a)
+        res = comp((self.data_a),)
         res = res.compute()
         expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
         expected_alpha = np.array([[1., 1.], [1., 1.]])
@@ -476,7 +476,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp(self.data_b)
+        res = comp((self.data_b,))
         res = res.compute()
         expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
         expected_alpha = np.array([[np.nan, 1.], [1., 1.]])
@@ -487,7 +487,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
-        res = comp(self.data_a)
+        res = comp((self.data_a),)
         res = res.compute()
         expected = np.array([0., 0.33164983])
         np.testing.assert_allclose(res.values[0], expected)
