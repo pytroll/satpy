@@ -76,13 +76,10 @@ def stack(datasets, weights=None, combine_times=True, blend_type=1):
 
 
 def _stack_blended(datasets, weights, combine_times):
-    """Stack datasets blending overlap using weights."""
-    dims = datasets[0].dims
-    if dims[0] == 'bands':
-        weights = set_weights_to_zero_where_invalid_red(datasets, weights)
-    else:
-        weights = set_weights_to_zero_where_invalid(datasets, weights)
+    """Stack datasets with bands blending overlap using weights."""
+    weights = set_weights_to_zero_where_invalid_red(datasets, weights)
 
+    dims = datasets[0].dims
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
@@ -90,7 +87,7 @@ def _stack_blended(datasets, weights, combine_times):
             attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
     # Normalization where total = 0?
-    total = weights[0].copy()
+    total = weights[0].copy() + 1.e-9
     for n in range(1, len(weights)):
         total += weights[n]
 
@@ -98,13 +95,10 @@ def _stack_blended(datasets, weights, combine_times):
     for n in range(0, len(datasets)):
         weights[n] /= total
         datasets0.append(datasets[n].fillna(0))
-        # RGB composite
-        if dims[0] == 'bands':
-            for b in [0, 1, 2]:
-                datasets0[n][b] *= weights[n]
-        # Single channel
-        else:
-            datasets0[n] *= weights[n]
+        datasets0[n][0] *= weights[n]
+        datasets0[n][1] *= weights[n]
+        datasets0[n][2] *= weights[n]
+
 
     base = datasets0[0].copy()
     for n in range(1, len(datasets)):
