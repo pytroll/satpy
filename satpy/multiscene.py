@@ -46,18 +46,25 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None, combine_times=True):
-    """Overlay a series of datasets together.
+def stack(datasets, weights=None, combine_times=True, blend_type=1):
+    """Combine a series of datasets in different ways.
 
     By default, datasets are stacked on top of each other, so the last one applied is
-    on top. If a sequence of weights arrays are provided the datasets will
-    be combined according to those weights. The result will be a composite
-    dataset where the data in each pixel is coming from the dataset having the
-    highest weight.
+    on top. If a sequence of weights (with equal shape) is provided, the datasets will
+    be combined according to those weights. Datasets can be integers like 'ct', 'cma',
+    or radiances single channel or RGB composites. In the later case weights is applied
+    to each 'R', 'G', 'B' coordinate in the same way. The result will be a composite
+    dataset where each pixel is constructed in a way depending on variable blend_type.
+    blend_type=1 : Each pixel is selected from the dataset with the highest weight
+    blend_type=2 : Each pixel is blended from all datasets with respective weights
+    Other blend_types will fallback to stacking the datasets without weights applied.
 
     """
     if weights:
-        return _stack_weighted(datasets, weights, combine_times)
+        if blend_type == 1:
+           return _stack_selected(datasets, weights, combine_times)
+        elif blend_type == 2:
+           return _stack_blended(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -69,8 +76,45 @@ def stack(datasets, weights=None, combine_times=True):
     return base
 
 
-def _stack_weighted(datasets, weights, combine_times):
-    """Stack datasets using weights."""
+def _stack_blended(datasets, weights, combine_times):
+    """Stack datasets blending overlap using weights."""
+    weights = set_weights_to_zero_where_invalid(datasets, weights)
+
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    dims = datasets[0].dims
+
+    # Normalization where total = 0?
+    total = weights[0].copy()
+    for n in range(1, len(weights)):
+        total += weights[n]
+
+    datasets0=[]
+    for n in range(0, len(datasets)):
+        weights[n] /= total
+        datasets0.append(datasets[n].fillna(0))
+        # RGB composite
+        if dims[0] == 'bands':
+            for b in [0, 1, 2]:
+               datasets0[n][b] *= weights[n]
+        # Single channel
+        else:
+            datasets0[n] *= weights[n]
+
+    base = datasets0[0].copy()
+    for n in range(1, len(datasets)):
+        base += datasets0[n]
+
+    blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
+    return blended_array
+
+
+def _stack_selected(datasets, weights, combine_times):
+    """Stack datasets selecting pixels using weights."""
     weights = set_weights_to_zero_where_invalid(datasets, weights)
 
     indices = da.argmax(da.dstack(weights), axis=-1)
@@ -81,17 +125,27 @@ def _stack_weighted(datasets, weights, combine_times):
             attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
     dims = datasets[0].dims
-    weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
-    return weighted_array
+    coords = datasets[0].coords
+    if dims[0] == 'bands':
+        indices = [indices, indices, indices]
+    selected_array = xr.DataArray(da.choose(indices, datasets), coords=coords, dims=dims, attrs=attrs)
+    return selected_array
 
 
 def set_weights_to_zero_where_invalid(datasets, weights):
     """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
-    for i, dataset in enumerate(datasets):
-        try:
-            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
-        except KeyError:
-            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+    if datasets[0].dims[0] == 'bands':
+        for i, dataset in enumerate(datasets):
+            try:
+                weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
+            except KeyError:
+                weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
+    else:
+        for i, dataset in enumerate(datasets):
+            try:
+                weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
+            except KeyError:
+                weights[i] = xr.where(dataset.isnull(), 0, weights[i])
 
     return weights
 
