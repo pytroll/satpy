@@ -300,7 +300,9 @@ class MultiScene(object):
             warnings.warn(
                 "Argument ensure_all_readers is deprecated.  Use "
                 "missing='skip' instead.",
-                DeprecationWarning)
+                DeprecationWarning,
+                stacklevel=2
+            )
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
@@ -639,7 +641,10 @@ class MultiScene(object):
         load_thread.join(10)
         if load_thread.is_alive():
             import warnings
-            warnings.warn("Background thread still alive after failing to die gracefully")
+            warnings.warn(
+                "Background thread still alive after failing to die gracefully",
+                stacklevel=3
+            )
         else:
             log.debug("Child thread died successfully")
 

@@ -504,10 +504,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             except KeyError as req:
                 msg = "No handler for reading requirement {} for {}".format(
                     req, filename)
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=4)
                 continue
             except RuntimeError as err:
-                warnings.warn(str(err) + ' for {}'.format(filename))
+                warnings.warn(str(err) + ' for {}'.format(filename), stacklevel=4)
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
