@@ -731,7 +731,7 @@ class DayNightCompositor(GenericCompositor):
 
         return coszen.clip(0, 1)
 
-    def _get_data_for_single_side_product(self, foreground_data, coszen):
+    def _get_data_for_single_side_product(self, foreground_data, weights):
         # Only one portion (day or night) is selected. One composite is requested.
         # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
         # L -> LA
@@ -739,19 +739,19 @@ class DayNightCompositor(GenericCompositor):
         if self.include_alpha:
             foreground_data = add_alpha_bands(foreground_data)
         else:
-            coszen = self._mask_coszen(coszen)
+            weights = self._mask_weights(weights)
 
-        day_data, night_data = self._weight_single_side_data(foreground_data, coszen)
-        return day_data, night_data, coszen
+        day_data, night_data = self._weight_single_side_data(foreground_data, weights)
+        return day_data, night_data, weights
 
-    def _mask_coszen(self, coszen):
+    def _mask_weights(self, weights):
         if "day" in self.day_night:
-            return da.where(coszen != 0, coszen, np.nan).compute()
-        return da.where(coszen != 1, coszen, np.nan).compute()
+            return da.where(weights != 0, weights, np.nan).compute()
+        return da.where(weights != 1, weights, np.nan).compute()
 
-    def _weight_single_side_data(self, foreground_data, coszen):
+    def _weight_single_side_data(self, foreground_data, weights):
         if self.include_alpha:
-            weight = coszen if "day" in self.day_night else (1 - coszen)
+            weight = weights if "day" in self.day_night else (1 - weights)
             foreground_data[-1, :, :] = foreground_data[-1, :, :] * weight
         if "day" in self.day_night:
             return foreground_data, 0
