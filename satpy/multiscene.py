@@ -77,15 +77,17 @@ def stack(datasets, weights=None, combine_times=True, blend_type=1):
 
 def _stack_blended(datasets, weights, combine_times):
     """Stack datasets blending overlap using weights."""
-    weights = set_weights_to_zero_where_invalid(datasets, weights)
+    dims = datasets[0].dims
+    if dims[0] == 'bands':
+        weights = set_weights_to_zero_where_invalid_red(datasets, weights)
+    else:
+        weights = set_weights_to_zero_where_invalid(datasets, weights)
 
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
         if 'start_time' in attrs and 'end_time' in attrs:
             attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
-
-    dims = datasets[0].dims
 
     # Normalization where total = 0?
     total = weights[0].copy()
@@ -131,21 +133,25 @@ def _stack_selected(datasets, weights, combine_times):
     return selected_array
 
 
+def set_weights_to_zero_where_invalid_red(datasets, weights):
+    """Go through the weights and set to pixel values to zero where corresponding red datasets are invalid."""
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
+            weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
+
+    return weights
+
+
 def set_weights_to_zero_where_invalid(datasets, weights):
     """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
-    if datasets[0].dims[0] == 'bands':
-        for i, dataset in enumerate(datasets):
-            try:
-                weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
-            except KeyError:
-                weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
-        return weights
-
     for i, dataset in enumerate(datasets):
         try:
             weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
         except KeyError:
             weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+
     return weights
 
 
