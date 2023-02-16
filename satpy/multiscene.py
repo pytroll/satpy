@@ -60,11 +60,10 @@ def stack(datasets, weights=None, combine_times=True, blend_type=1):
     Other blend_types will fallback to stacking the datasets without weights applied.
 
     """
-    if weights:
-        if blend_type == 1:
-           return _stack_selected(datasets, weights, combine_times)
-        elif blend_type == 2:
-           return _stack_blended(datasets, weights, combine_times)
+    if weights and blend_type == 1:
+        return _stack_selected(datasets, weights, combine_times)
+    if weights and blend_type == 2:
+        return _stack_blended(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -93,14 +92,14 @@ def _stack_blended(datasets, weights, combine_times):
     for n in range(1, len(weights)):
         total += weights[n]
 
-    datasets0=[]
+    datasets0 = []
     for n in range(0, len(datasets)):
         weights[n] /= total
         datasets0.append(datasets[n].fillna(0))
         # RGB composite
         if dims[0] == 'bands':
             for b in [0, 1, 2]:
-               datasets0[n][b] *= weights[n]
+                datasets0[n][b] *= weights[n]
         # Single channel
         else:
             datasets0[n] *= weights[n]
