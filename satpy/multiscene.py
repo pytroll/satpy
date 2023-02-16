@@ -139,13 +139,13 @@ def set_weights_to_zero_where_invalid(datasets, weights):
                 weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
             except KeyError:
                 weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
-    else:
-        for i, dataset in enumerate(datasets):
-            try:
-                weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
-            except KeyError:
-                weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+    return weights
 
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
+            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
     return weights
 
 
