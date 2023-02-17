@@ -689,6 +689,7 @@ class DayNightCompositor(GenericCompositor):
         self.lim_high = lim_high
         self.day_night = day_night
         self.include_alpha = include_alpha
+        self._has_sza = False
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -708,18 +709,21 @@ class DayNightCompositor(GenericCompositor):
         else:
             day_data, night_data, attrs = self._get_data_for_combined_product(foreground_data, projectables[1])
 
-        if "only" not in self.day_night or self.include_alpha is False:
-            # Apply weights to all image bands when
-            # - two full images are used
-            # - alpha transition is discarded for day/night only product
-            day_data = weights * day_data
-            night_data = (1 - weights) * night_data
+        # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
+        if self.include_alpha and not self._has_sza:
+            weights = self._mask_weights_with_data(weights, day_data, night_data)
 
-        data = night_data + day_data
-        data.attrs = attrs
+        if "only" not in self.day_night:
+            # Replace missing channel data with zeros
+            day_data = zero_missing_data(day_data, night_data)
+            night_data = zero_missing_data(night_data, day_data)
 
-        # Split to separate bands so the mode is correct
-        data = [data.sel(bands=b) for b in data['bands']]
+        if not self.include_alpha:
+            # day_data = _set_nan_to_zero(day_data)
+            # night_data = _set_nan_to_zero(night_data)
+            weights = _set_nan_to_zero(weights)
+
+        data = self._weight_data(day_data, night_data, weights, attrs)
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
@@ -728,28 +732,17 @@ class DayNightCompositor(GenericCompositor):
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
+            self._has_sza = True
         except IndexError:
             from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
             coszen = get_cos_sza(projectables[0])
-            # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
-            # when creating day/night only images
-            coszen = self._mask_coszen_with_data(coszen, projectables[0])
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
 
         return coszen.clip(0, 1)
-
-    def _mask_coszen_with_data(self, coszen, data):
-        if "only" not in self.day_night:
-            return coszen
-        try:
-            nans = da.isnan(data[0, :, :])
-        except IndexError:
-            nans = da.isnan(data)
-        return da.where(nans, np.nan, coszen)
 
     def _get_data_for_single_side_product(self, foreground_data, weights):
         # Only one portion (day or night) is selected. One composite is requested.
@@ -761,13 +754,18 @@ class DayNightCompositor(GenericCompositor):
         else:
             weights = self._mask_weights(weights)
 
-        day_data, night_data = self._weight_single_side_data(foreground_data, weights)
+        day_data, night_data = self._get_day_night_data_for_single_side_product(foreground_data)
         return day_data, night_data, weights
 
     def _mask_weights(self, weights):
         if "day" in self.day_night:
             return da.where(weights != 0, weights, np.nan).compute()
         return da.where(weights != 1, weights, np.nan).compute()
+
+    def _get_day_night_data_for_single_side_product(self, foreground_data):
+        if "day" in self.day_night:
+            return foreground_data, 0
+        return 0, foreground_data
 
     def _weight_single_side_data(self, foreground_data, weights):
         if self.include_alpha:
@@ -788,14 +786,73 @@ class DayNightCompositor(GenericCompositor):
         day_data = add_bands(day_data, night_data['bands'])
         night_data = add_bands(night_data, day_data['bands'])
 
-        # Replace missing channel data with zeros
-        day_data = zero_missing_data(day_data, night_data)
-        night_data = zero_missing_data(night_data, day_data)
-
         # Get merged metadata
         attrs = combine_metadata(day_data, night_data)
 
         return day_data, night_data, attrs
+
+    def _mask_weights_with_data(self, weights, day_data, night_data):
+        data_a = _get_single_channel(day_data)
+        data_b = _get_single_channel(night_data)
+        if "only" in self.day_night:
+            mask = _get_weight_mask_for_single_side_product(data_a, data_b)
+        else:
+            mask = _get_weight_mask_for_daynight_product(weights, data_a, data_b)
+
+        return da.where(mask, weights, np.nan)
+
+    def _weight_data(self, day_data, night_data, weights, attrs):
+        data = []
+        for b in _get_bands(day_data, night_data):
+            day_band = _get_single_band_data(day_data, b)
+            night_band = _get_single_band_data(night_data, b)
+            if b == 'A' or "only" not in self.day_night:
+                day_band = day_band * weights
+                night_band = night_band * (1 - weights)
+            band = day_band + night_band
+            band.attrs = attrs
+            data.append(band)
+        return data
+
+
+def _get_bands(day_data, night_data):
+    try:
+        bands = day_data['bands']
+    except TypeError:
+        bands = night_data['bands']
+    return bands
+
+
+def _get_single_band_data(data, band):
+    if isinstance(data, int):
+        return data
+    return data.sel(bands=band)
+
+
+def _set_nan_to_zero(data):
+    if isinstance(data, int):
+        return data
+    return da.where(np.isnan(data), 0, data)
+
+
+def _get_single_channel(data):
+    try:
+        data = data[0, :, :]
+    except (IndexError, TypeError):
+        pass
+    return data
+
+
+def _get_weight_mask_for_single_side_product(data_a, data_b):
+    if isinstance(data_a, int):
+        return ~da.isnan(data_b)
+    return ~da.isnan(data_a)
+
+
+def _get_weight_mask_for_daynight_product(weights, data_a, data_b):
+    mask1 = (weights > 0) & ~np.isnan(data_a)
+    mask2 = (weights < 1) & ~np.isnan(data_b)
+    return mask1 | mask2
 
 
 def add_alpha_bands(data):
