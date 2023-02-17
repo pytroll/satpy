@@ -154,7 +154,7 @@ def _stack_selected_bands(datasets, weights, combine_times):
     dims = datasets[0].dims
     coords = datasets[0].coords
     selected_array = xr.DataArray(da.choose([indices, indices, indices], datasets),
-                        coords=coords, dims=dims, attrs=attrs)
+                                  coords=coords, dims=dims, attrs=attrs)
     return selected_array
 
 
