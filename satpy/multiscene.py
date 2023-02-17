@@ -57,7 +57,7 @@ def stack(datasets, weights=None, combine_times=True):
 
     """
     if weights:
-        return _stack_weighted(datasets, weights, combine_times)
+        return _stack_selected_single(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -69,8 +69,8 @@ def stack(datasets, weights=None, combine_times=True):
     return base
 
 
-def _stack_weighted(datasets, weights, combine_times):
-    """Stack datasets using weights."""
+def _stack_selected_single(datasets, weights, combine_times):
+    """Stack single channel datasets selecting pixels using weights."""
     weights = set_weights_to_zero_where_invalid(datasets, weights)
 
     indices = da.argmax(da.dstack(weights), axis=-1)
@@ -83,6 +83,17 @@ def _stack_weighted(datasets, weights, combine_times):
     dims = datasets[0].dims
     weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
     return weighted_array
+
+
+def set_weights_to_zero_where_invalid_red(datasets, weights):
+    """Go through the weights and set to pixel values to zero where corresponding datasets[0] are invalid."""
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
+            weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
+
+    return weights
 
 
 def set_weights_to_zero_where_invalid(datasets, weights):
