@@ -46,18 +46,29 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None, combine_times=True):
-    """Overlay a series of datasets together.
+def stack(datasets, weights=None, combine_times=True, blend_type=1):
+    """Combine a series of datasets in different ways.
 
     By default, datasets are stacked on top of each other, so the last one applied is
-    on top. If a sequence of weights arrays are provided the datasets will
-    be combined according to those weights. The result will be a composite
-    dataset where the data in each pixel is coming from the dataset having the
-    highest weight.
+    on top. If a sequence of weights (with equal shape) is provided, the datasets will
+    be combined according to those weights. Datasets can be integers like 'ct', 'cma',
+    or radiances single channel or RGB composites. In the later case weights is applied
+    to each 'R', 'G', 'B' coordinate in the same way. The result will be a composite
+    dataset where each pixel is constructed in a way depending on variable blend_type.
+    blend_type=1 : Each pixel is selected from the dataset with the highest weight
+    blend_type=2 : Each pixel is blended from all datasets with respective weights
+    Other blend_types will fallback to stacking the datasets without weights applied.
 
     """
-    if weights:
-        return _stack_selected_single(datasets, weights, combine_times)
+    bands = datasets[0].dims[0] == 'bands'
+    if weights and bands and blend_type == 1:
+           return _stack_selected_bands(datasets, weights, combine_times)
+    if weights and not bands and blend_type == 1:
+           return _stack_selected_single(datasets, weights, combine_times)
+    if weights and bands and blend_type == 2:
+           return _stack_blended_bands(datasets, weights, combine_times)
+    if weights and not bands and blend_type == 2:
+           return _stack_blended_single(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -67,6 +78,83 @@ def stack(datasets, weights=None, combine_times=True):
             base = base.where(dataset.isnull(), dataset)
 
     return base
+
+
+def _stack_blended_bands(datasets, weights, combine_times):
+    """Stack datasets with bands blending overlap using weights."""
+    weights = set_weights_to_zero_where_invalid_red(datasets, weights)
+
+    dims = datasets[0].dims
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    total = weights[0].copy() + 1.e-9
+    for n in range(1, len(weights)):
+        total += weights[n]
+
+    datasets0=[]
+    for n in range(0, len(datasets)):
+        weights[n] /= total
+        datasets0.append(datasets[n].fillna(0))
+        datasets0[n][0] *= weights[n]
+        datasets0[n][1] *= weights[n]
+        datasets0[n][2] *= weights[n]
+
+    base = datasets0[0].copy()
+    for n in range(1, len(datasets)):
+        base += datasets0[n]
+
+    blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
+    return blended_array
+
+
+def _stack_blended_single(datasets, weights, combine_times):
+    """Stack single channel datasets blending overlap using weights."""
+    weights = set_weights_to_zero_where_invalid(datasets, weights)
+
+    dims = datasets[0].dims
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    total = weights[0].copy() + 1.e-9
+    for n in range(1, len(weights)):
+        total += weights[n]
+
+    datasets0=[]
+    for n in range(0, len(datasets)):
+        weights[n] /= total
+        datasets0.append(datasets[n].fillna(0))
+        datasets0[n] *= weights[n]
+
+    base = datasets0[0].copy()
+    for n in range(1, len(datasets)):
+        base += datasets0[n]
+
+    blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
+    return blended_array
+
+
+def _stack_selected_bands(datasets, weights, combine_times):
+    """Stack datasets with bands selecting pixels using weights."""
+    weights = set_weights_to_zero_where_invalid_red(datasets, weights)
+
+    indices = da.argmax(da.dstack(weights), axis=-1)
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    dims = datasets[0].dims
+    coords = datasets[0].coords
+    selected_array = xr.DataArray(da.choose([indices, indices, indices], datasets), coords=coords, dims=dims, attrs=attrs)
+    return selected_array
 
 
 def _stack_selected_single(datasets, weights, combine_times):
