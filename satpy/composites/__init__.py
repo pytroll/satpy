@@ -719,9 +719,7 @@ class DayNightCompositor(GenericCompositor):
             night_data = zero_missing_data(night_data, day_data)
 
         if not self.include_alpha:
-            # day_data = _set_nan_to_zero(day_data)
-            # night_data = _set_nan_to_zero(night_data)
-            weights = _set_nan_to_zero(weights)
+            weights = da.where(np.isnan(weights), 0, weights)
 
         data = self._weight_data(day_data, night_data, weights, attrs)
 
@@ -759,18 +757,10 @@ class DayNightCompositor(GenericCompositor):
 
     def _mask_weights(self, weights):
         if "day" in self.day_night:
-            return da.where(weights != 0, weights, np.nan).compute()
-        return da.where(weights != 1, weights, np.nan).compute()
+            return da.where(weights != 0, weights, np.nan)
+        return da.where(weights != 1, weights, np.nan)
 
     def _get_day_night_data_for_single_side_product(self, foreground_data):
-        if "day" in self.day_night:
-            return foreground_data, 0
-        return 0, foreground_data
-
-    def _weight_single_side_data(self, foreground_data, weights):
-        if self.include_alpha:
-            weight = weights if "day" in self.day_night else (1 - weights)
-            foreground_data[-1, :, :] = foreground_data[-1, :, :] * weight
         if "day" in self.day_night:
             return foreground_data, 0
         return 0, foreground_data
@@ -803,9 +793,10 @@ class DayNightCompositor(GenericCompositor):
 
     def _weight_data(self, day_data, night_data, weights, attrs):
         data = []
-        for b in _get_bands(day_data, night_data):
+        for b in _get_band_names(day_data, night_data):
             day_band = _get_single_band_data(day_data, b)
             night_band = _get_single_band_data(night_data, b)
+            # For day-only and night-only products only the alpha channel is weighted
             if b == 'A' or "only" not in self.day_night:
                 day_band = day_band * weights
                 night_band = night_band * (1 - weights)
@@ -815,7 +806,7 @@ class DayNightCompositor(GenericCompositor):
         return data
 
 
-def _get_bands(day_data, night_data):
+def _get_band_names(day_data, night_data):
     try:
         bands = day_data['bands']
     except TypeError:
@@ -827,12 +818,6 @@ def _get_single_band_data(data, band):
     if isinstance(data, int):
         return data
     return data.sel(bands=band)
-
-
-def _set_nan_to_zero(data):
-    if isinstance(data, int):
-        return data
-    return da.where(np.isnan(data), 0, data)
 
 
 def _get_single_channel(data):
