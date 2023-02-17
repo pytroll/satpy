@@ -62,13 +62,13 @@ def stack(datasets, weights=None, combine_times=True, blend_type=1):
     """
     bands = datasets[0].dims[0] == 'bands'
     if weights and bands and blend_type == 1:
-           return _stack_selected_bands(datasets, weights, combine_times)
+        return _stack_selected_bands(datasets, weights, combine_times)
     if weights and not bands and blend_type == 1:
-           return _stack_selected_single(datasets, weights, combine_times)
+        return _stack_selected_single(datasets, weights, combine_times)
     if weights and bands and blend_type == 2:
-           return _stack_blended_bands(datasets, weights, combine_times)
+        return _stack_blended_bands(datasets, weights, combine_times)
     if weights and not bands and blend_type == 2:
-           return _stack_blended_single(datasets, weights, combine_times)
+        return _stack_blended_single(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
@@ -95,7 +95,7 @@ def _stack_blended_bands(datasets, weights, combine_times):
     for n in range(1, len(weights)):
         total += weights[n]
 
-    datasets0=[]
+    datasets0 = []
     for n in range(0, len(datasets)):
         weights[n] /= total
         datasets0.append(datasets[n].fillna(0))
@@ -126,7 +126,7 @@ def _stack_blended_single(datasets, weights, combine_times):
     for n in range(1, len(weights)):
         total += weights[n]
 
-    datasets0=[]
+    datasets0 = []
     for n in range(0, len(datasets)):
         weights[n] /= total
         datasets0.append(datasets[n].fillna(0))
@@ -153,7 +153,8 @@ def _stack_selected_bands(datasets, weights, combine_times):
 
     dims = datasets[0].dims
     coords = datasets[0].coords
-    selected_array = xr.DataArray(da.choose([indices, indices, indices], datasets), coords=coords, dims=dims, attrs=attrs)
+    selected_array = xr.DataArray(da.choose([indices, indices, indices], datasets),
+                        coords=coords, dims=dims, attrs=attrs)
     return selected_array
 
 
