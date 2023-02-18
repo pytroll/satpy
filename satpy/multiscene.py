@@ -104,7 +104,7 @@ def _stack_blended_bands(datasets, weights, combine_times):
         datasets0[n][2] *= weights[n]
 
     base = datasets0[0].copy()
-    for n in range(1, len(datasets)):
+    for n in range(1, len(datasets0)):
         base += datasets0[n]
 
     blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
@@ -133,7 +133,7 @@ def _stack_blended_single(datasets, weights, combine_times):
         datasets0[n] *= weights[n]
 
     base = datasets0[0].copy()
-    for n in range(1, len(datasets)):
+    for n in range(1, len(datasets0)):
         base += datasets0[n]
 
     blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
