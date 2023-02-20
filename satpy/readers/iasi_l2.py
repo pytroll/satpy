@@ -193,6 +193,9 @@ class IASIL2CDRNC(NetCDF4FsspecFileHandler):
             ds = ds.rename(scan_lines="y")
         if "pixels" in ds.dims:
             ds = ds.rename(pixels="x")
+        if "_FillValue" in ds.attrs and ds.dtype.kind == "f":
+            with xr.set_options(keep_attrs=True):
+                return xr.where(ds == ds.attrs["_FillValue"], np.nan, ds)
         return ds
 
     def available_datasets(self, configured_datasets=None):

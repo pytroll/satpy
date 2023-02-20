@@ -320,6 +320,7 @@ class TestIasiL2(unittest.TestCase):
 def fake_iasi_l2_cdr_nc_dataset():
     """Create minimally fake IASI L2 CDR NC dataset."""
     shp = (3, 4, 5)
+    fv = -999
     dims = ("scan_lines", "pixels", "vertical_levels")
     coords2 = "latitude longitude"
     coords3 = "latitude longitude pressure_levels"
@@ -339,12 +340,31 @@ def fake_iasi_l2_cdr_nc_dataset():
             np.linspace(0, 1050, math.prod(shp), dtype="float32").reshape(shp),
             dims=dims,
             attrs={"coordinates": coords3})
+
+    temps = np.linspace(100, 400, math.prod(shp), dtype="float32").reshape(shp)
+    temps[0, 0, 0] = fv
     temp = xr.DataArray(
-            np.linspace(100, 400, math.prod(shp), dtype="float32").reshape(shp),
-            dims=dims,
-            attrs={"coordinates": coords3})
+            temps, dims=dims,
+            attrs={"coordinates": coords3, "_FillValue": fv})
+
+    iasibad = xr.DataArray(
+            np.zeros(shp[:2], dtype="uint8"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "flag_information_IASI_L1c"})
+    iasibad[0, 0] = 1
+
+    cf = xr.DataArray(
+            np.zeros(shp[:2], dtype="uint8"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "cloud_area_fraction",
+                   "_FillValue": 255,
+                   "valid_min": 0,
+                   "valid_max": 100})
+
     return xr.Dataset(
-            {"T": temp},
+            {"T": temp, "FLG_IASIBAD": iasibad, "CloudFraction": cf},
             coords={
                 "longitude": lons,
                 "latitude": lats,
@@ -365,7 +385,7 @@ def test_iasi_l2_cdr_nc(fake_iasi_l2_cdr_nc_file):
     """Test the IASI L2 CDR NC reader."""
     from satpy import Scene
     sc = Scene(filenames=[fake_iasi_l2_cdr_nc_file], reader=["iasi_l2_cdr_nc"])
-    sc.load(["T"])
+    sc.load(["T", "FLG_IASIBAD", "CloudFraction"])
     assert sc["T"].dims == ("y", "x", "vertical_levels")
     assert sc["T"].shape == (3, 4, 5)
     assert sc["T"].attrs["area"].shape == (3, 4)
@@ -374,3 +394,6 @@ def test_iasi_l2_cdr_nc(fake_iasi_l2_cdr_nc_file):
             lons,
             np.array([[0, 0, 0, 0], [1, 1, 1, 1],
                       [2, 2, 2, 2]]))
+    assert np.isnan(sc["T"][0, 0, 0])
+    assert sc["FLG_IASIBAD"][0, 0] == 1
+    assert sc["CloudFraction"].dtype == np.dtype("uint8")
