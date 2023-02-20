@@ -953,3 +953,10 @@ def test_wavelength_range_cf_roundtrip():
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
     assert WavelengthRange.from_cf([str(item) for item in wr]) == wr
+
+
+def test_attributeerror():
+    """Test that DataID attribute access gives correct AttributeError."""
+    did = DataID({})
+    with pytest.raises(AttributeError, match="'DataID' object has no attribute 'unknown'"):
+        did.unknown

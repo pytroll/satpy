@@ -407,7 +407,7 @@ class DataID(dict):
                           stacklevel=2)
             return self[key]
         else:
-            return super().__getattr__(key)
+            raise AttributeError(f"'{type(self).__name__:s}' object has no attribute '{key:s}'")
 
     def __deepcopy__(self, memo=None):
         """Copy this object.
