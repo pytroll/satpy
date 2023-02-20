@@ -201,7 +201,8 @@ class IASIL2CDRNC(NetCDF4FsspecFileHandler):
         Returns all datasets in the root group.
         """
         yield from super().available_datasets(configured_datasets)
+        common = {"file_type": "iasi_l2_cdr_nc", "resolution": 12000}
         for key in self.file_content:
             if "/" in key:  # not a dataset
                 continue
-            yield (True, {"name": key, "file_type": "iasi_l2_cdr_nc"} | self[key].attrs)
+            yield (True, {"name": key} | common | self[key].attrs)
