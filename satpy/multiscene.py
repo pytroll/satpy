@@ -89,7 +89,7 @@ def _stack_blended(datasets, weights, combine_times):
     for weight, overlay in zip(weights, datasets):
         overlays.append(overlay.fillna(0) * weight)
 
-    base = sum(overlays) / sum(weights)
+    base = sum(overlays) / sum(weights, start=1.e-9)
 
     dims = datasets[0].dims
     blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
