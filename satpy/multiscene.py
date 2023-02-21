@@ -109,9 +109,8 @@ def _stack_selected(datasets, weights, combine_times, bands):
             attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
     dims = datasets[0].dims
-#    coords = datasets[0].coords
-#    selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, coords=coords, attrs=attrs)
-    selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
+    coords = datasets[0].coords
+    selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, coords=coords, attrs=attrs)
     return selected_array
 
 
