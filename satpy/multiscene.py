@@ -96,11 +96,12 @@ def _stack_blended(datasets, weights, combine_times):
     return blended_array
 
 
-def _stack_selected_bands(datasets, weights, combine_times):
-    """Stack datasets with bands selecting pixels using weights."""
-    weights = set_weights_to_zero_where_invalid_red(datasets, weights)
-
+def _stack_selected(datasets, weights, combine_times, bands):
+    """Stack datasets selecting pixels using weights."""
     indices = da.argmax(da.dstack(weights), axis=-1)
+    if bands:
+        indices = [indices, indices, indices]
+
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
@@ -109,25 +110,8 @@ def _stack_selected_bands(datasets, weights, combine_times):
 
     dims = datasets[0].dims
     coords = datasets[0].coords
-    selected_array = xr.DataArray(da.choose([indices, indices, indices], datasets),
-                                  coords=coords, dims=dims, attrs=attrs)
+    selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, coords=coords, attrs=attrs)
     return selected_array
-
-
-def _stack_selected_single(datasets, weights, combine_times):
-    """Stack single channel datasets selecting pixels using weights."""
-    weights = set_weights_to_zero_where_invalid(datasets, weights)
-
-    indices = da.argmax(da.dstack(weights), axis=-1)
-    attrs = combine_metadata(*[x.attrs for x in datasets])
-
-    if combine_times:
-        if 'start_time' in attrs and 'end_time' in attrs:
-            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
-
-    dims = datasets[0].dims
-    weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
-    return weighted_array
 
 
 def set_weights_to_zero_where_invalid_red(datasets, weights):
