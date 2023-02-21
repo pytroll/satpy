@@ -77,62 +77,21 @@ def stack(datasets, weights=None, combine_times=True, blend_type='stack_no_weigh
     return base
 
 
-def _stack_blended_bands(datasets, weights, combine_times):
-    """Stack datasets with bands blending overlap using weights."""
-    weights = set_weights_to_zero_where_invalid_red(datasets, weights)
-
-    dims = datasets[0].dims
+def _stack_blended(datasets, weights, combine_times):
+    """Stack datasets blending overlap using weights."""
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
     if combine_times:
         if 'start_time' in attrs and 'end_time' in attrs:
             attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
 
-    total = weights[0].copy() + 1.e-9
-    for n in range(1, len(weights)):
-        total += weights[n]
+    overlays = []
+    for weight, overlay in zip(weights, datasets):
+        overlays.append(overlay.fillna(0) * weight)
 
-    datasets0 = []
-    for n in range(0, len(datasets)):
-        weights[n] /= total
-        datasets0.append(datasets[n].fillna(0))
-        datasets0[n][0] *= weights[n]
-        datasets0[n][1] *= weights[n]
-        datasets0[n][2] *= weights[n]
-
-    base = datasets0[0].copy()
-    for n in range(1, len(datasets0)):
-        base += datasets0[n]
-
-    blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
-    return blended_array
-
-
-def _stack_blended_single(datasets, weights, combine_times):
-    """Stack single channel datasets blending overlap using weights."""
-    weights = set_weights_to_zero_where_invalid(datasets, weights)
+    base = sum(overlays) / sum(weights)
 
     dims = datasets[0].dims
-    attrs = combine_metadata(*[x.attrs for x in datasets])
-
-    if combine_times:
-        if 'start_time' in attrs and 'end_time' in attrs:
-            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
-
-    total = weights[0].copy() + 1.e-9
-    for n in range(1, len(weights)):
-        total += weights[n]
-
-    datasets0 = []
-    for n in range(0, len(datasets)):
-        weights[n] /= total
-        datasets0.append(datasets[n].fillna(0))
-        datasets0[n] *= weights[n]
-
-    base = datasets0[0].copy()
-    for n in range(1, len(datasets0)):
-        base += datasets0[n]
-
     blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
     return blended_array
 
