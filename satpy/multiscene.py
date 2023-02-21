@@ -46,7 +46,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None, combine_times=True, blend_type=1):
+def stack(datasets, weights=None, combine_times=True, blend_type='stack_no_weights'):
     """Combine a series of datasets in different ways.
 
     By default, datasets are stacked on top of each other, so the last one applied is
@@ -55,20 +55,17 @@ def stack(datasets, weights=None, combine_times=True, blend_type=1):
     or radiances single channel or RGB composites. In the later case weights is applied
     to each 'R', 'G', 'B' coordinate in the same way. The result will be a composite
     dataset where each pixel is constructed in a way depending on variable blend_type.
-    blend_type=1 : Each pixel is selected from the dataset with the highest weight
-    blend_type=2 : Each pixel is blended from all datasets with respective weights
-    Other blend_types will fallback to stacking the datasets without weights applied.
 
     """
     bands = datasets[0].dims[0] == 'bands'
-    if weights and bands and blend_type == 1:
-        return _stack_selected_bands(datasets, weights, combine_times)
-    if weights and not bands and blend_type == 1:
-        return _stack_selected_single(datasets, weights, combine_times)
-    if weights and bands and blend_type == 2:
-        return _stack_blended_bands(datasets, weights, combine_times)
-    if weights and not bands and blend_type == 2:
-        return _stack_blended_single(datasets, weights, combine_times)
+    if weights and bands:
+        weights = set_weights_to_zero_where_invalid_red(datasets, weights)
+    elif weights and not bands:
+        weights = set_weights_to_zero_where_invalid(datasets, weights)
+    if weights and blend_type == 'select_with_weights':
+        return _stack_selected(datasets, weights, combine_times, bands)
+    if weights and blend_type == 'blend_with_weights':
+        return _stack_blended(datasets, weights, combine_times)
 
     base = datasets[0].copy()
     for dataset in datasets[1:]:
