@@ -358,9 +358,11 @@ def get_user_calibration_factors(band_name, correction_dict):
                            "supply 'slope' and 'offset' keys.")
     else:
         # If coefficients not present, warn user and use slope=1, offset=0
-        warnings.warn("WARNING: You have selected radiance correction but "
-                      " have not supplied coefficients for channel " +
-                      band_name)
+        warnings.warn(
+            "WARNING: You have selected radiance correction but "
+            " have not supplied coefficients for channel " + band_name,
+            stacklevel=2
+        )
         return 1., 0.
 
     return slope, offset

@@ -307,8 +307,11 @@ def link_coords(datas):
                     dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
                     data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
-                                  .format(coord, da_name))
+                    warnings.warn(
+                        'Coordinate "{}" referenced by dataarray {} does not '
+                        'exist, dropping reference.'.format(coord, da_name),
+                        stacklevel=2
+                    )
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
@@ -363,8 +366,11 @@ def make_alt_coords_unique(datas, pretty=False):
     for coord_name, unique in coords_unique.items():
         if not pretty or not unique:
             if pretty:
-                warnings.warn('Cannot pretty-format "{}" coordinates because they are not unique among the '
-                              'given datasets'.format(coord_name))
+                warnings.warn(
+                    'Cannot pretty-format "{}" coordinates because they are '
+                    'not identical among the given datasets'.format(coord_name),
+                    stacklevel=2
+                )
             for ds_name, dataset in datas.items():
                 if coord_name in dataset.coords:
                     rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
@@ -568,18 +574,28 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
         if numeric_name_prefix:
             name = numeric_name_prefix + original_name
         else:
-            warnings.warn('Invalid NetCDF dataset name: {} starts with a digit.'.format(name))
+            warnings.warn(
+                'Invalid NetCDF dataset name: {} starts with a digit.'.format(name),
+                stacklevel=5
+            )
     return original_name, name
 
 
 def _get_compression(compression):
-    warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
-                  FutureWarning)
+    warnings.warn(
+        "The default behaviour of the CF writer will soon change to not compress data by default.",
+        FutureWarning,
+        stacklevel=3
+    )
     if compression is None:
         compression = {'zlib': True}
     else:
-        warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
-                      "DataArrays to tune compression from now on.", FutureWarning)
+        warnings.warn(
+            "The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
+            "DataArrays to tune compression from now on.",
+            FutureWarning,
+            stacklevel=3
+        )
     return compression
 
 
@@ -785,9 +801,12 @@ class CFWriter(Writer):
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
         """Update encoding info (deprecated)."""
-        warnings.warn('CFWriter.update_encoding is deprecated. '
-                      'Use satpy.writers.cf_writer.update_encoding instead.',
-                      DeprecationWarning)
+        warnings.warn(
+            'CFWriter.update_encoding is deprecated. '
+            'Use satpy.writers.cf_writer.update_encoding instead.',
+            DeprecationWarning,
+            stacklevel=2
+        )
         return update_encoding(dataset, to_netcdf_kwargs)
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
@@ -807,7 +826,10 @@ class CFWriter(Writer):
         # sort by name, but don't use the name
         for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
-                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
+                warnings.warn(
+                    'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
+                    stacklevel=3
+                )
             # we may be adding attributes, coordinates, or modifying the
             # structure of attributes
             ds = ds.copy(deep=True)

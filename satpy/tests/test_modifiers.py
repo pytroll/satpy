@@ -392,6 +392,103 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 
 
+class TestPSPRayleighReflectance:
+    """Test the pyspectral-based Rayleigh correction modifier."""
+
+    def make_data_area(self):
+        """Create test area definition and data."""
+        rows = 3
+        cols = 5
+        area = AreaDefinition(
+            'some_area_name', 'On-the-fly area', 'geosabii',
+            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
+             'units': 'm'},
+            cols, rows,
+            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
+
+        data = np.zeros((rows, cols)) + 25
+        data[1, :] += 25
+        data[2, :] += 50
+        data = da.from_array(data, chunks=2)
+        return area, data
+
+    @pytest.mark.parametrize(
+        ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength",
+         "exp_mean", "exp_unique"),
+        [
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", 70, 95, 1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+            ("B02", (0.49, 0.51, 0.53), 1000, "rayleigh_only", 70, 95, 1, 43.663805,
+             np.array([13.15770104, 14.26526104, 16.49084485, 40.88633902, 42.60682921, 46.04288,
+                       46.2356062, 46.28276282, 70.92799823, 71.33561614, 72.07001693])),
+            ("B03", (0.62, 0.64, 0.66), 500, "rayleigh_only", 70, 95, 1, 46.916187,
+             np.array([19.22922328, 19.76884762, 20.91027446, 45.51075967, 46.39925968, 48.10221156,
+                       48.15715058, 48.18698356, 73.01115816, 73.21552816, 73.58666477])),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+        ]
+    )
+    def test_rayleigh_corrector(self, name, wavelength, resolution, aerosol_type, reduce_lim_low, reduce_lim_high,
+                                reduce_strength, exp_mean, exp_unique):
+        """Test PSPRayleighReflectance with fake data."""
+        from satpy.modifiers.atmosphere import PSPRayleighReflectance
+        ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types=aerosol_type,
+                                         reduce_lim_low=reduce_lim_low, reduce_lim_high=reduce_lim_high,
+                                         reduce_strength=reduce_strength)
+        assert ray_cor.attrs['name'] == name
+        assert ray_cor.attrs['atmosphere'] == 'us-standard'
+        assert ray_cor.attrs['aerosol_types'] == aerosol_type
+        assert ray_cor.attrs['reduce_lim_low'] == reduce_lim_low
+        assert ray_cor.attrs['reduce_lim_high'] == reduce_lim_high
+        assert ray_cor.attrs['reduce_strength'] == reduce_strength
+
+        area, dnb = self.make_data_area()
+        input_band = xr.DataArray(dnb,
+                                  dims=('y', 'x'),
+                                  attrs={
+                                      'platform_name': 'Himawari-8',
+                                      'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                      'name': name, 'resolution': resolution, 'sensor': 'ahi',
+                                      'start_time': '2017-09-20 17:30:40.800000',
+                                      'end_time': '2017-09-20 17:41:17.500000',
+                                      'area': area, 'ancillary_variables': [],
+                                      'orbital_parameters': {
+                                          'satellite_nominal_longitude': -89.5,
+                                          'satellite_nominal_latitude': 0.0,
+                                          'satellite_nominal_altitude': 35786023.4375,
+                                      },
+                                  })
+
+        red_band = xr.DataArray(dnb,
+                                dims=('y', 'x'),
+                                attrs={
+                                    'platform_name': 'Himawari-8',
+                                    'calibration': 'reflectance', 'units': '%', 'wavelength': (0.62, 0.64, 0.66),
+                                    'name': 'B03', 'resolution': 500, 'sensor': 'ahi',
+                                    'start_time': '2017-09-20 17:30:40.800000',
+                                    'end_time': '2017-09-20 17:41:17.500000',
+                                    'area': area, 'ancillary_variables': [],
+                                    'orbital_parameters': {
+                                        'satellite_nominal_longitude': -89.5,
+                                        'satellite_nominal_latitude': 0.0,
+                                        'satellite_nominal_altitude': 35786023.4375,
+                                    },
+                                })
+
+        res = ray_cor([input_band, red_band])
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+
+        data = res.values
+        unique = np.unique(data[~np.isnan(data)])
+        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
+        assert data.shape == (3, 5)
+        np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
+
+
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
