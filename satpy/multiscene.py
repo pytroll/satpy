@@ -46,7 +46,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None, combine_times=True, blend_type='stack_no_weights'):
+def stack(datasets, weights=None, combine_times=True, blend_type='select_with_weights'):
     """Combine a series of datasets in different ways.
 
     By default, datasets are stacked on top of each other, so the last one applied is
