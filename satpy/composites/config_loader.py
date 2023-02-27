@@ -131,9 +131,12 @@ class _ModifierConfigHelper:
             loader = modifier_info.pop('modifier', None)
             if loader is None:
                 loader = modifier_info.pop('compositor')
-                warnings.warn("Modifier '{}' uses deprecated 'compositor' "
-                              "key to point to Python class, replace "
-                              "with 'modifier'.".format(modifier_name))
+                warnings.warn(
+                    "Modifier '{}' uses deprecated 'compositor' "
+                    "key to point to Python class, replace "
+                    "with 'modifier'.".format(modifier_name),
+                    stacklevel=5
+                )
         except KeyError:
             raise ValueError("'modifier' key missing or empty for '{}'. Option keys = {}".format(
                 modifier_name, str(modifier_info.keys())))

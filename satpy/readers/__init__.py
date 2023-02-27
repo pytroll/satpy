@@ -180,10 +180,12 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
                 group_key = tuple(file_info.get(k) for k in group_keys)
                 if all(g is None for g in group_key):
                     warnings.warn(
-                            f"Found matching file {f:s} for reader "
-                            "{reader_name:s}, but none of group keys found. "
-                            "Group keys requested: " + ", ".join(group_keys),
-                            UserWarning)
+                        f"Found matching file {f:s} for reader "
+                        "{reader_name:s}, but none of group keys found. "
+                        "Group keys requested: " + ", ".join(group_keys),
+                        UserWarning,
+                        stacklevel=3
+                    )
                 file_keys[reader_name].append((group_key, f))
     return file_keys
 
@@ -356,9 +358,12 @@ def get_valid_reader_names(reader):
 
         if reader_name in PENDING_OLD_READER_NAMES:
             new_name = PENDING_OLD_READER_NAMES[reader_name]
-            warnings.warn("Reader name '{}' is being deprecated and will be removed soon."
-                          "Please use '{}' instead.".format(reader_name, new_name),
-                          FutureWarning)
+            warnings.warn(
+                "Reader name '{}' is being deprecated and will be removed soon."
+                "Please use '{}' instead.".format(reader_name, new_name),
+                FutureWarning,
+                stacklevel=2
+            )
             new_readers.append(new_name)
         else:
             new_readers.append(reader_name)
