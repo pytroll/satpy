@@ -876,7 +876,8 @@ class TestCategoricalDataCompositor:
         from satpy.composites import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
         comp = CategoricalDataCompositor(name='foo', lut=lut)
-        np.testing.assert_raises(ValueError, comp, [categorical_data, categorical_data])
+        with pytest.raises(ValueError):
+            comp([categorical_data, categorical_data])
 
     def test_respect_dtype(self, categorical_data):
         """Test that choice of dtype is respected."""
