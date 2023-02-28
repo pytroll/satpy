@@ -132,7 +132,7 @@ class _CLAVRxHelper:
 
         flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
         if not flags:
-            data = data.where(data != fill).astype(data.dtype)
+            data = data.where(data != fill)
             data = _CLAVRxHelper._scale_data(data, factor, offset)
             # don't need _FillValue if it has been applied.
             attrs.pop('_FillValue', None)
