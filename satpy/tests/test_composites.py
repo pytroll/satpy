@@ -878,6 +878,17 @@ class TestCategoricalDataCompositor:
         comp = CategoricalDataCompositor(name='foo', lut=lut)
         np.testing.assert_raises(ValueError, comp, [categorical_data, categorical_data])
 
+    def test_respect_dtype(self, categorical_data):
+        """Test that choice of dtype is respected."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [0, 1, 2, 3]
+        comp = CategoricalDataCompositor(name="mavas", lut=lut, dtype="uint8")
+        res = comp([categorical_data])
+        assert res.dtype == np.uint8
+        comp = CategoricalDataCompositor(name="mavas", lut=lut, dtype="int32")
+        res = comp([categorical_data])
+        assert res.dtype == np.int32
+
 
 class TestGenericCompositor(unittest.TestCase):
     """Test generic compositor."""

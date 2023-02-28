@@ -337,14 +337,15 @@ class CategoricalDataCompositor(CompositeBase):
         res = [[20, 40, 30], [50, 30, 10]]
     """
 
-    def __init__(self, name, lut=None, **kwargs):
+    def __init__(self, name, lut=None, dtype=None, **kwargs):
         """Get look-up-table used to recategorize data.
 
         Args:
             lut (list): a list of new categories. The lenght must be greater than the
                         maximum value in the data array that should be recategorized.
+            dtype (Optional[str]): dtype to be used for the new contents.
         """
-        self.lut = np.array(lut)
+        self.lut = np.array(lut, dtype=dtype)
         super(CategoricalDataCompositor, self).__init__(name, **kwargs)
 
     def _update_attrs(self, new_attrs):
