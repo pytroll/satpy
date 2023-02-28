@@ -343,9 +343,11 @@ class CategoricalDataCompositor(CompositeBase):
         Args:
             lut (list): a list of new categories. The lenght must be greater than the
                         maximum value in the data array that should be recategorized.
-            dtype (Optional[str]): dtype to be used for the new contents.
         """
-        self.lut = np.array(lut, dtype=dtype)
+        lut = np.array(lut)
+        self.lut = np.array(
+                lut,
+                dtype=np.result_type(np.min_scalar_type(lut.min()), lut.max()))
         super(CategoricalDataCompositor, self).__init__(name, **kwargs)
 
     def _update_attrs(self, new_attrs):
@@ -362,8 +364,11 @@ class CategoricalDataCompositor(CompositeBase):
         if len(projectables) != 1:
             raise ValueError("Can't have more than one dataset for a categorical data composite")
 
-        data = projectables[0].astype(int)
-        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+        data = projectables[0]
+        if not np.issubdtype(data.dtype, np.integer):
+            raise TypeError(f"{type(self).__name__:s} can only be used on "
+                            f"integer data, got {data.dtype!s}")
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=data.dtype)
 
         new_attrs = data.attrs.copy()
         self._update_attrs(new_attrs)

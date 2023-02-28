@@ -853,7 +853,9 @@ class TestCategoricalDataCompositor:
     def categorical_data(self):
         """Create test data."""
         attrs = {'name': 'foo'}
-        data = xr.DataArray(da.from_array([[2., 1.], [3., 0.]]), attrs=attrs,
+        data = xr.DataArray(da.from_array(
+                                np.array([[2, 1], [3, 0]], dtype="uint8")),
+                            attrs=attrs,
                             dims=('y', 'x'), coords={'y': [0, 1], 'x': [0, 1]})
 
         return data
@@ -865,10 +867,10 @@ class TestCategoricalDataCompositor:
         name = 'bar'
         comp = CategoricalDataCompositor(name=name, lut=lut)
         res = comp([categorical_data])
-        res = res.compute()
+        assert res.dtype == categorical_data.dtype
         expected = np.array([[1., 0.], [1., np.nan]])
         np.testing.assert_equal(res.values, expected)
-        np.testing.assert_equal(res.attrs['name'], name)
+        assert res.attrs["name"] == name
         np.testing.assert_equal(res.attrs['composite_lut'], lut)
 
     def test_too_many_datasets(self, categorical_data):
