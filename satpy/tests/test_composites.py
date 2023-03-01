@@ -863,14 +863,15 @@ class TestCategoricalDataCompositor:
     def test_basic_recategorization(self, categorical_data):
         """Test general functionality of compositor incl. attributes."""
         from satpy.composites import CategoricalDataCompositor
-        lut = [np.nan, 0, 1, 1]
+        lut = [255, 0, 1, 1]
         name = 'bar'
-        comp = CategoricalDataCompositor(name=name, lut=lut)
+        comp = CategoricalDataCompositor(name=name, lut=lut, fill_value=255)
         res = comp([categorical_data])
         assert res.dtype == categorical_data.dtype
-        expected = np.array([[1., 0.], [1., np.nan]])
+        expected = np.array([[1., 0.], [1., 255]])
         np.testing.assert_equal(res.values, expected)
         assert res.attrs["name"] == name
+        assert res.attrs["_FillValue"] == 255
         np.testing.assert_equal(res.attrs['composite_lut'], lut)
 
     def test_too_many_datasets(self, categorical_data):
