@@ -469,7 +469,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
-          - dataset: cmic_reff_pal
+          - dataset: cmic_cre_pal
             color_scale: 255
 
   cloud_optical_thickness_geo:

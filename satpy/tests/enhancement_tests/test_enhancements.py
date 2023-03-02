@@ -502,67 +502,67 @@ def fake_area():
 
 
 _nwcsaf_geo_props = {
-     'cma_geo': ("geo", "cma", 'cma_pal', None, 'cloudmask', 'CMA', "uint8"),
-     'cma_pps': ("pps", "cma", 'cma_pal', None, 'cloudmask', 'CMA', "uint8"),
-     'cma_extended_pps': ("pps", "cma_extended", 'cma_extended_pal', None,
+     'cma_geo': ("geo", "cma", None, 'cma_pal', None, 'cloudmask', 'CMA', "uint8"),
+     'cma_pps': ("pps", "cma", None, 'cma_pal', None, 'cloudmask', 'CMA', "uint8"),
+     'cma_extended_pps': ("pps", "cma_extended", None, 'cma_extended_pal', None,
                           'cloudmask_extended', 'CMA', "uint8"),
-     'cmaprob_pps': ("pps", "cmaprob", 'cmaprob_pal', None, 'cloudmask_probability',
+     'cmaprob_pps': ("pps", "cmaprob", None, 'cmaprob_pal', None, 'cloudmask_probability',
                      'CMAPROB', "uint8"),
-     'ct_geo': ("geo", "ct", 'ct_pal', None, 'cloudtype', 'CT', "uint8"),
-     'ct_pps': ("pps", "ct", 'ct_pal', None, 'cloudtype', 'CT', "uint8"),
-     'ctth_alti_geo': ("geo", "ctth_alti", 'ctth_alti_pal', None, 'cloud_top_height',
+     'ct_geo': ("geo", "ct", None, 'ct_pal', None, 'cloudtype', 'CT', "uint8"),
+     'ct_pps': ("pps", "ct", None, 'ct_pal', None, 'cloudtype', 'CT', "uint8"),
+     'ctth_alti_geo': ("geo", "ctth_alti", None, 'ctth_alti_pal', None, 'cloud_top_height',
                        'CTTH', "float64"),
-     'ctth_alti_pps': ("pps", "ctth_alti", 'ctth_alti_pal', "ctth_status_flag",
+     'ctth_alti_pps': ("pps", "ctth_alti", None, 'ctth_alti_pal', "ctth_status_flag",
                        'cloud_top_height', 'CTTH', "float64"),
-     'ctth_pres_geo': ("geo", "ctth_pres", 'ctth_pres_pal', None, 'cloud_top_pressure',
+     'ctth_pres_geo': ("geo", "ctth_pres", None, 'ctth_pres_pal', None, 'cloud_top_pressure',
                        'CTTH', "float64"),
-     'ctth_pres_pps': ("pps", "ctth_pres", 'ctth_pres_pal', None, 'cloud_top_pressure',
+     'ctth_pres_pps': ("pps", "ctth_pres", None, 'ctth_pres_pal', None, 'cloud_top_pressure',
                        'CTTH', "float64"),
-     'ctth_tempe_geo': ("geo", "ctth_tempe", 'ctth_tempe_pal', None, 'cloud_top_temperature',
+     'ctth_tempe_geo': ("geo", "ctth_tempe", None, 'ctth_tempe_pal', None, 'cloud_top_temperature',
                         'CTTH', "float64"),
-     'ctth_tempe_pps': ("pps", "ctth_tempe", 'ctth_tempe_pal', None, 'cloud_top_temperature',
+     'ctth_tempe_pps': ("pps", "ctth_tempe", None, 'ctth_tempe_pal', None, 'cloud_top_temperature',
                         'CTTH', "float64"),
-     'cmic_phase_geo': ("geo", "cmic_phase", 'cmic_phase_pal', None, 'cloud_top_phase',
+     'cmic_phase_geo': ("geo", "cmic_phase", None, 'cmic_phase_pal', None, 'cloud_top_phase',
                         'CMIC', "uint8"),
-     'cmic_phase_pps': ("pps", "cmic_phase", 'cmic_phase_pal', None, 'cloud_top_phase',
+     'cmic_phase_pps': ("pps", "cmic_phase", None, 'cmic_phase_pal', None, 'cloud_top_phase',
                         'CMIC', "uint8"),
-     'cmic_reff_geo': ("geo", "cmic_reff", 'cmic_reff_pal', None, 'cloud_drop_effective_radius',
+     'cmic_reff_geo': ("geo", "cmic_reff", None, 'cmic_reff_pal', None, 'cloud_drop_effective_radius',
                        'CMIC', "float64"),
-     'cmic_reff_pps': ("pps", "cmic_reff", 'cmic_reff_pal', None, 'cloud_drop_effective_radius',
+     'cmic_reff_pps': ("pps", "cmic_reff", "cmic_cre", 'cmic_cre_pal', None, 'cloud_drop_effective_radius',
                        'CMIC', "float64"),
-     'cmic_cot_geo': ("geo", "cmic_cot", 'cmic_cot_pal', None, 'cloud_optical_thickness',
+     'cmic_cot_geo': ("geo", "cmic_cot", None, 'cmic_cot_pal', None, 'cloud_optical_thickness',
                       'CMIC', "float64"),
-     'cmic_cot_pps': ("pps", "cmic_cot", 'cmic_cot_pal', None, 'cloud_optical_thickness',
+     'cmic_cot_pps': ("pps", "cmic_cot", None, 'cmic_cot_pal', None, 'cloud_optical_thickness',
                       'CMIC', "float64"),
-     'cmic_cwp_pps': ("pps", "cmic_cwp", 'cmic_cwp_pal', None, 'cloud_water_path',
+     'cmic_cwp_pps': ("pps", "cmic_cwp", None, 'cmic_cwp_pal', None, 'cloud_water_path',
                       'CMIC', "float64"),
-     'cmic_lwp_geo': ("geo", "cmic_lwp", 'cmic_lwp_pal', None, 'cloud_liquid_water_path',
+     'cmic_lwp_geo': ("geo", "cmic_lwp", None, 'cmic_lwp_pal', None, 'cloud_liquid_water_path',
                       'CMIC', "float64"),
-     'cmic_lwp_pps': ("pps", "cmic_lwp", 'cmic_lwp_pal', None, 'liquid_water_path',
+     'cmic_lwp_pps': ("pps", "cmic_lwp", None, 'cmic_lwp_pal', None, 'liquid_water_path',
                       'CMIC', "float64"),
-     'cmic_iwp_geo': ("geo", "cmic_iwp", 'cmic_iwp_pal', None, 'cloud_ice_water_path',
+     'cmic_iwp_geo': ("geo", "cmic_iwp", None, 'cmic_iwp_pal', None, 'cloud_ice_water_path',
                       'CMIC', "float64"),
-     'cmic_iwp_pps': ("pps", "cmic_iwp", 'cmic_iwp_pal', None, 'ice_water_path',
+     'cmic_iwp_pps': ("pps", "cmic_iwp", None, 'cmic_iwp_pal', None, 'ice_water_path',
                       'CMIC', "float64"),
-     'pc': ("geo", "pc", 'pc_pal', None, 'precipitation_probability', 'PC', "uint8"),
-     'crr': ("geo", "crr", 'crr_pal', None, 'convective_rain_rate', 'CRR', "uint8"),
-     'crr_accum': ("geo", "crr_accum", 'crr_pal', None,
+     'pc': ("geo", "pc", None, 'pc_pal', None, 'precipitation_probability', 'PC', "uint8"),
+     'crr': ("geo", "crr", None, 'crr_pal', None, 'convective_rain_rate', 'CRR', "uint8"),
+     'crr_accum': ("geo", "crr_accum", None, 'crr_pal', None,
                    'convective_precipitation_hourly_accumulation', 'CRR', "uint8"),
-     'ishai_tpw': ("geo", "ishai_tpw", 'ishai_tpw_pal', None, 'total_precipitable_water',
+     'ishai_tpw': ("geo", "ishai_tpw", None, 'ishai_tpw_pal', None, 'total_precipitable_water',
                    'iSHAI', "float64"),
-     'ishai_shw': ("geo", "ishai_shw", 'ishai_shw_pal', None, 'showalter_index',
+     'ishai_shw': ("geo", "ishai_shw", None, 'ishai_shw_pal', None, 'showalter_index',
                    'iSHAI', "float64"),
-     'ishai_li': ("geo", "ishai_li", 'ishai_li_pal', None, 'lifted_index',
+     'ishai_li': ("geo", "ishai_li", None, 'ishai_li_pal', None, 'lifted_index',
                   'iSHAI', "float64"),
-     'ci_prob30': ("geo", "ci_prob30", 'ci_pal', None, 'convection_initiation_prob30',
+     'ci_prob30': ("geo", "ci_prob30", None, 'ci_pal', None, 'convection_initiation_prob30',
                    'CI', "float64"),
-     'ci_prob60': ("geo", "ci_prob60", 'ci_pal', None, 'convection_initiation_prob60',
+     'ci_prob60': ("geo", "ci_prob60", None, 'ci_pal', None, 'convection_initiation_prob60',
                    'CI', "float64"),
-     'ci_prob90': ("geo", "ci_prob90", 'ci_pal', None, 'convection_initiation_prob90',
+     'ci_prob90': ("geo", "ci_prob90", None, 'ci_pal', None, 'convection_initiation_prob90',
                    'CI', "float64"),
-     'asii_turb_trop_prob': ("geo", "asii_turb_trop_prob", 'asii_turb_prob_pal', None,
+     'asii_turb_trop_prob': ("geo", "asii_turb_trop_prob", None, 'asii_turb_prob_pal', None,
                              'asii_prob', 'ASII-NG', "float64"),
-     'MapCellCatType': ("geo", "MapCellCatType", 'MapCellCatType_pal', None,
+     'MapCellCatType': ("geo", "MapCellCatType", None, 'MapCellCatType_pal', None,
                         'rdt_cell_type', 'RDT-CW', "uint8"),
      }
 
@@ -584,7 +584,7 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
     from satpy.writers import get_enhanced_image
 
     from ... import Scene
-    (flavour, dvname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
+    (flavour, dvname, altname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
     rng = (0, 100) if dtp == "uint8" else (-100, 1000)
     if flavour == "geo":
         fn = f"S_NWC_{filelabel:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
@@ -603,7 +603,8 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                 "source": "satpy unit test",
                 "time_coverage_start": "0001-01-01T00:00:00Z",
                 "time_coverage_end": "0001-01-01T01:00:00Z",
-                } | id_)
+                } | id_,
+            )
     ds.to_netcdf(fk)
     sc = Scene(filenames=[os.fspath(fk)], reader=[reader])
     sc[palettename] = xr.DataArray(
@@ -626,7 +627,12 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                 "area": fake_area,
                 "ancillary_variables": ancvars,
                 "valid_range": rng})
-    sc.load([comp])
+
+    def _fake_get_varname(info, info_type="file_key"):
+        return altname or dvname
+    with mock.patch("satpy.readers.nwcsaf_nc.NcNWCSAF._get_varname_in_file") as srnN_:
+        srnN_.side_effect = _fake_get_varname
+        sc.load([comp])
     im = get_enhanced_image(sc[comp])
     if flavour == "geo":
         assert im.mode == "P"
