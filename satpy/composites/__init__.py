@@ -718,9 +718,6 @@ class DayNightCompositor(GenericCompositor):
             day_data = zero_missing_data(day_data, night_data)
             night_data = zero_missing_data(night_data, day_data)
 
-        if not self.include_alpha:
-            weights = da.where(np.isnan(weights), 0, weights)
-
         data = self._weight_data(day_data, night_data, weights, attrs)
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
@@ -792,12 +789,19 @@ class DayNightCompositor(GenericCompositor):
         return da.where(mask, weights, np.nan)
 
     def _weight_data(self, day_data, night_data, weights, attrs):
+        if not self.include_alpha:
+            fill = 1 if self.day_night == "night_only" else 0
+            weights = da.where(np.isnan(weights), fill, weights)
+
         data = []
         for b in _get_band_names(day_data, night_data):
+            # if self.day_night == "night_only" and self.include_alpha is False:
+            #     import ipdb; ipdb.set_trace()
             day_band = _get_single_band_data(day_data, b)
             night_band = _get_single_band_data(night_data, b)
             # For day-only and night-only products only the alpha channel is weighted
-            if b == 'A' or "only" not in self.day_night:
+            # If there's no alpha band, weight the actual data
+            if b == 'A' or "only" not in self.day_night or not self.include_alpha:
                 day_band = day_band * weights
                 night_band = night_band * (1 - weights)
             band = day_band + night_band
