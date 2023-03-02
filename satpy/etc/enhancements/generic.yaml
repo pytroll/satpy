@@ -372,6 +372,16 @@ enhancements:
           - dataset: cma_pal
             color_scale: 255
 
+  cloudmask_extended:
+    standard_name: cloudmask_extended
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: cma_extended_pal
+            color_scale: 255
+
   cloudmask_probability:
     standard_name: cloudmask_probability
     operations:
@@ -383,7 +393,27 @@ enhancements:
             color_scale: 255
 
   cloud_top_height:
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_geo
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+            color_scale: 255
+
+  cloud_top_height_pps:
+    standard_name: cloud_top_height_pps
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+
+  cloud_top_height_geo:
+    standard_name: cloud_top_height_geo
     operations:
     - name: palettize
       method: !!python/name:satpy.enhancements.palettize
@@ -422,8 +452,8 @@ enhancements:
           - dataset: cmic_phase_pal
             color_scale: 255
 
-  cloud_drop_effective_radius:
-    standard_name: cloud_drop_effective_radius
+  cloud_drop_effective_radius_geo:
+    standard_name: cloud_drop_effective_radius_geo
     operations:
     - name: palettize
       method: !!python/name:satpy.enhancements.palettize
@@ -432,11 +462,31 @@ enhancements:
           - dataset: cmic_reff_pal
             color_scale: 255
 
-  cloud_optical_thickness:
-    standard_name: cloud_optical_thickness
+  cloud_drop_effective_radius_pps:
+    standard_name: cloud_drop_effective_radius_pps
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_reff_pal
+            color_scale: 255
+
+  cloud_optical_thickness_geo:
+    standard_name: cloud_optical_thickness_geo
     operations:
     - name: palettize
       method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: cmic_cot_pal
+            color_scale: 255
+
+  cloud_optical_thickness_pps:
+    standard_name: cloud_optical_thickness_pps
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
