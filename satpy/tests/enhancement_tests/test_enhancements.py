@@ -603,8 +603,9 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                 "source": "satpy unit test",
                 "time_coverage_start": "0001-01-01T00:00:00Z",
                 "time_coverage_end": "0001-01-01T01:00:00Z",
-                } | id_,
+                }
             )
+    ds.attrs.update(id_)
     ds.to_netcdf(fk)
     sc = Scene(filenames=[os.fspath(fk)], reader=[reader])
     sc[palettename] = xr.DataArray(
