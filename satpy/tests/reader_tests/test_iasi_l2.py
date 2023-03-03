@@ -345,7 +345,7 @@ def fake_iasi_l2_cdr_nc_dataset():
     temps[0, 0, 0] = fv
     temp = xr.DataArray(
             temps, dims=dims,
-            attrs={"coordinates": coords3, "_FillValue": fv})
+            attrs={"coordinates": coords3, "_FillValue": fv, "units": "K"})
 
     iasibad = xr.DataArray(
             np.zeros(shp[:2], dtype="uint8"),
@@ -397,3 +397,4 @@ def test_iasi_l2_cdr_nc(fake_iasi_l2_cdr_nc_file):
     assert np.isnan(sc["T"][0, 0, 0])
     assert sc["FLG_IASIBAD"][0, 0] == 1
     assert sc["CloudFraction"].dtype == np.dtype("uint8")
+    assert sc["T"].attrs["units"] == "K"
