@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -252,7 +249,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # as fallback until all L2PF test files are correctly formatted.
         rf = float(self._projection.attrs.get('inverse_flattening', 298.257223563))
 
-        res = dataset_id.resolution
+        res = dataset_id["resolution"]
 
         area_naming_input_dict = {'platform_name': 'mtg',
                                   'instrument_name': 'fci',
@@ -360,7 +357,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        res = dataset_id.resolution
+        res = dataset_id["resolution"]
 
         area_naming_input_dict = {'platform_name': 'mtg',
                                   'instrument_name': 'fci',

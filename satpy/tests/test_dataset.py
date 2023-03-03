@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2022 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -686,7 +684,7 @@ class TestIDQueryInteractions(unittest.TestCase):
                        resolution=3000.403165817, calibration="counts", modifiers=())]
         dq = DataQuery(wavelength=0.8)
         res, distances = dq.sort_dataids(dids)
-        assert res[0].name == "HRV"
+        assert res[0]["name"] == "HRV"
 
 
 def test_frequency_quadruple_side_band_class_method_convert():
@@ -953,10 +951,3 @@ def test_wavelength_range_cf_roundtrip():
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
     assert WavelengthRange.from_cf([str(item) for item in wr]) == wr
-
-
-def test_attributeerror():
-    """Test that DataID attribute access gives correct AttributeError."""
-    did = DataID({})
-    with pytest.raises(AttributeError, match="'DataID' object has no attribute 'unknown'"):
-        did.unknown

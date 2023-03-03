@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +35,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         """Load a dataset."""
         var = info['file_key']
         if self.filetype_info['file_type'] == 'abi_l2_mcmip':
-            var += "_" + key.name
+            var += "_" + key["name"]
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self[var]
         variable.attrs.update(key.to_dict())
