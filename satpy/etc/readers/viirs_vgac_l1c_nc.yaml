@@ -1,0 +1,239 @@
+reader:
+  name: viirs_vgac_l1c_nc
+  short_name: VGAC from VIIRS MOD and IMG channels
+  long_name: VIIRS Global Area Coverage from VIIRS Reflected Solar Band and Thermal Emission Band data for both Moserate resolution and Imager resolution channels.
+  description: >
+    NetCDF4 reader for VGAC from VIIRS.
+  sensors: [viirs]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    vgac_nc:
+        file_reader: !!python/name:satpy.readers.viirs_vgac_l1c_nc.VGACFileHandler
+        file_patterns: ['VGAC_VJ102MOD_A{start_time:%Y%j_%H%M}_n001919_K005.nc']
+
+datasets:
+
+  M05:
+    name: M05
+    resolution: 5000
+    wavelength: [0.56, 0.672, 0.71]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M05
+
+  M07:
+    name: M07
+    resolution: 5000
+    wavelength: [0.74, 0.865, 0.88]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M07
+
+  M09:
+    name: M09
+    resolution: 5000
+    wavelength: [1.37, 1.378, 1.385]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M09
+
+  M10:
+    name: M10
+    resolution: 5000
+    wavelength: [1.5, 1.64, 1.78]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M10
+
+  M12:
+    name: M12
+    resolution: 5000
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    scale_factor: 0.0005
+    file_type: vgac_nc
+    nc_key: M12
+
+  M13:
+    name: M13
+    resolution: 5000
+    wavelength: [3.48, 3.888, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    scale_factor_nc: 0.05
+    file_type: vgac_nc
+    nc_key: M13
+
+  M11:
+    name: M11
+    resolution: 5000
+    wavelength: [3.48, 2.22, 4.36]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M11
+
+  M14:
+    name: M14
+    resolution: 5000
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: counts
+    scale_factor_nc: 0.002
+    file_type: vgac_nc
+    nc_key: M14
+
+  M15:
+    name: M15
+    resolution: 5000
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    scale_factor_nc: 0.002
+    file_type: vgac_nc
+    nc_key: M15
+
+  M16:
+    name: M16
+    resolution: 5000
+    wavelength: [12.4, 13.4, 14.4]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: counts
+    scale_factor_nc: 0.002
+    file_type: vgac_nc
+    nc_key: M16
+
+  M12_LUT:
+    name: M12_LUT
+    resolution: 5000
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: vgac_nc
+    nc_key: M12_LUT
+
+  M13_LUT:
+    name: M13_LUT
+    resolution: 5000
+    wavelength: [3.48, 888.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: vgac_nc
+    nc_key: M13_LUT
+
+  M14_LUT:
+    name: M14_LUT
+    resolution: 5000
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: vgac_nc
+    nc_key: M14_LUT
+
+  M15_LUT:
+    name: M15_LUT
+    resolution: 5000
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: vgac_nc
+    nc_key: M15_LUT
+
+  M16_LUT:
+    name: M16_LUT
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: vgac_nc
+    nc_key: M16_LUT
+
+  sza:
+    name: sza
+    standard_name: solar_zenith_angle
+    resolution: 5000
+    file_type: vgac_nc
+    coordinates: [longitude, latitude]
+    units: degrees
+    nc_key: sza
+
+  vza:
+    name: vza
+    standard_name: sensor_zenith_angle
+    resolution: 5000
+    file_type:  vgac_nc
+    coordinates: [longitude, latitude]
+    units: degrees
+    nc_key: vza
+
+  azn:
+    name: azn
+    standard_name: solar_azimuth_angle
+    resolution: 5000
+    file_type:  vgac_nc
+    coordinates: [longitude, latitude]
+    units: degrees
+    nc_key: azn
+
+  azi:
+    name: azi
+    standard_name: sensor_azimuth_angle
+    resolution: 5000
+    file_type:  vgac_nc
+    coordinates: [longitude, latitude]
+    units: degrees
+    nc_key: azi
+
+  latitude:
+        name: latitude
+        file_type: vgac_nc
+        standard_name: latitude
+        units: degrees_north
+        nc_key: lat
+
+  longitude:
+        name: longitude
+        file_type: vgac_nc
+        standard_name: longitude
+        units: degrees_east
+        nc_key: lon
+
+  time:
+    name: time
+    resolution: 5000
+    file_type:  vgac_nc
+    nc_key: time
