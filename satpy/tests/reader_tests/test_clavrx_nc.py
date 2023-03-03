@@ -95,9 +95,9 @@ def fake_test_content(filename, **kwargs):
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
                              attrs={'SCALED': 0,
-                                    '_FillValue': -128,
+                                    '_FillValue': -127,
                                     'units': '1',
-                                    })
+                                    'flag_values': [0, 1, 2, 3]})
 
     ds_vars = {
         'longitude': longitude,
@@ -195,8 +195,8 @@ class TestCLAVRXReaderGeo:
                     if v.attrs["name"] in ["variable1", "variable2"]:
                         assert isinstance(v.attrs["valid_range"], list)
                         assert v.dtype == np.float32
+                        assert "_FillValue" not in v.attrs.keys()
                     else:
                         assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
                         assert (datasets['variable3'].attrs.get('flag_meanings') == '<flag_meanings_unknown>')
-                        assert "_FillValue" not in v.attrs.keys()
                         assert np.issubdtype(v.dtype, np.integer)
