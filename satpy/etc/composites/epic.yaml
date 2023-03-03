@@ -1,0 +1,40 @@
+sensor_name: visir/epic
+
+modifiers:
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    optional_prerequisites:
+    - solar_zenith_angle
+
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: B680
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+composites:
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: B680
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B551
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B443
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: B680
+      - name: B551
+      - name: B443
+    standard_name: true_color

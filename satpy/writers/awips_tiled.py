@@ -939,11 +939,14 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
 
         if len(prod_location) > 31:
-            warnings.warn("Production location attribute is longer than 31 "
-                          "characters (AWIPS limit). Set it to a smaller "
-                          "value with the 'ORGANIZATION' environment "
-                          "variable. Defaults to hostname and is currently "
-                          "set to '{}'.".format(prod_location))
+            warnings.warn(
+                "Production location attribute is longer than 31 "
+                "characters (AWIPS limit). Set it to a smaller "
+                "value with the 'ORGANIZATION' environment "
+                "variable. Defaults to hostname and is currently "
+                "set to '{}'.".format(prod_location),
+                stacklevel=2
+            )
             prod_location = prod_location[:31]
         return prod_location
 
@@ -1103,7 +1106,9 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if len(attrs.get("units", "")) > 26:
             warnings.warn(
                 "AWIPS 'units' must be limited to a maximum of 26 characters. "
-                "Units '{}' is too long and will be truncated.".format(attrs["units"]))
+                "Units '{}' is too long and will be truncated.".format(attrs["units"]),
+                stacklevel=2
+            )
             attrs["units"] = attrs["units"][:26]
         return attrs
 
@@ -1262,9 +1267,13 @@ class AWIPSTiledWriter(Writer):
         self._enhancer = None
 
         if self.fix_awips:
-            warnings.warn("'fix_awips' flag no longer has any effect and is "
-                          "deprecated. Modern versions of AWIPS should not "
-                          "require this hack.", DeprecationWarning)
+            warnings.warn(
+                "'fix_awips' flag no longer has any effect and is "
+                "deprecated. Modern versions of AWIPS should not "
+                "require this hack.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             self.fix_awips = False
 
     @property

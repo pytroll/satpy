@@ -14,7 +14,6 @@
   nc_vii_l2_cld:
     file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
     file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-VII-02-CLD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
-    #W_XX-EUMETSAT-Darmstadt,SAT,SGA1-VII-02-CLD_C_EUMT_20211110105731_G_D_20070912084303_20070912084403_T_B____
     cached_longitude: data/measurement_data/longitude
     cached_latitude: data/measurement_data/latitude
     orthorect: False
@@ -56,7 +55,7 @@
     cached_longitude: data/measurement_data/longitude
     cached_latitude: data/measurement_data/latitude
     interpolate: False
-    #orthorect: False
+    orthorect: False
 
  datasets:
 
@@ -313,7 +312,7 @@
 
   tpw:
     name: tpw
-    file_type: [nc_vii_l2_wvi nc_vii_l2_wvv]
+    file_type: [nc_vii_l2_wvi, nc_vii_l2_wvv]
     file_key: data/measurement_data/tpw
     coordinates: [lat_pixels, lon_pixels]
     standard_name: mass_of_water_in_air

@@ -101,7 +101,7 @@ class FciL2CommonFunctions(object):
         slice_dict = {dim: dataset_info[dim_id] for (dim, dim_id) in dimensions.items()
                       if dim_id in dataset_info.keys() and dim in variable.dims}
         for dim, dim_ind in slice_dict.items():
-            logger.debug(f"Extracting {dimensions[dim]}-index {dim_ind} from dimension '{dim}'.")
+            logger.debug(f"Extracting {dimensions[dim]}-index {dim_ind} from dimension {dim!r}.")
         variable = variable.sel(slice_dict)
 
         return variable
@@ -123,7 +123,7 @@ class FciL2CommonFunctions(object):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        with suppress(OSError):
+        with suppress(AttributeError, OSError):
             self.nc.close()
 
 
