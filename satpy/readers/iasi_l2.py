@@ -195,7 +195,8 @@ class IASIL2CDRNC(NetCDF4FsspecFileHandler):
             ds = ds.rename(pixels="x")
         if "_FillValue" in ds.attrs and ds.dtype.kind == "f":
             with xr.set_options(keep_attrs=True):
-                return xr.where(ds == ds.attrs["_FillValue"], np.nan, ds)
+                # have to inverse the logic due to https://github.com/pydata/xarray/issues/7581
+                return xr.where(ds != ds.attrs["_FillValue"], ds, np.nan)
         return ds
 
     def available_datasets(self, configured_datasets=None):
