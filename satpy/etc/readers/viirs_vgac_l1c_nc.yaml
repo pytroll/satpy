@@ -14,10 +14,55 @@ file_types:
 
 datasets:
 
+  M01:
+    name: M01
+    resolution: 5000
+    wavelength:  [0.392, 0.412, 0.422]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M01
+
+  M02:
+    name: M02
+    resolution: 5000
+    wavelength: [0.436, 0.445, 0.454]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M02
+
+  M03:
+    name: M03
+    resolution: 5000
+    wavelength: [0.478, 0.488, 0.498]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M03
+
+  M04:
+    name: M04
+    resolution: 5000
+    wavelength: [0.545, 0.555, 0.565]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M04
+
+
   M05:
     name: M05
     resolution: 5000
-    wavelength: [0.56, 0.672, 0.71]
+    wavelength: [0.662, 0.672, 0.682]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -25,10 +70,32 @@ datasets:
     file_type: vgac_nc
     nc_key: M05
 
+  M06:
+    name: M06
+    resolution: 5000
+    wavelength: [0.739, 0.746, 0.753]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M06
+
   M07:
     name: M07
     resolution: 5000
-    wavelength: [0.74, 0.865, 0.88]
+    wavelength: [0.845, 0.865, 0.885]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M07
+
+  M08:
+    name: M08
+    resolution: 5000
+    wavelength: [1.230, 1.240, 1.250]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -39,7 +106,7 @@ datasets:
   M09:
     name: M09
     resolution: 5000
-    wavelength: [1.37, 1.378, 1.385]
+    wavelength: [1.371, 1.378, 1.385]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -50,7 +117,7 @@ datasets:
   M10:
     name: M10
     resolution: 5000
-    wavelength: [1.5, 1.64, 1.78]
+    wavelength: [1.58, 1.610, 1.64]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -58,10 +125,21 @@ datasets:
     file_type: vgac_nc
     nc_key: M10
 
+  M11:
+    name: M11
+    resolution: 5000
+    wavelength: [2.2, 2.25, 2.3]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: vgac_nc
+    nc_key: M11
+
   M12:
     name: M12
     resolution: 5000
-    wavelength: [3.48, 3.92, 4.36]
+    wavelength: [3.61, 3.70, 3.79]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -73,7 +151,7 @@ datasets:
   M13:
     name: M13
     resolution: 5000
-    wavelength: [3.48, 3.888, 4.36]
+    wavelength: [3.97, 4.05, 4.13]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -82,21 +160,10 @@ datasets:
     file_type: vgac_nc
     nc_key: M13
 
-  M11:
-    name: M11
-    resolution: 5000
-    wavelength: [3.48, 2.22, 4.36]
-    calibration:
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
-    file_type: vgac_nc
-    nc_key: M11
-
   M14:
     name: M14
     resolution: 5000
-    wavelength: [8.3, 8.7, 9.1]
+    wavelength: [8.4, 8.55, 8.7]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -108,7 +175,7 @@ datasets:
   M15:
     name: M15
     resolution: 5000
-    wavelength: [9.8, 10.8, 11.8]
+    wavelength: [10.263, 10.763, 11.263]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -120,7 +187,7 @@ datasets:
   M16:
     name: M16
     resolution: 5000
-    wavelength: [12.4, 13.4, 14.4]
+    wavelength: [11.538, 12.013, 12.488]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -128,59 +195,6 @@ datasets:
     scale_factor_nc: 0.002
     file_type: vgac_nc
     nc_key: M16
-
-  M12_LUT:
-    name: M12_LUT
-    resolution: 5000
-    wavelength: [3.48, 3.92, 4.36]
-    calibration:
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: K
-    file_type: vgac_nc
-    nc_key: M12_LUT
-
-  M13_LUT:
-    name: M13_LUT
-    resolution: 5000
-    wavelength: [3.48, 888.92, 4.36]
-    calibration:
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: K
-    file_type: vgac_nc
-    nc_key: M13_LUT
-
-  M14_LUT:
-    name: M14_LUT
-    resolution: 5000
-    wavelength: [8.3, 8.7, 9.1]
-    calibration:
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: K
-    file_type: vgac_nc
-    nc_key: M14_LUT
-
-  M15_LUT:
-    name: M15_LUT
-    resolution: 5000
-    wavelength: [9.8, 10.8, 11.8]
-    calibration:
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: K
-    file_type: vgac_nc
-    nc_key: M15_LUT
-
-  M16_LUT:
-    name: M16_LUT
-    calibration:
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: K
-    file_type: vgac_nc
-    nc_key: M16_LUT
 
   sza:
     name: sza
