@@ -10,7 +10,7 @@ reader:
 file_types:
     vgac_nc:
         file_reader: !!python/name:satpy.readers.viirs_vgac_l1c_nc.VGACFileHandler
-        file_patterns: ['VGAC_VJ102MOD_A{start_time:%Y%j_%H%M}_n001919_K005.nc']
+        file_patterns: ['VGAC_VJ102MOD_A{start_time:%Y%j_%H%M}_n{orbitn:06d}_K005.nc']
 
 datasets:
 
