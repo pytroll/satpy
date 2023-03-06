@@ -66,7 +66,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-    scale_factor: 0.0005
+    scale_factor_nc: 0.0005
     file_type: vgac_nc
     nc_key: M12
 
