@@ -181,8 +181,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
@@ -326,8 +324,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'max_area' is deprecated, use 'finest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'max_area' is deprecated, use 'finest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.finest_area(datasets=datasets)
 
     def coarsest_area(self, datasets=None):
@@ -354,8 +355,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'min_area' is deprecated, use 'coarsest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'min_area' is deprecated, use 'coarsest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.coarsest_area(datasets=datasets)
 
     def available_dataset_ids(self, reader_name=None, composites=False):

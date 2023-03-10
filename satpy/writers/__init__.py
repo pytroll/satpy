@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -227,8 +225,12 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
 
     old_args = [color, width, resolution, grid, level_coast, level_borders]
     if any(arg is not None for arg in old_args):
-        warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
-                      " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
+        warnings.warn(
+            "'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
+            " arguments will be deprecated soon. Please use 'overlays' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
         res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
@@ -420,13 +422,6 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
             it is up to the caller to "finalize" the image before using it
             except if calling ``img.show()`` or providing the image to
             a writer as these will finalize the image.
-
-    .. versionchanged:: 0.10
-
-        Deprecated `enhancement_config_file` and 'enhancer' in favor of
-        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
-        instead.
-
     """
     if enhance is False:
         # no enhancement
@@ -516,6 +511,69 @@ def split_results(results):
     return sources, targets, delayeds
 
 
+def group_results_by_output_file(sources, targets):
+    """Group results by output file.
+
+    For writers that return sources and targets for ``compute=False``, split
+    the results by output file.
+
+    When not only the data but also GeoTIFF tags are dask arrays, then
+    ``save_datasets(..., compute=False)``` returns a tuple of flat lists,
+    where the second list consists of a mixture of ``RIOTag`` and ``RIODataset``
+    objects (from trollimage).  In some cases, we may want to get a seperate
+    delayed object for each file; for example, if we want to add a wrapper to do
+    something with the file as soon as it's finished.  This function unflattens
+    the flat lists into a list of (src, target) tuples.
+
+    For example, to close files as soon as computation is completed::
+
+        >>> @dask.delayed
+        >>> def closer(obj, targs):
+        ...     for targ in targs:
+        ...         targ.close()
+        ...     return obj
+        >>> (srcs, targs) = sc.save_datasets(writer="ninjogeotiff", compute=False, **ninjo_tags)
+        >>> for (src, targ) in group_results_by_output_file(srcs, targs):
+        ...     delayed_store = da.store(src, targ, compute=False)
+        ...     wrapped_store = closer(delayed_store, targ)
+        ...     wrapped.append(wrapped_store)
+        >>> compute_writer_results(wrapped)
+
+    In the wrapper you can do other useful tasks, such as writing a log message
+    or moving files to a different directory.
+
+    .. warning::
+
+        Adding a callback may impact runtime and RAM.  The pattern or cause is
+        unclear.  Tests with FCI data show that for resampling with high RAM
+        use (from around 15 GB), runtime increases when a callback is added.
+        Tests with ABI or low RAM consumption rather show a decrease in runtime.
+        More information, see `these GitHub comments
+        <https://github.com/pytroll/satpy/pull/2281#issuecomment-1324910253>`_
+        Users who find out more are encouraged to contact the Satpy developers
+        with clues.
+
+    Args:
+        sources: List of sources (typically dask.array) as returned by
+            :meth:`Scene.save_datasets`.
+        targets: List of targets (should be ``RIODataset`` or ``RIOTag``) as
+            returned by :meth:`Scene.save_datasets`.
+
+    Returns:
+        List of ``Tuple(List[sources], List[targets])`` with a length equal to
+        the number of output files planned to be written by
+        :meth:`Scene.save_datasets`.
+    """
+    ofs = {}
+    for (src, targ) in zip(sources, targets):
+        fn = targ.rfile.path
+        if fn not in ofs:
+            ofs[fn] = ([], [])
+        ofs[fn][0].append(src)
+        ofs[fn][1].append(targ)
+    return list(ofs.values())
+
+
 def compute_writer_results(results):
     """Compute all the given dask graphs `results` so that the files are saved.
 
@@ -577,12 +635,19 @@ class Writer(Plugin, DataDownloadMixin):
         self.info = self.config.get('writer', {})
 
         if 'file_pattern' in self.info:
-            warnings.warn("Writer YAML config is using 'file_pattern' which "
-                          "has been deprecated, use 'filename' instead.")
+            warnings.warn(
+                "Writer YAML config is using 'file_pattern' which "
+                "has been deprecated, use 'filename' instead.",
+                stacklevel=2
+            )
             self.info['filename'] = self.info.pop('file_pattern')
 
         if 'file_pattern' in kwargs:
-            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            warnings.warn(
+                "'file_pattern' has been deprecated, use 'filename' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             filename = kwargs.pop('file_pattern')
 
         # Use options from the config file if they weren't passed as arguments

@@ -23,6 +23,7 @@ import glob
 import logging
 import os
 import sys
+import tempfile
 from collections import OrderedDict
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -41,6 +42,8 @@ except ImportError:
 import appdirs
 from donfig import Config
 
+from satpy._compat import cache
+
 LOG = logging.getLogger(__name__)
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -49,6 +52,7 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
+    'tmp_dir': tempfile.gettempdir(),
     'cache_dir': _satpy_dirs.user_cache_dir,
     'cache_lonlats': False,
     'cache_sensor_angles': False,
@@ -122,7 +126,7 @@ def get_config_path_safe():
 def get_entry_points_config_dirs(name, include_config_path=True):
     """Get the config directories for all entry points of given name."""
     dirs = []
-    for entry_point in entry_points().get(name, []):
+    for entry_point in cached_entry_points().get(name, []):
         module = _entry_point_module(entry_point)
         new_dir = str(impr_files(module) / "etc")
         if not dirs or dirs[-1] != new_dir:
@@ -130,6 +134,15 @@ def get_entry_points_config_dirs(name, include_config_path=True):
     if include_config_path:
         dirs.extend(config.get('config_path')[::-1])
     return dirs
+
+
+@cache
+def cached_entry_points():
+    """Return entry_points.
+
+    This is a dummy proxy to allow caching.
+    """
+    return entry_points()
 
 
 def _entry_point_module(entry_point):

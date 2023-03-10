@@ -26,6 +26,10 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 @pytest.fixture()
 def fake_dataset():
@@ -128,7 +132,7 @@ def fake_file_dict(fake_dataset, tmp_path):
 class TestOCCCIReader:
     """Test the Ocean Color reader."""
 
-    def setup(self):
+    def setup_method(self):
         """Set up the reader tests."""
         from satpy._config import config_search_paths
 

@@ -31,6 +31,10 @@ from pyresample import AreaDefinition
 
 import satpy
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
@@ -312,10 +316,8 @@ def fake_area():
 @pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
-    ds1 = xr.DataArray(
-            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
-    ds2 = xr.DataArray(
-            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
     return (ds1, ds2)
 
 
@@ -392,44 +394,105 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b))
         res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        for i in range(3):
+            np.testing.assert_allclose(res.values[i], expected_channel)
 
-    def test_night_only_sza(self):
-        """Test compositor with night portion when SZA data is included."""
+    def test_night_only_sza_with_alpha(self):
+        """Test compositor with night portion with alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
         res = comp((self.data_b, self.sza))
         res = res.compute()
-        expected = np.array([[np.nan, 0.], [0.5, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[0., 0.33296056], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
-    def test_night_only_area(self):
-        """Test compositor with night portion when SZA data is not provided."""
+    def test_night_only_sza_without_alpha(self):
+        """Test compositor with night portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only")
-        res = comp((self.data_b))
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
+        res = comp((self.data_a, self.sza))
+        res = res.compute()
+        expected = np.array([[0., 0.11042631], [0.66835017, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
+
+    def test_night_only_area_with_alpha(self):
+        """Test compositor with night portion with alpha band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
+        res = comp((self.data_b,))
+        res = res.compute()
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
+
+    def test_night_only_area_without_alpha(self):
+        """Test compositor with night portion without alpha band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
+        res = comp((self.data_b,))
         res = res.compute()
         expected = np.array([[np.nan, 0.], [0., 0.]])
         np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
 
-    def test_day_only_sza(self):
-        """Test compositor with day portion when SZA data is included."""
+    def test_day_only_sza_with_alpha(self):
+        """Test compositor with day portion with alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [0., 0.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_alpha = np.array([[1., 0.66703944], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
-    def test_day_only_area(self):
-        """Test compositor with day portion when SZA data is not provided."""
+    def test_day_only_sza_without_alpha(self):
+        """Test compositor with day portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only")
-        res = comp((self.data_a))
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
+        res = comp((self.data_a, self.sza))
+        res = res.compute()
+        expected_channel_data = np.array([[0., 0.22122352], [0., 0.]])
+        for i in range(3):
+            np.testing.assert_allclose(res.values[i], expected_channel_data)
+        assert 'A' not in res.bands
+
+    def test_day_only_area_with_alpha(self):
+        """Test compositor with day portion with alpha_band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
+        res = comp((self.data_a, ))
+        res = res.compute()
+        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_alpha = np.array([[1., 1.], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
+
+    def test_day_only_area_with_alpha_and_missing_data(self):
+        """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
+        res = comp((self.data_b,))
+        res = res.compute()
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[np.nan, 1.], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
+
+    def test_day_only_area_without_alpha(self):
+        """Test compositor with day portion without alpha_band when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
+        res = comp((self.data_a,))
         res = res.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
 
 
 class TestFillingCompositor(unittest.TestCase):
@@ -457,21 +520,11 @@ class TestMultiFiller(unittest.TestCase):
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
         attrs = {"units": "K"}
-        a = xr.DataArray(
-                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        b = xr.DataArray(
-                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        c = xr.DataArray(
-                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
-                attrs=attrs.copy())
-        d = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
-                attrs=attrs.copy())
-        e = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
-                attrs=attrs.copy())
+        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]), attrs=attrs.copy())
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]), attrs=attrs.copy())
+        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]), attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
@@ -970,6 +1023,13 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
         self.assertEqual(res.attrs['resolution'], 333)
+
+    def test_deprecation_warning(self):
+        """Test deprecation warning for dcprecated composite recipes."""
+        warning_message = 'foo is a deprecated composite. Use composite bar instead.'
+        self.comp.attrs['deprecation_warning'] = warning_message
+        with pytest.warns(UserWarning, match=warning_message):
+            self.comp([self.all_valid])
 
 
 class TestAddBands(unittest.TestCase):
