@@ -29,11 +29,9 @@ from unittest import mock
 import numpy as np
 import pytest
 import xarray as xr
-from packaging.version import Version
 
 from satpy import Scene
 from satpy.tests.utils import make_dsq
-from satpy.writers.cf_writer import _get_backend_versions
 
 try:
     from pyproj import CRS
@@ -1450,5 +1448,8 @@ def _get_compression_params(complevel):
 
 
 def _should_use_compression_keyword():
-    versions = _get_backend_versions()
-    return versions["libnetcdf"] >= Version("4.9.0")
+    # libnetcdf >= 4.9.0 supports the "compression" keyword argument,
+    # but xarray silently ignores it at the moment. See
+    # https://github.com/pydata/xarray/issues/7388. Once that issue is resolved,
+    # check libnetcdf version here.
+    return False
