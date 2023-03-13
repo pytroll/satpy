@@ -733,7 +733,7 @@ class CFWriter(Writer):
     def _try_to_get_crs(new_data):
         """Try to get a CRS from attributes."""
         if "area" in new_data.attrs:
-            if isinstance(new_data.attrs["area"], AreaDefinition):
+            if isinstance(new_data.attrs["area"], (AreaDefinition, SwathDefinition)):
                 return new_data.attrs["area"].crs
             # at least one test case passes an area of type str
             logger.warning(
