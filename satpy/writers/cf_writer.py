@@ -735,10 +735,10 @@ class CFWriter(Writer):
         if "area" in new_data.attrs:
             if isinstance(new_data.attrs["area"], AreaDefinition):
                 return new_data.attrs["area"].crs
-            # at least one test case passes an area of type str
-            logger.warning(
-                f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
-                "Assuming projected CRS.")
+            if not isinstance(new_data.attrs["area"], SwathDefinition):
+                logger.warning(
+                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                    "Assuming projected CRS.")
         if "crs" in new_data.coords:
             return new_data.coords["crs"].item()
 
