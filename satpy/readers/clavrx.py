@@ -71,7 +71,6 @@ NADIR_RESOLUTION = {
 
 def _get_sensor(sensor: str) -> str:
     """Get the sensor."""
-    LOG.debug(f'SENSORS: {sensor}')
     for k, v in SENSORS.items():
         if k in sensor:
             return v
@@ -316,9 +315,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-        LOG.debug(self.file_content.get('/attr/sensor'))
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
-        LOG.debug(self.sensor)
         self.platform = _get_platform(self.file_content.get('/attr/platform'))
 
         nadir_resolution = self.get_nadir_resolution(self.sensor)
