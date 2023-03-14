@@ -65,8 +65,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
-        self._area_dict['column_step'] = dataset_id.resolution
-        self._area_dict['line_step'] = dataset_id.resolution
+        self._area_dict['column_step'] = dataset_id["resolution"]
+        self._area_dict['line_step'] = dataset_id["resolution"]
 
         area_extent = calculate_area_extent(self._area_dict)
 
