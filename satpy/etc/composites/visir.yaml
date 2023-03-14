@@ -294,7 +294,7 @@ composites:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma_extended
-    standard_name: cloudmask
+    standard_name: cloudmask_extended
 
   cloudmask_probability:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -314,7 +314,7 @@ composites:
     - ctth_alti
     - ctth_alti_pal
     - ctth_status_flag
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_pps
 
   cloud_top_pressure:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -335,18 +335,16 @@ composites:
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_reff
-    - cmic_reff_pal
-    standard_name: cloud_drop_effective_radius
+    standard_name: cloud_drop_effective_radius_pps
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    - cmic_cot_pal
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_pps
 
   cloud_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor

@@ -221,7 +221,7 @@ composites:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_alti
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_geo
 
   cloud_top_pressure:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -245,13 +245,13 @@ composites:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_reff
-    standard_name: cloud_drop_effective_radius
+    standard_name: cloud_drop_effective_radius_geo
 
   cloud_optical_thickness:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_geo
 
   cloud_liquid_water_path:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
