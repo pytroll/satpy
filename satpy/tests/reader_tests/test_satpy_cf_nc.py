@@ -166,7 +166,7 @@ def _cf_scene():
                        attrs={
                            'name': 'lat',
                            'standard_name': 'latitude',
-                           'modifiers': np.array([])
+                           'modifiers': ('modification', )
                        })
     lon = xr.DataArray(lon,
                        dims=('y', 'x'),
@@ -174,7 +174,7 @@ def _cf_scene():
                        attrs={
                            'name': 'lon',
                            'standard_name': 'longitude',
-                           'modifiers': np.array([])
+                           'modifiers': ('modification', )
                        })
 
     # for prefix testing

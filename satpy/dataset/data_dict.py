@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from .dataid import DataID, create_filtered_query, minimal_default_keys_config
+from .dataid import DataID, create_filtered_query, default_id_keys_config, minimal_default_keys_config
 
 
 class TooManyResults(KeyError):
@@ -180,25 +180,24 @@ class DatasetDict(dict):
         return super(DatasetDict, self).get(key, default)
 
     def __setitem__(self, key, value):
-        """Support assigning 'Dataset' objects or dictionaries of metadata."""
-        if hasattr(value, 'attrs'):
-            # xarray.DataArray objects
-            value_info = value.attrs
-        else:
-            value_info = value
+        """Support assigning 'Dataset' objects or dictionaries of metadata.
+
+        Args:
+            key (Union[str, DataID]): The key to assign the value (xarray.DataArray) to.
+            value (xarray.DataArray): The 'Dataset' to be assigned.
+        """
+        value_info = value.attrs
+
         # use value information to make a more complete DataID
         if not isinstance(key, DataID):
-            key = self._create_dataid_key(key, value_info)
+            key = DataID.from_dataarray(value, default_keys={k: v for k, v in default_id_keys_config.items() if k
+                                                             in value_info})
 
         # update the 'value' with the information contained in the key
-        try:
-            new_info = key.to_dict()
-        except AttributeError:
-            new_info = key
+        new_info = key.to_dict()
         if isinstance(value_info, dict):
             value_info.update(new_info)
-            if isinstance(key, DataID):
-                value_info['_satpy_id'] = key
+            value_info['_satpy_id'] = key
 
         return super(DatasetDict, self).__setitem__(key, value)
 

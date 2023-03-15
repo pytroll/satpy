@@ -23,11 +23,12 @@ import os
 import warnings
 from typing import Callable
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
-from xarray import DataArray
 
+from satpy import CHUNK_SIZE
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
@@ -288,7 +289,7 @@ class Scene:
             if isinstance(ds, BaseDefinition):
                 areas.append(ds)
                 continue
-            elif not isinstance(ds, DataArray):
+            elif not isinstance(ds, xr.DataArray):
                 ds = self[ds]
             area = ds.attrs.get('area')
             areas.append(area)
@@ -809,11 +810,34 @@ class Scene:
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
+        if key in self:
+            old_key = self._datasets.get_key(key)
+            self._wishlist.discard(old_key)
+            del self._datasets[old_key]
+
+        if isinstance(value, np.ndarray):
+            value = xr.DataArray(da.from_array(value, chunks=CHUNK_SIZE))
+
+        if any([value.identical(ds) for ds in self.values()]):
+            value = value.copy()
+
+        name = key
+        if isinstance(key, DataID):
+            name = key['name']
+
+        if value.attrs.get('name', None) is None or value.attrs['name'] != name:
+            value.attrs['name'] = name
+
+        value.attrs.pop('_satpy_id', None)
+        # not used yet but still set .name property of xr.DataArray
+        if value.name != name:
+            value = value.rename(name)
+
         self._datasets[key] = value
-        # this could raise a KeyError but never should in this case
-        ds_id = self._datasets.get_key(key)
-        self._wishlist.add(ds_id)
-        self._dependency_tree.add_leaf(ds_id)
+        new_id = DataID.new_id_from_dataarray(value)
+        # new_id = self._datasets.get_key(key)
+        self._wishlist.add(new_id)
+        self._dependency_tree.add_leaf(new_id)
 
     def __delitem__(self, key):
         """Remove the item from the scene."""
@@ -1065,9 +1089,9 @@ class Scene:
         else:
             # we have a swath definition and should use lon/lat values
             lons, lats = mdata['area'].get_lonlats()
-            if not isinstance(lons, DataArray):
-                lons = DataArray(lons, dims=('y', 'x'))
-                lats = DataArray(lats, dims=('y', 'x'))
+            if not isinstance(lons, xr.DataArray):
+                lons = xr.DataArray(lons, dims=('y', 'x'))
+                lats = xr.DataArray(lats, dims=('y', 'x'))
             ds = xr.Dataset(ds_dict, coords={"latitude": lats,
                                              "longitude": lons})
 
