@@ -358,12 +358,14 @@ def _remove_data_at_pressure_levels(datasets_loaded, plevels_ds, pressure_levels
 
 def _get_pressure_level_condition(plevels_ds, pressure_levels):
     if pressure_levels is True:
-        cond = None
-    elif len(pressure_levels) == 2:
+        return None
+    if len(pressure_levels) == 2:
         cond = (plevels_ds >= pressure_levels[0]) & (plevels_ds <= pressure_levels[1])
     else:
         cond = plevels_ds == pressure_levels
-    return cond
+    # convert dask-based DataArray to a computed numpy-based DataArray to
+    # avoid unknown shapes of dask arrays when this condition is used for masking
+    return cond.compute()
 
 
 def _mask_data_below_surface_pressure(datasets_loaded, dataset_keys):
