@@ -146,8 +146,20 @@ class NativeMSGFileHandler(BaseFileHandler):
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata."""
-        return self.header['15_DATA_HEADER']['ImageAcquisition'][
+        tm = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
+            # rouding nominal start time to fit the expected 15 minutes RC for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 15,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        elif self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            # rouding nominal start time to fit the expected 5 minutes RSS for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 5,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        # TODO raise a warning if none fo the above but still return the original time
+        return tm
 
     @property
     def observation_start_time(self):
