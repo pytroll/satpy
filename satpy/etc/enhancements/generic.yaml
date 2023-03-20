@@ -838,6 +838,20 @@ enhancements:
         kwargs:
           weight: 1.0
 
+  ir_high_cloud:
+    standard_name: ir_high_cloud
+    operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert
+        args:
+          - [True, false]
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: linear
+      - name: 3d
+        method: !!python/name:satpy.enhancements.three_d_effect
+
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds
     operations:
