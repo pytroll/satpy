@@ -338,14 +338,12 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         a, b = self.get_earth_radii()
-        start_time = self.prologue['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
         poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
             'Orbit']['OrbitPolynomial'])
-        orbit_polynomial = poly_finder.get_orbit_polynomial(start_time)
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=start_time,
+            time=self.start_time,
             semi_major_axis=a,
             semi_minor_axis=b,
         )
