@@ -489,3 +489,10 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  # GeoColor
+  GeoColor_HighClouds:
+    standard_name: ir_high_cloud
+    compositor: !!python/name:satpy.composites.HighCloudCompositor
+    prerequisites:
+      - name: B13
