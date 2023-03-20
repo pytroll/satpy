@@ -502,16 +502,26 @@ class HRITMSGFileHandler(HRITFileHandler):
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
 
     @property
-    def start_time(self):
+    def observation_start_time(self):
         """Get the start time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
-    def end_time(self):
+    def observation_end_time(self):
         """Get the end time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
+
+    @property
+    def start_time(self):
+        """Get general start time for this file."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     def _get_area_extent(self, pdict):
         """Get the area extent of the file.
