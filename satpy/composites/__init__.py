@@ -1018,6 +1018,74 @@ class CloudCompositor(GenericCompositor):
         return res
 
 
+class HighCloudCompositor(CloudCompositor):
+    """Detect high clouds based on latitude-dependent thresholding and use it as a mask for compositing.
+
+    This compositor aims at identifying high clouds and assigning them a transparency based on the brightness
+    temperature (cloud opacity). In contrast to the `CloudCompositor`, the brightness temperature threshold at
+    the lower end, used to identify opaque clouds, is made a function of the latitude in order to have tropopause
+    level clouds appear as opaque at both high and low latitudes. This follows the Geocolor implementation of
+    high clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`).
+
+    The idea is to define a tuple of two brightness temperature thresholds in transisiton_min and two corresponding
+    latitude thresholds in latitude_min.
+
+
+    TODO improve docstring:
+    The modified and latitude-dependent transition_min, sent to `CloudCopositor`,
+    will then be computed such that transition_min[0] is used if abs(latitude) < latitude_min[0].
+
+    if abs(latitude) < latitude_min(0):
+      tr_min_lat = transition_min[0]
+    elif abs(latitude) > latitude_min(1):
+      tr_min_lat = transition_min[1]
+    else:
+      tr_min_lat = linear intterpolation of
+
+    tr_min_lat = transition_min[0] where abs(latitude) < latitude_min(0)
+    tr_min_lat = transition_min[1] where abs(latitude) > latitude_min(0)
+    tr_min_lat = linear interpolation between transition_min[0] and transition_min[1] where abs(latitude).
+
+    """
+
+    def __init__(self, name, transition_min=(200., 220.), transition_max=280, latitude_min=(30., 60.),
+                 transition_gamma=1.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transition_min (tuple): Brightness temperature values used to identify opaque white
+                                     clouds at different latitudes
+            transition_max (float): Brightness temperatures above this value are not considered to
+                                    be high clouds -> transparent
+            latitude_min (tuple): Latitude values defining the intervals for computing latitude-dependent
+                                  transition_min values.
+            transition_gamma (float): Gamma correction to apply at the end
+
+        """
+        self.latitude_min = latitude_min
+        super().__init__(name, transition_min=transition_min, transition_max=transition_max,
+                         transition_gamma=transition_gamma, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        """Generate the composite."""
+        data = projectables[0]
+        _, lats = data.attrs["area"].get_lonlats()
+        lats = np.abs(lats)
+
+        slope = (self.transition_min[1] - self.transition_min[0]) / (self.latitude_min[1] - self.latitude_min[0])
+        offset = self.transition_min[0] - slope * self.latitude_min[0]
+
+        tr_min_lat = xr.DataArray(name='tr_min_lat', coords=data.coords, dims=data.dims)
+        tr_min_lat = tr_min_lat.where(lats >= self.latitude_min[0], self.transition_min[0])
+        tr_min_lat = tr_min_lat.where(lats <= self.latitude_min[1], self.transition_min[1])
+        tr_min_lat = tr_min_lat.where((lats < self.latitude_min[0]) | (lats > self.latitude_min[1]),
+                                      slope * lats + offset)
+
+        self.transition_min = tr_min_lat
+
+        return super().__call__(projectables, **kwargs)
+
+
 class RatioSharpenedRGB(GenericCompositor):
     """Sharpen RGB bands with ratio of a high resolution band to a lower resolution version.
 
