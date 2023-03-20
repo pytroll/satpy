@@ -128,7 +128,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     @property
     def nominal_start_time(self):
-        """Read the repeat cycle nominal start time from metadata."""
+        """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
         if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
             # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
@@ -145,7 +145,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     @property
     def nominal_end_time(self):
-        """Read the repeat cycle nominal end time from metadata."""
+        """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
         if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
             # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
