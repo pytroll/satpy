@@ -211,7 +211,7 @@ class Test_HDF_GHI_L1_cal:
 
     yaml_file = "ghi_l1.yaml"
 
-    def setup(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.fy4_base import FY4Base

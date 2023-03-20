@@ -132,7 +132,7 @@ def fake_file_dict(fake_dataset, tmp_path):
 class TestOCCCIReader:
     """Test the Ocean Color reader."""
 
-    def setup(self):
+    def setup_method(self):
         """Set up the reader tests."""
         from satpy._config import config_search_paths
 
