@@ -187,7 +187,7 @@ from __future__ import division
 
 import copy
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -492,8 +492,21 @@ class HRITMSGFileHandler(HRITFileHandler):
     @property
     def nominal_start_time(self):
         """Get the start time."""
-        return self.prologue['ImageAcquisition'][
+        tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+
+        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
+            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 15,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        elif self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 5,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        # TODO raise a warning if none fo the above but still return the original time
+        return tm
 
     @property
     def nominal_end_time(self):
