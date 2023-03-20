@@ -372,7 +372,10 @@ def _get_sat_altitude(data_arr, key_prefixes):
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
         alt = orb_params['projection_altitude']
-        warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        warnings.warn(
+            'Actual satellite altitude not available, using projection altitude instead.',
+            stacklevel=3
+        )
     return alt
 
 
@@ -386,7 +389,10 @@ def _get_sat_lonlat(data_arr, key_prefixes):
     except KeyError:
         lon = orb_params['projection_longitude']
         lat = orb_params['projection_latitude']
-        warnings.warn('Actual satellite lon/lat not available, using projection center instead.')
+        warnings.warn(
+            'Actual satellite lon/lat not available, using projection center instead.',
+            stacklevel=3
+        )
     return lon, lat
 
 
@@ -660,9 +666,12 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
 def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
     shared_storage_options = reader_kwargs.pop("storage_options", {})
+    if not reader_kwargs:
+        # no other reader kwargs
+        return shared_storage_options
     for reader_name, rkwargs in reader_kwargs.items():
         if not isinstance(rkwargs, dict):
-            # reader kwargs are not per-reader, return a single dictonary of storage options
+            # reader kwargs are not per-reader, return a single dictionary of storage options
             return shared_storage_options
         if shared_storage_options:
             # set base storage options if there are any

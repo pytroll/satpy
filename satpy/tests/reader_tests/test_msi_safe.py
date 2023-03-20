@@ -969,7 +969,7 @@ class TestMTDXML(unittest.TestCase):
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
 
-    def setup(self):
+    def setup_method(self):
         """Set up the test."""
         from satpy.readers.msi_safe import SAFEMSITileMDXML
         self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)

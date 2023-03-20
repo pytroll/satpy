@@ -22,10 +22,10 @@ import numpy as np
 import xarray as xr
 
 
-class TestAHIEnhancement():
+class TestAHIEnhancement:
     """Test the AHI enhancement functions."""
 
-    def setup(self):
+    def setup_method(self):
         """Create test data."""
         data = da.arange(-100, 1000, 110).reshape(2, 5)
         rgb_data = np.stack([data, data, data])
