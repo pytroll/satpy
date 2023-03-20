@@ -491,7 +491,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     @property
     def nominal_start_time(self):
-        """Get the start time."""
+        """Get the start time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
@@ -510,9 +510,21 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     @property
     def nominal_end_time(self):
-        """Get the end time."""
-        return self.prologue['ImageAcquisition'][
+        """Get the end time and round it according to scan law."""
+        tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
+            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 15,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        elif self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
+            tm = tm - timedelta(minutes=tm.minute % 5,
+                                seconds=tm.second,
+                                microseconds=tm.microsecond)
+        # TODO raise a warning if none fo the above but still return the original time
+        return tm
 
     @property
     def observation_start_time(self):
