@@ -220,7 +220,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             RC_period_min = 10
         else:
             RC_period_min = 2.5
-        print((self.filename_info['repeat_cycle_in_day']-1)*RC_period_min)
         return RC_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*RC_period_min)
 
     @property
@@ -379,7 +378,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
-
+        # Add time_parameter attributes
+        res.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+            }
         res.attrs.update(self.orbital_param)
 
         return res
