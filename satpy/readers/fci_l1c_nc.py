@@ -212,14 +212,34 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         self._cache = {}
 
     @property
-    def start_time(self):
+    def nominal_start_time(self):
         """Get start time."""
         return self.filename_info['start_time']
 
     @property
-    def end_time(self):
+    def nominal_end_time(self):
         """Get end time."""
         return self.filename_info['end_time']
+
+    @property
+    def observation_start_time(self):
+        """Get observation start time."""
+        return self.filename_info['start_time']
+
+    @property
+    def observation_end_time(self):
+        """Get observation end time."""
+        return self.filename_info['end_time']
+
+    @property
+    def start_time(self):
+        """Get start time."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get end time."""
+        return self.nominal_end_time
 
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
