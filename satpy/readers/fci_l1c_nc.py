@@ -202,6 +202,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
+        if not filename_info['coverage'] == 'FD':
+            raise NotImplementedError(f"coverage for {filename_info['coverage']} not supported by this reader")
         super().__init__(filename, filename_info,
                          filetype_info,
                          cache_var_size=0,
