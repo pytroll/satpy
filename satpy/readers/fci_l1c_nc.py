@@ -112,6 +112,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from datetime import timedelta
 from functools import cached_property
 
 import dask.array as da
@@ -213,13 +214,23 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     @property
     def nominal_start_time(self):
-        """Get start time."""
-        return self.filename_info['start_time']
+        """Get nominal start time."""
+        RC_date = self.filename_info['start_time'].replace(hour=0, minute=0, second=0, microsecond=0)
+        if self.filename_info['coverage'] == 'FD':
+            RC_period_min = 10
+        else:
+            RC_period_min = 2.5
+        print((self.filename_info['repeat_cycle_in_day']-1)*RC_period_min)
+        return RC_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*RC_period_min)
 
     @property
     def nominal_end_time(self):
-        """Get end time."""
-        return self.filename_info['end_time']
+        """Get nominal end time."""
+        if self.filename_info['coverage'] == 'FD':
+            RC_period_min = 10
+        else:
+            RC_period_min = 2.5
+        return self.nominal_start_time + timedelta(minutes=RC_period_min)
 
     @property
     def observation_start_time(self):
