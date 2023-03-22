@@ -852,6 +852,20 @@ enhancements:
       - name: 3d
         method: !!python/name:satpy.enhancements.three_d_effect
 
+  ir_low_cloud:
+    standard_name: ir_low_cloud
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: linear
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          monochromatic:
+            color: low_cloud_color
+#            color: [0, 255, 0]
+
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds
     operations:
