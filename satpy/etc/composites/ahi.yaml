@@ -491,8 +491,16 @@ composites:
       - _night_background_hires
 
   # GeoColor
-  GeoColor_HighClouds:
+  geo_color_high_clouds:
     standard_name: ir_high_cloud
     compositor: !!python/name:satpy.composites.HighCloudCompositor
     prerequisites:
       - name: B13
+
+  geo_color_low_clouds:
+    standard_name: ir_low_cloud
+    compositor: !!python/name:satpy.composites.LowCloudCompositor
+    color: [140.25, 191.25, 249.9]
+    prerequisites:
+      - name: B13
+      - name: B07
