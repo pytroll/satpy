@@ -1086,6 +1086,78 @@ class HighCloudCompositor(CloudCompositor):
         return super().__call__(projectables, **kwargs)
 
 
+# class LowCloudCompositor(CloudCompositor):
+class LowCloudCompositor(GenericCompositor):
+    """Class information.
+
+    TODO: Rewrite docstring
+
+    Detect low clouds based on latitude-dependent thresholding and use it as a mask for compositing.
+
+    This compositor aims at identifying high clouds and assigning them a transparency based on the brightness
+    temperature (cloud opacity). In contrast to the `CloudCompositor`, the brightness temperature threshold at
+    the lower end, used to identify opaque clouds, is made a function of the latitude in order to have tropopause
+    level clouds appear as opaque at both high and low latitudes. This follows the Geocolor implementation of
+    high clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`).
+
+    The idea is to define a tuple of two brightness temperature thresholds in transisiton_min and two corresponding
+    latitude thresholds in latitude_min.
+
+    """
+
+    def __init__(self, name, range_land=(1.0, 4.5), range_water=(0.0, 4.0), transition_gamma=1.0,
+                 color=(140.25, 191.25, 249.9), **kwargs):
+        """Init info.
+
+        TODO: Rewrite docstring
+        Collect custom configuration values.
+
+        Args:
+            transition_min (tuple): Brightness temperature values used to identify opaque white
+                                     clouds at different latitudes
+            transition_max (float): Brightness temperatures above this value are not considered to
+                                    be high clouds -> transparent
+            latitude_min (tuple): Latitude values defining the intervals for computing latitude-dependent
+                                  transition_min values.
+            transition_gamma (float): Gamma correction to apply at the end
+
+        """
+        self.range_land = range_land
+        self.range_water = range_water
+        self.transition_gamma = transition_gamma
+        self.color = color
+        super().__init__(name, **kwargs)
+        # super().__init__(name, transition_gamma=transition_gamma, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        """Generate the composite."""
+        diff_comp = DifferenceCompositor(name='ir_difference')
+        btd = diff_comp.__call__(projectables)
+
+        # Avoid spurious false alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
+        btd = btd.where(projectables[0] >= 230, 0.0)
+
+        # self.transition_min, self.transition_max = self.range_land
+        # res_land = super().__call__((btd), **kwargs)
+
+        # self.transition_min, self.transition_max = self.range_water
+        # res_water = super().__call__(btd, **kwargs)
+
+        tr_min = self.range_land[0]
+        tr_max = self.range_land[1]
+
+        slope = 1 / (tr_max - tr_min)
+        offset = 0 - slope * tr_min
+
+        alpha = btd.where(btd > tr_min, 0.0)
+        alpha = alpha.where(btd <= tr_max, 1.0)
+        alpha = alpha.where((btd <= tr_min) | (btd > tr_max), slope * btd + offset)
+
+        alpha **= self.transition_gamma
+        res = super().__call__((btd, alpha), low_cloud_color=self.color, **kwargs)
+        return res
+
+
 class RatioSharpenedRGB(GenericCompositor):
     """Sharpen RGB bands with ratio of a high resolution band to a lower resolution version.
 
