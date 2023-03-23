@@ -207,16 +207,6 @@ datasets:
 
 # file contents: https://atmosphere-imager.gsfc.nasa.gov/sites/default/files/ModAtmo/MOD06_L2_CDL_fs.txt
 
-  scan_start_time:
-    name: scan_start_time
-    long_name: TAI time at start of scan replicated across the swath
-    units: seconds since 1993-1-1 00:00:00.0 0
-    file_type: mod06_hdf
-    coordinates: [longitude, latitude]
-    resolution:
-      5000:
-        file_key: Scan_Start_Time
-
   brightness_temperature:
     name: brightness_temperature
     long_name: Observed Brightness Temperature from Averaged Radiances in a 5x5 1-km Pixel Region
