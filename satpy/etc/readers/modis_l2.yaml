@@ -174,7 +174,7 @@ datasets:
   water_vapor_correction_factor:
     name: water_vapor_correction_factor
     long_name: Aerosol Correction Factor for Water Vapor - Near Infrared Retrieval
-    units: None
+    units: "1"
     file_type: mod05_hdf
     coordinates: [longitude, latitude]
     resolution:
