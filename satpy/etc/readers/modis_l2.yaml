@@ -161,8 +161,8 @@ datasets:
       5000:
         file_key: Scan_Start_Time
 
-  sensor_zenith_angle:
-    name: sensor_zenith_angle
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
     long_name: Sensor Zenith Angle, Cell to Sensor
     units: degree
     file_type: [mod05_hdf, mod06_hdf]
