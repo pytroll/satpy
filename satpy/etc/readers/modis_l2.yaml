@@ -165,7 +165,7 @@ datasets:
     name: sensor_zenith_angle
     long_name: Sensor Zenith Angle, Cell to Sensor
     units: degree
-    file_type: mod05_hdf
+    file_type: [mod05_hdf, mod06_hdf]
     coordinates: [longitude, latitude]
     resolution:
       5000:
