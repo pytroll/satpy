@@ -34,6 +34,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import CHUNK_SIZE, config
+from satpy.readers import FSFile, open_file_or_filename
 
 LOGGER = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename, prefix=None):
+def unzip_file(filename:str|bytes, prefix=None):
     """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
 
     Args:
@@ -210,48 +211,62 @@ def unzip_file(filename, prefix=None):
         Temporary filename path for decompressed file or None.
 
     """
-    if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
-                                            dir=config["tmp_dir"])
-        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # try pbzip2
-        pbzip = which('pbzip2')
-        # Run external pbzip2
-        if pbzip is not None:
-            n_thr = os.environ.get('OMP_NUM_THREADS')
-            if n_thr:
-                runner = [pbzip,
-                          '-dc',
-                          '-p'+str(n_thr),
-                          filename]
-            else:
-                runner = [pbzip,
-                          '-dc',
-                          filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
-            stdout = BytesIO(p.communicate()[0])
-            status = p.returncode
-            if status != 0:
-                raise IOError("pbzip2 error '%s', failed, status=%d"
-                              % (filename, status))
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                                dir=config["tmp_dir"])
+    if type(filename) == str:
+        if os.fspath(filename).endswith('bz2'):
+            LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+            # try pbzip2
+            pbzip = which('pbzip2')
+            # Run external pbzip2
+            if pbzip is not None:
+                n_thr = os.environ.get('OMP_NUM_THREADS')
+                if n_thr:
+                    runner = [pbzip,
+                            '-dc',
+                            '-p'+str(n_thr),
+                            filename]
+                else:
+                    runner = [pbzip,
+                            '-dc',
+                            filename]
+                p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
+                stdout = BytesIO(p.communicate()[0])
+                status = p.returncode
+                if status != 0:
+                    raise IOError("pbzip2 error '%s', failed, status=%d"
+                                % (filename, status))
+                with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                    try:
+                        stdout.seek(0)
+                        shutil.copyfileobj(stdout, ofpt)
+                    except IOError:
+                        import traceback
+                        traceback.print_exc()
+                        LOGGER.info("Failed to read bzipped file %s",
+                                    str(filename))
+                        os.remove(tmpfilepath)
+                        raise
+                return tmpfilepath
+
+            # Otherwise, fall back to the original method
+            bz2file = bz2.BZ2File(filename)
             with closing(os.fdopen(fdn, 'wb')) as ofpt:
                 try:
-                    stdout.seek(0)
-                    shutil.copyfileobj(stdout, ofpt)
+                    ofpt.write(bz2file.read())
                 except IOError:
                     import traceback
                     traceback.print_exc()
-                    LOGGER.info("Failed to read bzipped file %s",
-                                str(filename))
+                    LOGGER.info("Failed to read bzipped file %s", str(filename))
                     os.remove(tmpfilepath)
-                    raise
+                    return None
             return tmpfilepath
-
-        # Otherwise, fall back to the original method
-        bz2file = bz2.BZ2File(filename)
+    elif type(filename) == FSFile:
+        zip_file = open_file_or_filename(filename).read()
+        content = bz2.decompress(zip_file)
         with closing(os.fdopen(fdn, 'wb')) as ofpt:
             try:
-                ofpt.write(bz2file.read())
+                ofpt.write(content)
             except IOError:
                 import traceback
                 traceback.print_exc()
@@ -259,7 +274,8 @@ def unzip_file(filename, prefix=None):
                 os.remove(tmpfilepath)
                 return None
         return tmpfilepath
-
+    else:
+        os.remove(tmpfilepath)
     return None
 
 
