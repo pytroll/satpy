@@ -199,7 +199,7 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename:str|bytes, prefix=None):
+def unzip_file(filename, prefix=None):
     """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
 
     Args:
