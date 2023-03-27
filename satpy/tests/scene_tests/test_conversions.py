@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for Scene conversion functionality."""
-import unittest
 from datetime import datetime
 
 import pytest
@@ -39,7 +38,7 @@ class TestSceneSerialization:
         assert scene.all_dataset_ids == scene.all_dataset_ids
 
 
-class TestSceneConversions(unittest.TestCase):
+class TestSceneConversions:
     """Test Scene conversion to geoviews, xarray, etc."""
 
     def test_to_xarray_dataset_with_empty_scene(self):
