@@ -23,6 +23,7 @@ This version tests the readers for VIIIRS VGAC data preliminary version.
 
 
 import datetime
+
 import numpy as np
 import pytest
 from netCDF4 import Dataset
