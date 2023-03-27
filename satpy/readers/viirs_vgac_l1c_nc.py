@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,12 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reading and calibrating GAC and LAC AVHRR data.
-
-.. todo::
-
-    Fine grained calibration
-    Radiance output
+"""Reading VIIRS VGAC data.
 
 """
 
@@ -41,19 +36,13 @@ logger = logging.getLogger(__name__)
 class VGACFileHandler(BaseFileHandler):
     """Reader VGAC data."""
 
-    def __init__(self, filename, filename_info, filetype_info, **reader_kwargs):
-        """Init the file handler.
-
-        Args:
-            reader_kwargs: More keyword arguments to be passed to pygac.Reader.
-                See the pygac documentation for available options.
-
-        """
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
+        
         super(VGACFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
         self.engine = "h5netcdf"
-        self.reader_kwargs = reader_kwargs
         self._start_time = filename_info['start_time']
         self._end_time = None
         self.sensor = 'viirs'
@@ -66,6 +55,10 @@ class VGACFileHandler(BaseFileHandler):
         func = interpolate.interp1d(x,y)
         brightness_temperatures = func(data.values / scale_factor)
         return brightness_temperatures
+
+    def fix_radiances_not_in_percent(self, data):
+        """Scale radiances to percent. This was not done in first version of data."""
+        return 100*data
         
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
@@ -77,9 +70,11 @@ class VGACFileHandler(BaseFileHandler):
         data = nc[file_key]
         scale_factor = yaml_info.get("scale_factor_nc", 0.0002)
         if file_key + "_LUT" in nc:
-            data.data = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
+            data.values = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
         if name != yaml_info['name']:
             data = data.rename(yaml_info['name'])
+        if data.attrs["units"] == "percent":    
+            data = self.fix_radiances_not_in_percent(data)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
         if "StartTime" in data.attrs:
@@ -87,18 +82,6 @@ class VGACFileHandler(BaseFileHandler):
             data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
             self._end_time =  data.attrs["end_time"]  
         return data
-
-    def _update_attrs(self, res):
-        """Update dataset attributes."""
-        for attr in self.reader.meta_data:
-            res.attrs[attr] = self.reader.meta_data[attr]
-        res.attrs['platform_name'] = self.reader.spacecraft_name
-        res.attrs['orbit_number'] = self.filename_info.get('orbit_number', None)
-        res.attrs['sensor'] = self.sensor
-        try:
-            res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
-        except (IndexError, RuntimeError):
-            pass
 
     @property
     def start_time(self):
