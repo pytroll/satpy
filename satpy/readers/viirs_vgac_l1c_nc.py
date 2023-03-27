@@ -20,11 +20,9 @@
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import dask.array as da
 import numpy as np
-import pygac.utils
 import xarray as xr
 
 from satpy import CHUNK_SIZE
@@ -38,7 +36,7 @@ class VGACFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
-        
+
         super(VGACFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
@@ -48,18 +46,18 @@ class VGACFileHandler(BaseFileHandler):
         self.sensor = 'viirs'
         self.filename_info = filename_info
 
-    def convert_to_bt(self, data, data_lut, scale_factor):   
+    def convert_to_bt(self, data, data_lut, scale_factor):
         from scipy import interpolate
         x = np.arange(0, len(data_lut))
         y = data_lut
-        func = interpolate.interp1d(x,y)
+        func = interpolate.interp1d(x, y)
         brightness_temperatures = func(data.values / scale_factor)
         return brightness_temperatures
 
     def fix_radiances_not_in_percent(self, data):
         """Scale radiances to percent. This was not done in first version of data."""
         return 100*data
-        
+
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", yaml_info['name'])
@@ -73,14 +71,14 @@ class VGACFileHandler(BaseFileHandler):
             data.values = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
         if name != yaml_info['name']:
             data = data.rename(yaml_info['name'])
-        if data.attrs["units"] == "percent":    
+        if data.attrs["units"] == "percent":
             data = self.fix_radiances_not_in_percent(data)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
         if "StartTime" in data.attrs:
             data.attrs["start_time"] = datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
             data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
-            self._end_time =  data.attrs["end_time"]  
+            self._end_time = data.attrs["end_time"]
         return data
 
     @property
