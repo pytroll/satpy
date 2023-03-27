@@ -26,8 +26,50 @@ from satpy.tests.utils import make_cid, make_dataid, make_dsq, spy_decorator
 
 
 @pytest.mark.usefixtures("include_test_etc")
-class TestSceneAvailableDatasets:
+class TestSceneAllAvailableDatasets:
     """Test the Scene's handling of various dependencies."""
+
+    def test_all_datasets_no_readers(self):
+        """Test all datasets with no reader."""
+        scene = Scene()
+        pytest.raises(KeyError, scene.all_dataset_ids, reader_name='fake')
+        id_list = scene.all_dataset_ids()
+        assert id_list == []
+        # no sensors are loaded so we shouldn't get any comps either
+        id_list = scene.all_dataset_ids(composites=True)
+        assert id_list == []
+
+    def test_all_dataset_names_no_readers(self):
+        """Test all dataset names with no reader."""
+        scene = Scene()
+        pytest.raises(KeyError, scene.all_dataset_names, reader_name='fake')
+        name_list = scene.all_dataset_names()
+        assert name_list == []
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.all_dataset_names(composites=True)
+        assert name_list == []
+
+    def test_available_dataset_no_readers(self):
+        """Test the available datasets without a reader."""
+        scene = Scene()
+        pytest.raises(
+            KeyError, scene.available_dataset_ids, reader_name='fake')
+        name_list = scene.available_dataset_ids()
+        assert name_list == []
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.available_dataset_ids(composites=True)
+        assert name_list == []
+
+    def test_available_dataset_names_no_readers(self):
+        """Test the available dataset names without a reader."""
+        scene = Scene()
+        pytest.raises(
+            KeyError, scene.available_dataset_names, reader_name='fake')
+        name_list = scene.available_dataset_names()
+        assert name_list == []
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.available_dataset_names(composites=True)
+        assert name_list == []
 
     def test_all_datasets_one_reader(self):
         """Test all datasets for one reader."""
