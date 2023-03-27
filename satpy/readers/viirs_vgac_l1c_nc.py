@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reading VIIRS VGAC data.
-
-"""
+"""Reading VIIRS VGAC data."""
 
 import logging
 from datetime import datetime
@@ -36,7 +34,6 @@ class VGACFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
-
         super(VGACFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
@@ -47,6 +44,7 @@ class VGACFileHandler(BaseFileHandler):
         self.filename_info = filename_info
 
     def convert_to_bt(self, data, data_lut, scale_factor):
+        """Convert radances to brightness temperatures."""
         from scipy import interpolate
         x = np.arange(0, len(data_lut))
         y = data_lut
