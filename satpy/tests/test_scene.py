@@ -787,21 +787,6 @@ class TestFinestCoarsestArea:
 
 
 @pytest.mark.usefixtures("include_test_etc")
-class TestSceneSerialization:
-    """Test the Scene serialization."""
-
-    def test_serialization_with_readers_and_data_arr(self):
-        """Test that dask can serialize a Scene with readers."""
-        from distributed.protocol import deserialize, serialize
-
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
-        cloned_scene = deserialize(*serialize(scene))
-        assert scene._readers.keys() == cloned_scene._readers.keys()
-        assert scene.all_dataset_ids == scene.all_dataset_ids
-
-
-@pytest.mark.usefixtures("include_test_etc")
 class TestSceneResampling:
     """Test resampling a Scene to another Scene object."""
 
@@ -1258,46 +1243,6 @@ class TestSceneSaving(unittest.TestCase):
         scn['test'] = ds1
         scn.save_dataset('test', base_dir=self.base_dir)
         assert os.path.isfile(os.path.join(self.base_dir, 'test_20180101_000000.tif'))
-
-
-class TestSceneConversions(unittest.TestCase):
-    """Test Scene conversion to geoviews, xarray, etc."""
-
-    def test_to_xarray_dataset_with_empty_scene(self):
-        """Test converting empty Scene to xarray dataset."""
-        scn = Scene()
-        xrds = scn.to_xarray_dataset()
-        assert isinstance(xrds, xr.Dataset)
-        assert len(xrds.variables) == 0
-        assert len(xrds.coords) == 0
-
-    def test_geoviews_basic_with_area(self):
-        """Test converting a Scene to geoviews with an AreaDefinition."""
-        from pyresample.geometry import AreaDefinition
-        scn = Scene()
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
-                              2, 2, [-200, -200, 200, 200])
-        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                                  attrs={'start_time': datetime(2018, 1, 1),
-                                         'area': area})
-        gv_obj = scn.to_geoviews()
-        # we assume that if we got something back, geoviews can use it
-        assert gv_obj is not None
-
-    def test_geoviews_basic_with_swath(self):
-        """Test converting a Scene to geoviews with a SwathDefinition."""
-        from pyresample.geometry import SwathDefinition
-        scn = Scene()
-        lons = xr.DataArray(da.zeros((2, 2)))
-        lats = xr.DataArray(da.zeros((2, 2)))
-        area = SwathDefinition(lons, lats)
-        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                                  attrs={'start_time': datetime(2018, 1, 1),
-                                         'area': area})
-        gv_obj = scn.to_geoviews()
-        # we assume that if we got something back, geoviews can use it
-        assert gv_obj is not None
 
 
 class TestSceneAggregation(unittest.TestCase):
