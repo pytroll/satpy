@@ -79,7 +79,7 @@ from satpy.readers.utils import (
     get_user_calibration_factors,
     np2str,
     unzip_file,
-    unzip_FSFile
+    unzip_FSFile,
 )
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
