@@ -67,9 +67,8 @@ class VGACFileHandler(BaseFileHandler):
         scale_factor = yaml_info.get("scale_factor_nc", 0.0002)
         if file_key + "_LUT" in nc:
             data.values = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
-        if name != yaml_info['name']:
-            data = data.rename(yaml_info['name'])
         if data.attrs["units"] == "percent":
+            # Should be removed with later versions of data
             data = self.fix_radiances_not_in_percent(data)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
