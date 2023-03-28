@@ -52,6 +52,8 @@ class TestVGACREader:
             nc.createDimension('npix', npix)
             nc.createDimension('nscn', nscn)
             nc.createDimension('n_lut', n_lut)
+            setattr(nc, "StartTime", "2023-03-28T09:08:07")
+            setattr(nc, "EndTime", "2023-03-28T10:11:12")
             for ind in range(1, 11, 1):
                 ch_name = "M{:02d}".format(ind)
                 r_a = nc.createVariable(ch_name, np.int16, dimensions=('nscn', 'npix'))
