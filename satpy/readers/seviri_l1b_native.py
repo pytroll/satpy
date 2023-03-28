@@ -58,7 +58,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
-    round_time,
+    round_nom_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
@@ -136,13 +136,13 @@ class NativeMSGFileHandler(BaseFileHandler):
     def nominal_start_time(self):
         """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return round_time(tm, date_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
 
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return round_time(tm, date_delta=timedelta(minutes=15))
+        return round_nom_time(tm, date_delta=timedelta(minutes=15))
 
     @property
     def observation_start_time(self):
