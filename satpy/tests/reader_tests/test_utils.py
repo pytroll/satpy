@@ -345,10 +345,10 @@ class TestHelpers(unittest.TestCase):
         assert mock_fn_open.read.called
 
     @mock.patch('bz2.decompress')
-    def test_unzip_FSFile(self,bz2_mock):
-        """Test the bz2 file unzipping techniques."""
-        mock_bz2_open = mock.MagicMock()
-        mock_bz2_open.return_value = b'TEST_DECOMPRESSED'
+    def test_unzip_FSFile(self, bz2_mock):
+        """Test the FSFile bz2 file unzipping techniques."""
+        mock_bz2_decompress = mock.MagicMock()
+        mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
 
         # test zipped FSFile
         mem_fs = MemoryFileSystem()
@@ -360,8 +360,8 @@ class TestHelpers(unittest.TestCase):
         segmentstr = str(segment).zfill(2)
 
         new_fname = hf.unzip_FSFile(fsf, prefix=segmentstr)
-        assert mock_bz2_open.called
-        self.assertEqual(bz2_mock,mock_bz2_open.return_value)
+        assert mock_bz2_decompress.called
+        self.assertEqual(bz2_mock, mock_bz2_decompress.return_value)
         self.assertTrue(os.path.exists(new_fname))
         self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
         if os.path.exists(new_fname):
