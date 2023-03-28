@@ -199,7 +199,7 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename:str, prefix=None):
+def unzip_file(filename: str, prefix=None):
     """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
 
     Args:
@@ -263,9 +263,10 @@ def unzip_file(filename:str, prefix=None):
 
     return None
 
-def unzip_FSFile(filename:FSFile, prefix=None):
+
+def unzip_FSFile(filename: FSFile, prefix=None):
     """Open and Unzip remote FSFile ending with 'bz2'.
-    
+
     Args:
         filename: The FSFile to unzip.
         prefix (str, optional): If file is one of many segments of data, prefix random filename
@@ -276,7 +277,8 @@ def unzip_FSFile(filename:FSFile, prefix=None):
 
     """
     if str(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,dir=config["tmp_dir"])
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                            dir=config["tmp_dir"])
         # open file and decompress to memory
         zip_file = filename.open().read()
         content = bz2.decompress(zip_file)

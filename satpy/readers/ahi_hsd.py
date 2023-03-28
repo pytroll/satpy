@@ -359,9 +359,9 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                 filetype_info)
 
         self.is_zipped = False
-        if isinstance(self.filename,str):
+        if isinstance(self.filename, str):
             self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
-        elif isinstance(self.filename,FSFile):
+        elif isinstance(self.filename, FSFile):
             self._unzipped = unzip_FSFile(self.filename, prefix=str(filename_info['segment']).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
