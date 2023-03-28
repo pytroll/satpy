@@ -69,6 +69,7 @@ import xarray as xr
 
 from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
+from satpy.readers import FSFile
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import (
@@ -78,6 +79,7 @@ from satpy.readers.utils import (
     get_user_calibration_factors,
     np2str,
     unzip_file,
+    unzip_FSFile
 )
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
@@ -357,7 +359,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                 filetype_info)
 
         self.is_zipped = False
-        self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
+        if isinstance(self.filename,str):
+            self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
+        elif isinstance(self.filename,FSFile):
+            self._unzipped = unzip_FSFile(self.filename, prefix=str(filename_info['segment']).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file
