@@ -19,7 +19,6 @@
 
 import math
 import os
-import unittest
 from datetime import datetime
 from unittest import mock
 
@@ -242,6 +241,62 @@ class TestScene:
         a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
         assert a_var.shape == (3, 6)
 
+    def test_contains(self):
+        """Test contains."""
+        scene = Scene()
+        scene["1"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.1, 0.2, 0.3),
+                                         '_satpy_id_keys': default_id_keys_config})
+        assert '1' in scene
+        assert 0.15 in scene
+        assert '2' not in scene
+        assert 0.31 not in scene
+
+        scene = Scene()
+        scene['blueberry'] = xr.DataArray(np.arange(5))
+        scene['blackberry'] = xr.DataArray(np.arange(5))
+        scene['strawberry'] = xr.DataArray(np.arange(5))
+        scene['raspberry'] = xr.DataArray(np.arange(5))
+        #  deepcode ignore replace~keys~list~compare: This is on purpose
+        assert make_cid(name='blueberry') in scene.keys()
+        assert make_cid(name='blueberry') in scene
+        assert 'blueberry' in scene
+        assert 'blueberry' not in scene.keys()
+
+    def test_delitem(self):
+        """Test deleting an item."""
+        scene = Scene()
+        scene["1"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.1, 0.2, 0.3),
+                                         '_satpy_id_keys': default_id_keys_config})
+        scene["2"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.4, 0.5, 0.6),
+                                         '_satpy_id_keys': default_id_keys_config})
+        scene["3"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.7, 0.8, 0.9),
+                                         '_satpy_id_keys': default_id_keys_config})
+        del scene['1']
+        del scene['3']
+        del scene[0.45]
+        assert not scene._wishlist
+        assert not list(scene._datasets.keys())
+        pytest.raises(KeyError, scene.__delitem__, 0.2)
+
+
+def _create_coarest_finest_data_array(shape, area_def, attrs=None):
+    data_arr = xr.DataArray(
+        da.arange(math.prod(shape)).reshape(shape),
+        attrs={
+            'area': area_def,
+        })
+    if attrs:
+        data_arr.attrs.update(attrs)
+    return data_arr
+
+
+class TestSceneCrop:
+    """Test creating new Scenes by cropping an existing Scene."""
+
     def test_crop(self):
         """Test the crop method."""
         from pyresample.geometry import AreaDefinition
@@ -269,7 +324,7 @@ class TestScene:
             x_size // 2,
             y_size // 2,
             area_extent,
-        )
+            )
         scene1["1"] = xr.DataArray(np.zeros((y_size, x_size)))
         scene1["2"] = xr.DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
         scene1["3"] = xr.DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
@@ -382,58 +437,6 @@ class TestScene:
         assert 'bands' in new_scn1['2'].dims
         assert new_scn1['1'].shape == (3, 184, 714)
         assert new_scn1['2'].shape == (92, 3, 357)
-
-    def test_contains(self):
-        """Test contains."""
-        scene = Scene()
-        scene["1"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.1, 0.2, 0.3),
-                                         '_satpy_id_keys': default_id_keys_config})
-        assert '1' in scene
-        assert 0.15 in scene
-        assert '2' not in scene
-        assert 0.31 not in scene
-
-        scene = Scene()
-        scene['blueberry'] = xr.DataArray(np.arange(5))
-        scene['blackberry'] = xr.DataArray(np.arange(5))
-        scene['strawberry'] = xr.DataArray(np.arange(5))
-        scene['raspberry'] = xr.DataArray(np.arange(5))
-        #  deepcode ignore replace~keys~list~compare: This is on purpose
-        assert make_cid(name='blueberry') in scene.keys()
-        assert make_cid(name='blueberry') in scene
-        assert 'blueberry' in scene
-        assert 'blueberry' not in scene.keys()
-
-    def test_delitem(self):
-        """Test deleting an item."""
-        scene = Scene()
-        scene["1"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.1, 0.2, 0.3),
-                                         '_satpy_id_keys': default_id_keys_config})
-        scene["2"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.4, 0.5, 0.6),
-                                         '_satpy_id_keys': default_id_keys_config})
-        scene["3"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.7, 0.8, 0.9),
-                                         '_satpy_id_keys': default_id_keys_config})
-        del scene['1']
-        del scene['3']
-        del scene[0.45]
-        assert not scene._wishlist
-        assert not list(scene._datasets.keys())
-        pytest.raises(KeyError, scene.__delitem__, 0.2)
-
-
-def _create_coarest_finest_data_array(shape, area_def, attrs=None):
-    data_arr = xr.DataArray(
-        da.arange(math.prod(shape)).reshape(shape),
-        attrs={
-            'area': area_def,
-        })
-    if attrs:
-        data_arr.attrs.update(attrs)
-    return data_arr
 
 
 def _create_coarsest_finest_area_def(shape, extents):
@@ -900,23 +903,10 @@ class TestSceneResampling:
         assert 'ds13' in new_scene
 
 
-class TestSceneSaving(unittest.TestCase):
+class TestSceneSaving:
     """Test the Scene's saving method."""
 
-    def setUp(self):
-        """Create temporary directory to save files to."""
-        import tempfile
-        self.base_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Remove the temporary directory created for a test."""
-        try:
-            import shutil
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-        except OSError:
-            pass
-
-    def test_save_datasets_default(self):
+    def test_save_datasets_default(self, tmp_path):
         """Save a dataset using 'save_datasets'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -926,10 +916,10 @@ class TestSceneSaving(unittest.TestCase):
         )
         scn = Scene()
         scn['test'] = ds1
-        scn.save_datasets(base_dir=self.base_dir)
-        assert os.path.isfile(os.path.join(self.base_dir, 'test_20180101_000000.tif'))
+        scn.save_datasets(base_dir=tmp_path)
+        assert os.path.isfile(os.path.join(tmp_path, 'test_20180101_000000.tif'))
 
-    def test_save_datasets_by_ext(self):
+    def test_save_datasets_by_ext(self, tmp_path):
         """Save a dataset using 'save_datasets' with 'filename'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -943,11 +933,11 @@ class TestSceneSaving(unittest.TestCase):
         from satpy.writers.simple_image import PillowWriter
         save_image_mock = spy_decorator(PillowWriter.save_image)
         with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
-            scn.save_datasets(base_dir=self.base_dir, filename='{name}.png')
+            scn.save_datasets(base_dir=tmp_path, filename='{name}.png')
         save_image_mock.mock.assert_called_once()
-        assert os.path.isfile(os.path.join(self.base_dir, 'test.png'))
+        assert os.path.isfile(os.path.join(tmp_path, 'test.png'))
 
-    def test_save_datasets_bad_writer(self):
+    def test_save_datasets_bad_writer(self, tmp_path):
         """Save a dataset using 'save_datasets' and a bad writer."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -960,21 +950,21 @@ class TestSceneSaving(unittest.TestCase):
         pytest.raises(ValueError,
                       scn.save_datasets,
                       writer='_bad_writer_',
-                      base_dir=self.base_dir)
+                      base_dir=tmp_path)
 
-    def test_save_datasets_missing_wishlist(self):
+    def test_save_datasets_missing_wishlist(self, tmp_path):
         """Calling 'save_datasets' with no valid datasets."""
         scn = Scene()
         scn._wishlist.add(make_cid(name='true_color'))
         pytest.raises(RuntimeError,
                       scn.save_datasets,
                       writer='geotiff',
-                      base_dir=self.base_dir)
+                      base_dir=tmp_path)
         pytest.raises(KeyError,
                       scn.save_datasets,
                       datasets=['no_exist'])
 
-    def test_save_dataset_default(self):
+    def test_save_dataset_default(self, tmp_path):
         """Save a dataset using 'save_dataset'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -984,11 +974,11 @@ class TestSceneSaving(unittest.TestCase):
         )
         scn = Scene()
         scn['test'] = ds1
-        scn.save_dataset('test', base_dir=self.base_dir)
-        assert os.path.isfile(os.path.join(self.base_dir, 'test_20180101_000000.tif'))
+        scn.save_dataset('test', base_dir=tmp_path)
+        assert os.path.isfile(os.path.join(tmp_path, 'test_20180101_000000.tif'))
 
 
-class TestSceneAggregation(unittest.TestCase):
+class TestSceneAggregation:
     """Test the scene's aggregate method."""
 
     def test_aggregate(self):
