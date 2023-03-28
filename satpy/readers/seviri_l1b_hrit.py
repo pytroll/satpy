@@ -209,6 +209,7 @@ from satpy.readers.hrit_base import (
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
+    REPEAT_CYCLE_DURATION,
     SATNUM,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
@@ -219,6 +220,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     mask_bad_quality,
     pad_data_horizontally,
+    round_nom_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 
@@ -446,6 +448,9 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
+        self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
+        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            self.tres = 5
 
         self._get_header()
 
@@ -492,37 +497,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the start time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-
-        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
-            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 15,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        elif self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 5,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        # TODO raise a warning if none fo the above but still return the original time
-        return tm
+        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
 
     @property
     def nominal_end_time(self):
         """Get the end time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
-            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 15,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        elif self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 5,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        # TODO raise a warning if none fo the above but still return the original time
-        return tm
+        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
 
     @property
     def observation_start_time(self):
