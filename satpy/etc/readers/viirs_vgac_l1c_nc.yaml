@@ -2,7 +2,8 @@ reader:
   name: viirs_vgac_l1c_nc
   short_name: VGAC from VIIRS MOD and IMG channels
   long_name: VIIRS Global Area Coverage from VIIRS Reflected Solar Band and Thermal Emission Band data for both Moserate resolution and Imager resolution channels.
-  description: >
+  description: https://ams.confex.com/ams/JOINTSATMET/mediafile/Handout/Paper360556/VGAC%20version%201%20-%20poster.pdf
+
     NetCDF4 reader for VGAC from VIIRS.
   sensors: [viirs]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

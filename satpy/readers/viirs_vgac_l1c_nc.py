@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2009-2023 Satpy developers
 #
 # This file is part of satpy.
@@ -60,7 +58,7 @@ class VGACFileHandler(BaseFileHandler):
         """Get dataset."""
         logger.debug("Getting data for: %s", yaml_info['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine, decode_times=False,
-                             chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
+                             chunks={'y': CHUNK_SIZE, 'x': 800})
         name = yaml_info.get('nc_store_name', yaml_info['name'])
         file_key = yaml_info.get('nc_key', name)
         data = nc[file_key]
@@ -76,6 +74,7 @@ class VGACFileHandler(BaseFileHandler):
             data.attrs["start_time"] = datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
             data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
             self._end_time = data.attrs["end_time"]
+            self._start_time = data.attrs["start_time"]
         return data
 
     @property
