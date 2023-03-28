@@ -983,7 +983,7 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     return data
 
 
-def round_time(dt=None, date_delta=None):
+def round_nom_time(dt=None, date_delta=None):
     """Round a datetime object to a multiple of a timedelta.
 
     dt : datetime.datetime object, default now.
