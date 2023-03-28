@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2010-2019 Satpy developers
+# Copyright (c) 2010-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,34 +13,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for scene.py."""
-
+"""Unit tests for data access methods and properties of the Scene class."""
 import math
 
-import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from dask import array as da
 
 from satpy import Scene
-from satpy.tests.utils import (
-    FAKE_FILEHANDLER_END,
-    FAKE_FILEHANDLER_START,
-    default_id_keys_config,
-    make_cid,
-    make_dataid,
-)
-
-
-def _check_comp19_deps_are_loaded(scene):
-    # comp19 required resampling to produce so we should have its 3 deps
-    # 1. comp13
-    # 2. ds5
-    # 3. ds2
-    loaded_ids = list(scene.keys())
-    assert len(loaded_ids) == 3
-    for name in ('comp13', 'ds5', 'ds2'):
-        assert any(x['name'] == name for x in loaded_ids)
+from satpy.dataset.dataid import default_id_keys_config
+from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make_cid, make_dataid
 
 
 @pytest.mark.usefixtures("include_test_etc")
