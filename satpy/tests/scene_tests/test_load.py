@@ -278,21 +278,40 @@ class TestLoadingReaderDatasets:
 class TestLoadingComposites:
     """Test the Scene object's `.load` method for composites."""
 
-    def test_load_comp1(self):
-        """Test loading a composite with one required prereq."""
+    @pytest.mark.parametrize(
+        ("comp_name", "exp_id_or_name"),
+        [
+            pytest.param("comp1", make_cid(name="comp1"), id="composite with one required reader prereq"),
+            pytest.param("comp4", make_cid(name="comp4"), id="composite with a required composite prereq"),
+            pytest.param("comp5", make_cid(name="comp5"), id="composite with an optional reader prereq"),
+            pytest.param("comp6", make_cid(name="comp6"), id="composite with an optional composite prereq"),
+            pytest.param("comp9", make_cid(name="comp9"), id="composite with an unknown optional prereq"),
+            pytest.param("comp10", make_cid(name="comp10"), id="composite with a modified required prereq"),
+            pytest.param("comp11", make_cid(name="comp11"), id="composite with required prereqs as wavelength"),
+            pytest.param("comp12", make_cid(name="comp12"),
+                         id="composite with required prereqs as modified wavelengths"),
+            pytest.param("comp13", make_cid(name="comp13"), id="composite with modified res-changed prereq"),
+            pytest.param("comp14", make_cid(name="comp14", resolution=555),
+                         id="composite that changes DataID resolution"),
+            pytest.param("comp16", make_cid(name="comp16"), id="composite with unloadable optional prereq"),
+            pytest.param("comp20", make_cid(name="comp20"), id="composite with prereq with modifier with opt prereq"),
+            pytest.param("comp21", make_cid(name="comp21"),
+                         id="composite with prereq with modifier with unloadable opt prereq"),
+            pytest.param("comp22", make_cid(name="comp22"),
+                         id="composite with prereq with modifier with only opt prereqs"),
+            pytest.param("ahi_green", make_cid(name="ahi_green"), id="ahi_green composite"),
+        ]
+    )
+    def test_single_composite_loading(self, comp_name, exp_id_or_name):
+        """Test that certain composites can be loaded individually."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp1'])
+        scene.load([comp_name])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp1')
-
-    def test_load_comp4(self):
-        """Test loading a composite that depends on a composite."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp4'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp4')
+        if isinstance(exp_id_or_name, str):
+            assert loaded_ids[0]["name"] == exp_id_or_name
+        else:
+            assert loaded_ids[0] == exp_id_or_name
 
     def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
@@ -319,80 +338,10 @@ class TestLoadingComposites:
         assert loaded_ids[1]['name'] == 'comp25'
         assert loaded_ids[1]['resolution'] == 500
 
-    def test_load_comp5(self):
-        """Test loading a composite that has an optional prerequisite."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp5'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp5')
-
-    def test_load_comp6(self):
-        """Test loading a composite that has an optional composite prerequisite."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp6'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp6')
-
     def test_load_comp8(self):
         """Test loading a composite that has a non-existent prereq."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         pytest.raises(KeyError, scene.load, ['comp8'])
-
-    def test_load_comp9(self):
-        """Test loading a composite that has a non-existent optional prereq."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp9'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp9')
-
-    def test_load_comp10(self):
-        """Test loading a composite that depends on a modified dataset."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp10'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp10')
-
-    def test_load_comp11(self):
-        """Test loading a composite that depends all wavelengths."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp11'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp11')
-
-    def test_load_comp12(self):
-        """Test loading a composite that depends all wavelengths that get modified."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp12'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp12')
-
-    def test_load_comp13(self):
-        """Test loading a composite that depends on a modified dataset where the resolution changes."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp13'])
-        loaded_ids = list(scene.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp13')
-
-    def test_load_comp14(self):
-        """Test loading a composite that updates the DataID during generation."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp14'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'comp14'
 
     def test_load_comp15(self):
         """Test loading a composite whose prerequisites can't be loaded.
@@ -406,29 +355,15 @@ class TestLoadingComposites:
         loaded_ids = list(scene._datasets.keys())
         assert not loaded_ids
 
-    def test_load_comp16(self):
-        """Test loading a composite whose opt prereq can't be loaded.
-
-        Note that the prereq exists in the reader, but fails in loading
-
-        """
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp16'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'comp16'
-
     def test_load_comp17(self):
         """Test loading a composite that depends on a composite that won't load."""
-        # it is fine that an optional prereq doesn't exist
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp17'])
         loaded_ids = list(scene._datasets.keys())
         assert not loaded_ids
 
     def test_load_comp18(self):
-        """Test loading a composite that depends on a incompatible area modified dataset."""
+        """Test loading a composite that depends on an incompatible area modified dataset."""
         # it is fine that an optional prereq doesn't exist
         scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
         scene.load(['comp18'])
@@ -447,7 +382,7 @@ class TestLoadingComposites:
                            modifiers=('mod1',)) in scene._datasets
 
     def test_load_comp18_2(self):
-        """Test loading a composite that depends on a incompatible area modified dataset.
+        """Test loading a composite that depends on an incompatible area modified dataset.
 
         Specifically a modified dataset where the modifier has optional
         dependencies.
@@ -624,41 +559,6 @@ class TestLoadingComposites:
             assert mod_mock.mock.call_count == 1
             loaded_ids = list(scene._datasets.keys())
             assert len(loaded_ids) == 2
-
-    def test_load_comp20(self):
-        """Test loading composite with optional modifier dependencies."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp20'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp20')
-
-    def test_load_comp21(self):
-        """Test loading composite with bad optional modifier dependencies."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp21'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp21')
-
-    def test_load_comp22(self):
-        """Test loading composite with only optional modifier dependencies."""
-        # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp22'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp22')
-
-    def test_load_green(self):
-        """Test loading ahi_green."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ahi_green'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='ahi_green')
 
     def test_no_generate_comp10(self):
         """Test generating a composite after loading."""
