@@ -121,10 +121,31 @@ class TestSceneAllAvailableDatasets:
             assert not_avail_comp in all_comps
             assert not_avail_comp not in avail_comps
 
+    def test_available_comps_no_deps(self):
+        """Test Scene available composites when composites don't have a dependency."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        all_comp_ids = scene.available_composite_ids()
+        assert make_cid(name='static_image') in all_comp_ids
+        available_comp_ids = scene.available_composite_ids()
+        assert make_cid(name='static_image') in available_comp_ids
+
+    def test_available_when_sensor_none_in_preloaded_dataarrays(self):
+        """Test Scene available composites when existing loaded arrays have sensor set to None.
+
+        Some readers or composites (ex. static images) don't have a sensor and
+        developers choose to set it to `None`. This test makes sure this
+        doesn't break available composite IDs.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene['my_data'] = _data_array_none_sensor("my_data")
+        available_comp_ids = scene.available_composite_ids()
+        assert make_cid(name='static_image') in available_comp_ids
+
 
 @pytest.mark.usefixtures("include_test_etc")
-class TestSceneLoading:
-    """Test the Scene objects `.load` method."""
+class TestBadLoading:
+    """Test the Scene object's `.load` method with bad inputs."""
 
     def test_load_str(self):
         """Test passing a string to Scene.load."""
@@ -135,6 +156,11 @@ class TestSceneLoading:
         """Test loading a dataset that doesn't exist."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         pytest.raises(KeyError, scene.load, ['im_a_dataset_that_doesnt_exist'])
+
+
+@pytest.mark.usefixtures("include_test_etc")
+class TestLoadingReaderDatasets:
+    """Test the Scene object's `.load` method for datasets coming from a reader."""
 
     def test_load_no_exist2(self):
         """Test loading a dataset that doesn't exist then another load."""
@@ -265,6 +291,11 @@ class TestSceneLoading:
         scene.load(['ds9_fail_load'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 0
+
+
+@pytest.mark.usefixtures("include_test_etc")
+class TestLoadingComposites:
+    """Test the Scene object's `.load` method for composites."""
 
     def test_load_comp1(self):
         """Test loading a composite with one required prereq."""
@@ -729,27 +760,6 @@ class TestSceneLoading:
         assert len(avail_comps) == 1
         pytest.raises(KeyError, scene.load, [0.21])
 
-    def test_available_comps_no_deps(self):
-        """Test Scene available composites when composites don't have a dependency."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        all_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in all_comp_ids
-        available_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in available_comp_ids
-
-    def test_available_when_sensor_none_in_preloaded_dataarrays(self):
-        """Test Scene available composites when existing loaded arrays have sensor set to None.
-
-        Some readers or composites (ex. static images) don't have a sensor and
-        developers choose to set it to `None`. This test makes sure this
-        doesn't break available composite IDs.
-
-        """
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene['my_data'] = _data_array_none_sensor("my_data")
-        available_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in available_comp_ids
-
     def test_load_when_sensor_none_in_preloaded_dataarrays(self):
         """Test Scene loading when existing loaded arrays have sensor set to None.
 
@@ -763,31 +773,6 @@ class TestSceneLoading:
         scene.load(["static_image"])
         assert "static_image" in scene
         assert "my_data" in scene
-
-    def test_compute_pass_through(self):
-        """Test pass through of xarray compute."""
-        import numpy as np
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
-        scene = scene.compute()
-        assert isinstance(scene['ds1'].data, np.ndarray)
-
-    def test_persist_pass_through(self):
-        """Test pass through of xarray persist."""
-        from dask.array.utils import assert_eq
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
-        scenep = scene.persist()
-        assert_eq(scene['ds1'].data, scenep['ds1'].data)
-        assert set(scenep['ds1'].data.dask).issubset(scene['ds1'].data.dask)
-        assert len(scenep["ds1"].data.dask) == scenep['ds1'].data.npartitions
-
-    def test_chunk_pass_through(self):
-        """Test pass through of xarray chunk."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
-        scene = scene.chunk(chunks=2)
-        assert scene['ds1'].data.chunksize == (2, 2)
 
 
 def _data_array_none_sensor(name: str) -> xr.DataArray:

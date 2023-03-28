@@ -27,7 +27,7 @@ from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make
 
 
 @pytest.mark.usefixtures("include_test_etc")
-class TestScene:
+class TestDataAccessMethods:
     """Test the scene class."""
 
     @pytest.mark.parametrize(
@@ -362,3 +362,33 @@ class TestFinestCoarsestArea:
         coarse_area2 = scn.coarsest_area()
         # doesn't matter what order they were added, this should be the same area
         assert coarse_area2 is course_area1
+
+
+@pytest.mark.usefixtures("include_test_etc")
+class TestComputePersist:
+    """Test methods that compute the internal data in some way."""
+
+    def test_compute_pass_through(self):
+        """Test pass through of xarray compute."""
+        import numpy as np
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scene = scene.compute()
+        assert isinstance(scene['ds1'].data, np.ndarray)
+
+    def test_persist_pass_through(self):
+        """Test pass through of xarray persist."""
+        from dask.array.utils import assert_eq
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scenep = scene.persist()
+        assert_eq(scene['ds1'].data, scenep['ds1'].data)
+        assert set(scenep['ds1'].data.dask).issubset(scene['ds1'].data.dask)
+        assert len(scenep["ds1"].data.dask) == scenep['ds1'].data.npartitions
+
+    def test_chunk_pass_through(self):
+        """Test pass through of xarray chunk."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scene = scene.chunk(chunks=2)
+        assert scene['ds1'].data.chunksize == (2, 2)
