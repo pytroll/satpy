@@ -137,8 +137,7 @@ class TestSceneAllAvailableDatasets:
         doesn't break available composite IDs.
 
         """
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene['my_data'] = _data_array_none_sensor("my_data")
+        scene = _scene_with_data_array_none_sensor()
         available_comp_ids = scene.available_composite_ids()
         assert make_cid(name='static_image') in available_comp_ids
 
@@ -750,11 +749,16 @@ class TestLoadingComposites:
         doesn't break loading.
 
         """
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene['my_data'] = _data_array_none_sensor("my_data")
+        scene = _scene_with_data_array_none_sensor()
         scene.load(["static_image"])
         assert "static_image" in scene
         assert "my_data" in scene
+
+
+def _scene_with_data_array_none_sensor():
+    scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+    scene['my_data'] = _data_array_none_sensor("my_data")
+    return scene
 
 
 def _data_array_none_sensor(name: str) -> xr.DataArray:
