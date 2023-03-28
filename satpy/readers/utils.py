@@ -292,8 +292,9 @@ def unzip_FSFile(filename: FSFile, prefix=None):
                 os.remove(tmpfilepath)
                 return None
         return tmpfilepath
-    
+
     return None
+
 
 @contextmanager
 def unzip_context(filename):
