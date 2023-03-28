@@ -43,6 +43,7 @@ from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     HRV_NUM_LINES,
+    REPEAT_CYCLE_DURATION,
     SATNUM,
     VISIR_NUM_COLUMNS,
     VISIR_NUM_LINES,
@@ -57,6 +58,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
+    round_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
@@ -120,6 +122,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
+        self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
+        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            self.tres = 5
+
     def _has_archive_header(self):
         """Check whether the file includes an ASCII archive header."""
         ascii_startswith = b'FormatName                  : NATIVE'
@@ -130,35 +136,13 @@ class NativeMSGFileHandler(BaseFileHandler):
     def nominal_start_time(self):
         """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
-            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 15,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        elif self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 5,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        # TODO raise a warning if none fo the above but still return the original time
-        return tm
+        return round_time(tm, date_delta=timedelta(minutes=self.tres))
 
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['NominalImageScanning'] == 1:
-            # rounding nominal start time to fit the expected 15 minutes RC for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 15,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        elif self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            # rounding nominal start time to fit the expected 5 minutes RSS for full disk scan
-            tm = tm - timedelta(minutes=tm.minute % 5,
-                                seconds=tm.second,
-                                microseconds=tm.microsecond)
-        # TODO raise a warning if none fo the above but still return the original time
-        return tm
+        return round_time(tm, date_delta=timedelta(minutes=15))
 
     @property
     def observation_start_time(self):
