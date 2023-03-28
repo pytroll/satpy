@@ -344,6 +344,36 @@ class TestHelpers(unittest.TestCase):
 
         assert mock_fn_open.read.called
 
+    @mock.patch('bz2.decompress')
+    def test_unzip_FSFile(self,bz2_mock):
+        """Test the bz2 file unzipping techniques."""
+        mock_bz2_open = mock.MagicMock()
+        mock_bz2_open.return_value = b'TEST_DECOMPRESSED'
+
+        # test zipped FSFile
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+
+        new_fname = hf.unzip_FSFile(fsf, prefix=segmentstr)
+        assert mock_bz2_open.called
+        self.assertEqual(bz2_mock,mock_bz2_open.return_value)
+        self.assertTrue(os.path.exists(new_fname))
+        self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
+
+        # test unzipped FSFile
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+        new_fname = hf.unzip_file(fsf)
+        self.assertIsNone(new_fname)
+
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
