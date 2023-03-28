@@ -229,17 +229,26 @@ class TestLoadingReaderDatasets:
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['calibration'] == 'reflectance'
 
-    def test_load_ds5_best_resolution(self):
+    @pytest.mark.parametrize(
+        ("input_filenames", "load_kwargs", "exp_resolution"),
+        [
+            (["fake1_1.txt", "fake1_highres_1.txt"], {}, 250),
+            (["fake1_1.txt"], {"resolution": [500, 1000]}, 500),
+            (["fake1_1.txt"], {"modifiers": tuple()}, 500),
+            (["fake1_1.txt"], {}, 500),
+        ]
+    )
+    def test_load_ds5_variations(self, input_filenames, load_kwargs, exp_resolution):
         """Test loading a dataset has multiple resolutions available."""
-        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
-        scene.load(['ds5'])
+        scene = Scene(filenames=input_filenames, reader='fake1')
+        scene.load(['ds5'], **load_kwargs)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'ds5'
-        assert loaded_ids[0]['resolution'] == 250
+        assert loaded_ids[0]['resolution'] == exp_resolution
 
-    def test_load_ds5_multiple_resolution(self):
-        """Test loading a dataset has multiple resolutions available with different resolutions."""
+    def test_load_ds5_multiple_resolution_loads(self):
+        """Test loading a dataset with multiple resolutions available as separate loads."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds5'], resolution=1000)
         scene.load(['ds5'], resolution=500)
@@ -249,33 +258,6 @@ class TestLoadingReaderDatasets:
         assert loaded_ids[0]['resolution'] == 500
         assert loaded_ids[1]['name'] == 'ds5'
         assert loaded_ids[1]['resolution'] == 1000
-
-    def test_load_ds5_resolution_list(self):
-        """Test loading a dataset has multiple resolutions available with different resolutions."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds5'], resolution=[500, 1000])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'ds5'
-        assert loaded_ids[0]['resolution'] == 500
-
-    def test_load_ds5_empty_modifiers(self):
-        """Test loading a dataset has multiple resolutions available with different resolutions."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load([make_dsq(name='ds5', modifiers=tuple())])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'ds5'
-
-    def test_load_ds5_missing_best_resolution(self):
-        """Test loading a dataset that has multiple resolutions but the best isn't available."""
-        # only the 500m is available
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds5'])
-        loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'ds5'
-        assert loaded_ids[0]['resolution'] == 500
 
     def test_load_ds6_wl(self):
         """Test loading a dataset by wavelength."""
