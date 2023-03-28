@@ -359,11 +359,11 @@ class TestHelpers(unittest.TestCase):
         segment = 3
         segmentstr = str(segment).zfill(2)
 
-        new_fname = hf.unzip_FSFile(fsf, prefix=segmentstr)
-        assert mock_bz2_decompress.called
-        self.assertEqual(bz2_mock, mock_bz2_decompress.return_value)
-        self.assertTrue(os.path.exists(new_fname))
-        self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_called
+        assert bz2_mock == mock_bz2_decompress.return_value
+        assert os.path.exists(new_fname) is True
+        assert os.path.split(new_fname)[1][0:2] != segmentstr
         if os.path.exists(new_fname):
             os.remove(new_fname)
 
@@ -372,7 +372,7 @@ class TestHelpers(unittest.TestCase):
         mem_file.commit()
         fsf = FSFile(mem_file)
         new_fname = hf.unzip_file(fsf)
-        self.assertIsNone(new_fname)
+        assert new_fname is None
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
