@@ -43,11 +43,10 @@ class VGACFileHandler(BaseFileHandler):
 
     def convert_to_bt(self, data, data_lut, scale_factor):
         """Convert radances to brightness temperatures."""
-        from scipy import interpolate
         x = np.arange(0, len(data_lut))
         y = data_lut
-        func = interpolate.interp1d(x, y)
-        brightness_temperatures = func(data.values / scale_factor)
+        scaled_data = data / scale_factor
+        brightness_temperatures = xr.DataArray(np.interp(scaled_data, xp=x, fp=y), coords=data.coords, attrs=data.attrs)
         return brightness_temperatures
 
     def fix_radiances_not_in_percent(self, data):
@@ -64,7 +63,7 @@ class VGACFileHandler(BaseFileHandler):
         data = nc[file_key]
         scale_factor = yaml_info.get("scale_factor_nc", 0.0002)
         if file_key + "_LUT" in nc:
-            data.values = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
+            data = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
         if data.attrs["units"] == "percent":
             # Should be removed with later versions of data
             data = self.fix_radiances_not_in_percent(data)
