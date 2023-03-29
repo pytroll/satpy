@@ -27,6 +27,7 @@ from contextlib import closing, contextmanager
 from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
+from typing import Union
 
 import numpy as np
 import pyproj
@@ -199,7 +200,7 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename: str, prefix=None):
+def unzip_file(filename: Union[str, FSFile], prefix=None):
     """Unzip the local/remote file ending with 'bz2'.
 
     Args:
