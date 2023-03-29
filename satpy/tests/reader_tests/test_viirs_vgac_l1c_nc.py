@@ -69,6 +69,7 @@ class TestVGACREader:
     def test_read_vgac(self, _nc_filename):
         """Test reading reflectances and BT."""
         from satpy.scene import Scene
+
         # Read data
         scn_ = Scene(
             reader='viirs_vgac_l1c_nc',
