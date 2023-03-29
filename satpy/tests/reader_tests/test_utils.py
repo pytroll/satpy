@@ -344,7 +344,7 @@ class TestHelpers(unittest.TestCase):
 
         assert mock_fn_open.read.called
 
-    @mock.patch('bz2.decompress')
+    @mock.patch('bz2.decompress', return_value=b'TEST_DECOMPRESSED')
     def test_unzip_FSFile(self, bz2_mock):
         """Test the FSFile bz2 file unzipping techniques."""
         mock_bz2_decompress = mock.MagicMock()
@@ -361,9 +361,9 @@ class TestHelpers(unittest.TestCase):
 
         new_fname = hf.unzip_file(fsf, prefix=segmentstr)
         mock_bz2_decompress.assert_called
-        assert bz2_mock == mock_bz2_decompress.return_value
+        bz2_mock.assert_called
         assert os.path.exists(new_fname) is True
-        assert os.path.split(new_fname)[1][0:2] != segmentstr
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
         if os.path.exists(new_fname):
             os.remove(new_fname)
 
