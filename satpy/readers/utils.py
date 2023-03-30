@@ -261,10 +261,7 @@ def _unzip_local_file(filename: str, prefix=None):
                 stdout.seek(0)
                 shutil.copyfileobj(stdout, ofpt)
             except IOError:
-                import traceback
-                traceback.print_exc()
-                LOGGER.info("Failed to read bzipped file %s",
-                            str(filename))
+                LOGGER.debug("Failed to read bzipped file %s", str(filename))
                 os.remove(tmpfilepath)
                 raise
         return tmpfilepath
@@ -274,9 +271,7 @@ def _unzip_local_file(filename: str, prefix=None):
         try:
             ofpt.write(bz2file.read())
         except IOError:
-            import traceback
-            traceback.print_exc()
-            LOGGER.info("Failed to read bzipped file %s", str(filename))
+            LOGGER.debug("Failed to read bzipped file %s", str(filename))
             os.remove(tmpfilepath)
             return None
     return tmpfilepath
@@ -299,16 +294,17 @@ def _unzip_FSFile(filename: FSFile, prefix=None):
 
     fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
                                         dir=config["tmp_dir"])
-    # open file and decompress to memory
-    zip_file = filename.open().read()
-    content = bz2.decompress(zip_file)
+    # open file
+    content = filename.open().read()
+    # unzip file if zipped (header start with hex 425A68)
+    if content.startswith(bytes.fromhex("425A68")):
+        content = bz2.decompress(content)
+
     with closing(os.fdopen(fdn, 'wb')) as ofpt:
         try:
             ofpt.write(content)
         except IOError:
-            import traceback
-            traceback.print_exc()
-            LOGGER.info("Failed to read bzipped file %s", str(filename))
+            LOGGER.debug("Failed to read bzipped file %s", str(filename))
             os.remove(tmpfilepath)
             return None
     return tmpfilepath

@@ -350,14 +350,28 @@ class TestHelpers(unittest.TestCase):
         mock_bz2_decompress = mock.MagicMock()
         mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
 
-        # test zipped FSFile
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+
+        # test zipped FSFile unzipped in fly (decompress shouldn't be called)
         mem_fs = MemoryFileSystem()
         mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker), data=b"TEST")
         mem_file.commit()
         fsf = FSFile(mem_file)
 
-        segment = 3
-        segmentstr = str(segment).zfill(2)
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_not_called
+        bz2_mock.assert_not_called
+        assert os.path.exists(new_fname) is True
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
+
+        # test FSFile without unzipping in fly (decompress should be called)
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker),
+                              data=bytes.fromhex("425A68")+b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
 
         new_fname = hf.unzip_file(fsf, prefix=segmentstr)
         mock_bz2_decompress.assert_called
@@ -366,13 +380,6 @@ class TestHelpers(unittest.TestCase):
         assert os.path.split(new_fname)[1][0:2] == segmentstr
         if os.path.exists(new_fname):
             os.remove(new_fname)
-
-        # test unzipped FSFile
-        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
-        mem_file.commit()
-        fsf = FSFile(mem_file)
-        new_fname = hf.unzip_file(fsf)
-        assert new_fname is None
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
