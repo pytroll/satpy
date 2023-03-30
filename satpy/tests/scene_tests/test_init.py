@@ -27,6 +27,10 @@ import satpy
 from satpy import Scene
 from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, spy_decorator
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - include_test_etc
+
 
 @pytest.mark.usefixtures("include_test_etc")
 class TestScene:

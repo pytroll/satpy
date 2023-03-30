@@ -25,6 +25,10 @@ from dask import array as da
 from satpy import Scene
 from satpy.tests.utils import make_cid, spy_decorator
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 class TestSceneSaving:
     """Test the Scene's saving method."""

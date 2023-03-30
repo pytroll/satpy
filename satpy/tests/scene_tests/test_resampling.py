@@ -25,6 +25,10 @@ from satpy import Scene
 from satpy.dataset.dataid import default_id_keys_config
 from satpy.tests.utils import make_cid, make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - include_test_etc
+
 
 class TestSceneCrop:
     """Test creating new Scenes by cropping an existing Scene."""

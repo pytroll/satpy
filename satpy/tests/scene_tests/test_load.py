@@ -24,6 +24,10 @@ from dask import array as da
 from satpy import Scene
 from satpy.tests.utils import make_cid, make_dataid, make_dsq, spy_decorator
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - include_test_etc
+
 
 @pytest.mark.usefixtures("include_test_etc")
 class TestSceneAllAvailableDatasets:
