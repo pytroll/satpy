@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to work with multiple timesteps of satellite data."""
+from __future__ import annotations
 
 import copy
 import logging
@@ -23,6 +24,7 @@ import warnings
 from datetime import datetime
 from queue import Queue
 from threading import Thread
+from typing import Callable
 
 import dask.array as da
 import numpy as np
@@ -58,27 +60,43 @@ def stack(datasets, weights=None, combine_times=True, blend_type='select_with_we
     dataset where each pixel is constructed in a way depending on ``blend_type``.
 
     """
-    bands = datasets[0].dims[0] == 'bands'
-    if weights and bands:
-        weights = set_weights_to_zero_where_invalid_red(datasets, weights)
-    elif weights and not bands:
-        weights = set_weights_to_zero_where_invalid(datasets, weights)
-    if weights and blend_type == 'select_with_weights':
-        return _stack_selected(datasets, weights, combine_times, bands)
-    if weights and blend_type == 'blend_with_weights':
-        return _stack_blended(datasets, weights, combine_times)
+    if weights:
+        return _stack_with_weights(datasets, weights, combine_times, blend_type)
+    return _stack_no_weights(datasets)
 
-    base = datasets[0].copy()
-    for dataset in datasets[1:]:
+
+def _stack_with_weights(datasets: list, weights: list, combine_times: bool, blend_type: str) -> xr.DataArray:
+    blend_func = _get_weighted_blending_func(blend_type)
+    filled_weights = _fill_weights_for_invalid_dataset_pixels(datasets, weights)
+    return blend_func(datasets, filled_weights, combine_times)
+
+
+def _get_weighted_blending_func(blend_type: str) -> Callable:
+    WEIGHTED_BLENDING_FUNCS = {
+        "select_with_weights": _stack_select_by_weights,
+        "blend_with_weights": _stack_blend_by_weights,
+    }
+    blend_func = WEIGHTED_BLENDING_FUNCS.get(blend_type)
+    if blend_func is None:
+        raise ValueError(f"Unknown weighted blending type: {blend_type}."
+                         f"Expected one of: {WEIGHTED_BLENDING_FUNCS.keys()}")
+    return blend_func
+
+
+def _fill_weights_for_invalid_dataset_pixels(datasets, weights):
+    """Replace weight valus with 0 where data values are invalid/null."""
+    has_bands_dims = "bands" in datasets[0].dims
+    for i, dataset in enumerate(datasets):
+        # if multi-band only use the red-band
+        compare_ds = dataset[0] if has_bands_dims else dataset
         try:
-            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
+            weights[i] = xr.where(compare_ds == compare_ds.attrs["_FillValue"], 0, weights[i])
         except KeyError:
-            base = base.where(dataset.isnull(), dataset)
+            weights[i] = xr.where(compare_ds.isnull(), 0, weights[i])
+    return weights
 
-    return base
 
-
-def _stack_blended(datasets, weights, combine_times):
+def _stack_blend_by_weights(datasets, weights, combine_times):
     """Stack datasets blending overlap using weights."""
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
@@ -97,11 +115,11 @@ def _stack_blended(datasets, weights, combine_times):
     return blended_array
 
 
-def _stack_selected(datasets, weights, combine_times, bands):
+def _stack_select_by_weights(datasets, weights, combine_times):
     """Stack datasets selecting pixels using weights."""
     indices = da.argmax(da.dstack(weights), axis=-1)
-    if bands:
-        indices = [indices, indices, indices]
+    if "bands" in datasets[0].dims:
+        indices = [indices] * datasets[0].sizes["bands"]
 
     attrs = combine_metadata(*[x.attrs for x in datasets])
 
@@ -115,26 +133,14 @@ def _stack_selected(datasets, weights, combine_times, bands):
     return selected_array
 
 
-def set_weights_to_zero_where_invalid_red(datasets, weights):
-    """Go through the weights and set to pixel values to zero where corresponding datasets[0] are invalid."""
-    for i, dataset in enumerate(datasets):
+def _stack_no_weights(datasets: list) -> xr.DataArray:
+    base = datasets[0].copy()
+    for dataset in datasets[1:]:
         try:
-            weights[i] = xr.where(dataset[0] == dataset.attrs["_FillValue"], 0, weights[i])
+            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
         except KeyError:
-            weights[i] = xr.where(dataset[0].isnull(), 0, weights[i])
-
-    return weights
-
-
-def set_weights_to_zero_where_invalid(datasets, weights):
-    """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
-    for i, dataset in enumerate(datasets):
-        try:
-            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
-        except KeyError:
-            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
-
-    return weights
+            base = base.where(dataset.isnull(), dataset)
+    return base
 
 
 def _get_combined_start_end_times(*metadata_objects):
