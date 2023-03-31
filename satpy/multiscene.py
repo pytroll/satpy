@@ -51,10 +51,11 @@ def stack(datasets, weights=None, combine_times=True, blend_type='select_with_we
 
     By default, datasets are stacked on top of each other, so the last one applied is
     on top. If a sequence of weights (with equal shape) is provided, the datasets will
-    be combined according to those weights. Datasets can be integers like 'ct', 'cma',
-    or radiances single channel or RGB composites. In the later case weights is applied
+    be combined according to those weights. Datasets can be integer category products
+    (ex. cloud type), single channels (ex. radiance), or RGB composites. In the
+    latter case, weights is applied
     to each 'R', 'G', 'B' coordinate in the same way. The result will be a composite
-    dataset where each pixel is constructed in a way depending on variable blend_type.
+    dataset where each pixel is constructed in a way depending on ``blend_type``.
 
     """
     bands = datasets[0].dims[0] == 'bands'
