@@ -1086,8 +1086,7 @@ class HighCloudCompositor(CloudCompositor):
         return super().__call__(projectables, **kwargs)
 
 
-# class LowCloudCompositor(CloudCompositor):
-class LowCloudCompositor(GenericCompositor):
+class LowCloudCompositor(CloudCompositor):
     """Class information.
 
     TODO: Rewrite docstring
@@ -1105,8 +1104,10 @@ class LowCloudCompositor(GenericCompositor):
 
     """
 
-    def __init__(self, name, range_land=(1.0, 4.5), range_water=(0.0, 4.0), transition_gamma=1.0,
-                 color=(140.25, 191.25, 249.9), **kwargs):
+    def __init__(self, name, land_sea_mask=None, value_land=1, value_sea=0,
+                 range_land=(1.0, 4.5),
+                 range_sea=(0.0, 4.0),
+                 transition_gamma=1.0, color=(140.25, 191.25, 249.9), **kwargs):
         """Init info.
 
         TODO: Rewrite docstring
@@ -1122,39 +1123,35 @@ class LowCloudCompositor(GenericCompositor):
             transition_gamma (float): Gamma correction to apply at the end
 
         """
+        self.land_sea_mask = land_sea_mask
+        self.val_land = value_land
+        self.val_sea = value_sea
         self.range_land = range_land
-        self.range_water = range_water
+        self.range_sea = range_sea
         self.transition_gamma = transition_gamma
         self.color = color
-        super().__init__(name, **kwargs)
-        # super().__init__(name, transition_gamma=transition_gamma, **kwargs)
+        self.transition_min = None
+        self.transition_max = None
+        super().__init__(name, transition_gamma=transition_gamma, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
-        diff_comp = DifferenceCompositor(name='ir_difference')
-        btd = diff_comp.__call__(projectables)
+        projectables = self.match_data_arrays(projectables)
+        btd, lsm, win_bt = projectables
+        lsm = lsm.squeeze(drop=True)
+        lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
 
         # Avoid spurious false alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
-        btd = btd.where(projectables[0] >= 230, 0.0)
+        btd = btd.where(win_bt >= 230, 0.0)
 
-        # self.transition_min, self.transition_max = self.range_land
-        # res_land = super().__call__((btd), **kwargs)
+        self.transition_min, self.transition_max = self.range_land
+        res = super().__call__([btd.where(lsm == self.val_land)], low_cloud_color=self.color, **kwargs)
 
-        # self.transition_min, self.transition_max = self.range_water
-        # res_water = super().__call__(btd, **kwargs)
+        self.transition_min, self.transition_max = self.range_sea
+        res_sea = super().__call__([btd.where(lsm == self.val_sea)], low_cloud_color=self.color, **kwargs)
 
-        tr_min = self.range_land[0]
-        tr_max = self.range_land[1]
+        res = res.where(lsm == self.val_land, res_sea)
 
-        slope = 1 / (tr_max - tr_min)
-        offset = 0 - slope * tr_min
-
-        alpha = btd.where(btd > tr_min, 0.0)
-        alpha = alpha.where(btd <= tr_max, 1.0)
-        alpha = alpha.where((btd <= tr_min) | (btd > tr_max), slope * btd + offset)
-
-        alpha **= self.transition_gamma
-        res = super().__call__((btd, alpha), low_cloud_color=self.color, **kwargs)
         return res
 
 

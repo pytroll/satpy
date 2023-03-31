@@ -855,6 +855,10 @@ enhancements:
   ir_low_cloud:
     standard_name: ir_low_cloud
     operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert
+        args:
+          - [False, True]
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs:
@@ -864,7 +868,6 @@ enhancements:
         kwargs:
           monochromatic:
             color: low_cloud_color
-#            color: [0, 255, 0]
 
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds
