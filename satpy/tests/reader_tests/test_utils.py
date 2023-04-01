@@ -362,7 +362,7 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(fsf, prefix=segmentstr)
         mock_bz2_decompress.assert_not_called
         bz2_mock.assert_not_called
-        assert os.path.exists(new_fname) is True
+        assert os.path.exists(new_fname)
         assert os.path.split(new_fname)[1][0:2] == segmentstr
         if os.path.exists(new_fname):
             os.remove(new_fname)
@@ -376,7 +376,7 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(fsf, prefix=segmentstr)
         mock_bz2_decompress.assert_called
         bz2_mock.assert_called
-        assert os.path.exists(new_fname) is True
+        assert os.path.exists(new_fname)
         assert os.path.split(new_fname)[1][0:2] == segmentstr
         if os.path.exists(new_fname):
             os.remove(new_fname)
