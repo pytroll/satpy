@@ -407,7 +407,7 @@ class BaseResampler(object):
         """
         raise NotImplementedError
 
-    def resample(self, data, cache_dir=None, mask_area=None, **kwargs):
+    def resample(self, data, cache_dir=None, mask_area=None, mask_array=None, **kwargs):
         """Resample `data` by calling `precompute` and `compute` methods.
 
         Only certain resampling classes may use `cache_dir` and the `mask`
@@ -429,7 +429,7 @@ class BaseResampler(object):
 
         """
         # default is to mask areas for SwathDefinitions
-        if mask_area is None and isinstance(
+        if mask_area is None and mask_array is None and isinstance(
                 self.source_geo_def, SwathDefinition):
             mask_area = True
 
@@ -444,6 +444,8 @@ class BaseResampler(object):
             else:
                 kwargs['mask'] = data.isnull()
             kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
+        if mask_array is not None:
+            kwargs['mask'] = mask_array
 
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
@@ -625,7 +627,17 @@ class KDTreeResampler(BaseResampler):
             # Write indices to Zarr file
             zarr_out.to_zarr(filename)
 
-            self._index_caches[mask_name] = cache
+        if mask is not None:    
+            mask_name = getattr(mask, 'name', None)
+            cache = self._read_resampler_attrs()
+            for idx_name, coord in NN_COORDINATES.items():
+                # update the cache in place with persisted dask arrays
+                cache[idx_name] = self._apply_cached_index(cache[idx_name],
+                                                           idx_name,
+                                                           persist=True)
+            self._index_caches[mask_name] = self._read_resampler_attrs()
+
+        if cache_dir or mask is not None:    
             # Delete the kdtree, it's not needed anymore
             self.resampler.delayed_kdtree = None
 
@@ -1374,7 +1386,7 @@ if PRBaseResampler is None:
 
 
 # TODO: move this to pyresample
-def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
+def prepare_resampler(source_area, destination_area, mask_array=None, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
@@ -1394,7 +1406,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
             raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler
-
+        
     key = (resampler_class,
            source_area, destination_area,
            hash_dict(resample_kwargs).hexdigest())
@@ -1408,20 +1420,21 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 
 # TODO: move this to pyresample
 def resample(source_area, data, destination_area,
-             resampler=None, **kwargs):
+             resampler=None, mask_array=None, **kwargs):
     """Do the resampling."""
     if not isinstance(resampler, (BaseResampler, PRBaseResampler)):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,
-                                                  resampler)
+                                                  resampler,
+                                                  mask_array=mask_array)
     else:
         resampler_instance = resampler
 
     if isinstance(data, list):
-        res = [resampler_instance.resample(ds, **kwargs) for ds in data]
+        res = [resampler_instance.resample(ds, mask_array=mask_array, **kwargs) for ds in data]
     else:
-        res = resampler_instance.resample(data, **kwargs)
+        res = resampler_instance.resample(data, mask_array=mask_array, **kwargs)
 
     return res
 
@@ -1433,7 +1446,7 @@ def get_fill_value(dataset):
     return np.nan
 
 
-def resample_dataset(dataset, destination_area, **kwargs):
+def resample_dataset(dataset, destination_area, mask_array=None, **kwargs):
     """Resample *dataset* and return the resampled version.
 
     Args:
@@ -1458,7 +1471,7 @@ def resample_dataset(dataset, destination_area, **kwargs):
         return dataset
 
     fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
-    new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
+    new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, mask_array=mask_array, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()
     new_data.attrs.update(new_attrs)

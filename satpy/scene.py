@@ -838,7 +838,7 @@ class Scene:
         return dataset
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
-                         **resample_kwargs):
+                         mask_array=None, **resample_kwargs):
         """Resample `datasets` to the `destination` area.
 
         If data reduction is enabled, some local caching is perfomed in order to
@@ -847,7 +847,6 @@ class Scene:
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
-
         resamplers = {}
         reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
@@ -873,7 +872,7 @@ class Scene:
             self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area, **kwargs)
+            res = resample_dataset(dataset, destination_area, mask_array=mask_array, **kwargs)
             new_datasets[ds_id] = res
             if ds_id in new_scn._datasets:
                 new_scn._datasets[ds_id] = res
@@ -926,7 +925,7 @@ class Scene:
         return dataset, source_area
 
     def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, resampler=None, reduce_data=True,
+                 unload=True, resampler=None, reduce_data=True, mask_array_name=None,
                  **resample_kwargs):
         """Resample datasets and return a new scene.
 
@@ -954,11 +953,15 @@ class Scene:
                 arguments.
 
         """
+        mask_array = None
+        if mask_array_name is not None:
+            mask_array = self[mask_array_name] == self[mask_array_name].attrs["_FillValue"]
+        
         if destination is None:
             destination = self.finest_area(datasets)
         new_scn = self.copy(datasets=datasets)
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              reduce_data=reduce_data, **resample_kwargs)
+                              reduce_data=reduce_data, mask_array=mask_array, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
