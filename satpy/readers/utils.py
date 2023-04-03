@@ -312,7 +312,6 @@ def _unzip_FSFile(filename: FSFile, prefix=None):
         content = bz2.decompress(content)
 
     return _write_uncompress_file(content, fdn, filename, tmpfilepath)
-# endregion
 
 
 @contextmanager
