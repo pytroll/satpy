@@ -200,7 +200,6 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-# region unzip helpers
 def unzip_file(filename: str | FSFile, prefix=None):
     """Unzip the local/remote file ending with 'bz2'.
 
