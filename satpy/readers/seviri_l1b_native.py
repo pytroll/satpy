@@ -142,7 +142,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return round_nom_time(tm, date_delta=timedelta(minutes=15))
+        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
 
     @property
     def observation_start_time(self):
