@@ -983,20 +983,20 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     return data
 
 
-def round_nom_time(dt=None, date_delta=None):
+def round_nom_time(dt=None, time_delta=None):
     """Round a datetime object to a multiple of a timedelta.
 
     dt : datetime.datetime object, default now.
-    dateDelta : timedelta object, we round to a multiple of this, default 1 minute.
+    time_delta : timedelta object, we round to a multiple of this, default 1 minute.
     adapted for SEVIRI from:
         http://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
     """
     if dt is None:
         dt = datetime.now()
     seconds = (dt - dt.min).seconds
-    if date_delta is None:
-        date_delta = timedelta(minutes=1)
-    round_to = date_delta.total_seconds()
+    if time_delta is None:
+        time_delta = timedelta(minutes=1)
+    round_to = time_delta.total_seconds()
 
     rounding = (seconds + round_to / 2) // round_to * round_to
 
