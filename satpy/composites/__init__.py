@@ -1110,7 +1110,7 @@ class LowCloudCompositor(CloudCompositor):
     only applicable during night-time.
     """
 
-    def __init__(self, name, values_land=(1), values_sea=(0),
+    def __init__(self, name, values_land=(1,), values_sea=(0,),
                  range_land=(1.0, 4.5),
                  range_sea=(0.0, 4.0),
                  transition_gamma=1.0, color=(140.25, 191.25, 249.9), **kwargs):
