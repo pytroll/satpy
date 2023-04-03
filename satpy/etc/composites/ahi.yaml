@@ -495,6 +495,15 @@ composites:
       - geo_color_true_color
       - geo_color_night
 
+  geo_color_without_background:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    lim_low: 80
+    lim_high: 88
+    standard_name: true_color_with_night_ir
+    prerequisites:
+      - geo_color_true_color
+      - geo_color_night_without_background
+
   # GeoColor Daytime
   geo_color_green:
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
@@ -518,7 +527,7 @@ composites:
     high_resolution_band: red
     standard_name: true_color
 
-  # GeoColor Nighttime
+  # GeoColor Night-time
   geo_color_high_clouds:
     standard_name: ir_high_cloud
     compositor: !!python/name:satpy.composites.HighCloudCompositor
@@ -538,10 +547,11 @@ composites:
           - name: B07
       - compositor: !!python/name:satpy.composites.StaticImageCompositor
         standard_name: land_sea_mask
+        # TODO Change filename
         filename: "/tcenas/scratch/strandgren/GeoColor/land_sea_mask_3km_i_.tif"
       - name: B13
 
-  geo_color_bl:
+  geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background
     prerequisites:
@@ -553,4 +563,11 @@ composites:
     standard_name: night_ir_with_background
     prerequisites:
       - geo_color_high_clouds
-      - geo_color_bl
+      - geo_color_background_with_low_clouds
+
+  geo_color_night_without_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - geo_color_high_clouds
