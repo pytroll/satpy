@@ -219,7 +219,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     @property
     def nominal_start_time(self):
         """Get nominal start time."""
-        RC_date = self.filename_info['start_time'].replace(hour=0, minute=0, second=0, microsecond=0)
+        RC_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
         return RC_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*self.RC_period_min)
 
     @property
