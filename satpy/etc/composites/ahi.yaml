@@ -537,19 +537,19 @@ composites:
   geo_color_low_clouds:
     standard_name: ir_low_cloud
     compositor: !!python/name:satpy.composites.LowCloudCompositor
-    value_sea: 0
-    value_land: 254
+    values_sea: 0
+    values_land: 100
     color: [140.25, 191.25, 249.9]
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
           - name: B13
           - name: B07
+      - name: B13
       - compositor: !!python/name:satpy.composites.StaticImageCompositor
         standard_name: land_sea_mask
         # TODO Change filename
-        filename: "/tcenas/scratch/strandgren/GeoColor/land_sea_mask_3km_i_.tif"
-      - name: B13
+        filename: "/tcenas/scratch/strandgren/GeoColor/gshhs_land_sea_mask_3km_i.tif"
 
   geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
