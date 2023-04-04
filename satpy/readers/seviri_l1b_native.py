@@ -34,7 +34,6 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
@@ -65,8 +64,10 @@ from satpy.readers.seviri_l1b_native_hdr import (
     native_trailer,
 )
 from satpy.readers.utils import reduce_mda
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('native_msg')
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class NativeMSGFileHandler(BaseFileHandler):

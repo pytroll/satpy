@@ -21,6 +21,7 @@ from __future__ import annotations
 import contextlib
 import datetime
 import logging
+import os
 import pathlib
 import warnings
 from contextlib import contextmanager
@@ -33,8 +34,6 @@ import numpy as np
 import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy import CHUNK_SIZE
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -575,32 +574,59 @@ def ignore_invalid_float_warnings():
         yield
 
 
-def get_chunk_size_limit(dtype):
-    """Compute the chunk size limit in bytes given *dtype*.
+def get_chunk_size_limit(dtype=float):
+    """Compute the chunk size limit in bytes given *dtype* (float by default).
+
+    It is derived from PYTROLL_CHUNK_SIZE if defined (although deprecated) first, from dask config's `array.chunk-size`
+    then. It defaults to 128MiB.
 
     Returns:
-        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
-        otherwise it returns the computed chunk size in bytes.
+        The recommended chunk size in bytes.
     """
-    pixel_size = get_chunk_pixel_size()
+    pixel_size = _get_chunk_pixel_size()
     if pixel_size is not None:
         return pixel_size * np.dtype(dtype).itemsize
-    dask_chunk_size = dask.config.get("array.chunk-size")
-    if dask_chunk_size is not None:
-        return dask.utils.parse_bytes(dask_chunk_size)
-    return None
+    dask_chunk_size = dask.config.get("array.chunk-size", "128MiB")
+    return dask.utils.parse_bytes(dask_chunk_size)
 
 
-def get_chunk_pixel_size():
-    """Compute the maximum chunk size from CHUNK_SIZE."""
-    if CHUNK_SIZE is None:
-        return None
+def _get_chunk_pixel_size():
+    """Compute the maximum chunk size from PYTROLL_CHUNK_SIZE."""
+    legacy_chunk_size = _get_pytroll_chunk_size()
+    if legacy_chunk_size is not None:
+        return legacy_chunk_size ** 2
 
-    if isinstance(CHUNK_SIZE, (tuple, list)):
-        array_size = np.product(CHUNK_SIZE)
+
+def get_legacy_chunk_size():
+    """Get the legacy chunk size.
+
+    This function should only be used while waiting for code to be migrated to use satpy.utils.get_chunk_size_limit
+    instead.
+    """
+    chunk_size = _get_pytroll_chunk_size()
+
+    if chunk_size is None:
+        import math
+
+        import dask.config
+        from dask.utils import parse_bytes
+        return int(math.sqrt(parse_bytes(dask.config.get("array.chunk-size", "128MiB")) / 8))
     else:
-        array_size = CHUNK_SIZE ** 2
-    return array_size
+        return chunk_size
+
+
+def _get_pytroll_chunk_size():
+    try:
+        chunk_size = int(os.environ['PYTROLL_CHUNK_SIZE'])
+        warnings.warn(
+            "The PYTROLL_CHUNK_SIZE environment variable is pending deprecation. "
+            "You can use the dask config setting `array.chunk-size` (or the DASK_ARRAY__CHUNK_SIZE environment"
+            " variable) and set it to the square of the PYTROLL_CHUNK_SIZE instead.",
+            stacklevel=2
+        )
+        return chunk_size
+    except KeyError:
+        return None
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):

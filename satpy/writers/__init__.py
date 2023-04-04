@@ -31,14 +31,14 @@ from trollimage.xrimage import XRImage
 from trollsift import parser
 from yaml import UnsafeLoader
 
-from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-from satpy.utils import recursive_dict_update
+from satpy.utils import get_legacy_chunk_size, recursive_dict_update
 
 LOG = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def read_writer_config(config_files, loader=UnsafeLoader):

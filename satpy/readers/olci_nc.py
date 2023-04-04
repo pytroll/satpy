@@ -46,13 +46,14 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import angle2xyz, xyz2angle
+from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B',

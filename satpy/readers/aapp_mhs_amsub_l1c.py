@@ -27,12 +27,13 @@ import logging
 import dask.array as da
 import numpy as np
 
-from satpy import CHUNK_SIZE
 from satpy.readers.aapp_l1b import AAPPL1BaseFileHandler, create_xarray
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
 
+CHUNK_SIZE = get_legacy_chunk_size()
 LINE_CHUNK = CHUNK_SIZE ** 2 // 90
 
 MHS_AMSUB_CHANNEL_NAMES = ['1', '2', '3', '4', '5']

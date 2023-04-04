@@ -232,12 +232,14 @@ import numpy as np
 import pyresample.geometry
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.utils import bbox, get_geostationary_angle_extent
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 # Radiation constants. Source: [VIS]
 C1 = 1.191066E-5  # [mW/(m2-sr-cm-4)]
@@ -1208,7 +1210,7 @@ class GOESCoefficientReader(object):
         from requests.exceptions import MissingSchema
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
             if response.ok:
                 return response.text
             raise requests.HTTPError

@@ -33,9 +33,11 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE, config
+from satpy import config
+from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def np2str(value):

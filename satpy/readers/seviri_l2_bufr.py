@@ -30,12 +30,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode, recarray2dict
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import mpef_product_header
 from satpy.resample import get_area_def
+from satpy.utils import get_legacy_chunk_size
 
 try:
     import eccodes as ec
@@ -43,6 +43,7 @@ except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
+CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger('SeviriL2Bufr')
 
 data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0455', 'name': '09'},

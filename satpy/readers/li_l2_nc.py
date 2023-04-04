@@ -34,12 +34,13 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.li_base_nc import LINCFileHandler
 from satpy.resample import get_area_def
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 LI_GRID_SHAPE = (5568, 5568)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class LIL2NCFileHandler(LINCFileHandler):

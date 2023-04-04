@@ -26,10 +26,11 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.aux_download import retrieve
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 

@@ -26,13 +26,14 @@ import pyproj
 import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
-from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import apply_rad_correction, get_user_calibration_factors
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
     'GK-2A': 'GEO-KOMPSAT-2A',
     'GK-2B': 'GEO-KOMPSAT-2B',

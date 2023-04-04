@@ -25,13 +25,14 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',

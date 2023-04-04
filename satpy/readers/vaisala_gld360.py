@@ -34,10 +34,11 @@ import dask.array as da
 import pandas as pd
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class VaisalaGLD360TextFileHandler(BaseFileHandler):

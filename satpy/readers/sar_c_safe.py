@@ -46,10 +46,11 @@ from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def dictify(r):

@@ -40,11 +40,12 @@ import dask.array as da
 import h5py
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 ATMS_CHANNEL_NAMES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
                       '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
 

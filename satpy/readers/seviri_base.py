@@ -172,10 +172,11 @@ import numpy as np
 import pyproj
 from numpy.polynomial.chebyshev import Chebyshev
 
-from satpy import CHUNK_SIZE
 from satpy.readers.eum_base import issue_revision, time_cds_short
 from satpy.readers.utils import apply_earthsun_distance_correction
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
     'MET09': 'Meteosat-9',
