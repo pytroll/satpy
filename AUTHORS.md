@@ -49,6 +49,7 @@ The following people have made contributions to this project:
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
+- [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
@@ -82,4 +83,3 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-- [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
