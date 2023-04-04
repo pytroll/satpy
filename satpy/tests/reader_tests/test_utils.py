@@ -304,7 +304,7 @@ class TestHelpers(unittest.TestCase):
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
-        self.assertIsNone(new_fname)
+        assert new_fname is None
 
     @mock.patch('bz2.BZ2File')
     def test_generic_open_BZ2File(self, bz2_mock):
