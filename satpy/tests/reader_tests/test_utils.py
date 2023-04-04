@@ -287,18 +287,18 @@ class TestHelpers(unittest.TestCase):
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename, prefix=segmentstr)
-            self.assertTrue(bz2_mock.__enter__.return_value.read.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert bz2_mock.__enter__.return_value.read.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] == segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
         # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert mock_popen.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] != segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
