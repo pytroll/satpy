@@ -276,7 +276,7 @@ class TestHelpers(unittest.TestCase):
         mock_popen.return_value = process_mock
 
         bz2_mock = mock.MagicMock()
-        bz2_mock.read.return_value = b'TEST'
+        bz2_mock.__enter__.return_value.read.return_value = b'TEST'
         mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
@@ -287,7 +287,7 @@ class TestHelpers(unittest.TestCase):
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename, prefix=segmentstr)
-            self.assertTrue(bz2_mock.read.called)
+            self.assertTrue(bz2_mock.__enter__.return_value.read.called)
             self.assertTrue(os.path.exists(new_fname))
             self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
             if os.path.exists(new_fname):
