@@ -276,7 +276,7 @@ class TestHelpers(unittest.TestCase):
         mock_popen.return_value = process_mock
 
         bz2_mock = mock.MagicMock()
-        bz2_mock.read.return_value = b'TEST'
+        bz2_mock.__enter__.return_value.read.return_value = b'TEST'
         mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
@@ -287,24 +287,24 @@ class TestHelpers(unittest.TestCase):
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename, prefix=segmentstr)
-            self.assertTrue(bz2_mock.read.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert bz2_mock.__enter__.return_value.read.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] == segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
         # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert mock_popen.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] != segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
-        self.assertIsNone(new_fname)
+        assert new_fname is None
 
     @mock.patch('bz2.BZ2File')
     def test_generic_open_BZ2File(self, bz2_mock):
@@ -343,6 +343,43 @@ class TestHelpers(unittest.TestCase):
             assert data == b'TEST'
 
         assert mock_fn_open.read.called
+
+    @mock.patch('bz2.decompress', return_value=b'TEST_DECOMPRESSED')
+    def test_unzip_FSFile(self, bz2_mock):
+        """Test the FSFile bz2 file unzipping techniques."""
+        mock_bz2_decompress = mock.MagicMock()
+        mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
+
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+
+        # test zipped FSFile unzipped in fly (decompress shouldn't be called)
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_not_called
+        bz2_mock.assert_not_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
+
+        # test FSFile without unzipping in fly (decompress should be called)
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker),
+                              data=bytes.fromhex("425A68")+b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_called
+        bz2_mock.assert_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
