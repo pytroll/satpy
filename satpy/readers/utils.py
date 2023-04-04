@@ -212,9 +212,6 @@ def unzip_file(filename: str | FSFile, prefix=None):
         Temporary filename path for decompressed file or None.
 
     """
-    if not os.fspath(filename).endswith('bz2'):
-        return None
-
     if isinstance(filename, str):
         return _unzip_local_file(filename, prefix=prefix)
     elif isinstance(filename, FSFile):
@@ -233,6 +230,8 @@ def _unzip_local_file(filename: str, prefix=None):
         Temporary filename path for decompressed file or None.
 
     """
+    if not os.fspath(filename).endswith('bz2'):
+        return None
     fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
                                         dir=config["tmp_dir"])
     LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
@@ -240,10 +239,9 @@ def _unzip_local_file(filename: str, prefix=None):
     pbzip2 = _unzip_with_pbzip(filename, tmpfilepath, fdn)
     if pbzip2 is not None:
         return pbzip2
-    # Otherwise, fall back to the original method
-    bz2file = bz2.BZ2File(filename)
-    content = bz2file.read()
-    return _write_uncompress_file(content, fdn, filename, tmpfilepath)
+    # Otherwise, fall back to the original method bz2
+    content = _unzip_with_bz2(filename, tmpfilepath)
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
 
 
 def _unzip_with_pbzip(filename, tmpfilepath, fdn):
@@ -279,12 +277,23 @@ def _unzip_with_pbzip(filename, tmpfilepath, fdn):
     return tmpfilepath
 
 
-def _write_uncompress_file(content, fdn, filename, tmpfilepath):
+def _unzip_with_bz2(filename, tmpfilepath):
+    with bz2.BZ2File(filename) as bz2file:
+        try:
+            content = bz2file.read()
+        except IOError:
+            LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return content
+
+
+def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
     with closing(os.fdopen(fdn, 'wb')) as ofpt:
         try:
             ofpt.write(content)
         except IOError:
-            LOGGER.debug("Failed to read bzipped file %s", str(filename))
+            LOGGER.debug("Failed to write uncompressed file %s", str(filename))
             os.remove(tmpfilepath)
             return None
     return tmpfilepath
@@ -310,7 +319,7 @@ def _unzip_FSFile(filename: FSFile, prefix=None):
     if content.startswith(bytes.fromhex("425A68")):
         content = bz2.decompress(content)
 
-    return _write_uncompress_file(content, fdn, filename, tmpfilepath)
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
 
 
 @contextmanager
