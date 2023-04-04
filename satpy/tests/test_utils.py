@@ -486,12 +486,26 @@ def test_chunk_size_limit():
     from unittest.mock import patch
 
     from satpy.utils import get_chunk_size_limit
-    with patch("satpy.utils.CHUNK_SIZE", None):
-        assert get_chunk_size_limit(np.uint8) is None
     with patch("satpy.utils.CHUNK_SIZE", 10):
         assert get_chunk_size_limit(np.float64) == 800
     with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
         assert get_chunk_size_limit(np.int32) == 800
+
+
+def test_chunk_size_limit_from_dask_config():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    import dask.config
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        original_chunk_size = dask.config.get('array.chunk-size')
+        try:
+            dask.config.set({"array.chunk-size": "1KiB"})
+            assert get_chunk_size_limit(np.uint8) == 1024
+        finally:
+            dask.config.set({"array.chunk-size": original_chunk_size})
 
 
 def test_convert_remote_files_to_fsspec_local_files():

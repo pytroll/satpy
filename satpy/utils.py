@@ -28,6 +28,7 @@ from copy import deepcopy
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
+import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
@@ -584,6 +585,9 @@ def get_chunk_size_limit(dtype):
     pixel_size = get_chunk_pixel_size()
     if pixel_size is not None:
         return pixel_size * np.dtype(dtype).itemsize
+    dask_chunk_size = dask.config.get("array.chunk-size")
+    if dask_chunk_size is not None:
+        return dask.utils.parse_bytes(dask_chunk_size)
     return None
 
 
