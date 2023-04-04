@@ -500,12 +500,8 @@ def test_chunk_size_limit_from_dask_config():
 
     from satpy.utils import get_chunk_size_limit
     with patch("satpy.utils.CHUNK_SIZE", None):
-        original_chunk_size = dask.config.get('array.chunk-size')
-        try:
-            dask.config.set({"array.chunk-size": "1KiB"})
+        with dask.config.set({"array.chunk-size": "1KiB"}):
             assert get_chunk_size_limit(np.uint8) == 1024
-        finally:
-            dask.config.set({"array.chunk-size": original_chunk_size})
 
 
 def test_convert_remote_files_to_fsspec_local_files():
