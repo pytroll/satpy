@@ -278,13 +278,13 @@ def _unzip_with_pbzip(filename, tmpfilepath, fdn):
 
 
 def _unzip_with_bz2(filename, tmpfilepath):
-    with bz2.BZ2File(filename) as bz2file:
-        try:
-            content = bz2file.read()
-        except IOError:
-            LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
-            os.remove(tmpfilepath)
-            raise
+    try:
+        bz2file = bz2.BZ2File(bz2.BZ2File(filename))
+        content = bz2file.read()
+    except IOError:
+        LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
+        os.remove(tmpfilepath)
+        raise
     return content
 
 
