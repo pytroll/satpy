@@ -221,7 +221,7 @@ class TestGeoTIFFWriter:
         dtype = np.float32
         w = GeoTIFFWriter(base_dir=tmp_path,
                           enhance=False,
-                          dtype=dtype, units="C")
+                          dtype=dtype)
         filename = tmp_path / "data_in_C.tif"
         w.save_dataset(dataset, filename=filename, units="degC")
         ds = xr.open_dataset(filename, engine="rasterio")
