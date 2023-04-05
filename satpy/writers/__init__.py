@@ -763,7 +763,7 @@ class Writer(Plugin, DataDownloadMixin):
             return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, **kwargs):
+                     compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
@@ -781,6 +781,10 @@ class Writer(Plugin, DataDownloadMixin):
                             If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
+            units (srting or None): If not None, will convert the dataset to
+                                    the given unit before saving using
+                                    pint-xarray. Default is not to do any
+                                    conversion.
             **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
