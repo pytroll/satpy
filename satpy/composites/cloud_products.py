@@ -42,7 +42,30 @@ class CloudCompositorWithoutCloudfree(SingleBandCompositor):
         res = SingleBandCompositor.__call__(self, [data], **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
+    
+class CloudCompositorCommonMask(SingleBandCompositor):
+    """Put cloud-free pixels as fill_value_color in palette."""
 
+    def __call__(self, projectables, **info):
+        """Create the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+        data, cma = projectables
+        valid_cma = cma != cma.attrs['_FillValue']
+        #print(valid_cma.values.all(), cma.attrs['_FillValue'])
+        valid_prod = data != data.attrs['_FillValue']
+        valid_prod = np.logical_and(valid_prod, np.logical_not(np.isnan(data)))
+        #import pdb;pdb.set_trace()
+        # Update valid_cma and not valid_prod means
+        # keep not valid cma or valid prod
+        data = data.where(np.logical_or(np.logical_not(valid_cma), valid_prod),
+                          data.attrs["scaled_FillValue"])
+        #data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)                             
+        res = SingleBandCompositor.__call__(self, [data], **data.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
+    
 
 class PrecipCloudsRGB(GenericCompositor):
     """Precipitation clouds compositor."""
