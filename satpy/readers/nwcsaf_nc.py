@@ -264,7 +264,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
 
-        if fill_value not in variable.attrs['palette_meanings']:
+        if fill_value not in variable.attrs['palette_meanings'] and 'fill_value_color' in variable.attrs:
             variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
