@@ -141,6 +141,11 @@ def get_fake_epilogue():
                     'UpperNorthLineActual': 11136,
                     'UpperEastColumnActual': 1805,
                     'UpperWestColumnActual': 7372
+                },
+                'ActualScanningSummary': {
+                    'ReducedScan': 0,
+                    'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 39, 0)
                 }
             }
         }
@@ -225,6 +230,18 @@ def get_attrs_exp(projection_longitude=0.0):
                                'satellite_actual_latitude': -0.5711243456528018,
                                'satellite_actual_altitude': 35783296.150123544},
         'georef_offset_corrected': True,
-        'nominal_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
-        'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0, 0)
+        'nominal_start_time': """
+        Deprecation warning: nominal_start_time should be accessed via the time_parameters attrs
+        nominal_start_time is also available directly via start_time
+        """,
+        'nominal_end_time': """
+        deprecation warning: nominal_end_time should be accessed via the time_parameters attrs
+        nominal_end_time is also available directly via end_time
+        """,
+        'time_parameters': {
+            'nominal_start_time': datetime(2006, 1, 1, 12, 15),
+            'nominal_end_time': datetime(2006, 1, 1, 12, 30),
+            'observation_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+            'observation_end_time': datetime(2006, 1, 1, 12, 27, 39, 0)
+            }
     }
