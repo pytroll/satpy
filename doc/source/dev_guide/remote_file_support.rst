@@ -22,7 +22,6 @@ in every reader. This could look like:
 
 .. code-block:: python
 
-    from satpy import CHUNK_SIZE
     from satpy._compat importe cached_property
     from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 
@@ -33,7 +32,7 @@ in every reader. This could look like:
 
         @cached_property
         def nc(self):
-            return open_dataset(self.filename, chunks=CHUNK_SIZE)
+            return open_dataset(self.filename, chunks="auto")
 
         def get_dataset(self):
             # Access the opened dataset
