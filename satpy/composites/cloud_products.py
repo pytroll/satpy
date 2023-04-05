@@ -61,7 +61,7 @@ class CloudCompositorCommonMask(SingleBandCompositor):
         # keep not valid cma or valid prod
         data = data.where(np.logical_or(np.logical_not(valid_cma), valid_prod),
                           data.attrs["scaled_FillValue"])
-        #data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)                             
+        data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)                             
         res = SingleBandCompositor.__call__(self, [data], **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
