@@ -77,6 +77,7 @@ class TestSpectralComposites:
         comp = NDVIHybridGreen('ndvi_hybrid_green', limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
                                standard_name='toa_bidirectional_reflectance')
 
+        # Test General functionality with linear strength (=1.0)
         res = comp((self.c01, self.c02, self.c03))
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
@@ -84,6 +85,18 @@ class TestSpectralComposites:
         assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
         data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+
+        # Test invalid strength
+        with pytest.raises(ValueError):
+            _ = NDVIHybridGreen('ndvi_hybrid_green', strength=0.0, prerequisites=(0.51, 0.65, 0.85),
+                                standard_name='toa_bidirectional_reflectance')
+
+        # Test non-linear strength
+        comp = NDVIHybridGreen('ndvi_hybrid_green', limits=(0.15, 0.05), strength=2.0, prerequisites=(0.51, 0.65, 0.85),
+                               standard_name='toa_bidirectional_reflectance')
+
+        res = comp((self.c01, self.c02, self.c03))
+        np.testing.assert_array_almost_equal(res.values, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
 
     def test_green_corrector(self):
         """Test the deprecated class for green corrections."""
