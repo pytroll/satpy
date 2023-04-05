@@ -186,6 +186,7 @@ datasets:
 
   ctth_alti_pal:
     name: ctth_alti_pal
+    scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
   ctth_quality:
