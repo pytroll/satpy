@@ -781,7 +781,7 @@ class Writer(Plugin, DataDownloadMixin):
                             If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
-            units (srting or None): If not None, will convert the dataset to
+            units (str or None): If not None, will convert the dataset to
                                     the given unit before saving using
                                     pint-xarray. Default is not to do any
                                     conversion.
