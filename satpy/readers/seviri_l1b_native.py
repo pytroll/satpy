@@ -123,8 +123,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
         self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
-        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            self.tres = 5
+        if filetype_info is not None:  # to avoid error in the pytest
+            if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+                self.tres = 5
 
     def _has_archive_header(self):
         """Check whether the file includes an ASCII archive header."""

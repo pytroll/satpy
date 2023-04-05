@@ -674,6 +674,9 @@ class TestNativeMSGArea(unittest.TestCase):
             fh.header = header
             fh.trailer = trailer
             fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
+            fh.tres = 15  # base RC duration
+            if fh.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+                fh.tres = 5
             calc_area_def = fh.get_area_def(dataset_id)
 
         return (calc_area_def, expected_area_def)
@@ -1037,6 +1040,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             fh = NativeMSGFileHandler()
             fh.header = header
             fh.trailer = trailer
+            fh.tres = 15
             fh.platform_id = self.platform_id
             return fh
 
@@ -1129,6 +1133,7 @@ class TestNativeMSGDataset:
             fh = NativeMSGFileHandler()
             fh.header = header
             fh.trailer = trailer
+            fh.tres = 15
             fh.mda = mda
             fh.dask_array = da.from_array(data)
             fh.platform_id = 324
