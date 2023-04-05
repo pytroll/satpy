@@ -405,12 +405,11 @@ enhancements:
   cloud_top_height_pps:
     standard_name: cloud_top_height_pps
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_alti_pal
 
   cloud_top_height_geo:
     standard_name: cloud_top_height_geo
@@ -465,7 +464,7 @@ enhancements:
   cloud_drop_effective_radius_pps:
     standard_name: cloud_drop_effective_radius_pps
     operations:
-    - name: palettize
+    - name: colorize
       method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
