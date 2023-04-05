@@ -256,13 +256,16 @@ class NcNWCSAF(BaseFileHandler):
         except KeyError:
             scale = 1
             offset = 0
+            fill_value = 255
         else:
             scale = so_dataset.attrs['scale_factor']
             offset = so_dataset.attrs['add_offset']
+            fill_value = so_dataset.attrs['_FillValue']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
-        if variable.attrs['palette_meanings'][0] == 1:
-            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+
+        if fill_value not in variable.attrs['palette_meanings']:
+            variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
         val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
