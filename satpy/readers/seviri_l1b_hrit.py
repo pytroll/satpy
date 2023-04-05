@@ -497,14 +497,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the start time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
 
     @property
     def nominal_end_time(self):
         """Get the end time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return round_nom_time(tm, date_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
 
     @property
     def observation_start_time(self):
