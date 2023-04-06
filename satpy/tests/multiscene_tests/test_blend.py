@@ -148,16 +148,9 @@ class TestBlendFuncs:
         expected[-1, :] = scene1['geo-ct'][-1, :]
 
         xr.testing.assert_equal(result, expected.compute())
-        assert result.attrs['platform_name'] == 'Meteosat-11'
-        assert result.attrs['sensor'] == {'seviri'}
-        assert result.attrs['long_name'] == 'NWC GEO CT Cloud Type'
-        assert result.attrs['units'] == '1'
-        assert result.attrs['name'] == 'CloudType'
-        assert result.attrs['_FillValue'] == 255
-        assert result.attrs['valid_range'] == [1, 15]
-
+        _check_stacked_metadata(result, "CloudType")
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
-        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 12, 22)
+        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
                                                    scene1_with_weights, scene2_with_weights):
@@ -188,16 +181,7 @@ class TestBlendFuncs:
         result = weighted_blend['CloudType'].compute()
         xr.testing.assert_equal(result, expected.compute())
 
-        expected_area = _create_test_area()
-        assert result.attrs['area'] == expected_area
-        assert 'sensor' not in result.attrs
-        assert 'platform_name' not in result.attrs
-        assert 'long_name' not in result.attrs
-        assert result.attrs['units'] == '1'
-        assert result.attrs['name'] == 'CloudType'
-        assert result.attrs['_FillValue'] == 255
-        assert result.attrs['valid_range'] == [1, 15]
-
+        _check_stacked_metadata(result, "CloudType")
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
         assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
@@ -216,16 +200,7 @@ class TestBlendFuncs:
 
         result = weighted_blend['CloudType'].compute()
 
-        expected_area = _create_test_area()
-        assert result.attrs['area'] == expected_area
-        assert 'sensor' not in result.attrs
-        assert 'platform_name' not in result.attrs
-        assert 'long_name' not in result.attrs
-        assert result.attrs['units'] == '1'
-        assert result.attrs['name'] == 'CloudType'
-        assert result.attrs['_FillValue'] == 255
-        assert result.attrs['valid_range'] == [1, 15]
-
+        _check_stacked_metadata(result, "CloudType")
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 11, 7, 250000)
         assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 20, 11, 950000)
 
@@ -289,7 +264,6 @@ class TestBlendFuncs:
         expected.attrs = combine_metadata(*[x.attrs for x in input_data['datasets'][0:3]])
 
         xr.testing.assert_equal(blend_result.compute(), expected.compute())
-
         assert expected.attrs == blend_result.attrs
 
     def test_blend_function_stack(self, datasets_and_weights):
@@ -303,8 +277,10 @@ class TestBlendFuncs:
 
         res = stack([ds1, ds2])
         expected = ds2.copy()
+        expected.attrs["start_time"] = ds1.attrs["start_time"]
 
         xr.testing.assert_equal(res.compute(), expected.compute())
+        assert expected.attrs == res.attrs
 
     def test_timeseries(self, datasets_and_weights):
         """Test the 'timeseries' function."""
@@ -324,3 +300,21 @@ class TestBlendFuncs:
         assert isinstance(res2, xr.DataArray)
         assert (2, ds1.shape[0], ds1.shape[1]) == res.shape
         assert (ds4.shape[0], ds4.shape[1]+ds5.shape[1]) == res2.shape
+
+
+def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
+    # assert data_arr.attrs['platform_name'] == 'Meteosat-11'
+    # assert data_arr.attrs['sensor'] == {'seviri'}
+    # assert data_arr.attrs['long_name'] == 'NWC GEO CT Cloud Type'
+    assert data_arr.attrs['units'] == '1'
+    assert data_arr.attrs['name'] == exp_name
+    assert data_arr.attrs['_FillValue'] == 255
+    assert data_arr.attrs['valid_range'] == [1, 15]
+
+    expected_area = _create_test_area()
+    assert data_arr.attrs['area'] == expected_area
+
+    # these metadata items don't match between all inputs
+    assert 'sensor' not in data_arr.attrs
+    assert 'platform_name' not in data_arr.attrs
+    assert 'long_name' not in data_arr.attrs

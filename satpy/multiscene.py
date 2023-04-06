@@ -24,7 +24,7 @@ import warnings
 from datetime import datetime
 from queue import Queue
 from threading import Thread
-from typing import Callable
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import dask.array as da
 import numpy as np
@@ -48,7 +48,12 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets, weights=None, combine_times=True, blend_type='select_with_weights'):
+def stack(
+        datasets: Sequence[xr.DataArray],
+        weights: Optional[Sequence[xr.DataArray]] = None,
+        combine_times: bool = True,
+        blend_type: str = 'select_with_weights'
+) -> xr.DataArray:
     """Combine a series of datasets in different ways.
 
     By default, datasets are stacked on top of each other, so the last one applied is
@@ -62,12 +67,17 @@ def stack(datasets, weights=None, combine_times=True, blend_type='select_with_we
     """
     if weights:
         return _stack_with_weights(datasets, weights, combine_times, blend_type)
-    return _stack_no_weights(datasets)
+    return _stack_no_weights(datasets, combine_times)
 
 
-def _stack_with_weights(datasets: list, weights: list, combine_times: bool, blend_type: str) -> xr.DataArray:
+def _stack_with_weights(
+        datasets: Sequence[xr.DataArray],
+        weights: Sequence[xr.DataArray],
+        combine_times: bool,
+        blend_type: str
+) -> xr.DataArray:
     blend_func = _get_weighted_blending_func(blend_type)
-    filled_weights = _fill_weights_for_invalid_dataset_pixels(datasets, weights)
+    filled_weights = list(_fill_weights_for_invalid_dataset_pixels(datasets, weights))
     return blend_func(datasets, filled_weights, combine_times)
 
 
@@ -83,26 +93,28 @@ def _get_weighted_blending_func(blend_type: str) -> Callable:
     return blend_func
 
 
-def _fill_weights_for_invalid_dataset_pixels(datasets, weights):
+def _fill_weights_for_invalid_dataset_pixels(
+        datasets: Sequence[xr.DataArray],
+        weights: Sequence[xr.DataArray]
+) -> Iterable[xr.DataArray]:
     """Replace weight valus with 0 where data values are invalid/null."""
     has_bands_dims = "bands" in datasets[0].dims
     for i, dataset in enumerate(datasets):
         # if multi-band only use the red-band
         compare_ds = dataset[0] if has_bands_dims else dataset
         try:
-            weights[i] = xr.where(compare_ds == compare_ds.attrs["_FillValue"], 0, weights[i])
+            yield xr.where(compare_ds == compare_ds.attrs["_FillValue"], 0, weights[i])
         except KeyError:
-            weights[i] = xr.where(compare_ds.isnull(), 0, weights[i])
-    return weights
+            yield xr.where(compare_ds.isnull(), 0, weights[i])
 
 
-def _stack_blend_by_weights(datasets, weights, combine_times):
+def _stack_blend_by_weights(
+        datasets: Sequence[xr.DataArray],
+        weights: Sequence[xr.DataArray],
+        combine_times: bool
+) -> xr.DataArray:
     """Stack datasets blending overlap using weights."""
-    attrs = combine_metadata(*[x.attrs for x in datasets])
-
-    if combine_times:
-        if 'start_time' in attrs and 'end_time' in attrs:
-            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets], combine_times)
 
     overlays = []
     for weight, overlay in zip(weights, datasets):
@@ -115,44 +127,61 @@ def _stack_blend_by_weights(datasets, weights, combine_times):
     return blended_array
 
 
-def _stack_select_by_weights(datasets, weights, combine_times):
+def _stack_select_by_weights(
+        datasets: Sequence[xr.DataArray],
+        weights: Sequence[xr.DataArray],
+        combine_times: bool
+) -> xr.DataArray:
     """Stack datasets selecting pixels using weights."""
     indices = da.argmax(da.dstack(weights), axis=-1)
     if "bands" in datasets[0].dims:
         indices = [indices] * datasets[0].sizes["bands"]
 
-    attrs = combine_metadata(*[x.attrs for x in datasets])
-
-    if combine_times:
-        if 'start_time' in attrs and 'end_time' in attrs:
-            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
-
+    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets], combine_times)
     dims = datasets[0].dims
     coords = datasets[0].coords
     selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, coords=coords, attrs=attrs)
     return selected_array
 
 
-def _stack_no_weights(datasets: list) -> xr.DataArray:
+def _stack_no_weights(
+        datasets: Sequence[xr.DataArray],
+        combine_times: bool
+) -> xr.DataArray:
     base = datasets[0].copy()
-    for dataset in datasets[1:]:
+    collected_attrs = [base.attrs]
+    for data_arr in datasets[1:]:
+        collected_attrs.append(data_arr.attrs)
         try:
-            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
+            base = base.where(data_arr == data_arr.attrs["_FillValue"], data_arr)
         except KeyError:
-            base = base.where(dataset.isnull(), dataset)
+            base = base.where(data_arr.isnull(), data_arr)
+
+    attrs = _combine_stacked_attrs(collected_attrs, combine_times)
+    base.attrs = attrs
     return base
 
 
-def _get_combined_start_end_times(*metadata_objects):
-    """Get the start and end times attributes valid for the entire dataset series."""
-    start_time = datetime.now()
-    end_time = datetime.fromtimestamp(0)
-    for md_obj in metadata_objects:
-        if md_obj['start_time'] < start_time:
-            start_time = md_obj['start_time']
-        if md_obj['end_time'] > end_time:
-            end_time = md_obj['end_time']
+def _combine_stacked_attrs(collected_attrs: Sequence[Mapping], combine_times: bool) -> dict:
+    attrs = combine_metadata(*collected_attrs)
+    if combine_times and ('start_time' in attrs or 'end_time' in attrs):
+        new_start, new_end = _get_combined_start_end_times(collected_attrs)
+        if new_start:
+            attrs["start_time"] = new_start
+        if new_end:
+            attrs["end_time"] = new_end
+    return attrs
 
+
+def _get_combined_start_end_times(metadata_objects: Iterable[Mapping]) -> tuple[datetime | None, datetime | None]:
+    """Get the start and end times attributes valid for the entire dataset series."""
+    start_time = None
+    end_time = None
+    for md_obj in metadata_objects:
+        if "start_time" in md_obj and (start_time is None or md_obj['start_time'] < start_time):
+            start_time = md_obj['start_time']
+        if "end_time" in md_obj and (end_time is None or md_obj['end_time'] > end_time):
+            end_time = md_obj['end_time']
     return start_time, end_time
 
 
