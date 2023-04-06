@@ -152,8 +152,10 @@ class TestBlendFuncs:
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
         assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
+    @pytest.mark.parametrize("combine_times", False, True)
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
-                                                   scene1_with_weights, scene2_with_weights):
+                                                   scene1_with_weights, scene2_with_weights,
+                                                   combine_times):
         """Test stacking two scenes using weights - testing that metadata are combined correctly.
 
         Here we test that the start and end times can be combined so that they
@@ -170,7 +172,7 @@ class TestBlendFuncs:
         multi_scene.group(simple_groups)
 
         weights = [weights[0][0], weights[1][0]]
-        stack_with_weights = partial(stack, weights=weights)
+        stack_with_weights = partial(stack, weights=weights, combine_times=combine_times)
         weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
 
         expected = scene2['polar-ct']
@@ -182,27 +184,12 @@ class TestBlendFuncs:
         xr.testing.assert_equal(result, expected.compute())
 
         _check_stacked_metadata(result, "CloudType")
-        assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
-        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
-
-    def test_blend_two_scenes_using_stack_weighted_no_time_combination(self, multi_scene_and_weights, groups):
-        """Test stacking two scenes using weights - test that the start and end times are averaged and not combined."""
-        from functools import partial
-
-        multi_scene, weights = multi_scene_and_weights
-
-        simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
-        multi_scene.group(simple_groups)
-
-        weights = [weights[0][0], weights[1][0]]
-        stack_with_weights = partial(stack, weights=weights, combine_times=False)
-        weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
-
-        result = weighted_blend['CloudType'].compute()
-
-        _check_stacked_metadata(result, "CloudType")
-        assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 11, 7, 250000)
-        assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 20, 11, 950000)
+        if combine_times:
+            assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
+            assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
+        else:
+            assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 11, 7, 250000)
+            assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 20, 11, 950000)
 
     @pytest.fixture
     def datasets_and_weights(self):
@@ -303,9 +290,6 @@ class TestBlendFuncs:
 
 
 def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
-    # assert data_arr.attrs['platform_name'] == 'Meteosat-11'
-    # assert data_arr.attrs['sensor'] == {'seviri'}
-    # assert data_arr.attrs['long_name'] == 'NWC GEO CT Cloud Type'
     assert data_arr.attrs['units'] == '1'
     assert data_arr.attrs['name'] == exp_name
     assert data_arr.attrs['_FillValue'] == 255
