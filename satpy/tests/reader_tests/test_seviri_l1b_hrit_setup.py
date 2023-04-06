@@ -46,12 +46,12 @@ def get_new_read_prologue(prologue):
     return new_read_prologue
 
 
-def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
+def get_fake_file_handler(observation_start_time, nlines, ncols, projection_longitude=0,
                           orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
     prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
-    mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=start_time)
-    filename_info = get_fake_filename_info(start_time)
+    mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=observation_start_time)
+    filename_info = get_fake_filename_info(observation_start_time)
     epilogue = get_fake_epilogue()
 
     m = mock.mock_open()
@@ -199,7 +199,8 @@ def get_acq_time_cds(start_time, nlines):
         dtype=[('days', '>u2'), ('milliseconds', '>u4')]
     )
     tline['days'][1:-1] = days_since_1958 * np.ones(nlines - 2)
-    tline['milliseconds'][1:-1] = np.arange(nlines - 2)
+    offset_second = (start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()*1000
+    tline['milliseconds'][1:-1] = np.arange(nlines - 2)+offset_second
     return tline
 
 

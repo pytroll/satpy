@@ -342,10 +342,11 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         a, b = self.get_earth_radii()
         poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
             'Orbit']['OrbitPolynomial'])
-        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
+        print('satpos start_time', self.start_time)
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.observation_start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=self.start_time,
+            time=self.observation_start_time,
             semi_major_axis=a,
             semi_minor_axis=b,
         )
@@ -451,7 +452,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
         if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
             self.tres = 5
-
+        print('HRITMSGFileHandler init obs_start_time:', self.observation_start_time)
         self._get_header()
 
     def _get_header(self):
@@ -726,7 +727,9 @@ class HRITMSGFileHandler(HRITFileHandler):
     def _add_scanline_acq_time(self, dataset):
         """Add scanline acquisition time to the given dataset."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
+        print('_add_scanline_acq_time tline %f and msec %f', tline['days'], tline['milliseconds'])
         acq_time = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        # print('_add_scanline_acq_time acq_time', acq_time)
         add_scanline_acq_time(dataset, acq_time)
 
     def _update_attrs(self, res, info):
