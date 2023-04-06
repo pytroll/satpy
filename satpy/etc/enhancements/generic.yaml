@@ -375,8 +375,8 @@ enhancements:
   pps_cma:
     standard_name: pps_cma
     operations:
-    - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
           - dataset: cma_pal
@@ -385,8 +385,8 @@ enhancements:
   pps_ct:
     standard_name: pps_ct
     operations:
-    - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
           - dataset: ct_pal
@@ -395,8 +395,8 @@ enhancements:
   pps_phase:
     standard_name: pps_phase
     operations:
-    - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:
           - dataset: cmic_phase_pal
