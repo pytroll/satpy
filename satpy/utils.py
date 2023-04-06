@@ -586,8 +586,12 @@ def get_chunk_size_limit(dtype=float):
     pixel_size = _get_chunk_pixel_size()
     if pixel_size is not None:
         return pixel_size * np.dtype(dtype).itemsize
-    dask_chunk_size = dask.config.get("array.chunk-size", "128MiB")
-    return dask.utils.parse_bytes(dask_chunk_size)
+    return get_dask_chunk_size_in_bytes()
+
+
+def get_dask_chunk_size_in_bytes():
+    """Get the dask configured chunk size in bytes."""
+    return dask.utils.parse_bytes(dask.config.get("array.chunk-size", "128MiB"))
 
 
 def _get_chunk_pixel_size():
@@ -610,9 +614,7 @@ def get_legacy_chunk_size():
 
     import math
 
-    import dask.config
-    from dask.utils import parse_bytes
-    return int(math.sqrt(parse_bytes(dask.config.get("array.chunk-size", "128MiB")) / 8))
+    return int(math.sqrt(get_dask_chunk_size_in_bytes() / 8))
 
 
 def _get_pytroll_chunk_size():
