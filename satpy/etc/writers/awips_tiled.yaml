@@ -221,6 +221,15 @@ templates:
           units: {}
           physical_element:
             raw_value: CLAVR-x Rain Rate
+      clavrx_insolation_dcomp:
+        reader: clavrx
+        name: insolation_dcomp
+        var_name: data
+        attributes:
+          units:
+            value: "W/m^2"
+          physical_element:
+            raw_value: CLAVR-x Insolation (dcomp)
 
       # AVHRR L1B products
       avhrr_band1_vis:
