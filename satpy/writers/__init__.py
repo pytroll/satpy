@@ -879,7 +879,7 @@ class ImageWriter(Writer):
         """
         if units is not None:
             import pint_xarray  # noqa
-            dataset = dataset.pint.quantify().pint.to(units)
+            dataset = dataset.pint.quantify().pint.to(units).pint.dequantify()
         img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
