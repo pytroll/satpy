@@ -782,8 +782,8 @@ class Writer(Plugin, DataDownloadMixin):
                             object or tuple of (source, target). See the
                             return values below for more information.
             units (str or None): If not None, will convert the dataset to
-                                    the given unit before saving using
-                                    pint-xarray. Default is not to do any
+                                    the given unit using pint-xarray before
+                                    saving. Default is not to do any
                                     conversion.
             **kwargs: Other keyword arguments for this particular writer.
 
