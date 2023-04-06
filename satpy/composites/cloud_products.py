@@ -38,7 +38,11 @@ class CloudCompositorWithoutCloudfree(SingleBandCompositor):
             bad_optical_conditions = np.bitwise_and(np.right_shift(status, 1), 1)
             cloud_free = np.logical_and(cloud_free, np.logical_not(bad_optical_conditions))
         # Where condition is true keep data, in other place update to scaled_FillValue:
-        data = data.where(np.logical_not(cloud_free), data.attrs["scaled_FillValue"])        
+        data = data.where(np.logical_not(cloud_free), data.attrs["scaled_FillValue"])
+        # Update not cloudfree product and nodata to NaN (already done for scaled vars in the reader)
+        # Keep cloudfree or valid product
+        data = data.where(np.logical_or(cloud_free, data != data.attrs["scaled_FillValue"]), np.nan)
+        
         res = SingleBandCompositor.__call__(self, [data], **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
