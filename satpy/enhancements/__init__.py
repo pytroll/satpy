@@ -358,39 +358,16 @@ def _merge_colormaps(kwargs, img=None):
     from trollimage.colormap import Colormap
     full_cmap = None
 
-    # TODO
-    #  - Improve check if both palettes and monochromatic are set
-    #  - Improve exception handling for monochromatic cases
-    #  - Resolve RunTimeWarnings
-
-    if 'palettes' in kwargs:
-        palette = kwargs['palettes']
-        if isinstance(palette, Colormap):
-            full_cmap = palette
-        else:
-            for itm in palette:
-                cmap = create_colormap(itm, img)
-                if full_cmap is None:
-                    full_cmap = cmap
-                else:
-                    full_cmap = full_cmap + cmap
-
-    if 'monochromatic' in kwargs:
-        palette = {}
-        color = kwargs['monochromatic'].get('color', None)
-        if color is None:
-            # TODO: add error
-            pass
-        elif isinstance(color, (list, tuple)):
-            palette['colors'] = [color]
-        elif isinstance(color, str):
-            var = img.data.attrs.get(color, None)
-            if not isinstance(var, (tuple, list)):
-                # TODO: add error
-                pass
-            palette['colors'] = [var]
-
-        full_cmap = create_colormap(palette, img)
+    palette = kwargs['palettes']
+    if isinstance(palette, Colormap):
+        full_cmap = palette
+    else:
+        for itm in palette:
+            cmap = create_colormap(itm, img)
+            if full_cmap is None:
+                full_cmap = cmap
+            else:
+                full_cmap = full_cmap + cmap
 
     return full_cmap
 

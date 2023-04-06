@@ -866,8 +866,8 @@ enhancements:
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
-          monochromatic:
-            color: low_cloud_color
+          palettes:
+            - {colors: [[140.25, 191.25, 249.9]]}
 
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds

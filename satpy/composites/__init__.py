@@ -1113,7 +1113,7 @@ class LowCloudCompositor(CloudCompositor):
     def __init__(self, name, values_land=(1,), values_sea=(0,),
                  range_land=(1.0, 4.5),
                  range_sea=(0.0, 4.0),
-                 transition_gamma=1.0, color=(140.25, 191.25, 249.9), **kwargs):
+                 transition_gamma=1.0, **kwargs):
         """Init info.
 
         Collect custom configuration values.
@@ -1129,22 +1129,17 @@ class LowCloudCompositor(CloudCompositor):
                                   transition_min values.
             transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
                                       temperature difference range.
-            color (list): RGB definition of color to use for the low-level clouds in the composite (the final
-                          color will be a function of the corresponding  trasnparency/alpha channel).
         """
         if len(range_land) != 2:
             raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
         if len(range_sea) != 2:
             raise ValueError(f"Expected 2 `range_sea` values, got {len(range_sea)}")
-        if type(color) not in [list, tuple] or len(color) != 3:
-            raise ValueError("Expected list/tuple with the red, green and blue color components.")
 
         self.values_land = values_land if type(values_land) in [list, tuple] else [values_land]
         self.values_sea = values_sea if type(values_sea) in [list, tuple] else [values_sea]
         self.range_land = range_land
         self.range_sea = range_sea
         self.transition_gamma = transition_gamma
-        self.color = color
         self.transition_min = None  # Placeholder for later use in CloudCompositor
         self.transition_max = None  # Placeholder for later use in CloudCompositor
         super().__init__(name, transition_gamma=transition_gamma, **kwargs)
@@ -1171,11 +1166,11 @@ class LowCloudCompositor(CloudCompositor):
 
         # Call CloudCompositor for land surface pixels
         self.transition_min, self.transition_max = self.range_land
-        res = super().__call__([btd.where(lsm.isin(self.values_land))], low_cloud_color=self.color, **kwargs)
+        res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
 
         # Call CloudCompositor for sea/water surface pixels
         self.transition_min, self.transition_max = self.range_sea
-        res_sea = super().__call__([btd.where(lsm.isin(self.values_sea))], low_cloud_color=self.color, **kwargs)
+        res_sea = super().__call__([btd.where(lsm.isin(self.values_sea))], **kwargs)
 
         # Compine resutls for land and sea/water surface pixels
         res = res.where(lsm.isin(self.values_land), res_sea)

@@ -539,7 +539,6 @@ composites:
     compositor: !!python/name:satpy.composites.LowCloudCompositor
     values_sea: 0
     values_land: 100
-    color: [140.25, 191.25, 249.9]
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
@@ -567,7 +566,7 @@ composites:
 
   geo_color_night_without_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background
+    standard_name: night_ir
     prerequisites:
       - geo_color_low_clouds
       - geo_color_high_clouds
