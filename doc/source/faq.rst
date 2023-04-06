@@ -43,7 +43,7 @@ Similarly, if you have many workers processing large chunks of data you may
 be using much more memory than you expect. If you limit the number of workers
 *and* the size of the data chunks being processed by each worker you can
 reduce the overall memory usage. Default chunk size can be configured in Satpy
-by setting using the following around your code:
+by using the following around your code:
 
 .. code-block:: python
 
