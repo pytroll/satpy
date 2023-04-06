@@ -388,7 +388,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self._check_sensor_platform_consistency(info['sensor'])
 
         # Calibrate and mask space pixels
-        res = self._mask_space(self.calibrate(res, key.calibration))
+        res = self._mask_space(self.calibrate(res, key["calibration"]))
 
         # Add scanline acquisition time
         res.coords['acq_time'] = ('y', self.acq_time)

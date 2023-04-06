@@ -21,13 +21,19 @@ import logging
 import os
 import tempfile
 import unittest
+import warnings
 from collections import OrderedDict
 from datetime import datetime
 from unittest import mock
 
 import numpy as np
+import pytest
+import xarray as xr
+from packaging.version import Version
 
+from satpy import Scene
 from satpy.tests.utils import make_dsq
+from satpy.writers.cf_writer import _get_backend_versions
 
 try:
     from pyproj import CRS
@@ -38,6 +44,7 @@ except ImportError:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
 # - caplog
+# - request
 
 
 class TempFile(object):
@@ -87,26 +94,6 @@ class TestCFWriter(unittest.TestCase):
                 expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
-
-    def test_save_with_compression(self):
-        """Test saving an array with compression."""
-        import xarray as xr
-
-        from satpy import Scene
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset,\
-                mock.patch('satpy.writers.cf_writer.make_time_bounds'):
-            scn['test-array'] = xr.DataArray([1, 2, 3],
-                                             attrs=dict(start_time=start_time,
-                                                        end_time=end_time,
-                                                        prerequisites=[make_dsq(name='hej')]))
-
-            comp = {'zlib': True, 'complevel': 9}
-            scn.save_datasets(filename='bla', writer='cf', compression=comp)
-            ars, kws = xrdataset.call_args_list[1]
-            self.assertDictEqual(ars[0]['test-array'].encoding, comp)
 
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
@@ -402,30 +389,6 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
-
-    def test_encoding_kwarg(self):
-        """Test 'encoding' keyword argument."""
-        import xarray as xr
-
-        from satpy import Scene
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        scn['test-array'] = xr.DataArray([1, 2, 3],
-                                         attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
-        with TempFile() as filename:
-            encoding = {'test-array': {'dtype': 'int8',
-                                       'scale_factor': 0.1,
-                                       'add_offset': 0.0,
-                                       '_FillValue': 3}}
-            scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
-            with xr.open_dataset(filename, mask_and_scale=False) as f:
-                np.testing.assert_array_equal(f['test-array'][:], [10, 20, 30])
-                self.assertEqual(f['test-array'].attrs['scale_factor'], 0.1)
-                self.assertEqual(f['test-array'].attrs['_FillValue'], 3)
-                # check that dtype behave as int8
-                self.assertEqual(np.iinfo(f['test-array'][:].dtype).max, 127)
 
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
@@ -1368,3 +1331,131 @@ class EncodingUpdateTest(unittest.TestCase):
 
         # User-defined encoding may not be altered
         self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
+
+
+class TestEncodingKwarg:
+    """Test CF writer with 'encoding' keyword argument."""
+
+    @pytest.fixture
+    def scene(self):
+        """Create a fake scene."""
+        scn = Scene()
+        attrs = {
+            "start_time": datetime(2018, 5, 30, 10, 0),
+            "end_time": datetime(2018, 5, 30, 10, 15)
+        }
+        scn['test-array'] = xr.DataArray([1., 2, 3], attrs=attrs)
+        return scn
+
+    @pytest.fixture(params=[True, False])
+    def compression_on(self, request):
+        """Get compression options."""
+        return request.param
+
+    @pytest.fixture
+    def encoding(self, compression_on):
+        """Get encoding."""
+        enc = {
+            'test-array': {
+                'dtype': 'int8',
+                'scale_factor': 0.1,
+                'add_offset': 0.0,
+                '_FillValue': 3,
+            }
+        }
+        if compression_on:
+            comp_params = _get_compression_params(complevel=7)
+            enc["test-array"].update(comp_params)
+        return enc
+
+    @pytest.fixture
+    def filename(self, tmp_path):
+        """Get output filename."""
+        return str(tmp_path / "test.nc")
+
+    @pytest.fixture
+    def complevel_exp(self, compression_on):
+        """Get expected compression level."""
+        if compression_on:
+            return 7
+        return 0
+
+    @pytest.fixture
+    def expected(self, complevel_exp):
+        """Get expectated file contents."""
+        return {
+            "data": [10, 20, 30],
+            "scale_factor": 0.1,
+            "fill_value": 3,
+            "dtype": np.int8,
+            "complevel": complevel_exp
+        }
+
+    def test_encoding_kwarg(self, scene, encoding, filename, expected):
+        """Test 'encoding' keyword argument."""
+        scene.save_datasets(filename=filename, encoding=encoding, writer='cf')
+        self._assert_encoding_as_expected(filename, expected)
+
+    def _assert_encoding_as_expected(self, filename, expected):
+        with xr.open_dataset(filename, mask_and_scale=False) as f:
+            np.testing.assert_array_equal(f['test-array'][:], expected["data"])
+            assert f['test-array'].attrs['scale_factor'] == expected["scale_factor"]
+            assert f['test-array'].attrs['_FillValue'] == expected["fill_value"]
+            assert f['test-array'].dtype == expected["dtype"]
+            assert f["test-array"].encoding["complevel"] == expected["complevel"]
+
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+        """Test warning if backends don't match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.5.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            with pytest.warns(UserWarning, match=r"Backend version mismatch"):
+                scene.save_datasets(filename=filename, writer="cf")
+
+    def test_no_warning_if_backends_match(self, scene, filename, monkeypatch):
+        """Make sure no warning is issued if backends match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.6.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.0")
+            m.setattr(xr, "__version__", "2022.12.0")
+            with warnings.catch_warnings():
+                scene.save_datasets(filename=filename, writer="cf")
+                warnings.simplefilter("error")
+
+
+class TestEncodingAttribute(TestEncodingKwarg):
+    """Test CF writer with 'encoding' dataset attribute."""
+
+    @pytest.fixture
+    def scene_with_encoding(self, scene, encoding):
+        """Create scene with a dataset providing the 'encoding' attribute."""
+        scene["test-array"].encoding = encoding["test-array"]
+        return scene
+
+    def test_encoding_attribute(self, scene_with_encoding, filename, expected):
+        """Test 'encoding' dataset attribute."""
+        scene_with_encoding.save_datasets(filename=filename, writer='cf')
+        self._assert_encoding_as_expected(filename, expected)
+
+
+def _get_compression_params(complevel):
+    params = {"complevel": complevel}
+    if _should_use_compression_keyword():
+        params["compression"] = "zlib"
+    else:
+        params["zlib"] = True
+    return params
+
+
+def _should_use_compression_keyword():
+    # xarray currently ignores the "compression" keyword, see
+    # https://github.com/pydata/xarray/issues/7388. There's already an open
+    # PR, so we assume that this will be fixed in the next minor release
+    # (current release is 2023.02). If not, tests will fail and remind us.
+    versions = _get_backend_versions()
+    return (
+        versions["libnetcdf"] >= Version("4.9.0") and
+        versions["xarray"] >= Version("2023.04")
+    )

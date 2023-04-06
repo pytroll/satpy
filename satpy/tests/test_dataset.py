@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2022 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -686,7 +684,7 @@ class TestIDQueryInteractions(unittest.TestCase):
                        resolution=3000.403165817, calibration="counts", modifiers=())]
         dq = DataQuery(wavelength=0.8)
         res, distances = dq.sort_dataids(dids)
-        assert res[0].name == "HRV"
+        assert res[0]["name"] == "HRV"
 
 
 def test_frequency_quadruple_side_band_class_method_convert():
