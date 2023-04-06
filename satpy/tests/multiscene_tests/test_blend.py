@@ -31,14 +31,12 @@ from satpy.multiscene import stack
 from satpy.tests.multiscene_tests.test_utils import _create_test_area, _create_test_dataset, _create_test_int8_dataset
 from satpy.tests.utils import make_dataid
 
+NUM_TEST_ROWS = 2
+NUM_TEST_COLS = 3
+
 
 class TestBlendFuncs:
     """Test individual functions used for blending."""
-
-    def setup_method(self):
-        """Set up test functions."""
-        self._line = 2
-        self._column = 3
 
     @pytest.fixture
     def scene1_with_weights(self):
@@ -54,7 +52,7 @@ class TestBlendFuncs:
         )
         scene[dsid1] = _create_test_int8_dataset(name='geo-ct', area=area, values=1)
         scene[dsid1].attrs['platform_name'] = 'Meteosat-11'
-        scene[dsid1].attrs['sensor'] = set({'seviri'})
+        scene[dsid1].attrs['sensor'] = {'seviri'}
         scene[dsid1].attrs['units'] = '1'
         scene[dsid1].attrs['long_name'] = 'NWC GEO CT Cloud Type'
         scene[dsid1].attrs['orbital_parameters'] = {'satellite_nominal_altitude': 35785863.0,
@@ -65,8 +63,8 @@ class TestBlendFuncs:
 
         wgt1 = _create_test_dataset(name='geo-ct-wgt', area=area, values=0)
 
-        wgt1[self._line, :] = 2
-        wgt1[:, self._column] = 2
+        wgt1[NUM_TEST_ROWS, :] = 2
+        wgt1[:, NUM_TEST_COLS] = 2
 
         dsid2 = make_dataid(
             name="geo-cma",
@@ -95,7 +93,7 @@ class TestBlendFuncs:
         )
         scene[dsid1] = _create_test_int8_dataset(name='polar-ct', area=area, values=3)
         scene[dsid1].attrs['platform_name'] = 'NOAA-18'
-        scene[dsid1].attrs['sensor'] = set({'avhrr-3'})
+        scene[dsid1].attrs['sensor'] = {'avhrr-3'}
         scene[dsid1].attrs['units'] = '1'
         scene[dsid1].attrs['long_name'] = 'SAFNWC PPS CT Cloud Type'
         scene[dsid1][-1, :] = scene[dsid1].attrs['_FillValue']
@@ -151,7 +149,7 @@ class TestBlendFuncs:
 
         xr.testing.assert_equal(result, expected.compute())
         assert result.attrs['platform_name'] == 'Meteosat-11'
-        assert result.attrs['sensor'] == set({'seviri'})
+        assert result.attrs['sensor'] == {'seviri'}
         assert result.attrs['long_name'] == 'NWC GEO CT Cloud Type'
         assert result.attrs['units'] == '1'
         assert result.attrs['name'] == 'CloudType'
@@ -183,8 +181,8 @@ class TestBlendFuncs:
         weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
 
         expected = scene2['polar-ct']
-        expected[self._line, :] = scene1['geo-ct'][self._line, :]
-        expected[:, self._column] = scene1['geo-ct'][:, self._column]
+        expected[NUM_TEST_ROWS, :] = scene1['geo-ct'][NUM_TEST_ROWS, :]
+        expected[:, NUM_TEST_COLS] = scene1['geo-ct'][:, NUM_TEST_COLS]
         expected[-1, :] = scene1['geo-ct'][-1, :]
 
         result = weighted_blend['CloudType'].compute()
@@ -203,14 +201,11 @@ class TestBlendFuncs:
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
         assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
-    def test_blend_two_scenes_using_stack_weighted_no_time_combination(self, multi_scene_and_weights, groups,
-                                                                       scene1_with_weights, scene2_with_weights):
+    def test_blend_two_scenes_using_stack_weighted_no_time_combination(self, multi_scene_and_weights, groups):
         """Test stacking two scenes using weights - test that the start and end times are averaged and not combined."""
         from functools import partial
 
         multi_scene, weights = multi_scene_and_weights
-        scene1, weights1 = scene1_with_weights
-        scene2, weights2 = scene2_with_weights
 
         simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
         multi_scene.group(simple_groups)
