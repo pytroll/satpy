@@ -605,14 +605,14 @@ def get_legacy_chunk_size():
     """
     chunk_size = _get_pytroll_chunk_size()
 
-    if chunk_size is None:
-        import math
-
-        import dask.config
-        from dask.utils import parse_bytes
-        return int(math.sqrt(parse_bytes(dask.config.get("array.chunk-size", "128MiB")) / 8))
-    else:
+    if chunk_size is not None:
         return chunk_size
+
+    import math
+
+    import dask.config
+    from dask.utils import parse_bytes
+    return int(math.sqrt(parse_bytes(dask.config.get("array.chunk-size", "128MiB")) / 8))
 
 
 def _get_pytroll_chunk_size():
