@@ -68,6 +68,23 @@ NADIR_RESOLUTION = {
     'abi': 2004,
 }
 
+CHANNEL_ALIASES = {
+        "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47},
+                "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64},
+                "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865},
+                "refl_1_38um_nom": {"name": "C04", "wavelength": 1.378},
+                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61},
+                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25},
+                },
+        "ahi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47},
+                "refl_0_55um_nom": {"name": "C02", "wavelength": 0.51},
+                "refl_0_65um_nom": {"name": "C03", "wavelength": 0.64},
+                "refl_0_86um_nom": {"name": "C04", "wavelength": 0.86},
+                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61},
+                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25}
+                },
+}
+
 
 def _get_sensor(sensor: str) -> str:
     """Get the sensor."""
@@ -273,6 +290,19 @@ class _CLAVRxHelper:
 
         return attr_info
 
+    @staticmethod
+    def _lookup_alias(vname: str, sensor: str, is_polar: bool) -> str:
+        """Return variable name if channel name is an alias for a different variable."""
+        # Why?  The aliases provide built-in access to the base sensor RGB composites.
+        if is_polar:
+            # Not implemented
+            pass
+        else:
+            dd = CHANNEL_ALIASES[sensor]
+        key = next(key for key, value in dd.items() if value["name"] == vname)
+
+        return key
+
 
 class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     """A file handler for CLAVRx files."""
@@ -294,7 +324,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         return self.filename_info.get('end_time', self.start_time)
 
     def get_dataset(self, dataset_id, ds_info):
-        """Get a dataset."""
+        """Get a dataset for Polar Sensors."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id)
@@ -414,7 +444,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         }
         return ds_info
 
-    def _is_2d_yx_data_array(self, data_arr):
+    @staticmethod
+    def _is_2d_yx_data_array(data_arr):
         has_y_dim = data_arr.dims[0] == "y"
         has_x_dim = data_arr.dims[1] == "x"
         return has_y_dim and has_x_dim
@@ -434,6 +465,14 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
             ds_info = self._get_ds_info_for_data_arr(var_name)
             yield True, ds_info
+
+            alias_info = CHANNEL_ALIASES[self.sensor].get(var_name, None)
+            if alias_info is not None:
+                if self.nc.attrs["RESOLUTION_KM"] is not None:
+                    alias_info["resolution"] = self.nc.attrs.get("RESOLUTION_KM", "2")
+                    alias_info["resolution"] = alias_info["resolution"] * 1000.
+                ds_info.update(alias_info)
+                yield True, ds_info
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
@@ -470,8 +509,9 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         return _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
 
     def get_dataset(self, dataset_id, ds_info):
-        """Get a dataset."""
+        """Get a dataset for supported geostationary sensors."""
         var_name = ds_info.get('name', dataset_id['name'])
+        var_name = _CLAVRxHelper._lookup_alias(var_name, self.sensor, self._is_polar())
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
@@ -480,5 +520,6 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`."""
+        # Check if 'item' is an alias:
         data = self.nc[item]
         return data
