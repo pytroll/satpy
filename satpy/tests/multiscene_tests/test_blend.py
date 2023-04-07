@@ -22,17 +22,36 @@
 from datetime import datetime
 
 import dask.array as da
+import numpy as np
 import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import DataQuery
+from satpy import DataQuery, Scene
 from satpy.multiscene import stack
 from satpy.tests.multiscene_tests.test_utils import _create_test_area, _create_test_dataset, _create_test_int8_dataset
 from satpy.tests.utils import make_dataid
 
 NUM_TEST_ROWS = 2
 NUM_TEST_COLS = 3
+
+
+def _get_expected_stack_select(scene1: Scene, scene2: Scene) -> xr.DataArray:
+    expected = scene2['polar-ct']
+    expected[NUM_TEST_ROWS, :] = scene1['geo-ct'][NUM_TEST_ROWS, :]
+    expected[:, NUM_TEST_COLS] = scene1['geo-ct'][:, NUM_TEST_COLS]
+    expected[-1, :] = scene1['geo-ct'][-1, :]
+    return expected.compute()
+
+
+def _get_expected_stack_blend(scene1: Scene, scene2: Scene) -> xr.DataArray:
+    expected = scene2['polar-ct'].copy().compute().astype(np.float64)
+    expected[NUM_TEST_ROWS, :] = 5 / 3  # (1*2 + 3*1) / (2 + 1)
+    expected[:, NUM_TEST_COLS] = 5 / 3
+    expected[-1, :] = np.nan  # (1*0 + 0*1) / (0 + 1)
+    # weight of 1 is masked to 0 because invalid overlay value:
+    expected[-1, NUM_TEST_COLS] = 2 / 2  # (1*2 + 0*1) / (2 + 0)
+    return expected
 
 
 class TestBlendFuncs:
@@ -152,14 +171,35 @@ class TestBlendFuncs:
         assert result.attrs['start_time'] == datetime(2023, 1, 16, 11, 9, 17)
         assert result.attrs['end_time'] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
-    @pytest.mark.parametrize("combine_times", False, True)
+    def test_blend_two_scenes_bad_blend_type(self, multi_scene_and_weights, groups):
+        """Test exception is raised when bad 'blend_type' is used."""
+        from functools import partial
+
+        multi_scene, weights = multi_scene_and_weights
+
+        simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
+        multi_scene.group(simple_groups)
+
+        weights = [weights[0][0], weights[1][0]]
+        stack_func = partial(stack, weights=weights, blend_type="i_dont_exist")
+        with pytest.raises(ValueError):
+            multi_scene.blend(blend_function=stack_func)
+
+    @pytest.mark.parametrize(
+        ("blend_func", "exp_result_func"),
+        [
+            ("select_with_weights", _get_expected_stack_select),
+            ("blend_with_weights", _get_expected_stack_blend),
+        ])
+    @pytest.mark.parametrize("combine_times", [False, True])
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
                                                    scene1_with_weights, scene2_with_weights,
-                                                   combine_times):
-        """Test stacking two scenes using weights - testing that metadata are combined correctly.
+                                                   combine_times, blend_func, exp_result_func):
+        """Test stacking two scenes using weights.
 
         Here we test that the start and end times can be combined so that they
-        describe the start and times of the entire data series.
+        describe the start and times of the entire data series. We also test
+        the various types of weighted stacking functions (ex. select, blend).
 
         """
         from functools import partial
@@ -172,16 +212,13 @@ class TestBlendFuncs:
         multi_scene.group(simple_groups)
 
         weights = [weights[0][0], weights[1][0]]
-        stack_with_weights = partial(stack, weights=weights, combine_times=combine_times)
-        weighted_blend = multi_scene.blend(blend_function=stack_with_weights)
+        stack_func = partial(stack, weights=weights, blend_type=blend_func, combine_times=combine_times)
+        weighted_blend = multi_scene.blend(blend_function=stack_func)
 
-        expected = scene2['polar-ct']
-        expected[NUM_TEST_ROWS, :] = scene1['geo-ct'][NUM_TEST_ROWS, :]
-        expected[:, NUM_TEST_COLS] = scene1['geo-ct'][:, NUM_TEST_COLS]
-        expected[-1, :] = scene1['geo-ct'][-1, :]
-
+        expected = exp_result_func(scene1, scene2)
         result = weighted_blend['CloudType'].compute()
-        xr.testing.assert_equal(result, expected.compute())
+        # result has NaNs and xarray's xr.testing.assert_equal doesn't support NaN comparison
+        np.testing.assert_allclose(result.data, expected.data)
 
         _check_stacked_metadata(result, "CloudType")
         if combine_times:

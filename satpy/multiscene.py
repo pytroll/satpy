@@ -118,9 +118,11 @@ def _stack_blend_by_weights(
 
     overlays = []
     for weight, overlay in zip(weights, datasets):
+        # XXX: Does fillna handle `_FillValue`?
         overlays.append(overlay.fillna(0) * weight)
 
-    base = sum(overlays) / sum(weights, start=1.e-9)
+    # TODO: Can we use numpy.nan_to_num and ignoring divide by zero warnings
+    base = sum(overlays) / sum(weights)
 
     dims = datasets[0].dims
     blended_array = xr.DataArray(base, dims=dims, attrs=attrs)
