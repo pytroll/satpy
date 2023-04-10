@@ -54,101 +54,127 @@ def _get_expected_stack_blend(scene1: Scene, scene2: Scene) -> xr.DataArray:
     return expected
 
 
+@pytest.fixture
+def test_area():
+    """Get area definition used by test DataArrays."""
+    return _create_test_area()
+
+
+@pytest.fixture
+def cloud_type_data_array1(test_area):
+    """Get DataArray for cloud type in the first test Scene."""
+    dsid1 = make_dataid(
+        name="geo-ct",
+        resolution=3000,
+        modifiers=()
+    )
+    data_arr = _create_test_int8_dataset(name='geo-ct', area=test_area, values=1)
+    data_arr.attrs['platform_name'] = 'Meteosat-11'
+    data_arr.attrs['sensor'] = {'seviri'}
+    data_arr.attrs['units'] = '1'
+    data_arr.attrs['long_name'] = 'NWC GEO CT Cloud Type'
+    data_arr.attrs['orbital_parameters'] = {
+        'satellite_nominal_altitude': 35785863.0,
+        'satellite_nominal_longitude': 0.0,
+        'satellite_nominal_latitude': 0,
+    }
+    data_arr.attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
+    data_arr.attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
+    data_arr.attrs["_satpy_id"] = dsid1
+    return data_arr
+
+
+@pytest.fixture
+def cloud_type_data_array2(test_area):
+    """Get DataArray for cloud type in the second test Scene."""
+    dsid1 = make_dataid(
+        name="polar-ct",
+        resolution=1000,
+        modifiers=()
+    )
+    data_arr = _create_test_int8_dataset(name='polar-ct', area=test_area, values=3)
+    data_arr.attrs['platform_name'] = 'NOAA-18'
+    data_arr.attrs['sensor'] = {'avhrr-3'}
+    data_arr.attrs['units'] = '1'
+    data_arr.attrs['long_name'] = 'SAFNWC PPS CT Cloud Type'
+    data_arr[-1, :] = data_arr.attrs['_FillValue']
+    data_arr.attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
+    data_arr.attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
+    data_arr.attrs["_satpy_id"] = dsid1
+    return data_arr
+
+
+@pytest.fixture
+def scene1_with_weights(cloud_type_data_array1, test_area):
+    """Create first test scene with a dataset of weights."""
+    from satpy import Scene
+
+    scene = Scene()
+    scene[cloud_type_data_array1.attrs["_satpy_id"]] = cloud_type_data_array1
+
+    wgt1 = _create_test_dataset(name='geo-ct-wgt', area=test_area, values=0)
+
+    wgt1[NUM_TEST_ROWS, :] = 2
+    wgt1[:, NUM_TEST_COLS] = 2
+
+    dsid2 = make_dataid(
+        name="geo-cma",
+        resolution=3000,
+        modifiers=()
+    )
+    scene[dsid2] = _create_test_int8_dataset(name='geo-cma', area=test_area, values=2)
+    scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
+    scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
+
+    wgt2 = _create_test_dataset(name='geo-cma-wgt', area=test_area, values=0)
+
+    return scene, [wgt1, wgt2]
+
+
+@pytest.fixture
+def scene2_with_weights(cloud_type_data_array2, test_area):
+    """Create second test scene."""
+    from satpy import Scene
+
+    scene = Scene()
+    scene[cloud_type_data_array2.attrs["_satpy_id"]] = cloud_type_data_array2
+
+    wgt1 = _create_test_dataset(name='polar-ct-wgt', area=test_area, values=1)
+
+    dsid2 = make_dataid(
+        name="polar-cma",
+        resolution=1000,
+        modifiers=()
+    )
+    scene[dsid2] = _create_test_int8_dataset(name='polar-cma', area=test_area, values=4)
+    scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
+    scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
+
+    wgt2 = _create_test_dataset(name='polar-cma-wgt', area=test_area, values=1)
+    return scene, [wgt1, wgt2]
+
+
+@pytest.fixture
+def multi_scene_and_weights(scene1_with_weights, scene2_with_weights):
+    """Create small multi-scene for testing."""
+    from satpy import MultiScene
+    scene1, weights1 = scene1_with_weights
+    scene2, weights2 = scene2_with_weights
+
+    return MultiScene([scene1, scene2]), [weights1, weights2]
+
+
+@pytest.fixture
+def groups():
+    """Get group definitions for the MultiScene."""
+    return {
+        DataQuery(name='CloudType'): ['geo-ct', 'polar-ct'],
+        DataQuery(name='CloudMask'): ['geo-cma', 'polar-cma']
+    }
+
+
 class TestBlendFuncs:
     """Test individual functions used for blending."""
-
-    @pytest.fixture
-    def scene1_with_weights(self):
-        """Create first test scene with a dataset of weights."""
-        from satpy import Scene
-
-        area = _create_test_area()
-        scene = Scene()
-        dsid1 = make_dataid(
-            name="geo-ct",
-            resolution=3000,
-            modifiers=()
-        )
-        scene[dsid1] = _create_test_int8_dataset(name='geo-ct', area=area, values=1)
-        scene[dsid1].attrs['platform_name'] = 'Meteosat-11'
-        scene[dsid1].attrs['sensor'] = {'seviri'}
-        scene[dsid1].attrs['units'] = '1'
-        scene[dsid1].attrs['long_name'] = 'NWC GEO CT Cloud Type'
-        scene[dsid1].attrs['orbital_parameters'] = {'satellite_nominal_altitude': 35785863.0,
-                                                    'satellite_nominal_longitude': 0.0,
-                                                    'satellite_nominal_latitude': 0}
-        scene[dsid1].attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
-        scene[dsid1].attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
-
-        wgt1 = _create_test_dataset(name='geo-ct-wgt', area=area, values=0)
-
-        wgt1[NUM_TEST_ROWS, :] = 2
-        wgt1[:, NUM_TEST_COLS] = 2
-
-        dsid2 = make_dataid(
-            name="geo-cma",
-            resolution=3000,
-            modifiers=()
-        )
-        scene[dsid2] = _create_test_int8_dataset(name='geo-cma', area=area, values=2)
-        scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 9, 17)
-        scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 12, 22)
-
-        wgt2 = _create_test_dataset(name='geo-cma-wgt', area=area, values=0)
-
-        return scene, [wgt1, wgt2]
-
-    @pytest.fixture
-    def scene2_with_weights(self):
-        """Create second test scene."""
-        from satpy import Scene
-
-        area = _create_test_area()
-        scene = Scene()
-        dsid1 = make_dataid(
-            name="polar-ct",
-            resolution=1000,
-            modifiers=()
-        )
-        scene[dsid1] = _create_test_int8_dataset(name='polar-ct', area=area, values=3)
-        scene[dsid1].attrs['platform_name'] = 'NOAA-18'
-        scene[dsid1].attrs['sensor'] = {'avhrr-3'}
-        scene[dsid1].attrs['units'] = '1'
-        scene[dsid1].attrs['long_name'] = 'SAFNWC PPS CT Cloud Type'
-        scene[dsid1][-1, :] = scene[dsid1].attrs['_FillValue']
-        scene[dsid1].attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
-        scene[dsid1].attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
-
-        wgt1 = _create_test_dataset(name='polar-ct-wgt', area=area, values=1)
-
-        dsid2 = make_dataid(
-            name="polar-cma",
-            resolution=1000,
-            modifiers=()
-        )
-        scene[dsid2] = _create_test_int8_dataset(name='polar-cma', area=area, values=4)
-        scene[dsid2].attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
-        scene[dsid2].attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
-
-        wgt2 = _create_test_dataset(name='polar-cma-wgt', area=area, values=1)
-        return scene, [wgt1, wgt2]
-
-    @pytest.fixture
-    def multi_scene_and_weights(self, scene1_with_weights, scene2_with_weights):
-        """Create small multi-scene for testing."""
-        from satpy import MultiScene
-        scene1, weights1 = scene1_with_weights
-        scene2, weights2 = scene2_with_weights
-
-        return MultiScene([scene1, scene2]), [weights1, weights2]
-
-    @pytest.fixture
-    def groups(self):
-        """Get group definitions for the MultiScene."""
-        return {
-            DataQuery(name='CloudType'): ['geo-ct', 'polar-ct'],
-            DataQuery(name='CloudMask'): ['geo-cma', 'polar-cma']
-        }
 
     def test_blend_two_scenes_using_stack(self, multi_scene_and_weights, groups,
                                           scene1_with_weights, scene2_with_weights):
