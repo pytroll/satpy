@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery, Scene
-from satpy.multiscene import stack
+from satpy.multiscene import stack, timeseries
 from satpy.tests.multiscene_tests.test_utils import (
     DEFAULT_SHAPE,
     _create_test_area,
@@ -324,7 +324,7 @@ class TestBlendFuncs:
         from functools import partial
 
         from satpy.dataset import combine_metadata
-        from satpy.multiscene import stack
+        from satpy.multiscene._multiscene import stack
 
         input_data = datasets_and_weights
 
@@ -347,8 +347,6 @@ class TestBlendFuncs:
 
     def test_blend_function_stack(self, datasets_and_weights):
         """Test the 'stack' function."""
-        from satpy.multiscene import stack
-
         input_data = datasets_and_weights
 
         ds1 = input_data['datasets'][0]
@@ -363,8 +361,6 @@ class TestBlendFuncs:
 
     def test_timeseries(self, datasets_and_weights):
         """Test the 'timeseries' function."""
-        from satpy.multiscene import timeseries
-
         input_data = datasets_and_weights
 
         ds1 = input_data['datasets'][0]
