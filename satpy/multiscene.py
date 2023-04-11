@@ -118,10 +118,14 @@ def _stack_blend_by_weights(
 
     overlays = []
     for weight, overlay in zip(weights, datasets):
-        # XXX: Does fillna handle `_FillValue`?
+        # Any 'overlay' fill values should already be reflected in the weights
+        # as 0. See _fill_weights_for_invalid_dataset_pixels. We fill NA with
+        # 0 here to avoid NaNs affecting valid pixels in other datasets. Note
+        # `.fillna` does not handle the `_FillValue` attribute so this filling
+        # is purely to remove NaNs.
         overlays.append(overlay.fillna(0) * weight)
-
-    # TODO: Can we use numpy.nan_to_num and ignoring divide by zero warnings
+    # NOTE: Currently no way to ignore numpy divide by 0 warnings without
+    # making a custom map_blocks version of the divide
     base = sum(overlays) / sum(weights)
 
     dims = datasets[0].dims
