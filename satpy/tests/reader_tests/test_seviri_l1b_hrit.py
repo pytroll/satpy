@@ -145,7 +145,8 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        self.observation_start_time = datetime(2016, 3, 3, 0, 0)
+        # self.observation_start_time = datetime(2016, 3, 3, 0, 0)
+        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.ncols = 3712
         self.projection_longitude = 9.5
