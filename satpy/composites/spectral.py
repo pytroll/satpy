@@ -19,7 +19,6 @@ import logging
 import warnings
 
 import dask.array as da
-import numpy as np
 
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
@@ -177,99 +176,60 @@ class IndexedGreen(SpectralBlender):
     """Construct an index-weighted hybrid green channel.
 
     This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
-    factor `f` that depends on the pixel-level vegetation (NDVI) and soil parameters (NDBI). In addition, two
-    sensor-specific constants, veg_fac and soil_fac, are used that define the difference between the sensor spectral
-    response and an idealised spectral response suited for vegetation.
+    factor `f` that depends on the pixel-level vegetation (NDVI) and soil parameters (NDRI). In addition, three
+    sensor-specific constants (ndri_term, ndvi_term and offset_term) are used that define the difference between the
+    sensor spectral response and an idealised spectral response suited for vegetation.
     NDVI is calculated via: `(NIR - RED) / (NIR + RED)`
-    NDBI is calculated via: `(RED - GRN) / (RED + GRN)`
+    NDRI is calculated via: `(RED - GRN) / (RED + GRN)`
     The final weighting factor is then found via:
-    `f = max( ndvi * veg_fac, ndbi * soil_fac)`
-    If `soil_fac` and `veg_fac` are not supplied, this method will produce results equivalent to `NDVIHybridGreen`
+    `f = ndri_term * ndri + ndvi_term * ndvi + offset_term`
+    If `ndri_term`, `ndvi_term` and `offset_term` are not supplied then this method will produce results
+    equivalent to the `HybridGreen` method.
+
+    In addition, the ndvi and ndri can be limited to a range by setting the `ndvi_min` and `ndvi_max`
+    (or `ndri` equivalent) arguments. Values outside the min / max values will be clipped.
+
+    Lastly, the `limits` argument allows specification of minimum and maximum values for the `f` term. As with the
+    indices, values outside the min / max range will be clipped.
     """
 
     def __init__(self, *args,
-                 ndvi_min=0.0, ndvi_max=0.7,
-                 ndbi_min=0.0, ndbi_max=1.0,
-                 veg_fac=1., soil_fac=0.,
-                 limits=(0.15, 0.05), **kwargs):
+                 ndvi_min=0.0, ndvi_max=1.0,
+                 ndri_min=0.0, ndri_max=1.0,
+                 ndri_term=0.,
+                 ndvi_term=0.0,
+                 offset_term=0.15,
+                 limits=(0.05, 0.15),
+                 **kwargs):
         """Initialize class and set the index limits and the corresponding blending fraction limits."""
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
-        self.ndbi_min = ndbi_min
-        self.ndbi_max = ndbi_max
-        self.veg_fac = veg_fac
-        self.soil_fac = soil_fac
+        self.ndri_min = ndri_min
+        self.ndri_max = ndri_max
+        self.coefs = [ndri_term, ndvi_term, offset_term]
         self.limits = limits
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the hybrid green channel weighted by NDVI."""
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
-        ndbi_input = self.match_data_arrays([projectables[0], projectables[1]])
+        ndvi_input = self.match_data_arrays([projectables[2], projectables[3]])
+        ndri_input = self.match_data_arrays([projectables[0], projectables[1]])
 
         ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
-        ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
+        ndvi.data = da.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
 
-        ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
-        ndbi.data = np.clip(ndbi.data, self.ndbi_min, self.ndbi_max, ndbi.data)
+        ndri = _calc_norm_index(ndri_input[1], ndri_input[0])
+        ndri.data = da.clip(ndri.data, self.ndri_min, self.ndri_max, ndri.data)
 
-        ndvi = ndvi * self.veg_fac
-        ndbi = ndbi * self.soil_fac
+        frac = self.coefs[0] * ndri + self.coefs[1] * ndvi + self.coefs[2]
 
-        fraction = 0.5 * (ndvi + ndbi)
-        self.fractions = (1 - fraction, fraction)
+        frac = da.where(frac > 0.15, 0.15, frac)
+        frac = da.where(frac < 0.05, 0.05, frac)
 
-        tmp = super().__call__([projectables[0], projectables[2]], **attrs)
+        frac = da.clip(frac, self.limits[0], self.limits[1])
+        self.fractions = (1 - frac, frac)
 
-        return tmp
-
-
-class IndexedRed(SpectralBlender):
-    """Construct an index-weighted hybrid red channel.
-
-    This red band correction follows the same approach as the IndexedGreen compositor, but with a dynamic blend
-    factor `f` that depends on the pixel-level vegetation (NDVI) and soil parameters (NDBI). In addition, two
-    sensor-specific constants, veg_fac and soil_fac, are used that define the difference between the sensor spectral
-    response and an idealised spectral response suited for vegetation.
-    NDVI is calculated via: `(NIR - RED) / (NIR + RED)`
-    NDBI is calculated via: `(RED - GRN) / (RED + GRN)`
-    The final weighting factor is then found via:
-    `f = ndvi * blue * veg_frac + NDBI * nir * soil_frac + [1 - (NDVI * veg_frac + NDVI * soil_frac) * red`
-    """
-
-    def __init__(self, *args,
-                 ndvi_min=0.2, ndvi_max=0.7,
-                 ndbi_min=0.2, ndbi_max=0.7,
-                 veg_fac=1., soil_fac=0.,
-                 limits=(0.15, 0.05), **kwargs):
-        """Initialize class and set the index limits and the corresponding blending fraction limits."""
-        self.ndvi_min = ndvi_min
-        self.ndvi_max = ndvi_max
-        self.ndbi_min = ndbi_min
-        self.ndbi_max = ndbi_max
-        self.veg_fac = veg_fac
-        self.soil_fac = soil_fac
-        self.limits = limits
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, projectables, optional_datasets=None, **attrs):
-        """Construct the hybrid green channel weighted by NDVI."""
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
-        ndbi_input = self.match_data_arrays([projectables[0], projectables[1]])
-
-        ndvi = _calc_norm_index(ndvi_input[1], ndvi_input[0])
-        ndvi.data = np.clip(ndvi.data, self.ndvi_min, self.ndvi_max, ndvi.data)
-
-        ndbi = _calc_norm_index(ndbi_input[1], ndbi_input[0])
-        ndbi.data = np.clip(ndbi.data, self.ndbi_min, self.ndbi_max, ndbi.data)
-
-        ndvi = ndvi * self.veg_fac
-        ndbi = ndbi * self.soil_fac
-
-        fraction = da.where(ndvi > ndbi, ndvi, ndbi)
-        self.fractions = (1 - fraction, fraction)
-
-        tmp = super().__call__([projectables[0], projectables[2]], **attrs)
+        tmp = super().__call__([projectables[1], projectables[3]], **attrs)
 
         return tmp
 

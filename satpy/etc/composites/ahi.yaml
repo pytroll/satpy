@@ -16,10 +16,31 @@ modifiers:
 
 composites:
   indexed_hybrid_green:
+    description: >
+      The AHI green band misses the chlorophyll band, such that the signal comes from aerosols
+      and ash rather than vegetation. An effect is that vegetation in a true colour RGB looks
+      rather brown than green and barren rather red. Mixing in some part of the NIR 0.8 channel
+      reduced this effect.  Note that the fractions currently implemented are experimental and
+      may change in future versions of Satpy.
     compositor: !!python/name:satpy.composites.spectral.IndexedGreen
     limits: [0.15, 0.05]
-    veg_fac: 0.10655814
-    soil_fac: 0.19019079
+    ndri_term: 0.2
+    ndvi_term: -0.18
+    offset_term: 0.16
+    prerequisites:
+      - name: B01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: B04
+        modifiers: [sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+  indexed_hybrid_red:
+    compositor: !!python/name:satpy.composites.spectral.IndexedGreen
+    green: False
     prerequisites:
       - name: B02
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -515,7 +536,6 @@ composites:
       - night_ir_alpha
       - _night_background_hires
 
-
   true_color_indexed:
       compositor: !!python/name:satpy.composites.SelfSharpenedRGB
       prerequisites:
@@ -526,7 +546,24 @@ composites:
           modifiers: [ sunz_corrected, rayleigh_corrected ]
       standard_name: true_color
 
+  true_color_indexed_green_and_red:
+      compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+      prerequisites:
+        - name: indexed_hybrid_red
+        - name: indexed_hybrid_green
+        - name: B01
+          modifiers: [ sunz_corrected, rayleigh_corrected ]
+      standard_name: true_color
+
   true_color_raw_with_indexed_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+      - name: indexed_hybrid_green_raw
+      - name: B01
+    standard_name: true_color
+
+  true_color_raw_with_indexed_green_and_red:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: B03
