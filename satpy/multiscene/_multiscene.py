@@ -46,7 +46,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def group_datasets_in_scenes(scenes, groups):
+def _group_datasets_in_scenes(scenes, groups):
     """Group different datasets in multiple scenes by adding aliases.
 
     Args:
@@ -61,11 +61,11 @@ def group_datasets_in_scenes(scenes, groups):
 
     """
     for scene in scenes:
-        grp = GroupAliasGenerator(scene, groups)
+        grp = _GroupAliasGenerator(scene, groups)
         yield grp.duplicate_datasets_with_group_alias()
 
 
-class GroupAliasGenerator:
+class _GroupAliasGenerator:
     """Add group aliases to a scene."""
 
     def __init__(self, scene, groups):
@@ -375,7 +375,7 @@ class MultiScene(object):
                 DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
-        self._scenes = group_datasets_in_scenes(self._scenes, groups)
+        self._scenes = _group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
