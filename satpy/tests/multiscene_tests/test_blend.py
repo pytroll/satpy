@@ -29,7 +29,12 @@ from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery, Scene
 from satpy.multiscene import stack
-from satpy.tests.multiscene_tests.test_utils import _create_test_area, _create_test_dataset, _create_test_int8_dataset
+from satpy.tests.multiscene_tests.test_utils import (
+    DEFAULT_SHAPE,
+    _create_test_area,
+    _create_test_dataset,
+    _create_test_int8_dataset,
+)
 from satpy.tests.utils import make_dataid
 
 NUM_TEST_ROWS = 2
@@ -38,19 +43,19 @@ NUM_TEST_COLS = 3
 
 def _get_expected_stack_select(scene1: Scene, scene2: Scene) -> xr.DataArray:
     expected = scene2['polar-ct']
-    expected[NUM_TEST_ROWS, :] = scene1['geo-ct'][NUM_TEST_ROWS, :]
-    expected[:, NUM_TEST_COLS] = scene1['geo-ct'][:, NUM_TEST_COLS]
-    expected[-1, :] = scene1['geo-ct'][-1, :]
+    expected[..., NUM_TEST_ROWS, :] = scene1['geo-ct'][..., NUM_TEST_ROWS, :]
+    expected[..., :, NUM_TEST_COLS] = scene1['geo-ct'][..., :, NUM_TEST_COLS]
+    expected[..., -1, :] = scene1['geo-ct'][..., -1, :]
     return expected.compute()
 
 
 def _get_expected_stack_blend(scene1: Scene, scene2: Scene) -> xr.DataArray:
     expected = scene2['polar-ct'].copy().compute().astype(np.float64)
-    expected[NUM_TEST_ROWS, :] = 5 / 3  # (1*2 + 3*1) / (2 + 1)
-    expected[:, NUM_TEST_COLS] = 5 / 3
-    expected[-1, :] = np.nan  # (1*0 + 0*1) / (0 + 1)
+    expected[..., NUM_TEST_ROWS, :] = 5 / 3  # (1*2 + 3*1) / (2 + 1)
+    expected[..., :, NUM_TEST_COLS] = 5 / 3
+    expected[..., -1, :] = np.nan  # (1*0 + 0*1) / (0 + 1)
     # weight of 1 is masked to 0 because invalid overlay value:
-    expected[-1, NUM_TEST_COLS] = 2 / 2  # (1*2 + 0*1) / (2 + 0)
+    expected[..., -1, NUM_TEST_COLS] = 2 / 2  # (1*2 + 0*1) / (2 + 0)
     return expected
 
 
@@ -60,15 +65,33 @@ def test_area():
     return _create_test_area()
 
 
+@pytest.fixture(params=[np.int8, np.float32])
+def data_type(request):
+    """Get array data type of the DataArray being tested."""
+    return request.param
+
+
+@pytest.fixture(params=["", "L", "RGB", "RGBA"])
+def image_mode(request):
+    """Get image mode of the main DataArray being tested."""
+    return request.param
+
+
 @pytest.fixture
-def cloud_type_data_array1(test_area):
+def cloud_type_data_array1(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the first test Scene."""
     dsid1 = make_dataid(
         name="geo-ct",
         resolution=3000,
         modifiers=()
     )
-    data_arr = _create_test_int8_dataset(name='geo-ct', area=test_area, values=1)
+    shape = DEFAULT_SHAPE if len(image_mode) == 0 else (len(image_mode),) + DEFAULT_SHAPE
+    dims = ("y", "x") if len(image_mode) == 0 else ("bands", "y", "x")
+    if data_type is np.int8:
+        data_arr = _create_test_int8_dataset(name='geo-ct', shape=shape, area=test_area, values=1, dims=dims)
+    else:
+        data_arr = _create_test_dataset(name='geo-ct', shape=shape, area=test_area, values=1.0, dims=dims)
+
     data_arr.attrs['platform_name'] = 'Meteosat-11'
     data_arr.attrs['sensor'] = {'seviri'}
     data_arr.attrs['units'] = '1'
@@ -85,19 +108,25 @@ def cloud_type_data_array1(test_area):
 
 
 @pytest.fixture
-def cloud_type_data_array2(test_area):
+def cloud_type_data_array2(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the second test Scene."""
     dsid1 = make_dataid(
         name="polar-ct",
         resolution=1000,
         modifiers=()
     )
-    data_arr = _create_test_int8_dataset(name='polar-ct', area=test_area, values=3)
+    shape = DEFAULT_SHAPE if len(image_mode) == 0 else (len(image_mode),) + DEFAULT_SHAPE
+    dims = ("y", "x") if len(image_mode) == 0 else ("bands", "y", "x")
+    if data_type is np.int8:
+        data_arr = _create_test_int8_dataset(name='polar-ct', shape=shape, area=test_area, values=3, dims=dims)
+        data_arr[..., -1, :] = data_arr.attrs['_FillValue']
+    else:
+        data_arr = _create_test_dataset(name='polar-ct', shape=shape, area=test_area, values=3.0, dims=dims)
+        data_arr[..., -1, :] = np.nan
     data_arr.attrs['platform_name'] = 'NOAA-18'
     data_arr.attrs['sensor'] = {'avhrr-3'}
     data_arr.attrs['units'] = '1'
     data_arr.attrs['long_name'] = 'SAFNWC PPS CT Cloud Type'
-    data_arr[-1, :] = data_arr.attrs['_FillValue']
     data_arr.attrs['start_time'] = datetime(2023, 1, 16, 11, 12, 57, 500000)
     data_arr.attrs['end_time'] = datetime(2023, 1, 16, 11, 28, 1, 900000)
     data_arr.attrs["_satpy_id"] = dsid1
@@ -190,7 +219,7 @@ class TestBlendFuncs:
         result = stacked['CloudType'].compute()
 
         expected = scene2['polar-ct'].copy()
-        expected[-1, :] = scene1['geo-ct'][-1, :]
+        expected[..., -1, :] = scene1['geo-ct'][..., -1, :]
 
         xr.testing.assert_equal(result, expected.compute())
         _check_stacked_metadata(result, "CloudType")
@@ -355,8 +384,9 @@ class TestBlendFuncs:
 def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
     assert data_arr.attrs['units'] == '1'
     assert data_arr.attrs['name'] == exp_name
-    assert data_arr.attrs['_FillValue'] == 255
-    assert data_arr.attrs['valid_range'] == [1, 15]
+    if "_FillValue" in data_arr.attrs:
+        assert data_arr.attrs['_FillValue'] == 255
+        assert data_arr.attrs['valid_range'] == [1, 15]
 
     expected_area = _create_test_area()
     assert data_arr.attrs['area'] == expected_area
