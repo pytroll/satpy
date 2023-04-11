@@ -192,9 +192,12 @@ class MERSI2L1B(HDF5FileHandler):
             corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
         elif self.sensor_name == 'mersi-ll':
             # MERSI-LL stores these coefficients differently
-            coeffs = self['/attr/TBB_Trans_Coefficient']
-            corr_coeff_a = coeffs[calibration_index]
-            corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
+            try:
+                coeffs = self['/attr/TBB_Trans_Coefficient']
+                corr_coeff_a = coeffs[calibration_index]
+                corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
+            except KeyError:
+                return data
 
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a
