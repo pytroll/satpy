@@ -405,7 +405,13 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
                 'Level15ImageProduction': {
                     'PlannedChanProcessing': self.radiance_types
                 }
-            }
+            },
+            'ImageAcquisition': {
+                'PlannedAcquisitionTime': {
+                    'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
+                    }
+                }
         }
         epilog = {
             'ImageProductionStats': {
@@ -431,6 +437,7 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             fh.mda = mda
             fh.prologue = prolog
             fh.epilogue = epilog
+            fh.tres = 15
             return fh
 
     @pytest.mark.parametrize(
