@@ -93,7 +93,7 @@ class TestMultiScene(unittest.TestCase):
             "OR_GLM-L2-GLMC-M3_G16_s20171171506000_e20171171507000_c20380190314080.nc",
             "OR_GLM-L2-GLMC-M3_G16_s20171171507000_e20171171508000_c20380190314080.nc",
         ]
-        with mock.patch('satpy.multiscene.Scene') as scn_mock:
+        with mock.patch('satpy.multiscene._multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
                 input_files_abi,
                 reader='abi_l1b',

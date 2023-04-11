@@ -324,7 +324,6 @@ class TestBlendFuncs:
         from functools import partial
 
         from satpy.dataset import combine_metadata
-        from satpy.multiscene._multiscene import stack
 
         input_data = datasets_and_weights
 
