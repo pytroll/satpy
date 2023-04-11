@@ -37,6 +37,7 @@ DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 AHI_FILE = 'clavrx_H08_20210603_1500_B01_FLDK_R.level2.nc'
+FILL_VALUE = -32768
 
 
 def fake_test_content(filename, **kwargs):
@@ -51,7 +52,8 @@ def fake_test_content(filename, **kwargs):
     longitude = xr.DataArray(DEFAULT_LON_DATA,
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
+                             attrs={'_FillValue': -999.,
+                                    'SCALED': 0,
                                     'scale_factor': 1.,
                                     'add_offset': 0.,
                                     'standard_name': 'longitude',
@@ -61,37 +63,37 @@ def fake_test_content(filename, **kwargs):
     latitude = xr.DataArray(DEFAULT_LAT_DATA,
                             dims=('scan_lines_along_track_direction',
                                   'pixel_elements_along_scan_direction'),
-                            attrs={'_FillValue': np.nan,
+                            attrs={'_FillValue': -999.,
+                                   'SCALED': 0,
                                    'scale_factor': 1.,
                                    'add_offset': 0.,
                                    'standard_name': 'latitude',
                                    'units': 'degrees_south'
                                    })
 
-    variable1 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.float32),
+    variable1 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.int8),
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
-                                    'scale_factor': 1.,
-                                    'add_offset': 0.,
+                             attrs={'_FillValue': -127,
+                                    'SCALED': 0,
                                     'units': '1',
-                                    'valid_range': [-32767, 32767],
                                     })
 
-    # data with fill values
-    variable2 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.float32),
+    # data with fill values and a file_type alias
+    variable2 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.int16),
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
-                                    'scale_factor': 1.,
-                                    'add_offset': 0.,
-                                    'units': '1',
+                             attrs={'_FillValue': FILL_VALUE,
+                                    'SCALED': 1,
+                                    'scale_factor': 0.001861629,
+                                    'add_offset': 59.,
+                                    'units': '%',
                                     'valid_range': [-32767, 32767],
                                     })
-    variable2 = variable2.where(variable2 % 2 != 0)
+    variable2 = variable2.where(variable2 % 2 != 0, FILL_VALUE)
 
     # category
-    variable3 = xr.DataArray(DEFAULT_FILE_FLAGS,
+    variable3 = xr.DataArray(DEFAULT_FILE_FLAGS.astype(np.int8),
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
                              attrs={'SCALED': 0,
@@ -103,7 +105,7 @@ def fake_test_content(filename, **kwargs):
         'longitude': longitude,
         'latitude': latitude,
         'variable1': variable1,
-        'variable2': variable2,
+        'refl_0_65um_nom': variable2,
         'variable3': variable3
     }
 
@@ -141,7 +143,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
-        [([AHI_FILE], ['variable1', 'variable2', 'variable3']), ]
+        [([AHI_FILE], ['variable1', 'refl_0_65um_nom', 'variable3']), ]
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
@@ -154,10 +156,13 @@ class TestCLAVRXReaderGeo:
             avails = list(r.available_dataset_names)
             for var_name in expected_datasets:
                 assert var_name in avails
+            # check extra datasets created by alias or coordinates
+            for var_name in ["latitude", "longitude", "C03"]:
+                assert var_name in avails
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [([AHI_FILE], ['variable1', 'variable2', 'variable3']), ]
+        [([AHI_FILE], ['variable1', 'refl_0_65um_nom', 'C03', 'variable3']), ]
     )
     def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
@@ -184,18 +189,24 @@ class TestCLAVRXReaderGeo:
                 )
                 fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
                 datasets = r.load(loadable_ids)
-                assert len(datasets) == 3
+                assert len(datasets) == 4
                 for v in datasets.values():
                     assert 'calibration' not in v.attrs
-                    assert v.attrs['units'] == '1'
+                    assert "units" in v.attrs
                     assert isinstance(v.attrs['area'], AreaDefinition)
                     assert v.attrs['platform_name'] == 'himawari8'
                     assert v.attrs['sensor'] == 'ahi'
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
-                    if v.attrs["name"] in ["variable1", "variable2"]:
+                    if v.attrs["name"] == 'variable1':
+                        assert "valid_range" not in v.attrs
+                        assert v.dtype == np.float64
+                        assert "_FillValue" not in v.attrs
+                    # should have file variable and one alias for reflectance
+                    elif v.attrs["name"] in ["refl_0_65um_nom", "C03"]:
                         assert isinstance(v.attrs["valid_range"], list)
-                        assert v.dtype == np.float32
+                        assert v.dtype == np.float64
                         assert "_FillValue" not in v.attrs.keys()
+                        assert (v.attrs["file_key"] == "refl_0_65um_nom")
                     else:
                         assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
                         assert (datasets['variable3'].attrs.get('flag_meanings') == '<flag_meanings_unknown>')

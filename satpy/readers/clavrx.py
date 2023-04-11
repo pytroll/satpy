@@ -290,19 +290,6 @@ class _CLAVRxHelper:
 
         return attr_info
 
-    @staticmethod
-    def _lookup_alias(vname: str, sensor: str, is_polar: bool) -> str:
-        """Return variable name if channel name is an alias for a different variable."""
-        # Why?  The aliases provide built-in access to the base sensor RGB composites.
-        if is_polar:
-            # Not implemented
-            pass
-        else:
-            dd = CHANNEL_ALIASES[sensor]
-        key = next(key for key, value in dd.items() if value["name"] == vname)
-
-        return key
-
 
 class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     """A file handler for CLAVRx files."""
@@ -464,13 +451,16 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                 continue
 
             ds_info = self._get_ds_info_for_data_arr(var_name)
+            ds_info.update({"file_key": var_name})
             yield True, ds_info
 
             alias_info = CHANNEL_ALIASES[self.sensor].get(var_name, None)
             if alias_info is not None:
-                if self.nc.attrs["RESOLUTION_KM"] is not None:
-                    alias_info["resolution"] = self.nc.attrs.get("RESOLUTION_KM", "2")
-                    alias_info["resolution"] = alias_info["resolution"] * 1000.
+                alias_info.update({"file_key": var_name})
+                if "RESOLUTION_KM" in self.nc.attrs:
+                    alias_info["resolution"] = self.nc.attrs["RESOLUTION_KM"] * 1000.
+                else:
+                    alias_info["resolution"] = NADIR_RESOLUTION[self.sensor]
                 ds_info.update(alias_info)
                 yield True, ds_info
 
@@ -510,8 +500,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset for supported geostationary sensors."""
-        var_name = ds_info.get('name', dataset_id['name'])
-        var_name = _CLAVRxHelper._lookup_alias(var_name, self.sensor, self._is_polar())
+        var_name = ds_info.get("file_key", dataset_id['name'])
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
