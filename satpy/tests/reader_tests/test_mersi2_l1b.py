@@ -111,6 +111,12 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
                     'valid_range': [0, 4095],
                 },
                 dims=('_rows', '_cols')),
+    }
+    return data
+
+
+def _get_250m_ll_data(num_scans, rows_per_scan, num_cols):
+    data = {
         'Data/EV_250_Emissive_b6':
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
@@ -288,12 +294,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                  prefix='')
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000':
             data = self._get_1km_data(num_scans, rows_per_scan, num_cols)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([1.0] * 6)
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250':
-            data = _get_250m_data(num_scans, rows_per_scan, num_cols * 2)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([0.0] * 6)
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
+            data = _get_250m_ll_data(num_scans, rows_per_scan, num_cols * 2)
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000_geo':
             data = _get_geo_data(num_scans, rows_per_scan, num_cols)
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250_geo':
@@ -323,14 +325,8 @@ def _test_helper(res):
     assert '%' == res['4'].attrs['units']
 
 
-class TestMERSI2L1BReader:
+class MERSI2L1BTester:
     """Test MERSI2 L1B Reader."""
-
-    yaml_file = "mersi2_l1b.yaml"
-
-    filenames_1000m = ['tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF', 'tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF']
-    filenames_250m = ['tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF', 'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF']
-    filenames_all = filenames_1000m + filenames_250m
 
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
@@ -345,6 +341,15 @@ class TestMERSI2L1BReader:
     def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
+
+
+class TestFY3DMERSI2L1B(MERSI2L1BTester):
+    """Test the FY3D MERSI2 L1B reader."""
+
+    yaml_file = "mersi2_l1b.yaml"
+    filenames_1000m = ['tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF', 'tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF']
+    filenames_250m = ['tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF', 'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF']
+    filenames_all = filenames_1000m + filenames_250m
 
     def test_fy3d_all_resolutions(self):
         """Test loading data when all resolutions are available."""
@@ -581,28 +586,13 @@ class TestMERSI2L1BReader:
         assert res['25'].attrs['units'] == 'K'
 
 
-class TestMERSILLL1BReader:
-    """Test MERSI-LL L1B Reader."""
+class TestFY3EMERSI2L1B(MERSI2L1BTester):
+    """Test the FY3E MERSI-LL L1B reader."""
 
     yaml_file = "mersi_ll_l1b.yaml"
-
     filenames_1000m = ['FY3E_MERSI_GRAN_L1_20230410_1910_1000M_V0.HDF', 'FY3E_MERSI_GRAN_L1_20230410_1910_GEO1K_V0.HDF']
     filenames_250m = ['FY3E_MERSI_GRAN_L1_20230410_1910_0250M_V0.HDF', 'FY3E_MERSI_GRAN_L1_20230410_1910_GEOQK_V0.HDF']
     filenames_all = filenames_1000m + filenames_250m
-
-    def setup_method(self):
-        """Wrap HDF5 file handler with our own fake handler."""
-        from satpy._config import config_search_paths
-        from satpy.readers.mersi2_l1b import MERSI2L1B
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(MERSI2L1B, '__bases__', (FakeHDF5FileHandler2,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
-
-    def teardown_method(self):
-        """Stop wrapping the HDF5 file handler."""
-        self.p.stop()
 
     def test_fy3e_all_resolutions(self):
         """Test loading data when all resolutions are available."""
@@ -632,14 +622,11 @@ class TestMERSILLL1BReader:
                           num_results=num_results, best=False)
             assert num_results == len(res)
 
-        res = reader.load(['1', '2', '3', '4', '7'])
-        assert len(res) == 5
+        res = reader.load(['1', '2', '4', '7'])
+        assert len(res) == 4
         assert res['4'].shape == (2 * 10, 2048)
         assert res['1'].attrs['calibration'] == 'radiance'
         assert res['1'].attrs['units'] == 'mW/ (m2 cm-1 sr)'
-        assert res['3'].shape == (2 * 10, 2048)
-        assert res['3'].attrs['calibration'] == 'brightness_temperature'
-        assert res['3'].attrs['units'] == 'K'
         assert res['2'].shape == (2 * 10, 2048)
         assert res['2'].attrs['calibration'] == 'brightness_temperature'
         assert res['2'].attrs['units'] == 'K'
@@ -714,8 +701,8 @@ class TestMERSILLL1BReader:
             else:
                 assert num_results == len(res)
 
-        res = reader.load(['1', '2', '3', '4', '5', '6', '7'])
-        assert len(res) == 7
+        res = reader.load(['1', '2', '3', '5', '6', '7'])
+        assert len(res) == 6
         assert res['1'].shape == (2 * 10, 2048)
         assert 'radiance' == res['1'].attrs['calibration']
         assert res['1'].attrs['units'] == 'mW/ (m2 cm-1 sr)'
@@ -725,9 +712,6 @@ class TestMERSILLL1BReader:
         assert res['3'].shape == (2 * 10, 2048)
         assert 'brightness_temperature' == res['3'].attrs['calibration']
         assert res['3'].attrs['units'] == 'K'
-        assert res['4'].shape == (2 * 10, 2048)
-        assert 'brightness_temperature' == res['4'].attrs['calibration']
-        assert res['4'].attrs['units'] == 'K'
         assert res['5'].shape == (2 * 10, 2048)
         assert 'brightness_temperature' == res['5'].attrs['calibration']
         assert res['5'].attrs['units'] == 'K'
