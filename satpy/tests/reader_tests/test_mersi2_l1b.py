@@ -249,7 +249,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         }
         return data
 
-    def _set_some_attrs(self, global_attrs):
+    def _set_sensor_attrs(self, global_attrs):
         if 'mersi2_l1b' in self.filetype_info['file_type']:
             global_attrs['/attr/Satellite Name'] = 'FY-3D'
             global_attrs['/attr/Sensor Identification Code'] = 'MERSI'
@@ -270,7 +270,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/Observing Ending Time': '18:38:36.728',
         }
 
-        global_attrs = self._set_some_attrs(global_attrs)
+        global_attrs = self._set_sensor_attrs(global_attrs)
 
         data = {}
         if self.filetype_info['file_type'] == 'mersi2_l1b_1000':
