@@ -35,8 +35,8 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 N_TOT_IR_CHANS_LL = 6
 
 
-class MERSI2L1B(HDF5FileHandler):
-    """MERSI-2 L1B file reader."""
+class MERSIL1B(HDF5FileHandler):
+    """MERSI-2/MERSI-LL L1B file reader."""
 
     def _strptime(self, date_attr, time_attr):
         """Parse date/time strings."""

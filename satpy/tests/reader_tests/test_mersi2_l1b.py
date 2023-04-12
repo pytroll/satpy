@@ -290,16 +290,16 @@ def _test_helper(res):
     assert '%' == res['4'].attrs['units']
 
 
-class MERSI2L1BTester:
+class MERSIL1BTester:
     """Test MERSI2 L1B Reader."""
 
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.mersi2_l1b import MERSI2L1B
+        from satpy.readers.mersi_l1b import MERSIL1B
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(MERSI2L1B, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(MERSIL1B, '__bases__', (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -308,7 +308,7 @@ class MERSI2L1BTester:
         self.p.stop()
 
 
-class TestFY3DMERSI2L1B(MERSI2L1BTester):
+class TestMERSI2L1B(MERSIL1BTester):
     """Test the FY3D MERSI2 L1B reader."""
 
     yaml_file = "mersi2_l1b.yaml"
@@ -316,7 +316,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
     filenames_250m = ['tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF', 'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF']
     filenames_all = filenames_1000m + filenames_250m
 
-    def test_fy3d_all_resolutions(self):
+    def test_all_resolutions(self):
         """Test loading data when all resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
@@ -363,7 +363,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['25'].attrs['calibration'] == 'brightness_temperature'
         assert res['25'].attrs['units'] == 'K'
 
-    def test_fy3d_counts_calib(self):
+    def test_counts_calib(self):
         """Test loading data at counts calibration."""
         from satpy.readers import load_reader
         from satpy.tests.utils import make_dataid
@@ -414,7 +414,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['25'].dtype == np.uint16
         assert res['25'].attrs['units'] == '1'
 
-    def test_fy3d_rad_calib(self):
+    def test_rad_calib(self):
         """Test loading data at radiance calibration."""
         from satpy.readers import load_reader
         from satpy.tests.utils import make_dataid
@@ -447,7 +447,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['5'].attrs['calibration'] == 'radiance'
         assert res['5'].attrs['units'] == 'mW/ (m2 cm-1 sr)'
 
-    def test_fy3d_1km_resolutions(self):
+    def test_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
@@ -505,7 +505,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['25'].attrs['calibration'] == 'brightness_temperature'
         assert res['25'].attrs['units'] == 'K'
 
-    def test_fy3d_250_resolutions(self):
+    def test_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
@@ -551,7 +551,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['25'].attrs['units'] == 'K'
 
 
-class TestFY3EMERSILLL1B(MERSI2L1BTester):
+class TestMERSILLL1B(MERSIL1BTester):
     """Test the FY3E MERSI-LL L1B reader."""
 
     yaml_file = "mersi_ll_l1b.yaml"
@@ -559,7 +559,7 @@ class TestFY3EMERSILLL1B(MERSI2L1BTester):
     filenames_250m = ['FY3E_MERSI_GRAN_L1_20230410_1910_0250M_V0.HDF', 'FY3E_MERSI_GRAN_L1_20230410_1910_GEOQK_V0.HDF']
     filenames_all = filenames_1000m + filenames_250m
 
-    def test_fy3e_all_resolutions(self):
+    def test_all_resolutions(self):
         """Test loading data when all resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
@@ -599,7 +599,7 @@ class TestFY3EMERSILLL1B(MERSI2L1BTester):
         assert res['7'].attrs['calibration'] == 'brightness_temperature'
         assert res['7'].attrs['units'] == 'K'
 
-    def test_fy3e_rad_calib(self):
+    def test_rad_calib(self):
         """Test loading data at radiance calibration."""
         from satpy.readers import load_reader
         from satpy.tests.utils import make_dataid
@@ -632,7 +632,7 @@ class TestFY3EMERSILLL1B(MERSI2L1BTester):
         assert res['7'].attrs['calibration'] == 'radiance'
         assert res['7'].attrs['units'] == 'mW/ (m2 cm-1 sr)'
 
-    def test_fy3e_1km_resolutions(self):
+    def test_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
@@ -687,7 +687,7 @@ class TestFY3EMERSILLL1B(MERSI2L1BTester):
         assert 'brightness_temperature' == res['7'].attrs['calibration']
         assert res['7'].attrs['units'] == 'K'
 
-    def test_fy3e_250_resolutions(self):
+    def test_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
         from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
