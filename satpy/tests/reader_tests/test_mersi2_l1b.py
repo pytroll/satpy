@@ -44,102 +44,67 @@ def _get_calibration(num_scans):
 
 
 def _get_250m_data(num_scans, rows_per_scan, num_cols):
+    # Set some default attributes
+    def_attrs = {'FillValue': 65535,
+                 'valid_range': [0, 4095],
+                 'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1)
+                 }
+    nounits_attrs = {**def_attrs, **{'units': 'NO'}}
+    radunits_attrs = {**def_attrs, **{'units': 'mW/ (m2 cm-1 sr)'}}
+
     data = {
         'Data/EV_250_RefSB_b1':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'NO',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_RefSB_b2':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'NO',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_RefSB_b3':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'NO',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_RefSB_b4':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'NO',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_Emissive_b24':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'mW/ (m2 cm-1 sr)',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=radunits_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_Emissive_b25':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
-                    'FillValue': 65535,
-                    'units': 'mW/ (m2 cm-1 sr)',
-                    'valid_range': [0, 4095],
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=radunits_attrs,
                 dims=('_rows', '_cols')),
     }
     return data
 
 
 def _get_250m_ll_data(num_scans, rows_per_scan, num_cols):
+    # Set some default attributes
+    def_attrs = {'FillValue': 65535,
+                 'valid_range': [0, 4095],
+                 'Slope': np.array([1.]), 'Intercept': np.array([0.]),
+                 'long_name': b'250m Earth View Science Data',
+                 'units': 'mW/ (m2 cm-1 sr)',
+                 }
     data = {
         'Data/EV_250_Emissive_b6':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.]), 'Intercept': np.array([0.]),
-                    'FillValue': 65535,
-                    'units': 'mW/ (m2 cm-1 sr)',
-                    'valid_range': [0, 4095],
-                    'long_name': b'250m Earth View Science Data',
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=def_attrs,
                 dims=('_rows', '_cols')),
         'Data/EV_250_Emissive_b7':
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    'Slope': np.array([1.]), 'Intercept': np.array([0.]),
-                    'FillValue': 65535,
-                    'units': 'mW/ (m2 cm-1 sr)',
-                    'valid_range': [0, 4095],
-                    'long_name': b'250m Earth View Science Data',
-                },
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=def_attrs,
                 dims=('_rows', '_cols')),
     }
     return data
