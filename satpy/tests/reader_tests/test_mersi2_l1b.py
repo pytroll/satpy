@@ -551,7 +551,7 @@ class TestFY3DMERSI2L1B(MERSI2L1BTester):
         assert res['25'].attrs['units'] == 'K'
 
 
-class TestFY3EMERSI2L1B(MERSI2L1BTester):
+class TestFY3EMERSILLL1B(MERSI2L1BTester):
     """Test the FY3E MERSI-LL L1B reader."""
 
     yaml_file = "mersi_ll_l1b.yaml"
