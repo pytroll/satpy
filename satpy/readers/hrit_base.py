@@ -175,7 +175,6 @@ class HRITFileHandler(BaseFileHandler):
         self.mda = {}
         self.hdr_info = hdr_info
         self._get_hd(self.hdr_info)
-        print('HRITFileHandler init filename_info:', filename_info)
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
 

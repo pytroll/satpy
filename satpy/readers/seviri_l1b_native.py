@@ -547,7 +547,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             channel_name=channel_name,
             coefs=self._get_calib_coefs(channel_name),
             calib_mode=self.calib_mode,
-            scan_time=self.start_time
+            scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, dataset_id['calibration'])
         logger.debug("Calibration time " + str(datetime.now() - tic))

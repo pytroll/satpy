@@ -408,8 +408,7 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             },
             'ImageAcquisition': {
                 'PlannedAcquisitionTime': {
-                    'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                    'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
+                    'TrueRepeatCycleStart': self.scan_time,
                     }
                 }
         }
@@ -488,7 +487,6 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         fh.channel_name = channel
         fh.calib_mode = calib_mode
         fh.ext_calib_coefs = external_coefs
-
         res = fh.calibrate(counts, calibration)
         xr.testing.assert_allclose(res, expected)
 
