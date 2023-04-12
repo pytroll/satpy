@@ -22,6 +22,12 @@ from dask import array as da
 
 from satpy import Scene
 
+try:
+    from datatree import DataTree
+except ImportError:
+    DataTree = None
+
+
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - include_test_etc
@@ -80,3 +86,17 @@ class TestSceneConversions:
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
+
+
+@pytest.mark.skipif(DataTree is None, reason="Optional 'xarray-datatree' library is not installed")
+class TestToDataTree:
+    """Test Scene conversion to an xarray DataTree."""
+
+    def test_empty_scene(self):
+        """Test that an empty Scene can be converted to a DataTree."""
+        from datatree import DataTree
+
+        scn = Scene()
+        data_tree = scn.to_xarray_datatree()
+        assert isinstance(data_tree, DataTree)
+        assert len(data_tree) == 0
