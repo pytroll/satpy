@@ -11,25 +11,36 @@ from satpy.dataset import combine_metadata
 
 
 def stack(
-        datasets: Sequence[xr.DataArray],
+        data_arrays: Sequence[xr.DataArray],
         weights: Optional[Sequence[xr.DataArray]] = None,
         combine_times: bool = True,
         blend_type: str = 'select_with_weights'
 ) -> xr.DataArray:
     """Combine a series of datasets in different ways.
 
-    By default, datasets are stacked on top of each other, so the last one applied is
-    on top. If a sequence of weights (with equal shape) is provided, the datasets will
-    be combined according to those weights. Datasets can be integer category products
-    (ex. cloud type), single channels (ex. radiance), or RGB composites. In the
-    latter case, weights is applied
-    to each 'R', 'G', 'B' coordinate in the same way. The result will be a composite
-    dataset where each pixel is constructed in a way depending on ``blend_type``.
+    By default, DataArrays are stacked on top of each other, so the last one
+    applied is on top. Each DataArray is assumed to represent the same
+    geographic region, meaning they have the same area. If a sequence of
+    weights is provided then they must have the same shape as the area.
+    Weights with greater than 2 dimensions are not currently supported.
+
+    When weights are provided, the DataArrays will be combined according to
+    those weights. Data can be integer category products (ex. cloud type),
+    single channels (ex. radiance), or a multi-band composite (ex. an RGB or
+    RGBA true_color). In the latter case, the weight array is applied
+    to each band (R, G, B, A) in the same way. The result will be a composite
+    DataArray where each pixel is constructed in a way depending on ``blend_type``.
+
+    Blend type can be one of the following:
+
+     * select_with_weights: The input pixel with the maximum weight is chosen.
+     * blend_with_weights: The final pixel is a weighted average of all valid
+       input pixels.
 
     """
     if weights:
-        return _stack_with_weights(datasets, weights, combine_times, blend_type)
-    return _stack_no_weights(datasets, combine_times)
+        return _stack_with_weights(data_arrays, weights, combine_times, blend_type)
+    return _stack_no_weights(data_arrays, combine_times)
 
 
 def _stack_with_weights(
