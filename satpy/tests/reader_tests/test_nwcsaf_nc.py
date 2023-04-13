@@ -170,6 +170,7 @@ def create_cot_variable(nc_file, var_name):
     var.attrs["add_offset"] = COT_OFFSET
     var.attrs["_FillValue"] = 65535
 
+
 @pytest.fixture
 def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     """Create a CPP filehandler."""

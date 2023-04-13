@@ -32,7 +32,7 @@ class CloudCompositorWithoutCloudfree(SingleBandCompositor):
                              (len(projectables), ))
         data, status = projectables
         valid = status != status.attrs['_FillValue']
-        status_cloud_free = status % 2 == 1 # bit 0 is set
+        status_cloud_free = status % 2 == 1  # bit 0 is set
         cloud_free = np.logical_and(valid, status_cloud_free)
         if "bad_optical_conditions" in status.attrs["flag_meanings"] and data.name == "cmic_cre":
             bad_optical_conditions = np.bitwise_and(np.right_shift(status, 1), 1)
@@ -42,11 +42,11 @@ class CloudCompositorWithoutCloudfree(SingleBandCompositor):
         # Update not cloudfree product and nodata to NaN (already done for scaled vars in the reader)
         # Keep cloudfree or valid product
         data = data.where(np.logical_or(cloud_free, data != data.attrs["scaled_FillValue"]), np.nan)
-        
         res = SingleBandCompositor.__call__(self, [data], **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
-    
+
+
 class CloudCompositorCommonMask(SingleBandCompositor):
     """Put cloud-free pixels as fill_value_color in palette."""
 
@@ -57,19 +57,16 @@ class CloudCompositorCommonMask(SingleBandCompositor):
                              (len(projectables), ))
         data, cma = projectables
         valid_cma = cma != cma.attrs['_FillValue']
-        #print(valid_cma.values.all(), cma.attrs['_FillValue'])
         valid_prod = data != data.attrs['_FillValue']
         valid_prod = np.logical_and(valid_prod, np.logical_not(np.isnan(data)))
-        #import pdb;pdb.set_trace()
-        # Update valid_cma and not valid_prod means
-        # keep not valid cma or valid prod
+        # Update valid_cma and not valid_prod means: keep not valid cma or valid prod
         data = data.where(np.logical_or(np.logical_not(valid_cma), valid_prod),
                           data.attrs["scaled_FillValue"])
-        data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)                             
+        data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)
         res = SingleBandCompositor.__call__(self, [data], **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
-    
+
 
 class PrecipCloudsRGB(GenericCompositor):
     """Precipitation clouds compositor."""

@@ -458,7 +458,6 @@ enhancements:
         palettes:
           - dataset: cmic_lwp_pal
 
-
   pps_cre:
     standard_name: pps_cre
     operations:
@@ -467,16 +466,6 @@ enhancements:
       kwargs:
         palettes:
           - dataset: cmic_cre_pal
-
-  pps_cot:
-    standard_name: pps_cot
-    operations:
-    - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
-      kwargs:
-        palettes:
-          - dataset: cmic_cot_pal
-
 
   cloudmask_extended:
     standard_name: cloudmask_extended
