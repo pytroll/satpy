@@ -12,6 +12,30 @@ an issue on GitHub or talk to us on the Slack team or mailing list. See the
     :depth: 1
     :local:
 
+
+How can I speed up image production for composites that need resampling?
+------------------------------------------------------------------------
+
+Satpy performs some initial image generation on the fly, but for composites
+that need resampling (like the ``true_color`` composite for GOES/ABI) the data
+must be resampled to a common grid before the final image can be producted, as
+the input channels are at differing spatial resolutions. In such cases, you may
+see a substantial performance improvement by passing `generate=False` when you
+load your composite:
+
+.. code-block:: python
+
+    scn = Scene(filenames=filenames, reader='abi_l1b')
+    scn.load(['true_color'], generate=False)
+    scn_res = scn.resample(...)
+
+By default, `generate=True` which means that Satpy will compute some initial
+information about the scene at *each* spatial resolution.
+By setting `generate=False`, Satpy will only compute this information when the
+final image is generated. This can save a lot of time, and can result in images
+being generated up to 3x faster.
+
+
 Why is Satpy slow on my powerful machine?
 -----------------------------------------
 
