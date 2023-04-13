@@ -29,12 +29,12 @@ load your composite:
     scn.load(['true_color'], generate=False)
     scn_res = scn.resample(...)
 
-By default, `generate=True` which means that Satpy will create as many
+By default, ``generate=True`` which means that Satpy will create as many
 composites as it can with the available data. In some cases this could
 a lot of intermediate products (ex. rayleigh corrected data using dynamically
 generated angles for each band resolution) that will then need to be
 resampled.
-By setting `generate=False`, Satpy will only load the necessary dependencies
+By setting ``generate=False``, Satpy will only load the necessary dependencies
 from the reader, but not attempt generating any composites or applying any
 modifiers. In these cases this can save a lot of time and memory as only one
 resolution of the input data have to be processed. Note that this option has
