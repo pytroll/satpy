@@ -155,6 +155,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'vis_ir_column_dir_grid_step': 3.0004032,
                 'vis_ir_line_dir_grid_step': 3.0004032,
                 'type_of_earth_model': '0x02',
+                'nominal_image_scanning': 'T',
             }
         )
 
@@ -322,6 +323,12 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'projection_longitude': 0.0,
                 'projection_latitude': 0.0,
                 'projection_altitude': 35785831.0
+            },
+            'time_parameters': {
+                'nominal_start_time': datetime(2020, 1, 1, 0, 0),
+                'nominal_end_time': datetime(2020, 1, 1, 0, 0),
+                'observation_start_time': datetime(2020, 1, 1, 0, 0),
+                'observation_end_time': datetime(2020, 1, 1, 0, 0),
             },
             'georef_offset_corrected': True,
             'platform_name': 'Meteosat-11',
