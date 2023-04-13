@@ -34,7 +34,7 @@ class CloudCompositorWithoutCloudfree(SingleBandCompositor):
         valid = status != status.attrs['_FillValue']
         status_cloud_free = status % 2 == 1  # bit 0 is set
         cloud_free = np.logical_and(valid, status_cloud_free)
-        if "bad_optical_conditions" in status.attrs["flag_meanings"] and data.name == "cmic_cre":
+        if "bad_optical_conditions" in status.attrs.get("flag_meanings", "") and data.name == "cmic_cre":
             bad_optical_conditions = np.bitwise_and(np.right_shift(status, 1), 1)
             cloud_free = np.logical_and(cloud_free, np.logical_not(bad_optical_conditions))
         # Where condition is true keep data, in other place update to scaled_FillValue:
