@@ -18,9 +18,9 @@ How can I speed up creation of composites that need resampling?
 
 Satpy performs some initial image generation on the fly, but for composites
 that need resampling (like the ``true_color`` composite for GOES/ABI) the data
-must be resampled to a common grid before the final image can be producted, as
+must be resampled to a common grid before the final image can be produced, as
 the input channels are at differing spatial resolutions. In such cases, you may
-see a substantial performance improvement by passing `generate=False` when you
+see a substantial performance improvement by passing ``generate=False`` when you
 load your composite:
 
 .. code-block:: python
@@ -30,7 +30,7 @@ load your composite:
     scn_res = scn.resample(...)
 
 By default, ``generate=True`` which means that Satpy will create as many
-composites as it can with the available data. In some cases this could
+composites as it can with the available data. In some cases this could mean
 a lot of intermediate products (ex. rayleigh corrected data using dynamically
 generated angles for each band resolution) that will then need to be
 resampled.
