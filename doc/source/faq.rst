@@ -13,7 +13,7 @@ an issue on GitHub or talk to us on the Slack team or mailing list. See the
     :local:
 
 
-How can I speed up image production for composites that need resampling?
+How can I speed up creation of composites that need resampling?
 ------------------------------------------------------------------------
 
 Satpy performs some initial image generation on the fly, but for composites
@@ -29,11 +29,20 @@ load your composite:
     scn.load(['true_color'], generate=False)
     scn_res = scn.resample(...)
 
-By default, `generate=True` which means that Satpy will compute some initial
-information about the scene at *each* spatial resolution.
-By setting `generate=False`, Satpy will only compute this information when the
-final image is generated. This can save a lot of time, and can result in images
-being generated up to 3x faster.
+By default, `generate=True` which means that Satpy will create as many
+composites as it can with the available data. In some cases this could
+a lot of intermediate products (ex. rayleigh corrected data using dynamically
+generated angles for each band resolution) that will then need to be
+resampled.
+By setting `generate=False`, Satpy will only load the necessary dependencies
+from the reader, but not attempt generating any composites or applying any
+modifiers. In these cases this can save a lot of time and memory as only one
+resolution of the input data have to be processed. Note that this option has
+no effect when only loading data directly from readers (ex. IR/visible bands
+directly from the files) and where no composites or modifiers are used. Also
+note that in cases where most of your composite
+inputs are already at the same resolution and you are only generating a limited
+number of composites, ``generate=False`` may actually hurt performance.
 
 
 Why is Satpy slow on my powerful machine?
