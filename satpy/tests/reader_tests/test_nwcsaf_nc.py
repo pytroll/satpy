@@ -57,6 +57,8 @@ global_attrs = {"source": "NWC/GEO version v2021.1",
 
 global_attrs.update(PROJ)
 
+CTTH_PALETTE_MEANINGS = ("0 500 1000 1500")
+
 COT_PALETTE_MEANINGS = ("0 2 5 8 10 13 16 19 23 26 29 33 36 40 43 47 51 55 59 63 68 72 77 81 86 91 96"
                         " 101 107 112 118 123 129 135 142 148 154 161 168 175 182 190 198 205 213 222"
                         " 230 239 248 257 266 276 286 296 307 317 328 340 351 363 375 388 401 414 428"
@@ -116,9 +118,18 @@ def nwcsaf_pps_cmic_filename(tmp_path_factory):
     attrs.update(PROJ_KM)
     attrs["time_coverage_start"] = START_TIME_PPS
     attrs["time_coverage_end"] = END_TIME_PPS
-
     filename = create_cmic_file(tmp_path_factory.mktemp("data"), filetype="cmic", attrs=attrs)
+    return filename
 
+
+@pytest.fixture(scope="session")
+def nwcsaf_pps_ctth_filename(tmp_path_factory):
+    """Create a CTTH file."""
+    attrs = global_attrs.copy()
+    attrs.update(PROJ_KM)
+    attrs["time_coverage_start"] = START_TIME_PPS
+    attrs["time_coverage_end"] = END_TIME_PPS
+    filename = create_ctth_file(tmp_path_factory.mktemp("data"), attrs=attrs)
     return filename
 
 
@@ -131,7 +142,17 @@ def create_cmic_file(path, filetype, attrs=global_attrs):
         create_cot_variable(nc_file, f"{filetype}_cot")
         create_cot_pal_variable(nc_file, f"{filetype}_cot_pal")
         create_cre_variables(nc_file, f"{filetype}_cre")
+    return filename
 
+
+def create_ctth_file(path, attrs=global_attrs):
+    """Create a cmic file."""
+    filename = path / "S_NWC_CTTH_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
+    with h5netcdf.File(filename, mode="w") as nc_file:
+        nc_file.dimensions = dimensions
+        nc_file.attrs.update(attrs)
+        create_ctth_variables(nc_file, "ctth_alti")
+        create_ctth_alti_pal_variable_with_fill_value_color(nc_file, "ctth_alti_pal")
     return filename
 
 
@@ -139,6 +160,12 @@ def create_cmic_file(path, filetype, attrs=global_attrs):
 def nwcsaf_pps_cmic_filehandler(nwcsaf_pps_cmic_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_cmic_filename, {}, {"file_key_prefix": "cmic_"})
+
+
+@pytest.fixture
+def nwcsaf_pps_ctth_filehandler(nwcsaf_pps_ctth_filename):
+    """Create a CMIC filehandler."""
+    return NcNWCSAF(nwcsaf_pps_ctth_filename, {}, {})
 
 
 @pytest.fixture(scope="session")
@@ -155,6 +182,15 @@ def create_cre_variables(nc_file, var_name):
     var[:] = CRE_ARRAY
 
 
+def create_ctth_variables(nc_file, var_name):
+    """Create a CRE variable."""
+    var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16, chunks=(256, 256))
+    var[:] = CRE_ARRAY
+    var.attrs["scale_factor"] = COT_SCALE
+    var.attrs["add_offset"] = COT_OFFSET
+    var.attrs["_FillValue"] = 65535
+
+
 def create_cot_pal_variable(nc_file, var_name):
     """Create a palette variable."""
     var = nc_file.create_variable(var_name, ("pal_colors_250", "pal_rgb"), np.uint8)
@@ -166,6 +202,17 @@ def create_cot_variable(nc_file, var_name):
     """Create a COT variable."""
     var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16, chunks=(256, 256))
     var[:] = COT_ARRAY
+    var.attrs["scale_factor"] = COT_SCALE
+    var.attrs["add_offset"] = COT_OFFSET
+    var.attrs["_FillValue"] = 65535
+
+
+def create_ctth_alti_pal_variable_with_fill_value_color(nc_file, var_name):
+    """Create a palette variable."""
+    var = nc_file.create_variable(var_name, ("pal_colors_250", "pal_rgb"), np.uint8)
+    var[:] = PAL_ARRAY
+    var.attrs["palette_meanings"] = CTTH_PALETTE_MEANINGS
+    var.attrs["fill_value_color"] = [0, 0, 0]
     var.attrs["scale_factor"] = COT_SCALE
     var.attrs["add_offset"] = COT_OFFSET
     var.attrs["_FillValue"] = 65535
@@ -356,6 +403,19 @@ class TestNcNWCSAFPPS:
 
         res = nwcsaf_pps_cpp_filehandler.get_dataset(dsid, info)
         palette_meanings = np.array(COT_PALETTE_MEANINGS.split()).astype(int)
+        np.testing.assert_allclose(res.attrs["palette_meanings"], palette_meanings * COT_SCALE + COT_OFFSET)
+
+    def test_get_palette_fill_value_color_added(self, nwcsaf_pps_ctth_filehandler):
+        """Test that get_dataset() returns scaled palette_meanings with fill_value_color added."""
+        dsid = {'name': 'ctth_alti_pal'}
+
+        info = dict(name="ctth_alti_pal",
+                    file_type="nc_nwcsaf_ctth",
+                    scale_offset_dataset="ctth_alti")
+
+        res = nwcsaf_pps_ctth_filehandler.get_dataset(dsid, info)
+        res.attrs["palette_meanings"]
+        palette_meanings = np.array([0, 500, 1000, 1500, 65535])
         np.testing.assert_allclose(res.attrs["palette_meanings"], palette_meanings * COT_SCALE + COT_OFFSET)
 
     def test_get_dataset_raises_when_dataset_missing(self, nwcsaf_pps_cpp_filehandler):
