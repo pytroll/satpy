@@ -1084,12 +1084,8 @@ class Scene:
 
     def to_xarray_datatree(self):
         """Convert this Scene into an Xarray DataTree object."""
-        try:
-            from datatree import DataTree
-        except ImportError as e:
-            raise ImportError("Missing 'xarray-datatree' library required for DataTree conversion") from e
-        tree = DataTree()
-        return tree
+        from ._scene_converters import to_xarray_datatree
+        return to_xarray_datatree(self)
 
     def images(self):
         """Generate images for all the datasets from the scene."""
