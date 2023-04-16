@@ -24,10 +24,8 @@ except ImportError:
 
 def to_xarray_datatree(scn: Scene, **kwargs) -> DataTree:
     """Convert this Scene into an Xarray DataTree object."""
-    try:
-        from datatree import DataTree
-    except ImportError as e:
-        raise ImportError("Missing 'xarray-datatree' library required for DataTree conversion") from e
+    if DataTree is None:
+        raise ImportError("Missing 'xarray-datatree' library required for DataTree conversion")
 
     tree = DataTree()
     return tree

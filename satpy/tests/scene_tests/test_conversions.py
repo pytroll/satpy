@@ -16,11 +16,7 @@
 """Unit tests for Scene conversion functionality."""
 from __future__ import annotations
 
-import contextlib
-import sys
 from datetime import datetime
-from importlib import import_module, reload
-from unittest import mock
 
 import pytest
 import xarray as xr
@@ -96,22 +92,11 @@ class TestSceneConversions:
 
 def test_to_datatree_no_datatree(monkeypatch):
     """Test that datatree not being installed causes an exception with a nice message."""
-    with make_module_unimportable("datatree", "satpy.scene"):
-        scn = Scene()
-        with pytest.raises(ImportError, match='xarray-datatree'):
-            scn.to_xarray_datatree()
-
-
-@contextlib.contextmanager
-def make_module_unimportable(module_name_to_remove: str, module_doing_the_importing: str):
-    """Mock sys.modules to make a module unimportable from another module."""
-    with mock.patch.dict(sys.modules):
-        sys.modules[module_name_to_remove] = None  # type: ignore[assignment]
-        if module_doing_the_importing in sys.modules:
-            reload(sys.modules[module_doing_the_importing])
-        else:
-            import_module(module_doing_the_importing)
-        yield None
+    from satpy import _scene_converters
+    monkeypatch.setattr(_scene_converters, "DataTree", None)
+    scn = Scene()
+    with pytest.raises(ImportError, match='xarray-datatree'):
+        scn.to_xarray_datatree()
 
 
 @pytest.mark.skipif(DataTree is None, reason="Optional 'xarray-datatree' library is not installed")
