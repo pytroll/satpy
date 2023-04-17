@@ -112,9 +112,6 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
-            # some bands have 0 counts for the first N columns and
-            # seem to be invalid data points
-            data = data.where(data != 0)
         elif dataset_id.get('calibration') == "brightness_temperature":
             calibration_index = ds_info['calibration_index']
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
@@ -201,4 +198,7 @@ class MERSIL1B(HDF5FileHandler):
 
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a
+        # some bands have 0 counts for the first N columns and
+        # seem to be invalid data points
+        data = data.where(data != 0)
         return data
