@@ -58,6 +58,7 @@ The following people have made contributions to this project:
 - [Pepe Phillips (pepephillips)](https://github.com/pepephillips)
 - [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
+- [Martin Radenz (martin-rdz)](https://github.com/martin-rdz)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
