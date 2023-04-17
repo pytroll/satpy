@@ -78,7 +78,7 @@ around your code:
     with dask.config.set("array.chunk-size": "32MiB"):
       # your code here
 
-or by using just:
+Or by using:
 
 .. code-block:: python
 
