@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Iterable
 
 import numpy as np
 import pytest
@@ -113,24 +114,33 @@ class TestToDataTree:
         assert isinstance(data_tree, DataTree)
         assert len(data_tree) == 0
 
-    def test_single_data_array(self):
+    @pytest.mark.parametrize(
+        ("input_metadatas", "expected_groups"),
+        [
+            ([{"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"}],
+             {"GOES-16": (1, 0), "GOES-16/abi": (0, 1)}),
+        ],
+    )
+    def test_single_data_array(
+            self,
+            input_metadatas: Iterable[dict],
+            expected_groups: dict[str, tuple[int, int]]
+    ):
         """Test a Scene with a single DataArray being converted to a DataTree."""
         from datatree import DataTree
 
         scn = Scene()
-        data_arr = xr.DataArray(da.zeros((10, 5), dtype=np.float32),
-                                attrs={
-                                    "name": "ds1",
-                                    "sensor": "abi",
-                                    "platform_name": "GOES-16",
-                                })
-        scn["ds1"] = data_arr
+        for input_metadata in input_metadatas:
+            data_arr = xr.DataArray(da.zeros((10, 5), dtype=np.float32),
+                                    attrs=input_metadata)
+            scn[data_arr.attrs["name"]] = data_arr
+
         data_tree = scn.to_xarray_datatree()
         assert isinstance(data_tree, DataTree)
-        assert len(data_tree) == 1
-        assert "GOES-16" in data_tree
-        assert len(data_tree["GOES-16"]) == 1
-        assert "abi" in data_tree["GOES-16"]
-        assert len(data_tree["GOES-16"]["abi"]) == 1
-        assert "ds1" in data_tree["GOES-16"]["abi"]
-        assert isinstance(data_tree["GOES-16"]["abi"]["ds1"].data, da.Array)
+
+        for exp_group, (num_child_nodes, num_child_arrs) in expected_groups.items():
+            group = data_tree[exp_group]
+            assert len(group.children) == num_child_nodes
+            assert len(group.data_vars) == num_child_arrs
+            for data_arr in group.data_vars.values():
+                assert isinstance(data_arr.data, da.Array)
