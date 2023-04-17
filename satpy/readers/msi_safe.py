@@ -42,12 +42,12 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
-
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORMS = {'S2A': "Sentinel-2A",
              'S2B': "Sentinel-2B",

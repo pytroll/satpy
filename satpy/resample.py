@@ -155,7 +155,7 @@ from packaging import version
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 
-from satpy.utils import PerformanceWarning
+from satpy.utils import PerformanceWarning, get_legacy_chunk_size
 
 try:
     from math import lcm  # type: ignore
@@ -178,11 +178,11 @@ try:
 except ImportError:
     DaskEWAResampler = LegacyDaskEWAResampler = None
 
-from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 CACHE_SIZE = 10
 NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
                   'valid_output_index': ('y2', 'x2'),
