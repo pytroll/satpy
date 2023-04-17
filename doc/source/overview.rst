@@ -112,15 +112,15 @@ the Satpy readers should respect the overall chunk size when it makes sense.
     variable is the square of the legacy variable, multiplied by the size of array data type
     at hand, so for example, for 64-bits floats::
 
-      ``export DASK_ARRAY__CHUNK_SIZE=134217728``
+      export DASK_ARRAY__CHUNK_SIZE=134217728
     
     which is the same as::
       
-      ``export DASK_ARRAY__CHUNK_SIZE="128MiB"``
+      export DASK_ARRAY__CHUNK_SIZE="128MiB"
 
     is equivalent to the deprecated::
 
-      ``export PYTROLL_CHUNK_SIZE=4096``
+      export PYTROLL_CHUNK_SIZE=4096
 
 Reading
 =======
