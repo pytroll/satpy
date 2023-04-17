@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import numpy as np
 import pytest
 import xarray as xr
 from dask import array as da
@@ -111,3 +112,25 @@ class TestToDataTree:
         data_tree = scn.to_xarray_datatree()
         assert isinstance(data_tree, DataTree)
         assert len(data_tree) == 0
+
+    def test_single_data_array(self):
+        """Test a Scene with a single DataArray being converted to a DataTree."""
+        from datatree import DataTree
+
+        scn = Scene()
+        data_arr = xr.DataArray(da.zeros((10, 5), dtype=np.float32),
+                                attrs={
+                                    "name": "ds1",
+                                    "sensor": "abi",
+                                    "platform_name": "GOES-16",
+                                })
+        scn["ds1"] = data_arr
+        data_tree = scn.to_xarray_datatree()
+        assert isinstance(data_tree, DataTree)
+        assert len(data_tree) == 1
+        assert "GOES-16" in data_tree
+        assert len(data_tree["GOES-16"]) == 1
+        assert "abi" in data_tree["GOES-16"]
+        assert len(data_tree["GOES-16"]["abi"]) == 1
+        assert "ds1" in data_tree["GOES-16"]["abi"]
+        assert isinstance(data_tree["GOES-16"]["abi"]["ds1"].data, da.Array)

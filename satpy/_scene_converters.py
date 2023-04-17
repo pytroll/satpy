@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helper functions for converting the Scene object to some other object."""
+import xarray as xr
+
 from .scene import Scene
 
 try:
@@ -27,5 +29,15 @@ def to_xarray_datatree(scn: Scene, **kwargs) -> DataTree:
     if DataTree is None:
         raise ImportError("Missing 'xarray-datatree' library required for DataTree conversion")
 
-    tree = DataTree()
+    datasets = {}
+    for data_arr in scn:
+        sensor_id = data_arr.attrs["sensor"]
+        if isinstance(sensor_id, set):
+            sensor_id = "-".join(sorted(sensor_id))
+        group_id = data_arr.attrs["platform_name"] + "/" + sensor_id
+        if group_id not in datasets:
+            datasets[group_id] = xr.Dataset({
+                data_arr.attrs["name"]: data_arr,
+            })
+    tree = DataTree.from_dict(datasets)
     return tree
