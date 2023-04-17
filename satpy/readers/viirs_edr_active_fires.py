@@ -92,12 +92,12 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Name of sensor for this file."""
-        return self["sensor"].lower()
+        return self["/attr/instrument_name"].lower()
 
     @property
     def platform_name(self):
         """Name of platform/satellite for this file."""
-        return self["platform_name"]
+        return self["/attr/satellite_name"]
 
 
 class VIIRSActiveFiresTextFileHandler(BaseFileHandler):

@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019-2020 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,8 +65,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
-        self._area_dict['column_step'] = dataset_id.resolution
-        self._area_dict['line_step'] = dataset_id.resolution
+        self._area_dict['column_step'] = dataset_id["resolution"]
+        self._area_dict['line_step'] = dataset_id["resolution"]
 
         area_extent = calculate_area_extent(self._area_dict)
 
@@ -111,7 +108,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 if parameter_number == dataset_info['parameter_number']:
 
-                    self._res = dataset_id.resolution
+                    self._res = dataset_id["resolution"]
                     self._read_attributes(gid)
 
                     # Read the missing value

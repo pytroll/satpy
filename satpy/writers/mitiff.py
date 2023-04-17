@@ -18,9 +18,11 @@
 """MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
 
 import logging
+import os
 
 import dask
 import numpy as np
+from PIL import Image, ImagePalette
 
 from satpy.dataset import DataID, DataQuery
 from satpy.writers import ImageWriter, get_enhanced_image
@@ -367,7 +369,7 @@ class MITIFFWriter(ImageWriter):
                     elif ds.attrs['prerequisites'][i].get('calibration') == 'brightness_temperature':
                         found_calibration = True
                         _table_calibration += ', BT, '
-                        _table_calibration += u'\u00B0'  # '\u2103'
+                        _table_calibration += "\N{DEGREE SIGN}"
                         _table_calibration += u'[C]'
 
                         _reverse_offset = 255.
@@ -621,7 +623,7 @@ class MITIFFWriter(ImageWriter):
                                                   (float(max_val) - float(min_val))) * 255.
         return _data.clip(0, 255)
 
-    def _save_as_palette(self, tif, datasets, **kwargs):
+    def _save_as_palette(self, datasets, tmp_gen_filename, tiffinfo, **kwargs):
         # MITIFF palette has only one data channel
         if len(datasets.dims) == 2:
             LOG.debug("Palette ok with only 2 dimensions. ie only x and y")
@@ -629,40 +631,45 @@ class MITIFFWriter(ImageWriter):
             # The value of the component is used as an index into the red, green and blue curves
             # in the ColorMap field to retrieve an RGB triplet that defines the color. When
             # PhotometricInterpretation=3 is used, ColorMap must be present and SamplesPerPixel must be 1.
-            tif.SetField('PHOTOMETRIC', 3)
+            tiffinfo[270] = tiffinfo[270].decode('utf-8')
 
-            # As write_image can not save tiff image as palette, this has to be done basicly
-            # ie. all needed tags needs to be set.
-            tif.SetField('IMAGEWIDTH', datasets.sizes['x'])
-            tif.SetField('IMAGELENGTH', datasets.sizes['y'])
-            tif.SetField('BITSPERSAMPLE', 8)
-            tif.SetField('COMPRESSION', tif.get_tag_define('deflate'))
-
+            img = Image.fromarray(datasets.data.astype(np.uint8), mode='P')
             if 'palette_color_map' in kwargs:
-                tif.SetField('COLORMAP', kwargs['palette_color_map'])
+                img.putpalette(ImagePalette.ImagePalette('RGB', kwargs['palette_color_map']))
             else:
-                LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+                LOG.error("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+                return
 
-            data_type = np.uint8
-            # Looks like we need to pass the data to writeencodedstrip as ctypes
-            cont_data = np.ascontiguousarray(datasets.data, data_type)
-            tif.WriteEncodedStrip(0, cont_data.ctypes.data,
-                                  datasets.sizes['x'] * datasets.sizes['y'])
-            tif.WriteDirectory()
+            img.save(tmp_gen_filename, compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
 
-    def _save_as_enhanced(self, tif, datasets, **kwargs):
+    def _save_as_enhanced(self, datasets, tmp_gen_filename, **kwargs):
         """Save datasets as an enhanced RGB image."""
         img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
+        tiffinfo = {}
         if 'bands' in img.data.sizes and 'bands' not in datasets.sizes:
             LOG.debug("Datasets without 'bands' become image with 'bands' due to enhancement.")
             LOG.debug("Needs to regenerate mitiff image description")
-            image_description = self._make_image_description(img.data, **kwargs)
-            tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
+        image_description = self._make_image_description(img.data, **kwargs)
+        tiffinfo[IMAGEDESCRIPTION] = (image_description).encode('utf-8')
+
+        mitiff_frames = []
         for band in img.data['bands']:
             chn = img.data.sel(bands=band)
             data = chn.values.clip(0, 1) * 254. + 1
             data = data.clip(0, 255)
-            tif.write_image(data.astype(np.uint8), compression='deflate')
+            mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
+        mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
+                              compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+
+    def _generate_intermediate_filename(self, gen_filename):
+        """Replace mitiff ext because pillow doesn't recognise the file type."""
+        bs, ex = os.path.splitext(gen_filename)
+        tmp_gen_filename = gen_filename
+        if ex.endswith('mitiff'):
+            bd = os.path.dirname(bs)
+            bn = os.path.basename(bs)
+            tmp_gen_filename = os.path.join(bd, '.' + bn + '.tif')
+        return tmp_gen_filename
 
     def _save_datasets_as_mitiff(self, datasets, image_description,
                                  gen_filename, **kwargs):
@@ -671,15 +678,14 @@ class MITIFFWriter(ImageWriter):
         Include the special tags making it a mitiff file.
 
         """
-        from libtiff import TIFF
-
-        tif = TIFF.open(gen_filename, mode='wb')
-
-        tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
+        tmp_gen_filename = self._generate_intermediate_filename(gen_filename)
+        tiffinfo = {}
+        tiffinfo[IMAGEDESCRIPTION] = (image_description).encode('latin-1')
 
         cns = self.translate_channel_name.get(kwargs['sensor'], {})
         if isinstance(datasets, list):
             LOG.debug("Saving datasets as list")
+            mitiff_frames = []
             for _cn in self.channel_order[kwargs['sensor']]:
                 for dataset in datasets:
                     if dataset.attrs['name'] == _cn:
@@ -688,19 +694,22 @@ class MITIFFWriter(ImageWriter):
                         data = self._calibrate_data(dataset, dataset.attrs['calibration'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
-                        tif.write_image(data.astype(np.uint8), compression='deflate')
+                        mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
                         break
+            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
+                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
         elif 'dataset' in datasets.attrs['name']:
-            self._save_single_dataset(datasets, cns, tif, kwargs)
+            LOG.debug("Saving dataset as single dataset.")
+            self._save_single_dataset(datasets, cns, tmp_gen_filename, tiffinfo, kwargs)
         elif self.palette:
             LOG.debug("Saving dataset as palette.")
-            self._save_as_palette(tif, datasets, **kwargs)
+            self._save_as_palette(datasets, tmp_gen_filename, tiffinfo, **kwargs)
         else:
             LOG.debug("Saving datasets as enhanced image")
-            self._save_as_enhanced(tif, datasets, **kwargs)
-        del tif
+            self._save_as_enhanced(datasets, tmp_gen_filename, **kwargs)
+        os.rename(tmp_gen_filename, gen_filename)
 
-    def _save_single_dataset(self, datasets, cns, tif, kwargs):
+    def _save_single_dataset(self, datasets, cns, tmp_gen_filename, tiffinfo, kwargs):
         LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
         if len(datasets.dims) == 2 and (all('bands' not in i for i in datasets.dims)):
             # Special case with only one channel ie. no bands
@@ -712,9 +721,10 @@ class MITIFFWriter(ImageWriter):
             data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0].get('calibration'),
                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
-
-            tif.write_image(data.astype(np.uint8), compression='deflate')
+            Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
+                                                        compress_level=9, tiffinfo=tiffinfo)
         else:
+            mitiff_frames = []
             for _cn_i, _cn in enumerate(self.channel_order[kwargs['sensor']]):
                 for band in datasets['bands']:
                     if band == _cn:
@@ -727,5 +737,8 @@ class MITIFFWriter(ImageWriter):
                                                     self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
-                        tif.write_image(data.astype(np.uint8), compression='deflate')
+                        mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
+
                         break
+            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
+                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)

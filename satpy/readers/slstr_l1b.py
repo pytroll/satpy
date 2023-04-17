@@ -170,8 +170,11 @@ class NCSLSTR1B(BaseFileHandler):
             if chan_name in CHANCALIB_FACTORS:
                 adjust_fac = CHANCALIB_FACTORS[chan_name]
             else:
-                warnings.warn("Warning: No radiance adjustment supplied " +
-                              "for channel " + chan_name)
+                warnings.warn(
+                    "Warning: No radiance adjustment supplied " +
+                    "for channel " + chan_name,
+                    stacklevel=3
+                )
                 return radiances
         return radiances * adjust_fac
 

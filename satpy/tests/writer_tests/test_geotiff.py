@@ -25,6 +25,10 @@ import numpy as np
 import pytest
 import xarray as xr
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 def _get_test_datasets_2d():
     """Create a single 2D test dataset."""

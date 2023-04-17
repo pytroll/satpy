@@ -29,8 +29,6 @@ class TestSAFENC(unittest.TestCase):
     """Test various SAFE SAR L2 OCN file handlers."""
 
     @mock.patch('satpy.readers.safe_sar_l2_ocn.xr')
-    @mock.patch.multiple('satpy.readers.safe_sar_l2_ocn.SAFENC',
-                         __abstractmethods__=set())
     def setUp(self, xr_):
         """Set up the tests."""
         from satpy.readers.safe_sar_l2_ocn import SAFENC

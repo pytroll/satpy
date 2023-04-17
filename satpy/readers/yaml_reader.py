@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019, 2021 Satpy developers
+# Copyright (c) 2016-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -31,19 +31,17 @@ from weakref import WeakValueDictionary
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
-from functools import cached_property
-
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
 
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader  # type: ignore
+
 from satpy import DatasetDict
+from satpy._compat import cache
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
@@ -98,7 +96,7 @@ def _verify_reader_info_assign_config_files(config, config_files):
         reader_info['config_files'] = config_files
 
 
-def load_yaml_configs(*config_files, loader=UnsafeLoader):
+def load_yaml_configs(*config_files, loader=Loader):
     """Merge a series of YAML reader configuration files.
 
     Args:
@@ -106,7 +104,7 @@ def load_yaml_configs(*config_files, loader=UnsafeLoader):
             to YAML-based reader configuration files that will be merged
             to create a single configuration.
         loader: Yaml loader object to load the YAML with. Defaults to
-            `UnsafeLoader`.
+            `CLoader` if libyaml is available, `Loader` otherwise.
 
     Returns: dict
         Dictionary representing the entire YAML configuration with the
@@ -506,10 +504,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             except KeyError as req:
                 msg = "No handler for reading requirement {} for {}".format(
                     req, filename)
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=4)
                 continue
             except RuntimeError as err:
-                warnings.warn(str(err) + ' for {}'.format(filename))
+                warnings.warn(str(err) + ' for {}'.format(filename), stacklevel=4)
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
@@ -748,34 +746,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Load the area definition of *dsid*."""
         return _load_area_def(dsid, file_handlers)
 
-    def _get_coordinates_for_dataset_key(self, dsid):
-        """Get the coordinate dataset keys for *dsid*."""
-        ds_info = self.all_ids[dsid]
-        cids = []
-        for cinfo in ds_info.get('coordinates', []):
-            if not isinstance(cinfo, dict):
-                cinfo = {'name': cinfo}
-
-            for key in self._co_keys:
-                if key == 'name':
-                    continue
-                if key in ds_info:
-                    if ds_info[key] is not None:
-                        cinfo[key] = ds_info[key]
-            cid = DataQuery.from_dict(cinfo)
-
-            cids.append(self.get_dataset_key(cid))
-
-        return cids
-
-    def _get_coordinates_for_dataset_keys(self, dsids):
-        """Get all coordinates."""
-        coordinates = {}
-        for dsid in dsids:
-            cids = self._get_coordinates_for_dataset_key(dsid)
-            coordinates.setdefault(dsid, []).extend(cids)
-        return coordinates
-
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
         ds_info = self.all_ids[dsid]
@@ -786,6 +756,21 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                            "'%s'", ds_info['file_type'], dsid['name'])
         else:
             return self.file_handlers[filetype]
+
+    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
+        """Get the area for *dsid*."""
+        try:
+            return self._load_area_def(dsid, file_handlers, **kwargs)
+        except NotImplementedError:
+            if any(x is None for x in coords):
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
+                return None
+
+            area = self._make_area_from_coords(coords)
+            if area is None:
+                logger.debug("No coordinates found for %s", str(dsid))
+            return area
 
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
@@ -827,21 +812,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             if key is not None:
                 FileYAMLReader._coords_cache[key] = sdef
         return sdef
-
-    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
-        """Get the area for *dsid*."""
-        try:
-            return self._load_area_def(dsid, file_handlers, **kwargs)
-        except NotImplementedError:
-            if any(x is None for x in coords):
-                logger.warning(
-                    "Failed to load coordinates for '{}'".format(dsid))
-                return None
-
-            area = self._make_area_from_coords(coords)
-            if area is None:
-                logger.debug("No coordinates found for %s", str(dsid))
-            return area
 
     def _load_dataset_with_area(self, dsid, coords, **kwargs):
         """Load *dsid* and its area if available."""
@@ -970,6 +940,34 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         self._load_ancillary_variables(all_datasets, **kwargs)
 
         return datasets
+
+    def _get_coordinates_for_dataset_keys(self, dsids):
+        """Get all coordinates."""
+        coordinates = {}
+        for dsid in dsids:
+            cids = self._get_coordinates_for_dataset_key(dsid)
+            coordinates.setdefault(dsid, []).extend(cids)
+        return coordinates
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for *dsid*."""
+        ds_info = self.all_ids[dsid]
+        cids = []
+        for cinfo in ds_info.get('coordinates', []):
+            if not isinstance(cinfo, dict):
+                cinfo = {'name': cinfo}
+
+            for key in self._co_keys:
+                if key == 'name':
+                    continue
+                if key in ds_info:
+                    if ds_info[key] is not None:
+                        cinfo[key] = ds_info[key]
+            cid = DataQuery.from_dict(cinfo)
+
+            cids.append(self.get_dataset_key(cid))
+
+        return cids
 
 
 def _load_area_def(dsid, file_handlers):
@@ -1364,7 +1362,7 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
 
 
 class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
-    """GEOVariableSegmentYAMLReader for handling chunked/segmented GEO products with segments of variable height.
+    """GEOVariableSegmentYAMLReader for handling segmented GEO products with segments of variable height.
 
     This YAMLReader overrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
     have variable heights. It computes the sizes of the padded segments using the information available in the
@@ -1373,59 +1371,59 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     This implementation was motivated by the FCI L1c format, where the segments (called chunks in the FCI world)
     can have variable heights. It is however generic, so that any future reader can use it. The requirement
     for the reader is to have a method called `get_segment_position_info`, returning a dictionary containing
-    the positioning info for each chunk (see example in
+    the positioning info for each segment (see example in
     :func:`satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info`).
 
     For more information on please see the documentation of :func:`satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
     """
 
-    def create_filehandlers(self, filenames, fh_kwargs=None):
-        """Create file handler objects and collect the location information."""
-        created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
-        self._extract_segment_location_dicts(created_fhs)
-        return created_fhs
-
-    def _extract_segment_location_dicts(self, created_fhs):
+    def __init__(self,
+                 config_dict,
+                 filter_parameters=None,
+                 filter_filenames=True,
+                 **kwargs):
+        """Initialise the GEOVariableSegmentYAMLReader object."""
+        super().__init__(config_dict, filter_parameters, filter_filenames, **kwargs)
+        self.segment_heights = cache(self._segment_heights)
         self.segment_infos = dict()
-        for filetype, filetype_fhs in created_fhs.items():
-            self._initialise_segment_infos(filetype, filetype_fhs)
-            self._collect_segment_position_infos(filetype, filetype_fhs)
+
+    def _extract_segment_location_dicts(self, filetype):
+        self._initialise_segment_infos(filetype)
+        self._collect_segment_position_infos(filetype)
         return
 
-    def _collect_segment_position_infos(self, filetype, filetype_fhs):
+    def _collect_segment_position_infos(self, filetype):
         # collect the segment positioning infos for all available segments
-        for fh in filetype_fhs:
+        for fh in self.file_handlers[filetype]:
             chk_infos = fh.get_segment_position_info()
             chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
             self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
 
-    def _initialise_segment_infos(self, filetype, filetype_fhs):
+    def _initialise_segment_infos(self, filetype):
         # initialise the segment info for this filetype
-        exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
-        width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+        filetype_fhs_sample = self.file_handlers[filetype][0]
+        exp_segment_nr = filetype_fhs_sample.filetype_info['expected_segments']
+        grid_width_to_grid_type = _get_grid_width_to_grid_type(filetype_fhs_sample.get_segment_position_info())
         self.segment_infos.update({filetype: {'available_segment_infos': [],
                                               'expected_segments': exp_segment_nr,
-                                              'width_to_grid_type': width_to_grid_type}})
+                                              'grid_width_to_grid_type': grid_width_to_grid_type}})
 
     def _get_empty_segment(self, dim=None, idx=None, filetype=None):
-        grid_type = self.segment_infos[filetype]['width_to_grid_type'][self.empty_segment.shape[1]]
-        segment_height = self.segment_heights[filetype][grid_type][idx]
+        grid_width = self.empty_segment.shape[1]
+        segment_height = self.segment_heights(filetype, grid_width)[idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
 
-    @cached_property
-    def segment_heights(self):
+    def _segment_heights(self, filetype, grid_width):
         """Compute optimal padded segment heights (in number of pixels) based on the location of available segments."""
-        segment_heights = dict()
-        for filetype, filetype_seginfos in self.segment_infos.items():
-            filetype_seg_heights = {'1km': _compute_optimal_missing_segment_heights(filetype_seginfos, '1km', 11136),
-                                    '2km': _compute_optimal_missing_segment_heights(filetype_seginfos, '2km', 5568)}
-            segment_heights.update({filetype: filetype_seg_heights})
+        self._extract_segment_location_dicts(filetype)
+        grid_type = self.segment_infos[filetype]['grid_width_to_grid_type'][grid_width]
+        segment_heights = _compute_optimal_missing_segment_heights(self.segment_infos[filetype], grid_type, grid_width)
         return segment_heights
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None, filetype=None):
         # retrieve the segment height in number of pixels
-        grid_type = self.segment_infos[filetype]['width_to_grid_type'][previous_seg_size[1]]
-        new_height_px = self.segment_heights[filetype][grid_type][segment_n - 1]
+        grid_width = previous_seg_size[1]
+        new_height_px = self.segment_heights(filetype, grid_width)[segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
@@ -1433,11 +1431,11 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         return new_height_proj_coord, new_height_px
 
 
-def _get_width_to_grid_type(seg_info):
-    width_to_grid_type = dict()
+def _get_grid_width_to_grid_type(seg_info):
+    grid_width_to_grid_type = dict()
     for grid_type, grid_type_seg_info in seg_info.items():
-        width_to_grid_type.update({grid_type_seg_info['segment_width']: grid_type})
-    return width_to_grid_type
+        grid_width_to_grid_type.update({grid_type_seg_info['grid_width']: grid_type})
+    return grid_width_to_grid_type
 
 
 def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vertical_size):
@@ -1507,13 +1505,13 @@ def _init_positioning_arrays_for_variable_padding(chk_infos, grid_type, exp_segm
     segment_start_rows = np.zeros(exp_segment_nr)
     segment_end_rows = np.zeros(exp_segment_nr)
 
-    _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
-                                                           segment_heights)
+    _populate_positioning_arrays_with_available_segment_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                             segment_heights)
     return segment_start_rows, segment_end_rows, segment_heights
 
 
-def _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
-                                                           segment_heights):
+def _populate_positioning_arrays_with_available_segment_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                             segment_heights):
     for chk_info in chk_infos:
         current_fh_segment_nr = chk_info['segment_nr']
         segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']

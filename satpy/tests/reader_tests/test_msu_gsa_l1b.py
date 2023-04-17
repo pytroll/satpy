@@ -126,7 +126,7 @@ class TestMSUGSABReader:
 
     yaml_file = "msu_gsa_l1b.yaml"
 
-    def setup(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers import load_reader

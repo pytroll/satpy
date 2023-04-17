@@ -433,7 +433,8 @@ class VisQualityControl:
             warnings.warn(
                 'All pixels of the VIS channel are flagged as "use with '
                 'caution". Use datasets "quality_pixel_bitmask" and '
-                '"data_quality_bitmask" to find out why.'
+                '"data_quality_bitmask" to find out why.',
+                stacklevel=2
             )
 
     def mask(self, ds):

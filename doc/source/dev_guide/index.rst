@@ -18,6 +18,7 @@ at the pages listed below.
     plugins
     satpy_internals
     aux_data
+    writing_tests
 
 Coding guidelines
 =================

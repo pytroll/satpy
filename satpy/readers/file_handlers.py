@@ -17,8 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface for BaseFileHandlers."""
 
-from abc import ABCMeta
-
 import numpy as np
 import xarray as xr
 from pyresample.geometry import SwathDefinition
@@ -46,7 +44,7 @@ def open_dataset(filename, *args, **kwargs):
     return xr.open_dataset(f_obj, *args, **kwargs)
 
 
-class BaseFileHandler(metaclass=ABCMeta):
+class BaseFileHandler:
     """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):

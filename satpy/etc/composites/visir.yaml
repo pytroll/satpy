@@ -285,31 +285,27 @@ composites:
     standard_name: precipitation_probability
 
   cloudmask:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma
-    - cma_pal
     standard_name: cloudmask
 
   cloudmask_extended:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma_extended
-    - cma_extended_pal
-    standard_name: cloudmask
+    standard_name: cloudmask_extended
 
   cloudmask_probability:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmaprob
-    - cmaprob_pal
     standard_name: cloudmask_probability
 
   cloudtype:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ct
-    - ct_pal
     standard_name: cloudtype
 
   cloud_top_height:
@@ -318,42 +314,37 @@ composites:
     - ctth_alti
     - ctth_alti_pal
     - ctth_status_flag
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_pps
 
   cloud_top_pressure:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_pres
-    - ctth_pres_pal
     standard_name: cloud_top_pressure
 
   cloud_top_temperature:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_tempe
-    - ctth_tempe_pal
     standard_name: cloud_top_temperature
 
   cloud_top_phase:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_phase
-    - cmic_phase_pal
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_reff
-    - cmic_reff_pal
-    standard_name: cloud_drop_effective_radius
+    standard_name: cloud_drop_effective_radius_pps
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    - cmic_cot_pal
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_pps
 
   cloud_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
@@ -459,8 +450,8 @@ composites:
     description: >
       EUMETSAT Cloud Phase RGB product
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
-      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - wavelength: 1.6
@@ -485,7 +476,8 @@ composites:
     description: >
       Cloud Type RGB, candidate for standard FCI RGB
     references:
-      EUMETRAIN Quick Guide: http://eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - wavelength: 1.38
@@ -505,3 +497,77 @@ composites:
       - wavelength: 0.64
       - wavelength: 1.61
     standard_name: cimss_cloud_type
+
+  essl_low_level_moisture:
+    description: >
+      Greyscale low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  For a color version,
+      see essl_colorized_low_level_moisture.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.905
+    - wavelength: 0.86
+    standard_name: essl_low_level_moisture
+
+  day_essl_low_level_moisture:
+    description: >
+      Daytime only version of essl_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_low_level_moisture
+    standard_name: day_essl_low_level_moisture
+
+  essl_colorized_low_level_moisture:
+    description: >
+      Colorized low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  The colorization
+      is still under development and may be subject to change.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.86
+    - wavelength: 0.905
+    standard_name: essl_colorized_low_level_moisture
+
+  day_essl_colorized_low_level_moisture:
+    description: >
+      Daytime only version of essl_colorized_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_colorized_low_level_moisture
+    standard_name: day_essl_colorized_low_level_moisture
+
+  rocket_plume_day:
+    description: >
+      An RGB to highlight the plume from rocket launches, typically
+      used with GOES Meso sectors over the cape but can work for
+      other satellites / sensors too.
+      Day version uses 0.6 micron channel for reflective plume.
+      More details:
+      http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/QuickGuide_GOESR_RocketPlumeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: rocket_plume
+    prerequisites:
+      - wavelength: 3.9
+      - wavelength: 6.2
+      - wavelength: 0.6
+
+  rocket_plume_night:
+    description: >
+      An RGB to highlight the plume from rocket launches, typically
+      used with GOES Meso sectors over the cape but can work for
+      other satellites / sensors too.
+      Night version used 1.6 micron channel for hotspot.
+      More details:
+      http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/QuickGuide_GOESR_RocketPlumeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: rocket_plume
+    prerequisites:
+      - wavelength: 3.9
+      - wavelength: 6.2
+      - wavelength: 1.6

@@ -18,6 +18,7 @@ The following people have made contributions to this project:
 - Guido della Bruna - meteoswiss
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
+- [Manuel Carranza (manucarran)](https://github.com/manucarran)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
 - [Radar, Satellite and Nowcasting Division (meteoswiss-mdr)](https://github.com/meteoswiss-mdr)
@@ -48,6 +49,7 @@ The following people have made contributions to this project:
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
+- [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
@@ -62,6 +64,7 @@ The following people have made contributions to this project:
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
+- [Bengt Rydberg (BengtRydberg)](https://github.com/BengtRydberg)
 - Marco Sassi - meteoswiss
 - [Stefan Scheiblauer (StefanSnippetCoder)](https://github.com/StefanSnippetCoder)
 - [Ronald Scheirer](https://github.com/)

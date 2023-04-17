@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -22,15 +21,19 @@ import warnings
 from collections import namedtuple
 from functools import wraps
 from numbers import Number
+from typing import Optional
 
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
+from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
 from satpy._config import get_config_path
+
+from ..utils import find_in_ancillary
 
 LOG = logging.getLogger(__name__)
 
@@ -126,7 +129,11 @@ def using_map_blocks(func):
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
-    warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
+    warnings.warn(
+        "'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     img.data.data = img.data.data / 100
     return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 
@@ -135,7 +142,7 @@ def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
-        reference_scale_factor: Number = None,
+        reference_scale_factor: Optional[Number] = None,
         **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
@@ -277,11 +284,6 @@ def _srgb_gamma(arr):
     return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
 
 
-def _lookup_delayed(luts, band_data):
-    # can't use luts.__getitem__ for some reason
-    return luts[band_data]
-
-
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
@@ -295,11 +297,7 @@ def _lookup_table(band_data, luts=None, index=-1):
     # NaN/null values will become 0
     lut = luts[:, index] if len(luts.shape) == 2 else luts
     band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
-
-    new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
-    new_data = da.from_delayed(new_delay, shape=band_data.shape,
-                               dtype=luts.dtype)
-    return new_data
+    return lut[band_data]
 
 
 def colorize(img, **kwargs):
@@ -330,21 +328,32 @@ def colorize(img, **kwargs):
                'min_value': <float, min value to match colors to>,
                'max_value': <float, min value to match colors to>,
                'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'dataset': <str, referring to dataset containing palette>,
+               'color_scale': <int, value to be interpreted as white>,
+               'min_value': <float, see above>,
+               'max_value': <float, see above>}
 
     If multiple palettes are supplied, they are concatenated before applied.
 
     """
-    full_cmap = _merge_colormaps(kwargs)
+    full_cmap = _merge_colormaps(kwargs, img)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
-    """Palettize the given image (no color interpolation)."""
-    full_cmap = _merge_colormaps(kwargs)
+    """Palettize the given image (no color interpolation).
+
+    Arguments as for :func:`colorize`.
+
+    NB: to retain the palette when saving the resulting image, pass
+    ``keep_palette=True`` to the save method (either via the Scene class or
+    directly in trollimage).
+    """
+    full_cmap = _merge_colormaps(kwargs, img)
     img.palettize(full_cmap)
 
 
-def _merge_colormaps(kwargs):
+def _merge_colormaps(kwargs, img=None):
     """Merge colormaps listed in kwargs."""
     from trollimage.colormap import Colormap
     full_cmap = None
@@ -354,7 +363,7 @@ def _merge_colormaps(kwargs):
         full_cmap = palette
     else:
         for itm in palette:
-            cmap = create_colormap(itm)
+            cmap = create_colormap(itm, img)
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -363,7 +372,7 @@ def _merge_colormaps(kwargs):
     return full_cmap
 
 
-def create_colormap(palette):
+def create_colormap(palette, img=None):
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -423,6 +432,18 @@ def create_colormap(palette):
     key in the provided dictionary (ex. ``{'colors': 'blues'}``).
     See :doc:`trollimage:colormap` for the full list of available colormaps.
 
+    **From an auxiliary variable**
+
+    If the colormap is defined in the same dataset as the data to which the
+    colormap shall be applied, this can be indicated with
+    ``{'dataset': 'palette_variable'}``, where ``'palette_variable'`` is the
+    name of the variable containing the palette.  This variable must be an
+    auxiliary variable to the dataset to which the colours are applied.  When
+    using this, it is important that one should **not** set ``min_value`` and
+    ``max_value`` as those will be taken from the ``valid_range`` attribute
+    on the dataset and if those differ from ``min_value`` and ``max_value``,
+    the resulting colors will not match the ones in the palette.
+
     **Color Scale**
 
     By default colors are expected to be in a 0-255 range. This
@@ -444,17 +465,19 @@ def create_colormap(palette):
     """
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
+    dataset = palette.get("dataset", None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        cmap = _create_colormap_from_file(fname, palette, color_scale)
+        if not os.path.exists(fname):
+            fname = get_config_path(fname)
+        cmap = Colormap.from_file(fname, palette.get("colormap_mode", None), color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
+        cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
     elif isinstance(colors, str):
-        import copy
-
-        from trollimage import colormap
-        cmap = copy.copy(getattr(colormap, colors))
+        cmap = Colormap.from_name(colors)
+    elif isinstance(dataset, str):
+        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
 
@@ -463,67 +486,20 @@ def create_colormap(palette):
     if 'min_value' in palette and 'max_value' in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
     elif 'min_value' in palette or 'max_value' in palette:
-        raise ValueError("Both 'min_value' and 'max_value' must be specified")
+        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
 
     return cmap
 
 
-def _create_colormap_from_sequence(colors, palette, color_scale):
-    from trollimage.colormap import Colormap
-    cmap = []
-    values = palette.get('values', None)
-    for idx, color in enumerate(colors):
-        if values is not None:
-            value = values[idx]
-        else:
-            value = idx / float(len(colors) - 1)
-        if color_scale != 1:
-            color = tuple(elem / float(color_scale) for elem in color)
-        cmap.append((value, tuple(color)))
-    return Colormap(*cmap)
-
-
-def _create_colormap_from_file(filename, palette, color_scale):
-    from trollimage.colormap import Colormap
-    data = _read_colormap_data_from_file(filename)
-    cols = data.shape[1]
-    default_modes = {
-        3: 'RGB',
-        4: 'VRGB',
-        5: 'VRGBA'
-    }
-    default_mode = default_modes.get(cols)
-    mode = palette.setdefault('colormap_mode', default_mode)
-    if mode is None or len(mode) != cols:
-        raise ValueError(
-            "Unexpected colormap shape for mode '{}'".format(mode))
-    rows = data.shape[0]
-    if mode[0] == 'V':
-        colors = data[:, 1:]
-        if color_scale != 1:
-            colors = data[:, 1:] / float(color_scale)
-        values = data[:, 0]
-    else:
-        colors = data
-        if color_scale != 1:
-            colors = colors / float(color_scale)
-        values = np.arange(rows) / float(rows - 1)
-    return Colormap(*zip(values, colors))
-
-
-def _read_colormap_data_from_file(filename):
-    if not os.path.exists(filename):
-        filename = get_config_path(filename)
-    ext = os.path.splitext(filename)[1]
-    if ext in (".npy", ".npz"):
-        file_content = np.load(filename)
-        if ext == ".npz":
-            # .npz is a collection
-            # assume position list-like and get the first element
-            file_content = file_content["arr_0"]
-        return file_content
-    # CSV
-    return np.loadtxt(filename, delimiter=",")
+def _create_colormap_from_dataset(img, dataset, color_scale):
+    """Create a colormap from an auxiliary variable in a source file."""
+    match = find_in_ancillary(img.data, dataset)
+    return Colormap.from_array_with_metadata(
+            match, img.data.dtype, color_scale,
+            valid_range=img.data.attrs.get("valid_range"),
+            scale_factor=img.data.attrs.get("scale_factor", 1),
+            add_offset=img.data.attrs.get("add_offset", 0),
+            remove_last=False)
 
 
 def three_d_effect(img, **kwargs):
@@ -534,13 +510,12 @@ def three_d_effect(img, **kwargs):
                        [-w, 1, w],
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
-
     return _three_d_effect(img.data, kernel=kernel, mode=mode)
 
 
 @exclude_alpha
 @on_separate_bands
-@using_map_blocks
+@on_dask_array
 def _three_d_effect(band_data, kernel=None, mode=None, index=None):
     del index
 
@@ -597,6 +572,6 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs
 @using_map_blocks
 def _bt_threshold(band_data, threshold, high_coeffs, low_coeffs):
     # expects dask array to be passed
-    return da.where(band_data >= threshold,
+    return np.where(band_data >= threshold,
                     high_coeffs.offset - high_coeffs.factor * band_data,
                     low_coeffs.offset - low_coeffs.factor * band_data)

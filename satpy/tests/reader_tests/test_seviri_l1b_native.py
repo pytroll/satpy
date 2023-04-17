@@ -528,7 +528,7 @@ class TestNativeMSGArea(unittest.TestCase):
     """
 
     @staticmethod
-    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan):
+    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
         """Create mocked NativeMSGFileHandler.
 
         Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
@@ -572,8 +572,11 @@ class TestNativeMSGArea(unittest.TestCase):
             n_hrv_cols = n_visir_cols * 3
             n_hrv_lines = n_visir_lines * 3
             ssp_lon = 0
-
         header = {
+            '15_MAIN_PRODUCT_HEADER': {
+                'QQOV': {'Name': 'QQOV',
+                         'Value': good_qual}
+            },
             '15_DATA_HEADER': {
                 'ImageDescription': {
                     reference_grid: {
@@ -1368,3 +1371,39 @@ def test_header_type(file_content, exp_header_size):
         fh = NativeMSGFileHandler('myfile', {}, None)
         assert fh.header_type.itemsize == exp_header_size
         assert '15_SECONDARY_PRODUCT_HEADER' in fh.header
+
+
+def test_header_warning():
+    """Test warning is raised for NOK quality flag."""
+    header_good = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0,
+        good_qual='OK'
+    )
+    header_bad = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0,
+        good_qual='NOK'
+    )
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch("builtins.open", mock.mock_open(read_data=b'FormatName                  : NATIVE')):
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+
+        exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
+
+        fromfile.return_value = header_good
+        with pytest.warns(None):
+            NativeMSGFileHandler('myfile', {}, None)
+
+        fromfile.return_value = header_bad
+        with pytest.warns(UserWarning, match=exp_warning):
+            NativeMSGFileHandler('myfile', {}, None)

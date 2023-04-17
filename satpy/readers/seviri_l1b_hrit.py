@@ -217,6 +217,7 @@ from satpy.readers.seviri_base import (
     create_coef_dict,
     get_cds_time,
     get_satpos,
+    mask_bad_quality,
     pad_data_horizontally,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
@@ -299,7 +300,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None):
+                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -372,7 +373,7 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None):
+                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -427,7 +428,8 @@ class HRITMSGFileHandler(HRITFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=100, fill_hrv=True):
+                 mda_max_array_size=100, fill_hrv=True,
+                 mask_bad_quality_scan_lines=True):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -445,6 +447,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
+        self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
 
         self._get_header()
 
@@ -626,6 +629,11 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key['calibration'])
+
+        is_calibration = key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
+            res = self._mask_bad_quality(res)
+
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
@@ -676,20 +684,15 @@ class HRITMSGFileHandler(HRITFileHandler):
             scan_time=self.start_time
         )
         res = calib.calibrate(data, calibration)
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self._mask_bad_quality(res)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
-        # Based on missing (2) or corrupted (3) data
-        line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
-        line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
-        # Do not use (4)
-        line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
-        line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
-        data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+        line_validity = self.mda['image_segment_line_quality']['line_validity']
+        line_radiometric_quality = self.mda['image_segment_line_quality']['line_radiometric_quality']
+        line_geometric_quality = self.mda['image_segment_line_quality']['line_geometric_quality']
+        data = mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality)
         return data
 
     def _get_raw_mda(self):

@@ -86,7 +86,8 @@ with open("reader_table.rst", mode="w") as f:
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc',
+              'sphinx.ext.mathjax']
 
 # API docs
 apidoc_module_dir = "../../satpy"

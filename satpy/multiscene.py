@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,6 +20,7 @@
 import copy
 import logging
 import warnings
+from datetime import datetime
 from queue import Queue
 from threading import Thread
 
@@ -45,12 +46,67 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets):
-    """Overlay series of datasets on top of each other."""
+def stack(datasets, weights=None, combine_times=True):
+    """Overlay a series of datasets together.
+
+    By default, datasets are stacked on top of each other, so the last one applied is
+    on top. If a sequence of weights arrays are provided the datasets will
+    be combined according to those weights. The result will be a composite
+    dataset where the data in each pixel is coming from the dataset having the
+    highest weight.
+
+    """
+    if weights:
+        return _stack_weighted(datasets, weights, combine_times)
+
     base = datasets[0].copy()
     for dataset in datasets[1:]:
-        base = base.where(dataset.isnull(), dataset)
+        try:
+            base = base.where(dataset == dataset.attrs["_FillValue"], dataset)
+        except KeyError:
+            base = base.where(dataset.isnull(), dataset)
+
     return base
+
+
+def _stack_weighted(datasets, weights, combine_times):
+    """Stack datasets using weights."""
+    weights = set_weights_to_zero_where_invalid(datasets, weights)
+
+    indices = da.argmax(da.dstack(weights), axis=-1)
+    attrs = combine_metadata(*[x.attrs for x in datasets])
+
+    if combine_times:
+        if 'start_time' in attrs and 'end_time' in attrs:
+            attrs['start_time'], attrs['end_time'] = _get_combined_start_end_times(*[x.attrs for x in datasets])
+
+    dims = datasets[0].dims
+    weighted_array = xr.DataArray(da.choose(indices, datasets), dims=dims, attrs=attrs)
+    return weighted_array
+
+
+def set_weights_to_zero_where_invalid(datasets, weights):
+    """Go through the weights and set to pixel values to zero where corresponding datasets are invalid."""
+    for i, dataset in enumerate(datasets):
+        try:
+            weights[i] = xr.where(dataset == dataset.attrs["_FillValue"], 0, weights[i])
+        except KeyError:
+            weights[i] = xr.where(dataset.isnull(), 0, weights[i])
+
+    return weights
+
+
+def _get_combined_start_end_times(*metadata_objects):
+    """Get the start and end times attributes valid for the entire dataset series."""
+    start_time = datetime.now()
+    end_time = datetime.fromtimestamp(0)
+    for md_obj in metadata_objects:
+        if md_obj['start_time'] < start_time:
+            start_time = md_obj['start_time']
+        if md_obj['end_time'] > end_time:
+            end_time = md_obj['end_time']
+
+    return start_time, end_time
 
 
 def timeseries(datasets):
@@ -244,7 +300,9 @@ class MultiScene(object):
             warnings.warn(
                 "Argument ensure_all_readers is deprecated.  Use "
                 "missing='skip' instead.",
-                DeprecationWarning)
+                DeprecationWarning,
+                stacklevel=2
+            )
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
@@ -508,7 +566,7 @@ class MultiScene(object):
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
-                    ds, enh_args["decorate"])
+                ds, enh_args["decorate"])
         img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
         if data.ndim == 3:
@@ -583,7 +641,10 @@ class MultiScene(object):
         load_thread.join(10)
         if load_thread.is_alive():
             import warnings
-            warnings.warn("Background thread still alive after failing to die gracefully")
+            warnings.warn(
+                "Background thread still alive after failing to die gracefully",
+                stacklevel=3
+            )
         else:
             log.debug("Child thread died successfully")
 
@@ -632,7 +693,7 @@ class MultiScene(object):
             info_datasets = [scn.get(dataset_id) for scn in info_scenes]
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
             data_to_write = self._get_animation_frames(
-                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+                all_datasets, shape, this_fill, ignore_missing, enh_args)
 
             writer = imageio.get_writer(this_fn, **imio_args)
             frames[dataset_id] = data_to_write
@@ -703,8 +764,8 @@ class MultiScene(object):
             raise ImportError("Missing required 'imageio' library")
 
         (writers, frames) = self._get_writers_and_frames(
-                filename, datasets, fill_value, ignore_missing,
-                enh_args, imio_args={"fps": fps, **kwargs})
+            filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames

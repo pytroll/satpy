@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helper functions for satpy readers."""
+from __future__ import annotations
 
 import bz2
 import logging
@@ -23,7 +24,7 @@ import os
 import shutil
 import tempfile
 import warnings
-from contextlib import closing
+from contextlib import closing, contextmanager
 from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
@@ -33,7 +34,8 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
+from satpy import CHUNK_SIZE, config
+from satpy.readers import FSFile
 
 LOGGER = logging.getLogger(__name__)
 
@@ -198,10 +200,11 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename, prefix=None):
-    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+def unzip_file(filename: str | FSFile, prefix=None):
+    """Unzip the local/remote file ending with 'bz2'.
 
     Args:
+        filename: The local/remote file to unzip.
         prefix (str, optional): If file is one of many segments of data, prefix random filename
         for correct sorting. This is normally the segment number.
 
@@ -209,60 +212,119 @@ def unzip_file(filename, prefix=None):
         Temporary filename path for decompressed file or None.
 
     """
-    if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
-        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # try pbzip2
-        pbzip = which('pbzip2')
-        # Run external pbzip2
-        if pbzip is not None:
-            n_thr = os.environ.get('OMP_NUM_THREADS')
-            if n_thr:
-                runner = [pbzip,
-                          '-dc',
-                          '-p'+str(n_thr),
-                          filename]
-            else:
-                runner = [pbzip,
-                          '-dc',
-                          filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
-            stdout = BytesIO(p.communicate()[0])
-            status = p.returncode
-            if status != 0:
-                raise IOError("pbzip2 error '%s', failed, status=%d"
-                              % (filename, status))
-            with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                try:
-                    stdout.seek(0)
-                    shutil.copyfileobj(stdout, ofpt)
-                except IOError:
-                    import traceback
-                    traceback.print_exc()
-                    LOGGER.info("Failed to read bzipped file %s",
-                                str(filename))
-                    os.remove(tmpfilepath)
-                    raise
-            return tmpfilepath
-
-        # Otherwise, fall back to the original method
-        bz2file = bz2.BZ2File(filename)
-        with closing(os.fdopen(fdn, 'wb')) as ofpt:
-            try:
-                ofpt.write(bz2file.read())
-            except IOError:
-                import traceback
-                traceback.print_exc()
-                LOGGER.info("Failed to read bzipped file %s", str(filename))
-                os.remove(tmpfilepath)
-                return None
-        return tmpfilepath
-
-    return None
+    if isinstance(filename, str):
+        return _unzip_local_file(filename, prefix=prefix)
+    elif isinstance(filename, FSFile):
+        return _unzip_FSFile(filename, prefix=prefix)
 
 
-class unzip_context():
-    """Context manager for uncompressing a .bz2 file on the fly.
+def _unzip_local_file(filename: str, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        filename: The file to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if not os.fspath(filename).endswith('bz2'):
+        return None
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+    # check pbzip2 status
+    pbzip2 = _unzip_with_pbzip(filename, tmpfilepath, fdn)
+    if pbzip2 is not None:
+        return pbzip2
+    # Otherwise, fall back to the original method bz2
+    content = _unzip_with_bz2(filename, tmpfilepath)
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
+
+
+def _unzip_with_pbzip(filename, tmpfilepath, fdn):
+    # try pbzip2
+    pbzip = which('pbzip2')
+    if pbzip is None:
+        return None
+    # Run external pbzip2
+    n_thr = os.environ.get('OMP_NUM_THREADS')
+    if n_thr:
+        runner = [pbzip,
+                  '-dc',
+                  '-p'+str(n_thr),
+                  filename]
+    else:
+        runner = [pbzip,
+                  '-dc',
+                  filename]
+    p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
+    stdout = BytesIO(p.communicate()[0])
+    status = p.returncode
+    if status != 0:
+        raise IOError("pbzip2 error '%s', failed, status=%d"
+                      % (filename, status))
+    with closing(os.fdopen(fdn, 'wb')) as ofpt:
+        try:
+            stdout.seek(0)
+            shutil.copyfileobj(stdout, ofpt)
+        except IOError:
+            LOGGER.debug("Failed to read bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return tmpfilepath
+
+
+def _unzip_with_bz2(filename, tmpfilepath):
+    with bz2.BZ2File(filename) as bz2file:
+        try:
+            content = bz2file.read()
+        except IOError:
+            LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return content
+
+
+def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
+    with closing(os.fdopen(fdn, 'wb')) as ofpt:
+        try:
+            ofpt.write(content)
+        except IOError:
+            LOGGER.debug("Failed to write uncompressed file %s", str(filename))
+            os.remove(tmpfilepath)
+            return None
+    return tmpfilepath
+
+
+def _unzip_FSFile(filename: FSFile, prefix=None):
+    """Open and Unzip remote FSFile ending with 'bz2'.
+
+    Args:
+        filename: The FSFile to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    # open file
+    content = filename.open().read()
+    # unzip file if zipped (header start with hex 425A68)
+    if content.startswith(bytes.fromhex("425A68")):
+        content = bz2.decompress(content)
+
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
+
+
+@contextmanager
+def unzip_context(filename):
+    """Context manager for decompressing a .bz2 file on the fly.
 
     Uses `unzip_file`. Removes the uncompressed file on exit of the context manager.
 
@@ -270,51 +332,31 @@ class unzip_context():
     compressed.
 
     """
-
-    def __init__(self, filename):
-        """Keep original filename."""
-        self.input_filename = filename
-
-    def __enter__(self):
-        """Uncompress file if necessary and return the relevant filename for the file handler."""
-        unzipped = unzip_file(self.input_filename)
-        if unzipped is not None:
-            self.unzipped_filename = unzipped
-            return unzipped
-        else:
-            self.unzipped_filename = None
-            return self.input_filename
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Remove temporary file."""
-        if self.unzipped_filename is not None:
-            os.remove(self.unzipped_filename)
+    unzipped = unzip_file(filename)
+    if unzipped is not None:
+        yield unzipped
+        os.remove(unzipped)
+    else:
+        yield filename
 
 
-class generic_open():
-    """Context manager for opening either a regular file or a bzip2 file."""
+@contextmanager
+def generic_open(filename, *args, **kwargs):
+    """Context manager for opening either a regular file or a bzip2 file.
 
-    def __init__(self, filename, *args, **kwargs):
-        """Keep filename and mode."""
-        self.filename = filename
-        self.open_args = args
-        self.open_kwargs = kwargs
+    Returns a file-like object.
+    """
+    if os.fspath(filename).endswith('.bz2'):
+        fp = bz2.open(filename, *args, **kwargs)
+    else:
+        try:
+            fp = filename.open(*args, **kwargs)
+        except AttributeError:
+            fp = open(filename, *args, **kwargs)
 
-    def __enter__(self):
-        """Return a file-like object."""
-        if os.fspath(self.filename).endswith('.bz2'):
-            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
-        else:
-            if hasattr(self.filename, "open"):
-                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
-            else:
-                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+    yield fp
 
-        return self.fp
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Close the file handler."""
-        self.fp.close()
+    fp.close()
 
 
 def bbox(img):
@@ -375,9 +417,11 @@ def get_user_calibration_factors(band_name, correction_dict):
                            "supply 'slope' and 'offset' keys.")
     else:
         # If coefficients not present, warn user and use slope=1, offset=0
-        warnings.warn("WARNING: You have selected radiance correction but "
-                      " have not supplied coefficients for channel " +
-                      band_name)
+        warnings.warn(
+            "WARNING: You have selected radiance correction but "
+            " have not supplied coefficients for channel " + band_name,
+            stacklevel=2
+        )
         return 1., 0.
 
     return slope, offset

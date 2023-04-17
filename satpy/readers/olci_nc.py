@@ -40,7 +40,6 @@ References:
 
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
 import dask.array as da
@@ -56,28 +55,27 @@ from satpy.utils import angle2xyz, xyz2angle
 logger = logging.getLogger(__name__)
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
-                  'S3B': 'Sentinel-3B'}
+                  'S3B': 'Sentinel-3B',
+                  'ENV': 'Environmental Satellite'}
 
 
-class BitFlags(object):
+class BitFlags:
     """Manipulate flags stored bitwise."""
 
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
-
-    meaning = {f: i for i, f in enumerate(flag_list)}
-
-    def __init__(self, value):
+    def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
+        flag_list = flag_list or ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+                                  'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
+                                  'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
+                                  'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
+                                  'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
+                                  'Extra_1',
+                                  'KDM_FAIL',
+                                  'Extra_2',
+                                  'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
+                                  'LOWRW', 'HIGHRW']
+        self.meaning = {f: i for i, f in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""
@@ -110,7 +108,6 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.open_file = None
 
     @cached_property
     def nc(self):
@@ -141,11 +138,6 @@ class NCOLCIBase(BaseFileHandler):
 
         return variable
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError, TypeError):
-            self.nc.close()
-
 
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
@@ -162,13 +154,14 @@ class NCOLCIChannelBase(NCOLCIBase):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.channel = filename_info.get('dataset_name')
+        self.reflectance_prefix = 'Oa'
+        self.reflectance_suffix = '_reflectance'
 
 
 class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, cal, engine=None):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.cal = cal.nc
@@ -214,8 +207,8 @@ class NCOLCI2(NCOLCIChannelBase):
         if self.channel is not None and self.channel != key['name']:
             return
         logger.debug('Reading %s.', key['name'])
-        if self.channel is not None and self.channel.startswith('Oa'):
-            dataset = self.nc[self.channel + '_reflectance']
+        if self.channel is not None and self.channel.startswith(self.reflectance_prefix):
+            dataset = self.nc[self.channel + self.reflectance_suffix]
         else:
             dataset = self.nc[info['nc_key']]
 

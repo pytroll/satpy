@@ -279,3 +279,69 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
+
+
+class Test_NC_ABI_L2_area_AOD(unittest.TestCase):
+    """Test the NC_ABI_L2 reader for the AOD product."""
+
+    @mock.patch('satpy.readers.abi_base.xr')
+    def setUp(self, xr_):
+        """Create fake data for the tests."""
+        from satpy.readers.abi_l2_nc import NC_ABI_L2
+        proj = xr.DataArray(
+            [],
+            attrs={'semi_major_axis': 1.,
+                   'semi_minor_axis': 1.,
+                   'inverse_flattening': 1.,
+                   'longitude_of_prime_meridian': 0.0,
+                   }
+        )
+
+        proj_ext = xr.DataArray(
+            [],
+            attrs={'geospatial_westbound_longitude': -85.0,
+                   'geospatial_eastbound_longitude': -65.0,
+                   'geospatial_northbound_latitude': 20.0,
+                   'geospatial_southbound_latitude': -20.0,
+                   'geospatial_lat_center': 0.0,
+                   'geospatial_lon_center': -75.0,
+                   })
+
+        x__ = xr.DataArray(
+            [0, 1],
+            attrs={'scale_factor': 2., 'add_offset': -1.},
+            dims=('x',),
+        )
+        y__ = xr.DataArray(
+            [0, 1],
+            attrs={'scale_factor': -2., 'add_offset': 1.},
+            dims=('y',),
+        )
+        fake_dataset = xr.Dataset(
+            data_vars={
+                'goes_lat_lon_projection': proj,
+                'geospatial_lat_lon_extent': proj_ext,
+                'x': x__,
+                'y': y__,
+                'RSR': xr.DataArray(np.ones((2, 2)), dims=('y', 'x')),
+            },
+        )
+        xr_.open_dataset.return_value = fake_dataset
+
+        self.reader = NC_ABI_L2('filename',
+                                {'platform_shortname': 'G16', 'observation_type': 'RSR',
+                                 'scene_abbr': 'C', 'scan_mode': 'M3'},
+                                {'filetype': 'info'})
+
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    def test_get_area_def_xy(self, adef):
+        """Test the area generation."""
+        self.reader.get_area_def(None)
+
+        self.assertEqual(adef.call_count, 1)
+        call_args = tuple(adef.call_args)[0]
+        self.assertDictEqual(call_args[3], {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
+                                            'lon_0': -75.0, 'lat_0': 0.0})
+        self.assertEqual(call_args[4], self.reader.ncols)
+        self.assertEqual(call_args[5], self.reader.nlines)
+        np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))

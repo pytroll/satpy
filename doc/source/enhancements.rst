@@ -147,7 +147,25 @@ Ocean and Sea Ice SAF (OSISAF) GHRSST product::
 The RGB color values will be interpolated to give a smooth result. This is
 contrary to using the palettize enhancement.
 
-The above examples are just two different ways to apply colors to images with
+If the source dataset already defines a palette, this can be applied directly.
+This requires that the palette is listed as an auxiliary variable and loaded
+as such by the reader.  To apply such a palette directly, pass the ``dataset``
+keyword.  For example::
+
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+            color_scale: 255
+
+.. warning::
+   If the source data have a valid range defined, one should **not** define
+   ``min_value`` and ``max_value`` in the enhancement configuration!  If
+   those are defined and differ from the values in the valid range, the
+   colors will be wrong.
+
+The above examples are just three different ways to apply colors to images with
 Satpy. There is a wealth of other options for how to declare a colormap, please
 see :func:`~satpy.enhancements.create_colormap` for more inspiration.
 

@@ -442,7 +442,7 @@ class NinJoTagGenerator:
             return "SPOL"
         raise ValueError(
                 "Unknown mapping from area "
-                f"'{self.dataset.attrs['area'].description}' with CRS coordinate "
+                f"{self.dataset.attrs['area'].description!r} with CRS coordinate "
                 f"operation name {name:s} to NinJo projection.  NinJo understands only "
                 "equidistant cylindrical, mercator, or stereographic projections.")
 

@@ -1,0 +1,28 @@
+reader:
+  name: hsaf_h5
+  short_name: Hydrology SAF
+  long_name: Hydrology SAF products in HDF5 format
+  description: Reader for Hydrology SAF products
+  status: Beta, only h10 currently supported
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [hsaf]
+
+file_types:
+  hsafh5:
+    file_reader: !!python/name:satpy.readers.hsaf_h5.HSAFFileHandler
+    file_patterns: ['S-HSAF-h10_{sensing_time:%Y%m%d}_day_merged.H5',
+                    'h10_{sensing_time:%Y%m%d}_day_merged.H5']
+datasets:
+  SC:
+    name: SC
+    sensor: hsaf
+    resolution: 3000
+    standard_name: seviri_snow_cover
+    units: class
+    file_type: hsafh5
+
+  SC_pal:
+    name: SC_pal
+    resolution: 3000
+    file_type: hsafh5

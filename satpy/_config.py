@@ -16,17 +16,33 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
+from __future__ import annotations
 
 import ast
 import glob
 import logging
 import os
 import sys
+import tempfile
 from collections import OrderedDict
+from importlib.metadata import entry_points
+from pathlib import Path
+
+try:
+    from importlib.resources import files as impr_files  # type: ignore
+except ImportError:
+    # Python 3.8
+    def impr_files(module_name: str) -> Path:
+        """Get path to module as a backport for Python 3.8."""
+        from importlib.resources import path as impr_path
+
+        with impr_path(module_name, "__init__.py") as pkg_init_path:
+            return pkg_init_path.parent
 
 import appdirs
-import pkg_resources
 from donfig import Config
+
+from satpy._compat import cache
 
 LOG = logging.getLogger(__name__)
 
@@ -36,6 +52,7 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
+    'tmp_dir': tempfile.gettempdir(),
     'cache_dir': _satpy_dirs.user_cache_dir,
     'cache_lonlats': False,
     'cache_sensor_angles': False,
@@ -109,14 +126,31 @@ def get_config_path_safe():
 def get_entry_points_config_dirs(name, include_config_path=True):
     """Get the config directories for all entry points of given name."""
     dirs = []
-    for entry_point in pkg_resources.iter_entry_points(name):
-        package_name = entry_point.module_name.split('.', 1)[0]
-        new_dir = os.path.join(entry_point.dist.module_path, package_name, 'etc')
+    for entry_point in cached_entry_points().get(name, []):
+        module = _entry_point_module(entry_point)
+        new_dir = str(impr_files(module) / "etc")
         if not dirs or dirs[-1] != new_dir:
             dirs.append(new_dir)
     if include_config_path:
         dirs.extend(config.get('config_path')[::-1])
     return dirs
+
+
+@cache
+def cached_entry_points():
+    """Return entry_points.
+
+    This is a dummy proxy to allow caching.
+    """
+    return entry_points()
+
+
+def _entry_point_module(entry_point):
+    try:
+        return entry_point.module
+    except AttributeError:
+        # Python 3.8
+        return entry_point.value.split(":")[0].strip()
 
 
 def config_search_paths(filename, search_dirs=None, **kwargs):

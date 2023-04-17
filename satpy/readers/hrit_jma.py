@@ -83,6 +83,25 @@ JMA HRIT data contain the scanline acquisition time for only a subset of scanlin
 the remaining scanlines are computed using linear interpolation. This is what you'll find in the
 ``acq_time`` coordinate of the dataset.
 
+Compression
+-----------
+
+Gzip-compressed MTSAT files can be decompressed on the fly using
+:class:`~satpy.readers.FSFile`:
+
+.. code-block:: python
+
+    import fsspec
+    from satpy import Scene
+    from satpy.readers import FSFile
+
+    filename = "/data/HRIT_MTSAT1_20090101_0630_DK01IR1.gz"
+    open_file = fsspec.open(filename, compression="gzip")
+    fs_file = FSFile(open_file)
+    scn = Scene([fs_file], reader="jami_hrit")
+    scn.load(["IR1"])
+
+
 .. _JMA HRIT - Mission Specific Implementation: http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
 .. _JAMI/Imager sample data: https://www.data.jma.go.jp/mscweb/en/operation/hrit_sample.html
 .. _AHI sample data: https://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
@@ -369,7 +388,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self._check_sensor_platform_consistency(info['sensor'])
 
         # Calibrate and mask space pixels
-        res = self._mask_space(self.calibrate(res, key.calibration))
+        res = self._mask_space(self.calibrate(res, key["calibration"]))
 
         # Add scanline acquisition time
         res.coords['acq_time'] = ('y', self.acq_time)
