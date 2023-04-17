@@ -109,9 +109,14 @@ the Satpy readers should respect the overall chunk size when it makes sense.
     ``PYTROLL_CHUNK_SIZE`` environment variable. This is now pending deprecation,
     so an equivalent way to achieve the same result is by using the
     ``DASK_ARRAY__CHUNK_SIZE`` environment variable. The value to assign to the
-    variable is the square of the legacy variable, so for example::
+    variable is the square of the legacy variable, multiplied by the size of array data type
+    at hand, so for example, for 64-bits floats::
 
-      ``export DASK_ARRAY__CHUNK_SIZE=16777216``
+      ``export DASK_ARRAY__CHUNK_SIZE=134217728``
+    
+    which is the same as::
+      
+      ``export DASK_ARRAY__CHUNK_SIZE="128MiB"``
 
     is equivalent to the deprecated::
 
