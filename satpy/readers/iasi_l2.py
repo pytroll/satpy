@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,7 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""IASI L2 HDF5 files."""
+"""IASI L2 files."""
 
 import datetime as dt
 import logging
@@ -29,6 +27,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
+
+from .netcdf_utils import NetCDF4FsspecFileHandler
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
@@ -177,3 +177,38 @@ def _form_datetimes(days, msecs):
         all_datetimes.append(scanline_datetimes)
 
     return np.array(all_datetimes, dtype=np.float64)
+
+
+class IASIL2CDRNC(NetCDF4FsspecFileHandler):
+    """Reader for IASI L2 CDR in NetCDF format.
+
+    Reader for IASI All Sky Temperature and Humidity Profiles - Climate
+    Data Record Release 1.1 - Metop-A and -B. Data and documentation are
+    available from http://doi.org/10.15770/EUM_SEC_CLM_0063. Data are
+    also available from the EUMETSAT Data Store under ID EO:EUM:DAT:0576.
+    """
+
+    def get_dataset(self, data_id, ds_info):
+        """Obtain dataset."""
+        ds = self[data_id["name"]]
+        if "scan_lines" in ds.dims:
+            ds = ds.rename(scan_lines="y")
+        if "pixels" in ds.dims:
+            ds = ds.rename(pixels="x")
+        if "_FillValue" in ds.attrs and ds.dtype.kind == "f":
+            with xr.set_options(keep_attrs=True):
+                # have to inverse the logic due to https://github.com/pydata/xarray/issues/7581
+                return xr.where(ds != ds.attrs["_FillValue"], ds, np.nan)
+        return ds
+
+    def available_datasets(self, configured_datasets=None):
+        """Get available datasets based on what's in the file.
+
+        Returns all datasets in the root group.
+        """
+        yield from super().available_datasets(configured_datasets)
+        common = {"file_type": "iasi_l2_cdr_nc", "resolution": 12000}
+        for key in self.file_content:
+            if "/" in key:  # not a dataset
+                continue
+            yield (True, {"name": key} | common | self[key].attrs)

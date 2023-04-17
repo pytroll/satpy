@@ -86,25 +86,28 @@ class HSAFFileHandler(BaseFileHandler):
         Area definition not available in the HDF5 message,
         so using hardcoded one (it's known).
 
-        hsaf_h10:
-          description: H SAF H10 area definition
-          projection:
-            proj: geos
-            lon_0: 0
-            h: 35785831
-            x_0: 0
-            y_0: 0
-            a: 6378169
-            rf: 295.488065897001
-            no_defs: null
-            type: crs
-          shape:
-            height: 916
-            width: 1902
-          area_extent:
-            lower_left_xy: [-1936760.3163240477, 2635854.280233425]
-            upper_right_xy: [3770006.7195370505, 5384223.683413638]
-            units: m
+        ::
+
+            hsaf_h10:
+              description: H SAF H10 area definition
+              projection:
+                proj: geos
+                lon_0: 0
+                h: 35785831
+                x_0: 0
+                y_0: 0
+                a: 6378169
+                rf: 295.488065897001
+                no_defs: null
+                type: crs
+              shape:
+                height: 916
+                width: 1902
+              area_extent:
+                lower_left_xy: [-1936760.3163240477, 2635854.280233425]
+                upper_right_xy: [3770006.7195370505, 5384223.683413638]
+                units: m
+
         """
         fd_def = get_area_def('msg_seviri_fes_3km')
         hsaf_def = fd_def[AREA_Y_OFFSET:AREA_Y_OFFSET+916,

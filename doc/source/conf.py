@@ -99,6 +99,9 @@ apidoc_excluded_paths = [
     'readers/scatsat1_l2b.py',
 ]
 apidoc_separate_modules = True
+apidoc_extra_args = [
+    "--private",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
