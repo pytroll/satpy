@@ -95,7 +95,7 @@ The value of the chunk-size can be given in different ways, see here:
 https://docs.dask.org/en/stable/api.html#dask.utils.parse_bytes
 
 The default value for this parameter is 128MiB, which can translate to chunk
-sizes of 4096x4096 for 8-byte float arrays.
+sizes of 4096x4096 for 64-bit float arrays.
 
 Note however that some reader might choose to use a liberal interpretation of
 the chunk size which will not necessarily result in a square chunk, or even to
