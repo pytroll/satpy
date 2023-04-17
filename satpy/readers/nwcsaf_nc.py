@@ -198,6 +198,8 @@ class NcNWCSAF(BaseFileHandler):
 
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
+        if '_FillValue' in variable.attrs:
+            variable.attrs['scaled_FillValue'] = variable.attrs['_FillValue'] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
             variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
@@ -256,13 +258,16 @@ class NcNWCSAF(BaseFileHandler):
         except KeyError:
             scale = 1
             offset = 0
+            fill_value = 255
         else:
             scale = so_dataset.attrs['scale_factor']
             offset = so_dataset.attrs['add_offset']
+            fill_value = so_dataset.attrs['_FillValue']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
-        if variable.attrs['palette_meanings'][0] == 1:
-            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+
+        if fill_value not in variable.attrs['palette_meanings'] and 'fill_value_color' in variable.attrs:
+            variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
         val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
