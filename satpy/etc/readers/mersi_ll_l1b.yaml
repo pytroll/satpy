@@ -41,12 +41,6 @@ file_types:
       # Generic
       - '{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}'
 
-
-# NOTE: OSCAR website currently has bands in wavelength order
-#       https://www.wmo-sat.info/oscar/instruments/view/279
-#       The order below is by the wavelength in the input files
-#       The slides at the below link have band 5 and 19 swapped:
-#       http://www.wmo.int/pages/prog/sat/meetings/documents/IPET-SUP-4_Doc_05-04_FY-3D-ppt.pdf
 datasets:
   '1':
     name: '1'
