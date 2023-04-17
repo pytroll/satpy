@@ -74,12 +74,14 @@ Default chunk size used by Satpy can be configured in by using the following
 around your code:
 
 .. code-block:: python
+
     with dask.config.set("array.chunk-size": "32MiB"):
       # your code here
 
 or by using just:
 
 .. code-block:: python
+
     dask.config.set("array.chunk-size": "32MiB")
 
 At the top of your code.
