@@ -63,7 +63,7 @@ objects, have a look a :doc:`dev_guide/satpy_internals`.
 Data chunks
 -----------
 
-The usage of dask as ground layer for Satpy's operation means that the
+The usage of dask as the foundation for Satpy's operation means that the
 underlying data is chunked, that is cut in smaller pieces that can then be
 processed in parallel. (Information on dask's chunking can be found in the
 dask documentation here: https://docs.dask.org/en/stable/array-chunks.html)
