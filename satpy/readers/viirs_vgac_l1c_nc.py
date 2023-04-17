@@ -41,6 +41,17 @@ class VGACFileHandler(BaseFileHandler):
         self.sensor = 'viirs'
         self.filename_info = filename_info
 
+    def calibrate(self, data, yaml_info, file_key, nc):
+        """Calibrate data."""
+        scale_factor = yaml_info.get("scale_factor_nc", 0.0002)
+        if file_key + "_LUT" in nc:
+            bt_lut = nc[file_key + "_LUT"]
+            data = self.convert_to_bt(data, bt_lut, scale_factor)
+        if data.attrs["units"] == "percent":
+            # Should be removed with later versions of data
+            data = self.fix_radiances_not_in_percent(data)
+        return data
+
     def convert_to_bt(self, data, data_lut, scale_factor):
         """Convert radances to brightness temperatures."""
         x = np.arange(0, len(data_lut))
@@ -53,6 +64,14 @@ class VGACFileHandler(BaseFileHandler):
         """Scale radiances to percent. This was not done in first version of data."""
         return 100*data
 
+    def set_time_attrs(self, data):
+        """Set time from attributes."""
+        if "StartTime" in data.attrs:
+            data.attrs["start_time"] = datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
+            data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
+            self._end_time = data.attrs["end_time"]
+            self._start_time = data.attrs["start_time"]
+
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", yaml_info['name'])
@@ -61,19 +80,10 @@ class VGACFileHandler(BaseFileHandler):
         name = yaml_info.get('nc_store_name', yaml_info['name'])
         file_key = yaml_info.get('nc_key', name)
         data = nc[file_key]
-        scale_factor = yaml_info.get("scale_factor_nc", 0.0002)
-        if file_key + "_LUT" in nc:
-            data = self.convert_to_bt(data, nc[file_key + "_LUT"], scale_factor)
-        if data.attrs["units"] == "percent":
-            # Should be removed with later versions of data
-            data = self.fix_radiances_not_in_percent(data)
+        data = self.calibrate(data, yaml_info, file_key, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
-        if "StartTime" in data.attrs:
-            data.attrs["start_time"] = datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
-            data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
-            self._end_time = data.attrs["end_time"]
-            self._start_time = data.attrs["start_time"]
+        self.set_time_attrs(data)
         return data
 
     @property
