@@ -26,9 +26,10 @@ import xarray as xr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
+from .netcdf_utils import NetCDF4FsspecFileHandler
+
 CHUNK_SIZE = get_legacy_chunk_size()
 
-from .netcdf_utils import NetCDF4FsspecFileHandler
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
