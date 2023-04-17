@@ -84,7 +84,7 @@ Or by using:
 
     dask.config.set("array.chunk-size": "32MiB")
 
-At the top of your code.
+at the top of your code.
 
 There are other ways to set dask configuration items, including configuration
 files or environment variables, see here:
