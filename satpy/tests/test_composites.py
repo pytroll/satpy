@@ -807,7 +807,6 @@ class TestCloudCompositorCommonMask:
 
     def test_call_numpy(self):
         """Test the CloudCompositorCommonMask with numpy."""
-
         mask = xr.DataArray(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]]), dims=['y', 'x'],
                             attrs={'_FillValue': 255})
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [np.nan, np.nan, np.nan]], dtype=np.float32),
