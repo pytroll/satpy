@@ -70,7 +70,7 @@ dask documentation here: https://docs.dask.org/en/stable/array-chunks.html
 The size of these chunks can have a significant impact on the performance of
 satpy, so to achieve best performance it can be necessary to adjust it.
 
-Default chunk size used by Satpy can be configured in by using the following
+Default chunk size used by Satpy can be configured by using the following
 around your code:
 
 .. code-block:: python
