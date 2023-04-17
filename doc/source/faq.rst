@@ -50,15 +50,8 @@ by using the following around your code:
     with dask.config.set("array.chunk-size": "32MiB"):
       # your code here
 
-The value of the chunk-size can be given in different ways, see here:
-https://docs.dask.org/en/stable/api.html#dask.utils.parse_bytes
-There are other ways to set dask configuration items, including configuration
-files or environment variables, see here:
-https://docs.dask.org/en/stable/configuration.html
-
-The default value for this parameter is 128MiB, which can translate to chunk
-sizes of 4096x4096 for 8-byte float arrays. Note however that readers might
-interpret this value to create non-square chunks for better performance.
+For more information about chunk sizes in Satpy, please refer to the
+`Data Chunks` section in :doc:`overview`.
 
 .. note::
 

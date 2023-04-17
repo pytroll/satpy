@@ -60,6 +60,62 @@ objects, have a look a :doc:`dev_guide/satpy_internals`.
     XArray includes other object types called "Datasets". These are different
     from the "Datasets" mentioned in Satpy.
 
+Data chunks
+-----------
+
+The usage of dask as ground layer for Satpy's operation means that the
+underlying data is chunked, that is cut in smaller pieces that can then be
+processed in parallel. (Information on dask's chunking can be found in the
+dask documentation here: https://docs.dask.org/en/stable/array-chunks.html)
+The size of these chunks can have a significant impact on the performance of
+satpy, so to achieve best performance it can be necessary to adjust it.
+
+Default chunk size used by Satpy can be configured in by using the following
+around your code:
+
+.. code-block:: python
+    with dask.config.set("array.chunk-size": "32MiB"):
+      # your code here
+
+or by using just:
+
+.. code-block:: python
+    dask.config.set("array.chunk-size": "32MiB")
+
+At the top of your code.
+
+There are other ways to set dask configuration items, including configuration
+files or environment variables, see here:
+https://docs.dask.org/en/stable/configuration.html
+
+
+The value of the chunk-size can be given in different ways, see here:
+https://docs.dask.org/en/stable/api.html#dask.utils.parse_bytes
+
+The default value for this parameter is 128MiB, which can translate to chunk
+sizes of 4096x4096 for 8-byte float arrays.
+
+Note however that some reader might choose to use a liberal interpretation of
+the chunk size which will not necessarily result in a square chunk, or even to
+a chunk size of the exact requested size. The motivation behind this is that
+data stored as stripes may load much faster if the horizontal striping is kept
+as much as possible instead of cutting the data in square chunks. However,
+the Satpy readers should respect the overall chunk size when it makes sense.
+
+
+.. note::
+
+    The legacy way of providing the chunks size in Satpy is the
+    ``PYTROLL_CHUNK_SIZE`` environment variable. This is now pending deprecation,
+    so an equivalent way to achieve the same result is by using the
+    ``DASK_ARRAY__CHUNK_SIZE`` environment variable. The value to assign to the
+    variable is the square of the legacy variable, so for example::
+
+      ``export DASK_ARRAY__CHUNK_SIZE=16777216``
+
+    is equivalent to the deprecated::
+
+      ``export PYTROLL_CHUNK_SIZE=4096``
 
 Reading
 =======
