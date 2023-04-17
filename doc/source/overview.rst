@@ -90,7 +90,6 @@ There are other ways to set dask configuration items, including configuration
 files or environment variables, see here:
 https://docs.dask.org/en/stable/configuration.html
 
-
 The value of the chunk-size can be given in different ways, see here:
 https://docs.dask.org/en/stable/api.html#dask.utils.parse_bytes
 
