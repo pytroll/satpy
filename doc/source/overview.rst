@@ -104,7 +104,6 @@ data stored as stripes may load much faster if the horizontal striping is kept
 as much as possible instead of cutting the data in square chunks. However,
 the Satpy readers should respect the overall chunk size when it makes sense.
 
-
 .. note::
 
     The legacy way of providing the chunks size in Satpy is the
