@@ -879,8 +879,18 @@ class NCCZinke(CompositeBase):
 
     def __call__(self, datasets, **info):
         """Create HNCC DNB composite."""
-        if len(datasets) != 4:
-            raise ValueError("Expected 4 datasets, got %d" % (len(datasets),))
+        if len(datasets) < 3 or len(datasets) > 4:
+            raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
+        elif len(datasets) == 3:
+            LOG.debug("Moon illumination fraction not present. Calculating from start time.")
+            try:
+                import ephem
+            except ImportError:
+                raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
+            moon_illum_fraction = ephem.Moon(datasets[0].attrs['start_time']).moon_phase
+        elif len(datasets) == 4:
+            # convert to decimal instead of %
+            moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
@@ -894,9 +904,6 @@ class NCCZinke(CompositeBase):
 
         mda = dnb_data.attrs.copy()
         dnb_data = dnb_data.copy() / unit_factor
-
-        # convert to decimal instead of %
-        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         phi = da.rad2deg(da.arccos(2. * moon_illum_fraction - 1))
 
