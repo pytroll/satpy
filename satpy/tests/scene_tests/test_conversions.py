@@ -118,10 +118,27 @@ class TestToDataTree:
         ("input_metadatas", "expected_groups"),
         [
             ([{"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"}],
-             {"GOES-16": (1, 0), "GOES-16/abi": (0, 1)}),
+             {"/": (1, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 1)}),
+            ([
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds2"},
+             ],
+             {"/": (1, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 2)}),
+            ([
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds2"},
+                 {"platform_name": "GOES-18", "sensor": "abi", "name": "ds3"},
+                 {"platform_name": "GOES-18", "sensor": "abi", "name": "ds4"},
+             ],
+             {"/": (2, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 2), "GOES-18": (1, 0), "GOES-18/abi": (0, 2)}),
+            ([
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
+                 {"platform_name": "GOES-16", "sensor": "glm", "name": "ds2"},
+             ],
+             {"/": (1, 0), "GOES-16": (2, 0), "GOES-16/abi": (0, 1), "GOES-16/glm": (0, 1)}),
         ],
     )
-    def test_single_data_array(
+    def test_basic_groupings(
             self,
             input_metadatas: Iterable[dict],
             expected_groups: dict[str, tuple[int, int]]
