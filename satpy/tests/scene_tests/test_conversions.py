@@ -115,14 +115,16 @@ class TestToDataTree:
         assert len(data_tree) == 0
 
     @pytest.mark.parametrize(
-        ("input_metadatas", "expected_groups"),
+        ("input_metadatas", "kwargs", "expected_groups"),
         [
             ([{"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"}],
+             {},
              {"/": (1, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 1)}),
             ([
                  {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
                  {"platform_name": "GOES-16", "sensor": "abi", "name": "ds2"},
              ],
+             {},
              {"/": (1, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 2)}),
             ([
                  {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
@@ -130,17 +132,26 @@ class TestToDataTree:
                  {"platform_name": "GOES-18", "sensor": "abi", "name": "ds3"},
                  {"platform_name": "GOES-18", "sensor": "abi", "name": "ds4"},
              ],
+             {},
              {"/": (2, 0), "GOES-16": (1, 0), "GOES-16/abi": (0, 2), "GOES-18": (1, 0), "GOES-18/abi": (0, 2)}),
             ([
                  {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
                  {"platform_name": "GOES-16", "sensor": "glm", "name": "ds2"},
              ],
+             {},
              {"/": (1, 0), "GOES-16": (2, 0), "GOES-16/abi": (0, 1), "GOES-16/glm": (0, 1)}),
+            ([
+                 {"platform_name": "GOES-16", "sensor": "abi", "name": "ds1"},
+                 {"platform_name": "GOES-16", "sensor": "glm", "name": "ds2"},
+             ],
+             {"group_keys": ("sensor",)},
+             {"/": (2, 0), "abi": (0, 1), "glm": (0, 1)}),
         ],
     )
     def test_basic_groupings(
             self,
             input_metadatas: Iterable[dict],
+            kwargs: dict,
             expected_groups: dict[str, tuple[int, int]]
     ):
         """Test a Scene with a single DataArray being converted to a DataTree."""
@@ -152,7 +163,7 @@ class TestToDataTree:
                                     attrs=input_metadata)
             scn[data_arr.attrs["name"]] = data_arr
 
-        data_tree = scn.to_xarray_datatree()
+        data_tree = scn.to_xarray_datatree(**kwargs)
         assert isinstance(data_tree, DataTree)
 
         for exp_group, (num_child_nodes, num_child_arrs) in expected_groups.items():
