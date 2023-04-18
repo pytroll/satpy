@@ -22,7 +22,6 @@ import logging
 
 import numpy as np
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
@@ -38,8 +37,10 @@ from satpy.readers.seviri_base import (
     get_satpos,
     mask_bad_quality,
 )
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('nc_msg')
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class NCSEVIRIFileHandler(BaseFileHandler):

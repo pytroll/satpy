@@ -40,15 +40,15 @@ class VIIRSSDRBenchmarkBase:
                 channels=("I01", "M03", "M04", "M05"),
                 granules=(2, 3, 4))
         except ImportError:
-            assert len(self.get_filenames()) == 6 * 3
+            assert len(self.get_filenames()) == 6 * 3  # nosec
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
     def setup(self, name):
         """Set up the benchmarks."""
-        import satpy
+        import dask.config
         self.data_files = self.get_filenames()
-        satpy.CHUNK_SIZE = 2048
+        dask.config.set({"array.chunk-size": "32MiB"})
 
     def get_filenames(self):
         """Get the data filenames manually."""
