@@ -36,7 +36,7 @@ class TestAHIEnhancement():
         """Test the jma_true_color_reproduction enhancement."""
         from trollimage.xrimage import XRImage
 
-        from satpy.enhancements.ahi import jma_true_color_reproduction
+        from satpy.enhancements import jma_true_color_reproduction
 
         expected = [[[-109.98, 10.998, 131.976, 252.954, 373.932],
                     [494.91, 615.888, 736.866, 857.844, 978.822]],

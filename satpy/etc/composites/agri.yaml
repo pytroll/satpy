@@ -55,7 +55,7 @@ composites:
       - name: green
       - name: C01
         modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: true_color
+    standard_name: true_color_reproduction_color_stretch
 
   true_color_nocorr:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
@@ -63,7 +63,7 @@ composites:
       - name: pseudored_nocorr
       - name: green_nocorr
       - name: C01
-    standard_name: true_color
+    standard_name: true_color_reproduction_color_stretch
   #
   cloud_phase_distinction:
     description: >
@@ -239,3 +239,14 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 73.
+    lim_high: 85.
+    prerequisites:
+      - true_color
+      - true_color_nocorr

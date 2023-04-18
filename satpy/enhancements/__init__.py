@@ -263,7 +263,7 @@ def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
         rgb = (luma + (rgb - luma) * saturation).clip(0)
 
         # reinhard
-        reinhard_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
+        reinhard_luma = (luma / (1 + luma)) * (1 + luma / (white ** 2))
         coef = reinhard_luma / luma
         rgb = rgb * coef
 
@@ -495,11 +495,11 @@ def _create_colormap_from_dataset(img, dataset, color_scale):
     """Create a colormap from an auxiliary variable in a source file."""
     match = find_in_ancillary(img.data, dataset)
     return Colormap.from_array_with_metadata(
-            match, img.data.dtype, color_scale,
-            valid_range=img.data.attrs.get("valid_range"),
-            scale_factor=img.data.attrs.get("scale_factor", 1),
-            add_offset=img.data.attrs.get("add_offset", 0),
-            remove_last=False)
+        match, img.data.dtype, color_scale,
+        valid_range=img.data.attrs.get("valid_range"),
+        scale_factor=img.data.attrs.get("scale_factor", 1),
+        add_offset=img.data.attrs.get("add_offset", 0),
+        remove_last=False)
 
 
 def three_d_effect(img, **kwargs):
@@ -575,3 +575,76 @@ def _bt_threshold(band_data, threshold, high_coeffs, low_coeffs):
     return np.where(band_data >= threshold,
                     high_coeffs.offset - high_coeffs.factor * band_data,
                     low_coeffs.offset - low_coeffs.factor * band_data)
+
+
+def jma_true_color_reproduction(img):
+    """Apply CIE XYZ matrix and return True Color Reproduction data.
+
+    Himawari-8 True Color Reproduction Approach Based on the CIE XYZ Color System
+    Hidehiko MURATA, Kotaro SAITOH, and Yasuhiko SUMIDA
+    Meteorological Satellite Center, Japan Meteorological Agency
+    NOAA National Environmental Satellite, Data, and Information Service
+    Colorado State University—CIRA
+    https://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    """
+    _jma_true_color_reproduction(img.data,
+                                 platform=img.data.attrs['platform_name'])
+
+
+@exclude_alpha
+@on_dask_array
+def _jma_true_color_reproduction(img_data, platform=None):
+    """Convert frmo AHI RGB space to sRGB space.
+
+    The conversion matrices for this are supplied per-sensor and per-platform.
+    The matrices are computed using the method described in the paper:
+    'True Color Imagery Rendering for Himawari-8 with a Color Reproduction Approach
+     Based on the CIE XYZ Color System'
+    DOI:10.2151/jmsj.2018-049
+    """
+    # Conversion matrix dictionaries specifying sensor and platform.
+    ccm_dict = {'himawari-8': np.array([[1.1629, 0.1539, -0.2175],
+                                        [-0.0252, 0.8725, 0.1300],
+                                        [-0.0204, -0.1100, 1.0633]]),
+
+                'himawari-9': np.array([[1.1619, 0.1542, -0.2168],
+                                        [-0.0271, 0.8749, 0.1295],
+                                        [-0.0202, -0.1103, 1.0634]]),
+
+                'goes-16': np.array([[1.1425, 0.1819, -0.2250],
+                                     [-0.0951, 0.9363, 0.1360],
+                                     [-0.0113, -0.1179, 1.0621]]),
+
+                'goes-17': np.array([[1.1437, 0.1818, -0.2262],
+                                     [-0.0952, 0.9354, 0.1371],
+                                     [-0.0113, -0.1178, 1.0620]]),
+
+                'goes-18': np.array([[1.1629, 0.1539, -0.2175],
+                                     [-0.0252, 0.8725, 0.1300],
+                                     [-0.0204, -0.1100, 1.0633]]),
+
+                'fy-4b': np.array([[1.2159, 0.0890, -0.2056],
+                                   [0.3212, 0.5232, 0.1329],
+                                   [-0.0643, -0.0654, 1.0626]]),
+                'geo-kompsat-2a': np.array([[1.1661, 0.1489, -0.2157],
+                                            [-0.0255, 0.8745, 0.1282],
+                                            [-0.0205, -0.1103, 1.0637]]),
+
+                'mtg-i1': np.array([[0.9007, 0.2086, -0.0100],
+                                   [-0.0475, 1.0662, -0.0414],
+                                   [-0.0123, -0.1342, 1.0794]]),
+
+                }
+
+    # A conversion matrix and platform name is required
+    if platform is None:
+        raise ValueError("Missing platform name.")
+
+    # Get the satellite-specific conversion matrix
+    try:
+        ccm = ccm_dict[platform.lower()]
+    except KeyError:
+        raise KeyError(f"No conversion matrix found for platform {platform}")
+
+    output = da.dot(img_data.T, ccm.T)
+    return output.T

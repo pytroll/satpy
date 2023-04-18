@@ -1007,3 +1007,35 @@ enhancements:
           stretch: crude
           min_stretch: [273, 233, 0.]
           max_stretch: [338, 253, 80.]
+
+  true_color_reproduction_color_stretch:
+    standard_name: true_color_reproduction_color_stretch
+    operations:
+      - name: color
+        method: !!python/name:satpy.enhancements.jma_true_color_reproduction
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: log
+         min_stretch: [3.,3.,3.] # tweak min/max values for desired contrast
+         max_stretch: [150., 150., 150.]
+
+  true_color_reproduction:
+    standard_name: true_color_reproduction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: crude
+         min_stretch: [0,0,0]
+         max_stretch: [1,1,1]
+
+  rocket_plume:
+    standard_name: rocket_plume
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273, 233, 0.]
+          max_stretch: [338, 253, 80.]

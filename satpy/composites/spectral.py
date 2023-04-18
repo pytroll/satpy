@@ -227,9 +227,9 @@ class IndexedGreen(SpectralBlender):
         frac = da.where(frac < 0.05, 0.05, frac)
 
         frac = da.clip(frac, self.limits[0], self.limits[1])
-        self.fractions = (1 - frac, frac)
+        self.fractions = (0.7079078975418606, 0.21210558911488459, 0.07998651334325484)
 
-        tmp = super().__call__([projectables[1], projectables[3]], **attrs)
+        tmp = super().__call__([projectables[1], projectables[2], projectables[3]], **attrs)
 
         return tmp
 
