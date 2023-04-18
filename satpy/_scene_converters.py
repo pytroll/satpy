@@ -28,27 +28,46 @@ except ImportError:
     DataTree = None
 
 
-def to_xarray_datatree(data_arrays: Scene | Iterable[xr.DataArray], **kwargs) -> DataTree:
+def to_xarray_datatree(
+        data_arrays: Scene | Iterable[xr.DataArray],
+        group_keys: Iterable[str] = ("platform_name", "sensor"),
+        **kwargs
+) -> DataTree:
     """Convert this Scene into an Xarray DataTree object."""
     if DataTree is None:
         raise ImportError("Missing 'xarray-datatree' library required for DataTree conversion")
 
-    datasets: dict[str, xr.Dataset] = {}
+    tree = DataTree()
     for data_arr in data_arrays:
-        group_id = _data_array_to_group_id(data_arr)
-        group_ds = datasets.setdefault(group_id, xr.Dataset())
+        leaf_node = _generate_leaf_node_for_data_array(tree, data_arr, group_keys)
         var_name = _data_array_to_variable_name(data_arr)
-        group_ds[var_name] = data_arr
-    tree = DataTree.from_dict(datasets)
+        leaf_node[var_name] = data_arr
     return tree
 
 
-def _data_array_to_group_id(data_arr: xr.DataArray) -> str:
-    sensor_id = data_arr.attrs["sensor"]
-    if isinstance(sensor_id, set):
-        sensor_id = "-".join(sorted(sensor_id))
-    group_id = data_arr.attrs["platform_name"] + "/" + sensor_id
+def _generate_leaf_node_for_data_array(
+        root_node: DataTree,
+        data_arr: xr.DataArray,
+        group_keys: Iterable[str]
+) -> DataTree:
+    current_node = root_node
+    for group_key in group_keys:
+        group_id = _data_array_to_group_id(data_arr, group_key)
+        current_node = _get_or_create_child_node(current_node, group_id)
+    return current_node
+
+
+def _data_array_to_group_id(data_arr: xr.DataArray, group_key: str) -> str:
+    group_id = data_arr.attrs[group_key]
+    if group_key == "sensor" and isinstance(group_id, set):
+        group_id = "-".join(sorted(group_id))
     return group_id
+
+
+def _get_or_create_child_node(current_node: DataTree, node_id: str) -> DataTree:
+    if node_id in current_node:
+        return current_node[node_id]
+    return DataTree(parent=current_node, name=node_id)
 
 
 def _data_array_to_variable_name(data_arr: xr.DataArray) -> str:
