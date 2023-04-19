@@ -865,6 +865,24 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
+def _check_moon_phase(datasets):
+    """Check if we have Moon phase as an input dataset and, if not, calculate it."""
+    if len(datasets) < 3 or len(datasets) > 4:
+        raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
+    elif len(datasets) == 3:
+        LOG.debug("Moon illumination fraction not present. Calculating from start time.")
+        try:
+            import ephem
+        except ImportError:
+            raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
+        moon_illum_fraction = ephem.Moon(datasets[0].attrs['start_time']).moon_phase
+    elif len(datasets) == 4:
+        # convert to decimal instead of %
+        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
+
+    return moon_illum_fraction
+
+
 class NCCZinke(CompositeBase):
     """Equalized DNB composite using the Zinke algorithm [#ncc1]_.
 
@@ -879,18 +897,7 @@ class NCCZinke(CompositeBase):
 
     def __call__(self, datasets, **info):
         """Create HNCC DNB composite."""
-        if len(datasets) < 3 or len(datasets) > 4:
-            raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
-        elif len(datasets) == 3:
-            LOG.debug("Moon illumination fraction not present. Calculating from start time.")
-            try:
-                import ephem
-            except ImportError:
-                raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
-            moon_illum_fraction = ephem.Moon(datasets[0].attrs['start_time']).moon_phase
-        elif len(datasets) == 4:
-            # convert to decimal instead of %
-            moon_illum_fraction = da.mean(datasets[3].data) * 0.01
+        moon_illum_fraction = _check_moon_phase(datasets)
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
