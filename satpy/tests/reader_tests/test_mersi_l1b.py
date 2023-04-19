@@ -87,6 +87,75 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
+def _get_1km_data(num_scans, rows_per_scan, num_cols):
+    data = {
+        'Data/EV_1KM_LL':
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    'Slope': np.array([1.]), 'Intercept': np.array([0.]),
+                    'FillValue': 65535,
+                    'units': 'NO',
+                    'valid_range': [0, 4095],
+                    'long_name': b'1km Earth View Science Data',
+                },
+                dims=('_rows', '_cols')),
+        'Data/EV_1KM_RefSB':
+            xr.DataArray(
+                da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    'Slope': np.array([1.] * 15), 'Intercept': np.array([0.] * 15),
+                    'FillValue': 65535,
+                    'units': 'NO',
+                    'valid_range': [0, 4095],
+                    'long_name': b'1km Earth View Science Data',
+                },
+                dims=('_ref_bands', '_rows', '_cols')),
+        'Data/EV_1KM_Emissive':
+            xr.DataArray(
+                da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
+                    'FillValue': 65535,
+                    'units': 'mW/ (m2 cm-1 sr)',
+                    'valid_range': [0, 25000],
+                    'long_name': b'1km Emissive Bands Earth View '
+                                 b'Science Data',
+                },
+                dims=('_ir_bands', '_rows', '_cols')),
+        'Data/EV_250_Aggr.1KM_RefSB':
+            xr.DataArray(
+                da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
+                    'FillValue': 65535,
+                    'units': 'NO',
+                    'valid_range': [0, 4095],
+                    'long_name': b'250m Reflective Bands Earth View '
+                                 b'Science Data Aggregated to 1 km'
+                },
+                dims=('_ref250_bands', '_rows', '_cols')),
+        'Data/EV_250_Aggr.1KM_Emissive':
+            xr.DataArray(
+                da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    'Slope': np.array([1.] * 2), 'Intercept': np.array([0.] * 2),
+                    'FillValue': 65535,
+                    'units': 'mW/ (m2 cm-1 sr)',
+                    'valid_range': [0, 4095],
+                    'long_name': b'250m Emissive Bands Earth View '
+                                 b'Science Data Aggregated to 1 km'
+                },
+                dims=('_ir250_bands', '_rows', '_cols')),
+    }
+    return data
+
+
 def _get_250m_ll_data(num_scans, rows_per_scan, num_cols):
     # Set some default attributes
     def_attrs = {'FillValue': 65535,
@@ -151,74 +220,30 @@ def make_test_data(dims):
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
-    @staticmethod
-    def _get_1km_data(num_scans, rows_per_scan, num_cols):
-        data = {
-            'Data/EV_1KM_LL':
-                xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        'Slope': np.array([1.]), 'Intercept': np.array([0.]),
-                        'FillValue': 65535,
-                        'units': 'NO',
-                        'valid_range': [0, 4095],
-                        'long_name': b'1km Earth View Science Data',
-                    },
-                    dims=('_rows', '_cols')),
-            'Data/EV_1KM_RefSB':
-                xr.DataArray(
-                    da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        'Slope': np.array([1.] * 15), 'Intercept': np.array([0.] * 15),
-                        'FillValue': 65535,
-                        'units': 'NO',
-                        'valid_range': [0, 4095],
-                        'long_name': b'1km Earth View Science Data',
-                    },
-                    dims=('_ref_bands', '_rows', '_cols')),
-            'Data/EV_1KM_Emissive':
-                xr.DataArray(
-                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
-                        'FillValue': 65535,
-                        'units': 'mW/ (m2 cm-1 sr)',
-                        'valid_range': [0, 25000],
-                        'long_name': b'1km Emissive Bands Earth View '
-                                     b'Science Data',
-                    },
-                    dims=('_ir_bands', '_rows', '_cols')),
-            'Data/EV_250_Aggr.1KM_RefSB':
-                xr.DataArray(
-                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
-                        'FillValue': 65535,
-                        'units': 'NO',
-                        'valid_range': [0, 4095],
-                        'long_name': b'250m Reflective Bands Earth View '
-                                     b'Science Data Aggregated to 1 km'
-                    },
-                    dims=('_ref250_bands', '_rows', '_cols')),
-            'Data/EV_250_Aggr.1KM_Emissive':
-                xr.DataArray(
-                    da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        'Slope': np.array([1.] * 2), 'Intercept': np.array([0.] * 2),
-                        'FillValue': 65535,
-                        'units': 'mW/ (m2 cm-1 sr)',
-                        'valid_range': [0, 4095],
-                        'long_name': b'250m Emissive Bands Earth View '
-                                     b'Science Data Aggregated to 1 km'
-                    },
-                    dims=('_ir250_bands', '_rows', '_cols')),
+    num_scans = 2
+    num_cols = 2048
+
+    @property
+    def _rows_per_scan(self):
+        return self.filetype_info.get('rows_per_scan', 10)
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content."""
+        global_attrs = {
+            '/attr/Observing Beginning Date': '2019-01-01',
+            '/attr/Observing Ending Date': '2019-01-01',
+            '/attr/Observing Beginning Time': '18:27:39.720',
+            '/attr/Observing Ending Time': '18:38:36.728',
         }
-        return data
+
+        global_attrs = self._set_sensor_attrs(global_attrs)
+        data = self._get_data_file_content(global_attrs)
+
+        test_content = {}
+        test_content.update(global_attrs)
+        test_content.update(data)
+        test_content.update(_get_calibration(self.num_scans))
+        return test_content
 
     def _set_sensor_attrs(self, global_attrs):
         if 'mersi2_l1b' in self.filetype_info['file_type']:
@@ -229,23 +254,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             global_attrs['/attr/Sensor Identification Code'] = 'MERSI LL'
         return global_attrs
 
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        rows_per_scan = self.filetype_info.get('rows_per_scan', 10)
-        num_scans = 2
-        num_cols = 2048
-        global_attrs = {
-            '/attr/Observing Beginning Date': '2019-01-01',
-            '/attr/Observing Ending Date': '2019-01-01',
-            '/attr/Observing Beginning Time': '18:27:39.720',
-            '/attr/Observing Ending Time': '18:38:36.728',
-        }
-
-        global_attrs = self._set_sensor_attrs(global_attrs)
+    def _get_data_file_content(self, global_attrs):
+        num_scans = self.num_scans
+        rows_per_scan = self._rows_per_scan
+        num_cols = self.num_cols
 
         data = {}
         if self.filetype_info['file_type'] == 'mersi2_l1b_1000':
-            data = self._get_1km_data(num_scans, rows_per_scan, num_cols)
+            data = _get_1km_data(num_scans, rows_per_scan, num_cols)
             global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([1.0] * 6)
             global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_250':
@@ -258,7 +274,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data = _get_geo_data(num_scans, rows_per_scan, num_cols * 2,
                                  prefix='')
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000':
-            data = self._get_1km_data(num_scans, rows_per_scan, num_cols)
+            data = _get_1km_data(num_scans, rows_per_scan, num_cols)
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250':
             data = _get_250m_ll_data(num_scans, rows_per_scan, num_cols * 2)
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000_geo':
@@ -266,12 +282,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250_geo':
             data = _get_geo_data(num_scans, rows_per_scan, num_cols * 2,
                                  prefix='')
-
-        test_content = {}
-        test_content.update(global_attrs)
-        test_content.update(data)
-        test_content.update(_get_calibration(num_scans))
-        return test_content
+        return data
 
 
 def _test_helper(res):
