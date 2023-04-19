@@ -633,9 +633,6 @@ def _interpolate_local_equalized_tiles(
     out[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = temp_sum
 
 
-# def _get_weights_and_interp_info(calculated_row, calculated_col,)
-
-
 def _get_cumul_bin_info_for_tile(
         num_row_tile, weight_row,
         num_col_tile, weight_col,
