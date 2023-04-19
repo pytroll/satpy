@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the VIIRS instrument."""
+from __future__ import annotations
 
 import logging
 import math
+from datetime import datetime
 
 import dask
 import dask.array as da
@@ -837,22 +839,18 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
-def _check_moon_phase(datasets):
+def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: datetime) -> float:
     """Check if we have Moon phase as an input dataset and, if not, calculate it."""
-    if len(datasets) < 3 or len(datasets) > 4:
-        raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
-    elif len(datasets) == 3:
-        LOG.debug("Moon illumination fraction not present. Calculating from start time.")
-        try:
-            import ephem
-        except ImportError:
-            raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
-        moon_illum_fraction = ephem.Moon(datasets[0].attrs['start_time']).moon_phase
-    elif len(datasets) == 4:
+    if moon_datasets:
         # convert to decimal instead of %
-        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
+        return da.mean(moon_datasets[0].data) * 0.01
 
-    return moon_illum_fraction
+    LOG.debug("Moon illumination fraction not present. Calculating from start time.")
+    try:
+        import ephem
+    except ImportError:
+        raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
+    return ephem.Moon(start_time).moon_phase
 
 
 class NCCZinke(CompositeBase):
@@ -869,11 +867,13 @@ class NCCZinke(CompositeBase):
 
     def __call__(self, datasets, **info):
         """Create HNCC DNB composite."""
-        moon_illum_fraction = _check_moon_phase(datasets)
-
+        if len(datasets) < 3 or len(datasets) > 4:
+            raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
+        moon_illum_fraction = _check_moon_phase(datasets[3:4], dnb_data.attrs["start_time"])
+
         # this algorithm assumes units of "W cm-2 sr-1" so if there are other
         # units we need to adjust for that
         if dnb_data.attrs.get("units", "W m-2 sr-1") == "W m-2 sr-1":
