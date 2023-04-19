@@ -605,6 +605,16 @@ class TestCFWriter(unittest.TestCase):
         attrs_expected_flat.pop('int')
         self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
+    def test_da2cf_one_dimensional_array(self):
+        """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
+        import xarray as xr
+
+        from satpy.writers.cf_writer import CFWriter
+
+        arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
+                           coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
+        _ = CFWriter.da2cf(arr)
+
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     def test_collect_datasets(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
