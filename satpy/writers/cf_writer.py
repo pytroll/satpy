@@ -745,8 +745,12 @@ class CFWriter(Writer):
     @staticmethod
     def _try_get_units_from_coords(new_data):
         for c in "xy":
-            if "units" in new_data.coords[c].attrs:
-                return new_data.coords[c].attrs["units"]
+            try:
+                if "units" in new_data.coords[c].attrs:
+                    return new_data.coords[c].attrs["units"]
+            except KeyError:
+                # If the data has only 1 dimension, it has only one of x or y coords
+                pass
 
     @staticmethod
     def _encode_xy_coords_projected(new_data):
