@@ -71,14 +71,15 @@ Dataset encoding can be specified in two ways:
 
     >>> my_encoding = {
     ...    'my_dataset_1': {
-    ...        'zlib': True,
+    ...        'compression': 'zlib',
     ...        'complevel': 9,
     ...        'scale_factor': 0.01,
     ...        'add_offset': 100,
     ...        'dtype': np.int16
     ...     },
     ...    'my_dataset_2': {
-    ...        'zlib': False
+    ...        'compression': None,
+    ...        'dtype': np.float64
     ...     }
     ... }
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
@@ -86,10 +87,25 @@ Dataset encoding can be specified in two ways:
 
 2) Via the ``encoding`` attribute of the datasets in a scene. For example
 
-    >>> scn['my_dataset'].encoding = {'zlib': False}
+    >>> scn['my_dataset'].encoding = {'compression': 'zlib'}
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
 
 See the `xarray encoding documentation`_ for all encoding options.
+
+.. note::
+
+    Chunk-based compression can be specified with the ``compression`` keyword
+    since
+
+        .. code::
+
+            netCDF4-1.6.0
+            libnetcdf-4.9.0
+            xarray-2022.12.0
+
+    The ``zlib`` keyword is deprecated. Make sure that the versions of
+    these modules are all above or all below that reference. Otherwise,
+    compression might fail or be ignored silently.
 
 
 Attribute Encoding
@@ -145,11 +161,11 @@ import logging
 import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
+from packaging.version import Version
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from xarray.coding.times import CFDatetimeCoder
 
@@ -199,7 +215,7 @@ CF_VERSION = 'CF-1.7'
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     import pyproj
-    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+    if Version(pyproj.__version__) < Version('2.4.1'):
         # technically 2.2, but important bug fixes in 2.4.1
         raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
     # let pyproj do the heavily lifting
@@ -307,8 +323,11 @@ def link_coords(datas):
                     dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
                     data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
-                                  .format(coord, da_name))
+                    warnings.warn(
+                        'Coordinate "{}" referenced by dataarray {} does not '
+                        'exist, dropping reference.'.format(coord, da_name),
+                        stacklevel=2
+                    )
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
@@ -363,8 +382,11 @@ def make_alt_coords_unique(datas, pretty=False):
     for coord_name, unique in coords_unique.items():
         if not pretty or not unique:
             if pretty:
-                warnings.warn('Cannot pretty-format "{}" coordinates because they are not unique among the '
-                              'given datasets'.format(coord_name))
+                warnings.warn(
+                    'Cannot pretty-format "{}" coordinates because they are '
+                    'not identical among the given datasets'.format(coord_name),
+                    stacklevel=2
+                )
             for ds_name, dataset in datas.items():
                 if coord_name in dataset.coords:
                     rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
@@ -568,19 +590,11 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
         if numeric_name_prefix:
             name = numeric_name_prefix + original_name
         else:
-            warnings.warn('Invalid NetCDF dataset name: {} starts with a digit.'.format(name))
+            warnings.warn(
+                'Invalid NetCDF dataset name: {} starts with a digit.'.format(name),
+                stacklevel=5
+            )
     return original_name, name
-
-
-def _get_compression(compression):
-    warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
-                  FutureWarning)
-    if compression is None:
-        compression = {'zlib': True}
-    else:
-        warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
-                      "DataArrays to tune compression from now on.", FutureWarning)
-    return compression
 
 
 def _set_history(root):
@@ -615,7 +629,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None,
               include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
@@ -659,9 +673,6 @@ class CFWriter(Writer):
         # TODO: make this a grid mapping or lon/lats
         # new_data.attrs['area'] = str(new_data.attrs.get('area'))
         CFWriter._cleanup_attrs(new_data)
-
-        if compression is not None:
-            new_data.encoding.update(compression)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -724,10 +735,10 @@ class CFWriter(Writer):
         if "area" in new_data.attrs:
             if isinstance(new_data.attrs["area"], AreaDefinition):
                 return new_data.attrs["area"].crs
-            # at least one test case passes an area of type str
-            logger.warning(
-                f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
-                "Assuming projected CRS.")
+            if not isinstance(new_data.attrs["area"], SwathDefinition):
+                logger.warning(
+                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                    "Assuming projected CRS.")
         if "crs" in new_data.coords:
             return new_data.coords["crs"].item()
 
@@ -782,20 +793,12 @@ class CFWriter(Writer):
             new_data.attrs.pop(satpy_attr)
         new_data.attrs.pop('_last_resampler', None)
 
-    @staticmethod
-    def update_encoding(dataset, to_netcdf_kwargs):
-        """Update encoding info (deprecated)."""
-        warnings.warn('CFWriter.update_encoding is deprecated. '
-                      'Use satpy.writers.cf_writer.update_encoding instead.',
-                      DeprecationWarning)
-        return update_encoding(dataset, to_netcdf_kwargs)
-
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+                          pretty=False, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -807,7 +810,10 @@ class CFWriter(Writer):
         # sort by name, but don't use the name
         for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
-                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
+                warnings.warn(
+                    'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
+                    stacklevel=3
+                )
             # we may be adding attributes, coordinates, or modifying the
             # structure of attributes
             ds = ds.copy(deep=True)
@@ -819,7 +825,7 @@ class CFWriter(Writer):
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                     exclude_attrs=exclude_attrs, compression=compression,
+                                     exclude_attrs=exclude_attrs,
                                      include_orig_name=include_orig_name,
                                      numeric_name_prefix=numeric_name_prefix)
                 datas[new_var.name] = new_var
@@ -833,7 +839,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -863,11 +869,6 @@ class CFWriter(Writer):
                 Always include latitude and longitude coordinates, even for datasets with area definition
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-            compression (dict):
-                Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
-                This is in turn passed the xarray's `to_netcdf` method:
-                http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
-                (This parameter is now being deprecated, please use the DataArrays's `encoding` from now on.)
             include_orig_name (bool).
                 Include the original dataset name as an varaibel attribute in the final netcdf
             numeric_name_prefix (str):
@@ -875,7 +876,7 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-        compression = _get_compression(compression)
+        _check_backend_versions()
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
@@ -907,7 +908,7 @@ class CFWriter(Writer):
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
+                include_lonlats=include_lonlats, pretty=pretty,
                 include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
@@ -925,3 +926,39 @@ class CFWriter(Writer):
             written.append(res)
 
         return written
+
+
+def _check_backend_versions():
+    """Issue warning if backend versions do not match."""
+    if not _backend_versions_match():
+        warnings.warn(
+            "Backend version mismatch. Compression might fail or be ignored "
+            "silently. Recommended: All versions below or above "
+            "netCDF4-1.6.0/libnetcdf-4.9.0/xarray-2022.12.0.",
+            stacklevel=3
+        )
+
+
+def _backend_versions_match():
+    versions = _get_backend_versions()
+    reference = {
+        "netCDF4": Version("1.6.0"),
+        "libnetcdf": Version("4.9.0"),
+        "xarray": Version("2022.12.0")
+    }
+    is_newer = [
+        versions[module] >= reference[module]
+        for module in versions
+    ]
+    all_newer = all(is_newer)
+    all_older = not any(is_newer)
+    return all_newer or all_older
+
+
+def _get_backend_versions():
+    import netCDF4
+    return {
+        "netCDF4": Version(netCDF4.__version__),
+        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "xarray": Version(xr.__version__)
+    }

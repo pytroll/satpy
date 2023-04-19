@@ -155,7 +155,7 @@ from packaging import version
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 
-from satpy.utils import PerformanceWarning
+from satpy.utils import PerformanceWarning, get_legacy_chunk_size
 
 try:
     from math import lcm  # type: ignore
@@ -178,11 +178,11 @@ try:
 except ImportError:
     DaskEWAResampler = LegacyDaskEWAResampler = None
 
-from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 CACHE_SIZE = 10
 NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
                   'valid_output_index': ('y2', 'x2'),
@@ -523,7 +523,10 @@ class KDTreeResampler(BaseResampler):
 
     def _adjust_radius_of_influence(self, radius_of_influence):
         """Adjust radius of influence."""
-        warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+        warnings.warn(
+            "Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.",
+            stacklevel=3
+        )
         try:
             radius_of_influence = self.source_geo_def.lons.resolution * 3
         except AttributeError:
@@ -561,8 +564,10 @@ class KDTreeResampler(BaseResampler):
         LOG.debug("Check if %s exists", fname_np)
         if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
             import warnings
-            warnings.warn("Using Numpy files as resampling cache is "
-                          "deprecated.")
+            warnings.warn(
+                "Using Numpy files as resampling cache is deprecated.",
+                stacklevel=3
+            )
             LOG.warning("Converting resampling LUT from .npz to .zarr")
             zarr_out = xr.Dataset()
             with np.load(fname_np, 'r') as fid:
@@ -684,9 +689,12 @@ class _LegacySatpyEWAResampler(BaseResampler):
 
     def __init__(self, source_geo_def, target_geo_def):
         """Init _LegacySatpyEWAResampler."""
-        warnings.warn("A new version of pyresample is available. Please "
-                      "upgrade to get access to a newer 'ewa' and "
-                      "'ewa_legacy' resampler.")
+        warnings.warn(
+            "A new version of pyresample is available. Please "
+            "upgrade to get access to a newer 'ewa' and "
+            "'ewa_legacy' resampler.",
+            stacklevel=2
+        )
         super(_LegacySatpyEWAResampler, self).__init__(source_geo_def, target_geo_def)
         self.cache = {}
 
@@ -897,8 +905,11 @@ class BilinearResampler(BaseResampler):
             try:
                 self.resampler.load_resampling_info(filename)
             except AttributeError:
-                warnings.warn("Bilinear resampler can't handle caching, "
-                              "please upgrade Pyresample to 0.17.0 or newer.")
+                warnings.warn(
+                    "Bilinear resampler can't handle caching, "
+                    "please upgrade Pyresample to 0.17.0 or newer.",
+                    stacklevel=2
+                )
                 raise IOError
         else:
             raise IOError
@@ -916,8 +927,11 @@ class BilinearResampler(BaseResampler):
             try:
                 self.resampler.save_resampling_info(filename)
             except AttributeError:
-                warnings.warn("Bilinear resampler can't handle caching, "
-                              "please upgrade Pyresample to 0.17.0 or newer.")
+                warnings.warn(
+                    "Bilinear resampler can't handle caching, "
+                    "please upgrade Pyresample to 0.17.0 or newer.",
+                    stacklevel=2
+                )
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
@@ -1075,8 +1089,12 @@ def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
                 new_dim_chunk = lcm(chunk_size, agg_size)
                 new_chunks[dim_idx] = new_dim_chunk
     if need_rechunk:
-        warnings.warn("Array chunk size is not divisible by aggregation factor. "
-                      "Re-chunking to continue native resampling.", PerformanceWarning)
+        warnings.warn(
+            "Array chunk size is not divisible by aggregation factor. "
+            "Re-chunking to continue native resampling.",
+            PerformanceWarning,
+            stacklevel=5
+        )
         dask_arr = dask_arr.rechunk(tuple(new_chunks))
     return dask_arr
 
@@ -1107,14 +1125,21 @@ def _get_arg_to_pass_for_skipna_handling(**kwargs):
 
     if PR_USE_SKIPNA:
         if 'mask_all_nan' in kwargs:
-            warnings.warn('Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
-                          'Continuing with default skipna=True, if not provided differently.', DeprecationWarning)
+            warnings.warn(
+                'Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
+                'Continuing with default skipna=True, if not provided differently.',
+                DeprecationWarning,
+                stacklevel=3
+            )
             kwargs.pop('mask_all_nan')
     else:
         if 'mask_all_nan' in kwargs:
-            warnings.warn('Argument mask_all_nan is deprecated.'
-                          'Please update Pyresample and use skipna for missing values handling.',
-                          DeprecationWarning)
+            warnings.warn(
+                'Argument mask_all_nan is deprecated.'
+                'Please update Pyresample and use skipna for missing values handling.',
+                DeprecationWarning,
+                stacklevel=3
+            )
         kwargs.setdefault('mask_all_nan', False)
         kwargs.pop('skipna')
 
@@ -1362,7 +1387,10 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
             if resampler == "gradient_search":
-                warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?')
+                warnings.warn(
+                    'Gradient search resampler not available. Maybe missing `shapely`?',
+                    stacklevel=2
+                )
             raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler

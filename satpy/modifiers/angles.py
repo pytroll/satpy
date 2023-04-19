@@ -185,7 +185,9 @@ class ZarrCacheHelper:
                 "has been rechunked for caching, but this is not optimal for "
                 "future calculations. "
                 f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
-                PerformanceWarning)
+                PerformanceWarning,
+                stacklevel=3
+            )
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)

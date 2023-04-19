@@ -1,3 +1,146 @@
+## Version 0.41.1 (2023/03/15)
+
+### Issues Closed
+
+* [Issue 2414](https://github.com/pytroll/satpy/issues/2414) - Certain composite images not plotting correctly using imshow - but they are fine using `scene.show()`
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2415](https://github.com/pytroll/satpy/pull/2415) - Fix dataid attribute access in JMA HRIT readers
+
+In this release 1 pull request was closed.
+
+
+## Version 0.41.0 (2023/03/14)
+
+### Issues Closed
+
+* [Issue 2399](https://github.com/pytroll/satpy/issues/2399) - Latitude and Longitude for GK2A AMI products
+* [Issue 2395](https://github.com/pytroll/satpy/issues/2395) - DataID.__getattr__ calls nonexisting method on parent class ([PR 2396](https://github.com/pytroll/satpy/pull/2396) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2392](https://github.com/pytroll/satpy/issues/2392) - The cloud_top_height composite broken for PPS ([PR 2403](https://github.com/pytroll/satpy/pull/2403) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2386](https://github.com/pytroll/satpy/issues/2386) - Docs incorrect for cf writer compression options ([PR 2390](https://github.com/pytroll/satpy/pull/2390) by [@sfinkens](https://github.com/sfinkens))
+* [Issue 2288](https://github.com/pytroll/satpy/issues/2288) - Add support for reducing Rayleigh correction at large solar zenith angles ([PR 2380](https://github.com/pytroll/satpy/pull/2380) by [@yukaribbba](https://github.com/yukaribbba))
+* [Issue 2244](https://github.com/pytroll/satpy/issues/2244) - Bug in CFWriter with netcdf4>=1.60 because of changing behaviour of zlib encoding specification ([PR 2390](https://github.com/pytroll/satpy/pull/2390) by [@sfinkens](https://github.com/sfinkens))
+
+In this release 6 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2412](https://github.com/pytroll/satpy/pull/2412) - Repair CF writer tests failing with libnetcdf >= 4.9.0
+* [PR 2411](https://github.com/pytroll/satpy/pull/2411) - Fix warning when CF-writing a Scene with SwathDefinition area
+* [PR 2408](https://github.com/pytroll/satpy/pull/2408) - Remove DataID attribute access in seviri_l2_grib reader
+* [PR 2405](https://github.com/pytroll/satpy/pull/2405) - MWI v2 test dataset has BT calibration factors for each channel
+* [PR 2403](https://github.com/pytroll/satpy/pull/2403) - Fix failing NWCSAF/PPS composites ([2392](https://github.com/pytroll/satpy/issues/2392))
+* [PR 2390](https://github.com/pytroll/satpy/pull/2390) - Drop default compression in CF Writer ([2386](https://github.com/pytroll/satpy/issues/2386), [2244](https://github.com/pytroll/satpy/issues/2244))
+
+#### Features added
+
+* [PR 2396](https://github.com/pytroll/satpy/pull/2396) - Remove DataID attribute access ([2395](https://github.com/pytroll/satpy/issues/2395))
+* [PR 2391](https://github.com/pytroll/satpy/pull/2391) - Increase warnings stacklevel
+* [PR 2388](https://github.com/pytroll/satpy/pull/2388) - Fix gap between day/night-only composites
+* [PR 2380](https://github.com/pytroll/satpy/pull/2380) - Add an interface for reducing Rayleigh correction at high solar zenith angles in composites YAML ([2288](https://github.com/pytroll/satpy/issues/2288))
+
+#### Documentation changes
+
+* [PR 2390](https://github.com/pytroll/satpy/pull/2390) - Drop default compression in CF Writer ([2386](https://github.com/pytroll/satpy/issues/2386), [2244](https://github.com/pytroll/satpy/issues/2244))
+
+#### Clean ups
+
+* [PR 2404](https://github.com/pytroll/satpy/pull/2404) - Convert TestYAMLFiles to pytest
+* [PR 2397](https://github.com/pytroll/satpy/pull/2397) - Don't use deprecated distutils module.
+
+In this release 13 pull requests were closed.
+
+
+## Version 0.40.0 (2023/02/09)
+
+### Issues Closed
+
+* [Issue 2385](https://github.com/pytroll/satpy/issues/2385) - Tests needed for PSPRayleighReflectance
+* [Issue 2381](https://github.com/pytroll/satpy/issues/2381) - Remote files reading example does not work. ([PR 2382](https://github.com/pytroll/satpy/pull/2382) by [@djhoese](https://github.com/djhoese))
+* [Issue 2377](https://github.com/pytroll/satpy/issues/2377) - Bug remapping SEVIRI data - bounding box too small
+* [Issue 2376](https://github.com/pytroll/satpy/issues/2376) - Fails displaying the NWCSAF/Geo cloud products correctly
+* [Issue 2374](https://github.com/pytroll/satpy/issues/2374) - Question: How to understand "satpy.enhancements.ahi.jma_true_color_reproduction"?
+* [Issue 2371](https://github.com/pytroll/satpy/issues/2371) - cloud_top_height colormap is broken ([PR 2373](https://github.com/pytroll/satpy/pull/2373) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2368](https://github.com/pytroll/satpy/issues/2368) - Fails to resample RSS in native format
+* [Issue 2366](https://github.com/pytroll/satpy/issues/2366) - Problem caching angles derivation: `TypeError: Object of type float32 is not JSON serializable` ([PR 2367](https://github.com/pytroll/satpy/pull/2367) by [@adybbroe](https://github.com/adybbroe))
+* [Issue 2363](https://github.com/pytroll/satpy/issues/2363) - Runtime deprecation warning is thrown for compositor that is not used ([PR 2384](https://github.com/pytroll/satpy/pull/2384) by [@strandgren](https://github.com/strandgren))
+* [Issue 2357](https://github.com/pytroll/satpy/issues/2357) - Alpha band improvement for DayNightCompositor ([PR 2358](https://github.com/pytroll/satpy/pull/2358) by [@yukaribbba](https://github.com/yukaribbba))
+* [Issue 2349](https://github.com/pytroll/satpy/issues/2349) - A bug not detected by tests introduced when porting mitiff writer to PIL ([PR 2350](https://github.com/pytroll/satpy/pull/2350) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 2343](https://github.com/pytroll/satpy/issues/2343) - HTTPSConnectionPool（host='zenodo.org'， port=443）
+* [Issue 2339](https://github.com/pytroll/satpy/issues/2339) - `numpy.bool` type deprecated, new release needed
+* [Issue 2330](https://github.com/pytroll/satpy/issues/2330) - ancillary variables does not get resampled ([PR 2336](https://github.com/pytroll/satpy/pull/2336) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2329](https://github.com/pytroll/satpy/issues/2329) - resampling replaces ancillary variable ([PR 2336](https://github.com/pytroll/satpy/pull/2336) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2308](https://github.com/pytroll/satpy/issues/2308) - Unify colormap creations ([PR 2313](https://github.com/pytroll/satpy/pull/2313) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2298](https://github.com/pytroll/satpy/issues/2298) - There is a bug in 'find_files_and_readers(reader='modis_l2)'' ([PR 2299](https://github.com/pytroll/satpy/pull/2299) by [@springfieldpsk](https://github.com/springfieldpsk))
+* [Issue 2286](https://github.com/pytroll/satpy/issues/2286) - satpy_cf_nc reader to support variables with same name but different attributes ([PR 2290](https://github.com/pytroll/satpy/pull/2290) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 2095](https://github.com/pytroll/satpy/issues/2095) - Problem with merged composites for VIIRS SDR and NWCSAF ([PR 2101](https://github.com/pytroll/satpy/pull/2101) by [@ninahakansson](https://github.com/ninahakansson))
+* [Issue 1844](https://github.com/pytroll/satpy/issues/1844) - Improve support for mode P images ([PR 2301](https://github.com/pytroll/satpy/pull/2301) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 690](https://github.com/pytroll/satpy/issues/690) - native python readers for GOES GVAR and McIDAS Area format
+
+In this release 21 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2382](https://github.com/pytroll/satpy/pull/2382) - Fix Scene storage options not being used if no other reader_kwargs are passed ([2381](https://github.com/pytroll/satpy/issues/2381))
+* [PR 2373](https://github.com/pytroll/satpy/pull/2373) - Fix palette images for float data ([2371](https://github.com/pytroll/satpy/issues/2371))
+* [PR 2367](https://github.com/pytroll/satpy/pull/2367) - Fix bug hashing the angles derivation using the NWCSAF reader ([2366](https://github.com/pytroll/satpy/issues/2366))
+* [PR 2360](https://github.com/pytroll/satpy/pull/2360) - Fix "p_id" to be compatible with Himawari-9
+* [PR 2350](https://github.com/pytroll/satpy/pull/2350) - fix write multiple channels mitiff writer ([2349](https://github.com/pytroll/satpy/issues/2349))
+* [PR 2336](https://github.com/pytroll/satpy/pull/2336) - Fix ancillary variable confusion after resampling ([2330](https://github.com/pytroll/satpy/issues/2330), [2329](https://github.com/pytroll/satpy/issues/2329))
+* [PR 2309](https://github.com/pytroll/satpy/pull/2309) - Fix amsub_l1c_aapp.yaml frequency handling pointers
+* [PR 2299](https://github.com/pytroll/satpy/pull/2299) - Fix filter in modis_l2.yaml ([2298](https://github.com/pytroll/satpy/issues/2298))
+* [PR 2290](https://github.com/pytroll/satpy/pull/2290) - satpy_cf_nc reader to support reading variables with the same name with different resolutions from two files ([2286](https://github.com/pytroll/satpy/issues/2286))
+* [PR 2101](https://github.com/pytroll/satpy/pull/2101) - Drop nwcsaf y coord ([2095](https://github.com/pytroll/satpy/issues/2095))
+* [PR 1719](https://github.com/pytroll/satpy/pull/1719) - Make WavelengthRange importable from satpy.dataset
+
+#### Features added
+
+* [PR 2384](https://github.com/pytroll/satpy/pull/2384) - Improve handing of deprecation warnings for deprecated YAML composite recipes ([2363](https://github.com/pytroll/satpy/issues/2363))
+* [PR 2378](https://github.com/pytroll/satpy/pull/2378) - Adapt unit test between categorical and continuous
+* [PR 2372](https://github.com/pytroll/satpy/pull/2372) - add flash_area composite for LI L2
+* [PR 2358](https://github.com/pytroll/satpy/pull/2358) - Add an argument to the compositor to switch alpha band on/off in DayNightCompositor ([2357](https://github.com/pytroll/satpy/issues/2357))
+* [PR 2355](https://github.com/pytroll/satpy/pull/2355) - Make the nwcsaf nc readers tests use real files
+* [PR 2353](https://github.com/pytroll/satpy/pull/2353) - Add some project urls for pypi display
+* [PR 2345](https://github.com/pytroll/satpy/pull/2345) - Add time coverage attrs for TROPOMI L2
+* [PR 2341](https://github.com/pytroll/satpy/pull/2341) - Seviri l2 cf harmonization
+* [PR 2337](https://github.com/pytroll/satpy/pull/2337) - Add ATMS SDR HDF5 format reader
+* [PR 2327](https://github.com/pytroll/satpy/pull/2327) - Update himawari8/9 JMA True Color Reproduction composite
+* [PR 2313](https://github.com/pytroll/satpy/pull/2313) - Refactor colormap creation ([2308](https://github.com/pytroll/satpy/issues/2308))
+* [PR 2312](https://github.com/pytroll/satpy/pull/2312) - Add config option for temporary directory
+* [PR 2305](https://github.com/pytroll/satpy/pull/2305) - Remote file reading for FCI L1c
+* [PR 2304](https://github.com/pytroll/satpy/pull/2304) - Add additional OLCI L2 datasets.
+* [PR 2301](https://github.com/pytroll/satpy/pull/2301) - Improve support for p-mode images ([1844](https://github.com/pytroll/satpy/issues/1844))
+* [PR 2285](https://github.com/pytroll/satpy/pull/2285) - Add a reader for H-SAF h10 Snow Cover (SC) in hdf5
+* [PR 2282](https://github.com/pytroll/satpy/pull/2282) - Add the 'Rocket Plume' RGB to satpy.
+* [PR 2281](https://github.com/pytroll/satpy/pull/2281) - group save_datasets result by file
+* [PR 2275](https://github.com/pytroll/satpy/pull/2275) - Multiscene blend with weights
+
+#### Documentation changes
+
+* [PR 2369](https://github.com/pytroll/satpy/pull/2369) - Add Getting Help section to documentation
+* [PR 2356](https://github.com/pytroll/satpy/pull/2356) - Add tmp_path to the list of fixtures use in test_readers.py
+* [PR 2348](https://github.com/pytroll/satpy/pull/2348) - Add an initial section on writing tests
+* [PR 2342](https://github.com/pytroll/satpy/pull/2342) - Fix typos in Changelog Isse -> Issue
+
+#### Clean ups
+
+* [PR 2361](https://github.com/pytroll/satpy/pull/2361) - Fix Sar lon/lat interpolator for scipy deprecation
+* [PR 2359](https://github.com/pytroll/satpy/pull/2359) - Speed up `find_files_and_readers`
+* [PR 2354](https://github.com/pytroll/satpy/pull/2354) - Stop creating dummy files in cwd when testing
+* [PR 2344](https://github.com/pytroll/satpy/pull/2344) - Remove unneeded code from olci reader
+
+In this release 38 pull requests were closed.
+
+
 ## Version 0.39.0 (2022/12/30)
 
 ### Issues Closed

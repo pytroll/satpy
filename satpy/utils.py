@@ -21,6 +21,7 @@ from __future__ import annotations
 import contextlib
 import datetime
 import logging
+import os
 import pathlib
 import warnings
 from contextlib import contextmanager
@@ -28,12 +29,11 @@ from copy import deepcopy
 from typing import Mapping, Optional
 from urllib.parse import urlparse
 
+import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy import CHUNK_SIZE
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -372,7 +372,10 @@ def _get_sat_altitude(data_arr, key_prefixes):
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
         alt = orb_params['projection_altitude']
-        warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        warnings.warn(
+            'Actual satellite altitude not available, using projection altitude instead.',
+            stacklevel=3
+        )
     return alt
 
 
@@ -386,7 +389,10 @@ def _get_sat_lonlat(data_arr, key_prefixes):
     except KeyError:
         lon = orb_params['projection_longitude']
         lat = orb_params['projection_latitude']
-        warnings.warn('Actual satellite lon/lat not available, using projection center instead.')
+        warnings.warn(
+            'Actual satellite lon/lat not available, using projection center instead.',
+            stacklevel=3
+        )
     return lon, lat
 
 
@@ -568,29 +574,61 @@ def ignore_invalid_float_warnings():
         yield
 
 
-def get_chunk_size_limit(dtype):
-    """Compute the chunk size limit in bytes given *dtype*.
+def get_chunk_size_limit(dtype=float):
+    """Compute the chunk size limit in bytes given *dtype* (float by default).
+
+    It is derived from PYTROLL_CHUNK_SIZE if defined (although deprecated) first, from dask config's `array.chunk-size`
+    then. It defaults to 128MiB.
 
     Returns:
-        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
-        otherwise it returns the computed chunk size in bytes.
+        The recommended chunk size in bytes.
     """
-    pixel_size = get_chunk_pixel_size()
+    pixel_size = _get_chunk_pixel_size()
     if pixel_size is not None:
         return pixel_size * np.dtype(dtype).itemsize
-    return None
+    return get_dask_chunk_size_in_bytes()
 
 
-def get_chunk_pixel_size():
-    """Compute the maximum chunk size from CHUNK_SIZE."""
-    if CHUNK_SIZE is None:
+def get_dask_chunk_size_in_bytes():
+    """Get the dask configured chunk size in bytes."""
+    return dask.utils.parse_bytes(dask.config.get("array.chunk-size", "128MiB"))
+
+
+def _get_chunk_pixel_size():
+    """Compute the maximum chunk size from PYTROLL_CHUNK_SIZE."""
+    legacy_chunk_size = _get_pytroll_chunk_size()
+    if legacy_chunk_size is not None:
+        return legacy_chunk_size ** 2
+
+
+def get_legacy_chunk_size():
+    """Get the legacy chunk size.
+
+    This function should only be used while waiting for code to be migrated to use satpy.utils.get_chunk_size_limit
+    instead.
+    """
+    chunk_size = _get_pytroll_chunk_size()
+
+    if chunk_size is not None:
+        return chunk_size
+
+    import math
+
+    return int(math.sqrt(get_dask_chunk_size_in_bytes() / 8))
+
+
+def _get_pytroll_chunk_size():
+    try:
+        chunk_size = int(os.environ['PYTROLL_CHUNK_SIZE'])
+        warnings.warn(
+            "The PYTROLL_CHUNK_SIZE environment variable is pending deprecation. "
+            "You can use the dask config setting `array.chunk-size` (or the DASK_ARRAY__CHUNK_SIZE environment"
+            " variable) and set it to the square of the PYTROLL_CHUNK_SIZE instead.",
+            stacklevel=2
+        )
+        return chunk_size
+    except KeyError:
         return None
-
-    if isinstance(CHUNK_SIZE, (tuple, list)):
-        array_size = np.product(CHUNK_SIZE)
-    else:
-        array_size = CHUNK_SIZE ** 2
-    return array_size
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
@@ -660,9 +698,12 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
 def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
     shared_storage_options = reader_kwargs.pop("storage_options", {})
+    if not reader_kwargs:
+        # no other reader kwargs
+        return shared_storage_options
     for reader_name, rkwargs in reader_kwargs.items():
         if not isinstance(rkwargs, dict):
-            # reader kwargs are not per-reader, return a single dictonary of storage options
+            # reader kwargs are not per-reader, return a single dictionary of storage options
             return shared_storage_options
         if shared_storage_options:
             # set base storage options if there are any

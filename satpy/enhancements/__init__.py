@@ -129,7 +129,11 @@ def using_map_blocks(func):
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
-    warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
+    warnings.warn(
+        "'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     img.data.data = img.data.data / 100
     return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 

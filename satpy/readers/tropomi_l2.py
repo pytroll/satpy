@@ -36,11 +36,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 DATE_FMT = '%Y-%m-%dT%H:%M:%SZ'
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class TROPOMIL2FileHandler(NetCDF4FileHandler):

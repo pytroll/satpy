@@ -41,16 +41,16 @@ from threading import Lock
 import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
-import rioxarray
 import xarray as xr
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def dictify(r):
@@ -585,7 +585,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = xr.open_dataset(self.filename, engine="rasterio",
+                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords['x'])),
                                       y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)

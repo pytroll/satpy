@@ -50,11 +50,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf4_utils import from_sds
 from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class ModisL2HDFFileHandler(HDFEOSGeoReader):

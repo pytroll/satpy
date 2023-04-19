@@ -316,10 +316,8 @@ def fake_area():
 @pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
-    ds1 = xr.DataArray(
-            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
-    ds2 = xr.DataArray(
-            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
     return (ds1, ds2)
 
 
@@ -396,8 +394,9 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b))
         res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        for i in range(3):
+            np.testing.assert_allclose(res.values[i], expected_channel)
 
     def test_night_only_sza_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is included."""
@@ -405,35 +404,41 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
         res = comp((self.data_b, self.sza))
         res = res.compute()
-        expected = np.array([[np.nan, 0.], [0.5, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[0., 0.33296056], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_night_only_sza_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
-        res = comp((self.data_b, self.sza))
+        res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected = np.array([[0., 0.11042631], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
 
     def test_night_only_area_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
-        res = comp(self.data_b)
+        res = comp((self.data_b,))
         res = res.compute()
-        expected = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_night_only_area_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
-        res = comp(self.data_b)
+        res = comp((self.data_b,))
         res = res.compute()
-        expected = np.array([np.nan, np.nan])
+        expected = np.array([[np.nan, 0.], [0., 0.]])
         np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
 
     def test_day_only_sza_with_alpha(self):
         """Test compositor with day portion with alpha band when SZA data is included."""
@@ -441,8 +446,10 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_alpha = np.array([[1., 0.66703944], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_sza_without_alpha(self):
         """Test compositor with day portion without alpha band when SZA data is included."""
@@ -450,26 +457,42 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
         res = comp((self.data_a, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.22122352], [np.nan, np.nan]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_channel_data = np.array([[0., 0.22122352], [0., 0.]])
+        for i in range(3):
+            np.testing.assert_allclose(res.values[i], expected_channel_data)
+        assert 'A' not in res.bands
 
     def test_day_only_area_with_alpha(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp(self.data_a)
+        res = comp((self.data_a, ))
         res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_alpha = np.array([[1., 1.], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
+
+    def test_day_only_area_with_alpha_and_missing_data(self):
+        """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
+        res = comp((self.data_b,))
+        res = res.compute()
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
+        expected_alpha = np.array([[np.nan, 1.], [1., 1.]])
+        np.testing.assert_allclose(res.values[0], expected_l_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_area_without_alpha(self):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
-        res = comp(self.data_a)
+        res = comp((self.data_a,))
         res = res.compute()
-        expected = np.array([0., 0.33164983])
+        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
+        assert 'A' not in res.bands
 
 
 class TestFillingCompositor(unittest.TestCase):
@@ -497,21 +520,11 @@ class TestMultiFiller(unittest.TestCase):
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
         attrs = {"units": "K"}
-        a = xr.DataArray(
-                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        b = xr.DataArray(
-                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
-                attrs=attrs.copy())
-        c = xr.DataArray(
-                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
-                attrs=attrs.copy())
-        d = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
-                attrs=attrs.copy())
-        e = xr.DataArray(
-                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
-                attrs=attrs.copy())
+        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]), attrs=attrs.copy())
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]), attrs=attrs.copy())
+        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]), attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
@@ -720,77 +733,107 @@ class TestColorizeCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
-class TestCloudTopHeightCompositor(unittest.TestCase):
-    """Test the CloudTopHeightCompositor."""
+class TestCloudCompositorWithoutCloudfree:
+    """Test the CloudCompositorWithoutCloudfree."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        from satpy.composites.cloud_products import CloudTopHeightCompositor
-        self.colormap_composite = CloudTopHeightCompositor('test_cmap_compositor')
-        self.palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                                    dims=['value', 'band'])
-        self.palette.attrs['palette_meanings'] = [2, 3, 4]
+        from satpy.composites.cloud_products import CloudCompositorWithoutCloudfree
+        self.colormap_composite = CloudCompositorWithoutCloudfree('test_cmap_compositor')
 
-        self.exp = np.array([[[0., 0.498, 0.],
-                              [0., 0.498, np.nan]],
-                             [[0., 0.498, 0.],
-                              [0., 0.498, np.nan]],
-                             [[0., 0.498, 0.],
-                              [0., 0.498, np.nan]]])
-        self.exp_all_valid = np.array([[[0., 0.498, 0.],
-                                        [0., 0.498, 0.]],
-                                       [[0., 0.498, 0.],
-                                        [0., 0.498, 0.]],
-                                       [[0., 0.498, 0.],
-                                        [0., 0.498, 0.]]])
+        self.exp = np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, 655350]])
+        self.exp_bad_oc = np.array([[4, 3, 2],
+                                    [2, np.nan, 4],
+                                    [np.nan, 7, 255]])
 
     def test_call_numpy_with_invalid_value_in_status(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(np.array([[1, 0, 1], [1, 0, 65535]]), dims=['y', 'x'],
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]]), dims=['y', 'x'],
                               attrs={'_FillValue': 65535})
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
-                            dims=['y', 'x'])
-        res = self.colormap_composite([data, self.palette, status])
-
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 65535,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
     def test_call_dask_with_invalid_value_in_status(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 65535]])), dims=['y', 'x'],
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]])), dims=['y', 'x'],
                               attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
-                            dims=['y', 'x'])
-        res = self.colormap_composite([data, self.palette, status])
-
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
-    def test_call_dask_with_invalid_value_in_data(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 99]], dtype=np.uint8)),
+    def test_call_bad_optical_conditions(self):
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [3, 3, 3], [0, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535,
+                                     "flag_meanings": 'bad_optical_conditions'})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 255, 4], [255, 7, 255]], dtype=np.uint8),
                             dims=['y', 'x'],
-                            attrs={'_FillValue': 99})
-        res = self.colormap_composite([data, self.palette, status])
+                            name='cmic_cre',
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        res = self.colormap_composite([data, status])
+        np.testing.assert_allclose(res, self.exp_bad_oc, atol=1e-4)
 
-        np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
-
-    def test_call_with_alternative_fill_value_color(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+    def test_bad_indata(self):
+        """Test the CloudCompositorWithoutCloudfree composite generation without status."""
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4], [255, 7, 255]], dtype=np.uint8),
                             dims=['y', 'x'],
-                            attrs={'_FillValue': 99})
-        self.palette.attrs['fill_value_color'] = np.array([1, 1, 1])
-        res = self.colormap_composite([data, self.palette, status])
-        exp = np.array([[[1., 0.498, 1.],
-                         [1., 0.498, 1.]],
-                        [[1., 0.498, 1.],
-                         [1., 0.498, 1.]],
-                        [[1., 0.498, 1.],
-                         [1., 0.498, 1.]]])
-        np.testing.assert_allclose(res, exp, atol=1e-4)
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        np.testing.assert_raises(ValueError, self.colormap_composite, [data])
+
+
+class TestCloudCompositorCommonMask:
+    """Test the CloudCompositorCommonMask."""
+
+    def setup_method(self):
+        """Set up the test case."""
+        from satpy.composites.cloud_products import CloudCompositorCommonMask
+
+        self.exp_a = np.array([[4, 3, 2],
+                               [2, 3, 655350],
+                               [np.nan, np.nan, np.nan]])
+        self.exp_b = np.array([[4, 3, 2],
+                               [2, 3, 255],
+                               [np.nan, np.nan, np.nan]])
+        self.colormap_composite = CloudCompositorCommonMask('test_cmap_compositor')
+
+    def test_call_numpy(self):
+        """Test the CloudCompositorCommonMask with numpy."""
+        mask = xr.DataArray(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]]), dims=['y', 'x'],
+                            attrs={'_FillValue': 255})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [np.nan, np.nan, np.nan]], dtype=np.float32),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 65535,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, mask])
+        np.testing.assert_allclose(res, self.exp_a, atol=1e-4)
+
+    def test_call_dask(self):
+        """Test the CloudCompositorCommonMask with dask."""
+        mask = xr.DataArray(da.from_array(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]])), dims=['y', 'x'],
+                            attrs={'_FillValue': 255})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        res = self.colormap_composite([data, mask])
+        np.testing.assert_allclose(res, self.exp_b, atol=1e-4)
+
+    def test_bad_call(self):
+        """Test the CloudCompositorCommonMask without mask."""
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        np.testing.assert_raises(ValueError, self.colormap_composite, [data])
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
@@ -1010,6 +1053,13 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
         self.assertEqual(res.attrs['resolution'], 333)
+
+    def test_deprecation_warning(self):
+        """Test deprecation warning for dcprecated composite recipes."""
+        warning_message = 'foo is a deprecated composite. Use composite bar instead.'
+        self.comp.attrs['deprecation_warning'] = warning_message
+        with pytest.warns(UserWarning, match=warning_message):
+            self.comp([self.all_valid])
 
 
 class TestAddBands(unittest.TestCase):
