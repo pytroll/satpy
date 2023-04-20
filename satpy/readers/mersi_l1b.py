@@ -32,9 +32,11 @@ from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
+N_TOT_IR_CHANS_LL = 6
 
-class MERSI2L1B(HDF5FileHandler):
-    """MERSI-2 L1B file reader."""
+
+class MERSIL1B(HDF5FileHandler):
+    """MERSI-2/MERSI-LL L1B file reader."""
 
     def _strptime(self, date_attr, time_attr):
         """Parse date/time strings."""
@@ -60,6 +62,7 @@ class MERSI2L1B(HDF5FileHandler):
         file_sensor = self['/attr/Sensor Identification Code']
         sensor = {
             'MERSI': 'mersi-2',
+            'MERSI LL': 'mersi-ll',
         }.get(file_sensor, file_sensor)
         return sensor
 
@@ -70,7 +73,6 @@ class MERSI2L1B(HDF5FileHandler):
         except ValueError:
             # numpy array but has more than one element
             return slope[cal_index], intercept[cal_index]
-        return slope, intercept
 
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
@@ -107,12 +109,9 @@ class MERSI2L1B(HDF5FileHandler):
             data = data * slope + intercept
 
         if dataset_id.get('calibration') == "reflectance":
-            # some bands have 0 counts for the first N columns and
-            # seem to be invalid data points
-            data = data.where(data != 0)
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
-            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
+            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
         elif dataset_id.get('calibration') == "brightness_temperature":
             calibration_index = ds_info['calibration_index']
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
@@ -179,12 +178,27 @@ class MERSI2L1B(HDF5FileHandler):
         else:
             # new versions of pyspectral can do dask arrays
             data.data = bt_data
+
+        # Some BT bands seem to have 0 in the first 10 columns
+        # and it is an invalid measurement, so let's mask
+        data = data.where(data != 0)
+
         # additional corrections from the file
-        corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
-        corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
+        if self.sensor_name == 'mersi-2':
+            corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
+            corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
+        elif self.sensor_name == 'mersi-ll':
+            # MERSI-LL stores these coefficients differently
+            try:
+                coeffs = self['/attr/TBB_Trans_Coefficient']
+                corr_coeff_a = coeffs[calibration_index]
+                corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
+            except KeyError:
+                return data
+
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a
-        # Some BT bands seem to have 0 in the first 10 columns
-        # and it is an invalid Kelvin measurement, so let's mask
+        # some bands have 0 counts for the first N columns and
+        # seem to be invalid data points
         data = data.where(data != 0)
         return data
