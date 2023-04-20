@@ -179,7 +179,7 @@ def _get_250m_ll_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
-def _get_geo_data(num_scans, rows_per_scan, num_cols, prefix='Geolocation/'):
+def _get_geo_data(num_scans, rows_per_scan, num_cols, prefix):
     geo = {
         prefix + 'Longitude':
             xr.DataArray(
@@ -237,7 +237,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         }
 
         global_attrs = self._set_sensor_attrs(global_attrs)
-        data = self._get_data_file_content(global_attrs)
+        self._add_tbb_coefficients(global_attrs)
+        data = self._get_data_file_content()
 
         test_content = {}
         test_content.update(global_attrs)
@@ -254,35 +255,45 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             global_attrs['/attr/Sensor Identification Code'] = 'MERSI LL'
         return global_attrs
 
-    def _get_data_file_content(self, global_attrs):
+    def _get_data_file_content(self):
+        if "_geo" in self.filetype_info["file_type"]:
+            return self._add_geo_data_file_content()
+        return self._add_band_data_file_content()
+
+    def _add_geo_data_file_content(self):
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
-        num_cols = self.num_cols
+        return _get_geo_data(num_scans, rows_per_scan,
+                             self._num_cols_for_file_type,
+                             self._geo_prefix_for_file_type)
 
-        data = {}
-        if self.filetype_info['file_type'] == 'mersi2_l1b_1000':
-            data = _get_1km_data(num_scans, rows_per_scan, num_cols)
+    def _add_band_data_file_content(self):
+        num_cols = self._num_cols_for_file_type
+        num_scans = self.num_scans
+        rows_per_scan = self._rows_per_scan
+        is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
+        is_1km = "_1000" in self.filetype_info['file_type']
+        data_func = _get_1km_data if is_1km else (_get_250m_data if is_mersi2 else _get_250m_ll_data)
+        return data_func(num_scans, rows_per_scan, num_cols)
+
+    def _add_tbb_coefficients(self, global_attrs):
+        if not self.filetype_info["file_type"].startswith("mersi2_"):
+            return
+
+        if "_1000" in self.filetype_info['file_type']:
             global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([1.0] * 6)
             global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
-        elif self.filetype_info['file_type'] == 'mersi2_l1b_250':
-            data = _get_250m_data(num_scans, rows_per_scan, num_cols * 2)
+        else:
             global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([0.0] * 6)
             global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
-        elif self.filetype_info['file_type'] == 'mersi2_l1b_1000_geo':
-            data = _get_geo_data(num_scans, rows_per_scan, num_cols)
-        elif self.filetype_info['file_type'] == 'mersi2_l1b_250_geo':
-            data = _get_geo_data(num_scans, rows_per_scan, num_cols * 2,
-                                 prefix='')
-        elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000':
-            data = _get_1km_data(num_scans, rows_per_scan, num_cols)
-        elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250':
-            data = _get_250m_ll_data(num_scans, rows_per_scan, num_cols * 2)
-        elif self.filetype_info['file_type'] == 'mersi_ll_l1b_1000_geo':
-            data = _get_geo_data(num_scans, rows_per_scan, num_cols)
-        elif self.filetype_info['file_type'] == 'mersi_ll_l1b_250_geo':
-            data = _get_geo_data(num_scans, rows_per_scan, num_cols * 2,
-                                 prefix='')
-        return data
+
+    @property
+    def _num_cols_for_file_type(self):
+        return self.num_cols if "1000" in self.filetype_info["file_type"] else self.num_cols * 2
+
+    @property
+    def _geo_prefix_for_file_type(self):
+        return "Geolocation/" if "1000" in self.filetype_info["file_type"] else ""
 
 
 def _test_helper(res):
