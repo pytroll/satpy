@@ -1457,5 +1457,5 @@ def _should_use_compression_keyword():
     versions = _get_backend_versions()
     return (
         versions["libnetcdf"] >= Version("4.9.0") and
-        versions["xarray"] >= Version("2023.04")
+        versions["xarray"] >= Version("2023.05")
     )
