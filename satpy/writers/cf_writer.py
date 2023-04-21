@@ -160,6 +160,7 @@ import json
 import logging
 import warnings
 from collections import OrderedDict, defaultdict
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -745,8 +746,10 @@ class CFWriter(Writer):
     @staticmethod
     def _try_get_units_from_coords(new_data):
         for c in "xy":
-            if "units" in new_data.coords[c].attrs:
-                return new_data.coords[c].attrs["units"]
+            with suppress(KeyError):
+                # If the data has only 1 dimension, it has only one of x or y coords
+                if "units" in new_data.coords[c].attrs:
+                    return new_data.coords[c].attrs["units"]
 
     @staticmethod
     def _encode_xy_coords_projected(new_data):

@@ -52,6 +52,7 @@ dependencies:
   - astropy
   - xarray-datatree
   - pint-xarray
+  - ephem
   - pip:
     - trollsift
     - trollimage>=1.20

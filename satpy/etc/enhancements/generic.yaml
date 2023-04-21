@@ -372,6 +372,101 @@ enhancements:
           - dataset: cma_pal
             color_scale: 255
 
+  pps_cma:
+    standard_name: pps_cma
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cma_pal
+            color_scale: 255
+
+  pps_ct:
+    standard_name: pps_ct
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ct_pal
+            color_scale: 255
+
+  pps_phase:
+    standard_name: pps_phase
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_phase_pal
+            color_scale: 255
+
+  pps_ctth:
+    standard_name: pps_ctth
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+
+  pps_cmaprob:
+    standard_name: pps_cmaprob
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmaprob_pal
+
+  pps_cot:
+    standard_name: pps_cot
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cot_pal
+            color_scale: 255
+
+  pps_cwp:
+    standard_name: pps_cwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cwp_pal
+            color_scale: 255
+
+  pps_iwp:
+    standard_name: pps_iwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_iwp_pal
+
+  pps_lwp:
+    standard_name: pps_lwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_lwp_pal
+
+  pps_cre:
+    standard_name: pps_cre
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cre_pal
+
   cloudmask_extended:
     standard_name: cloudmask_extended
     operations:
@@ -405,12 +500,11 @@ enhancements:
   cloud_top_height_pps:
     standard_name: cloud_top_height_pps
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_alti_pal
 
   cloud_top_height_geo:
     standard_name: cloud_top_height_geo
@@ -465,7 +559,7 @@ enhancements:
   cloud_drop_effective_radius_pps:
     standard_name: cloud_drop_effective_radius_pps
     operations:
-    - name: palettize
+    - name: colorize
       method: !!python/name:satpy.enhancements.colorize
       kwargs:
         palettes:

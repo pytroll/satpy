@@ -185,11 +185,12 @@ import logging
 import xarray as xr
 from pyresample import AreaDefinition
 
-from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class SatpyCFFileHandler(BaseFileHandler):
