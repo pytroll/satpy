@@ -763,7 +763,7 @@ class Writer(Plugin, DataDownloadMixin):
             return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, **kwargs):
+                     compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
@@ -781,6 +781,10 @@ class Writer(Plugin, DataDownloadMixin):
                             If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
+            units (str or None): If not None, will convert the dataset to
+                                    the given unit using pint-xarray before
+                                    saving. Default is not to do any
+                                    conversion.
             **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
@@ -842,7 +846,7 @@ class ImageWriter(Writer):
             instead.
 
         """
-        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
+        super().__init__(name, filename, base_dir, **kwargs)
         if enhance is False:
             # No enhancement
             self.enhancer = False
@@ -865,7 +869,7 @@ class ImageWriter(Writer):
         return init_kwargs, kwargs
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     overlay=None, decorate=None, compute=True, **kwargs):
+                     overlay=None, decorate=None, compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
         This method creates an enhanced image using :func:`get_enhanced_image`.
@@ -873,6 +877,9 @@ class ImageWriter(Writer):
         functions for more details on the arguments passed to this method.
 
         """
+        if units is not None:
+            import pint_xarray  # noqa
+            dataset = dataset.pint.quantify().pint.to(units).pint.dequantify()
         img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)

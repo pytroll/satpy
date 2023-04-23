@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for VIIRS compositors."""
 
+from datetime import datetime
+
 import dask.array as da
 import numpy as np
 import pytest
@@ -49,7 +51,8 @@ class TestVIIRSComposites:
         dnb = da.from_array(dnb, chunks=25)
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
-                           attrs={'name': 'DNB', 'area': area})
+                           attrs={'name': 'DNB', 'area': area,
+                                  'start_time': datetime(2020, 1, 1, 12, 0, 0)})
         return c01
 
     @pytest.fixture
@@ -62,7 +65,8 @@ class TestVIIRSComposites:
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
-                           attrs={'name': 'solar_zenith_angle', 'area': area})
+                           attrs={'name': 'solar_zenith_angle', 'area': area,
+                                  'start_time': datetime(2020, 1, 1, 12, 0, 0)})
         return c02
 
     @pytest.fixture
@@ -74,7 +78,9 @@ class TestVIIRSComposites:
         lza = da.from_array(lza, chunks=25)
         c03 = xr.DataArray(lza,
                            dims=('y', 'x'),
-                           attrs={'name': 'lunar_zenith_angle', 'area': area})
+                           attrs={'name': 'lunar_zenith_angle', 'area': area,
+                                  'start_time': datetime(2020, 1, 1, 12, 0, 0)
+                                  })
         return c03
 
     def test_load_composite_yaml(self):
@@ -134,6 +140,28 @@ class TestVIIRSComposites:
             unique, [3.48479712e-04, 6.96955799e-04, 1.04543189e-03, 4.75394738e-03,
                      9.50784532e-03, 1.42617433e-02, 1.50001560e+03, 3.00001560e+03,
                      4.50001560e+03])
+
+        with pytest.raises(ValueError):
+            comp((c01, c02))
+
+    def test_hncc_dnb_nomoonpha(self, area, c01, c02, c03):
+        """Test the 'hncc_dnb' compositor when no moon phase data is provided."""
+        from satpy.composites.viirs import NCCZinke
+
+        comp = NCCZinke('hncc_dnb', prerequisites=('dnb',),
+                        standard_name='toa_outgoing_radiance_per_'
+                                      'unit_wavelength')
+        res = comp((c01, c02, c03))
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'hncc_dnb'
+        assert res.attrs['standard_name'] == 'ncc_radiance'
+        data = res.compute()
+        unique = np.unique(data)
+        np.testing.assert_allclose(
+            unique, [3.48479672e-04, 6.96955721e-04, 1.04543177e-03, 4.75394684e-03,
+                     9.50784425e-03, 1.42617416e-02, 1.50001543e+03, 3.00001526e+03,
+                     4.50001509e+03])
 
     @pytest.mark.parametrize("dnb_units", ["W m-2 sr-1", "W cm-2 sr-1"])
     @pytest.mark.parametrize("saturation_correction", [False, True])
