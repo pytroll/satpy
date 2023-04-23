@@ -31,7 +31,7 @@ import pytest
 
 import satpy
 from satpy import DatasetDict
-from satpy._config import cached_entry_points
+from satpy._config import cached_entry_point
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
 # NOTE:
@@ -299,7 +299,7 @@ class TestPluginsConfigs:
 
     def setup_method(self):
         """Set up the test."""
-        cached_entry_points.cache_clear()
+        cached_entry_point.cache_clear()
 
     def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
         """Check that the plugin configs are looked for."""
