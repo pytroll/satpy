@@ -76,16 +76,21 @@ Similarly, if you have many workers processing large chunks of data you may
 be using much more memory than you expect. If you limit the number of workers
 *and* the size of the data chunks being processed by each worker you can
 reduce the overall memory usage. Default chunk size can be configured in Satpy
-by setting the following environment variable:
+by using the following around your code:
 
-.. code-block:: bash
+.. code-block:: python
 
-    export PYTROLL_CHUNK_SIZE=2048
+    with dask.config.set("array.chunk-size": "32MiB"):
+      # your code here
 
-This could also be set inside python using ``os.environ``, but must be set
-**before** Satpy is imported. This value defaults to 4096, meaning each
-chunk of data will be 4096 rows by 4096 columns. In the future setting this
-value will change to be easier to set in python.
+For more information about chunk sizes in Satpy, please refer to the
+`Data Chunks` section in :doc:`overview`.
+
+.. note::
+
+    The PYTROLL_CHUNK_SIZE variable is pending deprecation, so the
+    above-mentioned dask configuration parameter should be used instead.
+
 
 Why multiple CPUs are used even with one worker?
 ------------------------------------------------

@@ -524,12 +524,12 @@ _nwcsaf_geo_props = {
                         'CTTH', "float64"),
      'cmic_phase_geo': ("geo", "cmic_phase", None, 'cmic_phase_pal', None, 'cloud_top_phase',
                         'CMIC', "uint8"),
-     'cmic_phase_pps': ("pps", "cmic_phase", None, 'cmic_phase_pal', None, 'cloud_top_phase',
+     'cmic_phase_pps': ("pps", "cmic_phase", None, 'cmic_phase_pal', "cmic_status_flag", 'cloud_top_phase',
                         'CMIC', "uint8"),
      'cmic_reff_geo': ("geo", "cmic_reff", None, 'cmic_reff_pal', None, 'cloud_drop_effective_radius',
                        'CMIC', "float64"),
-     'cmic_reff_pps': ("pps", "cmic_reff", "cmic_cre", 'cmic_cre_pal', None, 'cloud_drop_effective_radius',
-                       'CMIC', "float64"),
+     'cmic_reff_pps': ("pps", "cmic_reff", "cmic_cre", 'cmic_cre_pal', "cmic_status_flag",
+                       'cloud_drop_effective_radius', 'CMIC', "float64"),
      'cmic_cot_geo': ("geo", "cmic_cot", None, 'cmic_cot_pal', None, 'cloud_optical_thickness',
                       'CMIC', "float64"),
      'cmic_cot_pps': ("pps", "cmic_cot", None, 'cmic_cot_pal', None, 'cloud_optical_thickness',
@@ -626,6 +626,7 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
             dims=("y", "x"),
             attrs={
                 "area": fake_area,
+                "scaled_FillValue": 123,
                 "ancillary_variables": ancvars,
                 "valid_range": rng})
 

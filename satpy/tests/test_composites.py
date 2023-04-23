@@ -733,77 +733,107 @@ class TestColorizeCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
-class TestCloudTopHeightCompositor(unittest.TestCase):
-    """Test the CloudTopHeightCompositor."""
+class TestCloudCompositorWithoutCloudfree:
+    """Test the CloudCompositorWithoutCloudfree."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        from satpy.composites.cloud_products import CloudTopHeightCompositor
-        self.colormap_composite = CloudTopHeightCompositor('test_cmap_compositor')
-        self.palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                                    dims=['value', 'band'])
-        self.palette.attrs['palette_meanings'] = [2, 3, 4]
+        from satpy.composites.cloud_products import CloudCompositorWithoutCloudfree
+        self.colormap_composite = CloudCompositorWithoutCloudfree('test_cmap_compositor')
 
-        self.exp = np.array([[[0., 0.498, 0.],
-                              [0., 0.498, np.nan]],
-                             [[0., 0.498, 0.],
-                              [0., 0.498, np.nan]],
-                             [[0., 0.498, 0.],
-                              [0., 0.498, np.nan]]])
-        self.exp_all_valid = np.array([[[0., 0.498, 0.],
-                                        [0., 0.498, 0.]],
-                                       [[0., 0.498, 0.],
-                                        [0., 0.498, 0.]],
-                                       [[0., 0.498, 0.],
-                                        [0., 0.498, 0.]]])
+        self.exp = np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, 655350]])
+        self.exp_bad_oc = np.array([[4, 3, 2],
+                                    [2, np.nan, 4],
+                                    [np.nan, 7, 255]])
 
     def test_call_numpy_with_invalid_value_in_status(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(np.array([[1, 0, 1], [1, 0, 65535]]), dims=['y', 'x'],
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]]), dims=['y', 'x'],
                               attrs={'_FillValue': 65535})
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
-                            dims=['y', 'x'])
-        res = self.colormap_composite([data, self.palette, status])
-
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 65535,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
     def test_call_dask_with_invalid_value_in_status(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 65535]])), dims=['y', 'x'],
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]])), dims=['y', 'x'],
                               attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
-                            dims=['y', 'x'])
-        res = self.colormap_composite([data, self.palette, status])
-
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
-    def test_call_dask_with_invalid_value_in_data(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 99]], dtype=np.uint8)),
+    def test_call_bad_optical_conditions(self):
+        """Test the CloudCompositorWithoutCloudfree composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [3, 3, 3], [0, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535,
+                                     "flag_meanings": 'bad_optical_conditions'})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 255, 4], [255, 7, 255]], dtype=np.uint8),
                             dims=['y', 'x'],
-                            attrs={'_FillValue': 99})
-        res = self.colormap_composite([data, self.palette, status])
+                            name='cmic_cre',
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        res = self.colormap_composite([data, status])
+        np.testing.assert_allclose(res, self.exp_bad_oc, atol=1e-4)
 
-        np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
-
-    def test_call_with_alternative_fill_value_color(self):
-        """Test the CloudTopHeight composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+    def test_bad_indata(self):
+        """Test the CloudCompositorWithoutCloudfree composite generation without status."""
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4], [255, 7, 255]], dtype=np.uint8),
                             dims=['y', 'x'],
-                            attrs={'_FillValue': 99})
-        self.palette.attrs['fill_value_color'] = np.array([1, 1, 1])
-        res = self.colormap_composite([data, self.palette, status])
-        exp = np.array([[[1., 0.498, 1.],
-                         [1., 0.498, 1.]],
-                        [[1., 0.498, 1.],
-                         [1., 0.498, 1.]],
-                        [[1., 0.498, 1.],
-                         [1., 0.498, 1.]]])
-        np.testing.assert_allclose(res, exp, atol=1e-4)
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        np.testing.assert_raises(ValueError, self.colormap_composite, [data])
+
+
+class TestCloudCompositorCommonMask:
+    """Test the CloudCompositorCommonMask."""
+
+    def setup_method(self):
+        """Set up the test case."""
+        from satpy.composites.cloud_products import CloudCompositorCommonMask
+
+        self.exp_a = np.array([[4, 3, 2],
+                               [2, 3, 655350],
+                               [np.nan, np.nan, np.nan]])
+        self.exp_b = np.array([[4, 3, 2],
+                               [2, 3, 255],
+                               [np.nan, np.nan, np.nan]])
+        self.colormap_composite = CloudCompositorCommonMask('test_cmap_compositor')
+
+    def test_call_numpy(self):
+        """Test the CloudCompositorCommonMask with numpy."""
+        mask = xr.DataArray(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]]), dims=['y', 'x'],
+                            attrs={'_FillValue': 255})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [np.nan, np.nan, np.nan]], dtype=np.float32),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 65535,
+                                   'scaled_FillValue': 655350})
+        res = self.colormap_composite([data, mask])
+        np.testing.assert_allclose(res, self.exp_a, atol=1e-4)
+
+    def test_call_dask(self):
+        """Test the CloudCompositorCommonMask with dask."""
+        mask = xr.DataArray(da.from_array(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]])), dims=['y', 'x'],
+                            attrs={'_FillValue': 255})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        res = self.colormap_composite([data, mask])
+        np.testing.assert_allclose(res, self.exp_b, atol=1e-4)
+
+    def test_bad_call(self):
+        """Test the CloudCompositorCommonMask without mask."""
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 255,
+                                   'scaled_FillValue': 255})
+        np.testing.assert_raises(ValueError, self.colormap_composite, [data])
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
