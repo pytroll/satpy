@@ -242,3 +242,11 @@ class TestOCCCIReader:
         """Test end time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
         assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)
+
+    def test_correct_dimnames(self, fake_file_dict):
+        """Check that the loaded dimension names are correct."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_5d']])
+        res = reader.load(ds_list_all)
+        for dsname in ds_list_all:
+            assert res[dsname].dims[0] == 'y'
+            assert res[dsname].dims[1] == 'x'
