@@ -1,0 +1,909 @@
+<?xml version="1.0"?>
+<!DOCTYPE format SYSTEM "eps.dtd">
+<?xml-stylesheet type="text/xsl" href="eps.xsl"?>
+<!--
+    File: eps_iasil2_8.0.xml
+
+    Copyright (c) 2009 EUMETSAT
+
+    This file is part of the EPSXML format specification generated
+    automatically using pfs2xml.
+
+    This XML description is distributed under the GPL license; you can
+    redistribute it and/or modify it under the terms of the GNU General
+    Public License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+
+    This XML description is distributed in the hope that it will be
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with the pfs2xml package; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+    Obtained for Satpy from eugene, where this file was located at
+    share/eugene/formats/eps_iasil2_9.0.xml in April 2023.
+-->
+<format>
+	<version-control>
+		<format-version>
+			<major>11</major>
+			<minor>0</minor>
+			<baseline>current</baseline>
+		</format-version>
+		<pfs-version>
+			<major>9</major>
+			<minor>0</minor>
+		</pfs-version>
+	</version-control>
+	<brief-description>EPS IASI Level 2 Format</brief-description>
+	<full-description>
+    This IASI 2 description was generated using the IASI PFS Excel document Issue 6 Revision 3
+</full-description>
+	<file-extensions>
+		<glob>IASI_???_02_*Z*</glob>
+	</file-extensions>
+	<parameters>
+		<!-- <parameter name="M" value="232" description="Length of complete state vector"/> -->
+		<!-- <parameter name="N" value="3844" description="Number of wavelets that give approximate 10x compression of covariance matrix"/> -->
+		<!-- <parameter name="NEW" value="12" description="Number of wavelengths for Emissivities"/> -->
+		<!-- <parameter name="NLO" value="101" description="Number of pressure Levels for ozone profiles"/> -->
+		<!-- <parameter name="NLQ" value="101" description="Number of Pressure Levels for Water Vapour profiles"/> -->
+		<!-- <parameter name="NLT" value="101" description="Number of Pressure Levels for Temperature profiles"/> -->
+		<parameter name="NL_CO" value="19" description="Number of partial layers for CO"/>
+		<!-- <parameter name="NL_HNO3" value="19" description="Number of partial layers for HNO3"/> -->
+		<parameter name="NL_O3" value="40" description="Number of partial layers for O3"/>
+		<parameter name="NL_SO2" value="5" description="Number of estimated SO2 plume heights"/>
+		<!-- <parameter name="NERR" value="30" description="Number of error data records"/> -->
+		<parameter name="NERRT" value="406" description="Number of elements in the temperature error record = NPCT*(NPCT+1)/2"/>
+		<parameter name="NERRW" value="171" description="Number of elements in the water-vapour error record = NPCT*(NPCT+1)/2"/>
+		<parameter name="NERRO" value="55" description="Number of elements in the ozone error record = NPCT*(NPCT+1)/2"/>
+		<!-- <parameter name="CO_NBR" value="50"/> -->
+		<parameter name="NEVA_CO" value="10" description="Maximum number of eigenvectors for the CO sensitivity matrix"/>
+		<parameter name="NEVA_HNO3" value="21" description="Maximum number of eigenvectors for the HNO3 sensitivity matrix"/>
+		<parameter name="NEVE_HNO3" value="861" description="Maximum number of elements in the HNO3 sensitivity matrix eigenvectors = NEVA_HNO3 * NL_HNO3"/>
+		<parameter name="NEVE_CO" value="190" description="Maximum number of elements in the CO sensitivity matrix eigenvectors = NEVA_CO * NL_CO"/>
+		<!-- <parameter name="HNO3_NBR" value="0"/> -->
+		<!-- <parameter name="O3_NBR" value="0"/> -->
+		<parameter name="NEVA_O3" value="21" description="Maximum number of eigenvectors for the O3 sensitivity matrix"/>
+		<parameter name="NEVE_O3" value="861" description="Maximum number of elements in the O3 sensitivity matrix eigenvectors = NEVA_O3 * NL_O3"/>
+		<!-- <parameter name="NPCT" value="28" description="Number of principal components for temperature in the ERROR_DATA (GIADR :: NUM_TEMPERATURE_PCS)"/> -->
+		<!-- <parameter name="NPCW" value="18" description="Number of principal components for water-vapour in the ERROR_DATA (GIADR :: NUM_WATER_VAPOUR_PCS)"/> -->
+		<!-- <parameter name="NPCO" value="10" description="Number of principal components for ozone in the ERROR_DATA (GIADR :: NUM_OZONE_PCS)"/> -->
+	</parameters>
+	<geolocation>
+		<name>Geolocation</name>
+		<description>Geolocation Coverage (Latitude, Longitude)</description>
+		<latitude>mdr[].EARTH_LOCATION[][0]</latitude>
+		<longitude>mdr[].EARTH_LOCATION[][1]</longitude>
+	</geolocation>
+	<image>
+		<parameter>
+			<name>PRESSURE</name>
+			<label>Pressure Level</label>
+		</parameter>
+		<name>Atmospheric Temperature</name>
+		<description>Atmospheric Temperature</description>
+		<source>mdr[].ATMOSPHERIC_TEMPERATURE[][$PRESSURE]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>PRESSURE</name>
+			<label>Pressure Level</label>
+		</parameter>
+		<name>Water Vapour</name>
+		<description>Atmospheric Water Vapour</description>
+		<source>mdr[].ATMOSPHERIC_WATER_VAPOUR[][$PRESSURE]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>PRESSURE</name>
+			<label>Pressure Level</label>
+		</parameter>
+		<name>Ozone</name>
+		<description>Atmospheric Ozone</description>
+		<source>mdr[].ATMOSPHERIC_OZONE[][$PRESSURE]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Integrated Ozone</name>
+		<description>Integrated Ozone</description>
+		<source>mdr[].INTEGRATED_OZONE[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Surface Temperature 1</name>
+		<description>Surface Temperature 1</description>
+		<source>mdr[].SURFACE_TEMPERATURE[][0]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Surface Temperature 2</name>
+		<description>Surface Temperature 2</description>
+		<source>mdr[].SURFACE_TEMPERATURE[][1]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Integrated N20</name>
+		<description>Integrated N20</description>
+		<source>mdr[].INEGRATED_N2O[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Integrated CO</name>
+		<description>Integrated CO</description>
+		<source>mdr[].INTEGRATED_CO[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Integrated CH4</name>
+		<description>Integrated CH4</description>
+		<source>mdr[].INTEGRATED_CH4[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Integrated CO2</name>
+		<description>Integrated CO2</description>
+		<source>mdr[].INTEGRATED_CO2[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>WAVELENGTH</name>
+			<label>Wavelength</label>
+		</parameter>
+		<name>Surface Emissivity</name>
+		<description>Surface Emissivity</description>
+		<source>mdr[].SURFACE_EMISSIVITY[][$WAVELENGTH]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>Number of cloud formations</name>
+		<description>Number of cloud formations</description>
+		<source>mdr[].NUMBER_CLOUD_FORMATIONS[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>CLOUD</name>
+			<label>Cloud</label>
+		</parameter>
+		<name>Fractional cloud cover</name>
+		<description>Fractional cloud cover</description>
+		<source>mdr[].FRACTIONAL_CLOUD_COVER[][$CLOUD]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>CLOUD</name>
+			<label>Cloud</label>
+		</parameter>
+		<name>Cloud top temperature</name>
+		<description>Cloud top temperature</description>
+		<source>mdr[].CLOUD_TOP_TEMPERATURE[][$CLOUD]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>CLOUD</name>
+			<label>Cloud</label>
+		</parameter>
+		<name>Cloud top pressure</name>
+		<description>Cloud top pressure</description>
+		<source>mdr[].CLOUD_TOP_PRESSURE[][$CLOUD]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<parameter>
+			<name>CLOUD</name>
+			<label>Cloud</label>
+		</parameter>
+		<name>Cloud phase</name>
+		<description>Cloud phase (0=no cloud, 1=liquid, 2=ice, 3=mixed)</description>
+		<source>mdr[].CLOUD_PHASE[][$CLOUD]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_AVHAVL</name>
+		<description>Completness flag for AVHRR products</description>
+		<source>mdr[].FLG_AVHAVL[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_CHNSEL</name>
+		<description>Channel selection flag</description>
+		<source>mdr[].FLG_CHNSEL[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_CLDAVH</name>
+		<description>Cloud formations anaylsed in AVHRR flag</description>
+		<source>mdr[].FLG_CLDAVH[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_CLDPHA</name>
+		<description>Cloud phase flag</description>
+		<source>mdr[].FLG_CLDPHA[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_DAYNIT</name>
+		<description>Flag discriminating between day and night</description>
+		<source>mdr[].FLG_DAYNIT[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_IASICLR</name>
+		<description>IASI-l2 IFOV clear, partly cloudy or cloudy flag</description>
+		<source>mdr[].FLG_IASICLR[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_ITCONV</name>
+		<description>Convergence of the iterative retrieval flag</description>
+		<source>mdr[].FLG_ITCONV[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_ITRBOU</name>
+		<description>Validation of iterated state vector flag</description>
+		<source>mdr[].FLG_ITRBOU[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_LANSEA</name>
+		<description>Flag specifying surface type</description>
+		<source>mdr[].FLG_LANSEA[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_NUMIT</name>
+		<description>Number of iterations used for retrieval</description>
+		<source>mdr[].FLG_NUMIT[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_NWPBAD</name>
+		<description>Validation flag of NWP forecast</description>
+		<source>mdr[].FLG_NWPBAD[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_QUAL</name>
+		<description>Quality and completness of the retrieval</description>
+		<source>mdr[].FLG_QUAL[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_RESID</name>
+		<description>Retrieval residual acceptance flag</description>
+		<source>mdr[].FLG_RESID[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_SATMAN</name>
+		<description>Flag indicating satellite manoeuvre</description>
+		<source>mdr[].FLG_SATMAN[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_SELBAC</name>
+		<description>Selection of background state flag</description>
+		<source>mdr[].FLG_SELBAC[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_SUNGLNT</name>
+		<description>Flag identifying of sun glint</description>
+		<source>mdr[].FLG_SUNGLNT[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_SUPADI</name>
+		<description>Flag indicating super-adiabatic conditions in final retrieval</description>
+		<source>mdr[].FLG_SUPADI[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_SUPSAT</name>
+		<description>Flag indicating super-saturation  in final retrieval</description>
+		<source>mdr[].FLG_SUPSAT[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_THICIR</name>
+		<description>Thin cirrus cloud test</description>
+		<source>mdr[].FLG_THICIR[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_THICOR</name>
+		<description>Thin cirrus has been corrected for</description>
+		<source>mdr[].FLG_THICOR[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<image>
+		<name>FLG_VARCLR</name>
+		<description>Cloud clearing by variational analysis</description>
+		<source>mdr[].FLG_VARCLR[]</source>
+		<geolocation>Geolocation</geolocation>
+	</image>
+	<protocol>eps-product</protocol>
+	<product name="IASI-2" version="Issue 6 Revision 2">
+		<mphr name="mphr" subclass="0" version="2" description="Main Product Header Record ">
+			<delimiter name="Product Details"/>
+			<field name="PRODUCT_NAME" type="string" length="67" description="Complete name of the product"/>
+			<field name="PARENT_PRODUCT_NAME_1" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products, this field is filled with lower case x's."/>
+			<field name="PARENT_PRODUCT_NAME_2" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+			<field name="PARENT_PRODUCT_NAME_3" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+			<field name="PARENT_PRODUCT_NAME_4" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+			<field name="INSTRUMENT_ID" type="enumerated" length="4" description="Instrument identification">
+				<item value="AMSA" name="AMSU-A"/>
+				<item value="ASCA" name="ASCAT"/>
+				<item value="ATOV" name="ATOVS" description="instruments: AVHRR/3, HIRS/4, AMSU-A, MHS"/>
+				<item value="AVHR" name="AVHRR/3"/>
+				<item value="GOME" name="GOME"/>
+				<item value="GRAS" name="GRAS"/>
+				<item value="HIRS" name="HIRS/4"/>
+				<item value="IASI" name="IASI"/>
+				<item value="MHSx" name="MHS"/>
+				<item value="NOAA" name="All NOAA" description="instruments specific to Level 0 NOAA product"/>
+				<item value="SEMx" name="SEM"/>
+				<item value="ADCS" name="ADCS"/>
+				<item value="SBUV" name="SBUV"/>
+				<item value="xxxx" name="No specific instrument"/>
+				<item value="HKTM" name="VCDU34" description="data specific to Level 0"/>
+			</field>
+			<field name="INSTRUMENT_MODEL" type="enumerated" length="3" description="Instrument Model identification">
+				<item value="0" name="Reserved"/>
+				<item value="1" name="Flight Model 1"/>
+				<item value="2" name="Flight Model 2"/>
+				<item value="3" name="Engineering Model"/>
+				<item value="4" name="Protoflight Model"/>
+			</field>
+			<field name="PRODUCT_TYPE" type="enumerated" length="3" description="Product Type">
+				<item value="ENG" description="IASI engineering data"/>
+				<item value="GAC" description="NOAC Global Area Coverage AVHRR data"/>
+				<item value="SND" description="Sounding Data"/>
+				<item value="SZF" description="ASCAT calibrated s0 data at full resolution"/>
+				<item value="SZO" description="ASCAT calibrated s0 data at operational resolution (50 km)"/>
+				<item value="SZR" description="ASCAT calibrated s0 data at research resolution (25 km)"/>
+				<item value="VER" description="IASI verification data"/>
+				<item value="xxx" description="No specific product type specified"/>
+				<item value="AIP" description="NOAA AIP/SAIP data"/>
+				<item value="TIP" description="NOAA TIP/STIP data"/>
+				<item value="HRP" description="HRPT data"/>
+				<item value="LRP" description="LRPT data"/>
+			</field>
+			<field name="PROCESSING_LEVEL" type="enumerated" length="2" description="Processing Level Identification">
+				<item value="00" name="Level 0"/>
+				<item value="01" name="Level 1"/>
+				<item value="1A" name="Level 1a"/>
+				<item value="1B" name="Level 1b"/>
+				<item value="1C" name="Level 1c"/>
+				<item value="02" name="Level 2"/>
+				<item value="03" name="Level 3"/>
+				<item value="xx" name="No Specific Level"/>
+			</field>
+			<field name="SPACECRAFT_ID" type="enumerated" length="3" description="Spacecraft identification">
+				<item value="xxx" description="No specific spacecraft"/>
+				<item value="M01" description="METOP 01"/>
+				<item value="M02" description="METOP 02"/>
+				<item value="M03" description="METOP 03"/>
+				<item value="N15" description="NOAA-K"/>
+				<item value="N16" description="NOAA-L"/>
+				<item value="N17" description="NOAA-M"/>
+				<item value="N18" description="NOAA-N"/>
+				<item value="N19" description="NOAA-N'"/>
+			</field>
+			<field name="SENSING_START" type="time" length="15" description="UTC Time of start of sensing data in this object (PDU, ROI or Full Product)"/>
+			<field name="SENSING_END" type="time" length="15" description="UTC Time of end of sensing data in this object (PDU, ROI or Full Product)"/>
+			<field name="SENSING_START_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of start of sensing data in the dump from which this object is derived. This data is the predicted start time at the MPF level."/>
+			<field name="SENSING_END_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of end of sensing data in the dump from which this object is derived. This data is the predicted end time at the MPF level."/>
+			<field name="PROCESSING_CENTRE" type="enumerated" length="4" description="Processing Centre Identification">
+				<item value="CGS1" description="First EUMETSAT EPS Core Ground Segment"/>
+				<item value="CGS2" description="Second EUMETSAT EPS Core Ground Segment"/>
+				<item value="CGS3" description="Third EUMETSAT EPS Core Ground Segment"/>
+				<item value="NSSx" description="NOAA/NESDIS"/>
+				<item value="RUSx" description="Reference User Station"/>
+				<item value="DMIx" description="DMI, Copenhagen (GRAS SAF)"/>
+				<item value="DWDx" description="DWD, Offenbach (Climate SAF)"/>
+				<item value="FMIx" description="FMI , Helsinki (Ozone SAF)"/>
+				<item value="IMPx" description="IMP, Lisbon  (Land SAF)"/>
+				<item value="INMx" description="INM, Madrid (NCW SAF)"/>
+				<item value="MFxx" description="MF, Lannion (OSI SAF)"/>
+				<item value="UKMO" description="UKMO, Bracknell (NWP SAF)"/>
+				<item value="ERF1" description="R-EPS reprocessing facility 1"/>
+				<item value="ERF2" description="R-EPS reprocessing facility 2"/>
+				<item value="ERF3" description="R-EPS reprocessing facility 3"/>
+			</field>
+			<field name="PROCESSOR_MAJOR_VERSION" type="uinteger" length="5" description="Processing chain major version number"/>
+			<field name="PROCESSOR_MINOR_VERSION" type="uinteger" length="5" description="Processing chain minor version number"/>
+			<field name="FORMAT_MAJOR_VERSION" type="uinteger" length="5" description="Dataset Format Major Version number"/>
+			<field name="FORMAT_MINOR_VERSION" type="uinteger" length="5" description="Dataset Format Minor Version number"/>
+			<field name="PROCESSING_TIME_START" type="time" length="15" description="UTC time of the processing at start of processing for the product"/>
+			<field name="PROCESSING_TIME_END" type="time" length="15" description="UTC time of the processing at end of processing for the product"/>
+			<field name="PROCESSING_MODE" type="enumerated" length="1" description="Identification of the mode of processing">
+				<item value="N" name="Nominal" description="NRT processing"/>
+				<item value="B" name="Backlog Processing"/>
+				<item value="R" name="Reprocessing"/>
+				<item value="V" name="Validation"/>
+			</field>
+			<field name="DISPOSITION_MODE" type="enumerated" length="1" description="Identification of the diposition mode">
+				<item value="T" name="Testing"/>
+				<item value="O" name="Operational"/>
+				<item value="C" name="Commissioning"/>
+			</field>
+			<field name="RECEIVING_GROUND_STATION" type="enumerated" length="3" description="Acquisition Station Identification">
+				<item value="SVL" description="Svalbard"/>
+				<item value="WAL" description="Wallops Island, Virginia"/>
+				<item value="FBK" description="Fairbanks, Alaska"/>
+				<item value="SOC" description="SOCC (NESDIS Satellite Operations Control Centre), Suitland, Maryland"/>
+				<item value="RUS" description="Reference User Station"/>
+			</field>
+			<field name="RECEIVE_TIME_START" type="time" length="15" description="UTC time of the reception at CDA for first Data Item"/>
+			<field name="RECEIVE_TIME_END" type="time" length="15" description="UTC time of the reception at CDA for last Data Item"/>
+			<field name="ORBIT_START" type="uinteger" length="5" description="Start Orbit Number, counted incrementally since launch"/>
+			<field name="ORBIT_END" type="uinteger" length="5" description="Stop Orbit Number"/>
+			<field name="ACTUAL_PRODUCT_SIZE" type="uinteger" length="11" units="bytes" description="Size of the complete product"/>
+			<delimiter name="ASCENDING NODE ORBIT PARAMETERS"/>
+			<field name="STATE_VECTOR_TIME" type="longtime" length="18" units="UTC" description="Epoch time (in UTC) of the orbital elements and the orbit state vector. this corresponds to the time of crossing the ascending node for ORBIT_START"/>
+			<field name="SEMI_MAJOR_AXIS" type="integer" length="11" units="mm" description="Semi major axis of orbit at time of the ascending node crossing."/>
+			<field name="ECCENTRICITY" type="integer" length="11" scaling-factor="10^6" description="Orbit eccentricity at time of the ascending node crossing"/>
+			<field name="INCLINATION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Orbit inclination at time of the ascending node crossing"/>
+			<field name="PERIGEE_ARGUMENT" type="integer" length="11" scaling-factor="10^3" units="deg" description="Argument of perigee at time of the ascending node crossing"/>
+			<field name="RIGHT_ASCENSION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Right ascension at time of the ascending node crossing"/>
+			<field name="MEAN_ANOMALY" type="integer" length="11" scaling-factor="10^3" units="deg" description="Mean anomaly at time of the ascending node crossing"/>
+			<field name="X_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="X position of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="Y_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Y position of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="Z_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Z position of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="X_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="X velocity of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="Y_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Y velocity of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="Z_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Z velocity of the orbit state vector in the orbit frame at ascending node"/>
+			<field name="EARTH_SUN_DISTANCE_RATIO" type="integer" length="11" scaling-factor="10^6" description="Earth-Sun distance ratio - ratio of current Earth-Sun distance to Mean Earth-Sun distance"/>
+			<field name="LOCATION_TOLERANCE_RADIAL" type="integer" length="11" units="m" description="Nadir Earth location tolerance radial"/>
+			<field name="LOCATION_TOLERANCE_CROSSTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance cross-track"/>
+			<field name="LOCATION_TOLERANCE_ALONGTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance along-track"/>
+			<field name="YAW_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Yaw attitude error"/>
+			<field name="ROLL_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Roll attitude error"/>
+			<field name="PITCH_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Pitch attitude error"/>
+			<delimiter name="LOCATION SUMMARY"/>
+			<field name="SUBSAT_LATITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at start of the data set"/>
+			<field name="SUBSAT_LONGITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at start of the data set"/>
+			<field name="SUBSAT_LATITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at end of the data set"/>
+			<field name="SUBSAT_LONGITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at end of the data set"/>
+			<delimiter name="Leap Second Information"/>
+			<field name="LEAP_SECOND" type="integer" length="2" description="Occurence of Leap second within the product. Field is set to -1, 0 or +1 dependent upon occurrence of leap second and direction."/>
+			<field name="LEAP_SECOND_UTC" type="time" length="15" description="UTC time of occurrence of the Leap Second (If no leap second in the product, value is null)"/>
+			<delimiter name="Record counts"/>
+			<field name="TOTAL_RECORDS" type="uinteger" length="6" description="Total count of all records in the product"/>
+			<field name="TOTAL_MPHR" type="uinteger" length="6" description="Total count of all MPHRs in product (should always be 1!)"/>
+			<field name="TOTAL_SPHR" type="uinteger" length="6" description="Total count of all SPHRs in product (should be 0 or 1 only)"/>
+			<field name="TOTAL_IPR" type="uinteger" length="6" description="Total count of all IPRs in the product"/>
+			<field name="TOTAL_GEADR" type="uinteger" length="6" description="Total count of all GEADRs in the product"/>
+			<field name="TOTAL_GIADR" type="uinteger" length="6" description="Total count of all GIADRs in the product"/>
+			<field name="TOTAL_VEADR" type="uinteger" length="6" description="Total count of all VEADRs in the product"/>
+			<field name="TOTAL_VIADR" type="uinteger" length="6" description="Total count of all VIADRs in the product"/>
+			<field name="TOTAL_MDR" type="uinteger" length="6" description="Total count of all MDRs in the product"/>
+			<delimiter name="Record Based Generic Quality Flags"/>
+			<field name="COUNT_DEGRADED_INST_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to instrument problems"/>
+			<field name="COUNT_DEGRADED_PROC_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to processing problems"/>
+			<field name="COUNT_DEGRADED_INST_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded instrument"/>
+			<field name="COUNT_DEGRADED_PROC_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded processing"/>
+			<delimiter name="Time Based Generic Quality Flags"/>
+			<field name="DURATION_OF_PRODUCT" type="uinteger" length="8" units="ms" description="The duration of the product in milliseconds"/>
+			<field name="MILLISECONDS_OF_DATA_PRESENT" type="uinteger" length="8" units="ms" description="The total amount of data present in the product"/>
+			<field name="MILLISECONDS_OF_DATA_MISSING" type="uinteger" length="8" units="ms" description="The total amount of data missing from the prodcut"/>
+			<delimiter name="Regional Product Information"/>
+			<field name="SUBSETTED_PRODUCT" type="boolean" length="1" description="Set when product has been subsetted (e.g. geographically subsetted using a region of interest filter). Implies the presence of one or more UMARF GIADRs in GAD section for product retrieved from UMARF."/>
+		</mphr>
+		<geadr name="geadr-0" subclass="0" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-1" subclass="1" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-2" subclass="2" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-3" subclass="3" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-4" subclass="4" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-5" subclass="5" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-6" subclass="6" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-7" subclass="7" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-8" subclass="8" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-9" subclass="9" version="1" instrument="IASIL2" description=""/>
+		<geadr name="geadr-10" subclass="10" version="1" instrument="IASIL2" description=""/>
+		<giadr name="giadr" subclass="1" version="4" instrument="IASI" description="">
+			<delimiter name="GIADR CONTENTS"/>
+			<field name="NUM_PRESSURE_LEVELS_TEMP" variable="NLT" type="uinteger1" units="NA" description="Number of pressure levels for temperature profile retrieval, NLT "/>
+			<array name="PRESSURE_LEVELS_TEMP" length="$NLT">
+				<field type="uinteger4" scaling-factor="10^2" units="Pa" description="Pressure levels on which retrieved temperature profiles are given"/>
+			</array>
+			<field name="NUM_PRESSURE_LEVELS_HUMIDITY" variable="NLQ" type="uinteger1" units="NA" description="Number of pressure levels for humidity profile retrieval, NLQ "/>
+			<array name="PRESSURE_LEVELS_HUMIDITY" length="$NLQ">
+				<field type="uinteger4" scaling-factor="10^2" units="Pa" description="Pressure levels on which retrieved humidity  profiles are given"/>
+			</array>
+			<field name="NUM_PRESSURE_LEVELS_OZONE" variable="NLO" type="uinteger1" units="NA" description="Number of pressure levels for ozone profile retrieval, NLO "/>
+			<array name="PRESSURE_LEVELS_OZONE" length="$NLO">
+				<field type="uinteger4" scaling-factor="10^2" units="Pa" description="Pressure layers, defined by 2 pressure levels each, on which retrieved ozone profiles are given"/>
+			</array>
+			<field name="NUM_SURFACE_EMISSIVITY_WAVELENGTHS" variable="NEW" type="uinteger1" units="NA" description="Number of wavelengths for surface emissivity retrieval, NEW "/>
+			<array name="SURFACE_EMISSIVITY_WAVELENGTHS" length="$NEW">
+				<field type="uinteger4" scaling-factor="10^4" units="&#x3BC;m" description="Wavelengths for surface emissivity"/>
+			</array>
+			<delimiter name="ERROR_DATA"/>
+			<field name="NUM_TEMPERATURE_PCS" variable="NPCT" type="uinteger1" units="NA" description="Number of principal components for temperature in the ERROR_DATA (NPCT)"/>
+			<field name="NUM_WATER_VAPOUR_PCS" variable="NPCW" type="uinteger1" units="NA" description="Number of principal components for water-vapour in the ERROR_DATA (NPCW)"/>
+			<field name="NUM_OZONE_PCS" variable="NPCO" type="uinteger1" units="NA" description="Number of principal components for ozone in the ERROR_DATA (NPCO)"/>
+			<delimiter name="FORLI"/>
+			<field name="FORLI_NUM_LAYERS_CO" variable="NL_CO" type="uinteger1" units="NA" description="Number of partial layers for CO, NL_CO"/>
+			<array name="FORLI_LAYER_HEIGHTS_CO" length="$NL_CO">
+				<field type="uinteger2" units="m" description="CO partial layer heights "/>
+			</array>
+			<field name="FORLI_NUM_LAYERS_HNO3" variable="NL_HNO3" type="uinteger1" units="NA" description="Number of partial layers for HNO3, NL_HNO3"/>
+			<array name="FORLI_LAYER_HEIGHTS_HNO3" length="$NL_HNO3">
+				<field type="uinteger2" units="m" description="HNO3 partial layer heights "/>
+			</array>
+			<field name="FORLI_NUM_LAYERS_O3" variable="NL_O3" type="uinteger1" units="NA" description="Number of partial layers for O3, NL_O3"/>
+			<array name="FORLI_LAYER_HEIGHTS_O3" length="$NL_O3">
+				<field type="uinteger2" units="m" description="O3 partial layer heights "/>
+			</array>
+			<delimiter name="BRESCIA"/>
+			<field name="BRESCIA_NUM_ALTITUDES_SO2" variable="NL_SO2" type="uinteger1" units="NA" description="Number of estimated SO2 plume heights"/>
+			<array name="BRESCIA_ALTITUDES_SO2" length="$NL_SO2">
+				<field type="uinteger2" units="m" description="Estimated SO2 plume heights"/>
+			</array>
+		</giadr>
+		<mdr name="mdr" subclass="1" version="4" instrument="IASI" description="">
+			<delimiter name="GENERIC QUALITY INDICATORS"/>
+			<field name="DEGRADED_INST_MDR" type="boolean" units="NA" description="Quality of MDR has been degraded from nominal due to an instrument degradation"/>
+			<field name="DEGRADED_PROC_MDR" type="boolean" units="NA" description="Quality of MDR has been degraded from nominal due to a processing degradation"/>
+			<delimiter name="First guess profiles"/>
+			<array name="FG_ATMOSPHERIC_TEMPERATURE" length="120">
+				<array length="$NLT">
+					<field type="uinteger2" scaling-factor="10^2" units="K" description="A-priori temperature profile (for 120 FOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="FG_ATMOSPHERIC_WATER_VAPOUR" length="120">
+				<array length="$NLQ">
+					<field type="uinteger4" scaling-factor="10^7" units="kg/kg" description="A-priori water vapour profile (for 30 EFOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="FG_ATMOSPHERIC_OZONE" length="120">
+				<array length="$NLO">
+					<field type="uinteger2" scaling-factor="10^8" units="kg/kg" description="A-priori ozone profile (for 30 EFOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="FG_SURFACE_TEMPERATURE" length="120">
+				<field type="uinteger2" scaling-factor="10^2" units="K" description="A-priori surface skin temperature"/>
+			</array>
+			<array name="FG_QI_ATMOSPHERIC_TEMPERATURE" length="120">
+				<field type="uinteger1" scaling-factor="10^1" units="NA" description="Quality indicator for a-priori temperature profile"/>
+			</array>
+			<array name="FG_QI_ATMOSPHERIC_WATER_VAPOUR" length="120">
+				<field type="uinteger1" scaling-factor="10^1" units="NA" description="Quality indicator for a-priori water vapour profile"/>
+			</array>
+			<array name="FG_QI_ATMOSPHERIC_OZONE" length="120">
+				<field type="uinteger1" scaling-factor="10^1" units="NA" description="Quality indicator for a-priori ozone profile"/>
+			</array>
+			<array name="FG_QI_SURFACE_TEMPERATURE" length="120">
+				<field type="uinteger1" scaling-factor="10^1" units="NA" description="Quality indicator for a-priori surface skin temperature"/>
+			</array>
+			<delimiter name="MEASUREMENT DATA"/>
+			<array name="ATMOSPHERIC_TEMPERATURE" length="120">
+				<array length="$NLT">
+					<field type="uinteger2" scaling-factor="10^2" units="K" description="Temperature (for 120 IFOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="ATMOSPHERIC_WATER_VAPOUR" length="120">
+				<array length="$NLQ">
+					<field type="uinteger4" scaling-factor="10^7" units="kg/kg" description="Water vapour (for 120 IFOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="ATMOSPHERIC_OZONE" length="120">
+				<array length="$NLO">
+					<field type="uinteger2" scaling-factor="10^8" units="kg/kg" description="Ozone (for 120 IFOV with up to 101 vertical levels)"/>
+				</array>
+			</array>
+			<array name="SURFACE_TEMPERATURE" length="120">
+				<field type="uinteger2" scaling-factor="10^2" units="K" description="Surface temperature (for 120 IFOV and up to 2 temperatures)"/>
+			</array>
+			<array name="INTEGRATED_WATER_VAPOUR" length="120">
+				<field type="uinteger2" scaling-factor="10^2" units="kg.m^-2" description="Integrated water vapour (for 120 IFOV)"/>
+			</array>
+			<array name="INTEGRATED_OZONE" length="120">
+				<field type="uinteger2" scaling-factor="10^6" units="kg.m^-2" description="Integrated ozone (for 120 IFOV)"/>
+			</array>
+			<array name="INTEGRATED_N2O" length="120">
+				<field type="uinteger2" scaling-factor="10^6" units="kg.m^-2" description="Integrated N20 (for 120 IFOV)"/>
+			</array>
+			<array name="INTEGRATED_CO" length="120">
+				<field type="uinteger2" scaling-factor="10^7" units="kg.m^-2" description="Integrated CO (for 120 IFOV)"/>
+			</array>
+			<array name="INTEGRATED_CH4" length="120">
+				<field type="uinteger2" scaling-factor="10^6" units="kg.m^-2" description="Integrated CH4 (for 120 IFOV)"/>
+			</array>
+			<array name="INTEGRATED_CO2" length="120">
+				<field type="uinteger2" scaling-factor="10^3" units="kg.m^-2" description="Integrated CO2 ( for 120 IFOV)"/>
+			</array>
+			<array name="SURFACE_EMISSIVITY" length="120">
+				<array length="$NEW">
+					<field type="uinteger2" scaling-factor="10^4" units="NA" description="Surface emissivity (for 120 IFOV with up to 20 wavelengths)"/>
+				</array>
+			</array>
+			<array name="NUMBER_CLOUD_FORMATIONS" length="120">
+				<field type="uinteger1" units="NA" description="Number of cloud formations in IFOV"/>
+			</array>
+			<array name="FRACTIONAL_CLOUD_COVER" length="120">
+				<array length="3">
+					<field type="uinteger2" scaling-factor="10^2" units="%" description="Fractional cloud cover (for 120 IFOV with up to 3 cloud formations)"/>
+				</array>
+			</array>
+			<array name="CLOUD_TOP_TEMPERATURE" length="120">
+				<array length="3">
+					<field type="uinteger2" scaling-factor="10^2" units="K" description="Cloud top temperature (for 120 IFOV with up to 3 cloud formations)"/>
+				</array>
+			</array>
+			<array name="CLOUD_TOP_PRESSURE" length="120">
+				<array length="3">
+					<field type="uinteger4" units="Pa" description="Cloud top pressure (for 120 IFOV with up to 3 cloud formations)"/>
+				</array>
+			</array>
+			<array name="CLOUD_PHASE" length="120">
+				<array length="3">
+					<field type="uinteger1" units="NA" description="Cloud Phase (for 120 IFOV with up to 3 cloud formations) (0 = no cloud, 1 = liquid, 2 = ice, 3 = mixed, 255 = undefined)"/>
+				</array>
+			</array>
+			<array name="SURFACE_PRESSURE" length="120">
+				<field type="uinteger4" units="Pa" description="Surface pressure"/>
+			</array>
+			<delimiter name="INSTRUMENT"/>
+			<field name="INSTRUMENT_MODE" type="uinteger1" units="NA" description="Instrument mode. This is a copy of the MDR-1C flag GEPSIasiMode as defined in the IASI L1 PFS."/>
+			<delimiter name="NAVIGATION DATA AT SCAN LINE"/>
+			<field name="SPACECRAFT_ALTITUDE" type="uinteger4" scaling-factor="10^1" units="km" description="Spacecraft Altitude Above Reference Geoid (MSL) "/>
+			<delimiter name="NAVIGATION DATA AT IFOV"/>
+			<array name="ANGULAR_RELATION" length="120">
+				<array length="4">
+					<field type="integer2" scaling-factor="10^2" units="deg" description="Angular relationships: solar zenith angle, satellite zenith angle, solar azimuth angle, satellite azimuth angle for 120 IFOV "/>
+				</array>
+			</array>
+			<array name="EARTH_LOCATION" length="120">
+				<array length="2">
+					<field type="integer4" scaling-factor="10^4" units="deg" description="Earth Location: latitude, longitude of surface footprint (for 120 IFOV)"/>
+				</array>
+			</array>
+			<delimiter name="PROCESSING AND QUALITY FLAGS"/>
+			<array name="FLG_AMSUBAD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_AVHRRBAD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_CLDFRM" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+				<!-- <field type="bitfield" length="8" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_CLDNES" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_CLDTST" length="120">
+				<field type="uinteger2" units="NA" description=""/>
+				<!-- <field type="bitfield" length="16" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_DAYNIT" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_DUSTCLD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_FGCHECK" length="120">
+				<field type="uinteger2" units="NA" description=""/>
+				<!-- <field type="bitfield" length="16" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_IASIBAD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_INITIA" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+				<!-- <field type="bitfield" length="8" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_ITCONV" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_LANSEA" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_MHSBAD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_NUMIT" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_NWPBAD" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_PHYSCHECK" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+				<!-- <field type="bitfield" length="8" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_RETCHECK" length="120">
+				<field type="uinteger2" units="NA" description=""/>
+				<!-- <field type="bitfield" length="16" units="NA" description=""/> -->
+			</array>
+			<array name="FLG_SATMAN" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_SUNGLNT" length="120">
+				<field type="uinteger1" units="NA" description=""/>
+			</array>
+			<array name="FLG_THICIR" length="120">
+				<field type="uinteger1" units="NA" description=" "/>
+			</array>
+			<delimiter name="ERROR_DATA"/>
+			<field name="NUM_ERROR_DATA" variable="NERR" type="uinteger1" units="NA" description="Number of error data records for current scan line (NERR)"/>
+			<array name="ERROR_DATA_INDEX" length="120">
+				<field type="uinteger1" units="NA" description="Index of the error data record corresponding to the IFOVs in the line (=255 if N/A)"/>
+			</array>
+			<array name="TEMPERATURE_ERROR" length="$NERR">
+				<array length="$NERRT">
+					<field type="uinteger4" units="NA" description="Retrieval error covariance matrix for temperature in principal component domain"/>
+					<!-- <field type="bitfield" length="32" units="NA" description="Retrieval error covariance matrix for temperature in principal component domain"/> -->
+				</array>
+			</array>
+			<array name="WATER_VAPOUR_ERROR" length="$NERR">
+				<array length="$NERRW">
+					<field type="uinteger4" units="NA" description="Retrieval error covariance matrix for water-vapour in principal component domain"/>
+					<!-- <field type="bitfield" length="32" units="NA" description="Retrieval error covariance matrix for water-vapour in principal component domain"/> -->
+				</array>
+			</array>
+			<array name="OZONE_ERROR" length="$NERR">
+				<array length="$NERRO">
+					<field type="uinteger4" units="NA" description="Retrieval error covariance matrix for ozone in principal component domain"/>
+					<!-- <field type="bitfield" length="32" units="NA" description="Retrieval error covariance matrix for ozone in principal component domain"/> -->
+				</array>
+			</array>
+			<delimiter name="FORLI_GENERAL"/>
+			<array name="SURFACE_Z" length="120">
+				<field type="integer2" units="m" description="Altitude of surface "/>
+			</array>
+			<delimiter name="FORLI_CO"/>
+			<array name="CO_QFLAG" length="120">
+				<field type="uinteger1" units="NA" description="General retrieval quality flag"/>
+			</array>
+			<array name="CO_BDIV" length="120">
+				<field type="uinteger4" units="NA" description="Retrieval flags"/>
+				<!-- <field type="bitfield" length="32" units="NA" description="Retrieval flags"/> -->
+			</array>
+			<array name="CO_NPCA" length="120">
+				<field type="uinteger1" units="NA" description="Number of vectors describing the characterization matrices"/>
+			</array>
+			<array name="CO_NFITLAYERS" length="120">
+				<field type="uinteger1" units="NA" description="Number of layers actually retrieved"/>
+			</array>
+			<field name="CO_NBR" variable="CO_NBR" type="uinteger1" units="NA" description="Number of CO profiles retrieved in scanline"/>
+			<array name="CO_CP_AIR" length="$CO_NBR">
+				<array length="$NL_CO">
+					<field type="uinteger2" scaling-factor="10^-20" units="molecules/cm2" description="Air partial columns on each retrieved layer"/>
+				</array>
+			</array>
+			<array name="CO_CP_CO_A" length="$CO_NBR">
+				<array length="$NL_CO">
+					<field type="uinteger2" scaling-factor="10^-13" units="molecules/cm2" description="A-priori partial columns for CO en each retrieved layer"/>
+				</array>
+			</array>
+			<array name="CO_X_CO" length="$CO_NBR">
+				<array length="$NL_CO">
+					<field type="vuinteger2" units="NA" description="Scaling vector multiplying the a-priori CO vector in order to define the retrieved CO vector. "/>
+				</array>
+			</array>
+			<array name="CO_H_EIGENVALUES" length="$CO_NBR">
+				<array length="$NEVA_CO">
+					<field type="vinteger4" units="NA" description="Main eigenvalues of the sensitivity matrix"/>
+				</array>
+			</array>
+			<array name="CO_H_EIGENVECTORS" length="$CO_NBR">
+				<array length="$NEVE_CO">
+					<field type="vinteger4" units="NA" description="Main eigenvectors of the sensitivity matrix"/>
+				</array>
+			</array>
+			<delimiter name="FORLI_HNO3"/>
+			<array name="HNO3_QFLAG" length="120">
+				<field type="uinteger1" units="NA" description="General retrieval quality flag"/>
+			</array>
+			<array name="HNO3_BDIV" length="120">
+				<field type="uinteger4" units="NA" description="Retrieval flags"/>
+				<!-- <field type="bitfield" length="32" units="NA" description="Retrieval flags"/> -->
+			</array>
+			<array name="HNO3_NPCA" length="120">
+				<field type="uinteger1" units="NA" description="Number of vectors describing the characterization matrices"/>
+			</array>
+			<array name="HNO3_NFITLAYERS" length="120">
+				<field type="uinteger1" units="NA" description="Number of layers actually retrieved"/>
+			</array>
+			<field name="HNO3_NBR" variable="HNO3_NBR" type="uinteger1" units="NA" description="Number of HNO3 profiles retrieved in scanline"/>
+			<array name="HNO3_CP_AIR" length="$HNO3_NBR">
+				<array length="$NL_HNO3">
+					<field type="uinteger2" scaling-factor="10^-20" units="molecules/cm2" description="Air partial columns on each retrieved layer"/>
+				</array>
+			</array>
+			<array name="HNO3_CP_HNO3_A" length="$HNO3_NBR">
+				<array length="$NL_HNO3">
+					<field type="uinteger2" scaling-factor="10^-11" units="molecules/cm2" description="A-priori partial columns for HNO3 in each retrieved layer"/>
+				</array>
+			</array>
+			<array name="HNO3_X_HNO3" length="$HNO3_NBR">
+				<array length="$NL_HNO3">
+					<field type="vuinteger2" units="NA" description="Scaling vector multiplying the a-priori HNO3 vector in order to define the retrieved HNO3 vector. "/>
+				</array>
+			</array>
+			<array name="HNO3_H_EIGENVALUES" length="$HNO3_NBR">
+				<array length="$NEVA_HNO3">
+					<field type="vinteger4" units="NA" description="Main eigenvalues of the sensitivity matrix"/>
+				</array>
+			</array>
+			<array name="HNO3_H_EIGENVECTORS" length="$HNO3_NBR">
+				<array length="$NEVE_HNO3">
+					<field type="vinteger4" units="NA" description="Main eigenvectors of the sensitivity matrix"/>
+				</array>
+			</array>
+			<delimiter name="FORLI_O3"/>
+			<array name="O3_QFLAG" length="120">
+				<field type="uinteger1" units="NA" description="General retrieval quality flag"/>
+			</array>
+			<array name="O3_BDIV" length="120">
+				<field type="uinteger4" units="NA" description="Retrieval flags"/>
+				<!-- <field type="bitfield" length="32" units="NA" description="Retrieval flags"/> -->
+			</array>
+			<array name="O3_NPCA" length="120">
+				<field type="uinteger1" units="NA" description="Number of vectors describing the characterization matrices"/>
+			</array>
+			<array name="O3_NFITLAYERS" length="120">
+				<field type="uinteger1" units="NA" description="Number of layers actually retrieved"/>
+			</array>
+			<field name="O3_NBR" variable="O3_NBR" type="uinteger1" units="NA" description="Number of O3 profiles retrieved in scanline"/>
+			<array name="O3_CP_AIR" length="$O3_NBR">
+				<array length="$NL_O3">
+					<field type="uinteger2" scaling-factor="10^-20" units="molecules/cm2" description="Air partial columns on each retrieved layer"/>
+				</array>
+			</array>
+			<array name="O3_CP_O3_A" length="$O3_NBR">
+				<array length="$NL_O3">
+					<field type="uinteger2" scaling-factor="10^-14" units="molecules/cm2" description="A-priori partial columns for O3 en each retrieved layer"/>
+				</array>
+			</array>
+			<array name="O3_X_O3" length="$O3_NBR">
+				<array length="$NL_O3">
+					<field type="vuinteger2" units="NA" description="Scaling vector multiplying the a-priori O3 vector in order to define the retrieved O3 vector. "/>
+				</array>
+			</array>
+			<array name="O3_H_EIGENVALUES" length="$O3_NBR">
+				<array length="$NEVA_O3">
+					<field type="vinteger4" units="NA" description="Main eigenvalues of the sensitivity matrix"/>
+				</array>
+			</array>
+			<array name="O3_H_EIGENVECTORS" length="$O3_NBR">
+				<array length="$NEVE_O3">
+					<field type="vinteger4" units="NA" description="Main eigenvectors of the sensitivity matrix"/>
+				</array>
+			</array>
+			<delimiter name="BRESCIA_SO2"/>
+			<array name="SO2_QFLAG" length="120">
+				<field type="uinteger1" units="NA" description="General retrieval quality flag"/>
+			</array>
+			<array name="SO2_COL_AT_ALTITUDES" length="120">
+				<array length="$NL_SO2">
+					<field type="uinteger2" scaling-factor="10^1" units="DU" description="SO2 column for a plume at different estimated altitudes"/>
+				</array>
+			</array>
+			<array name="SO2_ALTITUDE" length="120">
+				<field type="uinteger2" units="m" description="Retrieved plume altitude "/>
+			</array>
+			<array name="SO2_COL" length="120">
+				<field type="uinteger2" scaling-factor="10^1" units="DU" description="SO2 column at the retrieved plume altitude from an OEM approach"/>
+			</array>
+			<array name="SO2_BT_DIFFERENCE" length="120">
+				<field type="uinteger2" scaling-factor="10^2" units="K" description="Indicative brightness temperature difference"/>
+			</array>
+		</mdr>
+	</product>
+</format>
