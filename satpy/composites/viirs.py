@@ -644,6 +644,9 @@ def _get_cumul_bin_info_for_tile(
     # current tile)
     calculated_row = num_row_tile - 1 + weight_row
     calculated_col = num_col_tile - 1 + weight_col
+    if calculated_row < 0 or calculated_col < 0:
+        # don't allow negative indexes (out of bounds)
+        return None, None
 
     try:
         bin_info = all_bin_information[calculated_row][calculated_col]
