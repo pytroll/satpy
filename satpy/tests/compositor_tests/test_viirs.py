@@ -206,7 +206,7 @@ class TestVIIRSComposites:
             exp_unique = [0.00000000e+00, 1.00446703e-01, 1.64116082e-01,
                           2.09233451e-01, 1.43916324e+02, 2.03528498e+02,
                           2.49270516e+02]
-            np.testing.assert_allclose(nonnan_unique, exp_unique)
+        np.testing.assert_allclose(nonnan_unique, exp_unique)
 
     def test_snow_age(self, area):
         """Test the 'snow_age' compositor."""
