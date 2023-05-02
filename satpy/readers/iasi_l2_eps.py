@@ -28,6 +28,9 @@ class EPSIASIFile(EPSFile):
     specification, validation reports, and other documents, can be found at the
     EUMETSAT Data Services at https://data.eumetsat.int/product/EO:EUM:DAT:METOP:IASSND02
 
+    Product format specification for IASI L2 data: https://www.eumetsat.int/media/41105
+
+    Generic EPS product format specification: https://www.eumetsat.int/media/40048
     """
 
     def __init__(self, filename, filename_info, filetype_info):
