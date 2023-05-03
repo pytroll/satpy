@@ -1092,6 +1092,43 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_allclose(res, expected)
 
 
+class TestEumClimCoef(TestFileHandlerCalibrationBase):
+    """Unit tests for calibration."""
+
+    @mock.patch('satpy.readers.seviri_l1b_native.get_native_header')
+    @mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap')
+    @mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header')
+    @mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_header')
+    @mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer')
+    @mock.patch('satpy.readers.seviri_l1b_native.da.from_array')
+    @mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.observation_start_time')
+    def test_eum_clim_cal(self, obstim, daa, trl, hdr, getmem, archdr, natdhr):
+        """Unit test for the EUM climatological calibration coefficients."""
+        ret_dict = {'IR_108': {'gain': -2., 'offset': -20.},
+                    'WV_062': {'gain': 20., 'offset': 200.}}
+
+        eum_coef = {'IR_108': {'gain': 100., 'offset': 1000.}}
+        obstim.return_value = datetime(2020, 1, 1, 12, 0, 0)
+        with mock.patch('satpy.readers.seviri_l1b_native.load_eumclim_nc',
+                        return_value=eum_coef):
+            fh = NativeMSGFileHandler('testfile', {}, {}, calib_mode='EUMCLIM')
+            assert fh.ext_calib_coefs == eum_coef
+
+        with mock.patch('satpy.readers.seviri_l1b_native.load_eumclim_nc',
+                        return_value=eum_coef):
+            fh = NativeMSGFileHandler('testfile', {}, {}, calib_mode='EUMCLIM', ext_calib_coefs=ret_dict)
+            assert fh.ext_calib_coefs == ret_dict
+
+        eum_coef = {'IR_108': {'gain': 100., 'offset': 1000.},
+                    'WV_073': {'gain': 1000., 'offset': 10000.}}
+
+        test_dict = {**ret_dict, **{'WV_073': {'gain': 1000., 'offset': 10000.}}}
+        with mock.patch('satpy.readers.seviri_l1b_native.load_eumclim_nc',
+                        return_value=eum_coef):
+            fh = NativeMSGFileHandler('testfile', {}, {}, calib_mode='EUMCLIM', ext_calib_coefs=ret_dict)
+            assert fh.ext_calib_coefs == test_dict
+
+
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 

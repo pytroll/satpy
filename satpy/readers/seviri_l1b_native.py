@@ -54,6 +54,7 @@ from satpy.readers.seviri_base import (
     dec10216,
     get_cds_time,
     get_satpos,
+    load_eumclim_nc,
     pad_data_horizontally,
     pad_data_vertically,
 )
@@ -95,14 +96,16 @@ class NativeMSGFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
-                 include_raw_metadata=False, mda_max_array_size=100):
+                 calib_mode='nominal', calib_file=None, fill_disk=False,
+                 ext_calib_coefs=None, include_raw_metadata=False, mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
         self.calib_mode = calib_mode
+        self.calib_file = calib_file
+        self.eumclim_cal_coef = {}
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
         self.include_raw_metadata = include_raw_metadata
@@ -120,6 +123,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
+
+        # Read the EUMETSAT climate calibration coefficients if available
+        if self.calib_mode == 'EUMCLIM':
+            self.ext_calib_coefs = self._sort_ext_eum_coefs()
 
     def _has_archive_header(self):
         """Check whether the file includes an ASCII archive header."""
@@ -547,6 +554,17 @@ class NativeMSGFileHandler(BaseFileHandler):
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
+    def _sort_ext_eum_coefs(self):
+        """Merge the external and eumetsat calibration dicts.
+
+        From: https://stackoverflow.com/questions/2365921/merging-python-dictionaries
+        """
+        # Load the EUMETSAT coefficients
+        eumcoef = load_eumclim_nc(self.calib_file, self.observation_start_time)
+        output = {k: self.ext_calib_coefs[k] for k in self.ext_calib_coefs}
+        output.update({k: eumcoef[k] for k in eumcoef if k not in self.ext_calib_coefs})
+        return output
+
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
         # even though all the channels may not be present in the file,
@@ -560,6 +578,9 @@ class NativeMSGFileHandler(BaseFileHandler):
             'RadiometricProcessing']['MPEFCalFeedback']
         radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
                 'Level15ImageProduction']['PlannedChanProcessing']
+
+        # Merge potential external and EUMETSAT climatology coefficients
+
         return create_coef_dict(
             coefs_nominal=(
                 coefs_nominal['CalSlope'][band_idx],

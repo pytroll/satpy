@@ -198,6 +198,16 @@ VISIR_NUM_LINES = 3712
 HRV_NUM_COLUMNS = 11136
 HRV_NUM_LINES = 11136
 
+CDS_EPOCH = np.datetime64('1958-01-01')
+
+EUMCLIM_COEF_MAP = {'WV_062': 'IR062',
+                    'WV_073': 'IR073',
+                    'IR_087': 'IR087',
+                    'IR_097': 'IR097',
+                    'IR_108': 'IR108',
+                    'IR_120': 'IR120',
+                    'IR_134': 'IR134'}
+
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
                  3: "IR_016",
@@ -372,13 +382,37 @@ def get_cds_time(days, msecs):
         days = np.array([days], dtype='int64')
         msecs = np.array([msecs], dtype='int64')
 
-    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
-        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
-    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+    time = (CDS_EPOCH.astype('datetime64[ms]') +
+            days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]'))
+    time = np.where(time == CDS_EPOCH, np.datetime64("NaT"), time)
 
     if len(time) == 1:
         return time[0]
     return time
+
+
+def load_eumclim_nc(fname, ref_time):
+    """Load EUMETSAT climate calibration values from netCDF4."""
+    from netCDF4 import Dataset
+    from pyorbital.astronomy import jdays
+
+    try:
+        with Dataset(fname, 'r') as fid:
+            jul_time = jdays(ref_time)
+            min_tdiff = np.min(abs(jul_time - fid['julian_time']))
+            if min_tdiff > 1:
+                warnings.warn("Closest EUMCLIM calibration coefficients differ from image time by more than one day.",
+                              UserWarning)
+            jul_idx = np.argmin(abs(jul_time - fid['julian_time']))
+
+            eum_coef = {}
+            for chan in EUMCLIM_COEF_MAP:
+                eum_coef[chan] = {'gain': float(fid[f'b_{EUMCLIM_COEF_MAP[chan]}'][jul_idx]),
+                                  'offset': float(fid[f'a_{EUMCLIM_COEF_MAP[chan]}'][jul_idx])}
+    except OSError:
+        raise OSError(f'Error: EUM calibration file {fname} does not exist.')
+
+    return eum_coef
 
 
 def add_scanline_acq_time(dataset, acq_time):
@@ -553,19 +587,20 @@ class SEVIRICalibrationHandler:
     calibration algorithm.
     """
 
-    def __init__(self, platform_id, channel_name, coefs, calib_mode, scan_time):
+    def __init__(self, platform_id, channel_name, coefs, calib_mode, scan_time, calib_file=None):
         """Initialize the calibration handler."""
         self._platform_id = platform_id
         self._channel_name = channel_name
         self._coefs = coefs
         self._calib_mode = calib_mode.upper()
+        self._calib_file = calib_file
         self._scan_time = scan_time
         self._algo = SEVIRICalibrationAlgorithm(
             platform_id=self._platform_id,
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS')
+        valid_modes = ('NOMINAL', 'GSICS', 'EUMCLIM')
         if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(
@@ -697,9 +732,9 @@ class OrbitPolynomial:
     def __eq__(self, other):
         """Test equality of two orbit polynomials."""
         return (
-            np.array_equal(self.coefs, np.array(other.coefs)) and
-            self.start_time == other.start_time and
-            self.end_time == other.end_time
+                np.array_equal(self.coefs, np.array(other.coefs)) and
+                self.start_time == other.start_time and
+                self.end_time == other.end_time
         )
 
 

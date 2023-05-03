@@ -26,6 +26,7 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_base import (
+    EUMCLIM_COEF_MAP,
     NoValidOrbitParams,
     OrbitPolynomial,
     OrbitPolynomialFinder,
@@ -34,6 +35,7 @@ from satpy.readers.seviri_base import (
     get_cds_time,
     get_padding_area,
     get_satpos,
+    load_eumclim_nc,
     pad_data_horizontally,
     pad_data_vertically,
 )
@@ -41,12 +43,36 @@ from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
+DUMMY_DATA = {'time': np.array([2458861.145949074,
+                               2458861.1563657406,
+                               2458861.1667824076])}
+for val in EUMCLIM_COEF_MAP:
+    DUMMY_DATA[f'{val}_gain'] = np.random.uniform(size=3)
+    DUMMY_DATA[f'{val}_offset'] = np.random.uniform(size=3)
+
+
+@pytest.fixture()
+def make_dummy_ncdf(tmp_path):
+    """Make a dummy netCDF file for coefficient testing."""
+    from netCDF4 import Dataset
+
+    fname = f'{tmp_path}/MSG1-COEFs.nc'
+    with Dataset(fname, 'w') as fid:
+        fid.createDimension('time', 3)
+        fid.createVariable('julian_time', np.float64, ('time',))[:] = DUMMY_DATA['time']
+        for val in EUMCLIM_COEF_MAP:
+            fid.createVariable(f'a_{EUMCLIM_COEF_MAP[val]}', np.float32, ('time',))[:] = DUMMY_DATA[f'{val}_offset']
+            fid.createVariable(f'b_{EUMCLIM_COEF_MAP[val]}', np.float32, ('time',))[:] = DUMMY_DATA[f'{val}_gain']
+
+    print(fname)
+    return fname
+
 
 def chebyshev4(c, x, domain):
     """Evaluate 4th order Chebyshev polynomial."""
     start_x, end_x = domain
     t = (x - 0.5 * (end_x + start_x)) / (0.5 * (end_x - start_x))
-    return c[0] + c[1]*t + c[2]*(2*t**2 - 1) + c[3]*(4*t**3 - 3*t) - 0.5*c[0]
+    return c[0] + c[1] * t + c[2] * (2 * t ** 2 - 1) + c[3] * (4 * t ** 3 - 3 * t) - 0.5 * c[0]
 
 
 class SeviriBaseTest(unittest.TestCase):
@@ -55,10 +81,10 @@ class SeviriBaseTest(unittest.TestCase):
     def test_dec10216(self):
         """Test the dec10216 function."""
         res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
-        exp = (np.ones((4, )) * 1023).astype(np.uint16)
+        exp = (np.ones((4,)) * 1023).astype(np.uint16)
         np.testing.assert_equal(res, exp)
         res = dec10216(np.array([1, 1, 1, 1, 1], dtype=np.uint8))
-        exp = np.array([4,  16,  64, 257], dtype=np.uint16)
+        exp = np.array([4, 16, 64, 257], dtype=np.uint16)
         np.testing.assert_equal(res, exp)
 
     def test_chebyshev(self):
@@ -73,19 +99,19 @@ class SeviriBaseTest(unittest.TestCase):
     def test_get_cds_time(self):
         """Test the get_cds_time function."""
         # Scalar
-        self.assertEqual(get_cds_time(days=21246, msecs=12*3600*1000),
+        self.assertEqual(get_cds_time(days=21246, msecs=12 * 3600 * 1000),
                          np.datetime64('2016-03-03 12:00'))
 
         # Array
         days = np.array([21246, 21247, 21248])
-        msecs = np.array([12*3600*1000, 13*3600*1000 + 1, 14*3600*1000 + 2])
+        msecs = np.array([12 * 3600 * 1000, 13 * 3600 * 1000 + 1, 14 * 3600 * 1000 + 2])
         expected = np.array([np.datetime64('2016-03-03 12:00:00.000'),
                              np.datetime64('2016-03-04 13:00:00.001'),
                              np.datetime64('2016-03-05 14:00:00.002')])
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
 
         days = 21246
-        msecs = 12*3600*1000
+        msecs = 12 * 3600 * 1000
         expected = np.datetime64('2016-03-03 12:00:00.000')
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
 
@@ -115,7 +141,7 @@ class SeviriBaseTest(unittest.TestCase):
         west_bound = 13
         final_size = (1, 20)
         res = pad_data_horizontally(data, final_size, east_bound, west_bound)
-        expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+        expected = np.array([[np.nan, np.nan, np.nan, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
         np.testing.assert_equal(res, expected)
 
@@ -129,7 +155,7 @@ class SeviriBaseTest(unittest.TestCase):
         res = pad_data_vertically(data, final_size, south_bound, north_bound)
         expected = np.zeros(final_size)
         expected[:] = np.nan
-        expected[south_bound-1:north_bound] = 0.
+        expected[south_bound - 1:north_bound] = 0.
         np.testing.assert_equal(res, expected)
 
     @staticmethod
@@ -149,6 +175,41 @@ class SeviriBaseTest(unittest.TestCase):
         res = get_padding_area(shape, dtype)
         expected = da.full(shape, 0, dtype=dtype, chunks=CHUNK_SIZE)
         np.testing.assert_array_equal(res, expected)
+
+
+class TestEumClimCoef:
+    """Test loading of EUM climatological calibration coefficients."""
+
+    def test_load_eumclim_nc_badfile(self):
+        """Test case where no data file is found."""
+        with pytest.raises(OSError):
+            load_eumclim_nc('/nodir/nonsensefile.nc', datetime(2000, 1, 1, 12, 0, 0))
+
+    def test_load_eumclim_nc_pastfile(self, make_dummy_ncdf):
+        """Test we get first value if we specify time in distant past."""
+        with pytest.warns(UserWarning):
+            retval = load_eumclim_nc(make_dummy_ncdf, datetime(1900, 1, 1, 12, 0, 0))
+        np.testing.assert_allclose(retval['WV_073']['gain'], DUMMY_DATA['WV_073_gain'][0])
+        np.testing.assert_allclose(retval['IR_120']['offset'], DUMMY_DATA['IR_120_offset'][0])
+
+    def test_load_eumclim_nc_futurefile(self, make_dummy_ncdf):
+        """Test we get last value if we specify time in distant past."""
+        with pytest.warns(UserWarning):
+            retval = load_eumclim_nc(make_dummy_ncdf, datetime(2040, 1, 1, 12, 0, 0))
+        np.testing.assert_allclose(retval['WV_073']['gain'], DUMMY_DATA['WV_073_gain'][-1])
+        np.testing.assert_allclose(retval['IR_120']['offset'], DUMMY_DATA['IR_120_offset'][-1])
+
+    def test_load_eumclim_nc_goodfile(self, make_dummy_ncdf):
+        """Test we get correct value when we pass appropriate times."""
+        retval = load_eumclim_nc(make_dummy_ncdf, datetime(2020, 1, 12, 15, 36, 0))
+        np.testing.assert_allclose(retval['WV_073']['gain'], DUMMY_DATA['WV_073_gain'][0])
+        np.testing.assert_allclose(retval['IR_120']['offset'], DUMMY_DATA['IR_120_offset'][0])
+        retval = load_eumclim_nc(make_dummy_ncdf, datetime(2020, 1, 12, 15, 46, 0))
+        np.testing.assert_allclose(retval['WV_073']['gain'], DUMMY_DATA['WV_073_gain'][1])
+        np.testing.assert_allclose(retval['IR_120']['offset'], DUMMY_DATA['IR_120_offset'][1])
+        retval = load_eumclim_nc(make_dummy_ncdf, datetime(2020, 1, 12, 15, 56, 0))
+        np.testing.assert_allclose(retval['WV_073']['gain'], DUMMY_DATA['WV_073_gain'][2])
+        np.testing.assert_allclose(retval['IR_120']['offset'], DUMMY_DATA['IR_120_offset'][2])
 
 
 ORBIT_POLYNOMIALS = {
@@ -281,13 +342,13 @@ class TestOrbitPolynomialFinder:
         [
             # Contiguous validity intervals (that's the norm)
             (
-                ORBIT_POLYNOMIALS_SYNTH,
-                datetime(2005, 12, 31, 12, 15),
-                OrbitPolynomial(
-                    coefs=(2.0, 2.1, 2.2),
-                    start_time=np.datetime64('2005-12-31 12:00'),
-                    end_time=np.datetime64('2005-12-31 18:00')
-                )
+                    ORBIT_POLYNOMIALS_SYNTH,
+                    datetime(2005, 12, 31, 12, 15),
+                    OrbitPolynomial(
+                        coefs=(2.0, 2.1, 2.2),
+                        start_time=np.datetime64('2005-12-31 12:00'),
+                        end_time=np.datetime64('2005-12-31 18:00')
+                    )
             ),
             # No interval enclosing the given timestamp, but closest interval
             # not too far away
