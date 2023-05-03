@@ -30,6 +30,7 @@ import xarray as xr
 
 from satpy.utils import (
     angle2xyz,
+    get_legacy_chunk_size,
     get_satpos,
     import_error_helper,
     lonlat2xyz,
@@ -468,30 +469,32 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
         assert data_arr.chunks == orig_arr.chunks
 
 
-def test_chunk_pixel_size():
-    """Check the chunk pixel size computations."""
-    from unittest.mock import patch
-
-    from satpy.utils import get_chunk_pixel_size
-    with patch("satpy.utils.CHUNK_SIZE", None):
-        assert get_chunk_pixel_size() is None
-    with patch("satpy.utils.CHUNK_SIZE", 10):
-        assert get_chunk_pixel_size() == 100
-    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
-        assert get_chunk_pixel_size() == 200
-
-
 def test_chunk_size_limit():
     """Check the chunk size limit computations."""
     from unittest.mock import patch
 
     from satpy.utils import get_chunk_size_limit
-    with patch("satpy.utils.CHUNK_SIZE", None):
-        assert get_chunk_size_limit(np.uint8) is None
-    with patch("satpy.utils.CHUNK_SIZE", 10):
-        assert get_chunk_size_limit(np.float64) == 800
-    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
-        assert get_chunk_size_limit(np.int32) == 800
+    with patch("satpy.utils._get_pytroll_chunk_size") as ptc:
+        ptc.return_value = 10
+        assert get_chunk_size_limit(np.int32) == 400
+        assert get_chunk_size_limit() == 800
+
+
+def test_chunk_size_limit_from_dask_config():
+    """Check the chunk size limit computations."""
+    import dask.config
+
+    from satpy.utils import get_chunk_size_limit
+    with dask.config.set({"array.chunk-size": "1KiB"}):
+        assert get_chunk_size_limit(np.uint8) == 1024
+
+
+def test_get_legacy_chunk_size():
+    """Test getting the legacy chunk size."""
+    import dask.config
+    assert get_legacy_chunk_size() == 4096
+    with dask.config.set({"array.chunk-size": "32MiB"}):
+        assert get_legacy_chunk_size() == 2048
 
 
 def test_convert_remote_files_to_fsspec_local_files():

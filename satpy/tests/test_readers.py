@@ -588,13 +588,8 @@ class TestFindFilesAndReaders:
             get_valid_reader_names([test_reader])
 
 
-class TestYAMLFiles(unittest.TestCase):
+class TestYAMLFiles:
     """Test and analyze the reader configuration files."""
-
-    def setUp(self):
-        """Set up monkeypatch."""
-        from _pytest.monkeypatch import MonkeyPatch
-        self.monkeypatch = MonkeyPatch()
 
     def test_filename_matches_reader_name(self):
         """Test that every reader filename matches the name in the YAML."""
@@ -612,28 +607,28 @@ class TestYAMLFiles(unittest.TestCase):
             reader_fn_name = os.path.splitext(reader_fn)[0]
             reader_info = read_reader_config([reader_config],
                                              loader=IgnoreLoader)
-            self.assertEqual(reader_fn_name, reader_info['name'],
-                             "Reader YAML filename doesn't match reader "
-                             "name in the YAML file.")
+            assert reader_fn_name == reader_info['name'], \
+                "Reader YAML filename doesn't match reader name in the YAML file."
 
     def test_available_readers(self):
         """Test the 'available_readers' function."""
         from satpy import available_readers
+
         reader_names = available_readers()
-        self.assertGreater(len(reader_names), 0)
-        self.assertIsInstance(reader_names[0], str)
-        self.assertIn('viirs_sdr', reader_names)  # needs h5py
-        self.assertIn('abi_l1b', reader_names)  # needs netcdf4
-        self.assertEqual(reader_names, sorted(reader_names))
+        assert len(reader_names) > 0
+        assert isinstance(reader_names[0], str)
+        assert 'viirs_sdr' in reader_names  # needs h5py
+        assert 'abi_l1b' in reader_names  # needs netcdf4
+        assert reader_names == sorted(reader_names)
 
         reader_infos = available_readers(as_dict=True)
-        self.assertEqual(len(reader_names), len(reader_infos))
-        self.assertIsInstance(reader_infos[0], dict)
+        assert len(reader_names) == len(reader_infos)
+        assert isinstance(reader_infos[0], dict)
         for reader_info in reader_infos:
-            self.assertIn('name', reader_info)
-        self.assertEqual(reader_infos, sorted(reader_infos, key=lambda reader_info: reader_info['name']))
+            assert 'name' in reader_info
+        assert reader_infos == sorted(reader_infos, key=lambda reader_info: reader_info['name'])
 
-    def test_available_readers_base_loader(self):
+    def test_available_readers_base_loader(self, monkeypatch):
         """Test the 'available_readers' function for yaml loader type BaseLoader."""
         import yaml
 
@@ -645,16 +640,16 @@ class TestYAMLFiles(unittest.TestCase):
                 raise ImportError(f"Mocked import error {name}")
             return real_import(name, globals=globals, locals=locals, fromlist=fromlist, level=level)
 
-        self.monkeypatch.delitem(sys.modules, 'netcdf4', raising=False)
-        self.monkeypatch.setattr(builtins, '__import__', patched_import_error)
+        monkeypatch.delitem(sys.modules, 'netcdf4', raising=False)
+        monkeypatch.setattr(builtins, '__import__', patched_import_error)
 
         with pytest.raises(ImportError):
             import netcdf4  # noqa: F401
 
         reader_names = available_readers(yaml_loader=yaml.BaseLoader)
-        self.assertIn('abi_l1b', reader_names)  # needs netcdf4
-        self.assertIn('viirs_l1b', reader_names)
-        self.assertEqual(len(reader_names), len(list(glob_config('readers/*.yaml'))))
+        assert 'abi_l1b' in reader_names  # needs netcdf4
+        assert 'viirs_l1b' in reader_names
+        assert len(reader_names) == len(list(glob_config('readers/*.yaml')))
 
 
 class TestGroupFiles(unittest.TestCase):

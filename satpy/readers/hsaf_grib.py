@@ -31,11 +31,12 @@ import pygrib
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 
 CF_UNITS = {
     'none': '1',

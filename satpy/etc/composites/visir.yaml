@@ -290,11 +290,81 @@ composites:
     - cma
     standard_name: cloudmask
 
+  pps_cma:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cma
+    - cma
+    standard_name: pps_cma
+
+  pps_ct:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - ct
+    - cma
+    standard_name: pps_ct
+
+  pps_phase:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_phase
+    - cma
+    standard_name: pps_phase
+
+  pps_ctth:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - ctth_alti
+    - cma
+    standard_name: pps_ctth
+
+  pps_cmaprob:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmaprob
+    - cma
+    standard_name: pps_cmaprob
+
+  pps_cot:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_cot
+    - cma
+    standard_name: pps_cot
+
+  pps_cwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_cwp
+    - cma
+    standard_name: pps_cwp
+
+  pps_iwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_iwp
+    - cma
+    standard_name: pps_iwp
+
+  pps_lwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_lwp
+    - cma
+    standard_name: pps_lwp
+
+  pps_cre:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_reff
+    - cma
+    standard_name: pps_cre
+
   cloudmask_extended:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma_extended
-    standard_name: cloudmask
+    standard_name: cloudmask_extended
 
   cloudmask_probability:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -309,12 +379,11 @@ composites:
     standard_name: cloudtype
 
   cloud_top_height:
-    compositor: !!python/name:satpy.composites.cloud_products.CloudTopHeightCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - ctth_alti
-    - ctth_alti_pal
     - ctth_status_flag
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_pps
 
   cloud_top_pressure:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -329,24 +398,24 @@ composites:
     standard_name: cloud_top_temperature
 
   cloud_top_phase:
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - cmic_phase
+    - cmic_status_flag
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - cmic_reff
-    - cmic_reff_pal
-    standard_name: cloud_drop_effective_radius
+    - cmic_status_flag
+    standard_name: cloud_drop_effective_radius_pps
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    - cmic_cot_pal
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_pps
 
   cloud_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor

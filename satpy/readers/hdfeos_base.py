@@ -30,10 +30,12 @@ import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy import CHUNK_SIZE, DataID
+from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):

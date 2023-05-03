@@ -28,7 +28,7 @@ from satpy.tests.reader_tests.test_agri_l1 import FakeHDF5FileHandler2
 class Test_FY4Base:
     """Tests for the FengYun4 base class for the components missed by AGRI/GHI tests."""
 
-    def setup(self):
+    def setup_method(self):
         """Initialise the tests."""
         self.p = mock.patch.object(FY4Base, '__bases__', (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
