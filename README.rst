@@ -2,7 +2,7 @@ Satpy
 =====
 
 .. image:: https://github.com/pytroll/satpy/workflows/CI/badge.svg?branch=main
-    :target: https://github.com/pytroll/satpy/actions?query=workflow%3A%22CI%22
+    :target: https://github.com/pytroll/satpy/actions?query=workflow%3A%22CI%22+branch%3Amain
 
 .. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=main
     :target: https://coveralls.io/github/pytroll/satpy?branch=main
