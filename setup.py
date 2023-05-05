@@ -72,6 +72,7 @@ extras_require = {
     'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'ninjo': ['pyninjotiff', 'pint'],
+    "units": ["pint-xarray"],
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
     'angles': ['pyorbital >= 1.3.1'],
