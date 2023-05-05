@@ -66,8 +66,7 @@ class TestBuiltinAreas(unittest.TestCase):
                     # we didn't provide enough info to freeze, hard to guess
                     # in a generic test so just skip this area
                     continue
-            proj_dict = area_obj.proj_dict
-            _ = pyproj.Proj(proj_dict)
+            _ = pyproj.Proj(area_obj.crs)
 
     def test_areas_rasterio(self):
         """Test all areas have valid projections with rasterio."""
@@ -99,14 +98,7 @@ class TestBuiltinAreas(unittest.TestCase):
                     # we didn't provide enough info to freeze, hard to guess
                     # in a generic test so just skip this area
                     continue
-            proj_dict = area_obj.proj_dict
-            if proj_dict.get('proj') in ('ob_tran', 'nsper') and \
-                    'wktext' not in proj_dict:
-                # FIXME: rasterio doesn't understand ob_tran unless +wktext
-                # See: https://github.com/pyproj4/pyproj/issues/357
-                # pyproj 2.0+ seems to drop wktext from PROJ dict
-                continue
-            _ = CRS.from_dict(proj_dict)
+            _ = CRS.from_user_input(area_obj.crs)
 
 
 @contextlib.contextmanager
