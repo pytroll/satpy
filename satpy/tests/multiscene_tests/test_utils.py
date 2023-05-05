@@ -62,18 +62,16 @@ def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):
 
 def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
     """Create a test area definition."""
-    from pyresample.utils import proj4_str_to_dict
     if proj_str is None:
         proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. ' \
                    '+lat_0=25 +lat_1=25 +units=m +no_defs'
-    proj_dict = proj4_str_to_dict(proj_str)
     extents = extents or (-1000., -1500., 1000., 1500.)
 
     return AreaDefinition(
         'test',
         'test',
         'test',
-        proj_dict,
+        proj_str,
         shape[1],
         shape[0],
         extents
