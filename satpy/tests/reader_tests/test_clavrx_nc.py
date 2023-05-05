@@ -36,17 +36,17 @@ DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FIL
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-AHI_FILE = 'clavrx_H08_20210603_1500_B01_FLDK_R.level2.nc'
+ABI_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc'
 FILL_VALUE = -32768
 
 
 def fake_test_content(filename, **kwargs):
     """Mimic reader input file content."""
     attrs = {
-        'platform': 'HIM8',
-        'sensor': 'AHI',
+        'platform': 'G16',
+        'sensor': 'ABI',
         # this is a Level 2 file that came from a L1B file
-        'L1B': 'clavrx_H08_20210603_1500_B01_FLDK_R',
+        'L1B': '"clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173',
     }
 
     longitude = xr.DataArray(DEFAULT_LON_DATA,
@@ -127,7 +127,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
-        [([AHI_FILE], 1)]
+        [([ABI_FILE], 1)]
     )
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
@@ -143,7 +143,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
-        [([AHI_FILE], ['variable1', 'refl_0_65um_nom', 'variable3']), ]
+        [([ABI_FILE], ['variable1', 'refl_0_65um_nom', 'variable3']), ]
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
@@ -157,12 +157,12 @@ class TestCLAVRXReaderGeo:
             for var_name in expected_datasets:
                 assert var_name in avails
             # check extra datasets created by alias or coordinates
-            for var_name in ["latitude", "longitude", "C03"]:
+            for var_name in ["latitude", "longitude"]:
                 assert var_name in avails
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [([AHI_FILE], ['variable1', 'refl_0_65um_nom', 'C03', 'variable3']), ]
+        [([ABI_FILE], ['variable1', 'refl_0_65um_nom', 'C02', 'variable3']), ]
     )
     def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
@@ -181,8 +181,8 @@ class TestCLAVRXReaderGeo:
                     semi_major_axis=6378137,
                     semi_minor_axis=6356752.3142,
                     perspective_point_height=35791000,
-                    longitude_of_projection_origin=140.7,
-                    sweep_angle_axis='y',
+                    longitude_of_projection_origin=-137.2,
+                    sweep_angle_axis='x',
                 )
                 d.return_value = fake_donor = mock.MagicMock(
                     variables={'goes_imager_projection': proj, 'x': x, 'y': y},
@@ -194,15 +194,15 @@ class TestCLAVRXReaderGeo:
                     assert 'calibration' not in v.attrs
                     assert "units" in v.attrs
                     assert isinstance(v.attrs['area'], AreaDefinition)
-                    assert v.attrs['platform_name'] == 'himawari8'
-                    assert v.attrs['sensor'] == 'ahi'
+                    assert v.attrs['platform_name'] == 'GOES-16'
+                    assert v.attrs['sensor'] == 'abi'
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
                     if v.attrs["name"] == 'variable1':
                         assert "valid_range" not in v.attrs
                         assert v.dtype == np.float64
                         assert "_FillValue" not in v.attrs
                     # should have file variable and one alias for reflectance
-                    elif v.attrs["name"] in ["refl_0_65um_nom", "C03"]:
+                    elif v.attrs["name"] in ["refl_0_65um_nom", "C02"]:
                         assert isinstance(v.attrs["valid_range"], list)
                         assert v.dtype == np.float64
                         assert "_FillValue" not in v.attrs.keys()

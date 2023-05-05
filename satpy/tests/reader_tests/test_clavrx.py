@@ -386,7 +386,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             else:
                 self.assertNotIn('_FillValue', v.attrs)
             if v.attrs["name"] == 'variable1':
-                self.assertIsInstance(v.attrs["valid_range"], list)
+                self.assertIsInstance(v.attrs["valid_range"], tuple)
             else:
                 self.assertNotIn('valid_range', v.attrs)
             if 'flag_values' in v.attrs:

@@ -69,21 +69,18 @@ NADIR_RESOLUTION = {
 }
 
 CHANNEL_ALIASES = {
-        "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47},
-                "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64},
-                "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865},
-                "refl_1_38um_nom": {"name": "C04", "wavelength": 1.378},
-                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61},
-                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25},
+        "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+                "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+                "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
+                "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
+                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
                 },
-        "ahi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47},
-                "refl_0_55um_nom": {"name": "C02", "wavelength": 0.51},
-                "refl_0_65um_nom": {"name": "C03", "wavelength": 0.64},
-                "refl_0_86um_nom": {"name": "C04", "wavelength": 0.86},
-                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61},
-                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25}
-                },
-}
+        "viirs": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+                  "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+                  "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
+                  }
+        }
 
 
 def _get_sensor(sensor: str) -> str:
@@ -143,8 +140,6 @@ class _CLAVRxHelper:
         factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
         offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
         valid_range = attrs.get('valid_range', [None])
-        if isinstance(valid_range, np.ndarray):
-            attrs["valid_range"] = valid_range.tolist()
 
         flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
         if not flags:
@@ -152,15 +147,14 @@ class _CLAVRxHelper:
             data = _CLAVRxHelper._scale_data(data, factor, offset)
             # don't need _FillValue if it has been applied.
             attrs.pop('_FillValue', None)
-
-        if all(valid_range):
-            valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
-            valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
-            if flags:
-                data = data.where((data >= valid_min) & (data <= valid_max), fill)
-            else:
+            if isinstance(valid_range, np.ndarray):
+                valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
+                valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
                 data = data.where((data >= valid_min) & (data <= valid_max))
-            attrs['valid_range'] = [valid_min, valid_max]
+        else:
+            flag_values = attrs.get('flag_values', None)
+            if flag_values is not None and isinstance(flag_values, np.ndarray):
+                data = data.where((data >= flag_values[0]) & (data <= flag_values[-1]), fill)
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
@@ -330,6 +324,15 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         elif res is not None:
             return int(res)
 
+    def _available_aliases(self, ds_info, current_var):
+        """Add alias if there is a match."""
+        alias_info = CHANNEL_ALIASES.get(self.sensor).get(current_var, None)
+        if alias_info is not None:
+            alias_info.update({"file_key": current_var})
+            alias_info["resolution"] = self.get_nadir_resolution(self.sensor)
+            ds_info.update(alias_info)
+            yield True, ds_info
+
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
@@ -374,6 +377,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                 if self._is_polar():
                     ds_info['coordinates'] = ['longitude', 'latitude']
                 yield True, ds_info
+
+                if CHANNEL_ALIASES.get(self.sensor) is not None:
+                    yield from self._available_aliases(ds_info, var_name)
 
     def get_shape(self, dataset_id, ds_info):
         """Get the shape."""
@@ -425,11 +431,20 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                                               {"name": "longitude"})
 
     def _get_ds_info_for_data_arr(self, var_name):
+        """Set data name and, if applicable, aliases."""
+        channel_info = None
         ds_info = {
             'file_type': self.filetype_info['file_type'],
             'name': var_name,
         }
-        return ds_info
+        yield True, ds_info
+
+        if CHANNEL_ALIASES.get(self.sensor) is not None:
+            channel_info = CHANNEL_ALIASES.get(self.sensor).get(var_name, None)
+        if channel_info is not None:
+            channel_info["file_key"] = var_name
+            ds_info.update(channel_info)
+        yield True, ds_info
 
     @staticmethod
     def _is_2d_yx_data_array(data_arr):
@@ -450,19 +465,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                 # we need 'traditional' y/x dimensions currently
                 continue
 
-            ds_info = self._get_ds_info_for_data_arr(var_name)
-            ds_info.update({"file_key": var_name})
-            yield True, ds_info
-
-            alias_info = CHANNEL_ALIASES[self.sensor].get(var_name, None)
-            if alias_info is not None:
-                alias_info.update({"file_key": var_name})
-                if "RESOLUTION_KM" in self.nc.attrs:
-                    alias_info["resolution"] = self.nc.attrs["RESOLUTION_KM"] * 1000.
-                else:
-                    alias_info["resolution"] = NADIR_RESOLUTION[self.sensor]
-                ds_info.update(alias_info)
-                yield True, ds_info
+            yield from self._get_ds_info_for_data_arr(var_name)
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
@@ -488,7 +491,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
                              str(self.nc.attrs.get('sensor', None)))
 
-        return (inst_att != 'AHI' and 'GOES' not in inst_att) or (l1b_att is None)
+        return (inst_att not in ['ABI', 'AHI'] and 'GOES' not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
