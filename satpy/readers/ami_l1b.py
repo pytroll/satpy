@@ -161,10 +161,10 @@ class AMIL1bNetCDF(BaseFileHandler):
         sc_position = self.nc['sc_position'].attrs['sc_position_center_pixel']
 
         # convert ECEF coordinates to lon, lat, alt
-        ecef = pyproj.Proj(proj='geocent', a=a, b=b)
-        lla = pyproj.Proj(proj='latlong', a=a, b=b)
-        sc_position = pyproj.transform(
-            ecef, lla, sc_position[0], sc_position[1], sc_position[2])
+        ecef = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b})
+        lla = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b})
+        transformer = pyproj.Transformer.from_crs(ecef, lla)
+        sc_position = transformer.transform(sc_position[0], sc_position[1], sc_position[2])
 
         orbital_parameters = {
             'projection_longitude': float(lon_0),

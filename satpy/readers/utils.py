@@ -391,9 +391,10 @@ def get_earth_radius(lon, lat, a, b):
         Earth Radius (meters)
 
     """
-    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
-    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    geocent = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b, "units": "m"})
+    latlong = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b, "units": "m"})
+    transformer = pyproj.Transformer.from_crs(latlong, geocent)
+    x, y, z = transformer.transform(lon, lat, 0.0)
     return np.sqrt(x**2 + y**2 + z**2)
 
 

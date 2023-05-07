@@ -178,15 +178,6 @@ class TestEnhancementStretch:
             [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
         run_and_check_enhancement(three_d_effect, self.ch1, expected)
 
-    def test_crefl_scaling(self):
-        """Test the crefl_scaling enhancement function."""
-        from satpy.enhancements import crefl_scaling
-        expected = np.array([[
-            [np.nan, 0., 0., 0.44378, 0.631734],
-            [0.737562, 0.825041, 0.912521, 1., 1.]]])
-        run_and_check_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
-                                  sc=[0., 90., 140., 175., 255.])
-
     def test_piecewise_linear_stretch(self):
         """Test the piecewise_linear_stretch enhancement function."""
         from satpy.enhancements import piecewise_linear_stretch

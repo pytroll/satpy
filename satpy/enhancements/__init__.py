@@ -17,7 +17,6 @@
 
 import logging
 import os
-import warnings
 from collections import namedtuple
 from functools import wraps
 from numbers import Number
@@ -124,18 +123,6 @@ def using_map_blocks(func):
         return da.map_blocks(func, data, meta=np.array((), dtype=data.dtype), dtype=data.dtype, chunks=data.chunks,
                              **kwargs)
     return on_dask_array(wrapper)
-
-
-def crefl_scaling(img, **kwargs):
-    """Apply non-linear stretch used by CREFL-based RGBs."""
-    LOG.debug("Applying the crefl_scaling")
-    warnings.warn(
-        "'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    img.data.data = img.data.data / 100
-    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 
 
 def piecewise_linear_stretch(

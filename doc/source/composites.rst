@@ -516,7 +516,6 @@ Enhancing the images
     - stretch
     - gamma
     - invert
-    - crefl_scaling
     - cira_stretch
     - lookup
     - colorize
