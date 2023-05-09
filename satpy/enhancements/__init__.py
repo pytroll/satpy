@@ -588,9 +588,9 @@ def jma_true_color_reproduction(img):
 @exclude_alpha
 @on_dask_array
 def _jma_true_color_reproduction(img_data, platform=None):
-    """Convert frmo AHI RGB space to sRGB space.
+    """Convert from AHI RGB space to sRGB space.
 
-    The conversion matrices for this are supplied per-sensor and per-platform.
+    The conversion matrices for this are supplied per-platform.
     The matrices are computed using the method described in the paper:
     'True Color Imagery Rendering for Himawari-8 with a Color Reproduction Approach
      Based on the CIE XYZ Color System'
