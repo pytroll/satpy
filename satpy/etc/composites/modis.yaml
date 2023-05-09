@@ -18,7 +18,6 @@ modifiers:
     prerequisites:
     - name: '1'
       modifiers: [sunz_corrected]
-    optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
     - solar_azimuth_angle

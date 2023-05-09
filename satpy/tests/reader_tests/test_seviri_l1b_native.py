@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import unittest
+import warnings
 from datetime import datetime
 from unittest import mock
 
@@ -1279,7 +1280,8 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        res = file_handler.get_dataset(dataset_id, dataset_info)
+        with pytest.warns(UserWarning, match="No orbit polynomial"):
+            res = file_handler.get_dataset(dataset_id, dataset_info)
         assert 'satellite_actual_longitude' not in res.attrs[
             'orbital_parameters']
 
@@ -1401,7 +1403,8 @@ def test_header_warning():
         exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
 
         fromfile.return_value = header_good
-        with pytest.warns(None):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             NativeMSGFileHandler('myfile', {}, None)
 
         fromfile.return_value = header_bad
