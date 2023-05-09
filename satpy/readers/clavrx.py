@@ -333,6 +333,23 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             ds_info.update(alias_info)
             yield True, ds_info
 
+    def _dynamic_datasets(self, nadir_resolution):
+        """Get data from file and build aliases."""
+        # add new datasets
+        for var_name, val in self.file_content.items():
+            if isinstance(val, SDS):
+                ds_info = {
+                    'file_type': self.filetype_info['file_type'],
+                    'resolution': nadir_resolution,
+                    'name': var_name,
+                }
+                if self._is_polar():
+                    ds_info['coordinates'] = ['longitude', 'latitude']
+                yield True, ds_info
+
+                if CHANNEL_ALIASES.get(self.sensor) is not None:
+                    yield from self._available_aliases(ds_info, var_name)
+
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
@@ -366,20 +383,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
 
-        # add new datasets
-        for var_name, val in self.file_content.items():
-            if isinstance(val, SDS):
-                ds_info = {
-                    'file_type': self.filetype_info['file_type'],
-                    'resolution': nadir_resolution,
-                    'name': var_name,
-                }
-                if self._is_polar():
-                    ds_info['coordinates'] = ['longitude', 'latitude']
-                yield True, ds_info
-
-                if CHANNEL_ALIASES.get(self.sensor) is not None:
-                    yield from self._available_aliases(ds_info, var_name)
+        yield from self._dynamic_datasets(nadir_resolution)
 
     def get_shape(self, dataset_id, ds_info):
         """Get the shape."""
@@ -452,7 +456,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         has_x_dim = data_arr.dims[1] == "x"
         return has_y_dim and has_x_dim
 
-    def _available_new_datasets(self, handled_vars):
+    def _available_file_datasets(self, handled_vars):
         """Metadata for available variables other than BT."""
         possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
@@ -485,7 +489,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
             if self.file_type_matches(ds_info['file_type']):
                 handled_vars.add(ds_info['name'])
             yield self.file_type_matches(ds_info['file_type']), ds_info
-        yield from self._available_new_datasets(handled_vars)
+        yield from self._available_file_datasets(handled_vars)
 
     def _is_polar(self):
         l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
