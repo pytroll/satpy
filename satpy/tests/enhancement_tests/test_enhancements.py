@@ -673,5 +673,14 @@ class TestTCREnhancement:
         img = XRImage(self.rgb)
         jma_true_color_reproduction(img)
 
-        print(img.data.compute())
         np.testing.assert_almost_equal(img.data.compute(), expected)
+
+        self.rgb.attrs['platform_name'] = None
+        img = XRImage(self.rgb)
+        with pytest.raises(ValueError, match="Missing platform name."):
+            jma_true_color_reproduction(img)
+
+        self.rgb.attrs['platform_name'] = 'Fakesat'
+        img = XRImage(self.rgb)
+        with pytest.raises(KeyError, match="No conversion matrix found for platform Fakesat"):
+            jma_true_color_reproduction(img)
