@@ -38,7 +38,8 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
-                 's3fs']
+                 's3fs', 'python-eccodes', 'h5netcdf', 'xarray-datatree',
+                 'skyfield', 'ephem', 'pint-xarray', 'astropy']
 
 extras_require = {
     # Readers:

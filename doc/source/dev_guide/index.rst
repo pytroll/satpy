@@ -44,7 +44,7 @@ automatically reflected in the python environment. We highly recommend making
 a separate conda environment or virtualenv for development. For example, you
 can do this using conda_::
 
-  conda create -n satpy-dev python=3.8
+  conda create -n satpy-dev python=3.11
   conda activate satpy-dev
 
 .. _conda: https://conda.io/
@@ -80,7 +80,7 @@ libraries. If you want to run all Satpy tests you will need to install
 additional dependencies that aren't needed for regular Satpy usage. To install
 them run::
 
-    pip install -e .[tests]
+    pip install -e ".[tests]"
 
 Satpy tests can be executed by running::
 
