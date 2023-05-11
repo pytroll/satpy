@@ -15,14 +15,86 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI native format reader.
+r"""SEVIRI Level 1.5 native format reader.
+
+Introduction
+____________
+The ``seviri_l1b_native`` reader reads and calibrates MSG-SEVIRI L1.5 image data in binary format. The format is
+explained in the `MSG Level 1.5 Native Format File Definition`_. The files are usually named as
+follows:
+
+.. code-block:: none
+
+    MSG4-SEVI-MSG15-0100-NA-20210302124244.185000000Z-NA.nat
+
+Reader Arguments
+----------------
+Some arguments can be provided to the reader to change its behaviour. These are
+provided through the `Scene` instantiation, eg::
+
+  scn = Scene(filenames=filenames, reader="seviri_l1b_native", reader_kwargs={'fill_disk': True})
+
+To see the full list of arguments that can be provided, look into the documentation
+of :class:`NativeMSGFileHandler`.
+
+Example
+-------
+Here is an example how to read the data in satpy.
+
+NOTE: When loading the data, the orientation
+of the image can be set with ``upper_right_corner``-keyword.
+Possible options are ``NW``, ``NE``, ``SW``, ``SE``, or ``native``.
+
+.. code-block:: python
+
+    from satpy import Scene
+
+    filenames = ['MSG4-SEVI-MSG15-0100-NA-20210302124244.185000000Z-NA.nat']
+    scn = Scene(filenames=filenames, reader='seviri_l1b_native')
+    scn.load(['VIS006', 'IR_108'], upper_right_corner='NE')
+    print(scn['IR_108'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray 'reshape-969ef97d34b7b0c70ca19f53c6abcb68' (y: 3712, x: 3712)>
+    dask.array<truediv, shape=(3712, 3712), dtype=float32, chunksize=(928, 3712), chunktype=numpy.ndarray>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+        crs       object PROJCRS["unknown",BASEGEOGCRS["unknown",DATUM["unknown",...
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+    Attributes:
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
+        time_parameters:          {'nominal_start_time': datetime.datetime(2021, ...
+        units:                    K
+        wavelength:               10.8 µm (9.8-11.8 µm)
+        standard_name:            toa_brightness_temperature
+        platform_name:            Meteosat-11
+        sensor:                   seviri
+        georef_offset_corrected:  True
+        start_time:               2021-03-02 12:30:11.584603
+        end_time:                 2021-03-02 12:45:09.949762
+        reader:                   seviri_l1b_native
+        area:                     Area ID: msg_seviri_fes_3km\\nDescription: MSG S...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        modifiers:                ()
+        _satpy_id:                DataID(name='IR_108', wavelength=WavelengthRang...
+        ancillary_variables:      []
+
 
 References:
+    - `EUMETSAT Product Navigator`_
     - `MSG Level 1.5 Native Format File Definition`_
 
+.. _EUMETSAT Product Navigator:
+    https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Native Format File Definition:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
-
 """
 
 import logging
@@ -81,7 +153,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     By providing the `fill_disk` as True in the `reader_kwargs`, the channel is loaded
     as full disk, padded with no-data where necessary. This is especially useful for the
-    HRV channel, but can also be used for RSS and ROI data. By default the original,
+    HRV channel, but can also be used for RSS and ROI data. By default, the original,
     unpadded, data are loaded::
 
         scene = satpy.Scene(filenames,
@@ -341,7 +413,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         definitions defined in the `areas.yaml` file correspond to the HRIT ones.
 
         """
-        pdict = {}
+        pdict = dict()
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
         pdict['h'] = self.mda['projection_parameters']['h']
@@ -464,13 +536,13 @@ class NativeMSGFileHandler(BaseFileHandler):
     def is_roi(self):
         """Check if data covers a selected region of interest (ROI).
 
-        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segements
+        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segments
         of the SEVIRI disk. Hence, if the data does not cover the full disk, nor the standard RSS region
         in RSS mode, it's assumed to be ROI data.
         """
         is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
 
-        # Standard RSS data is assumed to cover the three northmost segements, thus consisting of all 3712 columns and
+        # Standard RSS data is assumed to cover the three northmost segments, thus consisting of all 3712 columns and
         # the 1392 northmost lines
         nlines = int(self.mda['number_of_lines'])
         ncolumns = int(self.mda['number_of_columns'])
@@ -509,7 +581,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _get_visir_channel(self, dataset_id):
         shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
         # Check if there is only 1 channel in the list as a change
-        # is needed in the arrray assignment ie channl id is not present
+        # is needed in the array assignment ie channel id is not present
         if len(self.mda['channel_list']) == 1:
             raw = self.dask_array['visir']['line_data']
         else:
@@ -594,7 +666,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _get_acq_time_visir(self, dataset_id):
         """Get raw acquisition time for VIS/IR channels."""
         # Check if there is only 1 channel in the list as a change
-        # is needed in the arrray assignment ie channl id is not present
+        # is needed in the array assignment, i.e. channel id is not present
         if len(self.mda['channel_list']) == 1:
             return self.dask_array['visir']['acq_time'].compute()
         i = self.mda['channel_list'].index(dataset_id['name'])
@@ -787,7 +859,7 @@ class Padder:
     def _extract_data_to_pad(self, dataset, south_bound, north_bound):
         """Extract the data that shall be padded.
 
-        In case of FES (HRV) data, 'dataset' contains data from twoseparate windows that
+        In case of FES (HRV) data, 'dataset' contains data from two separate windows that
         are padded separately. Hence, we extract a subset of data.
         """
         if self._is_full_disk:

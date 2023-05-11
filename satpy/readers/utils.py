@@ -49,7 +49,7 @@ def np2str(value):
         value (ndarray): scalar or 1-element numpy array to convert
 
     Raises:
-        ValueError: if value is array larger than 1-element or it is not of
+        ValueError: if value is array larger than 1-element, or it is not of
                     type `numpy.string_` or it is not a numpy array
 
     """
