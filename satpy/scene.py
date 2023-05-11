@@ -1013,10 +1013,15 @@ class Scene:
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims : list of str, optional
+            vdims (list of str, optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic : boolean, optional, default False
+            dynamic (bool, optional): Load and compute data on-the-fly during
+                visualization. Default is ``False``. See
+                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
+                for more information. Has no effect when data to be visualized
+                only has 2 dimensions (y/x or longitude/latitude) and doesn't
+                require grouping via the Holoviews ``groupby`` function.
 
         Returns: geoviews object
 
@@ -1042,10 +1047,12 @@ class Scene:
         else:
             gvds = gv.Dataset(ds)
 
+        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
+        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
         if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
         else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
 
         return gview
 

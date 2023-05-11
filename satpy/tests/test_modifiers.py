@@ -395,7 +395,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestPSPRayleighReflectance:
     """Test the pyspectral-based Rayleigh correction modifier."""
 
-    def make_data_area(self):
+    def _make_data_area(self):
         """Create test area definition and data."""
         rows = 3
         cols = 5
@@ -411,6 +411,52 @@ class TestPSPRayleighReflectance:
         data[2, :] += 50
         data = da.from_array(data, chunks=2)
         return area, data
+
+    def _create_test_data(self, name, wavelength, resolution):
+        area, dnb = self._make_data_area()
+        input_band = xr.DataArray(dnb,
+                                  dims=('y', 'x'),
+                                  attrs={
+                                      'platform_name': 'Himawari-8',
+                                      'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                      'name': name, 'resolution': resolution, 'sensor': 'ahi',
+                                      'start_time': '2017-09-20 17:30:40.800000',
+                                      'end_time': '2017-09-20 17:41:17.500000',
+                                      'area': area, 'ancillary_variables': [],
+                                      'orbital_parameters': {
+                                          'satellite_nominal_longitude': -89.5,
+                                          'satellite_nominal_latitude': 0.0,
+                                          'satellite_nominal_altitude': 35786023.4375,
+                                      },
+                                  })
+
+        red_band = xr.DataArray(dnb,
+                                dims=('y', 'x'),
+                                attrs={
+                                    'platform_name': 'Himawari-8',
+                                    'calibration': 'reflectance', 'units': '%', 'wavelength': (0.62, 0.64, 0.66),
+                                    'name': 'B03', 'resolution': 500, 'sensor': 'ahi',
+                                    'start_time': '2017-09-20 17:30:40.800000',
+                                    'end_time': '2017-09-20 17:41:17.500000',
+                                    'area': area, 'ancillary_variables': [],
+                                    'orbital_parameters': {
+                                        'satellite_nominal_longitude': -89.5,
+                                        'satellite_nominal_latitude': 0.0,
+                                        'satellite_nominal_altitude': 35786023.4375,
+                                    },
+                                })
+        fake_angle_data = da.ones_like(dnb, dtype=np.float32) * 90.0
+        angle1 = xr.DataArray(fake_angle_data,
+                              dims=('y', 'x'),
+                              attrs={
+                                  'platform_name': 'Himawari-8',
+                                  'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                  'name': "satellite_azimuth_angle", 'resolution': resolution, 'sensor': 'ahi',
+                                  'start_time': '2017-09-20 17:30:40.800000',
+                                  'end_time': '2017-09-20 17:41:17.500000',
+                                  'area': area, 'ancillary_variables': [],
+                              })
+        return input_band, red_band, angle1, angle1, angle1, angle1
 
     @pytest.mark.parametrize(
         ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength",
@@ -444,39 +490,7 @@ class TestPSPRayleighReflectance:
         assert ray_cor.attrs['reduce_lim_high'] == reduce_lim_high
         assert ray_cor.attrs['reduce_strength'] == reduce_strength
 
-        area, dnb = self.make_data_area()
-        input_band = xr.DataArray(dnb,
-                                  dims=('y', 'x'),
-                                  attrs={
-                                      'platform_name': 'Himawari-8',
-                                      'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
-                                      'name': name, 'resolution': resolution, 'sensor': 'ahi',
-                                      'start_time': '2017-09-20 17:30:40.800000',
-                                      'end_time': '2017-09-20 17:41:17.500000',
-                                      'area': area, 'ancillary_variables': [],
-                                      'orbital_parameters': {
-                                          'satellite_nominal_longitude': -89.5,
-                                          'satellite_nominal_latitude': 0.0,
-                                          'satellite_nominal_altitude': 35786023.4375,
-                                      },
-                                  })
-
-        red_band = xr.DataArray(dnb,
-                                dims=('y', 'x'),
-                                attrs={
-                                    'platform_name': 'Himawari-8',
-                                    'calibration': 'reflectance', 'units': '%', 'wavelength': (0.62, 0.64, 0.66),
-                                    'name': 'B03', 'resolution': 500, 'sensor': 'ahi',
-                                    'start_time': '2017-09-20 17:30:40.800000',
-                                    'end_time': '2017-09-20 17:41:17.500000',
-                                    'area': area, 'ancillary_variables': [],
-                                    'orbital_parameters': {
-                                        'satellite_nominal_longitude': -89.5,
-                                        'satellite_nominal_latitude': 0.0,
-                                        'satellite_nominal_altitude': 35786023.4375,
-                                    },
-                                })
-
+        input_band, red_band, *_ = self._create_test_data(name, wavelength, resolution)
         res = ray_cor([input_band, red_band])
 
         assert isinstance(res, xr.DataArray)
@@ -487,6 +501,37 @@ class TestPSPRayleighReflectance:
         np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
         assert data.shape == (3, 5)
         np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
+
+    @pytest.mark.parametrize("as_optionals", [False, True])
+    def test_rayleigh_with_angles(self, as_optionals):
+        """Test PSPRayleighReflectance with angles provided."""
+        from satpy.modifiers.atmosphere import PSPRayleighReflectance
+        aerosol_type = "rayleigh_only"
+        ray_cor = PSPRayleighReflectance(name="B01", atmosphere='us-standard', aerosol_types=aerosol_type)
+        prereqs, opt_prereqs = self._get_angles_prereqs_and_opts(as_optionals)
+        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles:
+            res = ray_cor(prereqs, opt_prereqs)
+        get_angles.assert_not_called()
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+
+        data = res.values
+        unique = np.unique(data[~np.isnan(data)])
+        np.testing.assert_allclose(unique, np.array([-75.0, -37.71298492, 31.14350754]), rtol=1e-5)
+        assert data.shape == (3, 5)
+
+    def _get_angles_prereqs_and_opts(self, as_optionals):
+        wavelength = (0.45, 0.47, 0.49)
+        resolution = 1000
+        input_band, red_band, *angles = self._create_test_data("B01", wavelength, resolution)
+        prereqs = [input_band, red_band]
+        opt_prereqs = []
+        if as_optionals:
+            opt_prereqs = angles
+        else:
+            prereqs += angles
+        return prereqs, opt_prereqs
 
 
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
