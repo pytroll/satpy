@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-r"""SEVIRI HRIT format reader.
+"""SEVIRI Level 1.5 HRIT format reader.
 
 Introduction
 ------------
@@ -46,7 +46,7 @@ Reader Arguments
 Some arguments can be provided to the reader to change its behaviour. These are
 provided through the `Scene` instantiation, eg::
 
-  Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
+  scn = Scene(filenames=filenames, reader="seviri_l1b_hrit", reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`HRITMSGFileHandler`.
@@ -59,7 +59,6 @@ This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT reader
 
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
-
 
 Example
 -------
@@ -175,10 +174,14 @@ Output:
 
 
 References:
+    - `EUMETSAT Product Navigator`_
     - `MSG Level 1.5 Image Data Format Description`_
+    - `fsspec`_
 
+.. _EUMETSAT Product Navigator:
+    https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+    https://www.eumetsat.int/media/45126
 .. _fsspec:
     https://filesystem-spec.readthedocs.io
 """
@@ -412,8 +415,8 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Padding of the HRV channel**
 
-    By default, the HRV channel is loaded padded with no-data, that is it is
-    returned as a full-disk dataset. If you want the original, unpadded, data,
+    By default, the HRV channel is loaded padded with no-data, returning
+    a full-disk dataset. If you want the original, unpadded data,
     just provide the `fill_hrv` as False in the `reader_kwargs`::
 
         scene = satpy.Scene(filenames,
@@ -529,7 +532,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         if not self.mda['offset_corrected']:
             # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
-            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed and you
+            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed, and you
             # dragged the image to S-E until coastlines and data area aligned correctly.
             #
             # Although the image is flipped upside-down and left-right, the projection coordinates retain their
@@ -546,7 +549,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])
-        pdict = {}
+        pdict = dict()
         pdict['cfac'] = np.int32(self.mda['cfac'])
         pdict['lfac'] = np.int32(self.mda['lfac'])
         pdict['coff'] = np.float32(self.mda['coff'])
@@ -632,7 +635,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         res = self.calibrate(res, key['calibration'])
 
         is_calibration = key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
-        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
+        if is_calibration and self.mask_bad_quality_scan_lines:  # noqa: E129
             res = self._mask_bad_quality(res)
 
         if key['name'] == 'HRV' and self.fill_hrv:
