@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI Level 1.5 native format reader.
+r"""SEVIRI Level 1.5 native format reader.
 
 Introduction
 ____________
