@@ -74,12 +74,12 @@ class PSPRayleighReflectance(ModifierBase):
         Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
-        if not optional_datasets or len(optional_datasets) != 4:
+        projectables = projectables + (optional_datasets or [])
+        if len(projectables) != 6:
             vis, red = self.match_data_arrays(projectables)
             sata, satz, suna, sunz = get_angles(vis)
         else:
-            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
-                projectables + optional_datasets)
+            vis, red, sata, satz, suna, sunz = self.match_data_arrays(projectables)
             # First make sure the two azimuth angles are in the range 0-360:
             sata = sata % 360.
             suna = suna % 360.
