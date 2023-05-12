@@ -68,6 +68,12 @@ should be run from the root of the cloned Satpy repository (where the
 You can now edit the python files in your cloned repository and have them
 immediately reflected in your conda environment.
 
+All the required dependencies for a full development environment, i.e. running the
+tests and building the documentation, can be installed with::
+
+    conda install eccodes
+    pip install -e ".[all]"
+
 Running tests
 =============
 
@@ -80,6 +86,7 @@ libraries. If you want to run all Satpy tests you will need to install
 additional dependencies that aren't needed for regular Satpy usage. To install
 them run::
 
+    conda install eccodes
     pip install -e ".[tests]"
 
 Satpy tests can be executed by running::
@@ -115,8 +122,12 @@ Documentation
 =============
 
 Satpy's documentation is built using Sphinx. All documentation lives in the
-``doc/`` directory of the project repository. After editing the source files
-there the documentation can be generated locally::
+``doc/`` directory of the project repository. For building the documentation,
+additional packages are needed. These can be installed with ::
+
+    pip install -e ".[all]".
+
+After editing the source files there the documentation can be generated locally::
 
     cd doc
     make html
