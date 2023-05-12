@@ -38,7 +38,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
-                 's3fs', 'python-eccodes', 'h5netcdf', 'xarray-datatree',
+                 's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
                  'skyfield', 'ephem', 'pint-xarray', 'astropy']
 
 extras_require = {
@@ -62,8 +62,8 @@ extras_require = {
     'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
     'seviri_l1b_native': ['pyorbital >= 1.3.1'],
     'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
-    'seviri_l2_bufr': ['eccodes-python'],
-    'seviri_l2_grib': ['eccodes-python'],
+    'seviri_l2_bufr': ['eccodes'],
+    'seviri_l2_grib': ['eccodes'],
     'hsaf_grib': ['pygrib'],
     'remote_reading': ['fsspec'],
     'insat_3d': ['xarray-datatree'],
