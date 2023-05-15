@@ -1415,21 +1415,21 @@ def test_header_warning():
 
 
 def test_has_archive_header_true():
-    """Test that the  file includes an ASCII archive header."""
+    """Test that the file includes an ASCII archive header."""
     starts_with = b'FormatName                  : NATIVE'
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
         assert open("path/to/open").read(36) == ASCII_STARTSWITH
 
 
 def test_has_archive_header_false():
-    """Test that the  file includes an ASCII archive header."""
-    starts_with = b'This does not match ASCII_STARTSWITH'
+    """Test that the file does not include an ASCII archive header."""
+    starts_with = b'This does not match with ASCII_STARTSWITH'
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
         assert not open("path/to/open").read(36) == ASCII_STARTSWITH
 
 
 def test_read_header():
-    """Test reading header returns the header correctly converted to a dictionary."""
+    """Test that reading header returns the header correctly converted to a dictionary."""
     expected_dict = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
 
     dtypes = np.dtype([
