@@ -31,12 +31,17 @@ import pytest
 import xarray as xr
 
 from satpy.readers.eum_base import recarray2dict, time_cds_short
-from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.readers.seviri_l1b_native import (
+    ASCII_STARTSWITH,
+    ImageBoundaries,
+    NativeMSGFileHandler,
+    Padder,
+    get_available_channels,
+    has_archive_header,
+)
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
-
-ASCII_STARTSWITH = b'FormatName                  : NATIVE'
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -1416,16 +1421,16 @@ def test_header_warning():
 
 def test_has_archive_header_true():
     """Test that the file includes an ASCII archive header."""
-    starts_with = b'FormatName                  : NATIVE'
+    starts_with = ASCII_STARTSWITH
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
-        assert open("path/to/open").read(36) == ASCII_STARTSWITH
+        assert has_archive_header('filename')
 
 
 def test_has_archive_header_false():
     """Test that the file does not include an ASCII archive header."""
     starts_with = b'This does not match with ASCII_STARTSWITH'
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
-        assert not open("path/to/open").read(36) == ASCII_STARTSWITH
+        assert not has_archive_header('filename')
 
 
 def test_read_header():
