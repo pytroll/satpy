@@ -18,12 +18,13 @@
 """Module for testing the satpy.readers.geocat module."""
 
 import os
-import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
-
 import unittest
 from unittest import mock
+
+import numpy as np
+
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -136,8 +137,9 @@ class TestGEOCATReader(unittest.TestCase):
 
     def test_load_all_old_goes(self):
         """Test loading all test datasets from old GOES files."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -155,9 +157,10 @@ class TestGEOCATReader(unittest.TestCase):
 
     def test_load_all_himawari8(self):
         """Test loading all test datasets from H8 NetCDF file."""
-        from satpy.readers import load_reader
-        from pyresample.geometry import AreaDefinition
         import xarray as xr
+        from pyresample.geometry import AreaDefinition
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -176,9 +179,10 @@ class TestGEOCATReader(unittest.TestCase):
 
     def test_load_all_goes17_hdf4(self):
         """Test loading all test datasets from GOES-17 HDF4 file."""
-        from satpy.readers import load_reader
-        from pyresample.geometry import AreaDefinition
         import xarray as xr
+        from pyresample.geometry import AreaDefinition
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([

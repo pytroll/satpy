@@ -1,6 +1,10 @@
 reader:
     name: avhrr_l1b_aapp
+    short_name: AVHRR l1b
+    long_name: NOAA 15 to 19, Metop A to C AVHRR data in AAPP format
     description: AAPP l1b Reader for AVHRR
+    status: Nominal
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3,]
     default_channels: [1, 2, 3a, 3b, 4, 5]

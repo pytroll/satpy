@@ -17,25 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import copy
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
 import numpy as np
-from numpy import testing as npt
 import pytest
 import xarray as xr
+from numpy import testing as npt
 
-from satpy.readers.seviri_l1b_hrit import (
-    HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-)
-from satpy.tests.utils import make_dataid, assert_attrs_equal
-from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
+from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 
 class TestHRITMSGBase(unittest.TestCase):
@@ -43,11 +38,6 @@ class TestHRITMSGBase(unittest.TestCase):
 
     def assert_attrs_equal(self, attrs, attrs_exp):
         """Assert equality of dataset attributes."""
-        attrs = copy.deepcopy(attrs)
-        attrs_exp = copy.deepcopy(attrs_exp)
-        # Raw metadata: Check existence only
-        self.assertIn('raw_metadata', attrs)
-        attrs.pop('raw_metadata')
         assert_attrs_equal(attrs, attrs_exp, tolerance=1e-4)
 
 
@@ -164,6 +154,16 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             ncols=self.ncols,
             projection_longitude=self.projection_longitude
         )
+        self.reader.mda.update({
+            'segment_sequence_number': 18,
+            'planned_start_segment_number': 1
+        })
+
+    def _get_fake_data(self):
+        return xr.DataArray(
+            data=np.zeros((self.nlines, self.ncols)),
+            dims=('y', 'x')
+        )
 
     def test_get_area_def(self):
         """Test getting the area def."""
@@ -204,15 +204,40 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
-        data = xr.DataArray(
-            data=np.zeros((self.nlines, self.ncols)),
-            dims=('y', 'x')
-        )
+        data = self._get_fake_data()
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
         key = make_dataid(name='VIS006', calibration='reflectance')
         info = setup.get_fake_dataset_info()
+        res = self.reader.get_dataset(key, info)
+
+        # Test method calls
+        new_data = np.zeros_like(data.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = data.copy(data=new_data)
+
+        expected['acq_time'] = (
+            'y',
+            setup.get_acq_time_exp(self.start_time, self.nlines)
+        )
+        xr.testing.assert_equal(res, expected)
+        self.assert_attrs_equal(
+            res.attrs,
+            setup.get_attrs_exp(self.projection_longitude)
+        )
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
+    def test_get_dataset_without_masking_bad_scan_lines(self, calibrate, parent_get_dataset):
+        """Test getting the dataset."""
+        data = self._get_fake_data()
+        parent_get_dataset.return_value = mock.MagicMock()
+        calibrate.return_value = data
+
+        key = make_dataid(name='VIS006', calibration='reflectance')
+        info = setup.get_fake_dataset_info()
+        self.reader.mask_bad_quality_scan_lines = False
         res = self.reader.get_dataset(key, info)
 
         # Test method calls
@@ -226,6 +251,17 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             res.attrs,
             setup.get_attrs_exp(self.projection_longitude)
         )
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
+    def test_get_dataset_with_raw_metadata(self, calibrate, parent_get_dataset):
+        """Test getting the dataset."""
+        calibrate.return_value = self._get_fake_data()
+        key = make_dataid(name='VIS006', calibration='reflectance')
+        info = setup.get_fake_dataset_info()
+        self.reader.include_raw_metadata = True
+        res = self.reader.get_dataset(key, info)
+        assert 'raw_metadata' in res.attrs
 
     def test_get_raw_mda(self):
         """Test provision of raw metadata."""
@@ -275,7 +311,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGPrologueFileHandler(filename=None,
+        HRITMSGPrologueFileHandler(filename='dummy_prologue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
@@ -308,7 +344,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        self.reader = HRITMSGEpilogueFileHandler(filename=None,
+        self.reader = HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                                  filename_info={'service': ''},
                                                  filetype_info=None,
                                                  calib_mode='nominal')
@@ -323,7 +359,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGEpilogueFileHandler(filename=None,
+        HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
@@ -378,9 +414,9 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         }
         mda = {
             'image_segment_line_quality': {
-                'line_validity': np.zeros(2),
-                'line_radiometric_quality': np.zeros(2),
-                'line_geometric_quality': np.zeros(2)
+                'line_validity': np.array([3, 3]),
+                'line_radiometric_quality': np.array([4, 4]),
+                'line_geometric_quality': np.array([4, 4])
             },
         }
 
@@ -446,3 +482,21 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
 
         res = fh.calibrate(counts, calibration)
         xr.testing.assert_allclose(res, expected)
+
+    def test_mask_bad_quality(self, file_handler):
+        """Test the masking of bad quality scan lines."""
+        channel = 'VIS006'
+        expected = self._get_expected(
+            channel=channel,
+            calibration='radiance',
+            calib_mode='NOMINAL',
+            use_ext_coefs=False
+        )
+
+        fh = file_handler
+
+        res = fh._mask_bad_quality(expected)
+        new_data = np.zeros_like(expected.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = expected.copy(data=new_data)
+        xr.testing.assert_equal(res, expected)

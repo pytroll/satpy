@@ -17,12 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ami_l1b reader tests package."""
 
-import numpy as np
-import xarray as xr
-import dask.array as da
-
 import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import xarray as xr
 
 
 class FakeDataset(object):

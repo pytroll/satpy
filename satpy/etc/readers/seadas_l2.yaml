@@ -1,0 +1,67 @@
+reader:
+  name: seadas_l2
+  short_name: MODIS/VIIRS SEADAS
+  long_name: SEADAS L2 Chlorphyll A product in HDF4 format
+  description: MODIS and VIIRS SEADAS Reader
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis, viirs]
+
+file_types:
+  chlora_seadas:
+    file_patterns:
+    # IMAPP-style filenames:
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.seadas.hdf'
+    file_reader: !!python/name:satpy.readers.seadas_l2.SEADASL2HDFFileHandler
+    geo_resolution: 1000
+  chlora_seadas_nc:
+    file_patterns:
+      # IMAPP-style filenames:
+      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.seadas.nc'
+    file_reader: !!python/name:satpy.readers.seadas_l2.SEADASL2NetCDFFileHandler
+    geo_resolution: 1000
+  chlora_seadas_viirs:
+    # SEADAS_npp_d20211118_t1728125_e1739327.hdf
+    file_patterns:
+      - 'SEADAS_{platform_indicator:s}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}.hdf'
+    file_reader: !!python/name:satpy.readers.seadas_l2.SEADASL2HDFFileHandler
+    geo_resolution: 750
+  chlora_seadas_viirs_nc:
+    # SEADAS_npp_d20211118_t1728125_e1739327.nc
+    file_patterns:
+      - 'SEADAS_{platform_indicator:s}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}.nc'
+    file_reader: !!python/name:satpy.readers.seadas_l2.SEADASL2NetCDFFileHandler
+    geo_resolution: 750
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: [chlora_seadas_viirs_nc, chlora_seadas_nc, seadas_hdf_viirs, chlora_sedas]
+    file_key: ["navigation_data/longitude", "longitude"]
+    resolution:
+      1000:
+        file_type: [chlora_seadas_nc, chlora_seadas]
+      750:
+        file_type: [chlora_seadas_viirs_nc, chlora_seadas_viirs]
+
+  latitude:
+    name: latitude
+    file_type: [chlora_seadas_viirs_nc, chlora_seadas_nc, seadas_hdf_viirs, chlora_sedas]
+    file_key: ["navigation_data/latitude", "latitude"]
+    resolution:
+      1000:
+        file_type: [chlora_seadas_nc, chlora_seadas]
+      750:
+        file_type: [chlora_seadas_viirs_nc, chlora_seadas_viirs]
+
+  chlor_a:
+    name: chlor_a
+    file_type: [chlora_seadas_viirs_nc, chlora_seadas_nc, seadas_hdf_viirs, chlora_sedas]
+    file_key: ["geophysical_data/chlor_a", "chlor_a"]
+    resolution:
+      1000:
+        file_type: [chlora_seadas_nc, chlora_seadas]
+      750:
+        file_type: [chlora_seadas_viirs_nc, chlora_seadas_viirs]
+    coordinates: [longitude, latitude]

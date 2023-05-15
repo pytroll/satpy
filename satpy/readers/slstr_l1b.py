@@ -17,43 +17,44 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SLSTR L1b reader."""
 
-import warnings
 import logging
 import os
 import re
-
+import warnings
 from datetime import datetime
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 # These are the default channel adjustment factors.
-# Defined in the product notice: S3.PN-SLSTR-L1.06
-# https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_S3A_PN_SLSTR_L1_06&RevisionSelectionMethod=LatestReleased&Rendition=Web
-CHANCALIB_FACTORS = {'S1_nadir': 1.0,
-                     'S2_nadir': 1.0,
-                     'S3_nadir': 1.0,
+# Defined in the product notice: S3.PN-SLSTR-L1.08
+# https://sentinel.esa.int/documents/247904/2731673/Sentinel-3A-and-3B-SLSTR-Product-Notice-Level-1B-SL-1-RBT-at-NRT-and-NTC.pdf
+CHANCALIB_FACTORS = {'S1_nadir': 0.97,
+                     'S2_nadir': 0.98,
+                     'S3_nadir': 0.98,
                      'S4_nadir': 1.0,
-                     'S5_nadir': 1.12,
-                     'S6_nadir': 1.2,
+                     'S5_nadir': 1.11,
+                     'S6_nadir': 1.13,
                      'S7_nadir': 1.0,
                      'S8_nadir': 1.0,
                      'S9_nadir': 1.0,
-                     'S1_oblique': 1.0,
-                     'S2_oblique': 1.0,
-                     'S3_oblique': 1.0,
+                     'S1_oblique': 0.94,
+                     'S2_oblique': 0.95,
+                     'S3_oblique': 0.95,
                      'S4_oblique': 1.0,
-                     'S5_oblique': 1.15,
-                     'S6_oblique': 1.26,
+                     'S5_oblique': 1.04,
+                     'S6_oblique': 1.07,
                      'S7_oblique': 1.0,
                      'S8_oblique': 1.0,
                      'S9_oblique': 1.0, }
@@ -108,7 +109,7 @@ class NCSLSTR1B(BaseFileHandler):
     By default, the calibration factors recommended by EUMETSAT are applied.
     This is required as the SLSTR VIS channels are producing slightly incorrect
     radiances that require adjustment.
-    Satpy uses the radiance corrections in S3.PN-SLSTR-L1.06, checked 26/10/2020.
+    Satpy uses the radiance corrections in S3.PN-SLSTR-L1.08, checked 11/03/2022.
     User-supplied coefficients can be passed via the `user_calibration` kwarg
     This should be a dict of channel names (such as `S1_nadir`, `S8_oblique`).
 
@@ -171,8 +172,11 @@ class NCSLSTR1B(BaseFileHandler):
             if chan_name in CHANCALIB_FACTORS:
                 adjust_fac = CHANCALIB_FACTORS[chan_name]
             else:
-                warnings.warn("Warning: No radiance adjustment supplied " +
-                              "for channel " + chan_name)
+                warnings.warn(
+                    "Warning: No radiance adjustment supplied " +
+                    "for channel " + chan_name,
+                    stacklevel=3
+                )
                 return radiances
         return radiances * adjust_fac
 

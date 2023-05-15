@@ -20,12 +20,13 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
+
 import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
 
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (9001, 18000)

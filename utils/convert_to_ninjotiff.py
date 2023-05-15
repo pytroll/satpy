@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-First version of a simple command line too that converts an
-image into a NinJo Tiff file.
+"""Simple command line too that converts an image into a NinJo Tiff file.
 
 NinJo Tiff metadata can be passed as command line input or
 through a config file (an example is given in the ninjo-cmd.yaml
@@ -28,19 +26,15 @@ areas configuration file (located in $PPP_CONFIG_DIR).
 
 """
 
+import argparse
 import os
 
-from satpy.utils import debug_on
+import yaml
+from yaml import UnsafeLoader
 
 from satpy import Scene
-from mpop.projector import get_area_def
-import argparse
-import yaml
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
+from satpy.pyresample import get_area_def
+from satpy.utils import debug_on
 
 debug_on()
 
@@ -69,7 +63,7 @@ if (args.cfg is not None):
         cfg = yaml.load(ymlfile, Loader=UnsafeLoader)
 
 narea = get_area_def(args.areadef)
-global_data = Scene(sensor="images", reader="generic_image", area=narea)
+global_data = Scene(reader="generic_image")
 global_data.load(['image'])
 
 global_data['image'].info['area'] = narea

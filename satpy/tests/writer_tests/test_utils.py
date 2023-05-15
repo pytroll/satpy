@@ -18,6 +18,7 @@
 """Tests for writer utilities."""
 
 import unittest
+
 import satpy.writers.utils as wutils
 
 

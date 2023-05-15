@@ -9,6 +9,8 @@ reader:
     - GOES 8-12: https://goes.gsfc.nasa.gov/text/databook/databook.pdf, page 20 ff.
     - GOES 13-15: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf, chapter 3.
 
+  status: Beta
+  supports_fsspec: false
   sensors: [goes_imager]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

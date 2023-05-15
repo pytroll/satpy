@@ -25,17 +25,17 @@ class TestABIComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        cl.load_sensor_composites('abi')
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['abi'])
 
     def test_simulated_green(self):
         """Test creating a fake 'green' band."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.abi import SimulatedGreen
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.abi import SimulatedGreen
         rows = 5
         cols = 10
         area = AreaDefinition(

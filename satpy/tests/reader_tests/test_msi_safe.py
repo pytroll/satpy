@@ -16,11 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.msi_safe module."""
-import unittest
 import unittest.mock as mock
-from io import BytesIO
+from io import BytesIO, StringIO
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
@@ -576,14 +576,302 @@ mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 """  # noqa
 
 
-class TestMTDXML(unittest.TestCase):
+mtd_l1c_old_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<n1:Level-1C_User_Product xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/User_Product_Level-1C.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/User_Product_Level-1C.xsd">
+  <n1:General_Info>
+    <Product_Info>
+      <PRODUCT_START_TIME>2021-05-17T10:36:19.024Z</PRODUCT_START_TIME>
+      <PRODUCT_STOP_TIME>2021-05-17T10:36:19.024Z</PRODUCT_STOP_TIME>
+      <PRODUCT_URI>S2B_MSIL1C_20210517T103619_N7990_R008_T30QVE_20210929T075738.SAFE</PRODUCT_URI>
+      <PROCESSING_LEVEL>Level-1C</PROCESSING_LEVEL>
+      <PRODUCT_TYPE>S2MSI1C</PRODUCT_TYPE>
+      <PROCESSING_BASELINE>79.90</PROCESSING_BASELINE>
+      <PRODUCT_DOI>https://doi.org/10.5270/S2_-742ikth</PRODUCT_DOI>
+      <GENERATION_TIME>2021-09-29T07:57:38.000000Z</GENERATION_TIME>
+      <PREVIEW_IMAGE_URL>Not applicable</PREVIEW_IMAGE_URL>
+      <PREVIEW_GEO_INFO>Not applicable</PREVIEW_GEO_INFO>
+      <Datatake datatakeIdentifier="GS2B_20210517T103619_021913_N79.90">
+        <SPACECRAFT_NAME>Sentinel-2B</SPACECRAFT_NAME>
+        <DATATAKE_TYPE>INS-NOBS</DATATAKE_TYPE>
+        <DATATAKE_SENSING_START>2021-05-17T10:36:19.024Z</DATATAKE_SENSING_START>
+        <SENSING_ORBIT_NUMBER>8</SENSING_ORBIT_NUMBER>
+        <SENSING_ORBIT_DIRECTION>DESCENDING</SENSING_ORBIT_DIRECTION>
+      </Datatake>
+      <Query_Options completeSingleTile="true">
+        <PRODUCT_FORMAT>SAFE_COMPACT</PRODUCT_FORMAT>
+      </Query_Options>
+      <Product_Organisation>
+        <Granule_List>
+          <Granule datastripIdentifier="S2B_OPER_MSI_L1C_DS_VGSR_20210929T075738_S20210517T104617_N79.90" granuleIdentifier="S2B_OPER_MSI_L1C_TL_VGSR_20210929T075738_A021913_T30QVE_N79.90" imageFormat="JPEG2000">
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B01</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B02</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B03</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B04</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B05</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B06</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B07</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B08</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B8A</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B09</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B10</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B11</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B12</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_TCI</IMAGE_FILE>
+          </Granule>
+        </Granule_List>
+      </Product_Organisation>
+    </Product_Info>
+    <Product_Image_Characteristics>
+      <Special_Values>
+        <SPECIAL_VALUE_TEXT>NODATA</SPECIAL_VALUE_TEXT>
+        <SPECIAL_VALUE_INDEX>0</SPECIAL_VALUE_INDEX>
+      </Special_Values>
+      <Special_Values>
+        <SPECIAL_VALUE_TEXT>SATURATED</SPECIAL_VALUE_TEXT>
+        <SPECIAL_VALUE_INDEX>65535</SPECIAL_VALUE_INDEX>
+      </Special_Values>
+      <Image_Display_Order>
+        <RED_CHANNEL>3</RED_CHANNEL>
+        <GREEN_CHANNEL>2</GREEN_CHANNEL>
+        <BLUE_CHANNEL>1</BLUE_CHANNEL>
+      </Image_Display_Order>
+      <QUANTIFICATION_VALUE unit="none">10000</QUANTIFICATION_VALUE>
+      <Reflectance_Conversion>
+        <U>0.979428313059035</U>
+        <Solar_Irradiance_List>
+          <SOLAR_IRRADIANCE bandId="0" unit="W/m²/µm">1874.3</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="1" unit="W/m²/µm">1959.75</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="2" unit="W/m²/µm">1824.93</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="3" unit="W/m²/µm">1512.79</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="4" unit="W/m²/µm">1425.78</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="5" unit="W/m²/µm">1291.13</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="6" unit="W/m²/µm">1175.57</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="7" unit="W/m²/µm">1041.28</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="8" unit="W/m²/µm">953.93</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="9" unit="W/m²/µm">817.58</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="10" unit="W/m²/µm">365.41</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="11" unit="W/m²/µm">247.08</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="12" unit="W/m²/µm">87.75</SOLAR_IRRADIANCE>
+        </Solar_Irradiance_List>
+      </Reflectance_Conversion>
+      <Spectral_Information_List>
+        <Spectral_Information bandId="0" physicalBand="B1">
+          <RESOLUTION>60</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">411</MIN>
+            <MAX unit="nm">456</MAX>
+            <CENTRAL unit="nm">442.3</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>0.0062411 0.01024045 0.00402983 0.00642179 0.00552753 0.0065525 0.00409887 0.006297 0.00436742 0.00233356 0.00058162 0.00202276 0.00294328 0.00485362 0.00317041 0.00237657 0.00234612 0.00440152 0.01292397 0.05001678 0.18650104 0.45441623 0.72307877 0.83999211 0.86456334 0.87472096 0.89215296 0.91090814 0.92588017 0.93924094 0.94491826 0.95078529 0.96803023 0.99939195 1 0.97548364 0.96148351 0.94986211 0.91841452 0.87989802 0.80383677 0.59752075 0.30474132 0.10798014 0.0304465 0.00885119</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+        <Spectral_Information bandId="1" physicalBand="B2">
+          <RESOLUTION>10</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">456</MIN>
+            <MAX unit="nm">532</MAX>
+            <CENTRAL unit="nm">492.3</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>0.05529541 0.12005068 0.25199051 0.4623617 0.65162379 0.77642171 0.82319091 0.83083116 0.83382106 0.837526 0.86304286 0.88226141 0.90486326 0.92043837 0.93602675 0.930533 0.92714067 0.9161479 0.90551724 0.89745515 0.90266694 0.90854264 0.92047913 0.92417935 0.91845025 0.90743244 0.89733983 0.88646415 0.87189983 0.85643973 0.84473414 0.84190734 0.85644111 0.87782724 0.90261174 0.91840544 0.94585847 0.96887192 0.99336135 0.99927899 1 0.99520325 0.98412711 0.97947473 0.97808297 0.97213439 0.96277794 0.95342234 0.93802376 0.92460144 0.90932642 0.90192251 0.89184298 0.88963556 0.89146958 0.89877911 0.91056869 0.92427362 0.93823555 0.95311791 0.97150808 0.98737003 0.99658514 0.99367959 0.98144714 0.95874415 0.89291635 0.73566218 0.52060373 0.3322804 0.19492197 0.11732617 0.07507304 0.05094154 0.03213016 0.01510217 0.00447984</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+        <Spectral_Information bandId="10" physicalBand="B10">
+          <RESOLUTION>60</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">1339</MIN>
+            <MAX unit="nm">1415</MAX>
+            <CENTRAL unit="nm">1376.9</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>2.472e-05 0.00013691 0.00012558 8.901e-05 0.00012425 9.941e-05 0.00013952 0.00015816 0.00019272 0.00025959 0.00032221 0.00034719 0.0003699 0.00054874 0.00105434 0.00218813 0.00480743 0.01135252 0.02671185 0.05776022 0.11176337 0.19587518 0.31418191 0.46188068 0.62292578 0.7709851 0.88086652 0.9448941 0.97405066 0.98616696 0.99306955 0.99775441 1 0.99942348 0.99616891 0.99082045 0.9842131 0.97708513 0.97013647 0.96374366 0.95755001 0.95127438 0.94546638 0.94069659 0.93759595 0.93624612 0.93510206 0.93054472 0.91630845 0.88530334 0.83129653 0.74856466 0.63524397 0.49733159 0.34907723 0.21259735 0.10971453 0.04789269 0.01853013 0.00716776 0.0031533 0.00157017 0.00084901 0.00053006 0.00033171 0.00019447 0.00022104 0.00022646 0.00018156 0.00016063 0.00015475 0.00014734 0.00014776 0.00017405 0.00023619 0.00012007 4.337e-05</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+      </Spectral_Information_List>
+      <PHYSICAL_GAINS bandId="0">3.97083657</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="1">3.81081866</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="2">4.21881648</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="3">4.7545091</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="4">5.16489535</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="5">5.06418355</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="6">4.7429031</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="7">6.789537</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="8">5.73223234</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="9">9.32447797</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="10">56.36387909</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="11">37.15464608</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="12">108.67071783</PHYSICAL_GAINS>
+      <REFERENCE_BAND>3</REFERENCE_BAND>
+    </Product_Image_Characteristics>
+  </n1:General_Info>
+</n1:Level-1C_User_Product>
+"""  # noqa
+
+mtd_l1c_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<n1:Level-1C_User_Product xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/User_Product_Level-1C.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/User_Product_Level-1C.xsd">
+  <n1:General_Info>
+    <Product_Info>
+      <PRODUCT_START_TIME>2021-05-17T10:36:19.024Z</PRODUCT_START_TIME>
+      <PRODUCT_STOP_TIME>2021-05-17T10:36:19.024Z</PRODUCT_STOP_TIME>
+      <PRODUCT_URI>S2B_MSIL1C_20210517T103619_N7990_R008_T30QVE_20210929T075738.SAFE</PRODUCT_URI>
+      <PROCESSING_LEVEL>Level-1C</PROCESSING_LEVEL>
+      <PRODUCT_TYPE>S2MSI1C</PRODUCT_TYPE>
+      <PROCESSING_BASELINE>79.90</PROCESSING_BASELINE>
+      <PRODUCT_DOI>https://doi.org/10.5270/S2_-742ikth</PRODUCT_DOI>
+      <GENERATION_TIME>2021-09-29T07:57:38.000000Z</GENERATION_TIME>
+      <PREVIEW_IMAGE_URL>Not applicable</PREVIEW_IMAGE_URL>
+      <PREVIEW_GEO_INFO>Not applicable</PREVIEW_GEO_INFO>
+      <Datatake datatakeIdentifier="GS2B_20210517T103619_021913_N79.90">
+        <SPACECRAFT_NAME>Sentinel-2B</SPACECRAFT_NAME>
+        <DATATAKE_TYPE>INS-NOBS</DATATAKE_TYPE>
+        <DATATAKE_SENSING_START>2021-05-17T10:36:19.024Z</DATATAKE_SENSING_START>
+        <SENSING_ORBIT_NUMBER>8</SENSING_ORBIT_NUMBER>
+        <SENSING_ORBIT_DIRECTION>DESCENDING</SENSING_ORBIT_DIRECTION>
+      </Datatake>
+      <Query_Options completeSingleTile="true">
+        <PRODUCT_FORMAT>SAFE_COMPACT</PRODUCT_FORMAT>
+      </Query_Options>
+      <Product_Organisation>
+        <Granule_List>
+          <Granule datastripIdentifier="S2B_OPER_MSI_L1C_DS_VGSR_20210929T075738_S20210517T104617_N79.90" granuleIdentifier="S2B_OPER_MSI_L1C_TL_VGSR_20210929T075738_A021913_T30QVE_N79.90" imageFormat="JPEG2000">
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B01</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B02</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B03</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B04</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B05</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B06</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B07</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B08</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B8A</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B09</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B10</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B11</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_B12</IMAGE_FILE>
+            <IMAGE_FILE>GRANULE/L1C_T30QVE_A021913_20210517T104617/IMG_DATA/T30QVE_20210517T103619_TCI</IMAGE_FILE>
+          </Granule>
+        </Granule_List>
+      </Product_Organisation>
+    </Product_Info>
+    <Product_Image_Characteristics>
+      <Special_Values>
+        <SPECIAL_VALUE_TEXT>NODATA</SPECIAL_VALUE_TEXT>
+        <SPECIAL_VALUE_INDEX>0</SPECIAL_VALUE_INDEX>
+      </Special_Values>
+      <Special_Values>
+        <SPECIAL_VALUE_TEXT>SATURATED</SPECIAL_VALUE_TEXT>
+        <SPECIAL_VALUE_INDEX>65535</SPECIAL_VALUE_INDEX>
+      </Special_Values>
+      <Image_Display_Order>
+        <RED_CHANNEL>3</RED_CHANNEL>
+        <GREEN_CHANNEL>2</GREEN_CHANNEL>
+        <BLUE_CHANNEL>1</BLUE_CHANNEL>
+      </Image_Display_Order>
+      <QUANTIFICATION_VALUE unit="none">10000</QUANTIFICATION_VALUE>
+      <Radiometric_Offset_List>
+        <RADIO_ADD_OFFSET band_id="0">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="1">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="2">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="3">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="4">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="5">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="6">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="7">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="8">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="9">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="10">-2000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="11">-1000</RADIO_ADD_OFFSET>
+        <RADIO_ADD_OFFSET band_id="12">-1000</RADIO_ADD_OFFSET>
+      </Radiometric_Offset_List>
+      <Reflectance_Conversion>
+        <U>0.979428313059035</U>
+        <Solar_Irradiance_List>
+          <SOLAR_IRRADIANCE bandId="0" unit="W/m²/µm">1874.3</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="1" unit="W/m²/µm">1959.75</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="2" unit="W/m²/µm">1824.93</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="3" unit="W/m²/µm">1512.79</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="4" unit="W/m²/µm">1425.78</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="5" unit="W/m²/µm">1291.13</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="6" unit="W/m²/µm">1175.57</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="7" unit="W/m²/µm">1041.28</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="8" unit="W/m²/µm">953.93</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="9" unit="W/m²/µm">817.58</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="10" unit="W/m²/µm">365.41</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="11" unit="W/m²/µm">247.08</SOLAR_IRRADIANCE>
+          <SOLAR_IRRADIANCE bandId="12" unit="W/m²/µm">87.75</SOLAR_IRRADIANCE>
+        </Solar_Irradiance_List>
+      </Reflectance_Conversion>
+      <Spectral_Information_List>
+        <Spectral_Information bandId="0" physicalBand="B1">
+          <RESOLUTION>60</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">411</MIN>
+            <MAX unit="nm">456</MAX>
+            <CENTRAL unit="nm">442.3</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>0.0062411 0.01024045 0.00402983 0.00642179 0.00552753 0.0065525 0.00409887 0.006297 0.00436742 0.00233356 0.00058162 0.00202276 0.00294328 0.00485362 0.00317041 0.00237657 0.00234612 0.00440152 0.01292397 0.05001678 0.18650104 0.45441623 0.72307877 0.83999211 0.86456334 0.87472096 0.89215296 0.91090814 0.92588017 0.93924094 0.94491826 0.95078529 0.96803023 0.99939195 1 0.97548364 0.96148351 0.94986211 0.91841452 0.87989802 0.80383677 0.59752075 0.30474132 0.10798014 0.0304465 0.00885119</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+        <Spectral_Information bandId="1" physicalBand="B2">
+          <RESOLUTION>10</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">456</MIN>
+            <MAX unit="nm">532</MAX>
+            <CENTRAL unit="nm">492.3</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>0.05529541 0.12005068 0.25199051 0.4623617 0.65162379 0.77642171 0.82319091 0.83083116 0.83382106 0.837526 0.86304286 0.88226141 0.90486326 0.92043837 0.93602675 0.930533 0.92714067 0.9161479 0.90551724 0.89745515 0.90266694 0.90854264 0.92047913 0.92417935 0.91845025 0.90743244 0.89733983 0.88646415 0.87189983 0.85643973 0.84473414 0.84190734 0.85644111 0.87782724 0.90261174 0.91840544 0.94585847 0.96887192 0.99336135 0.99927899 1 0.99520325 0.98412711 0.97947473 0.97808297 0.97213439 0.96277794 0.95342234 0.93802376 0.92460144 0.90932642 0.90192251 0.89184298 0.88963556 0.89146958 0.89877911 0.91056869 0.92427362 0.93823555 0.95311791 0.97150808 0.98737003 0.99658514 0.99367959 0.98144714 0.95874415 0.89291635 0.73566218 0.52060373 0.3322804 0.19492197 0.11732617 0.07507304 0.05094154 0.03213016 0.01510217 0.00447984</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+        <Spectral_Information bandId="10" physicalBand="B10">
+          <RESOLUTION>60</RESOLUTION>
+          <Wavelength>
+            <MIN unit="nm">1339</MIN>
+            <MAX unit="nm">1415</MAX>
+            <CENTRAL unit="nm">1376.9</CENTRAL>
+          </Wavelength>
+          <Spectral_Response>
+            <STEP unit="nm">1</STEP>
+            <VALUES>2.472e-05 0.00013691 0.00012558 8.901e-05 0.00012425 9.941e-05 0.00013952 0.00015816 0.00019272 0.00025959 0.00032221 0.00034719 0.0003699 0.00054874 0.00105434 0.00218813 0.00480743 0.01135252 0.02671185 0.05776022 0.11176337 0.19587518 0.31418191 0.46188068 0.62292578 0.7709851 0.88086652 0.9448941 0.97405066 0.98616696 0.99306955 0.99775441 1 0.99942348 0.99616891 0.99082045 0.9842131 0.97708513 0.97013647 0.96374366 0.95755001 0.95127438 0.94546638 0.94069659 0.93759595 0.93624612 0.93510206 0.93054472 0.91630845 0.88530334 0.83129653 0.74856466 0.63524397 0.49733159 0.34907723 0.21259735 0.10971453 0.04789269 0.01853013 0.00716776 0.0031533 0.00157017 0.00084901 0.00053006 0.00033171 0.00019447 0.00022104 0.00022646 0.00018156 0.00016063 0.00015475 0.00014734 0.00014776 0.00017405 0.00023619 0.00012007 4.337e-05</VALUES>
+          </Spectral_Response>
+        </Spectral_Information>
+      </Spectral_Information_List>
+      <PHYSICAL_GAINS bandId="0">3.97083657</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="1">3.81081866</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="2">4.21881648</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="3">4.7545091</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="4">5.16489535</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="5">5.06418355</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="6">4.7429031</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="7">6.789537</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="8">5.73223234</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="9">9.32447797</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="10">56.36387909</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="11">37.15464608</PHYSICAL_GAINS>
+      <PHYSICAL_GAINS bandId="12">108.67071783</PHYSICAL_GAINS>
+      <REFERENCE_BAND>3</REFERENCE_BAND>
+    </Product_Image_Characteristics>
+  </n1:General_Info>
+</n1:Level-1C_User_Product>
+"""  # noqa
+
+
+class TestMTDXML:
     """Test the SAFE MTD XML file handler."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        filename_info = dict(observation_time=None, gtile_number=None, fmission_id="S2A")
-        self.xml_fh = SAFEMSIMDXML(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
+        from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
+        filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A")
+        self.xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
+        self.old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock())
+        self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=True)
 
     def test_satellite_zenith_array(self):
         """Test reading the satellite zenith array."""
@@ -609,20 +897,97 @@ class TestMTDXML(unittest.TestCase):
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]])
-        res = self.xml_fh.get_dataset(make_dataid(name="satellite_zenith_angle", resolution=60), info)[::200, ::200]
+        res = self.xml_tile_fh.get_dataset(make_dataid(name="satellite_zenith_angle",
+                                                       resolution=60),
+                                           info)[::200, ::200]
         np.testing.assert_allclose(res, expected_data)
+
+    def test_old_xml_calibration(self):
+        """Test the calibration of older data formats (no offset)."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.old_xml_fh.calibrate_to_reflectances(fake_data, "B01")
+        np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
+                                             [0.04, 10, 655.34, np.inf]]])
+
+    def test_xml_calibration(self):
+        """Test the calibration with radiometric offset."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B01")
+        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
+                                             [0.04 - 10, 0, 655.34 - 10, np.inf]]])
+
+    def test_xml_calibration_unmasked_saturated(self):
+        """Test the calibration with radiometric offset but unmasked saturated pixels."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A")
+        self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=False)
+
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B01")
+        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
+                                             [0.04 - 10, 0, 655.34 - 10, 655.35 - 10]]])
+
+    def test_xml_calibration_with_different_offset(self):
+        """Test the calibration with a different offset."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B10")
+        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 20, 0.02 - 20, 0.03 - 20],
+                                             [0.04 - 20, -10, 655.34 - 20, np.inf]]])
+
+    def test_xml_calibration_to_radiance(self):
+        """Test the calibration with a different offset."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate_to_radiances(fake_data, "B01")
+        expected = np.array([[[np.nan, -251.584265, -251.332429, -251.080593],
+                              [-250.828757, 0., 16251.99095, np.inf]]])
+        np.testing.assert_allclose(result, expected)
+
+    def test_xml_navigation(self):
+        """Test the navigation."""
+        from pyproj import CRS
+        crs = CRS('EPSG:32616')
+
+        dsid = make_dataid(name="B01", resolution=60)
+        result = self.xml_tile_fh.get_area_def(dsid)
+
+        area_extents = (499980.0, 3590220.0, 609780.0, 3700020.0)
+        assert result.crs == crs
+        np.testing.assert_allclose(result.area_extent, area_extents)
 
 
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
 
-    def test_no_data_masked(self):
-        """Test that no-data is masked with nans."""
-        from satpy.readers.msi_safe import SAFEMSIL1C
-        fake_data = xr.DataArray([[[0, 1], [2, 3]]], dims=["band", "x", "y"])
-        filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01")
-        self.jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), mock.MagicMock())
+    def setup_method(self):
+        """Set up the test."""
+        from satpy.readers.msi_safe import SAFEMSITileMDXML
+        self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
+        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
+        self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml),
+                                                               self.filename_info, mock.MagicMock())
 
-        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=fake_data):
-            res = self.jp2_fh.get_dataset(make_dataid(name="B01"), info=dict())
-            np.testing.assert_allclose(res, [[np.nan, 0.01], [0.02, 0.03]])
+    @pytest.mark.parametrize("mask_saturated,calibration,expected",
+                             [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
+                              (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
+                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
+    def test_calibration_and_masking(self, mask_saturated, calibration, expected):
+        """Test that saturated is masked with inf when requested and that calibration is performed."""
+        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
+
+        mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.filename_info, mock.MagicMock(),
+                           mask_saturated=mask_saturated)
+        self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(), mda, self.tile_mda)
+
+        with mock.patch("xarray.open_dataset", return_value=self.fake_data):
+            res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
+            np.testing.assert_allclose(res, expected)

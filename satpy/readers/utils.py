@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helper functions for satpy readers."""
+from __future__ import annotations
 
 import bz2
 import logging
@@ -23,23 +24,22 @@ import os
 import shutil
 import tempfile
 import warnings
-from contextlib import closing
+from contextlib import closing, contextmanager
 from io import BytesIO
-from subprocess import Popen, PIPE
+from shutil import which
+from subprocess import PIPE, Popen  # nosec
 
 import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-from satpy import CHUNK_SIZE
 
-try:
-    from shutil import which
-except ImportError:
-    # python 2 - won't be used, but needed for mocking in tests
-    which = None
+from satpy import config
+from satpy.readers import FSFile
+from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def np2str(value):
@@ -49,7 +49,7 @@ def np2str(value):
         value (ndarray): scalar or 1-element numpy array to convert
 
     Raises:
-        ValueError: if value is array larger than 1-element or it is not of
+        ValueError: if value is array larger than 1-element, or it is not of
                     type `numpy.string_` or it is not a numpy array
 
     """
@@ -108,12 +108,13 @@ def get_geostationary_angle_extent(geos_area):
     return xmax, ymax
 
 
-def get_geostationary_mask(area):
+def get_geostationary_mask(area, chunks=None):
     """Compute a mask of the earth's shape as seen by a geostationary satellite.
 
     Args:
         area (pyresample.geometry.AreaDefinition) : Corresponding area
                                                     definition
+        chunks (int or tuple): Chunk size for the 2D array that is generated.
 
     Returns:
         Boolean mask, True inside the earth's shape, False outside.
@@ -126,7 +127,7 @@ def get_geostationary_mask(area):
     ymax *= h
 
     # Compute projection coordinates at the centre of each pixel
-    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
+    x, y = area.get_proj_coords(chunks=chunks or CHUNK_SIZE)
 
     # Compute mask of the earth's elliptical shape
     return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
@@ -201,58 +202,163 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if filename.endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp()
-        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # try pbzip2
-        pbzip = which('pbzip2')
-        # Run external pbzip2
-        if pbzip is not None:
-            n_thr = os.environ.get('OMP_NUM_THREADS')
-            if n_thr:
-                runner = [pbzip,
-                          '-dc',
-                          '-p'+str(n_thr),
-                          filename]
-            else:
-                runner = [pbzip,
-                          '-dc',
-                          filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)
-            stdout = BytesIO(p.communicate()[0])
-            status = p.returncode
-            if status != 0:
-                raise IOError("pbzip2 error '%s', failed, status=%d"
-                              % (filename, status))
-            with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                try:
-                    stdout.seek(0)
-                    shutil.copyfileobj(stdout, ofpt)
-                except IOError:
-                    import traceback
-                    traceback.print_exc()
-                    LOGGER.info("Failed to read bzipped file %s",
-                                str(filename))
-                    os.remove(tmpfilepath)
-                    raise
-            return tmpfilepath
+def unzip_file(filename: str | FSFile, prefix=None):
+    """Unzip the local/remote file ending with 'bz2'.
 
-        # Otherwise, fall back to the original method
-        bz2file = bz2.BZ2File(filename)
-        with closing(os.fdopen(fdn, 'wb')) as ofpt:
-            try:
-                ofpt.write(bz2file.read())
-            except IOError:
-                import traceback
-                traceback.print_exc()
-                LOGGER.info("Failed to read bzipped file %s", str(filename))
-                os.remove(tmpfilepath)
-                return None
-        return tmpfilepath
+    Args:
+        filename: The local/remote file to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
 
-    return None
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if isinstance(filename, str):
+        return _unzip_local_file(filename, prefix=prefix)
+    elif isinstance(filename, FSFile):
+        return _unzip_FSFile(filename, prefix=prefix)
+
+
+def _unzip_local_file(filename: str, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        filename: The file to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if not os.fspath(filename).endswith('bz2'):
+        return None
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+    # check pbzip2 status
+    pbzip2 = _unzip_with_pbzip(filename, tmpfilepath, fdn)
+    if pbzip2 is not None:
+        return pbzip2
+    # Otherwise, fall back to the original method bz2
+    content = _unzip_with_bz2(filename, tmpfilepath)
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
+
+
+def _unzip_with_pbzip(filename, tmpfilepath, fdn):
+    # try pbzip2
+    pbzip = which('pbzip2')
+    if pbzip is None:
+        return None
+    # Run external pbzip2
+    n_thr = os.environ.get('OMP_NUM_THREADS')
+    if n_thr:
+        runner = [pbzip,
+                  '-dc',
+                  '-p'+str(n_thr),
+                  filename]
+    else:
+        runner = [pbzip,
+                  '-dc',
+                  filename]
+    p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
+    stdout = BytesIO(p.communicate()[0])
+    status = p.returncode
+    if status != 0:
+        raise IOError("pbzip2 error '%s', failed, status=%d"
+                      % (filename, status))
+    with closing(os.fdopen(fdn, 'wb')) as ofpt:
+        try:
+            stdout.seek(0)
+            shutil.copyfileobj(stdout, ofpt)
+        except IOError:
+            LOGGER.debug("Failed to read bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return tmpfilepath
+
+
+def _unzip_with_bz2(filename, tmpfilepath):
+    with bz2.BZ2File(filename) as bz2file:
+        try:
+            content = bz2file.read()
+        except IOError:
+            LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return content
+
+
+def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
+    with closing(os.fdopen(fdn, 'wb')) as ofpt:
+        try:
+            ofpt.write(content)
+        except IOError:
+            LOGGER.debug("Failed to write uncompressed file %s", str(filename))
+            os.remove(tmpfilepath)
+            return None
+    return tmpfilepath
+
+
+def _unzip_FSFile(filename: FSFile, prefix=None):
+    """Open and Unzip remote FSFile ending with 'bz2'.
+
+    Args:
+        filename: The FSFile to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    # open file
+    content = filename.open().read()
+    # unzip file if zipped (header start with hex 425A68)
+    if content.startswith(bytes.fromhex("425A68")):
+        content = bz2.decompress(content)
+
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
+
+
+@contextmanager
+def unzip_context(filename):
+    """Context manager for decompressing a .bz2 file on the fly.
+
+    Uses `unzip_file`. Removes the uncompressed file on exit of the context manager.
+
+    Returns: the filename of the uncompressed file or of the original file if it was not
+    compressed.
+
+    """
+    unzipped = unzip_file(filename)
+    if unzipped is not None:
+        yield unzipped
+        os.remove(unzipped)
+    else:
+        yield filename
+
+
+@contextmanager
+def generic_open(filename, *args, **kwargs):
+    """Context manager for opening either a regular file or a bzip2 file.
+
+    Returns a file-like object.
+    """
+    if os.fspath(filename).endswith('.bz2'):
+        fp = bz2.open(filename, *args, **kwargs)
+    else:
+        try:
+            fp = filename.open(*args, **kwargs)
+        except AttributeError:
+            fp = open(filename, *args, **kwargs)
+
+    yield fp
+
+    fp.close()
 
 
 def bbox(img):
@@ -285,9 +391,10 @@ def get_earth_radius(lon, lat, a, b):
         Earth Radius (meters)
 
     """
-    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
-    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    geocent = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b, "units": "m"})
+    latlong = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b, "units": "m"})
+    transformer = pyproj.Transformer.from_crs(latlong, geocent)
+    x, y, z = transformer.transform(lon, lat, 0.0)
     return np.sqrt(x**2 + y**2 + z**2)
 
 
@@ -313,9 +420,11 @@ def get_user_calibration_factors(band_name, correction_dict):
                            "supply 'slope' and 'offset' keys.")
     else:
         # If coefficients not present, warn user and use slope=1, offset=0
-        warnings.warn("WARNING: You have selected radiance correction but "
-                      " have not supplied coefficients for channel " +
-                      band_name)
+        warnings.warn(
+            "WARNING: You have selected radiance correction but "
+            " have not supplied coefficients for channel " + band_name,
+            stacklevel=2
+        )
         return 1., 0.
 
     return slope, offset

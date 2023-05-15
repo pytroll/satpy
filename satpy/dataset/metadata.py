@@ -19,8 +19,9 @@
 
 from collections.abc import Collection
 from datetime import datetime
-from functools import reduce, partial
-from operator import is_, eq
+from functools import partial, reduce
+from operator import eq, is_
+
 import numpy as np
 
 from satpy.writers.utils import flatten_dict
@@ -113,7 +114,7 @@ def _are_values_combinable(values):
 def _all_non_dicts_equal(values):
     if _contain_arrays(values):
         return _all_arrays_equal(values)
-    elif _contain_collections_of_arrays(values):
+    if _contain_collections_of_arrays(values):
         # in the real world, the `ancillary_variables` attribute may be
         # List[xarray.DataArray], this means our values are now
         # List[List[xarray.DataArray]].

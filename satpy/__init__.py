@@ -17,19 +17,22 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Package initializer."""
 
-import os
-from satpy.version import version as __version__  # noqa
+try:
+    from satpy.version import version as __version__  # noqa
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "No module named satpy.version. This could mean "
+        "you didn't install 'satpy' properly. Try reinstalling ('pip "
+        "install').")
 
-CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
-
-from satpy.utils import get_logger  # noqa
+from satpy._config import config  # noqa
 from satpy.dataset import DataID, DataQuery  # noqa
 from satpy.dataset.data_dict import DatasetDict  # noqa
-from satpy.readers import (find_files_and_readers,  # noqa
-                           available_readers)  # noqa
-from satpy.writers import available_writers  # noqa
-from satpy.scene import Scene  # noqa
 from satpy.multiscene import MultiScene  # noqa
-from satpy._config import config  # noqa
+from satpy.readers import available_readers  # noqa
+from satpy.readers import find_files_and_readers  # noqa
+from satpy.scene import Scene  # noqa
+from satpy.utils import get_logger  # noqa
+from satpy.writers import available_writers  # noqa
 
 log = get_logger('satpy')

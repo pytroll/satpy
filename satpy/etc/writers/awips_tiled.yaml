@@ -66,23 +66,23 @@ templates:
 #        value: "${ORGANIZATION}"
       awips_id: {}
 #        value: "{awips_id}"  # special variable created by awips_tiled.py
+      physical_element: {}
+#        value: "{physical_element}"   #special variable created by awips_tiled.py
       satellite_id:
         value: "{platform_name!u}-{sensor!u}"
-      sector_id: {}  # special handler in awips_tiled.py
+
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
@@ -111,12 +111,14 @@ templates:
         attributes:
           physical_element:
             raw_value: ACSPO SST
+          units: {}
 
       # CLAVR-x Products
       default_clavrx:
         reader: clavrx
         var_name: data
         attributes:
+          units: {}
           physical_element:
             value: 'CLAVR-x {name}'
       clavrx_cloud_type:
@@ -126,11 +128,19 @@ templates:
         attributes:
           physical_element:
             raw_value: CLAVR-x Cloud Type
+          units: {}
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Temperature (ACHA)
       clavrx_cld_height_acha:
@@ -138,6 +148,7 @@ templates:
         name: cld_height_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Height (ACHA)
       clavrx_cloud_phase:
@@ -145,13 +156,21 @@ templates:
         name: cloud_phase
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Phase
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_opd_dcomp:
         reader: clavrx
         name: cld_opd_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (dcomp)
       clavrx_clld_opd_nlcomp:
@@ -159,6 +178,7 @@ templates:
         name: cloud_opd_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (nlcomp)
       clavrx_cld_reff_dcomp:
@@ -166,6 +186,7 @@ templates:
         name: cld_reff_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (dcomp)
       clavrx_cld_reff_nlcomp:
@@ -173,6 +194,7 @@ templates:
         name: cld_reff_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (nlcomp)
       clavrx_cld_emiss_acha:
@@ -180,6 +202,7 @@ templates:
         name: cld_emiss_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Emissivity (ACHA)
       clavrx_refl_lunar_dnb_nom:
@@ -187,6 +210,7 @@ templates:
         name: refl_lunar_dnb_nom
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Lunar Reflectance
       clavrx_rain_rate:
@@ -194,8 +218,18 @@ templates:
         name: rain_rate
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Rain Rate
+      clavrx_insolation_dcomp:
+        reader: clavrx
+        name: insolation_dcomp
+        var_name: data
+        attributes:
+          units:
+            value: "W/m^2"
+          physical_element:
+            raw_value: CLAVR-x Insolation (dcomp)
 
       # AVHRR L1B products
       avhrr_band1_vis:
@@ -204,36 +238,42 @@ templates:
         attributes:
           physical_element:
             raw_value: 0.63 um
+          units: {}
       avhrr_band2_vis:
         name: band2_vis
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
+          units: {}
       avhrr_band3a_vis:
         name: band3a_vis
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       avhrr_band3b_bt:
         name: band3b_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.74 um
+          units: {}
       avhrr_band4_bt:
         name: band4_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 10.8 um
+          units: {}
       avhrr_band5_bt:
         name: band5_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 12.0 um
+          units: {}
 
       # VIIRS SDRs
       viirs_i01:
@@ -242,490 +282,182 @@ templates:
         attributes:
           physical_element:
             raw_value: 0.64 um
+          units: {}
       viirs_i02:
         name: I02
         var_name: data
         attributes:
           physical_element:
-            raw_value: 0.86 um
+            raw_value: 0.87 um
+          units: {}
       viirs_i03:
         name: I03
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       viirs_i04:
         name: I04
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.74 um
+          units: {}
       viirs_i05:
         name: I05
         var_name: data
         attributes:
           physical_element:
             raw_value: 11.5 um
+          units: {}
       viirs_histogram_dnb:
         name: histogram_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Histogram DNB
+          units: {}
       viirs_adaptive_dnb:
         name: adaptive_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Adaptive DNB
+          units: {}
       viirs_dynamic_dnb:
         name: dynamic_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Dynamic DNB
+          units: {}
       viirs_hncc_dnb:
         name: hncc_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: HNCC DNB
+          units: {}
       viirs_ifog:
         name: ssec_fog
         var_name: data
         attributes:
           physical_element:
             raw_value: Fog
+          units: {}
       viirs_m01:
         name: M01
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.41 um
+          units: {}
       viirs_m02:
         name: M02
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.45 um
+          units: {}
       viirs_m03:
         name: M03
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.49 um
+          units: {}
       viirs_m04:
         name: M04
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.56 um
+          units: {}
       viirs_m05:
         name: M05
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.67 um
+          units: {}
       viirs_m06:
         name: M06
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.75 um
+          units: {}
       viirs_m07:
         name: M07
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
+          units: {}
       viirs_m08:
         name: M08
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.24 um
+          units: {}
       viirs_m09:
         name: M09
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.38 um
+          units: {}
       viirs_m10:
         name: M10
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       viirs_m11:
         name: M11
         var_name: data
         attributes:
           physical_element:
             raw_value: 2.25 um
+          units: {}
       viirs_m12:
         name: M12
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.70 um
+          units: {}
       viirs_m13:
         name: M13
         var_name: data
         attributes:
           physical_element:
             raw_value: 4.05 um
+          units: {}
       viirs_m14:
         name: M14
         var_name: data
         attributes:
           physical_element:
             raw_value: 8.6 um
+          units: {}
       viirs_m15:
         name: M15
         var_name: data
         attributes:
           physical_element:
             raw_value: 10.8 um
+          units: {}
       viirs_m16:
         name: M16
         var_name: data
         attributes:
           physical_element:
             raw_value: 12.0 um
-
-      # VIIRS Corrected Reflectance
-      #    viirs_viirs_crefl01:
-      #      name: viirs_crefl01
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.67 um CR
-      #    viirs_viirs_crefl02:
-      #      name: viirs_crefl02
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.87 um CR
-      #    viirs_viirs_crefl03:
-      #      name: viirs_crefl03
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.49 um CR
-      #    viirs_viirs_crefl04:
-      #      name: viirs_crefl04
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.56 um CR
-      #    viirs_viirs_crefl05:
-      #      name: viirs_crefl05
-      #      attributes:
-#          physical_element:
-#            raw_value: 1.24 um CR
-      #    viirs_viirs_crefl06:
-      #      name: viirs_crefl06
-      #      attributes:
-#          physical_element:
-#            raw_value: 1.61 um CR
-      #    viirs_crefl07:
-      #      name: viirs_crefl07
-      #      attributes:
-#          physical_element:
-#            raw_value: 2.25 um CR
-      #    viirs_crefl08:
-      #      name: viirs_crefl08
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.64 um CR
-      #    viirs_crefl09:
-      #      name: viirs_crefl09
-      #      attributes:
-#          physical_element:
-#            raw_value: 0.87 um CR
-      #    viirs_crefl10:
-      #      name: viirs_crefl10
-      #      attributes:
-#          physical_element:
-#            raw_value: 1.61 um CR
-
-    # MODIS L1B Products
-#    modis_vis01:
-#      name: vis01
-#      physical_element: 0.65 um
-#    modis_vis02:
-#      name: vis02
-#      physical_element: 0.86 um
-#    modis_vis03:
-#      name: vis03
-#      physical_element: 0.47 um
-#    modis_vis04:
-#      name: vis04
-#      physical_element: 0.56 um
-#    modis_vis05:
-#      name: vis05
-#      physical_element: 1.24 um
-#    modis_vis06:
-#      name: vis06
-#      physical_element: 1.64 um
-#    modis_vis07:
-#      name: vis07
-#      physical_element: 2.13 um
-#    modis_vis26:
-#      name: vis26
-#      physical_element: 1.38 um
-#    modis_bt20:
-#      name: bt20
-#      physical_element: 3.75 um
-#    modis_bt21:
-#      name: bt21
-#      physical_element: Fire
-#    modis_bt22:
-#      name: bt22
-#      physical_element: 3.96 um
-#    modis_bt23:
-#      name: bt23
-#      physical_element: 4.05 um
-#    modis_bt24:
-#      name: bt24
-#      physical_element: 4.47 um
-#    modis_bt25:
-#      name: bt25
-#      physical_element: 4.52 um
-#    modis_bt27:
-#      name: bt27
-#      physical_element: 6.7 um
-#    modis_bt28:
-#      name: bt28
-#      physical_element: 7.3 um
-#    modis_bt29:
-#      name: bt29
-#      physical_element: 8.6 um
-#    modis_bt30:
-#      name: bt30
-#      physical_element: 9.7 um
-#    modis_bt31:
-#      name: bt31
-#      physical_element: 11.0 um
-#    modis_bt32:
-#      name: bt32
-#      physical_element: 12.0 um
-#    modis_bt33:
-#      name: bt33
-#      physical_element: 13.3 um
-#    modis_bt34:
-#      name: bt34
-#      physical_element: 13.6 um
-#    modis_bt35:
-#      name: bt35
-#      physical_element: 13.9 um
-#    modis_bt36:
-#      name: bt36
-#      physical_element: 14.2 um
-#    modis_sst:
-#      name: sst
-#      physical_element: SST
-#    modis_lst:
-#      name: lst
-#      physical_element: LST
-#    modis_slst:
-#      name: slst
-#      physical_element: LSTSUM
-#    modis_fog:
-#      name: ssec_fog
-#      physical_element: Fog
-#    modis_ctt:
-#      name: ctt
-#      physical_element: CTT
-#    modis_ndvi:
-#      name: ndvi
-#      physical_element: NDVI
-#    modis_tpw:
-#      name: tpw
-#      physical_element: TPW
-#    modis_ice_concentration:
-#      name: ice_concentration
-#      physical_element: Ice Concentration
-#    modis_ist:
-#      name: ist
-#      physical_element: Ice Surface Temperature
-
-    # MODIS L1B Corrected Reflectances
-#    modis_crefl01_250m:
-#      name: modis_crefl01_250m
-#      physical_element: 0.65 um CR
-#    modis_crefl01_500m:
-#      name: modis_crefl01_250m
-#      physical_element: 0.65 um CR
-#    modis_crefl01_1000m:
-#      name: modis_crefl01_1000m
-#      physical_element: 0.65 um CR
-#    modis_crefl02_250m:
-#      name: modis_crefl02_250m
-#      physical_element: 0.86 um CR
-#    modis_crefl02_500m:
-#      name: modis_crefl02_500m
-#      physical_element: 0.86 um CR
-#    modis_crefl02_1000m:
-#      name: modis_crefl02_1000m
-#      physical_element: 0.86 um CR
-#    modis_crefl03_250m:
-#      name: modis_crefl03_250m
-#      physical_element: 0.47 um CR
-#    modis_crefl03_500m:
-#      name: modis_crefl03_500m
-#      physical_element: 0.47 um CR
-#    modis_crefl03_1000m:
-#      name: modis_crefl03_1000m
-#      physical_element: 0.47 um CR
-#    modis_crefl04_250m:
-#      name: modis_crefl04_250m
-#      physical_element: 0.56 um CR
-#    modis_crefl04_500m:
-#      name: modis_crefl04_500m
-#      physical_element: 0.56 um CR
-#    modis_crefl04_1000m:
-#      name: modis_crefl04_1000m
-#      physical_element: 0.56 um CR
-#    modis_crefl05_500m:
-#      name: modis_crefl05_500m
-#      physical_element: 1.24 um CR
-#    modis_crefl05_1000m:
-#      name: modis_crefl05_1000m
-#      physical_element: 1.24 um CR
-#    modis_crefl06_500m:
-#      name: modis_crefl06_500m
-#      physical_element: 1.64 um CR
-#    modis_crefl06_1000m:
-#      name: modis_crefl06_1000m
-#      physical_element: 1.64 um CR
-#    modis_crefl07_500m:
-#      name: modis_crefl07_500m
-#      physical_element: 2.13 um CR
-#    modis_crefl07_1000m:
-#      name: modis_crefl07_1000m
-#      physical_element: 2.13 um CR
-
-    # MIRS Products
-#    mirs_btemp_23v:
-#      name: btemp_23v
-#      physical_element: MIRS 23 GHZ V
-#    mirs_btemp_31v:
-#      name: btemp_31v
-#      physical_element: MIRS 31 GHZ V
-#    mirs_btemp_50h:
-#      name: btemp_50h
-#      physical_element: MIRS 50 GHZ H
-#    mirs_btemp_51h:
-#      name: btemp_51h
-#      physical_element: MIRS 51 GHZ H
-#    mirs_btemp_52h:
-#      name: btemp_52h
-#      physical_element: MIRS 52 GHZ H
-#    mirs_btemp_53h:
-#      name: btemp_53h
-#      physical_element: MIRS 53 GHZ H
-#    mirs_btemp_54h1:
-#      name: btemp_54h1
-#      physical_element: MIRS 54 GHZ H-1
-#    mirs_btemp_54h2:
-#      name: btemp_54h2
-#      physical_element: MIRS 54 GHZ H-2
-#    mirs_btemp_55h:
-#      name: btemp_55h
-#      physical_element: MIRS 55 GHZ H
-#    mirs_btemp_57h1:
-#      name: btemp_57h1
-#      physical_element: MIRS 57 GHZ H-1
-#    mirs_btemp_57h2:
-#      name: btemp_57h2
-#      physical_element: MIRS 57 GHZ H-2
-#    mirs_btemp_57h3:
-#      name: btemp_57h3
-#      physical_element: MIRS 57 GHZ H-3
-#    mirs_btemp_57h4:
-#      name: btemp_57h4
-#      physical_element: MIRS 57 GHZ H-4
-#    mirs_btemp_57h5:
-#      name: btemp_57h5
-#      physical_element: MIRS 57 GHZ H-5
-#    mirs_btemp_57h6:
-#      name: btemp_57h6
-#      physical_element: MIRS 57 GHZ H-6
-#    mirs_btemp_88v:
-#      name: btemp_88v
-#      physical_element: MIRS 88 GHZ V
-#    mirs_btemp_165h:
-#      name: btemp_165h
-#      physical_element: MIRS 165 GHZ H
-#    mirs_btemp_183h1:
-#      name: btemp_183h1
-#      physical_element: MIRS 183 GHZ H-1
-#    mirs_btemp_183h2:
-#      name: btemp_183h2
-#      physical_element: MIRS 183 GHZ H-2
-#    mirs_btemp_183h3:
-#      name: btemp_183h3
-#      physical_element: MIRS 183 GHZ H-3
-#    mirs_btemp_183h4:
-#      name: btemp_183h4
-#      physical_element: MIRS 183 GHZ H-4
-#    mirs_btemp_183h5:
-#      name: btemp_183h5
-#      physical_element: MIRS 183 GHZ H-5
-    # MIRS BTs - NOAA-18 - AMSU-A MHS
-    # MIRS BTs - NOAA-19 - AMSU-A MHS
-    # MIRS BTs - M1 (metopb) - AMSU-A MHS
-    # MIRS BTs - M2 (metopa) - AMSU-A MHS
-#    mirs_btemp_50v:
-#      name: btemp_50v
-#      physical_element: MIRS 50 GHZ V
-#    mirs_btemp_52v:
-#      name: btemp_52v
-#      physical_element: MIRS 52 GHZ V
-#    mirs_btemp_54h:
-#      name: btemp_54h
-#      physical_element: MIRS 54 GHZ H
-#    mirs_btemp_54v:
-#      name: btemp_54v
-#      physical_element: MIRS 54 GHZ V
-#    mirs_btemp_89v1:
-#      name: btemp_89v1
-#      physical_element: MIRS 89 GHZ V-1
-#    mirs_btemp_89v2:
-#      name: btemp_89v2
-#      physical_element: MIRS 89 GHZ V-2
-    # 157h on OPSO NOAA site
-#    mirs_btemp_157v:
-#      name: btemp_157v
-#      physical_element: MIRS 157 GHZ V
-#    mirs_btemp_190v:
-#      name: btemp_190v
-#      physical_element: MIRS 190 GHZ V
-#    mirs_rain_rate:
-#      reader: mirs
-#      name: rain_rate
-#      physical_element: MIRS Rain Rate
-#    mirs_snow_cover:
-#      reader: mirs
-#      name: snow_cover
-#      physical_element: MIRS Snow Cover
-#    mirs_sea_ice:
-#      reader: mirs
-#      name: sea_ice
-#      physical_element: MIRS Sea Ice
-#    mirs_swe:
-#      reader: mirs
-#      name: swe
-#      physical_element: MIRS SWE
-#    mirs_clw:
-#      reader: mirs
-#      name: clw
-#      physical_element: MIRS CLW
-#    mirs_tpw:
-#      reader: mirs
-#      name: tpw
-#      physical_element: MIRS TPW
-#    mirs_tskin:
-#      reader: mirs
-#      name: tskin
-#      physical_element: MIRS Skin Temperature
+          units: {}
 
       # AMSR-2 L1B
       amsr2_btemp_36.5h:
@@ -734,36 +466,42 @@ templates:
         attributes:
           physical_element:
             raw_value: 36.5 GHz H
+          units: {}
       amsr2_btemp_36.5v:
         name: btemp_36.5v
         var_name: data
         attributes:
           physical_element:
             raw_value: 36.5 GHz V
+          units: {}
       amsr2_btemp_89.0ah:
         name: btemp_89.0ah
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz AH
+          units: {}
       amsr2_btemp_89.0av:
         name: btemp_89.0av
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz AV
+          units: {}
       amsr2_btemp_89.0bh:
         name: btemp_89.0bh
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz BH
+          units: {}
       amsr2_btemp_89.0bv:
         name: btemp_89.0bv
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz BV
+          units: {}
 
       # GEOCAT Level 1 Products
       geocat_surface_type:
@@ -772,6 +510,7 @@ templates:
         attributes:
           physical_element:
             raw_value: Surface Type
+          units: {}
       # GEOCAT Level 2 Products
   glm_l2_radc:
     single_variable: false
@@ -800,17 +539,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
@@ -841,6 +578,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -854,6 +595,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -975,17 +720,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
       #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
     #          _Unsigned: "true"
@@ -1016,6 +759,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -1032,6 +779,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:

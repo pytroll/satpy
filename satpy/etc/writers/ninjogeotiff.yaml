@@ -1,0 +1,7 @@
+writer:
+  name: ninjogeotiff
+  description: GeoTIFF Writer with NinJo tags in GDALMetaData
+  writer: !!python/name:satpy.writers.ninjogeotiff.NinJoGeoTIFFWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.tif'
+  compress: DEFLATE
+  zlevel: 6

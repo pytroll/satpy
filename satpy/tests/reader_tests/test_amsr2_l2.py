@@ -19,11 +19,12 @@
 
 import os
 import unittest
-import numpy as np
 from unittest import mock
-from satpy.tests.utils import convert_file_content_to_data_array
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
+import numpy as np
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 30)
@@ -75,8 +76,8 @@ class TestAMSR2L2Reader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.amsr2_l2 import AMSR2L2FileHandler
         from satpy.readers.amsr2_l1b import AMSR2L1BFileHandler
+        from satpy.readers.amsr2_l2 import AMSR2L2FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(AMSR2L2FileHandler, '__bases__', (FakeHDF5FileHandler2,

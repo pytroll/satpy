@@ -109,7 +109,6 @@ class FakeGRIB(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the context."""
-        pass
 
 
 class TestHSAFFileHandler(unittest.TestCase):
@@ -156,6 +155,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         """Test reading the actual datasets from a grib file."""
         pg.open.return_value = FakeGRIB()
         from satpy.readers.hsaf_grib import HSAFFileHandler
+
         # Instantaneous precipitation
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         fh.filename = "H03B"

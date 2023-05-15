@@ -19,6 +19,7 @@
 
 import unittest
 from unittest.mock import MagicMock
+
 from satpy.node import CompositorNode
 
 

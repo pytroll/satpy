@@ -18,17 +18,19 @@
 """Module for testing the satpy.readers.clavrx module."""
 
 import os
-import pytest
+from unittest import mock
+
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-
-from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+DEFAULT_FILE_FLAGS = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                               dtype=np.byte).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
 DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
@@ -73,7 +75,7 @@ def fake_test_content(filename, **kwargs):
                                     'scale_factor': 1.,
                                     'add_offset': 0.,
                                     'units': '1',
-                                    'valid_range': (-32767, 32767),
+                                    'valid_range': [-32767, 32767],
                                     })
 
     # data with fill values
@@ -84,19 +86,18 @@ def fake_test_content(filename, **kwargs):
                                     'scale_factor': 1.,
                                     'add_offset': 0.,
                                     'units': '1',
-                                    'valid_range': (-32767, 32767),
+                                    'valid_range': [-32767, 32767],
                                     })
     variable2 = variable2.where(variable2 % 2 != 0)
 
     # category
-    variable3 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.byte),
+    variable3 = xr.DataArray(DEFAULT_FILE_FLAGS,
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': -128,
-                                    'flag_meanings': 'clear water supercooled mixed ice unknown',
-                                    'flag_values': [0, 1, 2, 3, 4, 5],
+                             attrs={'SCALED': 0,
+                                    '_FillValue': -127,
                                     'units': '1',
-                                    })
+                                    'flag_values': [0, 1, 2, 3]})
 
     ds_vars = {
         'longitude': longitude,
@@ -188,7 +189,14 @@ class TestCLAVRXReaderGeo:
                     assert 'calibration' not in v.attrs
                     assert v.attrs['units'] == '1'
                     assert isinstance(v.attrs['area'], AreaDefinition)
-                    assert v.attrs['platform'] == 'himawari8'
-                    assert v.attrs['sensor'] == 'AHI'
+                    assert v.attrs['platform_name'] == 'himawari8'
+                    assert v.attrs['sensor'] == 'ahi'
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
-                assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
+                    if v.attrs["name"] in ["variable1", "variable2"]:
+                        assert isinstance(v.attrs["valid_range"], list)
+                        assert v.dtype == np.float32
+                        assert "_FillValue" not in v.attrs.keys()
+                    else:
+                        assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
+                        assert (datasets['variable3'].attrs.get('flag_meanings') == '<flag_meanings_unknown>')
+                        assert np.issubdtype(v.dtype, np.integer)

@@ -25,11 +25,11 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
-from satpy.tests.utils import make_dataid, assert_attrs_equal
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
+
+channel_keys_dict = {'VIS006': 'ch1', 'IR_108': 'ch9'}
 
 
 def to_cds_time(time):
@@ -46,10 +46,21 @@ def to_cds_time(time):
 class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
     """Unit tests for SEVIRI netCDF reader."""
 
-    def _get_fake_dataset(self, counts):
-        """Create a fake dataset."""
+    def _get_fake_dataset(self, counts, h5netcdf):
+        """Create a fake dataset.
+
+        Args:
+            counts (xr.DataArray):
+                Array with data.
+            h5netcdf (boolean):
+                If True an array attribute will be created which is common
+                for the h5netcdf backend in xarray for scalar values.
+
+        """
         acq_time_day = np.repeat([1, 1], 11).reshape(2, 11)
         acq_time_msec = np.repeat([1000, 2000], 11).reshape(2, 11)
+        line_validity = np.repeat([3, 3], 11).reshape(2, 11)
+        line_geom_radio_quality = np.repeat([4, 4], 11).reshape(2, 11)
         orbit_poly_start_day, orbit_poly_start_msec = to_cds_time(
             np.array([datetime(2019, 12, 31, 18),
                       datetime(2019, 12, 31, 22)],
@@ -67,8 +78,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         scan_time_days, scan_time_msecs = to_cds_time(self.scan_time)
         ds = xr.Dataset(
             {
-                'VIS006': counts.copy(),
-                'IR_108': counts.copy(),
+                'ch1': counts.copy(),
+                'ch9': counts.copy(),
                 'HRV': (('num_rows_hrv', 'num_columns_hrv'), [[1, 2, 3],
                                                               [4, 5, 6],
                                                               [7, 8, 9]]),
@@ -80,6 +91,18 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'channel_data_visir_data_l10_line_mean_acquisition_msec': (
                     ('num_rows_vis_ir', 'channels_vis_ir_dim'),
                     acq_time_msec
+                ),
+                'channel_data_visir_data_line_validity': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    line_validity
+                ),
+                'channel_data_visir_data_line_geometric_quality': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    line_geom_radio_quality
+                ),
+                'channel_data_visir_data_line_radiometric_quality': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    line_geom_radio_quality
                 ),
                 'orbit_polynomial_x': (
                     ('orbit_polynomial_dim_row',
@@ -128,16 +151,30 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'east_most_pixel': 1,
                 'west_most_pixel': 3712,
                 'south_most_line': 1,
+                'vis_ir_grid_origin': 0,
                 'vis_ir_column_dir_grid_step': 3.0004032,
                 'vis_ir_line_dir_grid_step': 3.0004032,
                 'type_of_earth_model': '0x02',
             }
         )
-        ds['VIS006'].attrs.update({
+
+        if h5netcdf:
+            nattrs = {'equatorial_radius': np.array([6378.169]),
+                      'north_polar_radius': np.array([6356.5838]),
+                      'south_polar_radius': np.array([6356.5838]),
+                      'longitude_of_SSP': np.array([0.0]),
+                      'vis_ir_column_dir_grid_step': np.array([3.0004032]),
+                      'vis_ir_line_dir_grid_step': np.array([3.0004032])
+                      }
+
+            ds.attrs.update(nattrs)
+
+        ds['ch1'].attrs.update({
             'scale_factor': self.gains_nominal[0],
             'add_offset': self.offsets_nominal[0]
         })
-        ds['IR_108'].attrs.update({
+        # IR_108 is dataset with key ch9
+        ds['ch9'].attrs.update({
             'scale_factor': self.gains_nominal[8],
             'add_offset': self.offsets_nominal[8],
         })
@@ -149,17 +186,22 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             'valid_min': None,
             'valid_max': None
         }
-        for name in ['VIS006', 'IR_108']:
+        for name in ['ch1', 'ch9']:
             ds[name].attrs.update(strip_attrs)
 
         return ds
 
+    @pytest.fixture
+    def h5netcdf(self):
+        """Fixture for xr backend choice."""
+        return False
+
     @pytest.fixture(name='file_handler')
-    def file_handler(self, counts):
+    def file_handler(self, counts, h5netcdf):
         """Create a mocked file handler."""
         with mock.patch(
-            'satpy.readers.seviri_l1b_nc.xr.open_dataset',
-            return_value=self._get_fake_dataset(counts)
+            'satpy.readers.seviri_l1b_nc.open_dataset',
+            return_value=self._get_fake_dataset(counts=counts, h5netcdf=h5netcdf)
         ):
             return NCSEVIRIFileHandler(
                 'filename',
@@ -200,10 +242,6 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             self, file_handler, channel, calibration, use_ext_coefs
     ):
         """Test the calibration."""
-        file_handler.nc = file_handler.nc.rename({
-            'num_rows_vis_ir': 'y',
-            'num_columns_vis_ir': 'x'
-        })
         external_coefs = self.external_coefs if use_ext_coefs else {}
         expected = self._get_expected(
             channel=channel,
@@ -215,25 +253,56 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         fh.ext_calib_coefs = external_coefs
         dataset_id = make_dataid(name=channel, calibration=calibration)
 
-        res = fh.calibrate(fh.nc[channel], dataset_id)
+        key = channel_keys_dict[channel]
+
+        res = fh.calibrate(fh.nc[key], dataset_id)
         xr.testing.assert_allclose(res, expected)
 
-    @pytest.mark.parametrize(
-        ('channel', 'calibration'),
-        [
-            ('VIS006', 'reflectance'),
-            ('IR_108', 'brightness_temperature')
-         ]
-    )
-    def test_get_dataset(self, file_handler, channel, calibration):
-        """Test getting the dataset."""
-        dataset_id = make_dataid(name=channel, calibration=calibration)
+    def test_mask_bad_quality(self, file_handler):
+        """Test masking of bad quality scan lines."""
+        channel = 'VIS006'
+        key = channel_keys_dict[channel]
         dataset_info = {
-            'nc_key': channel,
+            'nc_key': key,
             'units': 'units',
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
         }
+        expected = self._get_expected(
+            channel=channel,
+            calibration='radiance',
+            calib_mode='NOMINAL',
+            use_ext_coefs=False
+        )
+
+        fh = file_handler
+
+        res = fh._mask_bad_quality(fh.nc[key], dataset_info)
+        new_data = np.zeros_like(expected.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = expected.copy(data=new_data)
+        xr.testing.assert_allclose(res, expected)
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration', 'mask_bad_quality_scan_lines'),
+        [
+            ('VIS006', 'reflectance', True),
+            ('VIS006', 'reflectance', False),
+            ('IR_108', 'brightness_temperature', True)
+         ]
+    )
+    def test_get_dataset(self, file_handler, channel, calibration, mask_bad_quality_scan_lines):
+        """Test getting the dataset."""
+        dataset_id = make_dataid(name=channel, calibration=calibration)
+        key = channel_keys_dict[channel]
+        dataset_info = {
+            'nc_key': key,
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+
+        file_handler.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         res = file_handler.get_dataset(dataset_id, dataset_info)
 
         # Test scanline acquisition times
@@ -264,6 +333,9 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
                                       np.datetime64('1958-01-02 00:00:02')])
         expected = expected[::-1]  # reader flips data upside down
+        if mask_bad_quality_scan_lines:
+            expected = file_handler._mask_bad_quality(expected, dataset_info)
+
         xr.testing.assert_allclose(res, expected)
 
         for key in ['sun_earth_distance_correction_applied',
@@ -275,7 +347,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         """Test satellite position if there is no valid orbit polynomial."""
         dataset_id = make_dataid(name='VIS006', calibration='counts')
         dataset_info = {
-            'nc_key': 'VIS006',
+            'name': 'VIS006',
+            'nc_key': 'ch1',
             'units': 'units',
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
@@ -285,3 +358,9 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         res = file_handler.get_dataset(dataset_id, dataset_info)
         assert 'satellite_actual_longitude' not in res.attrs[
             'orbital_parameters']
+
+    @pytest.mark.parametrize('h5netcdf', [True])
+    def test_h5netcdf_pecularity(self, file_handler, h5netcdf):
+        """Test conversion of attributes when xarray is used with h5netcdf backend."""
+        fh = file_handler
+        assert isinstance(fh.mda['projection_parameters']['a'], float)

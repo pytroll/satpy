@@ -41,16 +41,17 @@ There are two forms of these files that this reader supports:
 """
 
 import logging
+import os
 from datetime import datetime
 
-import os
 import numpy as np
 import xarray as xr
-
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
 
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 # NetCDF doesn't support multi-threaded reading, trick it by opening
 # as one whole chunk then split it up before we do any calculations
 LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
@@ -157,9 +158,11 @@ class SCMIFileHandler(BaseFileHandler):
                            'sensor': data.attrs.get('sensor', self.sensor),
                            })
         if 'satellite_longitude' in self.nc.attrs:
-            data.attrs['satellite_longitude'] = self.nc.attrs['satellite_longitude']
-            data.attrs['satellite_latitude'] = self.nc.attrs['satellite_latitude']
-            data.attrs['satellite_altitude'] = self.nc.attrs['satellite_altitude']
+            data.attrs['orbital_parameters'] = {
+                'projection_longitude': self.nc.attrs['satellite_longitude'],
+                'projection_latitude': self.nc.attrs['satellite_latitude'],
+                'projection_altitude': self.nc.attrs['satellite_altitude'],
+            }
 
         scene_id = self.nc.attrs.get('scene_id')
         if scene_id is not None:

@@ -18,13 +18,12 @@
 """Classes and functions related to a dictionary with DataID keys."""
 
 import numpy as np
+
 from .dataid import DataID, create_filtered_query, minimal_default_keys_config
 
 
 class TooManyResults(KeyError):
     """Special exception when one key maps to multiple items in the container."""
-
-    pass
 
 
 def get_best_dataset_key(key, choices):
@@ -112,14 +111,14 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
 
     if num_results == 1 and not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
-    elif num_results == 1 and len(res) != 1:
+    if num_results == 1 and len(res) != 1:
         raise TooManyResults("No unique dataset matching {}".format(str(key)))
-    elif num_results == 1:
+    if num_results == 1:
         return res[0]
-    elif num_results == 0:
+    if num_results == 0:
         return res
-    else:
-        return res[:num_results]
+
+    return res[:num_results]
 
 
 class DatasetDict(dict):
@@ -182,51 +181,58 @@ class DatasetDict(dict):
 
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata."""
-        value_dict = value
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
-            value_dict = value.attrs
+            value_info = value.attrs
+        else:
+            value_info = value
         # use value information to make a more complete DataID
         if not isinstance(key, DataID):
-            if not isinstance(value_dict, dict):
-                raise ValueError("Key must be a DataID when value is not an xarray DataArray or dict")
-            old_key = key
-            try:
-                key = self.get_key(key)
-            except KeyError:
-                if isinstance(old_key, str):
-                    new_name = old_key
-                else:
-                    new_name = value_dict.get("name")
-                # this is a new key and it's not a full DataID tuple
-                if new_name is None and value_dict.get('wavelength') is None:
-                    raise ValueError("One of 'name' or 'wavelength' attrs "
-                                     "values should be set.")
-                try:
-                    id_keys = value_dict['_satpy_id'].id_keys
-                except KeyError:
-                    try:
-                        id_keys = value_dict['_satpy_id_keys']
-                    except KeyError:
-                        id_keys = minimal_default_keys_config
-                value_dict['name'] = new_name
-                key = DataID(id_keys, **value_dict)
-                if hasattr(value, 'attrs') and 'name' not in value.attrs:
-                    value.attrs['name'] = new_name
+            key = self._create_dataid_key(key, value_info)
 
         # update the 'value' with the information contained in the key
         try:
             new_info = key.to_dict()
         except AttributeError:
             new_info = key
-        if isinstance(value_dict, dict):
-            value_dict.update(new_info)
-
-        if hasattr(value, 'attrs'):
+        if isinstance(value_info, dict):
+            value_info.update(new_info)
             if isinstance(key, DataID):
-                value.attrs['_satpy_id'] = key
+                value_info['_satpy_id'] = key
 
         return super(DatasetDict, self).__setitem__(key, value)
+
+    def _create_dataid_key(self, key, value_info):
+        """Create a DataID key from dictionary."""
+        if not isinstance(value_info, dict):
+            raise ValueError("Key must be a DataID when value is not an xarray DataArray or dict")
+        old_key = key
+        try:
+            key = self.get_key(key)
+        except KeyError:
+            if isinstance(old_key, str):
+                new_name = old_key
+            else:
+                new_name = value_info.get("name")
+            # this is a new key and it's not a full DataID tuple
+            if new_name is None and value_info.get('wavelength') is None:
+                raise ValueError("One of 'name' or 'wavelength' attrs "
+                                 "values should be set.")
+            id_keys = self._create_id_keys_from_dict(value_info)
+            value_info['name'] = new_name
+            key = DataID(id_keys, **value_info)
+        return key
+
+    def _create_id_keys_from_dict(self, value_info_dict):
+        """Create id_keys from dict."""
+        try:
+            id_keys = value_info_dict['_satpy_id'].id_keys
+        except KeyError:
+            try:
+                id_keys = value_info_dict['_satpy_id_keys']
+            except KeyError:
+                id_keys = minimal_default_keys_config
+        return id_keys
 
     def contains(self, item):
         """Check contains when we know the *exact* DataID."""

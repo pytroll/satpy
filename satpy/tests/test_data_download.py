@@ -22,8 +22,12 @@ from unittest import mock
 import pytest
 import yaml
 
-from satpy.modifiers import ModifierBase
 from satpy.aux_download import DataDownloadMixin
+from satpy.modifiers import ModifierBase
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmpdir
 
 pooch = pytest.importorskip("pooch")
 
@@ -269,8 +273,8 @@ class TestDataDownload:
 
     def test_download_script(self):
         """Test basic functionality of the download script."""
-        from satpy.aux_download import retrieve_all_cmd
         import satpy
+        from satpy.aux_download import retrieve_all_cmd
         file_registry = {}
         file_urls = {}
         with satpy.config.set(config_path=[self.tmpdir]), \

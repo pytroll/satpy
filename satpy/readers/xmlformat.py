@@ -17,11 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reads a format from an xml file to create dtypes and scaling factor arrays."""
 
+from __future__ import annotations
+
 from xml.etree.ElementTree import ElementTree
 
 import numpy as np
 
-VARIABLES = {}
+VARIABLES: dict[str, str] = {}
 
 TYPEC = {"boolean": ">i1",
          "integer2": ">i2",

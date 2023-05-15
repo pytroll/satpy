@@ -26,9 +26,13 @@ import dask.array as da
 import numpy as np
 import numpy.testing
 import pyresample.geometry
+import pytest
 import xarray as xr
-from satpy.readers import utils as hf
+from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
+
+from satpy.readers import FSFile
+from satpy.readers import utils as hf
 
 
 class TestHelpers(unittest.TestCase):
@@ -263,7 +267,7 @@ class TestHelpers(unittest.TestCase):
 
     @mock.patch('satpy.readers.utils.bz2.BZ2File')
     @mock.patch('satpy.readers.utils.Popen')
-    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2):
+    def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
         attrs = {'communicate.return_value': (b'output', b'error'),
@@ -272,31 +276,123 @@ class TestHelpers(unittest.TestCase):
         mock_popen.return_value = process_mock
 
         bz2_mock = mock.MagicMock()
-        bz2_mock.read.return_value = b'TEST'
+        bz2_mock.__enter__.return_value.read.return_value = b'TEST'
         mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
         whichstr = 'satpy.readers.utils.which'
-        # no bz2 installed
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+        # no pbzip2 installed with prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
-            new_fname = hf.unzip_file(filename)
-            self.assertTrue(bz2_mock.read.called)
-            self.assertTrue(os.path.exists(new_fname))
+            new_fname = hf.unzip_file(filename, prefix=segmentstr)
+            assert bz2_mock.__enter__.return_value.read.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] == segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
-        # bz2 installed
+        # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
+            assert mock_popen.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] != segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
-        self.assertIsNone(new_fname)
+        assert new_fname is None
+
+    @mock.patch('bz2.BZ2File')
+    def test_generic_open_BZ2File(self, bz2_mock):
+        """Test the generic_open method with bz2 filename input."""
+        mock_bz2_open = mock.MagicMock()
+        mock_bz2_open.read.return_value = b'TEST'
+        bz2_mock.return_value = mock_bz2_open
+
+        filename = 'tester.DAT.bz2'
+        with hf.generic_open(filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+        assert mock_bz2_open.read.called
+
+    def test_generic_open_FSFile_MemoryFileSystem(self):
+        """Test the generic_open method with FSFile in MemoryFileSystem."""
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+        with hf.generic_open(fsf) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+    @mock.patch('satpy.readers.utils.open')
+    def test_generic_open_filename(self, open_mock):
+        """Test the generic_open method with filename (str)."""
+        mock_fn_open = mock.MagicMock()
+        mock_fn_open.read.return_value = b'TEST'
+        open_mock.return_value = mock_fn_open
+
+        filename = "test.DAT"
+        with hf.generic_open(filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+        assert mock_fn_open.read.called
+
+    @mock.patch('bz2.decompress', return_value=b'TEST_DECOMPRESSED')
+    def test_unzip_FSFile(self, bz2_mock):
+        """Test the FSFile bz2 file unzipping techniques."""
+        mock_bz2_decompress = mock.MagicMock()
+        mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
+
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+
+        # test zipped FSFile unzipped in fly (decompress shouldn't be called)
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_not_called
+        bz2_mock.assert_not_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
+
+        # test FSFile without unzipping in fly (decompress should be called)
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker),
+                              data=bytes.fromhex("425A68")+b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_called
+        bz2_mock.assert_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
+
+    @mock.patch("os.remove")
+    @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
+    def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
+        """Test the bz2 file unzipping context manager."""
+        filename = 'dummy.txt.bz2'
+        expected_filename = filename[:-4]
+
+        with hf.unzip_context(filename) as new_filename:
+            self.assertEqual(new_filename, expected_filename)
+
+        fake_unzip_file.assert_called_with(filename)
+        fake_remove.assert_called_with(expected_filename)
 
     def test_apply_rad_correction(self):
         """Test radiance correction technique using user-supplied coefs."""
@@ -327,10 +423,10 @@ class TestHelpers(unittest.TestCase):
             hf.get_user_calibration_factors('IR108', radcor_dict)
 
 
-class TestSunEarthDistanceCorrection(unittest.TestCase):
+class TestSunEarthDistanceCorrection:
     """Tests for applying Sun-Earth distance correction to reflectance."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create input / output arrays for the tests."""
         self.test_date = datetime(2020, 8, 15, 13, 0, 40)
 
@@ -338,11 +434,13 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
                                 attrs={'start_time': self.test_date,
                                        'scheduled_time': self.test_date})
 
-        corr_refl = xr.DataArray(da.from_array([10.50514689, 21.01029379,
-                                                42.02058758, 1.05051469,
-                                                102.95043957, 52.52573447]),
-                                 attrs={'start_time': self.test_date,
-                                        'scheduled_time': self.test_date})
+        corr_refl = xr.DataArray(da.from_array([
+            10.25484833, 20.50969667,
+            41.01939333, 1.02548483,
+            100.49751367, 51.27424167]),
+            attrs={'start_time': self.test_date,
+                   'scheduled_time': self.test_date},
+        )
         self.raw_refl = raw_refl
         self.corr_refl = corr_refl
 
@@ -352,37 +450,62 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['scheduled_time']
         utc_time = hf.get_array_date(tmp_array, None)
-        self.assertEqual(utc_time, self.test_date)
+        assert utc_time == self.test_date
 
         # Now check correct time is returned with 'scheduled_time'
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['start_time']
         utc_time = hf.get_array_date(tmp_array, None)
-        self.assertEqual(utc_time, self.test_date)
+        assert utc_time == self.test_date
 
         # Now check correct time is returned with utc_date passed
         tmp_array = self.raw_refl.copy()
         new_test_date = datetime(2019, 2, 1, 15, 2, 12)
         utc_time = hf.get_array_date(tmp_array, new_test_date)
-        self.assertEqual(utc_time, new_test_date)
+        assert utc_time == new_test_date
 
         # Finally, ensure error is raised if no datetime is available
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['scheduled_time']
         del tmp_array.attrs['start_time']
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             hf.get_array_date(tmp_array, None)
 
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
-        self.assertTrue(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
-        self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert not out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
+
+
+@pytest.mark.parametrize("data, filename, mode",
+                         [(b"Hello", "dummy.dat", "b"),
+                          ("Hello", "dummy.txt", "t")])
+def test_generic_open_binary(tmp_path, data, filename, mode):
+    """Test the bz2 file unzipping context manager using dummy binary data."""
+    dummy_data = data
+    dummy_filename = os.fspath(tmp_path / filename)
+    with open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data
+
+    dummy_filename = os.fspath(tmp_path / (filename + '.bz2'))
+    with hf.bz2.open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data

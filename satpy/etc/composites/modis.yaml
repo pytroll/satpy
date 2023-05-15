@@ -4,11 +4,24 @@ modifiers:
     modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/modis_crefl/tbase.hdf"
     known_hash: "sha256:ed5183cddce905361c1cac8ae6e3a447212875ea421a05747751efe76f8a068e"
+    dem_sds: "Elevation"
     prerequisites:
     - name: satellite_azimuth_angle
     - name: satellite_zenith_angle
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
+
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected]
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
 
 composites:
   true_color_uncorrected:

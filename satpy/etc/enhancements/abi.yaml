@@ -32,6 +32,19 @@ enhancements:
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
 
+
+  true_color_with_night_fires:
+    standard_name: true_color_with_night_fires
+    sensor: abi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0., 0., 0.]
+          max_stretch: [1., 1., 1.]
+
+
   cira_fire_temperature:
     standard_name: cira_fire_temperature
     operations:
@@ -155,3 +168,70 @@ enhancements:
           threshold: 242.0
           min_in: 163.0
           max_in: 330.0
+
+  # EUMETSAT cloud phase and cloud type RGB recipes
+  # https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  cloud_phase:
+    standard_name: cloud_phase
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,  0,   0]
+          max_stretch: [50, 50, 100]
+
+  # NOAA GOES-R Level-2 ABI Cloud Mask product
+  # https://www.goes-r.gov/products/baseline-clear-sky-mask.html
+  binary_cloud_mask:
+    name: BCM
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [  0, # Clear
+                            1, # Cloudy
+                          255, # Fill Value
+                         ],
+               'colors': [[ 94,  79, 162],  # blue,    0 = Clear
+                          [255, 255, 255],  # white,   1 = Cloudy
+                          [  0,   0,   0],  # black, 255 = Fill Value
+                         ],
+               'color_scale': 255,
+              }
+
+  four_level_cloud_mask:
+    name: ACM
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [  0, # Clear
+                            1, # Probably Clear
+                            2, # Probably Cloudy
+                            3, # Cloudy
+                          255, # Fill Value
+                         ],
+               'colors': [[ 94,  79, 162], # blue,    0 = Clear
+                          [ 73, 228, 242], # cyan,    1 = Probably Clear
+                          [158,   1,  66], # red,     2 = Probably Cloudy
+                          [255, 255, 255], # white,   3 = Cloudy
+                          [  0,   0,   0], # black, 255 = Fill Value
+                         ],
+               'color_scale': 255,
+              }
+
+  cloud_probability:
+    name: Cloud_Probabilities
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+             - {colors: 'spectral',
+                reverse: true,
+                min_value: 0.0,
+                max_value: 1.0,
+               }

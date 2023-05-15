@@ -32,22 +32,22 @@ References:
 """
 
 import logging
-
-import numpy as np
-import dask.array as da
-import xarray as xr
 import os
 
+import dask.array as da
+import numpy as np
+import xarray as xr
 from appdirs import AppDirs
-from satpy import CHUNK_SIZE
 from pyresample import geometry
+
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 # Hardcoded address of the reflectance and BT look-up tables
-AHI_REMOTE_LUTS = ['hmwr829gr.cr.chiba-u.ac.jp',
-                   '/gridded/FD/support/',
-                   'count2tbb_v101.tgz']
+AHI_REMOTE_LUTS = 'http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/count2tbb_v102.tgz'
 
 # Full disk image sizes for each spatial resolution
 AHI_FULLDISK_SIZES = {0.005: {'x_size': 24000,
@@ -110,7 +110,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
             raise NotImplementedError("Only full disk data is supported.")
 
         # Set up directory path for the LUTs
-        app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.1')
+        app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.2')
         self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + '/'
         self.area = None
 
@@ -143,36 +143,37 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     @staticmethod
     def _download_luts(file_name):
-        """Download LUTs from remote FTP server."""
-        from ftplib import FTP
-        # Set up an FTP connection (anonymous) and download
-        ftp = FTP(AHI_REMOTE_LUTS[0])
-        ftp.login('anonymous', 'anonymous')
-        ftp.cwd(AHI_REMOTE_LUTS[1])
-        with open(file_name, 'wb') as _fp:
-            ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
+        """Download LUTs from remote server."""
+        import shutil
+        import urllib
+
+        # Set up an connection and download
+        with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
+            with open(file_name, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
 
     @staticmethod
     def _untar_luts(tarred_file, outdir):
         """Uncompress downloaded LUTs, which are a tarball."""
         import tarfile
         tar = tarfile.open(tarred_file)
-        tar.extractall(outdir)
+        tar.extractall(outdir)  # nosec
         tar.close()
         os.remove(tarred_file)
 
     def _get_luts(self):
         """Download the LUTs needed for count->Refl/BT conversion."""
-        import tempfile
-        import shutil
         import pathlib
+        import shutil
+
+        from satpy import config
 
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)
 
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
-        tempdir = tempfile.gettempdir()
+        tempdir = config["tmp_dir"]
         fname = os.path.join(tempdir, 'tmp.tgz')
         # Download the LUTs
         self._download_luts(fname)
@@ -180,7 +181,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         # The file is tarred, untar and remove the downloaded file
         self._untar_luts(fname, tempdir)
 
-        lut_dl_dir = os.path.join(tempdir, 'count2tbb/')
+        lut_dl_dir = os.path.join(tempdir, 'count2tbb_v102/')
 
         # Loop over the LUTs and copy to the correct location
         for lutfile in AHI_LUT_NAMES:
@@ -249,12 +250,9 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Calibrate the data."""
         if calib == 'counts':
             return data
-        elif calib == 'reflectance' or calib == 'brightness_temperature':
-            data = self._calibrate(data)
-        else:
-            raise NotImplementedError("ERROR: Unsupported calibration.",
-                                      "Only counts, reflectance and ",
-                                      "brightness_temperature calibration",
-                                      "are supported.")
-
-        return data
+        if calib == 'reflectance' or calib == 'brightness_temperature':
+            return self._calibrate(data)
+        raise NotImplementedError("ERROR: Unsupported calibration.",
+                                  "Only counts, reflectance and ",
+                                  "brightness_temperature calibration",
+                                  "are supported.")

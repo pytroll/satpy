@@ -1,0 +1,3 @@
+[bandit]
+skips: B506
+exclude: satpy/tests

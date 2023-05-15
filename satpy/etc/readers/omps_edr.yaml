@@ -1,6 +1,10 @@
 reader:
-  description: Generic OMPS EDR reader
   name: omps_edr
+  short_name: OMPS EDR
+  long_name: OMPS EDR data in HDF5 format
+  description: Generic OMPS EDR reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [omps]
 
@@ -240,4 +244,3 @@ datasets:
     coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/CloudFraction
-

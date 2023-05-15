@@ -28,15 +28,17 @@ file (key ``nodata_handling`` per dataset with value ``"nan_mask"``).
 """
 
 import logging
-import rasterio
 
-import xarray as xr
 import dask.array as da
 import numpy as np
+import rasterio
+import xarray as xr
+from pyresample import utils
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-from pyresample import utils
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 BANDS = {1: ['L'],
          2: ['L', 'A'],
@@ -75,7 +77,16 @@ class GenericImageFileHandler(BaseFileHandler):
         if hasattr(dataset, 'crs') and dataset.crs is not None:
             self.area = utils.get_area_def_from_raster(dataset)
 
-        data = xr.open_rasterio(dataset, chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
+        data = xr.open_dataset(self.finfo["filename"], engine="rasterio",
+                               chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}, mask_and_scale=False)["band_data"]
+        if hasattr(dataset, "nodatavals"):
+            # The nodata values for the raster bands
+            # copied from https://github.com/pydata/xarray/blob/v2023.03.0/xarray/backends/rasterio_.py#L322-L326
+            nodatavals = tuple(
+                np.nan if nodataval is None else nodataval for nodataval in dataset.nodatavals
+            )
+            data.attrs["nodatavals"] = nodatavals
+
         attrs = data.attrs.copy()
 
         # Rename to Satpy convention

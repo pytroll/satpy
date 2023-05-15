@@ -17,9 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
-from datetime import datetime
+from __future__ import annotations
+
 import os
 import unittest
+import warnings
+from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -28,17 +31,10 @@ import pytest
 import xarray as xr
 
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import (
-    NativeMSGFileHandler, ImageBoundaries, Padder,
-    get_available_channels,
-)
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
-from satpy.tests.reader_tests.test_seviri_base import (
-    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
-)
-from satpy.tests.utils import make_dataid, assert_attrs_equal
+from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -50,13 +46,13 @@ for item in CHANNEL_INDEX_LIST:
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'
 
-TEST1_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST1_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST1_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX--XX--XX--'
 
-TEST2_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST2_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST2_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX-XXXX----X'
 
-TEST3_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST3_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
@@ -533,7 +529,7 @@ class TestNativeMSGArea(unittest.TestCase):
     """
 
     @staticmethod
-    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan):
+    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
         """Create mocked NativeMSGFileHandler.
 
         Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
@@ -577,8 +573,11 @@ class TestNativeMSGArea(unittest.TestCase):
             n_hrv_cols = n_visir_cols * 3
             n_hrv_lines = n_visir_lines * 3
             ssp_lon = 0
-
         header = {
+            '15_MAIN_PRODUCT_HEADER': {
+                'QQOV': {'Name': 'QQOV',
+                         'Value': good_qual}
+            },
             '15_DATA_HEADER': {
                 'ImageDescription': {
                     reference_grid: {
@@ -1024,11 +1023,21 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
                 }
             }
         }
+        trailer = {
+            '15TRAILER': {
+                'ImageProductionStats': {
+                    'ActualScanningSummary': {
+                        'ForwardScanStart': self.scan_time
+                    }
+                }
+            }
+        }
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
             fh = NativeMSGFileHandler()
             fh.header = header
+            fh.trailer = trailer
             fh.platform_id = self.platform_id
             return fh
 
@@ -1090,26 +1099,16 @@ class TestNativeMSGDataset:
     @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
-        header = {
-            '15_DATA_HEADER': {
-                'SatelliteStatus': {
-                    'SatelliteDefinition': {
-                        'NominalLongitude': 0.0
-                    },
-                    'Orbit': {
-                        'OrbitPolynomial': ORBIT_POLYNOMIALS
-                    }
-                },
-                'ImageAcquisition': {
-                    'PlannedAcquisitionTime': {
-                        'TrueRepeatCycleStart': datetime(
-                            2006, 1, 1, 12, 15, 9, 304888
-                        )
+        trailer = {
+            '15TRAILER': {
+                'ImageProductionStats': {
+                    'ActualScanningSummary': {
+                        'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
                     }
                 }
-            },
+            }
         }
-        header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         mda = {
             'channel_list': ['VIS006', 'IR_108'],
             'number_of_lines': 4,
@@ -1124,6 +1123,48 @@ class TestNativeMSGDataset:
                 'b': 6356583.8
             }
         }
+        header = self._fake_header()
+        data = self._fake_data()
+        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
+                        return_value=None):
+            fh = NativeMSGFileHandler()
+            fh.header = header
+            fh.trailer = trailer
+            fh.mda = mda
+            fh.dask_array = da.from_array(data)
+            fh.platform_id = 324
+            fh.fill_disk = False
+            fh.calib_mode = 'NOMINAL'
+            fh.ext_calib_coefs = {}
+            fh.include_raw_metadata = False
+            fh.mda_max_array_size = 100
+        return fh
+
+    @staticmethod
+    def _fake_header():
+        header = {
+            '15_DATA_HEADER': {
+                'SatelliteStatus': {
+                    'SatelliteDefinition': {
+                        'NominalLongitude': 0.0
+                    },
+                    'Orbit': {
+                        'OrbitPolynomial': ORBIT_POLYNOMIALS
+                    }
+                },
+                'ImageAcquisition': {
+                    'PlannedAcquisitionTime': {
+                        'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 0, 0),
+                        'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0),
+                    }
+                }
+            },
+        }
+        header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
+        return header
+
+    @staticmethod
+    def _fake_data():
         num_visir_cols = 5  # will be divided by 1.25 -> 4 columns
         visir_rec = [
             ('line_data', np.uint8, (num_visir_cols,)),
@@ -1147,18 +1188,7 @@ class TestNativeMSGDataset:
              [(vis006_line4,), (ir108_line4,)]],
             dtype=[('visir', visir_rec)]
         )
-        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
-                        return_value=None):
-            fh = NativeMSGFileHandler()
-            fh.header = header
-            fh.mda = mda
-            fh.dask_array = da.from_array(data)
-            fh.platform_id = 324
-            fh.fill_disk = False
-            fh.calib_mode = 'NOMINAL'
-            fh.ext_calib_coefs = {}
-            fh.mda_max_array_size = 100
-            return fh
+        return data
 
     def test_get_dataset(self, file_handler):
         """Test getting the dataset."""
@@ -1173,6 +1203,15 @@ class TestNativeMSGDataset:
             'standard_name': 'counts'
         }
         dataset = file_handler.get_dataset(dataset_id, dataset_info)
+        expected = self._exp_data_array()
+        xr.testing.assert_equal(dataset, expected)
+        assert 'raw_metadata' not in dataset.attrs
+        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
+        assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
+        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    @staticmethod
+    def _exp_data_array():
         expected = xr.DataArray(
             np.array([[4., 32., 193., 5.],
                       [24., 112., 514., 266.],
@@ -1191,22 +1230,41 @@ class TestNativeMSGDataset:
                     'projection_latitude': 0.0,
                     'projection_altitude': 35785831.0
                 },
+                'time_parameters': {
+                    'nominal_start_time': datetime(2006, 1, 1, 12, 15, 0),
+                    'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0),
+                    'observation_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    'observation_end_time': datetime(2006, 1, 1, 12, 27, 9, 304888),
+                },
                 'georef_offset_corrected': True,
                 'platform_name': 'MSG-3',
                 'sensor': 'seviri',
                 'units': '1',
                 'wavelength': (1, 2, 3),
-                'standard_name': 'counts'
+                'standard_name': 'counts',
             }
         )
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
                                       np.datetime64('1958-01-02 00:00:02'),
                                       np.datetime64('1958-01-02 00:00:03'),
                                       np.datetime64('1958-01-02 00:00:04')])
-        xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' in dataset.attrs
-        dataset.attrs.pop('raw_metadata')
-        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+        return expected
+
+    def test_get_dataset_with_raw_metadata(self, file_handler):
+        """Test provision of raw metadata."""
+        file_handler.include_raw_metadata = True
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'raw_metadata' in res.attrs
 
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""
@@ -1222,7 +1280,8 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        res = file_handler.get_dataset(dataset_id, dataset_info)
+        with pytest.warns(UserWarning, match="No orbit polynomial"):
+            res = file_handler.get_dataset(dataset_id, dataset_info)
         assert 'satellite_actual_longitude' not in res.attrs[
             'orbital_parameters']
 
@@ -1314,3 +1373,40 @@ def test_header_type(file_content, exp_header_size):
         fh = NativeMSGFileHandler('myfile', {}, None)
         assert fh.header_type.itemsize == exp_header_size
         assert '15_SECONDARY_PRODUCT_HEADER' in fh.header
+
+
+def test_header_warning():
+    """Test warning is raised for NOK quality flag."""
+    header_good = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0,
+        good_qual='OK'
+    )
+    header_bad = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0,
+        good_qual='NOK'
+    )
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch("builtins.open", mock.mock_open(read_data=b'FormatName                  : NATIVE')):
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+
+        exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
+
+        fromfile.return_value = header_good
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            NativeMSGFileHandler('myfile', {}, None)
+
+        fromfile.return_value = header_bad
+        with pytest.warns(UserWarning, match=exp_warning):
+            NativeMSGFileHandler('myfile', {}, None)

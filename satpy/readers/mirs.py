@@ -17,17 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to MiRS product."""
 
-import os
-import logging
 import datetime
+import logging
+import os
+from collections import Counter
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from collections import Counter
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.aux_download import retrieve
 
+from satpy.aux_download import retrieve
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -35,7 +38,7 @@ try:
     # try getting setuptools/distribute's version of resource retrieval first
     from pkg_resources import resource_string as get_resource_string
 except ImportError:
-    from pkgutil import get_data as get_resource_string
+    from pkgutil import get_data as get_resource_string  # type: ignore
 
 #
 
@@ -96,7 +99,7 @@ def read_atms_limb_correction_coefficients(fn):
     n_chn = 22
     n_fov = 96
     # make the string a generator
-    coeff_str = (line.strip() for line in coeff_str)
+    coeff_lines = (line.strip() for line in coeff_str)
 
     all_coeffs = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
     all_amean = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
@@ -107,14 +110,17 @@ def read_atms_limb_correction_coefficients(fn):
     # There should be 22 sections
     for chan_idx in range(n_chn):
         # blank line at the start of each section
-        _ = next(coeff_str)
+        _ = next(coeff_lines)
         # section header
-        _nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
+        next_line = next(coeff_lines)
+
+        _nx, nchx, dmean = [x.strip() for x in next_line.split(" ") if x]
         all_nchx[chan_idx] = nchx = int(nchx)
         all_dmean[chan_idx] = float(dmean)
 
         # coeff locations (indexes to put the future coefficients in)
-        locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
+        next_line = next(coeff_lines)
+        locations = [int(x.strip()) for x in next_line.split(" ") if x]
         if len(locations) != nchx:
             raise RuntimeError
         for x in range(nchx):
@@ -123,7 +129,7 @@ def read_atms_limb_correction_coefficients(fn):
         # Read 'nchx' coefficients for each of 96 FOV
         for fov_idx in range(n_fov):
             # chan_num, fov_num, *coefficients, error
-            coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
+            coeff_line_parts = [x.strip() for x in next(coeff_lines).split(" ") if x][2:]
             coeffs = [float(x) for x in coeff_line_parts[:nchx]]
             ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
             # not used but nice to know the purpose of the last column.
@@ -161,7 +167,7 @@ def get_coeff_by_sfc(coeff_fn, bt_data, idx):
     c_size = bt_data[idx, :, :].chunks
     correction = da.map_blocks(apply_atms_limb_correction,
                                bt_data, idx,
-                               *sfc_coeff, chunks=c_size)
+                               *sfc_coeff, chunks=c_size, meta=np.array((), dtype=bt_data.dtype))
     return correction
 
 
@@ -279,15 +285,13 @@ class MiRSL2ncHandler(BaseFileHandler):
         """Force datetime.date for combine."""
         if isinstance(self.filename_info[key], datetime.datetime):
             return self.filename_info[key].date()
-        else:
-            return self.filename_info[key]
+        return self.filename_info[key]
 
     def force_time(self, key):
         """Force datetime.time for combine."""
         if isinstance(self.filename_info.get(key), datetime.datetime):
             return self.filename_info.get(key).time()
-        else:
-            return self.filename_info.get(key)
+        return self.filename_info.get(key)
 
     @property
     def _get_coeff_filenames(self):
@@ -320,9 +324,9 @@ class MiRSL2ncHandler(BaseFileHandler):
         # if we don't have to
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
-        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+        if np.issubdtype(data_arr_dtype, np.timedelta64):
             return np.timedelta64('NaT')
-        elif np.issubdtype(data_arr_dtype, np.datetime64):
+        if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64('NaT')
         return np.nan
 

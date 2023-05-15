@@ -17,14 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Vaisala GLD360 reader."""
 
+import unittest
 from io import StringIO
 
 import numpy as np
 
 from satpy.readers.vaisala_gld360 import VaisalaGLD360TextFileHandler
 from satpy.tests.utils import make_dataid
-
-import unittest
 
 
 class TestVaisalaGLD360TextFileHandler(unittest.TestCase):

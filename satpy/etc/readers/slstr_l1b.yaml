@@ -1,6 +1,10 @@
 reader:
-  description: NC Reader for SLSTR data
   name: slstr_l1b
+  short_name: SLSTR l1b
+  long_name: Sentinel-3 A and B SLSTR data in netCDF4 format
+  description: NC Reader for SLSTR data
+  status: Alpha
+  supports_fsspec: false
   sensors: [slstr]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -88,6 +92,16 @@ datasets:
     file_key: latitude_{stripe:1s}{view:1s}
     standard_name: latitude
     units: degree
+
+  elevation:
+    name: elevation
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: elevation_{stripe:1s}{view:1s}
+    standard_name: elevation
+    units: m
 
   # The channels S1-S3 are available in nadir (default) and oblique view.
   S1:

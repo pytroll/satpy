@@ -9,13 +9,16 @@ Satpy
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
-    
+
 .. image:: https://anaconda.org/conda-forge/satpy/badges/version.svg
    :target: https://anaconda.org/conda-forge/satpy/
 
 .. image:: https://zenodo.org/badge/51397392.svg
    :target: https://zenodo.org/badge/latestdoi/51397392
 
+.. image:: https://codescene.io/projects/21806/status-badges/code-health
+   :target: https://codescene.io/projects/21806
+   :alt: CodeScene Code Health
 
 The Satpy package is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and

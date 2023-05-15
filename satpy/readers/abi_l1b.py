@@ -38,30 +38,40 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key['name'])
-        radiances = self['Rad']
-
-        if key['calibration'] == 'reflectance':
-            logger.debug("Calibrating to reflectances")
-            res = self._vis_calibrate(radiances)
-        elif key['calibration'] == 'brightness_temperature':
-            logger.debug("Calibrating to brightness temperatures")
-            res = self._ir_calibrate(radiances)
-        elif key['calibration'] != 'radiance':
-            raise ValueError("Unknown calibration '{}'".format(key['calibration']))
+        # For raw cal, don't apply scale and offset, return raw file counts
+        if key['calibration'] == 'counts':
+            radiances = self.nc['Rad'].copy()
         else:
-            res = radiances
+            radiances = self['Rad']
+
+        # mapping of calibration types to calibration functions
+        cal_dictionary = {
+            'reflectance': self._vis_calibrate,
+            'brightness_temperature': self._ir_calibrate,
+            'radiance': self._rad_calibrate,
+            'counts': self._raw_calibrate,
+        }
+
+        try:
+            func = cal_dictionary[key['calibration']]
+            res = func(radiances)
+        except KeyError:
+            raise ValueError("Unknown calibration '{}'".format(key['calibration']))
 
         # convert to satpy standard units
-        if res.attrs['units'] == '1':
+        if res.attrs['units'] == '1' and key['calibration'] != 'counts':
             res *= 100
             res.attrs['units'] = '%'
 
-        res.attrs.update({'platform_name': self.platform_name,
-                          'sensor': self.sensor})
+        self._adjust_attrs(res, key)
+        return res
 
+    def _adjust_attrs(self, data, key):
+        data.attrs.update({'platform_name': self.platform_name,
+                          'sensor': self.sensor})
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
-        res.attrs['orbital_parameters'] = {
+        data.attrs['orbital_parameters'] = {
             'projection_longitude': float(projection.attrs['longitude_of_projection_origin']),
             'projection_latitude': float(projection.attrs['latitude_of_projection_origin']),
             'projection_altitude': float(projection.attrs['perspective_point_height']),
@@ -70,28 +80,49 @@ class NC_ABI_L1B(NC_ABI_BASE):
             'satellite_nominal_altitude': float(self['nominal_satellite_height']) * 1000.,
             'yaw_flip': bool(self['yaw_flip_flag']),
         }
-
-        res.attrs.update(key.to_dict())
+        data.attrs.update(key.to_dict())
         # remove attributes that could be confusing later
-        res.attrs.pop('_FillValue', None)
-        res.attrs.pop('scale_factor', None)
-        res.attrs.pop('add_offset', None)
-        res.attrs.pop('_Unsigned', None)
-        res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+        # if calibration type is raw counts, we leave them in
+        if key['calibration'] != 'counts':
+            data.attrs.pop('_FillValue', None)
+            data.attrs.pop('scale_factor', None)
+            data.attrs.pop('add_offset', None)
+        data.attrs.pop('_Unsigned', None)
+        data.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # although we could compute these, we'd have to update in calibration
-        res.attrs.pop('valid_range', None)
+        data.attrs.pop('valid_range', None)
         # add in information from the filename that may be useful to the user
         for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname', 'suffix'):
             if attr in self.filename_info:
-                res.attrs[attr] = self.filename_info[attr]
+                data.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
         for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            res.attrs[attr] = self.nc.attrs.get(attr)
+            data.attrs[attr] = self.nc.attrs.get(attr)
         # only include these if they are present
         for attr in ('fusion_args',):
             if attr in self.nc.attrs:
-                res.attrs[attr] = self.nc.attrs[attr]
+                data.attrs[attr] = self.nc.attrs[attr]
 
+    def _rad_calibrate(self, data):
+        """Calibrate any channel to radiances.
+
+        This no-op method is just to keep the flow consistent -
+        each valid cal type results in a calibration method call
+        """
+        res = data
+        res.attrs = data.attrs
+        return res
+
+    def _raw_calibrate(self, data):
+        """Calibrate any channel to raw counts.
+
+        Useful for cases where a copy requires no calibration.
+        """
+        res = data
+        res.attrs = data.attrs
+        res.attrs['units'] = '1'
+        res.attrs['long_name'] = 'Raw Counts'
+        res.attrs['standard_name'] = 'counts'
         return res
 
     def _vis_calibrate(self, data):

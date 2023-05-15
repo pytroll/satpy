@@ -19,10 +19,11 @@
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
 import os
-from unittest import mock
-import pytest
 from datetime import datetime
+from unittest import mock
+
 import numpy as np
+import pytest
 import xarray as xr
 
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
@@ -32,7 +33,7 @@ OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s201702061601000_e201702061607000_
 
 EXAMPLE_FILES = [METOP_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
 
-N_CHANNEL = 3
+N_CHANNEL = 22
 N_FOV = 96
 N_SCANLINE = 100
 DEFAULT_FILE_DTYPE = np.float64
@@ -42,16 +43,20 @@ DEFAULT_LAT = np.linspace(23.09356, 36.42844, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_LON = np.linspace(127.6879, 144.5284, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
-FREQ = xr.DataArray([88, 88, 22], dims='Channel',
+FREQ = xr.DataArray([23.8, 31.4, 50.3, 51.76, 52.8, 53.596, 54.4, 54.94, 55.5,
+                     57.29, 57.29, 57.29, 57.29, 57.29, 57.29, 88.2, 165.5,
+                     183.31, 183.31, 183.31, 183.31, 183.31][:N_CHANNEL],
+                    dims='Channel',
                     attrs={'description': "Central Frequencies (GHz)"})
-POLO = xr.DataArray([2, 2, 3], dims='Channel',
+POLO = xr.DataArray([2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3,
+                     3, 3, 3][:N_CHANNEL], dims='Channel',
                     attrs={'description': "Polarizations"})
 
 DS_IDS = ['RR', 'longitude', 'latitude']
-TEST_VARS = ['btemp_88v1', 'btemp_88v2',
-             'btemp_22h', 'RR', 'Sfc_type']
-DEFAULT_UNITS = {'btemp_88v1': 'K', 'btemp_88v2': 'K',
-                 'btemp_22h': 'K', 'RR': 'mm/hr', 'Sfc_type': "1"}
+TEST_VARS = ['btemp_88v', 'btemp_165h',
+             'btemp_23v', 'RR', 'Sfc_type']
+DEFAULT_UNITS = {'btemp_88v': 'K', 'btemp_165h': 'K',
+                 'btemp_23v': 'K', 'RR': 'mm/hr', 'Sfc_type': "1"}
 PLATFORM = {"M2": "metop-a", "NPP": "npp", "GPM": "gpm"}
 SENSOR = {"m2": "amsu-mhs", "npp": "atms", "gpm": "GPI"}
 
@@ -62,18 +67,46 @@ END_TIME = datetime(2017, 2, 6, 16, 7, 0)
 def fake_coeff_from_fn(fn):
     """Create Fake Coefficients."""
     ameans = np.random.uniform(261, 267, N_CHANNEL)
-    all_nchx = np.linspace(2, 3, N_CHANNEL, dtype=np.int32)
+    locations = [
+        [1, 2],
+        [1, 2],
+        [3, 4, 5],
+        [3, 4, 5],
+        [4, 5, 6],
+        [5, 6, 7],
+        [6, 7, 8],
+        [7, 8],
+        [9, 10, 11],
+        [10, 11],
+        [10, 11, 12],
+        [11, 12, 13],
+        [12, 13],
+        [12, 13, 14],
+        [14, 15],
+        [1, 16],
+        [17, 18],
+        [18, 19],
+        [18, 19, 20],
+        [19, 20, 21],
+        [20, 21, 22],
+        [21, 22],
+    ]
+    all_nchx = [len(loc) for loc in locations]
 
     coeff_str = []
-    for idx in range(1, N_CHANNEL):
+    for idx in range(1, N_CHANNEL + 1):
         nx = idx - 1
         coeff_str.append('\n')
         next_line = '   {}  {} {}\n'.format(idx, all_nchx[nx], ameans[nx])
         coeff_str.append(next_line)
+        next_line = '   {}\n'.format("   ".join([str(x) for x in locations[idx - 1]]))
+        coeff_str.append(next_line)
         for fov in range(1, N_FOV+1):
             random_coeff = np.random.rand(all_nchx[nx])
+            random_coeff = np.ones(all_nchx[nx])
             str_coeff = '  '.join([str(x) for x in random_coeff])
             random_means = np.random.uniform(261, 267, all_nchx[nx])
+            random_means = np.zeros(all_nchx[nx])
             str_means = ' '.join([str(x) for x in random_means])
             error_val = np.random.uniform(0, 4)
             coeffs_line = ' {:>2} {:>2}  {} {}   {}\n'.format(idx, fov,
@@ -259,7 +292,7 @@ class TestMirsL2_NcReader:
     @staticmethod
     def _check_fill_value(data_arr, test_fill_value):
         assert '_FillValue' not in data_arr.attrs
-        assert test_fill_value not in data_arr.data
+        assert not (data_arr.data == test_fill_value).any()
 
     @staticmethod
     def _check_attrs(data_arr, platform_name):
@@ -293,10 +326,11 @@ class TestMirsL2_NcReader:
                     fd, mock.patch('satpy.readers.mirs.retrieve'):
                 fd.side_effect = fake_coeff_from_fn
                 loaded_data_arrs = r.load(loadable_ids)
-            assert loaded_data_arrs
+            assert len(loaded_data_arrs) == len(loadable_ids)
 
             test_data = fake_open_dataset(filenames[0])
             for _data_id, data_arr in loaded_data_arrs.items():
+                data_arr = data_arr.compute()
                 var_name = data_arr.attrs["name"]
                 if var_name not in ['latitude', 'longitude']:
                     self._check_area(data_arr)

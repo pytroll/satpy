@@ -19,14 +19,14 @@
 
 from __future__ import annotations
 
-from typing import Optional, Iterable, Container
-
-from satpy import DataID
-from satpy.dataset import create_filtered_query, ModifierTuple
-from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG, ReaderNode
+from typing import Container, Iterable, Optional
 
 import numpy as np
+
+from satpy import DataID, DatasetDict
+from satpy.dataset import ModifierTuple, create_filtered_query
+from satpy.dataset.data_dict import TooManyResults, get_key
+from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
 class Tree:
@@ -155,7 +155,7 @@ class DependencyTree(Tree):
 
     """
 
-    def __init__(self, readers, compositors, modifiers, available_only=False):
+    def __init__(self, readers, compositors=None, modifiers=None, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -168,8 +168,10 @@ class DependencyTree(Tree):
 
         Args:
             readers (dict): Reader name -> Reader Object
-            compositors (dict): Sensor name -> Composite ID -> Composite Object
-            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            compositors (dict): Sensor name -> Composite ID -> Composite Object.
+                Empty dictionary by default.
+            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options).
+                Empty dictionary by default.
             available_only (bool): Whether only reader's available/loadable
                 datasets should be used when searching for dependencies (True)
                 or use all known/configured datasets regardless of whether the
@@ -181,9 +183,28 @@ class DependencyTree(Tree):
         """
         super().__init__()
         self.readers = readers
-        self.compositors = compositors
-        self.modifiers = modifiers
+        self.compositors = {}
+        self.modifiers = {}
         self._available_only = available_only
+        self.update_compositors_and_modifiers(compositors or {}, modifiers or {})
+
+    def update_compositors_and_modifiers(self, compositors: dict, modifiers: dict) -> None:
+        """Add additional compositors and modifiers to the tree.
+
+        Provided dictionaries and the first sub-level dictionaries are copied
+        to avoid modifying the input.
+
+        Args:
+            compositors (dict):
+                Sensor name -> composite ID -> Composite Object
+            modifiers (dict):
+                Sensor name -> Modifier name -> (Modifier Class, modifier options)
+
+        """
+        for sensor_name, sensor_comps in compositors.items():
+            self.compositors.setdefault(sensor_name, DatasetDict()).update(sensor_comps)
+        for sensor_name, sensor_mods in modifiers.items():
+            self.modifiers.setdefault(sensor_name, {}).update(sensor_mods)
 
     def copy(self):
         """Copy this node tree.

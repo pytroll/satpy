@@ -1,0 +1,27 @@
+reader:
+  name: fake2_1ds
+  description: Fake reader used for easier testing
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [fake_sensor2]
+datasets:
+  lons:
+    name: lons
+    resolution: [250, 500, 1000]
+    standard_name: longitude
+    file_type: fake_file1
+  lats:
+    name: lats
+    resolution: [250, 500, 1000]
+    standard_name: latitude
+    file_type: fake_file1
+  ds2:
+    name: ds2
+    resolution: 250
+    calibration: "reflectance"
+    file_type: fake_file1
+    coordinates: [lons, lats]
+file_types:
+  fake_file1:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake2_3ds_{file_idx:d}.txt']
+    sensor: fake_sensor2

@@ -20,6 +20,7 @@
 import logging
 
 import xarray as xr
+
 from satpy.composites import GenericCompositor
 from satpy.writers import get_enhanced_image
 

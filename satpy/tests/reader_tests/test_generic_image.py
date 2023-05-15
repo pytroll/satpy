@@ -19,9 +19,10 @@
 import os
 import unittest
 
-import xarray as xr
 import dask.array as da
 import numpy as np
+import xarray as xr
+
 from satpy.tests.utils import make_dataid
 
 
@@ -34,13 +35,14 @@ class TestGenericImage(unittest.TestCase):
         from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
         self.date = datetime(2018, 1, 1)
 
         # Create area definition
         pcs_id = 'ETRS89 / LAEA Europe'
-        proj4_dict = {'init': 'epsg:3035'}
+        proj4_dict = "EPSG:3035"
         self.x_size = 100
         self.y_size = 100
         area_extent = (2426378.0132, 1528101.2618, 6293974.6215, 5446513.5222)
@@ -132,9 +134,9 @@ class TestGenericImage(unittest.TestCase):
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
         self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
-        self.assertEqual(scn.attrs['sensor'], set(['images']))
-        self.assertEqual(scn.attrs['start_time'], None)
-        self.assertEqual(scn.attrs['end_time'], None)
+        self.assertEqual(scn.sensor_names, {'images'})
+        self.assertEqual(scn.start_time, None)
+        self.assertEqual(scn.end_time, None)
         self.assertNotIn('area', scn['image'].attrs)
 
         fname = os.path.join(self.base_dir, '20180101_0000_test_la.png')
@@ -142,9 +144,9 @@ class TestGenericImage(unittest.TestCase):
         scn.load(['image'])
         data = da.compute(scn['image'].data)
         self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
-        self.assertEqual(scn.attrs['sensor'], set(['images']))
-        self.assertEqual(scn.attrs['start_time'], self.date)
-        self.assertEqual(scn.attrs['end_time'], self.date)
+        self.assertEqual(scn.sensor_names, {'images'})
+        self.assertEqual(scn.start_time, self.date)
+        self.assertEqual(scn.end_time, self.date)
         self.assertNotIn('area', scn['image'].attrs)
         self.assertEqual(np.sum(np.isnan(data)), 100)
 
@@ -156,18 +158,18 @@ class TestGenericImage(unittest.TestCase):
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
         self.assertEqual(scn['image'].shape, (3, self.y_size, self.x_size))
-        self.assertEqual(scn.attrs['sensor'], set(['images']))
-        self.assertEqual(scn.attrs['start_time'], self.date)
-        self.assertEqual(scn.attrs['end_time'], self.date)
+        self.assertEqual(scn.sensor_names, {'images'})
+        self.assertEqual(scn.start_time, self.date)
+        self.assertEqual(scn.end_time, self.date)
         self.assertEqual(scn['image'].area, self.area_def)
 
         fname = os.path.join(self.base_dir, 'test_rgba.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
         self.assertEqual(scn['image'].shape, (3, self.y_size, self.x_size))
-        self.assertEqual(scn.attrs['sensor'], set(['images']))
-        self.assertEqual(scn.attrs['start_time'], None)
-        self.assertEqual(scn.attrs['end_time'], None)
+        self.assertEqual(scn.sensor_names, {'images'})
+        self.assertEqual(scn.start_time, None)
+        self.assertEqual(scn.end_time, None)
         self.assertEqual(scn['image'].area, self.area_def)
 
     def test_geotiff_scene_nan(self):
@@ -207,8 +209,7 @@ class TestGenericImage(unittest.TestCase):
 
         dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertIn('crs', dataset.attrs)
-        self.assertIn('transform', dataset.attrs)
+        self.assertIn('spatial_ref', dataset.coords)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
     def test_GenericImageFileHandler_masking_only_integer(self):

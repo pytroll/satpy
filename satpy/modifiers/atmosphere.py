@@ -18,45 +18,55 @@
 """Modifiers related to atmospheric corrections or adjustments."""
 
 import logging
-from weakref import WeakValueDictionary
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
-from satpy.utils import get_satpos
+from satpy.modifiers.angles import compute_relative_azimuth, get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
 
 class PSPRayleighReflectance(ModifierBase):
-    """Pyspectral-based rayleigh corrector for visible channels."""
+    """Pyspectral-based rayleigh corrector for visible channels.
 
-    _rayleigh_cache = WeakValueDictionary()
+    It is possible to use ``reduce_lim_low``, ``reduce_lim_high`` and ``reduce_strength``
+    together to reduce rayleigh correction at high solar zenith angle and make the image
+    transition from rayleigh-corrected to partially/none rayleigh-corrected at day/night edge,
+    therefore producing a more natural look, which could be especially helpful for geostationary
+    satellites. This reduction starts at solar zenith angle of ``reduce_lim_low``, and ends in
+    ``reduce_lim_high``. It's linearly scaled between these two angles. The ``reduce_strength``
+    controls the amount of the reduction. When the solar zenith angle reaches ``reduce_lim_high``,
+    the rayleigh correction will remain ``(1 - reduce_strength)`` of its initial reduce_strength
+    at ``reduce_lim_high``.
 
-    def get_angles(self, vis):
-        """Get the sun and satellite angles from the current dataarray."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
+    To use this function in a YAML configuration file:
 
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+    .. code-block:: yaml
 
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
+      rayleigh_corrected_reduced:
+        modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+        atmosphere: us-standard
+        aerosol_type: rayleigh_only
+        reduce_lim_low: 70
+        reduce_lim_high: 95
+        reduce_strength: 0.6
+        prerequisites:
+          - name: B03
+            modifiers: [sunz_corrected]
+        optional_prerequisites:
+          - satellite_azimuth_angle
+          - satellite_zenith_angle
+          - solar_azimuth_angle
+          - solar_zenith_angle
+
+    In the case above, rayleigh correction is reduced gradually starting at solar zenith angle 70°.
+    When reaching 95°, the correction will only remain 40% its initial strength at 95°.
+
+    """
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
@@ -64,41 +74,37 @@ class PSPRayleighReflectance(ModifierBase):
         Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
-        if not optional_datasets or len(optional_datasets) != 4:
+        projectables = projectables + (optional_datasets or [])
+        if len(projectables) != 6:
             vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = self.get_angles(vis)
-            red.data = da.rechunk(red.data, vis.data.chunks)
+            sata, satz, suna, sunz = get_angles(vis)
         else:
-            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
-                projectables + optional_datasets)
-            sata, satz, suna, sunz = optional_datasets
-            # get the dask array underneath
-            sata = sata.data
-            satz = satz.data
-            suna = suna.data
-            sunz = sunz.data
+            vis, red, sata, satz, suna, sunz = self.match_data_arrays(projectables)
+            # First make sure the two azimuth angles are in the range 0-360:
+            sata = sata % 360.
+            suna = suna % 360.
 
-        # First make sure the two azimuth angles are in the range 0-360:
-        sata = sata % 360.
-        suna = suna % 360.
-        ssadiff = da.absolute(suna - sata)
-        ssadiff = da.minimum(ssadiff, 360 - ssadiff)
+        # get the dask array underneath
+        sata = sata.data
+        satz = satz.data
+        suna = suna.data
+        sunz = sunz.data
+
+        ssadiff = compute_relative_azimuth(sata, suna)
         del sata, suna
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        rayleigh_key = (vis.attrs['platform_name'],
-                        vis.attrs['sensor'], atmosphere, aerosol_type)
+        reduce_lim_low = abs(self.attrs.get('reduce_lim_low', 70))
+        reduce_lim_high = abs(self.attrs.get('reduce_lim_high', 105))
+        reduce_strength = np.clip(self.attrs.get('reduce_strength', 0), 0, 1)
+
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs['name'])
-        if rayleigh_key not in self._rayleigh_cache:
-            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                                 atmosphere=atmosphere,
-                                 aerosol_type=aerosol_type)
-            self._rayleigh_cache[rayleigh_key] = corrector
-        else:
-            corrector = self._rayleigh_cache[rayleigh_key]
+        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         try:
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
@@ -110,10 +116,25 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs['wavelength'][1],
                                                       red.data)
+
+        if reduce_strength > 0:
+            if reduce_lim_low > reduce_lim_high:
+                reduce_lim_low = reduce_lim_high
+            refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
+                                                                 reduce_lim_low, reduce_lim_high, reduce_strength)
+
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
         return proj
+
+
+def _call_mapped_correction(satz, band_data, corrector, band_name):
+    # need to convert to masked array
+    orig_dtype = band_data.dtype
+    band_data = np.ma.masked_where(np.isnan(band_data), band_data)
+    res = corrector.get_correction(satz, band_name, band_data)
+    return res.filled(np.nan).astype(orig_dtype, copy=False)
 
 
 class PSPAtmosphericalCorrection(ModifierBase):
@@ -131,26 +152,17 @@ class PSPAtmosphericalCorrection(ModifierBase):
         if optional_datasets:
             satz = optional_datasets[0]
         else:
-            from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
-            sat_lon, sat_lat, sat_alt = get_satpos(band)
-            try:
-                dummy, satel = get_observer_look(sat_lon,
-                                                 sat_lat,
-                                                 sat_alt / 1000.0,  # km
-                                                 band.attrs['start_time'],
-                                                 lons, lats, 0)
-            except KeyError:
-                raise KeyError(
-                    'Band info is missing some meta data!')
-            satz = 90 - satel
-            del satel
+            satz = get_satellite_zenith_angle(band)
+        satz = satz.data  # get dask array underneath
 
         logger.info('Correction for limb cooling')
         corrector = AtmosphericalCorrection(band.attrs['platform_name'],
                                             band.attrs['sensor'])
 
-        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
+        atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
+                                 corrector=corrector,
+                                 band_name=band.attrs['name'],
+                                 meta=np.array((), dtype=band.dtype))
         proj = xr.DataArray(atm_corr, attrs=band.attrs,
                             dims=band.dims, coords=band.coords)
         self.apply_modifier_info(band, proj)
@@ -169,7 +181,7 @@ class CO2Corrector(ModifierBase):
 
     Derived from D. Rosenfeld, "CO2 Correction of Brightness Temperature of Channel IR3.9"
     References:
-        - http://www.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
+        - https://resources.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):

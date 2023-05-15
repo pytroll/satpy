@@ -20,12 +20,13 @@
 
 import os
 import unittest
+from datetime import datetime, timedelta
 from unittest import mock
-from datetime import datetime
+
 import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
 
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (3246, 450)
@@ -40,14 +41,13 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        from xarray import DataArray
         dt_s = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         dt_e = filename_info.get('end_time', datetime(2016, 1, 1, 12, 0, 0))
 
         if filetype_info['file_type'] == 'tropomi_l2':
             file_content = {
-                '/attr/time_coverage_start': dt_s.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-                '/attr/time_coverage_end': dt_e.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                '/attr/time_coverage_start': (dt_s+timedelta(minutes=22)).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                '/attr/time_coverage_end': (dt_e-timedelta(minutes=22)).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 '/attr/platform_shortname': 'S5P',
                 '/attr/sensor': 'TROPOMI',
             }
@@ -67,15 +67,7 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                     continue
                 file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
 
-            # convert to xarrays
-            for key, val in file_content.items():
-                if isinstance(val, np.ndarray):
-                    if 1 < val.ndim <= 2:
-                        file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
-                    elif val.ndim > 2:
-                        file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel', 'corner'))
-                    else:
-                        file_content[key] = DataArray(val)
+            self._convert_data_content_to_dataarrays(file_content)
             file_content['PRODUCT/latitude'].attrs['_FillValue'] = -999.0
             file_content['PRODUCT/longitude'].attrs['_FillValue'] = -999.0
             file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'].attrs['_FillValue'] = -999.0
@@ -90,6 +82,18 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                                       "'tropomi_l2' are not supported.")
 
         return file_content
+
+    def _convert_data_content_to_dataarrays(self, file_content):
+        """Convert data content to xarray's dataarrays."""
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                if 1 < val.ndim <= 2:
+                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
+                elif val.ndim > 2:
+                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel', 'corner'))
+                else:
+                    file_content[key] = DataArray(val)
 
 
 class TestTROPOMIL2Reader(unittest.TestCase):
@@ -137,6 +141,8 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'S5P')
             self.assertEqual(d.attrs['sensor'], 'tropomi')
+            self.assertEqual(d.attrs['time_coverage_start'], datetime(2018, 7, 9, 17, 25, 34))
+            self.assertEqual(d.attrs['time_coverage_end'], datetime(2018, 7, 9, 18, 23, 4))
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertIn('y', d.dims)

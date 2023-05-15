@@ -25,10 +25,13 @@ References:
 
 import logging
 from datetime import datetime
-import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from pyresample.geometry import AreaDefinition
+
+import dask.array as da
 import h5py
+import numpy as np
+from pyresample.geometry import AreaDefinition
+
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +70,21 @@ class Hdf5IMERG(HDF5FileHandler):
         """Load a dataset."""
         file_key = ds_info.get('file_key', dataset_id['name'])
         dsname = 'Grid/' + file_key
-        data = self[dsname].squeeze().transpose()
-        data.values = np.flipud(data.values)
+        data = self.get(dsname)
+        data = data.squeeze().transpose()
+        if data.ndim >= 2:
+            data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
+        data.data = da.flip(data.data, axis=0)
 
         fill = data.attrs['_FillValue']
-        pts = (data.values == fill).nonzero()
-        data.values[pts] = np.nan
+        data = data.where(data != fill)
 
         for key in list(data.attrs.keys()):
             val = data.attrs[key]
             if isinstance(val, h5py.h5r.Reference):
                 del data.attrs[key]
-
+            if isinstance(val, np.ndarray) and isinstance(val[0][0], h5py.h5r.Reference):
+                del data.attrs[key]
         return data
 
     def get_area_def(self, dsid):

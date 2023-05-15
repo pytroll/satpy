@@ -1,0 +1,18 @@
+sensor_name: mhs
+
+composites:
+  mw183_humidity:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '3'
+    - name: '4'
+    - name: '5'
+    standard_name: mw183_humidity
+
+  mw183_humidity_surface:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '1'
+    - name: '2'
+    - name: '3'
+    standard_name: mw183_humidity_surface
