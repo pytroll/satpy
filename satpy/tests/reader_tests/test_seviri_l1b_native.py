@@ -30,11 +30,13 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.eum_base import time_cds_short
+from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
+
+ASCII_STARTSWITH = b'FormatName                  : NATIVE'
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -664,9 +666,9 @@ class TestNativeMSGArea(unittest.TestCase):
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
                 mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
+                    'satpy.readers.seviri_l1b_native.has_archive_header'
+                ) as has_archive_header:
+            has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
             _get_memmap.return_value = np.arange(3)
@@ -959,9 +961,9 @@ class TestNativeMSGArea(unittest.TestCase):
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
                 mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
+                    'satpy.readers.seviri_l1b_native.has_archive_header'
+                ) as has_archive_header:
+            has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
             _get_memmap.return_value = np.arange(3)
@@ -1035,7 +1037,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.platform_id = self.platform_id
@@ -1127,7 +1129,7 @@ class TestNativeMSGDataset:
         data = self._fake_data()
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
@@ -1348,7 +1350,7 @@ class TestNativeMSGFilenames:
 @pytest.mark.parametrize(
     'file_content,exp_header_size',
     [
-        (b'FormatName                  : NATIVE', 450400),  # with ascii header
+        (ASCII_STARTSWITH, 450400),  # with ascii header
         (b'foobar', 445286),  # without ascii header
     ]
 )
@@ -1396,7 +1398,7 @@ def test_header_warning():
             mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
-            mock.patch("builtins.open", mock.mock_open(read_data=b'FormatName                  : NATIVE')):
+            mock.patch("builtins.open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
 
@@ -1410,3 +1412,34 @@ def test_header_warning():
         fromfile.return_value = header_bad
         with pytest.warns(UserWarning, match=exp_warning):
             NativeMSGFileHandler('myfile', {}, None)
+
+
+def test_has_archive_header_true():
+    """Test that the  file includes an ASCII archive header."""
+    starts_with = b'FormatName                  : NATIVE'
+    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+        assert open("path/to/open").read(36) == ASCII_STARTSWITH
+
+
+def test_has_archive_header_false():
+    """Test that the  file includes an ASCII archive header."""
+    starts_with = b'This does not match ASCII_STARTSWITH'
+    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+        assert not open("path/to/open").read(36) == ASCII_STARTSWITH
+
+
+def test_read_header():
+    """Test reading header returns the header correctly converted to a dictionary."""
+    expected_dict = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
+
+    dtypes = np.dtype([
+        ('SatelliteId', np.uint16),
+        ('NominalLongitude', np.float32),
+        ('SatelliteStatus', np.uint8)
+    ])
+
+    hdr_data = np.array([(324, 0.0, 1)], dtype=dtypes)
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        fromfile.return_value = hdr_data
+        actual_dict = recarray2dict(hdr_data)
+    unittest.TestCase().assertDictEqual(expected_dict, actual_dict)

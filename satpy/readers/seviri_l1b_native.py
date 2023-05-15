@@ -187,17 +187,19 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
-        self.header_type = get_native_header(self._has_archive_header())
+        self.header_type = get_native_header(has_archive_header(self.filename))
+        # self.header_type = get_native_header(self.has_archive_header(self.filename))
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
-    def _has_archive_header(self):
-        """Check whether the file includes an ASCII archive header."""
-        ascii_startswith = b'FormatName                  : NATIVE'
-        with open(self.filename, mode='rb') as istream:
-            return istream.read(36) == ascii_startswith
+    # @staticmethod
+    # def has_archive_header(filename):
+    #     """Check whether the file includes an ASCII archive header."""
+    #     ascii_startswith = b'FormatName                  : NATIVE'
+    #     with open(filename, mode='rb') as istream:
+    #         return istream.read(36) == ascii_startswith
 
     @property
     def nominal_start_time(self):
@@ -283,10 +285,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _read_header(self):
         """Read the header info."""
-        data = np.fromfile(self.filename,
-                           dtype=self.header_type, count=1)
-
-        self.header.update(recarray2dict(data))
+        self.header.update(read_header(self.filename))
 
         if '15_SECONDARY_PRODUCT_HEADER' not in self.header:
             # No archive header, that means we have a complete file
@@ -305,7 +304,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
         self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['offset_corrected'] = data15hd['GeometricProcessing'][
-            'EarthModel']['TypeOfEarthModel'] == 2
+                                           'EarthModel']['TypeOfEarthModel'] == 2
 
         equator_radius = data15hd['GeometricProcessing'][
                              'EarthModel']['EquatorialRadius'] * 1000.
@@ -631,7 +630,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         coefs_gsics = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['MPEFCalFeedback']
         radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing']
+            'Level15ImageProduction']['PlannedChanProcessing']
         return create_coef_dict(
             coefs_nominal=(
                 coefs_nominal['CalSlope'][band_idx],
@@ -724,7 +723,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         poly_finder = OrbitPolynomialFinder(self.header['15_DATA_HEADER'][
-            'SatelliteStatus']['Orbit']['OrbitPolynomial'])
+                                                'SatelliteStatus']['Orbit']['OrbitPolynomial'])
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
@@ -872,11 +871,25 @@ class Padder:
 
 def get_available_channels(header):
     """Get the available channels from the header information."""
-    chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+    channels_str = header['15_SECONDARY_PRODUCT_HEADER'][
         'SelectedBandIDs']['Value']
-    retv = {}
+    available_channels = {}
 
-    for idx, char in zip(range(12), chlist_str):
-        retv[CHANNEL_NAMES[idx + 1]] = (char == 'X')
+    for idx, char in zip(range(12), channels_str):
+        available_channels[CHANNEL_NAMES[idx + 1]] = (char == 'X')
 
-    return retv
+    return available_channels
+
+
+def has_archive_header(filename):
+    """Check whether the file includes an ASCII archive header."""
+    ascii_startswith = b'FormatName                  : NATIVE'
+    with open(filename, mode='rb') as istream:
+        return istream.read(36) == ascii_startswith
+
+
+def read_header(filename):
+    """Read SEVIRI L1.5 native header."""
+    dtype = get_native_header(has_archive_header(filename))
+    hdr = np.fromfile(filename, dtype=dtype, count=1)
+    return recarray2dict(hdr)
