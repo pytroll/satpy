@@ -188,18 +188,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
         self.header_type = get_native_header(has_archive_header(self.filename))
-        # self.header_type = get_native_header(self.has_archive_header(self.filename))
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
-
-    # @staticmethod
-    # def has_archive_header(filename):
-    #     """Check whether the file includes an ASCII archive header."""
-    #     ascii_startswith = b'FormatName                  : NATIVE'
-    #     with open(filename, mode='rb') as istream:
-    #         return istream.read(36) == ascii_startswith
 
     @property
     def nominal_start_time(self):
