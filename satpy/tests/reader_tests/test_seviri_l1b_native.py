@@ -684,7 +684,7 @@ class TestNativeMSGArea(unittest.TestCase):
             fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
             calc_area_def = fh.get_area_def(dataset_id)
 
-        return (calc_area_def, expected_area_def)
+        return calc_area_def, expected_area_def
 
     # Earth model 1 tests
     def test_earthmodel1_visir_fulldisk(self):
@@ -707,7 +707,6 @@ class TestNativeMSGArea(unittest.TestCase):
                                    np.array(expected['Area extent 0']))
         np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
                                    np.array(expected['Area extent 1']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
@@ -729,10 +728,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -742,10 +739,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -755,10 +750,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -768,10 +761,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -865,7 +856,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -877,7 +867,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -889,7 +878,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -901,7 +889,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -977,7 +964,7 @@ class TestNativeMSGArea(unittest.TestCase):
             fh.trailer = trailer
             calc_is_roi = fh.is_roi()
 
-        return (calc_is_roi, expected_is_roi)
+        return calc_is_roi, expected_is_roi
 
     def test_is_roi_fulldisk(self):
         """Test check for region of interest with FES data."""
@@ -1310,7 +1297,7 @@ class TestNativeMSGPadder(unittest.TestCase):
         padder._final_shape = final_shape
         calc_padded_data = padder.pad_data(dataset)
 
-        return (calc_padded_data, expected_padded_data)
+        return calc_padded_data, expected_padded_data
 
     def test_padder_rss_roi(self):
         """Test padder for RSS and ROI data (applies to both VISIR and HRV)."""
@@ -1442,8 +1429,8 @@ def test_read_header():
         ('NominalLongitude', np.float32),
         ('SatelliteStatus', np.uint8)
     ])
-
     hdr_data = np.array([(324, 0.0, 1)], dtype=dtypes)
+
     with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
         fromfile.return_value = hdr_data
         actual_dict = recarray2dict(hdr_data)

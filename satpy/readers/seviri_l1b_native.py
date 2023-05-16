@@ -876,9 +876,8 @@ def get_available_channels(header):
 
 def has_archive_header(filename):
     """Check whether the file includes an ASCII archive header."""
-    ascii_startswith = ASCII_STARTSWITH
     with open(filename, mode='rb') as istream:
-        return istream.read(36) == ascii_startswith
+        return istream.read(36) == ASCII_STARTSWITH
 
 
 def read_header(filename):
