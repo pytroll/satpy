@@ -593,8 +593,8 @@ def _jma_true_color_reproduction(img_data, platform=None):
     The conversion matrices for this are supplied per-platform.
     The matrices are computed using the method described in the paper:
     'True Color Imagery Rendering for Himawari-8 with a Color Reproduction Approach
-     Based on the CIE XYZ Color System'
-    DOI:10.2151/jmsj.2018-049
+    Based on the CIE XYZ Color System' (:doi:`10.2151/jmsj.2018-049`).
+
     """
     # Conversion matrix dictionaries specifying sensor and platform.
     ccm_dict = {'himawari-8': np.array([[1.1629, 0.1539, -0.2175],

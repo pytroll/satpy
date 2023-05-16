@@ -30,8 +30,15 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.seviri_l1b_native import (
+    ASCII_STARTSWITH,
+    ImageBoundaries,
+    NativeMSGFileHandler,
+    Padder,
+    get_available_channels,
+    has_archive_header,
+)
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
@@ -664,9 +671,9 @@ class TestNativeMSGArea(unittest.TestCase):
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
                 mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
+                    'satpy.readers.seviri_l1b_native.has_archive_header'
+                ) as has_archive_header:
+            has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
             _get_memmap.return_value = np.arange(3)
@@ -677,7 +684,7 @@ class TestNativeMSGArea(unittest.TestCase):
             fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
             calc_area_def = fh.get_area_def(dataset_id)
 
-        return (calc_area_def, expected_area_def)
+        return calc_area_def, expected_area_def
 
     # Earth model 1 tests
     def test_earthmodel1_visir_fulldisk(self):
@@ -700,7 +707,6 @@ class TestNativeMSGArea(unittest.TestCase):
                                    np.array(expected['Area extent 0']))
         np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
                                    np.array(expected['Area extent 1']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
@@ -722,10 +728,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -735,10 +739,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -748,10 +750,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -761,10 +761,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL
         )
-
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -858,7 +856,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -870,7 +867,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -882,7 +878,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -894,7 +889,6 @@ class TestNativeMSGArea(unittest.TestCase):
         )
         np.testing.assert_allclose(np.array(calculated.area_extent),
                                    np.array(expected['Area extent']))
-
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -959,9 +953,9 @@ class TestNativeMSGArea(unittest.TestCase):
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
                 mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
+                    'satpy.readers.seviri_l1b_native.has_archive_header'
+                ) as has_archive_header:
+            has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
             _get_memmap.return_value = np.arange(3)
@@ -970,7 +964,7 @@ class TestNativeMSGArea(unittest.TestCase):
             fh.trailer = trailer
             calc_is_roi = fh.is_roi()
 
-        return (calc_is_roi, expected_is_roi)
+        return calc_is_roi, expected_is_roi
 
     def test_is_roi_fulldisk(self):
         """Test check for region of interest with FES data."""
@@ -1035,7 +1029,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.platform_id = self.platform_id
@@ -1127,7 +1121,7 @@ class TestNativeMSGDataset:
         data = self._fake_data()
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
@@ -1303,7 +1297,7 @@ class TestNativeMSGPadder(unittest.TestCase):
         padder._final_shape = final_shape
         calc_padded_data = padder.pad_data(dataset)
 
-        return (calc_padded_data, expected_padded_data)
+        return calc_padded_data, expected_padded_data
 
     def test_padder_rss_roi(self):
         """Test padder for RSS and ROI data (applies to both VISIR and HRV)."""
@@ -1348,7 +1342,7 @@ class TestNativeMSGFilenames:
 @pytest.mark.parametrize(
     'file_content,exp_header_size',
     [
-        (b'FormatName                  : NATIVE', 450400),  # with ascii header
+        (ASCII_STARTSWITH, 450400),  # with ascii header
         (b'foobar', 445286),  # without ascii header
     ]
 )
@@ -1396,7 +1390,7 @@ def test_header_warning():
             mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
-            mock.patch("builtins.open", mock.mock_open(read_data=b'FormatName                  : NATIVE')):
+            mock.patch("builtins.open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
 
@@ -1410,3 +1404,31 @@ def test_header_warning():
         fromfile.return_value = header_bad
         with pytest.warns(UserWarning, match=exp_warning):
             NativeMSGFileHandler('myfile', {}, None)
+
+
+@pytest.mark.parametrize(
+    "starts_with, expected",
+    [(ASCII_STARTSWITH, True),
+     (b'invalid_startswith', False)]
+)
+def test_has_archive_header(starts_with, expected):
+    """Test if the file includes an ASCII archive header."""
+    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+        assert has_archive_header('filename') == expected
+
+
+def test_read_header():
+    """Test that reading header returns the header correctly converted to a dictionary."""
+    expected = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
+
+    dtypes = np.dtype([
+        ('SatelliteId', np.uint16),
+        ('NominalLongitude', np.float32),
+        ('SatelliteStatus', np.uint8)
+    ])
+    hdr_data = np.array([(324, 0.0, 1)], dtype=dtypes)
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        fromfile.return_value = hdr_data
+        actual = recarray2dict(hdr_data)
+    unittest.TestCase().assertDictEqual(actual, expected)
