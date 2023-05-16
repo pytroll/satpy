@@ -1406,23 +1406,20 @@ def test_header_warning():
             NativeMSGFileHandler('myfile', {}, None)
 
 
-def test_has_archive_header_true():
-    """Test that the file includes an ASCII archive header."""
-    starts_with = ASCII_STARTSWITH
+@pytest.mark.parametrize(
+    "starts_with, expected",
+    [(ASCII_STARTSWITH, True),
+     (b'invalid_startswith', False)]
+)
+def test_has_archive_header(starts_with, expected):
+    """Test if the file includes an ASCII archive header."""
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
-        assert has_archive_header('filename')
-
-
-def test_has_archive_header_false():
-    """Test that the file does not include an ASCII archive header."""
-    starts_with = b'This does not match with ASCII_STARTSWITH'
-    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
-        assert not has_archive_header('filename')
+        assert has_archive_header('filename') == expected
 
 
 def test_read_header():
     """Test that reading header returns the header correctly converted to a dictionary."""
-    expected_dict = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
+    expected = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
 
     dtypes = np.dtype([
         ('SatelliteId', np.uint16),
@@ -1433,5 +1430,5 @@ def test_read_header():
 
     with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
         fromfile.return_value = hdr_data
-        actual_dict = recarray2dict(hdr_data)
-    unittest.TestCase().assertDictEqual(expected_dict, actual_dict)
+        actual = recarray2dict(hdr_data)
+    unittest.TestCase().assertDictEqual(actual, expected)
