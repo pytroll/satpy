@@ -338,14 +338,11 @@ enhancements:
       method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
-        min_stretch: [0, -19.18, 0]
-        max_stretch: [0.07, -1.294, .43]
-        #min_stretch: [0, -30, 0]
-        #max_stretch: [1, 10, 2]
-    - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
-      kwargs:
-        gamma: [1.82, 0.74, 1]
+        # R -- VH: 0.00109 to 0.0594
+        # G -- VV_db: -17.57 to -3.3
+        # B -- VV: 0.00332 to 0.3
+        min_stretch: [0.00109, -17.57, 0.00332]
+        max_stretch: [0.0594, -3.3, .3]
 
   sar-quick:
     standard_name: sar-quick

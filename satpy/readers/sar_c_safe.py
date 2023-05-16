@@ -71,7 +71,8 @@ def _dictify(r):
                 return r.text
     for x in r.findall("./*"):
         if x.tag in d and not isinstance(d[x.tag], list):
-            d[x.tag] = [d[x.tag], _dictify(x)]
+            d[x.tag] = [d[x.tag]]
+            d[x.tag].append(_dictify(x))
         else:
             d[x.tag] = _dictify(x)
     return d
@@ -173,7 +174,8 @@ class SAFEXMLCalibration(SAFEXML):
     def _get_calibration_uncached(self, calibration, chunks=None):
         """Get the calibration array."""
         calibration_name = _get_calibration_name(calibration)
-        return self._get_calibration_vector(calibration_name, chunks)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
 
     def _get_calibration_vector(self, calibration_name, chunks):
         """Get the calibration vector."""
@@ -255,7 +257,9 @@ class AzimuthNoiseReader:
     def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
         """Read the azimuth noise vectors."""
         self._read_azimuth_noise_blocks(chunks)
-        return self._assemble_azimuth_noise_blocks(chunks)
+        populated_array = self._assemble_azimuth_noise_blocks(chunks)
+
+        return populated_array
 
     def _read_azimuth_noise_blocks(self, chunks):
         """Read the azimuth noise blocks."""
@@ -295,7 +299,9 @@ class AzimuthNoiseReader:
         """Create a dask slice from the blocks at the current line."""
         pieces = self._get_array_pieces_for_current_line(current_line)
         dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
-        return da.hstack(dask_pieces)
+        new_slice = da.hstack(dask_pieces)
+
+        return new_slice
 
     def _get_array_pieces_for_current_line(self, current_line):
         """Get the array pieces that cover the current line."""
@@ -308,11 +314,11 @@ class AzimuthNoiseReader:
 
     def _find_blocks_covering_line(self, current_line):
         """Find the blocks covering a given line."""
-        return [
-            block
-            for block in self.blocks
-            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]
-        ]
+        current_blocks = []
+        for block in self.blocks:
+            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
+                current_blocks.append(block)
+        return current_blocks
 
     def _get_next_start_line(self, current_blocks, current_line):
         next_line = min((arr.coords['y'][-1] for arr in current_blocks)) + 1
@@ -572,34 +578,24 @@ class SAFEGRD(BaseFileHandler):
 
         if key['name'] in ['longitude', 'latitude', 'altitude']:
             logger.debug('Constructing coordinate arrays.')
-            arrays = {}
+            arrays = dict()
             arrays['longitude'], arrays['latitude'], arrays['altitude'] = self.get_lonlatalts()
 
             data = arrays[key['name']]
             data.attrs.update(info)
 
         else:
-            data = self.get_measurement(key, info)
+            data = xr.open_dataset(self.filename, engine="rasterio",
+                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
+            data = data.assign_coords(x=np.arange(len(data.coords['x'])),
+                                      y=np.arange(len(data.coords['y'])))
+            data = self._calibrate_and_denoise(data, key)
+            data.attrs.update(info)
+            data.attrs.update({'platform_name': self._mission_id})
+
+            data = self._change_quantity(data, key['quantity'])
+
         return data
-
-    def get_measurement(self, key, info):
-        """Get the measurement data."""
-        result = rioxarray.open_rasterio(
-            self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)
-        ).squeeze()
-
-        result = result.assign_coords(
-            x=np.arange(len(result.coords['x'])),
-            y=np.arange(len(result.coords['y'])),
-        )
-
-        result = self._calibrate_and_denoise(result, key)
-        result.attrs.update(info)
-        result.attrs.update({'platform_name': self._mission_id})
-
-        result = self._change_quantity(result, key['quantity'])
-
-        return result
 
     @staticmethod
     def _change_quantity(data, quantity):
@@ -626,7 +622,8 @@ class SAFEGRD(BaseFileHandler):
         """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
         data = data.astype(np.float64)
-        return data * data
+        dn = data * data
+        return dn
 
     def _denoise(self, dn, chunks):
         """Denoise the data."""
@@ -641,7 +638,8 @@ class SAFEGRD(BaseFileHandler):
         cal = self.calibration.get_calibration(key['calibration'], chunks=chunks)
         cal_constant = self.calibration.get_calibration_constant()
         logger.debug('Calibrating.')
-        return ((dn + cal_constant) / (cal ** 2)).clip(min=0)
+        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
+        return data
 
     def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
