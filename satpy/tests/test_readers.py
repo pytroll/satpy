@@ -21,6 +21,7 @@ import builtins
 import os
 import sys
 import unittest
+import warnings
 from contextlib import suppress
 from unittest import mock
 
@@ -372,8 +373,10 @@ class TestReaderLoader(unittest.TestCase):
         epi_pro_miss = ['H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__']
         epi_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__']
         pro_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__']
-        for filenames in [epi_miss, pro_miss, epi_pro_miss]:
-            self.assertRaises(ValueError, load_readers, reader='seviri_l1b_hrit', filenames=filenames)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=r"No handler for reading requirement.*", category=UserWarning)
+            for filenames in [epi_miss, pro_miss, epi_pro_miss]:
+                self.assertRaises(ValueError, load_readers, reader='seviri_l1b_hrit', filenames=filenames)
 
         # Filenames from multiple scans
         at_least_one_complete = [
@@ -384,11 +387,13 @@ class TestReaderLoader(unittest.TestCase):
             # 10:00 scan is incomplete
             'H-000-MSG4__-MSG4________-IR_108___-000006___-201809051000-__',
         ]
-        try:
-            load_readers(filenames=at_least_one_complete, reader='seviri_l1b_hrit')
-        except ValueError:
-            self.fail('If at least one set of filenames is complete, no '
-                      'exception should be raised')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=r"No matching requirement file.*", category=UserWarning)
+            try:
+                load_readers(filenames=at_least_one_complete, reader='seviri_l1b_hrit')
+            except ValueError:
+                self.fail('If at least one set of filenames is complete, no '
+                          'exception should be raised')
 
     def test_all_filtered(self):
         """Test behaviour if no file matches the filter parameters."""
