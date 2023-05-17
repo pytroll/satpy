@@ -581,8 +581,8 @@ class TestFindFilesAndReaders:
         """Test that requesting old reader names raises a warning."""
         from satpy.readers import OLD_READER_NAMES, get_valid_reader_names
         if not OLD_READER_NAMES:
-            return unittest.skip("Skipping deprecated reader tests because "
-                                 "no deprecated readers.")
+            return pytest.skip("Skipping deprecated reader tests because "
+                               "no deprecated readers.")
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
         with pytest.raises(ValueError):
             get_valid_reader_names([test_reader])
