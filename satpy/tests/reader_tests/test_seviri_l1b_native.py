@@ -644,19 +644,19 @@ def prepare_area_definitions(test_dict):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
-        fh = NativeMSGFileHandler(None, {}, None)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.fill_disk = fill_disk
         fh.header = header
         fh.trailer = trailer
         fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
-        calc_area_def = fh.get_area_def(dataset_id)
+        actual_area_def = fh.get_area_def(dataset_id)
 
-    return calc_area_def, expected_area_def
+    return actual_area_def, expected_area_def
 
 
 @pytest.mark.parametrize(
     "actual, expected",
-    [
+    (
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN)),
@@ -677,7 +677,7 @@ def prepare_area_definitions(test_dict):
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL)),
-    ]
+    )
 )
 def test_area_definitions(actual, expected):
     """Test area definitions with only one area."""
@@ -690,10 +690,10 @@ def test_area_definitions(actual, expected):
 
 @pytest.mark.parametrize(
     "actual, expected",
-    [
+    (
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK)),
-    ]
+    )
 )
 def test_stacked_area_definitions(actual, expected):
     """Test area definitions with stacked areas."""
@@ -728,7 +728,7 @@ def prepare_is_roi(test_dict):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
-        fh = NativeMSGFileHandler(None, {}, None)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.header = header
         fh.trailer = trailer
         actual = fh.is_roi()
@@ -738,11 +738,11 @@ def prepare_is_roi(test_dict):
 
 @pytest.mark.parametrize(
     "actual, expected",
-    [
+    (
         (prepare_is_roi(TEST_IS_ROI_FULLDISK)),
         (prepare_is_roi(TEST_IS_ROI_RAPIDSCAN)),
         (prepare_is_roi(TEST_IS_ROI_ROI)),
-    ]
+    )
 )
 def test_is_roi(actual, expected):
     """Test if given area is of area-of-interest."""
@@ -755,7 +755,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
     def test_get_available_channels(self):
         """Test the derivation of the available channel list."""
         available_chs = get_available_channels(TEST1_HEADER_CHNLIST)
-        trues = ['WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120']
+        trues = ('WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120')
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
@@ -763,7 +763,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
                 self.assertFalse(available_chs[bandname])
 
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
-        trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
+        trues = ('VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV')
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
@@ -822,7 +822,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
+            fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.platform_id = self.platform_id
@@ -830,7 +830,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 
     @pytest.mark.parametrize(
         ('channel', 'calibration', 'calib_mode', 'use_ext_coefs'),
-        [
+        (
             # VIS channel, internal coefficients
             ('VIS006', 'counts', 'NOMINAL', False),
             ('VIS006', 'radiance', 'NOMINAL', False),
@@ -856,7 +856,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # HRV channel, external coefficients (mode should have no effect)
             ('HRV', 'radiance', 'GSICS', True),
             ('HRV', 'reflectance', 'NOMINAL', True),
-        ]
+        )
     )
     def test_calibrate(
             self, file_handler, counts, channel, calibration, calib_mode,
@@ -914,7 +914,7 @@ class TestNativeMSGDataset:
         data = self._fake_data()
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler(filename='', filename_info=dict(), filetype_info=None)
+            fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
@@ -989,13 +989,13 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        dataset = file_handler.get_dataset(dataset_id, dataset_info)
+        xarr = file_handler.get_dataset(dataset_id, dataset_info)
         expected = self._exp_data_array()
-        xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' not in dataset.attrs
+        xr.testing.assert_equal(xarr, expected)
+        assert 'raw_metadata' not in xarr.attrs
         assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
         assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
-        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+        assert_attrs_equal(xarr.attrs, expected.attrs, tolerance=1e-4)
 
     @staticmethod
     def _exp_data_array():
@@ -1005,7 +1005,7 @@ class TestNativeMSGDataset:
                       [44., 192., 835., 527.],
                       [64., 273., 132., 788.]],
                      dtype=np.float32),
-            dims=('y', 'x'),
+            dims=['y', 'x'],
             attrs={
                 'orbital_parameters': {
                     'satellite_actual_longitude': -3.55117540817073,
@@ -1050,8 +1050,8 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        res = file_handler.get_dataset(dataset_id, dataset_info)
-        assert 'raw_metadata' in res.attrs
+        xarr = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'raw_metadata' in xarr.attrs
 
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""
@@ -1068,8 +1068,8 @@ class TestNativeMSGDataset:
             'standard_name': 'counts'
         }
         with pytest.warns(UserWarning, match="No orbit polynomial"):
-            res = file_handler.get_dataset(dataset_id, dataset_info)
-        assert 'satellite_actual_longitude' not in res.attrs[
+            xarr = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in xarr.attrs[
             'orbital_parameters']
 
 
@@ -1134,10 +1134,10 @@ class TestNativeMSGFilenames:
 
 @pytest.mark.parametrize(
     'file_content,exp_header_size',
-    [
+    (
         (ASCII_STARTSWITH, 450400),  # with ascii header
         (b'foobar', 445286),  # without ascii header
-    ]
+    )
 )
 def test_header_type(file_content, exp_header_size):
     """Test identification of the file header type."""
@@ -1157,7 +1157,7 @@ def test_header_type(file_content, exp_header_size):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
-        fh = NativeMSGFileHandler('myfile', {}, None)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         assert fh.header_type.itemsize == exp_header_size
         assert '15_SECONDARY_PRODUCT_HEADER' in fh.header
 
@@ -1192,38 +1192,38 @@ def test_header_warning():
         fromfile.return_value = header_good
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            NativeMSGFileHandler('myfile', {}, None)
+            NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
 
         fromfile.return_value = header_bad
         with pytest.warns(UserWarning, match=exp_warning):
-            NativeMSGFileHandler('myfile', {}, None)
+            NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
 
 
 @pytest.mark.parametrize(
     "starts_with, expected",
     [
         (ASCII_STARTSWITH, True),
-        (b'invalid_startswith', False)
+        (b'this_shall_fail', False)
     ]
 )
 def test_has_archive_header(starts_with, expected):
     """Test if the file includes an ASCII archive header."""
     with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
-        assert has_archive_header('filename') == expected
+        actual = has_archive_header('filename')
+    assert actual == expected
 
 
 def test_read_header():
     """Test that reading header returns the header correctly converted to a dictionary."""
-    expected = {'SatelliteId': 324, 'NominalLongitude': 0.0, 'SatelliteStatus': 1}
+    keys = ('SatelliteId', 'NominalLongitude', 'SatelliteStatus')
+    values = (324, 0.0, 1)
+    expected = dict(zip(keys, values))
 
-    dtypes = np.dtype([
-        ('SatelliteId', np.uint16),
-        ('NominalLongitude', np.float32),
-        ('SatelliteStatus', np.uint8)
-    ])
-    hdr_data = np.array([(324, 0.0, 1)], dtype=dtypes)
+    types = (np.uint16, np.float32, np.uint8)
+    dtypes = np.dtype([(k, t) for k, t in zip(keys, types)])
+    hdr_data = np.array([values], dtype=dtypes)
 
     with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
         fromfile.return_value = hdr_data
         actual = recarray2dict(hdr_data)
-    unittest.TestCase().assertDictEqual(actual, expected)
+    assert actual == expected
