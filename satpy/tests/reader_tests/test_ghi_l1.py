@@ -233,7 +233,7 @@ class Test_HDF_GHI_L1_cal:
             'C07': np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
         }
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
