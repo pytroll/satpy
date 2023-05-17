@@ -503,9 +503,9 @@ TEST_PADDER_FES_HRV = {
 
 
 def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
-    """Create mocked NativeMSGFileHandler.
+    """Create test header for SEVIRI L1.5 product.
 
-    Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
+    Header includes mandatory attributes for NativeMSGFileHandler.get_area_extent
     """
     if dataset_id['name'] == 'HRV':
         reference_grid = 'ReferenceGridHRV'
@@ -594,10 +594,9 @@ def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, goo
 
 
 def create_test_trailer(is_rapid_scan):
-    """Create Test Trailer.
+    """Create test trailer for SEVIRI L1.5 product.
 
-    Mocked Trailer with sufficient attributes for
-    NativeMSGFileHandler.get_area_extent to be able to execute.
+    Trailer includes mandatory attributes for NativeMSGFileHandler.get_area_extent
     """
     trailer = {
         '15TRAILER': {
