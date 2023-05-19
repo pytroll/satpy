@@ -233,7 +233,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             self.assertEqual(available_ds[5][1]["name"], "refl_1_38um_nom")
 
             self.assertEqual(available_ds[6][1]["name"], "M09")
-            self.assertEqual(available_ds[6][1]["file_key"],  "refl_1_38um_nom")
+            self.assertEqual(available_ds[6][1]["file_key"], "refl_1_38um_nom")
 
     def test_load_all(self):
         """Test loading all test datasets."""
