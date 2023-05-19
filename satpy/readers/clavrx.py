@@ -296,6 +296,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
         self.platform = _get_platform(self.file_content.get('/attr/platform'))
+        self.resolution = self.get_nadir_resolution(self.sensor)
 
     @property
     def start_time(self):
@@ -329,60 +330,63 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
     def _available_aliases(self, ds_info, current_var):
         """Add alias if there is a match."""
+        new_info = ds_info.copy()
         alias_info = CHANNEL_ALIASES.get(self.sensor).get(current_var, None)
         if alias_info is not None:
             alias_info.update({"file_key": current_var})
-            alias_info["resolution"] = self.get_nadir_resolution(self.sensor)
-            ds_info.update(alias_info)
-            yield True, ds_info
-
-    def _add_info_if_appropriate(self, is_avail, ds_info, nadir_resolution):
-        """Add more information if this reader can provide it."""
-        new_info = ds_info.copy()  # don't change input
-        this_res = ds_info.get('resolution')
-        var_name = ds_info.get('file_key', ds_info['name'])
-        matches = self.file_type_matches(ds_info['file_type'])
-        # we can confidently say that we can provide this dataset and can
-        # provide more info
-        if matches and var_name in self and this_res != nadir_resolution:
-            new_info['resolution'] = nadir_resolution
-            if self._is_polar():
-                new_info['coordinates'] = ds_info.get('coordinates', ('longitude', 'latitude'))
+            new_info.update(alias_info)
             yield True, new_info
-        elif is_avail is None:
-            # if we didn't know how to handle this dataset and no one else did
-            # then we should keep it going down the chain
-            yield is_avail, ds_info
 
-    def _dynamic_datasets(self, nadir_resolution):
+    def _supplement_configured(self, configured_datasets=None):
+        """Add more information if this reader can provide it."""
+        for is_avail, ds_info in (configured_datasets or []):
+            # some other file handler knows how to load this
+            print(is_avail, ds_info)
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            new_info = ds_info.copy()  # don't change input
+            this_res = ds_info.get('resolution')
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # we can confidently say that we can provide this dataset and can
+            # provide more info
+            if matches and var_name in self and this_res != self.resolution:
+                new_info['resolution'] = self.resolution
+                if self._is_polar():
+                    new_info['coordinates'] = ds_info.get('coordinates', ('longitude', 'latitude'))
+                yield True, new_info
+            elif is_avail is None:
+                # if we didn't know how to handle this dataset and no one else did
+                # then we should keep it going down the chain
+                yield is_avail, ds_info
+
+    def _dynamic_datasets(self):
         """Get data from file and build aliases."""
         for var_name, val in self.file_content.items():
             if isinstance(val, SDS):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
-                    'resolution': nadir_resolution,
+                    'resolution': self.resolution,
                     'name': var_name,
                 }
                 if self._is_polar():
                     ds_info['coordinates'] = ['longitude', 'latitude']
-                yield True, ds_info
 
+                # always yield what we have
+                yield True, ds_info
                 if CHANNEL_ALIASES.get(self.sensor) is not None:
+                    # yield variable as it is
+                    # yield any associated aliases
                     yield from self._available_aliases(ds_info, var_name)
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-        nadir_resolution = self.get_nadir_resolution(self.sensor)
-
         # update previously configured datasets
-        for is_avail, ds_info in (configured_datasets or []):
-            # some other file handler knows how to load this
-            if is_avail is not None:
-                yield is_avail, ds_info
+        yield from self._supplement_configured(configured_datasets)
 
-            yield from self._add_info_if_appropriate(is_avail, ds_info, nadir_resolution)
-
-        yield from self._dynamic_datasets(nadir_resolution)
+        # get data from file dynamically
+        yield from self._dynamic_datasets()
 
     def get_shape(self, dataset_id, ds_info):
         """Get the shape."""
@@ -433,7 +437,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         self.nc.coords["longitude"] = _CLAVRxHelper._get_data(self.nc.coords["longitude"],
                                                               {"name": "longitude"})
 
-    def _get_ds_info_for_data_arr(self, var_name):
+    def _dynamic_dataset_info(self, var_name):
         """Set data name and, if applicable, aliases."""
         channel_info = None
         ds_info = {
@@ -468,7 +472,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                 # we need 'traditional' y/x dimensions currently
                 continue
 
-            yield from self._get_ds_info_for_data_arr(var_name)
+            yield from self._dynamic_dataset_info(var_name)
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.

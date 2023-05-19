@@ -48,7 +48,6 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
             '/attr/platform': 'SNPP',
             '/attr/sensor': 'VIIRS',
         }
-
         file_content['longitude'] = xr.DataArray(
             da.from_array(DEFAULT_LON_DATA, chunks=4096),
             attrs={
@@ -103,6 +102,20 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
                 'units': 'none',
             })
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
+
+        file_content['refl_1_38um_nom'] = xr.DataArray(
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
+            attrs={
+                'SCALED': 1,
+                'add_offset': 59.0,
+                'scale_factor': 0.0018616290763020515,
+                'units': '%',
+                '_FillValue': -32768,
+                'valid_range': [-32767, 32767],
+                'actual_range': [-2., 120.],
+                'actual_missing': -999.0
+            })
+        file_content['refl_1_38um_nom/shape'] = DEFAULT_FILE_SHAPE
 
         return file_content
 
@@ -204,6 +217,24 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.assertTrue(new_ds_infos[8][0])
         self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
 
+    def test_available_datasets_with_alias(self):
+        """Test availability of aliased dataset."""
+        import xarray as xr
+
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
+            loadables = r.select_files_from_pathnames([
+                'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+            ])
+            r.create_filehandlers(loadables)
+            available_ds = list(r.file_handlers['clavrx_hdf4'][0].available_datasets())
+
+            self.assertEqual(available_ds[5][1]["name"], "refl_1_38um_nom")
+
+            self.assertEqual(available_ds[6][1]["name"], "M09")
+            self.assertEqual(available_ds[6][1]["file_key"],  "refl_1_38um_nom")
+
     def test_load_all(self):
         """Test loading all test datasets."""
         import xarray as xr
@@ -216,17 +247,17 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
 
-        var_list = ['variable1', 'variable2', 'variable3']
+        var_list = ["M09", 'variable2', 'variable3']
         datasets = r.load(var_list)
         self.assertEqual(len(datasets), len(var_list))
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '1')
+            self.assertIn(v.attrs['units'], ['1', '%'])
             self.assertEqual(v.attrs['platform_name'], 'npp')
             self.assertEqual(v.attrs['sensor'], 'viirs')
             self.assertIsInstance(v.attrs['area'], SwathDefinition)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 16)
-            self.assertIsInstance(datasets["variable3"].attrs.get("flag_meanings"), list)
+        self.assertIsInstance(datasets["variable3"].attrs.get("flag_meanings"), list)
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
@@ -263,17 +294,20 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
             })
         file_content['latitude/shape'] = DEFAULT_FILE_SHAPE
 
-        file_content['variable1'] = xr.DataArray(
+        file_content['refl_1_38um_nom'] = xr.DataArray(
             DEFAULT_FILE_DATA.astype(np.float32),
             dims=('y', 'x'),
             attrs={
-                '_FillValue': -1,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'units': '1',
-                'valid_range': (-32767, 32767),
+                'SCALED': 1,
+                'add_offset': 59.0,
+                'scale_factor': 0.0018616290763020515,
+                'units': '%',
+                '_FillValue': -32768,
+                'valid_range': [-32767, 32767],
+                'actual_range': [-2., 120.],
+                'actual_missing': -999.0
             })
-        file_content['variable1/shape'] = DEFAULT_FILE_SHAPE
+        file_content['refl_1_38um_nom/shape'] = DEFAULT_FILE_SHAPE
 
         # data with fill values
         file_content['variable2'] = xr.DataArray(
@@ -347,7 +381,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 'clavrx_H08_20180806_1800.level2.hdf',
             ])
             r.create_filehandlers(loadables)
-        self.assertRaises(IOError, r.load, ['variable1', 'variable2', 'variable3'])
+        self.assertRaises(IOError, r.load, ['refl_1_38um_nom', 'variable2', 'variable3'])
 
     def test_load_all_old_donor(self):
         """Test loading all test datasets with old donor."""
@@ -375,18 +409,18 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 variables={'Projection': proj, 'x': x, 'y': y},
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
-            datasets = r.load(['variable1', 'variable2', 'variable3'])
+            datasets = r.load(['refl_1_38um_nom', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertNotIn('calibration', v.attrs)
-            self.assertEqual(v.attrs['units'], '1')
+            self.assertIn(v.attrs['units'], ['1', '%'])
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             if v.attrs.get("flag_values"):
                 self.assertIn('_FillValue', v.attrs)
             else:
                 self.assertNotIn('_FillValue', v.attrs)
-            if v.attrs["name"] == 'variable1':
-                self.assertIsInstance(v.attrs["valid_range"], tuple)
+            if v.attrs["name"] == 'refl_1_38um_nom':
+                self.assertIsInstance(v.attrs["valid_range"], list)
             else:
                 self.assertNotIn('valid_range', v.attrs)
             if 'flag_values' in v.attrs:
@@ -419,11 +453,11 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 variables={'goes_imager_projection': proj, 'x': x, 'y': y},
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
-            datasets = r.load(['variable1', 'variable2', 'variable3'])
+            datasets = r.load(['refl_1_38um_nom', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertNotIn('calibration', v.attrs)
-            self.assertEqual(v.attrs['units'], '1')
+            self.assertIn(v.attrs['units'], ['1', '%'])
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             self.assertTrue(v.attrs['area'].is_geostationary)
             self.assertEqual(v.attrs['platform_name'], 'himawari8')
