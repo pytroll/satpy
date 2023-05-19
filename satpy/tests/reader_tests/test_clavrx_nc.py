@@ -190,8 +190,27 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
 
-            datasets = r.load(self.loadable_ids)
-            self.assertEqual(len(datasets), len(self.loadable_ids))
+            datasets = r.load(self.loadable_ids + ["C02"])
+            self.assertEqual(len(datasets), len(self.loadable_ids)+1)
+
+            # should have file variable and one alias for reflectance
+            self.assertNotIn("valid_range", datasets["variable1"].attrs)
+            self.assertNotIn("_FillValue", datasets["variable1"].attrs)
+            self.assertEqual(np.float64, datasets["variable1"].dtype)
+
+            assert np.issubdtype(datasets["variable3"].dtype, np.integer)
+            self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+            self.assertEqual('<flag_meanings_unknown>',
+                             datasets['variable3'].attrs.get('flag_meanings'),
+                             )
+
+            self.assertIsInstance(datasets["refl_0_65um_nom"].valid_range, list)
+            self.assertEqual(np.float64, datasets["refl_0_65um_nom"].dtype)
+            self.assertNotIn("_FillValue", datasets["refl_0_65um_nom"].attrs)
+
+            self.assertEqual("refl_0_65um_nom", datasets["C02"].file_key)
+            self.assertNotIn("_FillValue", datasets["C02"].attrs)
+
             for v in datasets.values():
                 self.assertIsInstance(v.area, AreaDefinition)
                 self.assertEqual(v.platform_name, 'GOES-16')
@@ -200,23 +219,6 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
                 self.assertNotIn('calibration', v.attrs)
                 self.assertIn("units", v.attrs)
                 self.assertNotIn('rows_per_scan', v.coords.get('longitude').attrs)
-                # should have file variable and one alias for reflectance
-                if v.name == "variable1":
-                    self.assertNotIn("valid_range", v.attrs)
-                    self.assertNotIn("_FillValue", v.attrs)
-                    self.assertEqual(np.float64, v.dtype)
-                elif v.name in ["refl_0_65um_nom", "C02"]:
-                    self.assertIsInstance(v.valid_range, list)
-                    self.assertEqual(np.float64, v.dtype)
-                    self.assertNotIn("_FillValue", v.attrs)
-                    if v.name == "C02":
-                        self.assertEqual("refl_0_65um_nom", v.file_key)
-                else:
-                    self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
-                    self.assertEqual('<flag_meanings_unknown>',
-                                     datasets['variable3'].attrs.get('flag_meanings'),
-                                     )
-                    assert np.issubdtype(v.dtype, np.integer)
 
     def test_yaml_datasets(self):
         """Test available_datasets with fake variables from YAML."""
