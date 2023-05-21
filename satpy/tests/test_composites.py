@@ -901,36 +901,52 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['resolution'], 333)
 
 
-class TestCategoricalDataCompositor(unittest.TestCase):
+class TestCategoricalDataCompositor:
     """Test composiotor for recategorization of categorical data."""
 
-    def setUp(self):
+    @pytest.fixture
+    def categorical_data(self):
         """Create test data."""
         attrs = {'name': 'foo'}
-        data = xr.DataArray(da.from_array([[2., 1.], [3., 0.]]), attrs=attrs,
+        data = xr.DataArray(da.from_array(
+                                np.array([[2, 1], [3, 0]], dtype="uint8")),
+                            attrs=attrs,
                             dims=('y', 'x'), coords={'y': [0, 1], 'x': [0, 1]})
 
-        self.data = data
+        return data
 
-    def test_basic_recategorization(self):
+    def test_basic_recategorization(self, categorical_data):
         """Test general functionality of compositor incl. attributes."""
         from satpy.composites import CategoricalDataCompositor
-        lut = [np.nan, 0, 1, 1]
+        lut = [255, 0, 1, 1]
         name = 'bar'
-        comp = CategoricalDataCompositor(name=name, lut=lut)
-        res = comp([self.data])
-        res = res.compute()
-        expected = np.array([[1., 0.], [1., np.nan]])
+        comp = CategoricalDataCompositor(name=name, lut=lut, fill_value=255)
+        res = comp([categorical_data])
+        assert res.dtype == categorical_data.dtype
+        expected = np.array([[1., 0.], [1., 255]])
         np.testing.assert_equal(res.values, expected)
-        np.testing.assert_equal(res.attrs['name'], name)
+        assert res.attrs["name"] == name
+        assert res.attrs["_FillValue"] == 255
         np.testing.assert_equal(res.attrs['composite_lut'], lut)
 
-    def test_too_many_datasets(self):
+    def test_too_many_datasets(self, categorical_data):
         """Test that ValueError is raised if more than one dataset is provided."""
         from satpy.composites import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
         comp = CategoricalDataCompositor(name='foo', lut=lut)
-        np.testing.assert_raises(ValueError, comp, [self.data, self.data])
+        with pytest.raises(ValueError):
+            comp([categorical_data, categorical_data])
+
+    def test_respect_dtype(self, categorical_data):
+        """Test that choice of dtype is respected."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [0, 1, 2, 3]
+        comp = CategoricalDataCompositor(name="mavas", lut=lut, dtype="uint8")
+        res = comp([categorical_data])
+        assert res.dtype == np.uint8
+        comp = CategoricalDataCompositor(name="mavas", lut=lut, dtype="int32")
+        res = comp([categorical_data])
+        assert res.dtype == np.int32
 
 
 class TestGenericCompositor(unittest.TestCase):

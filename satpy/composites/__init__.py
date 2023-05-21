@@ -337,20 +337,28 @@ class CategoricalDataCompositor(CompositeBase):
         res = [[20, 40, 30], [50, 30, 10]]
     """
 
-    def __init__(self, name, lut=None, **kwargs):
+    def __init__(self, name, lut=None, dtype=None, fill_value=None, **kwargs):
         """Get look-up-table used to recategorize data.
 
         Args:
-            lut (list): a list of new categories. The lenght must be greater than the
-                        maximum value in the data array that should be recategorized.
+            lut (list):
+                A list of new categories. The lenght must be greater than the
+                maximum value in the data array that should be recategorized.
+            dtype (dtype, optional):
+                Set this to force the output dtype to be different from the input dtype.
+            fill_value (number):
+                Fill value to set.  This will be defined as an attribute to the data
+                returned when the compositor is called.
         """
         self.lut = np.array(lut)
-        super(CategoricalDataCompositor, self).__init__(name, **kwargs)
+        self.fill_value = fill_value
+        self.dtype = dtype
+        super().__init__(name, **kwargs)
 
     def _update_attrs(self, new_attrs):
         """Modify name and add LUT."""
         new_attrs['name'] = self.attrs['name']
-        new_attrs['composite_lut'] = list(self.lut)
+        new_attrs['composite_lut'] = self.lut
 
     @staticmethod
     def _getitem(block, lut):
@@ -361,11 +369,16 @@ class CategoricalDataCompositor(CompositeBase):
         if len(projectables) != 1:
             raise ValueError("Can't have more than one dataset for a categorical data composite")
 
-        data = projectables[0].astype(int)
-        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+        data = projectables[0]
+        if not np.issubdtype(data.dtype, np.integer):
+            raise TypeError(f"{type(self).__name__:s} can only be used on "
+                            f"integer data, got {data.dtype!s}")
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.dtype or data.dtype)
 
         new_attrs = data.attrs.copy()
         self._update_attrs(new_attrs)
+        if self.fill_value is not None:
+            new_attrs["_FillValue"] = self.fill_value
 
         return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
