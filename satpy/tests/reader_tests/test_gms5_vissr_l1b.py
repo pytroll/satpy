@@ -1,9 +1,11 @@
 """Unit tests for GMS-5 VISSR reader."""
 
 from unittest import mock
+import datetime as dt
 
 import numpy as np
 import pytest
+import xarray as xr
 
 import satpy.readers.gms5_vissr_l1b as vissr
 import satpy.readers.gms5_vissr_navigation as nav
@@ -492,13 +494,9 @@ class TestFileHandler:
         'IR3': 'IR'
     }
 
-    def test_dataset_navigation(self, file_handler, dataset_id, lons_lats_exp):
-        lons_exp, lats_exp = lons_lats_exp
+    def test_get_dataset(self, file_handler, dataset_id, dataset_exp):
         dataset = file_handler.get_dataset(dataset_id, {})
-        lons = dataset.coords['lon']
-        lats = dataset.coords['lat']
-        np.testing.assert_allclose(lons, lons_exp, atol=1E-6)
-        np.testing.assert_allclose(lats, lats_exp, atol=1E-6)
+        xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1E-6)
 
     @pytest.fixture
     def file_handler(self, header, dataset_id, image_data):
@@ -512,9 +510,13 @@ class TestFileHandler:
             # See https://stackoverflow.com/a/59045506/5703449
             yield fh
 
-    @pytest.fixture(params=['VIS', 'IR1'])
+    @pytest.fixture(params=[
+        make_dataid(name="VIS", calibration="reflectance"),
+        make_dataid(name='IR1', calibration="brightness_temperature"),
+        make_dataid(name='IR1', calibration="counts")
+    ])
     def dataset_id(self, request):
-        return make_dataid(name=request.param)
+        return request.param
 
     @pytest.fixture
     def image_data(self, dataset_id):
@@ -541,9 +543,9 @@ class TestFileHandler:
         dtype = np.dtype([('LCW', line_control_word),
                           ('image_data', vissr.U1, (2,))])
         if dataset_id['name'] == 'IR1':
-            return np.array([((686, 50000), (1, 2)), ((2089, 50000), (3, 4))], dtype=dtype)
+            return np.array([((686, 50000), (0, 1)), ((2089, 50000), (2, 3))], dtype=dtype)
         elif dataset_id['name'] == 'VIS':
-            return np.array([((2744, 50000), (1, 2)), ((8356, 50000), (3, 4))], dtype=dtype)
+            return np.array([((2744, 50000), (0, 1)), ((8356, 50000), (2, 3))], dtype=dtype)
         raise NotImplementedError
 
     @pytest.fixture
@@ -726,25 +728,25 @@ class TestFileHandler:
     @pytest.fixture
     def vis_calibration(self):
         return {
-
+            "vis1_calibration_table": np.array([0, 0.25, 0.5, 1])
         }
 
     @pytest.fixture
     def ir1_calibration(self):
         return {
-
+            "conversion_table_of_equivalent_black_body_temperature": np.array([0, 100, 200, 300])
         }
 
     @pytest.fixture
     def ir2_calibration(self):
         return {
-
+            "conversion_table_of_equivalent_black_body_temperature": None
         }
 
     @pytest.fixture
     def wv_calibration(self):
         return {
-
+            "conversion_table_of_equivalent_black_body_temperature": None
         }
 
     @pytest.fixture
@@ -752,6 +754,45 @@ class TestFileHandler:
         return {
 
         }
+
+    @pytest.fixture
+    def dataset_exp(self, dataset_id, lons_lats_exp):
+        lons, lats = lons_lats_exp
+        if dataset_id["calibration"] == "counts":
+            return xr.DataArray(
+                [[0, 1], [2, 3]],
+                dims=('y', 'x'),
+                coords={
+                    "lon": lons,
+                    "lat": lats,
+                    'acq_time': ('y', [dt.datetime(1995, 10, 10),
+                                       dt.datetime(1995, 10, 10)]),
+                    'line_number': ('y', [686, 2089])
+                }
+            )
+        elif dataset_id["name"] == "VIS":
+            return xr.DataArray(
+                [[0, 0.25], [0.5, 1]],
+                dims=('y', 'x'),
+                coords={
+                    "lon": lons,
+                    "lat": lats,
+                    'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
+                    'line_number': ('y', [2744, 8356])
+                }
+            )
+        elif dataset_id["name"] == "IR1":
+            return xr.DataArray(
+                [[0, 100], [200, 300]],
+                dims=('y', 'x'),
+                coords={
+                    "lon": lons,
+                    "lat": lats,
+                    'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
+                    'line_number': ('y', [686, 2089])
+                }
+            )
+        raise NotImplementedError
 
     @pytest.fixture
     def lons_lats_exp(self, dataset_id):
@@ -771,18 +812,20 @@ class TestFileHandler:
         lin = [686, 2089, 686, 2089]
         """
         if dataset_id['name'] == 'IR1':
-            lons_exp = [[139.680120, 139.718902],
-                        [140.307367, 140.346062]]
-            lats_exp = [[35.045132, 35.045361],
-                        [-34.971012, -34.970738]]
+            lons = [[139.680120, 139.718902],
+                    [140.307367, 140.346062]]
+            lats = [[35.045132, 35.045361],
+                    [-34.971012, -34.970738]]
         elif dataset_id['name'] == 'VIS':
-            lons_exp = [[139.665133, 139.674833],
-                        [140.292579, 140.302249]]
-            lats_exp = [[35.076113, 35.076170],
-                        [-34.940439, -34.940370]]
+            lons = [[139.665133, 139.674833],
+                    [140.292579, 140.302249]]
+            lats = [[35.076113, 35.076170],
+                    [-34.940439, -34.940370]]
         else:
             raise NotImplementedError
-        return lons_exp, lats_exp
+        lons = xr.DataArray(lons, dims=("y", "x"))
+        lats = xr.DataArray(lats, dims=("y", "x"))
+        return lons, lats
 
 
 def assert_namedtuple_close(a, b):

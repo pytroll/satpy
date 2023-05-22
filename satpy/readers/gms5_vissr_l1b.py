@@ -516,14 +516,14 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
-        dataset = self._get_image_data()
-        lons, lats = self._get_lons_lats(dataset_id, dataset)
-        self._attach_coords(dataset, lons, lats)
+        counts = self._get_counts()
+        dataset = self._calibrate(counts, dataset_id)
+        self._attach_coords(dataset, dataset_id)  # FIXME
         return dataset
 
-    def _get_image_data(self):
-        dask_array = self._read_image_data()
-        return self._make_image_dataset(dask_array)
+    def _get_counts(self):
+        image_data = self._read_image_data()
+        return self._make_counts_data_array(image_data)
 
     def _read_image_data(self):
         memmap = self._get_memmap()
@@ -539,13 +539,13 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             shape=(num_lines,)
         )
 
-    def _make_image_dataset(self, dask_array):
+    def _make_counts_data_array(self, image_data):
         return xr.DataArray(
-            dask_array['image_data'],
+            image_data['image_data'],
             dims=('y', 'x'),
             coords={
-                'acq_time': ('y', self._get_acq_time(dask_array)),
-                'line_number': ('y', self._get_line_number(dask_array))
+                'acq_time': ('y', self._get_acq_time(image_data)),
+                'line_number': ('y', self._get_line_number(image_data))
             }
         )
 
@@ -555,6 +555,20 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_line_number(self, dask_array):
         return dask_array['LCW']['line_number'].compute()
+
+    def _calibrate(self, counts, dataset_id):
+        table = self._get_calibration_table(dataset_id)
+        cal = Calibrator(table)
+        return cal.calibrate(counts, dataset_id["calibration"])
+
+    def _get_calibration_table(self, dataset_id):
+        tables = {
+            "VIS": self._header['image_parameters']['vis_calibration']["vis1_calibration_table"],
+            "IR1": self._header['image_parameters']['ir1_calibration']["conversion_table_of_equivalent_black_body_temperature"],
+            "IR2": self._header['image_parameters']['ir2_calibration']["conversion_table_of_equivalent_black_body_temperature"],
+            "IR3": self._header['image_parameters']['wv_calibration']["conversion_table_of_equivalent_black_body_temperature"]
+        }
+        return tables[dataset_id["name"]]
 
     def get_area_def_test(self, dsid):
         alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
@@ -604,9 +618,14 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
 
-    def _get_lons_lats(self, dataset_id, image_data):
+    def _attach_coords(self, dataset, dataset_id):
+        lons, lats = self._get_lons_lats(dataset, dataset_id)
+        dataset.coords['lon'] = lons
+        dataset.coords['lat'] = lats
+
+    def _get_lons_lats(self, dataset, dataset_id):
         # TODO: Store channel name in self.channel_name
-        lines, pixels = self._get_image_coords(image_data)
+        lines, pixels = self._get_image_coords(dataset)
         static_params = self._get_static_navigation_params(dataset_id)
         predicted_params = self._get_predicted_navigation_params()
         lons, lats = nav.get_lons_lats(
@@ -678,6 +697,31 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                             attrs={'standard_name': 'latitude'})
         return lons, lats
 
-    def _attach_coords(self, dataset, lons, lats):
-        dataset.coords['lon'] = lons
-        dataset.coords['lat'] = lats
+
+class Calibrator:
+    def __init__(self, calib_table_y):
+        self.calib_table_y = calib_table_y
+        self.calib_table_x = np.arange(calib_table_y.size)
+
+    def calibrate(self, counts, calibration):
+        if calibration == "counts":
+            return counts
+        interp = counts.data.map_blocks(
+            _interpolate_calibration_table,
+            self.calib_table_x,
+            self.calib_table_y,
+            dtype=np.float32
+        )
+        return self._make_data_array(interp, counts)
+
+    def _make_data_array(self, interp, counts):
+        return xr.DataArray(
+            interp,
+            dims=counts.dims,
+            coords=counts.coords,
+        )
+
+
+def _interpolate_calibration_table(counts, calib_table_x, calib_table_y):
+    interp = np.interp(counts.ravel(), calib_table_x, calib_table_y)
+    return interp.reshape(counts.shape)
