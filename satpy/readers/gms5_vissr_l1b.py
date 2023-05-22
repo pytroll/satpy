@@ -440,10 +440,6 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         self._filename = filename
         self._filename_info = filename_info
         self._header, self._channel_type = self._read_header(filename)
-
-        from pprint import pprint  # FIXME
-        pprint(self._header)
-
         self._mda = self._get_mda()
 
     def _read_header(self, filename):
@@ -649,8 +645,6 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
         )
         lons, lats = nav.get_lons_lats(
-            # lines=np.array([686, 2089]),
-            # pixels=np.array([1680, 1793]),  # FIXME TODO
             lines=lines.astype(np.float64),
             pixels=pixels.astype(np.float64),
             static_params=(scan_params, proj_params),

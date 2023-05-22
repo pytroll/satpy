@@ -518,6 +518,22 @@ class TestFileHandler:
 
     @pytest.fixture
     def image_data(self, dataset_id):
+        """Get fake image data.
+
+        Data type:
+
+        ((line number, timestamp), (data1, data2))
+
+        VIS channel:
+
+        pix = [6688, 6688, 6689, 6689]
+        lin = [2744, 8356, 2744, 8356]
+
+        IR1 channel:
+
+        pix = [1672, 1672, 1673, 1673]
+        lin = [686, 2089, 686, 2089]
+        """
         line_control_word = np.dtype([
             ('line_number', vissr.I4),
             ('scan_time', vissr.R8),
@@ -526,8 +542,9 @@ class TestFileHandler:
                           ('image_data', vissr.U1, (2,))])
         if dataset_id['name'] == 'IR1':
             return np.array([((686, 50000), (1, 2)), ((2089, 50000), (3, 4))], dtype=dtype)
-        else:
-            raise NotImplementedError
+        elif dataset_id['name'] == 'VIS':
+            return np.array([((2744, 50000), (1, 2)), ((8356, 50000), (3, 4))], dtype=dtype)
+        raise NotImplementedError
 
     @pytest.fixture
     def header(self, control_block, image_params):
@@ -581,10 +598,9 @@ class TestFileHandler:
     def coordinate_conversion(self):
         """Provide parameters for coordinate conversions.
 
-        Since we are testing with very small images, adjust pixel offset so that
-        the first column is at the image center. This has the advantage, that
-        the lat/lon coordinates are finite for every column. Otherwise they
-        would be in space.
+        Reference coordinates were computed near the central column. Adjust
+        pixel offset so that the first column is at the image center. This has
+        the advantage that we can test with very small 2x2 images.
         """
         return {
             'central_line_number_of_vissr_frame': {
@@ -594,9 +610,9 @@ class TestFileHandler:
                 'WV': 1379.1001
             },
             'central_pixel_number_of_vissr_frame': {
-                'IR1': 0.5,  # to obtain finite lat/lon coordinates
+                'IR1': 0.5,  # instead of 1672.5
                 'IR2': 1672.5,
-                'VIS': 0.5,  # to obtain finite lat/lon coordinates
+                'VIS': 0.5,  # instead of 6688.5
                 'WV': 1672.5
             },
             'pixel_difference_of_vissr_center_from_normal_position': {
@@ -737,15 +753,29 @@ class TestFileHandler:
     def lons_lats_exp(self, dataset_id):
         """Get expected lon/lat coordinates.
 
-        Computed with JMA's Msial library.
+        Computed with JMA's Msial library for 2 pixels near the central column
+        (6688.5/1672.5 for VIS/IR).
+
+        VIS:
+
+        pix = [6688, 6688, 6689, 6689]
+        lin = [2744, 8356, 2744, 8356]
+
+        IR1:
+
+        pix = [1672, 1672, 1673, 1673]
+        lin = [686, 2089, 686, 2089]
         """
         if dataset_id['name'] == 'IR1':
             lons_exp = [[139.680120, 139.718902],
                         [140.307367, 140.346062]]
             lats_exp = [[35.045132, 35.045361],
                         [-34.971012, -34.970738]]
-        elif dataset_id == 'VIS':
-            lons_exp = lats_exp = None
+        elif dataset_id['name'] == 'VIS':
+            lons_exp = [[139.665133, 139.674833],
+                        [140.292579, 140.302249]]
+            lats_exp = [[35.076113, 35.076170],
+                        [-34.940439, -34.940370]]
         else:
             raise NotImplementedError
         return lons_exp, lats_exp
