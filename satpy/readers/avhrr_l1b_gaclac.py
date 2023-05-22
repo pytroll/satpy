@@ -29,18 +29,19 @@ from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
-
 import pygac.utils
 import xarray as xr
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
 from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
-from satpy import CHUNK_SIZE
+
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 
 spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 

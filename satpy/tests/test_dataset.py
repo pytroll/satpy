@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,7 +21,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
+from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyQuadrupleSideBand, FrequencyRange
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -32,10 +31,9 @@ class TestDataID(unittest.TestCase):
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset.dataid import (
-            DataID,
-            default_id_keys_config as dikc,
-            minimal_default_keys_config as mdkc)
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
+        from satpy.dataset.dataid import minimal_default_keys_config as mdkc
 
         did = DataID(dikc, name="a")
         assert did['name'] == 'a'
@@ -54,12 +52,14 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -69,13 +69,15 @@ class TestDataID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -84,7 +86,8 @@ class TestDataID(unittest.TestCase):
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -133,13 +136,14 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
-        from satpy.dataset.metadata import combine_metadata
         from numpy import arange, ones
         from xarray import DataArray
+
+        from satpy.dataset.metadata import combine_metadata
         dts = [
-                {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
-                {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
-                {"quality": ones((5, 5,), "?")},
+            {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
+            {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
+            {"quality": ones((5, 5,), "?")},
         ]
         assert "quality" not in combine_metadata(*dts)
         dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
@@ -149,26 +153,63 @@ class TestCombineMetadata(unittest.TestCase):
         assert "quality" not in combine_metadata(*dts3)
         # check cases with repeated arrays
         dts4 = [
-                {"quality": dts[0]["quality"]},
-                {"quality": dts[0]["quality"]},
-                ]
+            {"quality": dts[0]["quality"]},
+            {"quality": dts[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts4)
         dts5 = [
-                {"quality": dts3[0]["quality"]},
-                {"quality": dts3[0]["quality"]},
-                ]
+            {"quality": dts3[0]["quality"]},
+            {"quality": dts3[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts5)
         # check with other types
         dts6 = [
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[1]),
-                object()
-              ]
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[1]),
+            object()
+        ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_lists_identical(self):
+        """Test combine metadata with identical lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 4]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert res['prerequisites'] == [1, 2, 3, 4]
+
+    def test_combine_lists_same_size_diff_values(self):
+        """Test combine metadata with lists with different values."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 5]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_lists_different_size(self):
+        """Test combine metadata with different size lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
     def test_combine_identical_numpy_scalars(self):
-        """Test combining idendical fill values."""
+        """Test combining identical fill values."""
         from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {'_FillValue': 42}
@@ -196,8 +237,9 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_dask_arrays(self):
         """Test combining values that are dask arrays."""
-        from satpy.dataset.metadata import combine_metadata
         import dask.array as da
+
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))},
                          {'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
         result = combine_metadata(*test_metadata)
@@ -213,7 +255,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}},
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -222,7 +265,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}})
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),
@@ -232,12 +276,15 @@ class TestCombineMetadata(unittest.TestCase):
                                             'cpp_reff_pal',
                                             '-'],
                     'platform_name': 'NOAA-20',
-                    'sensor': {'viirs'}}
+                    'sensor': {'viirs'},
+                    'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}}
 
         from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        np.testing.assert_equal(result.pop('raw_metadata'),
+                                expected.pop('raw_metadata'))
         assert result == expected
 
     def test_combine_one_metadata_object(self):
@@ -269,9 +316,67 @@ class TestCombineMetadata(unittest.TestCase):
         assert result == expected
 
 
+def test_combine_dicts_close():
+    """Test combination of dictionaries whose values are close."""
+    from satpy.dataset.metadata import combine_metadata
+    attrs = {
+        'raw_metadata': {
+            'a': 1,
+            'b': 'foo',
+            'c': [1, 2, 3],
+            'd': {
+                'e': np.str_('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]),
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    attrs_close = {
+        'raw_metadata': {
+            'a': 1 + 1E-12,
+            'b': 'foo',
+            'c': np.array([1, 2, 3]) + 1E-12,
+            'd': {
+                'e': np.str_('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]) + 1E-12
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    test_metadata = [attrs, attrs_close]
+    result = combine_metadata(*test_metadata)
+    assert result == attrs
+
+
+@pytest.mark.parametrize(
+    "test_mda",
+    [
+        # a/b/c/d different
+        {'a': np.array([1, 2, 3]), 'd': 123},
+        {'a': {'b': np.array([4, 5, 6]), 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 2.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'bar'},
+        # a/b/c/d type different
+        np.array([1, 2, 3]),
+        {'a': {'b': 'baz', 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 'baz'}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 1.0}
+    ]
+)
+def test_combine_dicts_different(test_mda):
+    """Test combination of dictionaries differing in various ways."""
+    from satpy.dataset.metadata import combine_metadata
+    mda = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'foo'}
+    test_metadata = [{'raw_metadata': mda}, {'raw_metadata': test_mda}]
+    result = combine_metadata(*test_metadata)
+    assert not result
+
+
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple, ValueList
+    from satpy.dataset.dataid import DataID, ModifierTuple, ValueList, WavelengthRange
 
     # Check that enum is translated to type.
     did = make_dataid()
@@ -312,20 +417,20 @@ def test_dataid():
     # Check inequality
     default_id_keys_config = {'name': None,
                               'wavelength': {
-                                'type': WavelengthRange,
+                                  'type': WavelengthRange,
                               },
                               'resolution': None,
                               'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
+                                  'enum': [
+                                      'reflectance',
+                                      'brightness_temperature',
+                                      'radiance',
+                                      'counts'
+                                  ]
                               },
                               'modifiers': {
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
+                                  'default': ModifierTuple(),
+                                  'type': ModifierTuple,
                               },
                               }
     assert DataID(default_id_keys_config, wavelength=10) != DataID(default_id_keys_config, name="VIS006")
@@ -333,7 +438,7 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
     id_keys_config1 = {'name': None,
                        'wavelength': {
                            'type': WavelengthRange,
@@ -376,8 +481,10 @@ def test_dataid_equal_if_enums_different():
 
 def test_dataid_copy():
     """Test copying a DataID."""
-    from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
     from copy import deepcopy
+
+    from satpy.dataset.dataid import DataID
+    from satpy.dataset.dataid import default_id_keys_config as dikc
 
     did = DataID(dikc, name="a", resolution=1000)
     did2 = deepcopy(did)
@@ -387,10 +494,28 @@ def test_dataid_copy():
 
 def test_dataid_pickle():
     """Test dataid pickling roundtrip."""
-    from satpy.tests.utils import make_dataid
     import pickle
+
+    from satpy.tests.utils import make_dataid
     did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
     assert did == pickle.loads(pickle.dumps(did))
+
+
+def test_dataid_elements_picklable():
+    """Test individual elements of DataID can be pickled.
+
+    In some cases, like in the base reader classes, the elements of a DataID
+    are extracted and stored in a separate dictionary. This means that the
+    internal/fancy pickle handling of DataID does not play a part.
+
+    """
+    import pickle
+
+    from satpy.tests.utils import make_dataid
+    did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
+    for value in did.values():
+        pickled_value = pickle.loads(pickle.dumps(value))
+        assert value == pickled_value
 
 
 class TestDataQuery:
@@ -528,11 +653,269 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert distances[0] < distances[1]
         assert distances[1] < distances[2]
 
+    def test_seviri_hrv_has_priority_over_vis008(self):
+        """Check that the HRV channel has priority over VIS008 when querying 0.8µm."""
+        dids = [DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=())]
+        dq = DataQuery(wavelength=0.8)
+        res, distances = dq.sort_dataids(dids)
+        assert res[0]["name"] == "HRV"
+
+
+def test_frequency_quadruple_side_band_class_method_convert():
+    """Test the frequency double side band object: test the class method convert."""
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+    res = frq_qdsb.convert(57.37)
+    assert res == 57.37
+
+    res = frq_qdsb.convert({'central': 57.0, 'side': 0.322, 'sideside': 0.05, 'bandwidth': 0.036})
+    assert res == FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+
+def test_frequency_quadruple_side_band_channel_str():
+    """Test the frequency quadruple side band object: test the band description."""
+    frq_qdsb1 = FrequencyQuadrupleSideBand(57.0, 0.322, 0.05, 0.036)
+    frq_qdsb2 = FrequencyQuadrupleSideBand(57000, 322, 50, 36, 'MHz')
+
+    assert str(frq_qdsb1) == "central=57.0 GHz ±0.322 ±0.05 width=0.036 GHz"
+    assert str(frq_qdsb2) == "central=57000 MHz ±322 ±50 width=36 MHz"
+
+
+def test_frequency_quadruple_side_band_channel_equality():
+    """Test the frequency quadruple side band object: check if two bands are 'equal'."""
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    assert frq_qdsb is not None
+    assert frq_qdsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
+    assert frq_qdsb < FrequencyQuadrupleSideBand(58, 0.322, 0.05, 0.036)
+    assert frq_qdsb < ((58, 0.322, 0.05, 0.036))
+    assert frq_qdsb > FrequencyQuadrupleSideBand(57, 0.322, 0.04, 0.01)
+    assert frq_qdsb > None
+    assert (frq_qdsb < None) is False
+
+    assert 57 != frq_qdsb
+    assert 57.372 == frq_qdsb
+    assert 56.646 == frq_qdsb
+    assert 56.71 == frq_qdsb
+
+    assert frq_qdsb != FrequencyQuadrupleSideBand(57, 0.322, 0.1, 0.040)
+
+    frq_qdsb = None
+    assert FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036) != frq_qdsb
+    assert frq_qdsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
+
+
+def test_frequency_quadruple_side_band_channel_distances():
+    """Test the frequency quadruple side band object: get the distance between two bands."""
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    mydist = frq_qdsb.distance([57, 0.322, 0.05, 0.036])
+
+    frq_dict = {'central': 57, 'side': 0.322, 'sideside': 0.05,
+                'bandwidth': 0.036, 'unit': 'GHz'}
+    mydist = frq_qdsb.distance(frq_dict)
+    assert mydist == np.inf
+
+    mydist = frq_qdsb.distance(57.372)
+    assert mydist == 0.0
+
+    mydist = frq_qdsb.distance(FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036))
+    assert mydist == 0.0
+
+    mydist = frq_qdsb.distance(57.38)
+    np.testing.assert_almost_equal(mydist, 0.008)
+
+    mydist = frq_qdsb.distance(57)
+    assert mydist == np.inf
+
+    mydist = frq_qdsb.distance((57, 0.322, 0.05, 0.018))
+    assert mydist == np.inf
+
+
+def test_frequency_quadruple_side_band_channel_containment():
+    """Test the frequency quadruple side band object: check if one band contains another."""
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+    assert 57 not in frq_qdsb
+    assert 57.373 in frq_qdsb
+
+    with pytest.raises(NotImplementedError):
+        assert frq_qdsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
+
+    frq_qdsb = None
+    assert (frq_qdsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)) is False
+
+    assert '57' not in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
+
+
+def test_frequency_double_side_band_class_method_convert():
+    """Test the frequency double side band object: test the class method convert."""
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+
+    res = frq_dsb.convert(185)
+    assert res == 185
+
+    res = frq_dsb.convert({'central': 185, 'side': 7, 'bandwidth': 2})
+    assert res == FrequencyDoubleSideBand(185, 7, 2)
+
+
+def test_frequency_double_side_band_channel_str():
+    """Test the frequency double side band object: test the band description."""
+    frq_dsb1 = FrequencyDoubleSideBand(183, 7, 2)
+    frq_dsb2 = FrequencyDoubleSideBand(183000, 7000, 2000, 'MHz')
+
+    assert str(frq_dsb1) == "central=183 GHz ±7 width=2 GHz"
+    assert str(frq_dsb2) == "central=183000 MHz ±7000 width=2000 MHz"
+
+
+def test_frequency_double_side_band_channel_equality():
+    """Test the frequency double side band object: check if two bands are 'equal'."""
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    assert frq_dsb is not None
+    assert 183 != frq_dsb
+    assert 190 == frq_dsb
+    assert 176 == frq_dsb
+    assert 175.5 == frq_dsb
+
+    assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
+
+    frq_dsb = None
+    assert FrequencyDoubleSideBand(183, 7, 2) != frq_dsb
+
+    assert frq_dsb < FrequencyDoubleSideBand(183, 7, 2)
+
+    assert FrequencyDoubleSideBand(182, 7, 2) < FrequencyDoubleSideBand(183, 7, 2)
+    assert FrequencyDoubleSideBand(184, 7, 2) > FrequencyDoubleSideBand(183, 7, 2)
+
+
+def test_frequency_double_side_band_channel_distances():
+    """Test the frequency double side band object: get the distance between two bands."""
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    mydist = frq_dsb.distance(175.5)
+    assert mydist == 0.5
+
+    mydist = frq_dsb.distance(190.5)
+    assert mydist == 0.5
+
+    np.testing.assert_almost_equal(frq_dsb.distance(175.6), 0.4)
+    np.testing.assert_almost_equal(frq_dsb.distance(190.1), 0.1)
+
+    mydist = frq_dsb.distance(185)
+    assert mydist == np.inf
+
+    mydist = frq_dsb.distance((183, 7.0, 2))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance((183, 7.0, 1))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance(FrequencyDoubleSideBand(183, 7.0, 2))
+    assert mydist == 0
+
+
+def test_frequency_double_side_band_channel_containment():
+    """Test the frequency double side band object: check if one band contains another."""
+    frq_range = FrequencyDoubleSideBand(183, 7, 2)
+
+    assert 175.5 in frq_range
+    assert frq_range in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_range not in FrequencyDoubleSideBand(183, 4, 2)
+
+    with pytest.raises(NotImplementedError):
+        assert frq_range in FrequencyDoubleSideBand(183, 6.5, 3, 'MHz')
+
+    frq_range = None
+    assert (frq_range in FrequencyDoubleSideBand(183, 3, 2)) is False
+
+    assert '183' not in FrequencyDoubleSideBand(183, 3, 2)
+
+
+def test_frequency_range_class_method_convert():
+    """Test the frequency range object: test the class method convert."""
+    frq_range = FrequencyRange(89, 2)
+
+    res = frq_range.convert(89)
+    assert res == 89
+
+    res = frq_range.convert({'central': 89, 'bandwidth': 2})
+    assert res == FrequencyRange(89, 2)
+
+
+def test_frequency_range_class_method_str():
+    """Test the frequency range object: test the band description."""
+    frq_range1 = FrequencyRange(89, 2)
+    frq_range2 = FrequencyRange(89000, 2000, 'MHz')
+
+    assert str(frq_range1) == "central=89 GHz width=2 GHz"
+    assert str(frq_range2) == "central=89000 MHz width=2000 MHz"
+
+
+def test_frequency_range_channel_equality():
+    """Test the frequency range object: check if two bands are 'equal'."""
+    frqr = FrequencyRange(2, 1)
+    assert frqr is not None
+    assert 1.7 == frqr
+    assert 1.2 != frqr
+    assert frqr == (2, 1)
+
+    assert frqr == (2, 1, 'GHz')
+
+
+def test_frequency_range_channel_containment():
+    """Test the frequency range object: channel containment."""
+    frqr = FrequencyRange(2, 1)
+    assert 1.7 in frqr
+    assert 2.8 not in frqr
+
+    with pytest.raises(NotImplementedError):
+        assert frqr in FrequencyRange(89, 2, 'MHz')
+
+    frqr = None
+    assert (frqr in FrequencyRange(89, 2)) is False
+
+    assert '89' not in FrequencyRange(89, 2)
+
+
+def test_frequency_range_channel_distances():
+    """Test the frequency range object: derive distances between bands."""
+    frqr = FrequencyRange(190.0, 2)
+
+    mydist = frqr.distance(FrequencyRange(190, 2))
+    assert mydist == 0
+    mydist = frqr.distance(FrequencyRange(189.5, 2))
+    assert mydist == np.inf
+    mydist = frqr.distance(189.5)
+    assert mydist == 0.5
+    mydist = frqr.distance(188.0)
+    assert mydist == np.inf
+
 
 def test_wavelength_range():
     """Test the wavelength range object."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
     assert .9 != wr
@@ -558,11 +941,12 @@ def test_wavelength_range():
     assert str(wr) == "2 µm (1-3 µm)"
     assert str(wr2) == "2 nm (1-3 nm)"
 
+    wr = WavelengthRange(10.5, 11.5, 12.5)
+    np.testing.assert_almost_equal(wr.distance(11.1), 0.4)
+
 
 def test_wavelength_range_cf_roundtrip():
     """Test the wavelength range object roundtrip to cf."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr

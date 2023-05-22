@@ -18,16 +18,18 @@
 
 """SEVIRI L2 GRIB-reader test package."""
 
-import sys
-import numpy as np
 import datetime
-
+import sys
 import unittest
 from unittest import mock
 
+import numpy as np
+
+from satpy.tests.utils import make_dataid
+
 # Dictionary to be used as fake GRIB message
 FAKE_MESSAGE = {
-    'longitudeOfSubSatellitePointInDegrees': 10.0,
+    'longitudeOfSubSatellitePointInDegrees': 9.5,
     'dataDate': 20191020,
     'dataTime': 1745,
     'Nx': 1000,
@@ -61,9 +63,10 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l2_grib.da')
     def test_data_reading(self, da_, xr_):
         """Test the reading of data from the product."""
-        from satpy import CHUNK_SIZE
-        from satpy.readers.seviri_l2_grib import (SeviriL2GribFileHandler,
-                                                  REPEAT_CYCLE_DURATION)
+        from satpy.readers.seviri_l2_grib import REPEAT_CYCLE_DURATION, SeviriL2GribFileHandler
+        from satpy.utils import get_legacy_chunk_size
+        CHUNK_SIZE = get_legacy_chunk_size()
+
         with mock.patch("builtins.open", mock.mock_open()) as mock_file:
             with mock.patch('satpy.readers.seviri_l2_grib.ec', self.ec_):
                 self.reader = SeviriL2GribFileHandler(
@@ -76,12 +79,38 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     filetype_info={}
                 )
 
-                # Checks the correct file open call
-                mock_file.assert_called_with('test.grib', 'rb')
+                dataset_id = make_dataid(name='dummmy', resolution=3000)
 
                 # Checks that the codes_grib_multi_support_on function has been called
                 self.ec_.codes_grib_multi_support_on.assert_called()
 
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with a valid parameter_number
+                valid_dataset = self.reader.get_dataset(dataset_id, {'parameter_number': 30})
+                # Checks the correct file open call
+                mock_file.assert_called_with('test.grib', 'rb')
+                # Checks that the dataset has been created as a DataArray object
+                self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
+                # Checks that codes_release has been called after each codes_grib_new_from_file call
+                # (except after the last one which has returned a None)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
+                                 self.ec_.codes_release.call_count + 1)
+
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with an invalid parameter_number
+                invalid_dataset = self.reader.get_dataset(dataset_id, {'parameter_number': 50})
+                # Checks that the function returns None
+                self.assertEqual(invalid_dataset, None)
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
                 # (except after the last one which has returned a None)
                 self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
@@ -91,15 +120,15 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.assertEqual(REPEAT_CYCLE_DURATION, 15)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
-                global_attributes = self.reader._get_global_attributes()
-                expected_global_attributes = {
+                attributes = self.reader._get_attributes()
+                expected_attributes = {
                     'orbital_parameters': {
-                        'projection_longitude': 10.
+                        'projection_longitude': 9.5
                     },
                     'sensor': 'seviri',
                     'platform_name': 'Meteosat-11'
                 }
-                self.assertEqual(global_attributes, expected_global_attributes)
+                self.assertEqual(attributes, expected_attributes)
 
                 # Checks the reading of an array from the message
                 self.reader._get_xarray_from_msg(0)
@@ -120,16 +149,16 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     'a': 6400000.,
                     'b': 6300000.,
                     'h': 32000000.,
-                    'ssp_lon': 10.,
+                    'ssp_lon': 9.5,
                     'nlines': 1000,
                     'ncols': 1200,
-                    'a_name': 'geos_seviri',
-                    'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
-                    'p_id': 'geos',
+                    'a_name': 'msg_seviri_rss_3km',
+                    'a_desc': 'MSG SEVIRI Rapid Scanning Service area definition with 3 km resolution',
+                    'p_id': '',
                 }
                 self.assertEqual(pdict, expected_pdict)
                 expected_area_dict = {
-                    'center_point': 500.5,
+                    'center_point': 500,
                     'north': 1200,
                     'east': 1,
                     'west': 1000,
@@ -141,41 +170,15 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 with mock.patch('satpy.readers.seviri_l2_grib.calculate_area_extent',
                                 mock.Mock(name='calculate_area_extent')) as cae:
                     with mock.patch('satpy.readers.seviri_l2_grib.get_area_definition', mock.Mock()) as gad:
-                        self.reader.get_area_def(mock.Mock(resolution=400.))
+                        dataset_id = make_dataid(name='dummmy', resolution=400.)
+                        self.reader.get_area_def(dataset_id)
                         # Asserts that calculate_area_extent has been called with the correct arguments
+                        expected_args = ({'center_point': 500, 'east': 1, 'west': 1000, 'south': 1, 'north': 1200,
+                                         'column_step': 400., 'line_step': 400.},)
                         name, args, kwargs = cae.mock_calls[0]
-                        self.assertEqual(args[0]['resolution'], 400.)
+                        self.assertEqual(args, expected_args)
                         # Asserts that get_area_definition has been called with the correct arguments
                         name, args, kwargs = gad.mock_calls[0]
                         self.assertEqual(args[0], expected_pdict)
                         # The second argument must be the return result of calculate_area_extent
                         self.assertEqual(args[1]._extract_mock_name(), 'calculate_area_extent()')
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with a valid parameter_number
-                valid_dataset = self.reader.get_dataset(None, {'parameter_number': 30})
-                # Checks that the dataset has been created as a DataArray object
-                self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
-                                 self.ec_.codes_release.call_count)
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with an invalid parameter_number
-                invalid_dataset = self.reader.get_dataset(None, {'parameter_number': 50})
-                # Checks that the function returns None
-                self.assertEqual(invalid_dataset, None)
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
-                                 self.ec_.codes_release.call_count + 1)

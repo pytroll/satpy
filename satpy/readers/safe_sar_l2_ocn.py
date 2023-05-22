@@ -27,13 +27,14 @@ See more at ESA webpage https://sentinel.esa.int/web/sentinel/ocean-wind-field-c
 
 import logging
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-
 import numpy as np
 import xarray as xr
 
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class SAFENC(BaseFileHandler):
@@ -80,23 +81,7 @@ class SAFENC(BaseFileHandler):
                 res = self.lons
             res.attrs = info
         else:
-            res = self.nc[key['name']]
-            if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
-                res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
-            elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
-                res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
-            elif key['name'] in ['owiPolarisationName']:
-                res = xr.DataArray(res, dims=['owiPolarisation'])
-            elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
-                res = xr.DataArray(res, dims=['owiIncSize'])
-            elif key['name'].startswith('owi'):
-                res = xr.DataArray(res, dims=['y', 'x'])
-            else:
-                res = xr.DataArray(res, dims=['y', 'x'])
-            res.attrs.update(info)
-            if '_FillValue' in res.attrs:
-                res = res.where(res != res.attrs['_FillValue'])
-                res.attrs['_FillValue'] = np.nan
+            res = self._get_data_channels(key, info)
 
         if 'missionName' in self.nc.attrs:
             res.attrs.update({'platform_name': self.nc.attrs['missionName']})
@@ -107,6 +92,26 @@ class SAFENC(BaseFileHandler):
         if not self._shape:
             self._shape = res.shape
 
+        return res
+
+    def _get_data_channels(self, key, info):
+        res = self.nc[key['name']]
+        if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
+            res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
+        elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
+            res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
+        elif key['name'] in ['owiPolarisationName']:
+            res = xr.DataArray(res, dims=['owiPolarisation'])
+        elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
+            res = xr.DataArray(res, dims=['owiIncSize'])
+        elif key['name'].startswith('owi'):
+            res = xr.DataArray(res, dims=['y', 'x'])
+        else:
+            res = xr.DataArray(res, dims=['y', 'x'])
+        res.attrs.update(info)
+        if '_FillValue' in res.attrs:
+            res = res.where(res != res.attrs['_FillValue'])
+            res.attrs['_FillValue'] = np.nan
         return res
 
     @property

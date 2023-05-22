@@ -1,0 +1,170 @@
+reader:
+  name: amsub_l1c_aapp
+  short_name: AMSU-B l1c
+  long_name: AAPP L1C AMSU-B format
+  description: AAPP l1c Reader for AMSU-B data
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsub,]
+  default_channels: [16, 17, 18, 19, 20]
+
+  data_identification_keys:
+    name:
+      required: true
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
+    frequency_range:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
+    resolution:
+    polarization:
+      enum:
+        - H
+        - V
+    calibration:
+      enum:
+        - brightness_temperature
+      transitive: true
+    modifiers:
+      required: true
+      default: []
+      type: !!python/name:satpy.dataset.ModifierTuple
+
+datasets:
+    '16':
+        name: '16'
+        frequency_range:
+           central: 89.
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'V'
+        resolution: 16000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+    '17':
+        name: '17'
+        frequency_range:
+           central: 150.
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'V'
+        resolution: 16000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+    '18':
+        name: '18'
+        frequency_double_sideband:
+          unit: GHz
+          central: 183.31
+          side: 1.0
+          bandwidth: 0.5
+        polarization: 'V'
+        resolution: 16000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+    '19':
+        name: '19'
+        frequency_double_sideband:
+          unit: GHz
+          central: 183.31
+          side: 3.0
+          bandwidth: 1.0
+        polarization: 'V'
+        resolution: 16000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+    '20':
+        name: '20'
+        frequency_double_sideband:
+          unit: GHz
+          central: 183.31
+          side: 7.0
+          bandwidth: 2.0
+        polarization: 'V'
+        resolution: 16000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        resolution: 16000
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+        standard_name: solar_zenith_angle
+        units: degrees
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        resolution: 16000
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+        standard_name: solar_azimuth_angle
+        units: degrees
+
+    sensor_zenith_angle:
+        name: sensor_zenith_angle
+        resolution: 16000
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+        standard_name: sensor_zenith_angle
+        units: degrees
+
+    sensor_azimuth_angle:
+        name: sensor_azimuth_angle
+        resolution: 16000
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsub_aapp_l1c
+        standard_name: sensor_azimuth_angle
+        units: degrees
+
+    latitude:
+        name: latitude
+        resolution: 16000
+        file_type: amsub_aapp_l1c
+        standard_name: latitude
+        units: degrees_north
+
+    longitude:
+        name: longitude
+        resolution: 16000
+        file_type: amsub_aapp_l1c
+        standard_name: longitude
+        units: degrees_east
+
+file_types:
+    amsub_aapp_l1c:
+        file_reader: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.MHS_AMSUB_AAPPL1CFile
+        file_patterns: ['mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']

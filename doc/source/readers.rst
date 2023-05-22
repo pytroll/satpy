@@ -15,9 +15,10 @@ requested, or added to a Scene object.
 Available Readers
 =================
 
-To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information 
-use `available_readers(as_dict=True)`::
+For readers currently available in Satpy see :ref:`reader_table`.
+Additionally to get a list of available readers you can use the `available_readers`
+function. By default, it returns the names of available readers.
+To return additional reader information use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
     >>> available_readers()
@@ -79,13 +80,13 @@ loading datasets::
 
     >>> scn.load([0.6, 10.8], pad_data=False)
 
-For geostationary products, where the imagery is stored in the files in a flipped orientation
-(e.g. MSG SEVIRI L1.5 data which is flipped upside-down and left-right), the keyword argument
+For geostationary products, where the imagery is stored in the files in an unconventional orientation
+(e.g. MSG SEVIRI L1.5 data are stored with the southwest corner in the upper right), the keyword argument
 ``upper_right_corner`` can be passed into the load call to automatically flip the datasets to the
 wished orientation. Accepted argument values are ``'NE'``, ``'NW'``, ``'SE'``, ``'SW'``,
 and ``'native'``.
 By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
-the data is delivered in the original format. To get the data in the common upright orientation,
+the data are delivered in the original format. To get the data in the common upright orientation,
 load the datasets using e.g.::
 
     >>> scn.load(['VIS008'], upper_right_corner='NE')
@@ -108,8 +109,37 @@ names of Datasets::
 
     >>> scn.available_dataset_names()
 
-Search for local files
-======================
+Load remote data
+================
+
+Starting with Satpy version 0.25.1 with supported readers it is possible to
+load data from remote file systems like ``s3fs`` or ``fsspec``.
+For example:
+
+::
+
+    >>> from satpy import Scene
+    >>> from satpy.readers import FSFile
+    >>> import fsspec
+
+    >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+    >>> the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+    >>> fs_files = [FSFile(open_file) for open_file in the_files]
+
+    >>> scn = Scene(filenames=fs_files, reader='abi_l1b')
+    >>> scn.load(['true_color_raw'])
+
+Check the list of :ref:`reader_table` to see which reader supports remote
+files. For the usage of ``fsspec`` and advanced features like caching files
+locally see the `fsspec Documentation <https://filesystem-spec.readthedocs.io/en/latest>`_ .
+
+
+.. _search_for_files:
+
+Search for local/remote files
+=============================
 
 Satpy provides a utility
 :func:`~satpy.readers.find_files_and_readers` for searching for files in
@@ -129,56 +159,109 @@ the :class:`~satpy.scene.Scene` initialization.
     >>> scn = Scene(filenames=my_files)
 
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
-more information on the possible parameters.
+more information on the possible parameters as well as for searching on
+remote file systems.
+
+.. _dataset_metadata:
 
 Metadata
 ========
-
-.. _dataset_metadata:
 
 The datasets held by a scene also provide vital metadata such as dataset name, units, observation
 time etc. The following attributes are standardized across all readers:
 
 * ``name``, and other identifying metadata keys: See :doc:`dev_guide/satpy_internals`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
+  For more information see the :ref:`time_metadata` section below.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
+  For more information see the :ref:`time_metadata` section below.
 * ``area``: :class:`~pyresample.geometry.AreaDefinition` or
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
+* ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
-
-  * For *geostationary* satellites it is described using the following scalar attributes:
-
-    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
-      time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
-      surface of the ellipsoid).
-    * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
-      confined area in which the satellite is actively maintained in using maneuvres). Inbetween
-      major maneuvres, when the satellite is permanently moved, the nominal position is constant.
-    * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
-      earth. May differ from the actual satellite position, if the instrument is pointing slightly
-      off the axis (satellite, earth-center). If available, this should be used to compute viewing
-      angles etc. Otherwise, use the actual satellite position.
-    * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
-      should be used to compute lat/lon coordinates. Note that the projection center can differ
-      considerably from the actual satellite position. For example MSG-1 was at times positioned
-      at 3.4 degrees west, while the image data was re-projected to 0 degrees.
-    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at
-      the time of observation in geodetic coordinates.
-
-    .. note:: Longitudes and latitudes are given in degrees, altitude in meters. For use in
-              pyorbital, the altitude has to be converted to kilometers, see for example
-              :func:`pyorbital.orbital.get_observer_look`.
-
-  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
-    the swath as ancillary datasets. Additional metadata related to the satellite position include:
-
-      * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
-
+  See the :ref:`orbital_parameters` section below for more information.
+* ``time_parameters``: Dictionary of additional time parameters describing the
+  time ranges related to the requests or schedules for when observations
+  should happen and when they actually do. See :ref:`time_metadata` below for
+  details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
+
+.. _time_metadata:
+
+Time Metadata
+-------------
+
+In addition to the generic ``start_time`` and ``end_time`` pieces of metadata
+there are other time fields that may be provided if the reader supports them.
+These items are stored in a ``time_parameters`` sub-dictionary and they include
+values like:
+
+* ``observation_start_time``: The point in time when a sensor began recording
+  for the current data.
+* ``observation_end_time``: Same as ``observation_start_time``, but when data
+  has stopped being recorded.
+* ``nominal_start_time``: The "human friendly" time describing the start of
+  the data observation interval or repeat cycle. This time is often on a round
+  minute (seconds=0). Along with the nominal end time, these times define the
+  regular interval of the data collection. For example, GOES-16 ABI full disk
+  images are collected every 10 minutes (in the common configuration) so
+  ``nominal_start_time`` and ``nominal_end_time`` would be 10 minutes apart
+  regardless of when the instrument recorded data inside that interval.
+  This time may also be referred to as the repeat cycle, repeat slot, or time
+  slot.
+* ``nominal_end_time``: Same as ``nominal_start_time``, but the end of the
+  interval.
+
+In general, ``start_time`` and ``end_time`` will be set to the "nominal"
+time by the reader. This ensures that other Satpy components get a
+consistent time for calculations (ex. generation of solar zenith angles)
+and can be reused between bands.
+
+See the :ref:`data_array_coordinates` section below for more information on
+time information that may show up as a per-element/row "coordinate" on the
+DataArray (ex. acquisition time) instead of as metadata.
+
+.. _orbital_parameters:
+
+Orbital Parameters
+------------------
+
+Orbital parameters describe the position of the satellite. As such they
+typically come in a few "flavors" for the common types of orbits a satellite
+may have.
+
+For *geostationary* satellites it is described using the following scalar attributes:
+
+  * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
+    time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
+    surface of the ellipsoid). The longitude and latitude are given in degrees, the altitude in meters.
+  * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
+    confined area in which the satellite is actively maintained in using maneuvers). Inbetween
+    major maneuvers, when the satellite is permanently moved, the nominal position is constant.
+    The longitude and latitude are given in degrees, the altitude in meters.
+  * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
+    earth. May differ from the actual satellite position, if the instrument is pointing slightly
+    off the axis (satellite, earth-center). If available, this should be used to compute viewing
+    angles etc. Otherwise, use the actual satellite position. The values are given in degrees.
+  * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
+    should be used to compute lat/lon coordinates. Note that the projection center can differ
+    considerably from the actual satellite position. For example MSG-1 was at times positioned
+    at 3.4 degrees west, while the image data was re-projected to 0 degrees.
+    The longitude and latitude are given in degrees, the altitude in meters.
+
+    .. note:: For use in pyorbital, the altitude has to be converted to kilometers, see for example
+              :func:`pyorbital.orbital.get_observer_look`.
+
+For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
+the swath as ancillary datasets. Additional metadata related to the satellite position includes:
+
+  * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+
+.. _data_array_coordinates:
 
 Coordinates
 ===========
@@ -275,4 +358,19 @@ satpy cf nc readers
 ---------------------
 
 .. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:
+
+hdf5 based readers
+------------------
+
+.. automodule:: satpy.readers.agri_l1
+    :noindex:
+
+.. automodule:: satpy.readers.ghi_l1
+    :noindex:
+
+Arctica-M N1 HDF5 format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.msu_gsa_l1b
     :noindex:

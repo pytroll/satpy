@@ -4,6 +4,8 @@ reader:
   long_name: METOP ASCAT Level 2 SOILMOISTURE BUFR
   description: >
     Reader for ASCAT L2 SOIL MOISUTRE FILES
+  status: Defunct
+  supports_fsspec: false
   sensors: [scatterometer]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   default_datasets:
@@ -11,7 +13,7 @@ reader:
 file_types:
   ascat_l2_soilmoisture_bufr:
     file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.AscatSoilMoistureBufr
-    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_{header}_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_ssm_l2.bin"]
 
 datasets:
 
@@ -49,4 +51,3 @@ datasets:
     coordinates: [longitude, latitude]
     key: soilMoistureQuality
     fill_value: -1.e+100
-

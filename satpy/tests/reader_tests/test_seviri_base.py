@@ -17,20 +17,29 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
-from datetime import datetime
-import pytest
 import unittest
+from datetime import datetime
 
-import numpy as np
-import xarray as xr
 import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
 
 from satpy.readers.seviri_base import (
-    dec10216, chebyshev, get_cds_time, get_padding_area, pad_data_horizontally,
-    pad_data_vertically, get_satpos, OrbitPolynomial, NoValidOrbitParams,
-    OrbitPolynomialFinder
+    NoValidOrbitParams,
+    OrbitPolynomial,
+    OrbitPolynomialFinder,
+    chebyshev,
+    dec10216,
+    get_cds_time,
+    get_padding_area,
+    get_satpos,
+    pad_data_horizontally,
+    pad_data_vertically,
 )
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def chebyshev4(c, x, domain):

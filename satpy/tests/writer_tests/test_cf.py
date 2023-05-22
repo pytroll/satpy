@@ -17,20 +17,38 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
-from collections import OrderedDict
+import json
+import logging
 import os
-import unittest
-from unittest import mock
-from datetime import datetime
 import tempfile
-from satpy.tests.utils import make_dsq
+import unittest
+import warnings
+from collections import OrderedDict
+from datetime import datetime
+from unittest import mock
 
+import dask.array as da
 import numpy as np
+import pyresample.geometry
+import pytest
+import xarray as xr
+from packaging.version import Version
+from pyresample import create_area_def
+
+from satpy import Scene
+from satpy.tests.utils import make_dsq
+from satpy.writers.cf_writer import _get_backend_versions
 
 try:
     from pyproj import CRS
 except ImportError:
     CRS = None
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+# - request
 
 
 class TempFile(object):
@@ -57,14 +75,13 @@ class TestCFWriter(unittest.TestCase):
 
     def test_init(self):
         """Test initializing the CFWriter class."""
-        from satpy.writers.cf_writer import CFWriter
         from satpy.writers import configs_for_writer
+        from satpy.writers.cf_writer import CFWriter
+
         CFWriter(config_files=list(configs_for_writer('cf'))[0])
 
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -80,30 +97,8 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
-    def test_save_with_compression(self):
-        """Test saving an array with compression."""
-        from satpy import Scene
-        import xarray as xr
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset,\
-                mock.patch('satpy.writers.cf_writer.make_time_bounds'):
-            scn['test-array'] = xr.DataArray([1, 2, 3],
-                                             attrs=dict(start_time=start_time,
-                                                        end_time=end_time,
-                                                        prerequisites=[make_dsq(name='hej')]))
-
-            comp = {'zlib': True, 'complevel': 9}
-            scn.save_datasets(filename='bla', writer='cf', compression=comp)
-            ars, kws = xrdataset.call_args_list[1]
-            self.assertDictEqual(ars[0]['test-array'].encoding, comp)
-
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
-        from satpy import Scene
-        import xarray as xr
-        import numpy as np
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -137,8 +132,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -148,8 +141,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_prefix(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -159,8 +150,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_prefix_include_attr(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -171,8 +160,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
         """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -183,8 +170,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
-        import xarray as xr
-        from satpy import Scene
         from satpy.tests.utils import make_dataid
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
@@ -207,9 +192,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_groups(self):
         """Test creating a file with groups."""
-        import xarray as xr
-        from satpy import Scene
-
         tstart = datetime(2019, 4, 1, 12, 0)
         tend = datetime(2019, 4, 1, 12, 15)
 
@@ -264,8 +246,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_single_time_value(self):
         """Test setting a single time value."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -282,10 +262,23 @@ class TestCFWriter(unittest.TestCase):
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
+    def test_time_coordinate_on_a_swath(self):
+        """Test that time dimension is not added on swath data with time already as a coordinate."""
+        scn = Scene()
+        test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
+                          '2018-05-30T10:05:02', '2018-05-30T10:05:03'], dtype=np.datetime64)
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['y', 'x'],
+                                         coords={'time': ('y', times)},
+                                         attrs=dict(start_time=times[0], end_time=times[-1]))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', pretty=True)
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
+
     def test_bounds(self):
         """Test setting time bounds."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -317,8 +310,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_minimum(self):
         """Test minimum bounds."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
         end_timeA = datetime(2018, 5, 30, 10, 20)
@@ -344,8 +335,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)
         end_timeA = datetime(2018, 5, 30, 10, 15)
@@ -365,33 +354,8 @@ class TestCFWriter(unittest.TestCase):
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
-    def test_encoding_kwarg(self):
-        """Test 'encoding' keyword argument."""
-        from satpy import Scene
-        import xarray as xr
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        scn['test-array'] = xr.DataArray([1, 2, 3],
-                                         attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
-        with TempFile() as filename:
-            encoding = {'test-array': {'dtype': 'int8',
-                                       'scale_factor': 0.1,
-                                       'add_offset': 0.0,
-                                       '_FillValue': 3}}
-            scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
-            with xr.open_dataset(filename, mask_and_scale=False) as f:
-                np.testing.assert_array_equal(f['test-array'][:], [10, 20, 30])
-                self.assertEqual(f['test-array'].attrs['scale_factor'], 0.1)
-                self.assertEqual(f['test-array'].attrs['_FillValue'], 3)
-                # check that dtype behave as int8
-                self.assertEqual(np.iinfo(f['test-array'][:].dtype).max, 127)
-
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -407,9 +371,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
     def test_header_attrs(self):
-        """Check master attributes are set."""
-        from satpy import Scene
-        import xarray as xr
+        """Check global attributes are set."""
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -543,7 +505,6 @@ class TestCFWriter(unittest.TestCase):
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
         from satpy.writers.cf_writer import encode_attrs_nc
-        import json
 
         attrs, expected, _ = self.get_test_attrs()
 
@@ -563,7 +524,6 @@ class TestCFWriter(unittest.TestCase):
     def test_da2cf(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
         from satpy.writers.cf_writer import CFWriter
-        import xarray as xr
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
@@ -599,12 +559,19 @@ class TestCFWriter(unittest.TestCase):
         attrs_expected_flat.pop('int')
         self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
+    def test_da2cf_one_dimensional_array(self):
+        """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
+        from satpy.writers.cf_writer import CFWriter
+
+        arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
+                           coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
+        _ = CFWriter.da2cf(arr)
+
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     def test_collect_datasets(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
         from satpy.writers.cf_writer import CFWriter
-        import xarray as xr
-        import pyresample.geometry
+
         geos = pyresample.geometry.AreaDefinition(
             area_id='geos',
             description='geos',
@@ -647,7 +614,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
-        import xarray as xr
         from satpy.writers.cf_writer import assert_xy_unique
 
         dummy = [[1, 2], [3, 4]]
@@ -661,9 +627,7 @@ class TestCFWriter(unittest.TestCase):
 
     def test_link_coords(self):
         """Check that coordinates link has been established correctly."""
-        import xarray as xr
         from satpy.writers.cf_writer import link_coords
-        import numpy as np
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
@@ -698,7 +662,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
-        import xarray as xr
         from satpy.writers.cf_writer import make_alt_coords_unique
 
         data = [[1, 2], [3, 4]]
@@ -745,8 +708,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
-        import xarray as xr
-        import pyresample.geometry
         from satpy.writers.cf_writer import area2cf
 
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
@@ -793,8 +754,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2gridmapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
-        import xarray as xr
-        import pyresample.geometry
         from satpy.writers.cf_writer import area2gridmapping
 
         def _gm_matches(gmapping, expected):
@@ -979,9 +938,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
-        import pyresample.geometry
-        import xarray as xr
-        import dask.array as da
         from satpy.writers.cf_writer import area2lonlat
 
         area = pyresample.geometry.AreaDefinition(
@@ -1032,9 +988,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_load_module_with_old_pyproj(self):
         """Test that cf_writer can still be loaded with pyproj 1.9.6."""
-        import pyproj # noqa 401
-        import sys
         import importlib
+        import sys
+
+        import pyproj  # noqa 401
         old_version = sys.modules['pyproj'].__version__
         sys.modules['pyproj'].__version__ = "1.9.6"
         try:
@@ -1046,8 +1003,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_global_attr_default_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -1064,8 +1019,6 @@ class TestCFWriter(unittest.TestCase):
 
     def test_global_attr_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
-        from satpy import Scene
-        import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -1075,7 +1028,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time,
                                                     prerequisites=[make_dsq(name='hej')]))
         header_attrs = {}
-        header_attrs['history'] = 'TEST add history',
+        header_attrs['history'] = ('TEST add history',)
         header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
@@ -1085,13 +1038,76 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
 
+def test_lonlat_storage(tmp_path):
+    """Test correct storage for area with lon/lat units."""
+    from ..utils import make_fake_scene
+    scn = make_fake_scene(
+            {"ketolysis": np.arange(25).reshape(5, 5)},
+            daskify=True,
+            area=create_area_def("mavas", 4326, shape=(5, 5),
+                                 center=(0, 0), resolution=(1, 1)))
+
+    filename = os.fspath(tmp_path / "test.nc")
+    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
+    with xr.open_dataset(filename) as ds:
+        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
+        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
+        assert ds["x"].attrs["units"] == "degrees_east"
+        assert ds["y"].attrs["units"] == "degrees_north"
+        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
+        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
+        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
+def test_da2cf_lonlat():
+    """Test correct da2cf encoding for area with lon/lat units."""
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf_writer import CFWriter
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = CFWriter.da2cf(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
+
+
+def test_is_projected(caplog):
+    """Tests for private _is_projected function."""
+    from satpy.writers.cf_writer import CFWriter
+
+    # test case with units but no area
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+    assert CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+    assert not CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"))
+    with caplog.at_level(logging.WARNING):
+        assert CFWriter._is_projected(da)
+    assert "Failed to tell if data are projected." in caplog.text
+
+
 class TestCFWriterData(unittest.TestCase):
     """Test case for CF writer where data arrays are needed."""
 
     def setUp(self):
         """Create some test data."""
-        import xarray as xr
-        import pyresample.geometry
         data = [[75, 2], [3, 4]]
         y = [1, 2]
         x = [1, 2]
@@ -1140,8 +1156,10 @@ class TestCFWriterData(unittest.TestCase):
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     def test_collect_datasets_with_latitude_named_lat(self, *mocks):
         """Test collecting CF datasets with latitude named lat."""
-        from satpy.writers.cf_writer import CFWriter
         from operator import getitem
+
+        from satpy.writers.cf_writer import CFWriter
+
         self.datasets_list = [self.datasets[key] for key in self.datasets]
         self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
 
@@ -1164,7 +1182,6 @@ class EncodingUpdateTest(unittest.TestCase):
 
     def setUp(self):
         """Create fake data for testing."""
-        import xarray as xr
         self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
                               'bar': (('y', 'x'), [[3, 4], [5, 6]])},
                              coords={'y': [1, 2],
@@ -1241,3 +1258,131 @@ class EncodingUpdateTest(unittest.TestCase):
 
         # User-defined encoding may not be altered
         self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
+
+
+class TestEncodingKwarg:
+    """Test CF writer with 'encoding' keyword argument."""
+
+    @pytest.fixture
+    def scene(self):
+        """Create a fake scene."""
+        scn = Scene()
+        attrs = {
+            "start_time": datetime(2018, 5, 30, 10, 0),
+            "end_time": datetime(2018, 5, 30, 10, 15)
+        }
+        scn['test-array'] = xr.DataArray([1., 2, 3], attrs=attrs)
+        return scn
+
+    @pytest.fixture(params=[True, False])
+    def compression_on(self, request):
+        """Get compression options."""
+        return request.param
+
+    @pytest.fixture
+    def encoding(self, compression_on):
+        """Get encoding."""
+        enc = {
+            'test-array': {
+                'dtype': 'int8',
+                'scale_factor': 0.1,
+                'add_offset': 0.0,
+                '_FillValue': 3,
+            }
+        }
+        if compression_on:
+            comp_params = _get_compression_params(complevel=7)
+            enc["test-array"].update(comp_params)
+        return enc
+
+    @pytest.fixture
+    def filename(self, tmp_path):
+        """Get output filename."""
+        return str(tmp_path / "test.nc")
+
+    @pytest.fixture
+    def complevel_exp(self, compression_on):
+        """Get expected compression level."""
+        if compression_on:
+            return 7
+        return 0
+
+    @pytest.fixture
+    def expected(self, complevel_exp):
+        """Get expectated file contents."""
+        return {
+            "data": [10, 20, 30],
+            "scale_factor": 0.1,
+            "fill_value": 3,
+            "dtype": np.int8,
+            "complevel": complevel_exp
+        }
+
+    def test_encoding_kwarg(self, scene, encoding, filename, expected):
+        """Test 'encoding' keyword argument."""
+        scene.save_datasets(filename=filename, encoding=encoding, writer='cf')
+        self._assert_encoding_as_expected(filename, expected)
+
+    def _assert_encoding_as_expected(self, filename, expected):
+        with xr.open_dataset(filename, mask_and_scale=False) as f:
+            np.testing.assert_array_equal(f['test-array'][:], expected["data"])
+            assert f['test-array'].attrs['scale_factor'] == expected["scale_factor"]
+            assert f['test-array'].attrs['_FillValue'] == expected["fill_value"]
+            assert f['test-array'].dtype == expected["dtype"]
+            assert f["test-array"].encoding["complevel"] == expected["complevel"]
+
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+        """Test warning if backends don't match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.5.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            with pytest.warns(UserWarning, match=r"Backend version mismatch"):
+                scene.save_datasets(filename=filename, writer="cf")
+
+    def test_no_warning_if_backends_match(self, scene, filename, monkeypatch):
+        """Make sure no warning is issued if backends match."""
+        import netCDF4
+        with monkeypatch.context() as m:
+            m.setattr(netCDF4, "__version__", "1.6.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.0")
+            m.setattr(xr, "__version__", "2022.12.0")
+            with warnings.catch_warnings():
+                scene.save_datasets(filename=filename, writer="cf")
+                warnings.simplefilter("error")
+
+
+class TestEncodingAttribute(TestEncodingKwarg):
+    """Test CF writer with 'encoding' dataset attribute."""
+
+    @pytest.fixture
+    def scene_with_encoding(self, scene, encoding):
+        """Create scene with a dataset providing the 'encoding' attribute."""
+        scene["test-array"].encoding = encoding["test-array"]
+        return scene
+
+    def test_encoding_attribute(self, scene_with_encoding, filename, expected):
+        """Test 'encoding' dataset attribute."""
+        scene_with_encoding.save_datasets(filename=filename, writer='cf')
+        self._assert_encoding_as_expected(filename, expected)
+
+
+def _get_compression_params(complevel):
+    params = {"complevel": complevel}
+    if _should_use_compression_keyword():
+        params["compression"] = "zlib"
+    else:
+        params["zlib"] = True
+    return params
+
+
+def _should_use_compression_keyword():
+    # xarray currently ignores the "compression" keyword, see
+    # https://github.com/pydata/xarray/issues/7388. There's already an open
+    # PR, so we assume that this will be fixed in the next minor release
+    # (current release is 2023.02). If not, tests will fail and remind us.
+    versions = _get_backend_versions()
+    return (
+        versions["libnetcdf"] >= Version("4.9.0") and
+        versions["xarray"] >= Version("2023.05")
+    )

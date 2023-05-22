@@ -2,6 +2,75 @@
 Installation Instructions
 =========================
 
+Satpy is available from conda-forge (via conda), PyPI (via pip), or from
+source (via pip+git). The below instructions show how to install stable
+versions of Satpy. For a development/unstable version see :ref:`devinstall`.
+
+Conda-based Installation
+========================
+
+Satpy can be installed into a conda environment by installing the package
+from the conda-forge channel. If you do not already have access to a conda
+installation, we recommend installing
+`miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ for the smallest
+and easiest installation.
+
+The commands below will use ``-c conda-forge`` to make sure packages are
+downloaded from the conda-forge channel. Alternatively, you can tell conda
+to always use conda-forge by running:
+
+.. code-block:: bash
+
+    $ conda config --add channels conda-forge
+
+In a new conda environment
+--------------------------
+
+We recommend creating a separate environment for your work with Satpy. To
+create a new environment and install Satpy all in one command you can
+run:
+
+
+.. code-block:: bash
+
+    $ conda create -c conda-forge -n my_satpy_env python satpy
+
+You must then activate the environment so any future python or
+conda commands will use this environment.
+
+.. code-block::
+
+    $ conda activate my_satpy_env
+
+This method of creating an environment with Satpy (and optionally other
+packages) installed can generally be created faster than creating an
+environment and then later installing Satpy and other packages (see the
+section below).
+
+In an existing environment
+--------------------------
+
+.. note::
+
+    It is recommended that when first exploring Satpy, you create a new
+    environment specifically for this rather than modifying one used for
+    other work.
+
+If you already have a conda environment, it is activated, and would like to
+install Satpy into it, run the following:
+
+.. code-block:: bash
+
+    $ conda install -c conda-forge satpy
+
+.. note::
+
+    Satpy only automatically installs the dependencies needed to process the
+    most common use cases. Additional dependencies may need to be installed
+    with conda or pip if import errors are encountered. To check your
+    installation use the ``check_satpy`` function discussed
+    :ref:`here <troubleshooting>`.
+
 Pip-based Installation
 ======================
 
@@ -17,7 +86,7 @@ To install the `satpy` package and the minimum amount of python dependencies:
 
 Additional dependencies can be installed as "extras" and are grouped by
 reader, writer, or feature added. Extras available can be found in the
-`setup.py <https://github.com/pytroll/satpy/blob/master/setup.py>`_ file.
+`setup.py <https://github.com/pytroll/satpy/blob/main/setup.py>`_ file.
 They can be installed individually:
 
 .. code-block:: bash
@@ -30,42 +99,6 @@ dependencies:
 .. code-block:: bash
 
     $ pip install "satpy[all]"
-
-Conda-based Installation
-========================
-
-Satpy is available from the conda-forge channel. If
-you have not configured your conda environment to search conda-forge already
-then do:
-
-.. code-block:: bash
-
-    $ conda config --add channels conda-forge
-
-We recommend creating a separate environment for your work with Satpy. If
-you haven't created and activated one already, you can by running:
-
-.. code-block:: bash
-
-    $ conda create -n my_satpy_env python
-    $ conda activate my_satpy_env
-
-The above will create a new environment with the latest version of Python
-installed along with Satpy and all of its dependencies. The second command
-will activate the environment so all future conda or python commands will
-use this new environment.
-
-Next to install Satpy into an existing activated environment run:
-
-.. code-block:: bash
-
-    $ conda install satpy
-
-.. note::
-
-    Satpy only automatically installs the dependencies needed to process the
-    most common use cases. Additional dependencies may need to be installed
-    with conda or pip if import errors are encountered.
 
 Ubuntu System Python Installation
 =================================
@@ -85,5 +118,3 @@ created.
     $ virtualenv /path/to/pytroll-env
     $ source /path/to/pytroll-env/bin/activate
     $ pip install satpy
-
-

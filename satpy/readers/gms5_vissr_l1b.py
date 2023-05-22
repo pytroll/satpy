@@ -24,12 +24,13 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import modified_julian_day_to_datetime64
+from satpy.readers.hrit_jma import mjd2datetime64
 import satpy.readers._geos_area as geos_area
 import satpy.readers.gms5_vissr_navigation as nav
 
+CHUNK_SIZE = get_legacy_chunk_size()
 
 U1 = '>u1'
 I2 = '>i2'
@@ -547,7 +548,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_acq_time(self, dask_array):
         acq_time = dask_array['LCW']['scan_time'].compute()
-        return modified_julian_day_to_datetime64(acq_time)
+        return mjd2datetime64(acq_time)
 
     def get_area_def_test(self, dsid):
         alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]

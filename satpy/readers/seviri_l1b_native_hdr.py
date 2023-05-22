@@ -19,11 +19,8 @@
 
 import numpy as np
 
-from satpy.readers.eum_base import (time_cds_short, time_cds,
-                                    time_cds_expanded)
-from satpy.readers.seviri_base import (
-    VISIR_NUM_LINES, VISIR_NUM_COLUMNS, HRV_NUM_COLUMNS, HRV_NUM_LINES
-)
+from satpy.readers.eum_base import time_cds, time_cds_expanded, time_cds_short
+from satpy.readers.seviri_base import HRV_NUM_COLUMNS, HRV_NUM_LINES, VISIR_NUM_COLUMNS, VISIR_NUM_LINES
 
 
 class GSDTRecords(object):
@@ -716,7 +713,6 @@ class Msg15NativeTrailerRecord(object):
             ('GeometricQuality', self.geometric_quality),
             ('TimelinessAndCompleteness', self.timeliness_and_completeness)
         ]
-
         return record
 
     @property

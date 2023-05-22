@@ -66,11 +66,11 @@ Feature: Loading real data in many formats with the same command
         | format         | composite         | area    |
         | avhrr_l1b_eps  | overview          | eurol   |
 
-    Examples: FCI FDHSI data
-        | format         | composite  | area    |
-        | fci_l1c_fdhsi  | overview   | eurol   |
-        | fci_l1c_fdhsi  | cloudtop   | eurol   |
-        | fci_l1c_fdhsi  | true_color | eurol   |
+    Examples: FCI L1c data
+        | format     | composite  | area    |
+        | fci_l1c_nc | overview   | eurol   |
+        | fci_l1c_nc | cloudtop   | eurol   |
+        | fci_l1c_nc | true_color | eurol   |
 
     Examples: GAC data
         | format           | composite  | area    |

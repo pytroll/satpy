@@ -18,6 +18,7 @@
 """Composite classes for the ABI instrument."""
 
 import logging
+
 from satpy.composites import GenericCompositor
 
 LOG = logging.getLogger(__name__)

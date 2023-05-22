@@ -19,9 +19,12 @@
 
 from collections.abc import Collection
 from datetime import datetime
-from functools import reduce, partial
-from operator import is_, eq
+from functools import partial, reduce
+from operator import eq, is_
+
 import numpy as np
+
+from satpy.writers.utils import flatten_dict
 
 
 def combine_metadata(*metadata_objects, average_times=True):
@@ -103,9 +106,15 @@ def average_datetimes(datetime_list):
 
 def _are_values_combinable(values):
     """Check if the *values* can be combined."""
+    if _contain_dicts(values):
+        return _all_dicts_equal(values)
+    return _all_non_dicts_equal(values)
+
+
+def _all_non_dicts_equal(values):
     if _contain_arrays(values):
         return _all_arrays_equal(values)
-    elif _contain_collections_of_arrays(values):
+    if _contain_collections_of_arrays(values):
         # in the real world, the `ancillary_variables` attribute may be
         # List[xarray.DataArray], this means our values are now
         # List[List[xarray.DataArray]].
@@ -125,6 +134,10 @@ def _is_array(val):
     return hasattr(val, "__array__") and not np.isscalar(val)
 
 
+def _contain_dicts(values):
+    return any(isinstance(value, dict) for value in values)
+
+
 nan_allclose = partial(np.allclose, equal_nan=True)
 
 
@@ -135,20 +148,71 @@ def _all_arrays_equal(arrays):
     """
     if hasattr(arrays[0], 'compute'):
         return _all_identical(arrays)
-    else:
-        return _pairwise_all(nan_allclose, arrays)
+    return _all_values_equal(arrays)
+
+
+def _all_values_equal(values):
+    try:
+        return _all_close(values)
+    except (ValueError, TypeError):
+        # In case of object type arrays (e.g. datetime) _all_close fails,
+        # but _all_equal succeeds.
+        return _all_equal(values)
+
+
+def _all_dicts_equal(dicts):
+    try:
+        return _pairwise_all(_dict_equal, dicts)
+    except AttributeError:
+        # There is something else than a dictionary in the list
+        return False
+
+
+def _dict_equal(d1, d2):
+    """Check that two dictionaries are equal.
+
+    Nested dictionaries are flattened to facilitate comparison.
+    """
+    d1_flat = flatten_dict(d1)
+    d2_flat = flatten_dict(d2)
+    if not _dict_keys_equal(d1_flat, d2_flat):
+        return False
+    for key in d1_flat.keys():
+        value_pair = [d1_flat[key], d2_flat[key]]
+        if not _all_non_dicts_equal(value_pair):
+            return False
+    return True
+
+
+def _dict_keys_equal(d1, d2):
+    return d1.keys() == d2.keys()
 
 
 def _pairwise_all(func, values):
     for value in values[1:]:
-        if not func(values[0], value):
+        if not _is_equal(values[0], value, func):
             return False
     return True
+
+
+def _is_equal(a, b, comp_func):
+    res = comp_func(a, b)
+    if _is_array(res):
+        return res.all()
+    return res
 
 
 def _all_identical(values):
     """Check that the identities of all values are the same."""
     return _pairwise_all(is_, values)
+
+
+def _all_close(values):
+    return _pairwise_all(nan_allclose, values)
+
+
+def _all_equal(values):
+    return _pairwise_all(eq, values)
 
 
 def _contain_collections_of_arrays(values):
@@ -172,10 +236,3 @@ def _all_list_of_arrays_equal(array_lists):
         if not _all_arrays_equal(array_list):
             return False
     return True
-
-
-def _all_values_equal(values):
-    try:
-        return _pairwise_all(nan_allclose, values)
-    except TypeError:
-        return _pairwise_all(eq, values)

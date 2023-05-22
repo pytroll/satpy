@@ -23,8 +23,8 @@ from unittest.mock import patch
 import dask.array as da
 import numpy as np
 from xarray import DataArray, Dataset
-from satpy.tests.utils import make_dataid
 
+from satpy.tests.utils import make_dataid
 
 abi_file_list = ['/data/OR_ABI-L1b-RadF-M3C01_G16_s20180722030423_e20180722041189_c20180722041235-118900_0.nc',
                  '/data/OR_ABI-L1b-RadF-M3C02_G16_s20180722030423_e20180722041190_c20180722041228-120000_0.nc',
@@ -201,8 +201,9 @@ def test_1088(fake_open_dataset):
 @patch('xarray.open_dataset')
 def test_no_enums(fake_open_dataset):
     """Check that no enums are inserted in the resulting attrs."""
-    from satpy import Scene
     from enum import Enum
+
+    from satpy import Scene
     fake_open_dataset.side_effect = generate_fake_abi_xr_dataset
 
     scene = Scene(abi_file_list, reader='abi_l1b')

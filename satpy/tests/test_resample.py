@@ -16,18 +16,24 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittests for resamplers."""
 
-import unittest
-import tempfile
-import shutil
 import os
+import shutil
+import tempfile
+import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
+from pyproj import CRS
 
 try:
     from pyresample.ewa import LegacyDaskEWAResampler
 except ImportError:
     LegacyDaskEWAResampler = None
 
-from pyproj import CRS
+from satpy.resample import NativeResampler
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -45,10 +51,10 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
         * target_area_def: AreaDefinition to be used as a target for resampling
 
     """
-    from xarray import DataArray
     import dask.array as da
     from pyresample.geometry import AreaDefinition, SwathDefinition
     from pyresample.utils import proj4_str_to_dict
+    from xarray import DataArray
     ds1 = DataArray(da.zeros(input_shape, chunks=85),
                     dims=input_dims,
                     attrs={'name': 'test_data_name', 'test': 'test'})
@@ -107,11 +113,9 @@ class TestHLResample(unittest.TestCase):
 
     def test_type_preserve(self):
         """Check that the type of resampled datasets is preserved."""
-        from satpy.resample import resample_dataset
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
         from pyresample.geometry import SwathDefinition
+
+        from satpy.resample import resample_dataset
         source_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']),
                                       xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']))
         dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']),
@@ -141,7 +145,6 @@ class TestKDTreeResampler(unittest.TestCase):
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
                            xr_dset, cnc):
         """Test the kd resampler."""
-        import dask.array as da
         from satpy.resample import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
         mock_dset = mock.MagicMock()
@@ -263,6 +266,7 @@ class TestEWAResampler(unittest.TestCase):
         """Test EWA with a 2D dataset."""
         import numpy as np
         import xarray as xr
+
         from satpy.resample import resample_dataset
         ll2cr.return_value = (100,
                               np.zeros((10, 10), dtype=np.float32),
@@ -311,6 +315,7 @@ class TestEWAResampler(unittest.TestCase):
         """Test EWA with a 3D dataset."""
         import numpy as np
         import xarray as xr
+
         from satpy.resample import resample_dataset
         _, _, swath_data, source_swath, target_area = get_test_data(
             input_shape=(3, 200, 100), input_dims=('bands', 'y', 'x'))
@@ -357,101 +362,115 @@ class TestEWAResampler(unittest.TestCase):
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
 
-class TestNativeResampler(unittest.TestCase):
+class TestNativeResampler:
     """Tests for the 'native' resampling method."""
 
-    def test_expand_reduce(self):
-        """Test class method 'expand_reduce' basics."""
-        from satpy.resample import NativeResampler
-        import numpy as np
-        import dask.array as da
-        d_arr = da.zeros((6, 20), chunks=4)
-        new_data = NativeResampler.expand_reduce(d_arr, {0: 2., 1: 2.})
-        self.assertEqual(new_data.shape, (12, 40))
-        new_data = NativeResampler.expand_reduce(d_arr, {0: .5, 1: .5})
-        self.assertEqual(new_data.shape, (3, 10))
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
-                          d_arr, {0: 1. / 3, 1: 1.})
-        new_data = NativeResampler.expand_reduce(d_arr, {0: 1., 1: 1.})
-        self.assertEqual(new_data.shape, (6, 20))
-        self.assertIs(new_data, d_arr)
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
-                          d_arr, {0: 0.333323423, 1: 1.})
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
-                          d_arr, {0: 1.333323423, 1: 1.})
+    def setup_method(self):
+        """Create test data used by multiple tests."""
+        self.d_arr = da.zeros((6, 20), chunks=4)
 
+    def test_expand_reduce_replicate(self):
+        """Test classmethod 'expand_reduce' to replicate by 2."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: 2., 1: 2.})
+        assert new_data.shape == (12, 40)
+
+    def test_expand_reduce_aggregate(self):
+        """Test classmethod 'expand_reduce' to aggregate by half."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: .5, 1: .5})
+        assert new_data.shape == (3, 10)
+
+    def test_expand_reduce_aggregate_identity(self):
+        """Test classmethod 'expand_reduce' returns the original dask array when factor is 1."""
+        new_data = NativeResampler._expand_reduce(self.d_arr, {0: 1., 1: 1.})
+        assert new_data.shape == (6, 20)
+        assert new_data is self.d_arr
+
+    @pytest.mark.parametrize("dim0_factor", [1. / 4, 0.333323423, 1.333323423])
+    def test_expand_reduce_aggregate_invalid(self, dim0_factor):
+        """Test classmethod 'expand_reduce' fails when factor does not divide evenly."""
+        with pytest.raises(ValueError):
+            NativeResampler._expand_reduce(self.d_arr, {0: dim0_factor, 1: 1.})
+
+    def test_expand_reduce_agg_rechunk(self):
+        """Test that an incompatible factor for the chunk size is rechunked.
+
+        This can happen when a user chunks their data that makes sense for
+        the overall shape of the array and for their local machine's
+        performance, but the resulting resampling factor does not divide evenly
+        into that chunk size.
+
+        """
+        d_arr = da.zeros((6, 20), chunks=3)
+        new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        assert new_data.shape == (3, 10)
+
+    def test_expand_reduce_numpy(self):
+        """Test classmethod 'expand_reduce' converts numpy arrays to dask arrays."""
         n_arr = np.zeros((6, 20))
-        new_data = NativeResampler.expand_reduce(n_arr, {0: 2., 1: 1.0})
-        self.assertTrue(np.all(new_data.compute()[::2, :] == n_arr))
+        new_data = NativeResampler._expand_reduce(n_arr, {0: 2., 1: 1.0})
+        np.testing.assert_equal(new_data.compute()[::2, :], n_arr)
 
     def test_expand_dims(self):
         """Test expanding native resampling with 2D data."""
-        from satpy.resample import NativeResampler
-        import numpy as np
         ds1, source_area, _, _, target_area = get_test_data()
         # source geo def doesn't actually matter
         resampler = NativeResampler(source_area, target_area)
         new_data = resampler.resample(ds1)
-        self.assertEqual(new_data.shape, (200, 100))
+        assert new_data.shape == (200, 100)
         new_data2 = resampler.resample(ds1.compute())
-        self.assertTrue(np.all(new_data == new_data2))
-        self.assertIn('y', new_data.coords)
-        self.assertIn('x', new_data.coords)
-        self.assertIn('crs', new_data.coords)
-        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
+        np.testing.assert_equal(new_data.compute().data, new_data2.compute().data)
+        assert 'y' in new_data.coords
+        assert 'x' in new_data.coords
+        assert 'crs' in new_data.coords
+        assert isinstance(new_data.coords['crs'].item(), CRS)
+        assert 'lambert' in new_data.coords['crs'].item().coordinate_operation.method_name.lower()
+        assert new_data.coords['y'].attrs['units'] == 'meter'
+        assert new_data.coords['x'].attrs['units'] == 'meter'
+        assert target_area.crs == new_data.coords['crs'].item()
 
     def test_expand_dims_3d(self):
         """Test expanding native resampling with 3D data."""
-        from satpy.resample import NativeResampler
-        import numpy as np
         ds1, source_area, _, _, target_area = get_test_data(
             input_shape=(3, 100, 50), input_dims=('bands', 'y', 'x'))
         # source geo def doesn't actually matter
         resampler = NativeResampler(source_area, target_area)
         new_data = resampler.resample(ds1)
-        self.assertEqual(new_data.shape, (3, 200, 100))
+        assert new_data.shape == (3, 200, 100)
         new_data2 = resampler.resample(ds1.compute())
-        self.assertTrue(np.all(new_data == new_data2))
-        self.assertIn('y', new_data.coords)
-        self.assertIn('x', new_data.coords)
-        self.assertIn('bands', new_data.coords)
-        np.testing.assert_equal(new_data.coords['bands'].values,
-                                ['R', 'G', 'B'])
-        self.assertIn('crs', new_data.coords)
-        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
+        np.testing.assert_equal(new_data.compute().data, new_data2.compute().data)
+        assert 'y' in new_data.coords
+        assert 'x' in new_data.coords
+        assert 'bands' in new_data.coords
+        np.testing.assert_equal(new_data.coords['bands'].values, ['R', 'G', 'B'])
+        assert 'crs' in new_data.coords
+        assert isinstance(new_data.coords['crs'].item(), CRS)
+        assert 'lambert' in new_data.coords['crs'].item().coordinate_operation.method_name.lower()
+        assert new_data.coords['y'].attrs['units'] == 'meter'
+        assert new_data.coords['x'].attrs['units'] == 'meter'
+        assert target_area.crs == new_data.coords['crs'].item()
 
     def test_expand_without_dims(self):
         """Test expanding native resampling with no dimensions specified."""
-        from satpy.resample import NativeResampler
-        import numpy as np
         ds1, source_area, _, _, target_area = get_test_data(input_dims=None)
         # source geo def doesn't actually matter
         resampler = NativeResampler(source_area, target_area)
         new_data = resampler.resample(ds1)
-        self.assertEqual(new_data.shape, (200, 100))
+        assert new_data.shape == (200, 100)
         new_data2 = resampler.resample(ds1.compute())
-        self.assertTrue(np.all(new_data == new_data2))
-        self.assertIn('crs', new_data.coords)
-        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
-        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
+        np.testing.assert_equal(new_data.compute().data, new_data2.compute().data)
+        assert 'crs' in new_data.coords
+        assert isinstance(new_data.coords['crs'].item(), CRS)
+        assert 'lambert' in new_data.coords['crs'].item().coordinate_operation.method_name.lower()
+        assert target_area.crs == new_data.coords['crs'].item()
 
     def test_expand_without_dims_4D(self):
         """Test expanding native resampling with 4D data with no dimensions specified."""
-        from satpy.resample import NativeResampler
         ds1, source_area, _, _, target_area = get_test_data(
             input_shape=(2, 3, 100, 50), input_dims=None)
         # source geo def doesn't actually matter
         resampler = NativeResampler(source_area, target_area)
-        self.assertRaises(ValueError, resampler.resample, ds1)
+        with pytest.raises(ValueError):
+            resampler.resample(ds1)
 
 
 class TestBilinearResampler(unittest.TestCase):
@@ -463,8 +482,6 @@ class TestBilinearResampler(unittest.TestCase):
     def test_bil_resampling(self, xr_resampler, create_filename,
                             move_existing_caches):
         """Test the bilinear resampler."""
-        import dask.array as da
-        import xarray as xr
         from satpy.resample import BilinearResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
 
@@ -564,10 +581,8 @@ class TestCoordinateHelpers(unittest.TestCase):
 
     def test_area_def_coordinates(self):
         """Test coordinates being added with an AreaDefinition."""
-        import numpy as np
-        import dask.array as da
-        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
         from satpy.resample import add_crs_xy_coords
         area_def = AreaDefinition(
             'test', 'test', 'test', {'proj': 'lcc', 'lat_1': 25, 'lat_0': 25},
@@ -636,9 +651,8 @@ class TestCoordinateHelpers(unittest.TestCase):
 
     def test_swath_def_coordinates(self):
         """Test coordinates being added with an SwathDefinition."""
-        import dask.array as da
-        import xarray as xr
         from pyresample.geometry import SwathDefinition
+
         from satpy.resample import add_crs_xy_coords
         lons_data = da.random.random((200, 100), chunks=50)
         lats_data = da.random.random((200, 100), chunks=50)
@@ -712,7 +726,6 @@ class TestBucketAvg(unittest.TestCase):
 
     def test_compute(self):
         """Test bucket resampler computation."""
-        import dask.array as da
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_avg(data, fill_value=2)
@@ -730,7 +743,6 @@ class TestBucketAvg(unittest.TestCase):
     @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
-        import dask.array as da
         data = da.ones((5,))
 
         self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
@@ -754,7 +766,6 @@ class TestBucketAvg(unittest.TestCase):
     @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
     def test_compute_and_not_use_skipna_handling(self):
         """Test bucket resampler computation and not use skipna handling."""
-        import dask.array as da
         data = da.ones((5,))
 
         self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
@@ -784,8 +795,6 @@ class TestBucketAvg(unittest.TestCase):
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_resample(self, pyresample_bucket):
         """Test bucket resamplers resample method."""
-        import xarray as xr
-        import dask.array as da
         self.bucket.resampler = mock.MagicMock()
         self.bucket.precompute = mock.MagicMock()
         self.bucket.compute = mock.MagicMock()
@@ -849,7 +858,6 @@ class TestBucketSum(unittest.TestCase):
 
     def test_compute(self):
         """Test sum bucket resampler computation."""
-        import dask.array as da
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_sum(data)
@@ -866,7 +874,6 @@ class TestBucketSum(unittest.TestCase):
     @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
-        import dask.array as da
         data = da.ones((5,))
 
         self._compute_mocked_bucket_sum(data, mask_all_nan=True)
@@ -887,7 +894,6 @@ class TestBucketSum(unittest.TestCase):
     @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
     def test_compute_and_not_use_skipna_handling(self):
         """Test bucket resampler computation and not use skipna handling."""
-        import dask.array as da
         data = da.ones((5,))
 
         self._compute_mocked_bucket_sum(data, mask_all_nan=True)
@@ -936,7 +942,6 @@ class TestBucketCount(unittest.TestCase):
 
     def test_compute(self):
         """Test count bucket resampler computation."""
-        import dask.array as da
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_count(data)
@@ -969,9 +974,6 @@ class TestBucketFraction(unittest.TestCase):
 
     def test_compute(self):
         """Test fraction bucket resampler computation."""
-        import dask.array as da
-        import numpy as np
-
         self.bucket.resampler = mock.MagicMock()
         data = da.ones((3, 3))
 
@@ -996,10 +998,6 @@ class TestBucketFraction(unittest.TestCase):
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_resample(self, pyresample_bucket):
         """Test fraction bucket resamplers resample method."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
-
         self.bucket.resampler = mock.MagicMock()
         self.bucket.precompute = mock.MagicMock()
         self.bucket.compute = mock.MagicMock()

@@ -93,6 +93,68 @@ defaults to a different path depending on your operating system following
 the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 "user cache dir".
 
+.. _config_cache_lonlats_setting:
+
+Cache Longitudes and Latitudes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_CACHE_LONLATS``
+* **YAML/Config Key**: ``cache_lonlats``
+* **Default**: ``False``
+
+Whether or not generated longitude and latitude coordinates should be cached
+to on-disk zarr arrays. Currently this only works in very specific cases.
+Mainly the lon/lats that are generated when computing sensor and solar zenith
+and azimuth angles used in various modifiers and compositors. This caching is
+only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``.
+Arrays are stored in ``cache_dir`` (see above).
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+See also ``cache_sensor_angles`` below.
+
+.. warning::
+
+    This caching does not limit the number of entries nor does it expire old
+    entries. It is up to the user to manage the contents of the cache
+    directory.
+
+.. _config_cache_sensor_angles_setting:
+
+Cache Sensor Angles
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_CACHE_SENSOR_ANGLES``
+* **YAML/Config Key**: ``cache_sensor_angles``
+* **Default**: ``False``
+
+Whether or not generated sensor azimuth and sensor zenith angles should be
+cached to on-disk zarr arrays. These angles are primarily used in certain
+modifiers and compositors. This caching is only done for
+``AreaDefinition``-based geolocation, not ``SwathDefinition``.
+Arrays are stored in ``cache_dir`` (see above).
+
+This caching requires producing an estimate of the angles to avoid needing to
+generate new angles for every new data case. This happens because the angle
+generation depends on the observation time of the data and the position of the
+satellite (longitude, latitude, altitude). The angles are estimated by using
+a constant observation time for all cases (maximum ~1e-10 error) and by rounding
+satellite position coordinates to the nearest tenth of a degree for longitude
+and latitude and nearest tenth meter (maximum ~0.058 error). Note these
+estimations are only done if caching is enabled (this parameter is True).
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+See also ``cache_lonlats`` above.
+
+.. warning::
+
+    This caching does not limit the number of entries nor does it expire old
+    entries. It is up to the user to manage the contents of the cache
+    directory.
+
 .. _config_path_setting:
 
 Component Configuration Path
@@ -119,13 +181,20 @@ Note that this value must be a list. In Python, this could be set by doing:
     satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
 
 If setting an environment variable then it must be a
-colon-separated string and must be set **before** calling/importing Satpy.
+colon-separated (``:``) string on Linux/OSX or semicolon-separate (``;``)
+separated string and must be set **before** calling/importing Satpy.
 If the environment variable is a single path it will be converted to a list
 when Satpy is imported.
 
 .. code-block:: bash
 
     export SATPY_CONFIG_PATH="/path/custom1:/path/custom2"
+
+On Windows, with paths on the `C:` drive, these paths would be:
+
+.. code-block:: bash
+
+    set SATPY_CONFIG_PATH="C:/path/custom1;C:/path/custom2"
 
 Satpy will always include the builtin configuration files that it
 is distributed with regardless of this setting. When a component supports
@@ -150,6 +219,16 @@ defaults to a different path depending on your operating system following the
 
 .. _download_aux_setting:
 
+Demo Data Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_DEMO_DATA_DIR``
+* **YAML/Config Key**: ``demo_data_dir``
+* **Default**: <current working directory>
+
+Directory where demo data functions will download data files to. Available
+demo data functions can be found in :mod:`satpy.demo` subpackage.
+
 Download Auxiliary Data
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -162,6 +241,35 @@ See :doc:`dev_guide/aux_data` for more information. If ``True`` then Satpy
 will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
+
+Sensor Angles Position Preference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SENSOR_ANGLES_POSITION_PREFERENCE``
+* **YAML/Config Key**: ``sensor_angles_position_preference``
+* **Default**: "actual"
+
+Control which satellite position should be preferred when generating sensor
+azimuth and sensor zenith angles. This value is passed directly to the
+:func:`~satpy.utils.get_satpos` function. See the documentation for that
+function for more information on how the value will be used. This is used
+as part of the :func:`~satpy.modifiers.angles.get_angles` and
+:func:`~satpy.modifiers.angles.get_satellite_zenith_angle` functions which is
+used by multiple modifiers and composites including the default rayleigh
+correction.
+
+Temporary Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_TMP_DIR``
+* **YAML/Config Key**: ``tmp_dir``
+* **Default**: `tempfile.gettempdir()`_
+
+Directory where Satpy creates temporary files, for example decompressed
+input files. Default depends on the operating system.
+
+.. _tempfile.gettempdir(): https://docs.python.org/3/library/tempfile.html?highlight=gettempdir#tempfile.gettempdir
+
 
 .. _component_configuration:
 

@@ -1,12 +1,12 @@
 # Releasing Satpy
 
-1. checkout master
+1. checkout main branch
 2. pull from repo
 3. run the unittests
 4. run `loghub` and update the `CHANGELOG.md` file:
 
    ```
-   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
+   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st $(git tag --sort=-version:refname --list 'v*' | head -n 1) -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
    ```
 
    This uses a `LOGHUB_GITHUB_TOKEN` environment variable. This must be created

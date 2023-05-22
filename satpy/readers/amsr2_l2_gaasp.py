@@ -38,26 +38,29 @@ dynamically discovered from the provided files.
 
 import logging
 from datetime import datetime
+from typing import Tuple
 
 import numpy as np
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy._compat import cached_property
-from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class GAASPFileHandler(BaseFileHandler):
     """Generic file handler for GAASP output files."""
 
-    y_dims = (
+    y_dims: Tuple[str, ...] = (
         'Number_of_Scans',
     )
-    x_dims = (
+    x_dims: Tuple[str, ...] = (
         'Number_of_hi_rez_FOVs',
         'Number_of_low_rez_FOVs',
     )
@@ -134,9 +137,9 @@ class GAASPFileHandler(BaseFileHandler):
         # if we don't have to
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
-        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+        if np.issubdtype(data_arr_dtype, np.timedelta64):
             return np.timedelta64('NaT')
-        elif np.issubdtype(data_arr_dtype, np.datetime64):
+        if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64('NaT')
         return np.nan
 

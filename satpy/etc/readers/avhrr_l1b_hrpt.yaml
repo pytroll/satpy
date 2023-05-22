@@ -1,6 +1,10 @@
 reader:
     name: avhrr_l1b_hrpt
+    short_name: AVHRR l1b hrpt
+    long_name: NOAA 15 to 19 AVHRR data in raw HRPT format
     description: HRPT Reader for AVHRR
+    status: Alpha
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3, avhrr-2]
     default_channels: [1, 2, 3a, 3b, 4, 5]

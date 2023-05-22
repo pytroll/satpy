@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -121,13 +119,12 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
 
     def test_modis_overview_1000m(self):
         """Test a modis overview dependency calculation with resolution fixed to 1000m."""
-        from satpy._config import PACKAGE_CONFIG_PATH
-        from satpy.readers.yaml_reader import FileYAMLReader
-
         from satpy import DataQuery
+        from satpy._config import PACKAGE_CONFIG_PATH
         from satpy.composites import GenericCompositor
-        from satpy.modifiers.geometry import SunZenithCorrector
         from satpy.dataset import DatasetDict
+        from satpy.modifiers.geometry import SunZenithCorrector
+        from satpy.readers.yaml_reader import FileYAMLReader
 
         config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
         self.reader_instance = FileYAMLReader.from_config_files(config_file)
@@ -173,8 +170,8 @@ class TestMultipleSensors(unittest.TestCase):
     def setUp(self):
         """Set up the test tree."""
         from satpy.composites import CompositeBase
-        from satpy.modifiers import ModifierBase
         from satpy.dataset.data_dict import DatasetDict
+        from satpy.modifiers import ModifierBase
 
         class _FakeCompositor(CompositeBase):
             def __init__(self, ret_val, *args, **kwargs):
@@ -220,7 +217,7 @@ class TestMultipleSensors(unittest.TestCase):
         self.dependency_tree.populate_with_keys({'comp1'})
         comp_nodes = self.dependency_tree.trunk()
         self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].name.resolution, 500)
+        self.assertEqual(comp_nodes[0].name["resolution"], 500)
 
     def test_modifier_loaded_sensor_order(self):
         """Test that a modifier is loaded from the first alphabetical sensor."""

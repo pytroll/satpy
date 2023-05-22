@@ -34,23 +34,23 @@ References:
 
 """
 
+import functools
 import logging
-import xml.etree.ElementTree as ET
-from functools import lru_cache
 from threading import Lock
 
+import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
-import rioxarray
 import xarray as xr
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def dictify(r):
@@ -80,7 +80,7 @@ def _dictify(r):
 
 def _get_calibration_name(calibration):
     """Get the proper calibration name."""
-    calibration_name = calibration.name or 'gamma'
+    calibration_name = getattr(calibration, "name", calibration) or 'gamma'
     if calibration_name == 'sigma_nought':
         calibration_name = 'sigmaNought'
     elif calibration_name == 'beta_nought':
@@ -108,37 +108,102 @@ class SAFEXML(BaseFileHandler):
         self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
                              self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
-        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
-
     def get_metadata(self):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
 
-    def get_dataset(self, key, info):
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return self._end_time
+
+
+class SAFEXMLAnnotation(SAFEXML):
+    """XML file reader for the SAFE format, Annotation file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML annotation reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_incidence_angle = functools.lru_cache(maxsize=10)(
+            self._get_incidence_angle_uncached
+        )
+
+    def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
             return
 
-        xml_items = info['xml_item']
-        xml_tags = info['xml_tag']
+        if key["name"] == "incidence_angle":
+            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
-        if not isinstance(xml_items, list):
-            xml_items = [xml_items]
-            xml_tags = [xml_tags]
+    def _get_incidence_angle_uncached(self, chunks):
+        """Get the incidence angle array."""
+        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
+        return incidence_angle.expand(self._image_shape, chunks=chunks)
 
-        for xml_item, xml_tag in zip(xml_items, xml_tags):
-            data_items = self.root.findall(".//" + xml_item)
-            if not data_items:
-                continue
-            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
 
-        if key['name'].endswith('squared'):
-            data **= 2
+class SAFEXMLCalibration(SAFEXML):
+    """XML file reader for the SAFE format, Calibration file."""
 
-        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML calibration reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_calibration = functools.lru_cache(maxsize=10)(
+            self._get_calibration_uncached
+        )
 
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, chunks=None):
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "calibration_constant":
+            return self.get_calibration_constant()
+        return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
+
+    def _get_calibration_uncached(self, calibration, chunks=None):
+        """Get the calibration array."""
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
+        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
+        return calibration_vector.expand(self._image_shape, chunks=chunks)
+
+
+class SAFEXMLNoise(SAFEXML):
+    """XML file reader for the SAFE format, Noise file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the xml filehandler."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
+        self.get_noise_correction = functools.lru_cache(maxsize=10)(
+            self._get_noise_correction_uncached
+        )
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "noise":
+            return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
+
+    def _get_noise_correction_uncached(self, chunks=None):
         """Get the noise correction array."""
         try:
             noise = self.read_legacy_noise(chunks)
@@ -157,38 +222,6 @@ class SAFEXML(BaseFileHandler):
         """Read the range-noise array."""
         range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
         return range_noise.expand(self._image_shape, chunks)
-
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
-        """Get the calibration array."""
-        calibration_name = _get_calibration_name(calibration)
-        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
-        return calibration_vector
-
-    def _get_calibration_vector(self, calibration_name, chunks):
-        """Get the calibration vector."""
-        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
-        return calibration_vector.expand(self._image_shape, chunks=chunks)
-
-    def get_calibration_constant(self):
-        """Load the calibration constant."""
-        return float(self.root.find('.//absoluteCalibrationConstant').text)
-
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self, chunks):
-        """Get the incidence angle array."""
-        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
-        return incidence_angle.expand(self._image_shape, chunks=chunks)
-
-    @property
-    def start_time(self):
-        """Get the start time."""
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """Get the end time."""
-        return self._end_time
 
 
 class AzimuthNoiseReader:
@@ -214,9 +247,9 @@ class AzimuthNoiseReader:
     to be gap-filled with NaNs.
     """
 
-    def __init__(self, filename, shape):
+    def __init__(self, root, shape):
         """Set up the azimuth noise reader."""
-        self.root = ET.parse(filename)
+        self.root = root
         self.elements = self.root.findall(".//noiseAzimuthVector")
         self._image_shape = shape
         self.blocks = []
@@ -264,16 +297,20 @@ class AzimuthNoiseReader:
 
     def _create_dask_slice_from_block_line(self, current_line, chunks):
         """Create a dask slice from the blocks at the current line."""
-        current_blocks = self._find_blocks_covering_line(current_line)
-        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
-
-        next_line = min((arr.coords['y'][-1] for arr in current_blocks))
-        current_y = np.arange(current_line, next_line + 1)
-
-        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        pieces = self._get_array_pieces_for_current_line(current_line)
         dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
         new_slice = da.hstack(dask_pieces)
+
         return new_slice
+
+    def _get_array_pieces_for_current_line(self, current_line):
+        """Get the array pieces that cover the current line."""
+        current_blocks = self._find_blocks_covering_line(current_line)
+        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
+        next_line = self._get_next_start_line(current_blocks, current_line)
+        current_y = np.arange(current_line, next_line)
+        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        return pieces
 
     def _find_blocks_covering_line(self, current_line):
         """Find the blocks covering a given line."""
@@ -283,30 +320,43 @@ class AzimuthNoiseReader:
                 current_blocks.append(block)
         return current_blocks
 
+    def _get_next_start_line(self, current_blocks, current_line):
+        next_line = min((arr.coords['y'][-1] for arr in current_blocks)) + 1
+        blocks_starting_soon = [block for block in self.blocks if current_line < block.coords["y"][0] < next_line]
+        if blocks_starting_soon:
+            next_start_line = min((arr.coords["y"][0] for arr in blocks_starting_soon))
+            next_line = min(next_line, next_start_line)
+        return next_line
+
     def _get_padded_dask_pieces(self, pieces, chunks):
         """Get the padded pieces of a slice."""
-        dask_pieces = [piece.data for piece in pieces]
-        self._pad_dask_pieces_before(pieces, dask_pieces, chunks)
-        self._pad_dask_pieces_after(pieces, dask_pieces, chunks)
+        pieces = sorted(pieces, key=(lambda x: x.coords['x'][0]))
+        dask_pieces = []
+        previous_x_end = -1
+        piece = pieces[0]
+        next_x_start = piece.coords['x'][0].item()
+        y_shape = len(piece.coords['y'])
+
+        x_shape = (next_x_start - previous_x_end - 1)
+        self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
+
+        for i, piece in enumerate(pieces):
+            dask_pieces.append(piece.data)
+            previous_x_end = piece.coords['x'][-1].item()
+            try:
+                next_x_start = pieces[i + 1].coords['x'][0].item()
+            except IndexError:
+                next_x_start = self._image_shape[1]
+
+            x_shape = (next_x_start - previous_x_end - 1)
+            self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
+
         return dask_pieces
 
     @staticmethod
-    def _pad_dask_pieces_before(pieces, dask_pieces, chunks):
-        """Pad the dask pieces before."""
-        first_x = min(arr.coords['x'][0] for arr in pieces)
-        if first_x > 0:
-            missing_x = np.arange(first_x)
-            missing_y = pieces[0].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
-            dask_pieces.insert(0, new_piece)
-
-    def _pad_dask_pieces_after(self, pieces, dask_pieces, chunks):
-        """Pad the dask pieces after."""
-        last_x = max(arr.coords['x'][-1] for arr in pieces)
-        if last_x < self._image_shape[1] - 1:
-            missing_x = np.arange(last_x + 1, self._image_shape[1])
-            missing_y = pieces[-1].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+    def _fill_dask_pieces(dask_pieces, shape, chunks):
+        if shape[1] > 0:
+            new_piece = da.full(shape, np.nan, chunks=chunks)
             dask_pieces.append(new_piece)
 
 
@@ -429,17 +479,22 @@ class XMLArray:
         return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
-def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
+def interpolate_xarray(xpoints, ypoints, values, shape,
                        blocksize=CHUNK_SIZE):
     """Interpolate, generating a dask array."""
+    from scipy.interpolate import RectBivariateSpline
+
     vchunks = range(0, shape[0], blocksize)
     hchunks = range(0, shape[1], blocksize)
 
-    token = tokenize(blocksize, xpoints, ypoints, values, kind, shape)
+    token = tokenize(blocksize, xpoints, ypoints, values, shape)
     name = 'interpolate-' + token
 
-    from scipy.interpolate import interp2d
-    interpolator = interp2d(xpoints, ypoints, values, kind=kind)
+    spline = RectBivariateSpline(xpoints, ypoints, values.T)
+
+    def interpolator(xnew, ynew):
+        """Interpolator function."""
+        return spline(xnew, ynew).T
 
     dskx = {(name, i, j): (interpolate_slice,
                            slice(vcs, min(vcs + blocksize, shape[0])),
@@ -462,8 +517,7 @@ def intp(grid_x, grid_y, interpolator):
 
 def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
-    from scipy.interpolate.interpnd import (LinearNDInterpolator,
-                                            _ndim_coords_from_arrays)
+    from scipy.interpolate.interpnd import LinearNDInterpolator, _ndim_coords_from_arrays
 
     if isinstance(chunks, (list, tuple)):
         vchunks, hchunks = chunks
@@ -511,6 +565,9 @@ class SAFEGRD(BaseFileHandler):
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
+        self.get_lonlatalts = functools.lru_cache(maxsize=2)(
+            self._get_lonlatalts_uncached
+        )
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -528,7 +585,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = xr.open_dataset(self.filename, engine="rasterio",
+                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords['x'])),
                                       y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)
@@ -583,8 +641,7 @@ class SAFEGRD(BaseFileHandler):
         data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
         return data
 
-    @lru_cache(maxsize=2)
-    def get_lonlatalts(self):
+    def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
         Args:

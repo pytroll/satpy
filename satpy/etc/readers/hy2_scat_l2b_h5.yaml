@@ -1,6 +1,10 @@
 reader:
-  description: Generic Eumetsat HY2 L2B H5 Wind field Reader
   name: hy2_scat_l2b_h5
+  short_name: Eumetsat Wind field
+  long_name: HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
+  description: Generic Eumetsat HY2 L2B H5 Wind field Reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [scatterometer]
   default_datasets:
@@ -8,7 +12,9 @@ reader:
 file_types:
   hy2_scat_l2b_h5:
     file_reader: !!python/name:satpy.readers.hy2_scat_l2b_h5.HY2SCATL2BH5FileHandler
-    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,{platform_name}+SM_C_EUMP_{start_date:%Y%m%d------}_{orbit_number}_o_250_{product_level}.h5']
+    file_patterns:
+      - 'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,{platform_name}+SM_C_EUMP_{start_date:%Y%m%d------}_{orbit_number}_o_250_{product_level}.h5'
+      - '{platform_name}_OPER_SCA_{product_level}_OR_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit_number}_pwp_250_07_owv.h5'
 
 datasets:
   wvc_lon:

@@ -1,0 +1,185 @@
+# References:
+#  - L1_SDR Data of FY4A Advanced Geostationary Radiation Imager
+#  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
+
+reader:
+  name: ghi_l1
+  description: FY-4A GHI instrument HDF5 reader
+  sensors: [ghi]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    ghi_l1_0250m:
+        file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0250M_{version:s}.HDF']
+    ghi_l1_0500m:
+        file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
+    ghi_l1_2000m:
+        file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
+    ghi_l1_2000m_geo:
+        file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
+
+datasets:
+  C01:
+    name: C01
+    wavelength: [0.45, 0.675, 0.90]
+    resolution:
+        250: {file_type: ghi_l1_0250m}
+        500: {file_type: ghi_l1_0500m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel01
+    lut_key: CALChannel01
+
+  C02:
+    name: C02
+    wavelength: [0.445, 0.47, 0.495]
+    resolution:
+        500: {file_type: ghi_l1_0500m}
+        1000: {file_type: ghi_l1_1000m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel02
+    lut_key: CALChannel02
+
+  C03:
+    name: C03
+    wavelength: [0.52, 0.545, 0.57]
+    resolution:
+        500: {file_type: ghi_l1_0500m}
+        1000: {file_type: ghi_l1_1000m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel03
+    lut_key: CALChannel03
+
+  C04:
+    name: C04
+    wavelength: [0.62, 0.645, 0.67]
+    resolution:
+        500: {file_type: ghi_l1_0500m}
+        1000: {file_type: ghi_l1_1000m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel04
+    lut_key: CALChannel04
+
+  C05:
+    name: C05
+    wavelength: [1.371, 1.378, 1.386]
+    resolution:
+        500: {file_type: ghi_l1_0500m}
+        1000: {file_type: ghi_l1_1000m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel05
+    lut_key: CALChannel05
+
+  C06:
+    name: C06
+    wavelength: [1.58, 1.61, 1.64]
+    resolution:
+        500: {file_type: ghi_l1_0500m}
+        1000: {file_type: ghi_l1_1000m}
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel06
+    lut_key: CALChannel06
+
+  C07:
+    name: C07
+    wavelength: [10.3, 11.4, 12.5]
+    resolution:
+        2000: {file_type: ghi_l1_2000m}
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_key: NOMChannel07
+    lut_key: CALChannel07
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 2000
+    file_type: ghi_l1_2000m_geo
+    file_key: NOMSunZenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 2000
+    file_type: ghi_l1_2000m_geo
+    file_key: NOMSunAzimuth
+
+  solar_glint_angle:
+    name: solar_glint_angle
+    units: degree
+    standard_name: solar_glint_angle
+    resolution: 2000
+    file_type: ghi_l1_2000m_geo
+    file_key: NOMSunGlintAngle
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: satellite_zenith_angle
+    resolution: 2000
+    file_type: ghi_l1_2000m_geo
+    file_key: NOMSatelliteZenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: satellite_azimuth_angle
+    resolution: 2000
+    file_type: ghi_l1_2000m_geo
+    file_key: NOMSatelliteAzimuth

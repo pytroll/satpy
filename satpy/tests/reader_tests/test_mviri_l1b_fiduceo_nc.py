@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the FIDUCEO MVIRI FCDR Reader."""
 
+from __future__ import annotations
+
 import os
 from unittest import mock
 
@@ -28,12 +30,20 @@ from pyresample.geometry import AreaDefinition
 from pyresample.utils import proj4_radius_parameters
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
-    ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, FiduceoMviriEasyFcdrFileHandler,
-    FiduceoMviriFullFcdrFileHandler, DatasetWrapper
+    ALTITUDE,
+    EQUATOR_RADIUS,
+    POLE_RADIUS,
+    DatasetWrapper,
+    FiduceoMviriEasyFcdrFileHandler,
+    FiduceoMviriFullFcdrFileHandler,
 )
 from satpy.tests.utils import make_dataid
 
-attrs_exp = {
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - request
+
+attrs_exp: dict = {
     'platform': 'MET7',
     'raw_metadata': {'foo': 'bar'},
     'sensor': 'MVIRI',
@@ -109,6 +119,9 @@ u_vis_refl_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=('y', 'x'),
+    coords={
+        'acq_time': ('y', acq_time_vis_exp),
+    },
     attrs=attrs_exp
 )
 acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
@@ -194,6 +207,9 @@ quality_pixel_bitmask_exp = xr.DataArray(
         dtype=np.uint8
     ),
     dims=('y', 'x'),
+    coords={
+        'acq_time': ('y', acq_time_vis_exp),
+    },
     attrs=attrs_exp
 )
 sza_vis_exp = xr.DataArray(
@@ -267,10 +283,8 @@ def fixture_fake_dataset():
             'count_vis': (('y', 'x'), count_vis),
             'count_wv': (('y_ir_wv', 'x_ir_wv'), count_wv),
             'count_ir': (('y_ir_wv', 'x_ir_wv'), count_ir),
-            'toa_bidirectional_reflectance_vis': (
-                ('y', 'x'), vis_refl_exp / 100),
-            'u_independent_toa_bidirectional_reflectance': (
-                ('y', 'x'), u_vis_refl_exp / 100),
+            'toa_bidirectional_reflectance_vis': vis_refl_exp / 100,
+            'u_independent_toa_bidirectional_reflectance': u_vis_refl_exp / 100,
             'quality_pixel_bitmask': (('y', 'x'), mask),
             'solar_zenith_angle': (('y_tie', 'x_tie'), sza),
             'time_ir_wv': (('y_ir_wv', 'x_ir_wv'), time),

@@ -25,9 +25,11 @@ SMOS_WIND_DS_PDD_20191107_signed.pdf
 """
 
 import logging
-import numpy as np
 from datetime import datetime
+
+import numpy as np
 from pyresample.geometry import AreaDefinition
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 logger = logging.getLogger(__name__)

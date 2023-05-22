@@ -17,14 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.nucaps module."""
 
+import datetime
 import os
 import unittest
-import datetime
 from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (120,)
@@ -213,7 +214,7 @@ class TestNUCAPSReader(unittest.TestCase):
             # self.assertNotEqual(v.info['resolution'], 0)
             # self.assertEqual(v.info['units'], 'degrees')
             self.assertEqual(v.ndim, 1)
-            self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(v.attrs['sensor'], set(['cris', 'atms', 'viirs']))
             self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
             self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
 
@@ -249,6 +250,22 @@ class TestNUCAPSReader(unittest.TestCase):
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
+            if np.issubdtype(v.dtype, np.floating):
+                assert '_FillValue' not in v.attrs
+
+    def test_load_multiple_files_pressure(self):
+        """Test loading Temperature from multiple input files."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
+            'NUCAPS-EDR_v1r0_npp_s201603011159009_e201603011159307_c201603011222270.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(r.pressure_dataset_names['Temperature'], pressure_levels=True)
+        self.assertEqual(len(datasets), 100)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
@@ -399,7 +416,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         self.assertEqual(len(datasets), 5)
         for v in datasets.values():
             self.assertEqual(v.ndim, 1)
-            self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(v.attrs['sensor'], set(['cris', 'atms', 'viirs']))
             self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
             self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
 

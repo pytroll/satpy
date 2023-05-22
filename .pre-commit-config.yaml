@@ -1,8 +1,40 @@
 exclude: '^$'
 fail_fast: false
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
     hooks:
-    - id: flake8
-      additional_dependencies: [flake8-docstrings, flake8-debugger, flake8-bugbear]
+      - id: flake8
+        additional_dependencies: [flake8-docstrings, flake8-debugger, flake8-bugbear, mccabe]
+        args: [--max-complexity, "10"]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.5' # Update me!
+    hooks:
+      - id: bandit
+        args: [--ini, .bandit]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.3.0'  # Use the sha / tag you want to point at
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-docutils
+          - types-pkg-resources
+          - types-PyYAML
+          - types-requests
+        args: ["--python-version", "3.8", "--ignore-missing-imports"]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        language_version: python3
+ci:
+  # To trigger manually, comment on a pull request with "pre-commit.ci autofix"
+  autofix_prs: false
+  skip: [bandit]

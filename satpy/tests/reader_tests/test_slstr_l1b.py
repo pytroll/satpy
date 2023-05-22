@@ -20,10 +20,12 @@ import unittest
 import unittest.mock as mock
 import warnings
 from datetime import datetime
+
 import numpy as np
 import xarray as xr
-from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
-from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
+
+from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
+from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRAngles, NCSLSTRFlag, NCSLSTRGeo
 
 local_id_keys_config = {'name': {
     'required': True,
@@ -93,6 +95,15 @@ class TestSLSTRL1B(unittest.TestCase):
                 'S9_BT_ao': self.rad,
                 'foo_radiance_an': self.rad,
                 'S5_solar_irradiances': self.rad,
+                'geometry_tn': self.rad,
+                'latitude_an': self.rad,
+                'x_tx': self.rad,
+                'y_tx': self.rad,
+                'x_in': self.rad,
+                'y_in': self.rad,
+                'x_an': self.rad,
+                'y_an': self.rad,
+                'flags_an': self.rad,
                 'detector_an': det,
             },
             attrs={
@@ -110,9 +121,19 @@ def make_dataid(**items):
 class TestSLSTRReader(TestSLSTRL1B):
     """Test various nc_slstr file handlers."""
 
+    class FakeSpl:
+        """Fake return function for SPL interpolation."""
+
+        @staticmethod
+        def ev(foo_x, foo_y):
+            """Fake function to return interpolated data."""
+            return np.zeros((3, 2))
+
     @mock.patch('satpy.readers.slstr_l1b.xr')
-    def test_instantiate(self, xr_):
+    @mock.patch('scipy.interpolate.RectBivariateSpline')
+    def test_instantiate(self, bvs_, xr_):
         """Test initialization of file handlers."""
+        bvs_.return_value = self.FakeSpl
         xr_.open_dataset.return_value = self.fake_dataset
 
         good_start = datetime.strptime(self.start_time,
@@ -122,6 +143,8 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         ds_id = make_dataid(name='foo', calibration='radiance',
                             stripe='a', view='nadir')
+        ds_id_500 = make_dataid(name='foo', calibration='radiance',
+                                stripe='a', view='nadir', resolution=500)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo',
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'a', 'view': 'n'}
@@ -149,28 +172,29 @@ class TestSLSTRReader(TestSLSTRL1B):
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo',
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'a', 'view': 'n'}
-        test = NCSLSTRGeo('somedir/S1_radiance_an.nc', filename_info, 'c')
-        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
-        xr_.open_dataset.assert_called()
-        xr_.open_dataset.reset_mock()
-
-        test = NCSLSTRAngles('somedir/S1_radiance_an.nc', filename_info, 'c')
-        # TODO: Make this test work
-        # test.get_dataset(ds_id, filename_info)
+        test = NCSLSTRGeo('somedir/geometry_an.nc', filename_info, 'c')
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'latitude_{stripe:1s}{view:1s}'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
         test = NCSLSTRFlag('somedir/S1_radiance_an.nc', filename_info, 'c')
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'flags_{stripe:1s}{view:1s}'}))
         assert test.view == 'nadir'
         assert test.stripe == 'a'
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
+
+        test = NCSLSTRAngles('somedir/S1_radiance_an.nc', filename_info, 'c')
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'geometry_t{view:1s}'}))
+        self.assertEqual(test.start_time, good_start)
+        self.assertEqual(test.end_time, good_end)
+        xr_.open_dataset.assert_called()
+        xr_.open_dataset.reset_mock()
+        test.get_dataset(ds_id_500, dict(filename_info, **{'file_key': 'geometry_t{view:1s}'}))
 
 
 class TestSLSTRCalibration(TestSLSTRL1B):

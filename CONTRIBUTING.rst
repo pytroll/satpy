@@ -122,7 +122,7 @@ Code of Conduct
 
 Satpy follows the same code of conduct as the PyTroll project. For reference
 it is copied to this repository in
-`CODE_OF_CONDUCT.md <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
+`CODE_OF_CONDUCT.md <https://github.com/pytroll/satpy/blob/main/CODE_OF_CONDUCT.md>`_.
 
 As stated in the PyTroll home page, this code of conduct applies to the
 project space (GitHub) as well as the public space online and offline when
@@ -145,4 +145,4 @@ determined by the maintainers and may include one or more of the following:
 - Temporary or permanent ban from online communication (Slack, mailing list, etc)
 
 For details see the official
-`code of conduct document <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
+`code of conduct document <https://github.com/pytroll/satpy/blob/main/CODE_OF_CONDUCT.md>`_.

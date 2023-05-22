@@ -17,23 +17,21 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes for corrections based on sun and other angles."""
 
+from __future__ import annotations
+
 import logging
-import time
-from weakref import WeakValueDictionary
 
 import numpy as np
-import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
+from satpy.modifiers.angles import sunzen_corr_cos
+from satpy.utils import atmospheric_path_length_correction
 
 logger = logging.getLogger(__name__)
 
 
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
-
-    coszen = WeakValueDictionary()
 
     def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
@@ -52,38 +50,24 @@ class SunZenithCorrectorBase(ModifierBase):
         projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
-            logger.debug("Sun zen correction already applied")
+            logger.debug("Sun zenith correction already applied")
             return vis
 
-        area_name = hash(vis.attrs['area'])
-        key = (vis.attrs["start_time"], area_name)
-        tic = time.time()
         logger.debug("Applying sun zen correction")
-        coszen = self.coszen.get(key)
-        if coszen is None and not info.get('optional_datasets'):
-            # we were not given SZA, generate SZA then calculate cos(SZA)
-            from pyorbital.astronomy import cos_zen
+        if not info.get('optional_datasets'):
+            # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
-
-            coords = {}
-            if 'y' in vis.coords and 'x' in vis.coords:
-                coords['y'] = vis['y']
-                coords['x'] = vis['x']
-            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                  dims=['y', 'x'], coords=coords)
+            from .angles import get_cos_sza
+            coszen = get_cos_sza(vis)
             if self.max_sza is not None:
                 coszen = coszen.where(coszen >= self.max_sza_cos)
-            self.coszen[key] = coszen
-        elif coszen is None:
+        else:
             # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
-            self.coszen[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
-        logger.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -105,7 +89,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
     .. code-block:: yaml
 
       sunz_corrected:
-        compositor: !!python/name:satpy.composites.SunZenithCorrector
+        modifier: !!python/name:satpy.modifiers.SunZenithCorrector
         max_sza: !!null
         optional_prerequisites:
         - solar_zenith_angle
@@ -128,7 +112,9 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
+        res = proj.copy()
+        res.data = sunzen_corr_cos(proj.data, coszen.data, limit=self.correction_limit, max_sza=self.max_sza)
+        return res
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -149,7 +135,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
     .. code-block:: yaml
 
       effective_solar_pathlength_corrected:
-        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+        modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
         max_sza: !!null
         optional_prerequisites:
         - solar_zenith_angle

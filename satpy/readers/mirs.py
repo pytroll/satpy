@@ -17,17 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to MiRS product."""
 
-import os
-import logging
 import datetime
+import logging
+import os
+from collections import Counter
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from collections import Counter
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.aux_download import retrieve
 
+from satpy.aux_download import retrieve
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -35,7 +38,7 @@ try:
     # try getting setuptools/distribute's version of resource retrieval first
     from pkg_resources import resource_string as get_resource_string
 except ImportError:
-    from pkgutil import get_data as get_resource_string
+    from pkgutil import get_data as get_resource_string  # type: ignore
 
 #
 
@@ -93,17 +96,10 @@ def read_atms_coeff_to_string(fn):
 def read_atms_limb_correction_coefficients(fn):
     """Read the limb correction files."""
     coeff_str = read_atms_coeff_to_string(fn)
-    # there should be 22 channels and 96 fov in the coefficient file. (read last line and get values)
-    n_chn = (coeff_str[-1].replace("  ", " ").split(" ")[1])
-    n_fov = (coeff_str[-1].replace("  ", " ").split(" ")[2])
-    n_chn = int(n_chn)
-    n_fov = int(n_fov)
-    if n_chn < 22:
-        LOG.warning('Coefficient file has less than 22 channels:  %s' % n_chn)
-    if n_fov < 96:
-        LOG.warning('Coefficient file has less than 96 fov:  %s' % n_fov)
-    # make it a generator
-    coeff_str = (line.strip() for line in coeff_str)
+    n_chn = 22
+    n_fov = 96
+    # make the string a generator
+    coeff_lines = (line.strip() for line in coeff_str)
 
     all_coeffs = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
     all_amean = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
@@ -114,14 +110,17 @@ def read_atms_limb_correction_coefficients(fn):
     # There should be 22 sections
     for chan_idx in range(n_chn):
         # blank line at the start of each section
-        _ = next(coeff_str)
+        _ = next(coeff_lines)
         # section header
-        _nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
+        next_line = next(coeff_lines)
+
+        _nx, nchx, dmean = [x.strip() for x in next_line.split(" ") if x]
         all_nchx[chan_idx] = nchx = int(nchx)
         all_dmean[chan_idx] = float(dmean)
 
         # coeff locations (indexes to put the future coefficients in)
-        locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
+        next_line = next(coeff_lines)
+        locations = [int(x.strip()) for x in next_line.split(" ") if x]
         if len(locations) != nchx:
             raise RuntimeError
         for x in range(nchx):
@@ -130,7 +129,7 @@ def read_atms_limb_correction_coefficients(fn):
         # Read 'nchx' coefficients for each of 96 FOV
         for fov_idx in range(n_fov):
             # chan_num, fov_num, *coefficients, error
-            coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
+            coeff_line_parts = [x.strip() for x in next(coeff_lines).split(" ") if x][2:]
             coeffs = [float(x) for x in coeff_line_parts[:nchx]]
             ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
             # not used but nice to know the purpose of the last column.
@@ -168,7 +167,7 @@ def get_coeff_by_sfc(coeff_fn, bt_data, idx):
     c_size = bt_data[idx, :, :].chunks
     correction = da.map_blocks(apply_atms_limb_correction,
                                bt_data, idx,
-                               *sfc_coeff, chunks=c_size)
+                               *sfc_coeff, chunks=c_size, meta=np.array((), dtype=bt_data.dtype))
     return correction
 
 
@@ -286,15 +285,13 @@ class MiRSL2ncHandler(BaseFileHandler):
         """Force datetime.date for combine."""
         if isinstance(self.filename_info[key], datetime.datetime):
             return self.filename_info[key].date()
-        else:
-            return self.filename_info[key]
+        return self.filename_info[key]
 
     def force_time(self, key):
         """Force datetime.time for combine."""
         if isinstance(self.filename_info.get(key), datetime.datetime):
             return self.filename_info.get(key).time()
-        else:
-            return self.filename_info.get(key)
+        return self.filename_info.get(key)
 
     @property
     def _get_coeff_filenames(self):
@@ -309,7 +306,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return coeff_fn
 
-    def get_metadata(self, ds_info):
+    def update_metadata(self, ds_info):
         """Get metadata."""
         metadata = {}
         metadata.update(ds_info)
@@ -327,34 +324,78 @@ class MiRSL2ncHandler(BaseFileHandler):
         # if we don't have to
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
-        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+        if np.issubdtype(data_arr_dtype, np.timedelta64):
             return np.timedelta64('NaT')
-        elif np.issubdtype(data_arr_dtype, np.datetime64):
+        if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64('NaT')
         return np.nan
 
     @staticmethod
-    def _scale_data(data_arr, attrs):
-        # handle scaling
-        # take special care for integer/category fields
-        scale_factor = attrs.pop('scale_factor', 1.)
-        add_offset = attrs.pop('add_offset', 0.)
+    def _scale_data(data_arr, scale_factor, add_offset):
+        """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
-        return data_arr, attrs
+        return data_arr
 
-    def _fill_data(self, data_arr, attrs):
+    def _fill_data(self, data_arr, fill_value, scale_factor, add_offset):
+        """Fill missing data with NaN."""
+        if fill_value is not None:
+            fill_value = self._scale_data(fill_value, scale_factor, add_offset)
+            fill_out = self._nan_for_dtype(data_arr.dtype)
+            data_arr = data_arr.where(data_arr != fill_value, fill_out)
+        return data_arr
+
+    def _apply_valid_range(self, data_arr, valid_range, scale_factor, add_offset):
+        """Get and apply valid_range."""
+        if valid_range is not None:
+            valid_min, valid_max = valid_range
+            valid_min = self._scale_data(valid_min, scale_factor, add_offset)
+            valid_max = self._scale_data(valid_max, scale_factor, add_offset)
+
+            if valid_min is not None and valid_max is not None:
+                data_arr = data_arr.where((data_arr >= valid_min) &
+                                          (data_arr <= valid_max))
+        return data_arr
+
+    def apply_attributes(self, data, ds_info):
+        """Combine attributes from file and yaml and apply.
+
+        File attributes should take precedence over yaml if both are present
+
+        """
         try:
             global_attr_fill = self.nc.missing_value
         except AttributeError:
-            global_attr_fill = None
-        fill_value = attrs.pop('_FillValue', global_attr_fill)
+            global_attr_fill = 1.0
 
-        fill_out = self._nan_for_dtype(data_arr.dtype)
-        if fill_value is not None:
-            data_arr = data_arr.where(data_arr != fill_value, fill_out)
-        return data_arr, attrs
+        # let file metadata take precedence over ds_info from yaml,
+        # but if yaml has more to offer, include it here, but fix
+        # units.
+        ds_info.update(data.attrs)
+
+        # special cases
+        if ds_info['name'] in ["latitude", "longitude"]:
+            ds_info["standard_name"] = ds_info.get("standard_name",
+                                                   ds_info['name'])
+
+        # try to assign appropriate units (if "Kelvin" covert to K)
+        units_convert = {"Kelvin": "K"}
+        data_unit = ds_info.get('units', None)
+        ds_info['units'] = units_convert.get(data_unit, data_unit)
+
+        scale = ds_info.pop('scale_factor', 1.0)
+        offset = ds_info.pop('add_offset', 0.)
+        fill_value = ds_info.pop("_FillValue", global_attr_fill)
+        valid_range = ds_info.pop('valid_range', None)
+
+        data = self._scale_data(data, scale, offset)
+        data = self._fill_data(data, fill_value, scale, offset)
+        data = self._apply_valid_range(data, valid_range, scale, offset)
+
+        data.attrs = ds_info
+
+        return data, ds_info
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
@@ -362,23 +403,34 @@ class MiRSL2ncHandler(BaseFileHandler):
             idx = ds_info['channel_index']
             data = self['BT']
             data = data.rename(new_name_or_name_dict=ds_info["name"])
+            data, ds_info = self.apply_attributes(data, ds_info)
 
             if self.sensor.lower() == "atms" and self.limb_correction:
                 sfc_type_mask = self['Sfc_type']
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,
                                             ds_info)
+
                 self.nc = self.nc.merge(data)
             else:
                 LOG.info("No Limb Correction applied.")
                 data = data[:, :, idx]
         else:
             data = self[ds_id['name']]
+            data, ds_info = self.apply_attributes(data, ds_info)
 
-        data.attrs = self.get_metadata(ds_info)
+        data.attrs = self.update_metadata(ds_info)
+
         return data
 
-    def _available_if_this_file_type(self, configured_datasets):
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
+        handled_vars = set()
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
                 # some other file handler said it has this dataset
@@ -386,7 +438,15 @@ class MiRSL2ncHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+
+            yaml_info = {}
+            if self.file_type_matches(ds_info['file_type']):
+                handled_vars.add(ds_info['name'])
+                yaml_info = ds_info
+            if ds_info['name'] == 'BT':
+                yield from self._available_btemp_datasets(yaml_info)
+            yield True, ds_info
+        yield from self._available_new_datasets(handled_vars)
 
     def _count_channel_repeat_number(self):
         """Count channel/polarization pair repetition."""
@@ -403,7 +463,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return chn_total, normals
 
-    def _available_btemp_datasets(self):
+    def _available_btemp_datasets(self, yaml_info):
         """Create metadata for channel BTs."""
         chn_total, normals = self._count_channel_repeat_number()
         # keep track of current channel count for string description
@@ -417,17 +477,17 @@ class MiRSL2ncHandler(BaseFileHandler):
 
             desc_bt = "Channel {} Brightness Temperature at {}GHz {}{}"
             desc_bt = desc_bt.format(idx, normal_f, normal_p, p_count)
-            ds_info = {
+            ds_info = yaml_info.copy()
+            ds_info.update({
                 'file_type': self.filetype_info['file_type'],
                 'name': new_name,
                 'description': desc_bt,
-                'units': 'K',
                 'channel_index': idx,
                 'frequency': "{}GHz".format(normal_f),
                 'polarization': normal_p,
                 'dependencies': ('BT', 'Sfc_type'),
-                'coordinates': ["longitude", "latitude"]
-            }
+                'coordinates': ['longitude', 'latitude']
+            })
             yield True, ds_info
 
     def _get_ds_info_for_data_arr(self, var_name):
@@ -436,9 +496,6 @@ class MiRSL2ncHandler(BaseFileHandler):
             'name': var_name,
             'coordinates': ["longitude", "latitude"]
         }
-
-        if var_name in ["longitude", "latitude"]:
-            ds_info['standard_name'] = var_name
         return ds_info
 
     def _is_2d_yx_data_array(self, data_arr):
@@ -446,10 +503,12 @@ class MiRSL2ncHandler(BaseFileHandler):
         has_x_dim = data_arr.dims[1] == "x"
         return has_y_dim and has_x_dim
 
-    def _available_new_datasets(self):
+    def _available_new_datasets(self, handled_vars):
         """Metadata for available variables other than BT."""
         possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
+            if var_name in handled_vars:
+                continue
             if data_arr.ndim != 2:
                 # we don't currently handle non-2D variables
                 continue
@@ -460,29 +519,9 @@ class MiRSL2ncHandler(BaseFileHandler):
             ds_info = self._get_ds_info_for_data_arr(var_name)
             yield True, ds_info
 
-    def available_datasets(self, configured_datasets=None):
-        """Dynamically discover what variables can be loaded from this file.
-
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
-        for more information.
-
-        """
-        yield from self._available_if_this_file_type(configured_datasets)
-        yield from self._available_new_datasets()
-        yield from self._available_btemp_datasets()
-
     def __getitem__(self, item):
-        """Wrap around `self.nc[item]`.
-
-        Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
-        variables which causes inaccurate unscaled data values. This method
-        forces the scale factor to a 64-bit float first.
-
-        """
+        """Wrap around `self.nc[item]`."""
         data = self.nc[item]
-        attrs = data.attrs.copy()
-        data, attrs = self._scale_data(data, attrs)
-        data, attrs = self._fill_data(data, attrs)
 
         # 'Freq' dimension causes issues in other processing
         if 'Freq' in data.coords:

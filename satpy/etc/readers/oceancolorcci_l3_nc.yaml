@@ -1,0 +1,826 @@
+reader:
+  name: oceancolorcci_l3_nc
+  short_name: OCCCI Level 3
+  long_name: Ocean color CCI Level 3S data reader
+  description: NetCDF Reader for ESA Oceancolor CCI data
+  status: Nominal
+  supports_fsspec: false
+  default_channels: []
+  sensors: [merged]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    occci_allprods_geo:
+        file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-OC_PRODUCTS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-OC_PRODUCTS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
+    occci_chlorprods_geo:
+        file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-CHLOR_A-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-CHLOR_A-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
+    occci_iopprods_geo:
+        file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-IOP-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-IOP-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
+    occci_k490prods_geo:
+      file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
+      file_patterns: ['ESACCI-OC-{processing_level:3s}-K_490-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                      'ESACCI-OC-{processing_level:3s}-K_490-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
+    occci_rrsprods_geo:
+        file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-RRS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-RRS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc',]
+datasets:
+  longitude:
+    name: longitude
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    standard_name: longitude
+    units: degree
+    nc_key: 'lon'
+
+  latitude:
+    name: latitude
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    standard_name: latitude
+    units: degree
+    nc_key: 'lat'
+
+  adg_412:
+    name: adg_412
+    wavelength: 0.412
+    standard_name: Absorption coefficient for dissolved and detrital material at 412 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_412'
+
+  adg_412_bias:
+    name: adg_412_bias
+    wavelength: 0.412
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 412 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_412_bias'
+
+  adg_412_rmsd:
+    name: adg_412_rmsd
+    wavelength: 0.412
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 412 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_412_rmsd'
+
+  adg_443:
+    name: adg_443
+    wavelength: 0.443
+    standard_name: Absorption coefficient for dissolved and detrital material at 443 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_443'
+
+  adg_443_bias:
+    name: adg_443_bias
+    wavelength: 0.443
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 443 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_443_bias'
+
+  adg_443_rmsd:
+    name: adg_443_rmsd
+    wavelength: 0.443
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 443 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_443_rmsd'
+
+  adg_490:
+    name: adg_490
+    wavelength: 0.490
+    standard_name: Absorption coefficient for dissolved and detrital material at 490 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_490'
+
+  adg_490_bias:
+    name: adg_490_bias
+    wavelength: 0.490
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 490 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_490_bias'
+
+  adg_490_rmsd:
+    name: adg_490_rmsd
+    wavelength: 0.490
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 490 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_490_rmsd'
+
+  adg_510:
+    name: adg_510
+    wavelength: 0.510
+    standard_name: Absorption coefficient for dissolved and detrital material at 510 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_510'
+
+  adg_510_bias:
+    name: adg_510_bias
+    wavelength: 0.510
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 510 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_510_bias'
+
+  adg_510_rmsd:
+    name: adg_510_rmsd
+    wavelength: 0.510
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 510 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_510_rmsd'
+
+  adg_560:
+    name: adg_560
+    wavelength: 0.560
+    standard_name: Absorption coefficient for dissolved and detrital material at 560 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_560'
+
+  adg_560_bias:
+    name: adg_560_bias
+    wavelength: 0.560
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 560 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_560_bias'
+
+  adg_560_rmsd:
+    name: adg_560_rmsd
+    wavelength: 0.560
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 560 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_560_rmsd'
+
+  adg_665:
+    name: adg_665
+    wavelength: 0.665
+    standard_name: Absorption coefficient for dissolved and detrital material at 665 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_665'
+
+  adg_665_bias:
+    name: adg_665_bias
+    wavelength: 0.665
+    standard_name: Bias of absorption coefficient for dissolved and detrital material at 665 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_665_bias'
+
+  adg_665_rmsd:
+    name: adg_665_rmsd
+    wavelength: 0.665
+    standard_name: Root-mean-square-difference of absorption coefficient for dissolved and detrital material at 665 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'adg_665_rmsd'
+
+  aph_412:
+      name: aph_412
+      wavelength: 0.412
+      standard_name: Phytoplankton absorption coefficient at 412 nm as derived using the QAA model.
+      units: "m-1"
+      coordinates: [longitude, latitude]
+      file_type: [occci_allprods_geo, occci_iopprods_geo]
+      nc_key: 'aph_412'
+
+  aph_412_bias:
+      name: aph_412_bias
+      wavelength: 0.412
+      standard_name: Bias of Phytoplankton absorption coefficient at 412 nm.
+      units: "m-1"
+      coordinates: [longitude, latitude]
+      file_type: [occci_allprods_geo, occci_iopprods_geo]
+      nc_key: 'aph_412_bias'
+
+  aph_412_rmsd:
+    name: aph_412_rmsd
+    wavelength: 0.412
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 412 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_412_rmsd'
+
+  aph_443:
+    name: aph_443
+    wavelength: 0.443
+    standard_name: Phytoplankton absorption coefficient at 443 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_443'
+
+  aph_443_bias:
+    name: aph_443_bias
+    wavelength: 0.443
+    standard_name: Bias of Phytoplankton absorption coefficient at 443 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_443_bias'
+
+  aph_443_rmsd:
+    name: aph_443_rmsd
+    wavelength: 0.443
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 443 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_443_rmsd'
+
+  aph_490:
+    name: aph_490
+    wavelength: 0.490
+    standard_name: Phytoplankton absorption coefficient at 490 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_490'
+
+  aph_490_bias:
+    name: aph_490_bias
+    wavelength: 0.490
+    standard_name: Bias of Phytoplankton absorption coefficient at 490 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_490_bias'
+
+  aph_490_rmsd:
+    name: aph_490_rmsd
+    wavelength: 0.490
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 490 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_490_rmsd'
+
+  aph_510:
+    name: aph_510
+    wavelength: 0.510
+    standard_name: Phytoplankton absorption coefficient at 510 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_510'
+
+  aph_510_bias:
+    name: aph_510_bias
+    wavelength: 0.510
+    standard_name: Bias of Phytoplankton absorption coefficient at 510 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_510_bias'
+
+  aph_510_rmsd:
+    name: aph_510_rmsd
+    wavelength: 0.510
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 510 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_510_rmsd'
+
+  aph_560:
+    name: aph_560
+    wavelength: 0.560
+    standard_name: Phytoplankton absorption coefficient at 560 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_560'
+
+  aph_560_bias:
+    name: aph_560_bias
+    wavelength: 0.560
+    standard_name: Bias of Phytoplankton absorption coefficient at 560 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_560_bias'
+
+  aph_560_rmsd:
+    name: aph_560_rmsd
+    wavelength: 0.560
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 560 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_560_rmsd'
+
+  aph_665:
+    name: aph_665
+    wavelength: 0.665
+    standard_name: Phytoplankton absorption coefficient at 665 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_665'
+
+  aph_665_bias:
+    name: aph_665_bias
+    wavelength: 0.665
+    standard_name: Bias of Phytoplankton absorption coefficient at 665 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_665_bias'
+
+  aph_665_rmsd:
+    name: aph_665_rmsd
+    wavelength: 0.665
+    standard_name: Root-mean-square-difference of Phytoplankton absorption coefficient at 665 nm.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'aph_665_rmsd'
+
+  atot_412:
+      name: atot_412
+      wavelength: 0.412
+      standard_name: Total absorption coefficient at 412 nm as derived using the QAA model.
+      units: "m-1"
+      coordinates: [longitude, latitude]
+      file_type: [occci_allprods_geo, occci_iopprods_geo]
+      nc_key: 'atot_412'
+
+  atot_443:
+    name: atot_443
+    wavelength: 0.443
+    standard_name: Total absorption coefficient at 443 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'atot_443'
+
+  atot_490:
+    name: atot_490
+    wavelength: 0.490
+    standard_name: Total absorption coefficient at 490 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'atot_490'
+
+  atot_510:
+    name: atot_510
+    wavelength: 0.510
+    standard_name: Total absorption coefficient at 510 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'atot_510'
+
+  atot_560:
+    name: atot_560
+    wavelength: 0.560
+    standard_name: Total absorption coefficient at 560 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'atot_560'
+
+  atot_665:
+    name: atot_665
+    wavelength: 0.665
+    standard_name: Total absorption coefficient at 665 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [longitude, latitude]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'atot_665'
+
+  rrs_412:
+    name: rrs_412
+    wavelength: 0.412
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_412'
+
+  rrs_412_bias:
+    name: rrs_412_bias
+    wavelength: 0.412
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_412_bias'
+
+  rrs_412_rmsd:
+    name: rrs_412_rmsd
+    wavelength: 0.412
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_412_rmsd'
+
+  rrs_443:
+    name: rrs_443
+    wavelength: 0.443
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_443'
+
+  rrs_443_bias:
+    name: rrs_443_bias
+    wavelength: 0.443
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_443_bias'
+
+  rrs_443_rmsd:
+    name: rrs_443_rmsd
+    wavelength: 0.443
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_443_rmsd'
+
+  rrs_490:
+    name: rrs_490
+    wavelength: 0.490
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_490'
+
+  rrs_490_bias:
+    name: rrs_490_bias
+    wavelength: 0.490
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_490_bias'
+
+  rrs_490_rmsd:
+    name: rrs_490_rmsd
+    wavelength: 0.490
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_490_rmsd'
+
+  rrs_510:
+    name: rrs_510
+    wavelength: 0.510
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_510'
+
+  rrs_510_bias:
+    name: rrs_510_bias
+    wavelength: 0.510
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_510_bias'
+
+  rrs_510_rmsd:
+    name: rrs_510_rmsd
+    wavelength: 0.510
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_510_rmsd'
+
+  rrs_560:
+    name: rrs_560
+    wavelength: 0.560
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_560'
+
+  rrs_560_bias:
+    name: rrs_560_bias
+    wavelength: 0.560
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_560_bias'
+
+  rrs_560_rmsd:
+    name: rrs_560_rmsd
+    wavelength: 0.560
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_560_rmsd'
+
+  rrs_665:
+    name: rrs_665
+    wavelength: 0.665
+    standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_665'
+
+  rrs_665_bias:
+    name: rrs_665_bias
+    wavelength: 0.665
+    standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_665_bias'
+
+  rrs_665_rmsd:
+    name: rrs_665_rmsd
+    wavelength: 0.665
+    standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
+    units: "sr-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_rrsprods_geo]
+    nc_key: 'Rrs_665_rmsd'
+
+  bbp_412:
+    name: bbp_412
+    wavelength: 0.412
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 412 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_412'
+
+  bbp_443:
+    name: bbp_443
+    wavelength: 0.443
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 443 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_443'
+
+  bbp_490:
+    name: bbp_490
+    wavelength: 0.490
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 490 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_490'
+
+  bbp_510:
+    name: bbp_510
+    wavelength: 0.510
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 510 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_510'
+
+  bbp_560:
+    name: bbp_560
+    wavelength: 0.560
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 560 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_560'
+
+  bbp_665:
+    name: bbp_665
+    wavelength: 0.665
+    standard_name: Particulate backscattering coefficient for dissolved and detrital material at 665 nm as derived using the QAA model.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_iopprods_geo]
+    nc_key: 'bbp_665'
+
+  chlor_a:
+    name: chlor_a
+    standard_name: Chlorophyll-a concentration in seawater (not log-transformed), generated by as a blended combination of OCI, OCI2, OC2 and OCx algorithms, depending on water class memberships.
+    units: "milligram m-3"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo]
+    nc_key: 'chlor_a'
+
+  chlor_a_log10_bias:
+    name: chlor_a_log10_bias
+    standard_name: Bias of log10-transformed chlorophyll-a concentration in seawater.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo]
+    nc_key: 'chlor_a_log10_bias'
+
+  chlor_a_log10_rmsd:
+    name: chlor_a_log10_rmsd
+    standard_name: Root-mean-square-difference of log10-transformed chlorophyll-a concentration in seawater.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo]
+    nc_key: 'chlor_a_log10_rmsd'
+
+  kd_490:
+    name: kd_490
+    standard_name: Downwelling attenuation coefficient at 490nm, derived using Lee 2005 equation and bbw from Zhang 2009 (following the SeaDAS Kd_lee algorithm).
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_k490prods_geo]
+    nc_key: 'kd_490'
+
+  kd_490_bias:
+    name: kd_490_bias
+    standard_name: Bias of downwelling attenuation coefficient at 490 nm derived using Lee 2005 equation and bbw from Zhang 2009.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_k490prods_geo]
+    nc_key: 'kd_490_bias'
+
+  kd_490_rmsd:
+    name: kd_490_rmsd
+    standard_name: Root-mean-square-difference of downwelling attenuation coefficient at 490 nm derived using Lee 2005 equation and bbw from Zhang 2009.
+    units: "m-1"
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_k490prods_geo]
+    nc_key: 'kd_490_rmsd'
+
+  meris_nobs_sum:
+    name: meris_nobs_sum
+    standard_name: Count of the number of observations from the MERIS sensor contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'MERIS_nobs_sum'
+
+  modis_nobs_sum:
+    name: modis_nobs_sum
+    standard_name: Count of the number of observations from the MODIS (Aqua) sensor contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'MODISA_nobs_sum'
+
+  olci_nobs_sum:
+    name: olci_nobs_sum
+    standard_name: Count of the number of observations from the OLCI sensor contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'OLCI_nobs_sum'
+
+  seawifs_nobs_sum:
+    name: seawifs_nobs_sum
+    standard_name: Count of the number of observations from the SeaWiFS (GAC and LAC) sensor contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'SeaWiFS_nobs_sum'
+
+  viirs_nobs_sum:
+    name: viirs_nobs_sum
+    standard_name: Count of the number of observations from the VIIRS sensor contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'VIIRS_nobs_sum'
+
+  total_nobs_sum:
+    name: total_nobs_sum
+    standard_name: Count of the total number of observations contributing to this bin cell.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'total_nobs_sum'
+
+  water_class1:
+    name: water_class1
+    standard_name: Mean of normalised water class 1 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class1'
+
+  water_class2:
+    name: water_class2
+    standard_name: Mean of normalised water class 2 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class2'
+
+  water_class3:
+    name: water_class3
+    standard_name: Mean of normalised water class 3 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class3'
+
+  water_class4:
+    name: water_class4
+    standard_name: Mean of normalised water class 4 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class4'
+
+  water_class5:
+    name: water_class5
+    standard_name: Mean of normalised water class 5 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class5'
+
+  water_class6:
+    name: water_class6
+    standard_name: Mean of normalised water class 6 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class6'
+
+  water_class7:
+    name: water_class7
+    standard_name: Mean of normalised water class 7 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class7'
+
+  water_class8:
+    name: water_class8
+    standard_name: Mean of normalised water class 8 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class8'
+
+  water_class9:
+    name: water_class9
+    standard_name: Mean of normalised water class 9 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class9'
+
+  water_class10:
+    name: water_class10
+    standard_name: Mean of normalised water class 10 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class10'
+
+  water_class11:
+    name: water_class11
+    standard_name: Mean of normalised water class 11 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class11'
+
+  water_class12:
+    name: water_class12
+    standard_name: Mean of normalised water class 12 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class12'
+
+  water_class13:
+    name: water_class13
+    standard_name: Mean of normalised water class 13 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class13'
+
+  water_class14:
+    name: water_class14
+    standard_name: Mean of normalised water class 14 membership over the compositing period.
+    coordinates: [ longitude, latitude ]
+    file_type: [occci_allprods_geo, occci_chlorprods_geo, occci_iopprods_geo, occci_k490prods_geo, occci_rrsprods_geo]
+    nc_key: 'water_class14'

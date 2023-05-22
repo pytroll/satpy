@@ -11,6 +11,19 @@ modifiers:
     - IR_108
     - IR_134
 
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
 composites:
 
   ct_masked_ir:
@@ -193,150 +206,129 @@ composites:
     standard_name: fog
 
   cloudmask:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma
-    - cma_pal
     standard_name: cloudmask
 
   cloudtype:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ct
-    - ct_pal
     standard_name: cloudtype
 
   cloud_top_height:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_alti
-    - ctth_alti_pal
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_geo
 
   cloud_top_pressure:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_pres
-    - ctth_pres_pal
     standard_name: cloud_top_pressure
 
   cloud_top_temperature:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_tempe
-    - ctth_tempe_pal
     standard_name: cloud_top_temperature
 
   cloud_top_phase:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_phase
-    - cmic_phase_pal
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_reff
-    - cmic_reff_pal
-    standard_name: cloud_drop_effective_radius
+    standard_name: cloud_drop_effective_radius_geo
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    - cmic_cot_pal
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_geo
 
   cloud_liquid_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_lwp
-    - cmic_lwp_pal
     standard_name: cloud_liquid_water_path
 
   cloud_ice_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_iwp
-    - cmic_iwp_pal
     standard_name: cloud_ice_water_path
 
   precipitation_probability:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - pc
-    - pc_pal
     standard_name: precipitation_probability
 
   convective_rain_rate:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - crr
-    - crr_pal
     standard_name: convective_rain_rate
 
   convective_precipitation_hourly_accumulation:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - crr_accum
-    - crr_pal
     standard_name: convective_precipitation_hourly_accumulation
 
   total_precipitable_water:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ishai_tpw
-    - ishai_tpw_pal
     standard_name: total_precipitable_water
 
   showalter_index:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ishai_shw
-    - ishai_shw_pal
     standard_name: showalter_index
 
   lifted_index:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ishai_li
-    - ishai_li_pal
     standard_name: lifted_index
 
   convection_initiation_prob30:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ci_prob30
-    - ci_pal
     standard_name: convection_initiation_prob30
 
   convection_initiation_prob60:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ci_prob60
-    - ci_pal
     standard_name: convection_initiation_prob60
 
   convection_initiation_prob90:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ci_prob90
-    - ci_pal
     standard_name: convection_initiation_prob90
 
   asii_prob:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - asii_turb_trop_prob
-    - asii_turb_prob_pal
     standard_name: asii_prob
 
   rdt_cell_type:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - MapCellCatType
-    - MapCellCatType_pal
     standard_name: rdt_cell_type
 
   realistic_colors:
@@ -375,6 +367,14 @@ composites:
       modifiers: [sunz_corrected]
     - IR_108
     standard_name: overview
+
+  green_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
+    - name: VIS006
+    - name: IR_108
+    standard_name: green_snow
 
   colorized_ir_clouds:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -479,11 +479,34 @@ composites:
       - natural_color
       - night_ir_with_background
 
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color
+      - cloudtop
+
   natural_color_with_night_ir_hires:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_color_with_night_ir_hires
     prerequisites:
       - natural_color
+      - night_ir_with_background_hires
+
+  natural_enh_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    prerequisites:
+      - natural_enh
+      - night_ir_with_background
+
+  natural_enh_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir_hires
+    prerequisites:
+      - natural_enh
       - night_ir_with_background_hires
 
   night_ir_alpha:
@@ -504,7 +527,73 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  _vis06:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: vis06
+    prerequisites:
+      - name: VIS006
+        modifiers: [sunz_corrected]
+
+  _hrv:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv
+    prerequisites:
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  _vis06_filled_hrv:
+    compositor: !!python/name:satpy.composites.Filler
+    standard_name: vis06_filled_hrv
+    prerequisites:
+    - _hrv
+    - _vis06
+
+  _ir108:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: ir108
+    prerequisites:
+      - name: IR_108
+
+  _vis_with_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: vis_with_ir
+    lim_low: 85.0
+    lim_high: 88.0
+    prerequisites:
+      - _vis06_filled_hrv
+      - _ir108
+
+  vis_with_ir_cloud_overlay:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    standard_name: vis_with_ir_cloud_overlay
+    prerequisites:
+    - _vis_with_ir
+    - ct
+    # Default is opaque (transparency = 0)
+    conditions:
+      - method: equal
+        value: Cloud-free_land
+        transparency: 100
+      - method: equal
+        value: Cloud-free_sea
+        transparency: 100
+      - method: equal
+        value: Snow_over_land
+        transparency: 100
+      - method: equal
+        value: Sea_ice
+        transparency: 100
+      - method: equal
+        value: Fractional_clouds
+        transparency: 45
+      - method: equal
+        value: High_semitransparent_thin_clouds
+        transparency: 50
+      - method: equal
+        value: High_semitransparent_above_snow_ice
+        transparency: 60

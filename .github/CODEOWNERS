@@ -30,7 +30,7 @@ satpy/etc/readers/avhrr_l1b_gaclac.yaml @mraspaud @sfinkens
 satpy/etc/readers/avhrr_l1b_hrpt.yaml @mraspaud
 satpy/etc/readers/clavrx.yaml @djhoese
 satpy/etc/readers/electrol_hrit.yaml @sfinkens @mraspaud
-satpy/etc/readers/fci_l1c_fdhsi.yaml @mraspaud
+satpy/etc/readers/fci_l1c_nc.yaml @ameraner @gerritholl
 satpy/etc/readers/geocat.yaml @djhoese
 satpy/etc/readers/goes-imager_hrit.yaml @sfinkens @mraspaud
 satpy/etc/readers/goes-imager_nc.yaml @sfinkens @mraspaud
@@ -68,7 +68,7 @@ satpy/readers/clavrx.py @djhoese
 satpy/readers/electrol_hrit.py @sfinkens @mraspaud
 satpy/readers/eps_l1b.py @mraspaud @pnuu @adybbroe
 satpy/readers/eum_base.py @sjoro @sfinkens @adybbroe
-satpy/readers/fci_l1c_fdhsi.py @mraspaud
+satpy/readers/fci_l1c_nc.py @ameraner @gerritholl
 satpy/readers/geocat.py @djhoese
 satpy/readers/goes_imager_hrit.py @sfinkens @mraspaud
 satpy/readers/goes_imager_nc.py @sfinkens @mraspaud

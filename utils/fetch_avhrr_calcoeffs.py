@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Fetch avhrr calibration coefficients."""
-import urllib2
-import h5py
 import datetime as dt
 import os.path
 import sys
+
+import h5py
+import urllib2
 
 BASE_URL = "http://www.star.nesdis.noaa.gov/smcd/spb/fwu/homepage/" + \
            "AVHRR/Op_Cal_AVHRR/"

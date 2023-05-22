@@ -27,15 +27,16 @@ Documentation reference:
 """
 import logging
 
+import dask.array as da
 import h5py
 import numpy as np
 from xarray import DataArray
-import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class MAIAFileHandler(BaseFileHandler):

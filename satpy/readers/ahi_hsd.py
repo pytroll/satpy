@@ -24,32 +24,63 @@ References:
 Time Information
 ****************
 
-AHI observations use the idea of a "scheduled" time and an "observation time.
-The "scheduled" time is when the instrument was told to record the data,
-usually at a specific and consistent interval. The "observation" time is when
-the data was actually observed. Scheduled time can be accessed from the
-`scheduled_time` metadata key and observation time from the `start_time` key.
+AHI observations use the idea of a "nominal" time and an "observation" time.
+The "nominal" time or repeat cycle is the overall window when the instrument
+can record data, usually at a specific and consistent interval. The
+"observation" time is when the data was actually observed inside the nominal
+window. These two times are stored in a sub-dictionary in the metadata calls
+``time_parameters``. Nominal time can be accessed from the
+``nominal_start_time`` and ``nominal_end_time`` metadata keys and
+observation time from the ``observation_start_time`` and
+``observation_end_time`` keys. Observation time can also be accessed from the
+parent (``.attrs``) dictionary as the ``start_time`` and ``end_time`` keys.
+
+Satellite Position
+******************
+
+As discussed in the :ref:`orbital_parameters` documentation, a satellite
+position can be described by a specific "actual" position, a "nominal"
+position, a "projection" position, or sometimes a "nadir" position. Not all
+readers are able to produce all of these positions. In the case of AHI HSD data
+we have an "actual" and "projection" position. For a lot of sensors/readers
+though, the "actual" position values do not change between bands or segments
+of the same time step (repeat cycle). AHI HSD files contain varying values for
+the actual position.
+
+Other components in Satpy use this actual satellite
+position to generate other values (ex. sensor zenith angles). If these values
+are not consistent between bands then Satpy (dask) will not be able to share
+these calculations (generate one sensor zenith angle for band 1, another for
+band 2, etc) even though there is rarely a noticeable difference. To deal with
+this this reader has an option ``round_actual_position`` that defaults to
+``True`` and will round the "actual" position (longitude, latitude, altitude)
+in a way to produce as consistent a position between bands as possible.
 
 """
 
 import logging
+import os
+import warnings
 from datetime import datetime, timedelta
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
-import warnings
-import os
 
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import unzip_file, get_geostationary_mask, \
-                                np2str, get_earth_radius, \
-                                get_user_calibration_factors, \
-                                apply_rad_correction
-from satpy.readers._geos_area import get_area_extent, get_area_definition
 from satpy._compat import cached_property
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import (
+    apply_rad_correction,
+    get_earth_radius,
+    get_geostationary_mask,
+    get_user_calibration_factors,
+    np2str,
+    unzip_file,
+)
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
                      "11", "12", "13", "14", "15", "16")
@@ -200,11 +231,23 @@ _NAVIGATION_CORRECTION_INFO_TYPE = np.dtype([
     ("numof_correction_info_data", "<u2"),
 ])
 
+# Navigation correction sub-info
+_NAVIGATION_CORRECTION_SUBINFO_TYPE = np.dtype([
+    ("line_number_after_rotation", "<u2"),
+    ("shift_amount_for_column_direction", "f4"),
+    ("shift_amount_for_line_direction", "f4"),
+])
+
 # 9 Observation time information block
-_OBS_TIME_INFO_TYPE = np.dtype([
+_OBSERVATION_TIME_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u2"),
     ("number_of_observation_times", "<u2"),
+])
+
+_OBSERVATION_LINE_TIME_INFO_TYPE = np.dtype([
+    ("line_number", "<u2"),
+    ("observation_time", "f8"),
 ])
 
 # 10 Error information block
@@ -212,6 +255,11 @@ _ERROR_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u4"),
     ("number_of_error_info_data", "<u2"),
+])
+
+_ERROR_LINE_INFO_TYPE = np.dtype([
+    ("line_number", "<u2"),
+    ("numof_error_pixels_per_line", "<u2"),
 ])
 
 # 11 Spare block
@@ -245,9 +293,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         scene.load([0.6])
 
     The AHI HSD data files contain multiple VIS channel calibration
-    coefficients. By default, the standard coefficients in header block 5
-    are used. If the user prefers the updated calibration coefficients then
-    they can pass calib_mode='update' when creating a scene::
+    coefficients. By default, the updated coefficients in header block 6
+    are used. If the user prefers the default calibration coefficients from
+    block 5 then they can pass calib_mode='nominal' when creating a scene::
 
         import satpy
         import glob
@@ -303,14 +351,14 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal',
-                 user_calibration=None):
+                 mask_space=True, calib_mode='update',
+                 user_calibration=None, round_actual_position=True):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
         self.is_zipped = False
-        self._unzipped = unzip_file(self.filename)
+        self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file
@@ -352,6 +400,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         self.calib_mode = calib_mode.upper()
         self.user_calibration = user_calibration
+        self._round_actual_position = round_actual_position
 
     def __del__(self):
         """Delete the object."""
@@ -360,25 +409,71 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        """Get the start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+        """Get the nominal start time."""
+        return self.nominal_start_time
 
     @property
     def end_time(self):
-        """Get the end time."""
+        """Get the nominal end time."""
+        return self.nominal_start_time
+
+    @property
+    def observation_start_time(self):
+        """Get the observation start time."""
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+
+    @property
+    def observation_end_time(self):
+        """Get the observation end time."""
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
 
     @property
-    def scheduled_time(self):
-        """Time this band was scheduled to be recorded."""
+    def nominal_start_time(self):
+        """Time this band was nominally to be recorded."""
+        return self._modify_observation_time_for_nominal(self.observation_start_time)
+
+    @property
+    def nominal_end_time(self):
+        """Get the nominal end time."""
+        return self._modify_observation_time_for_nominal(self.observation_end_time)
+
+    @staticmethod
+    def _is_valid_timeline(timeline):
+        """Check that the `observation_timeline` value is not a fill value."""
+        if int(timeline[:2]) > 23:
+            return False
+        return True
+
+    def _modify_observation_time_for_nominal(self, observation_time):
+        """Round observation time to a nominal time based on known observation frequency.
+
+        AHI observations are split into different sectors including Full Disk
+        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
+        sector is observed at different frequencies (ex. every 10 minutes,
+        every 2.5 minutes, and every 30 seconds). This method will take the
+        actual observation time and round it to the nearest interval for this
+        sector. So if the observation time is 13:32:48 for the "JP02" sector
+        which is the second Japan observation where every Japan observation is
+        2.5 minutes apart, then the result should be 13:32:30.
+
+        """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        if not self._is_valid_timeline(timeline):
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=3
+            )
+            return observation_time
+
         if self.observation_area == 'FLDK':
             dt = 0
         else:
-            observation_freq = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
-            dt = observation_freq * (int(self.observation_area[2:]) - 1)
-        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
-                                       second=dt % 60, microsecond=0)
+            observation_frequency_seconds = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
+            dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
+
+        return observation_time.replace(
+            hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
+            second=dt % 60, microsecond=0)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
@@ -414,14 +509,17 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         pdict['a_name'] = self.observation_area
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
-        pdict['p_id'] = 'geosh8'
+        pdict['p_id'] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
 
         return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
         if fp_.tell() + offset != fpos:
-            warnings.warn("Actual "+block+" header size does not match expected")
+            warnings.warn(
+                f"Actual {block} header size does not match expected",
+                stacklevel=3
+            )
         return
 
     def _read_header(self, fp_):
@@ -476,31 +574,22 @@ class AHIHSDFileHandler(BaseFileHandler):
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
         # 8 The navigation corrections:
         ncorrs = header["block8"]['numof_correction_info_data'][0]
-        dtype = np.dtype([
-            ("line_number_after_rotation", "<u2"),
-            ("shift_amount_for_column_direction", "f4"),
-            ("shift_amount_for_line_direction", "f4"),
-        ])
         corrections = []
         for _i in range(ncorrs):
-            corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
+            corrections.append(np.fromfile(fp_, dtype=_NAVIGATION_CORRECTION_SUBINFO_TYPE, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block8')
         fp_.seek(fpos, 0)
         header['navigation_corrections'] = corrections
         header["block9"] = np.fromfile(fp_,
-                                       dtype=_OBS_TIME_INFO_TYPE,
+                                       dtype=_OBSERVATION_TIME_INFO_TYPE,
                                        count=1)
         numobstimes = header["block9"]['number_of_observation_times'][0]
 
-        dtype = np.dtype([
-            ("line_number", "<u2"),
-            ("observation_time", "f8"),
-        ])
         lines_and_times = []
         for _i in range(numobstimes):
             lines_and_times.append(np.fromfile(fp_,
-                                               dtype=dtype,
+                                               dtype=_OBSERVATION_LINE_TIME_INFO_TYPE,
                                                count=1))
         header['observation_time_information'] = lines_and_times
         fpos = fpos + int(header['block9']['blocklength'])
@@ -510,15 +599,11 @@ class AHIHSDFileHandler(BaseFileHandler):
         header["block10"] = np.fromfile(fp_,
                                         dtype=_ERROR_INFO_TYPE,
                                         count=1)
-        dtype = np.dtype([
-            ("line_number", "<u2"),
-            ("numof_error_pixels_per_line", "<u2"),
-        ])
         num_err_info_data = header["block10"][
             'number_of_error_info_data'][0]
         err_info_data = []
         for _i in range(num_err_info_data):
-            err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
+            err_info_data.append(np.fromfile(fp_, dtype=_ERROR_LINE_INFO_TYPE, count=1))
         header['error_information_data'] = err_info_data
         fpos = fpos + int(header['block10']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block10')
@@ -547,21 +632,23 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _mask_space(self, data):
         """Mask space pixels."""
-        return data.where(get_geostationary_mask(self.area))
+        return data.where(get_geostationary_mask(self.area, chunks=data.chunks))
 
-    def read_band(self, key, info):
+    def read_band(self, key, ds_info):
         """Read the data."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
-            header = self._read_header(fp_)
-            res = self._read_data(fp_, header)
-        res = self._mask_invalid(data=res, header=header)
-        self._header = header
-        logger.debug("Reading time " + str(datetime.now() - tic))
-
-        # Calibrate
+            self._header = self._read_header(fp_)
+            res = self._read_data(fp_, self._header)
+        res = self._mask_invalid(data=res, header=self._header)
         res = self.calibrate(res, key['calibration'])
 
+        new_info = self._get_metadata(key, ds_info)
+        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
+        if self.mask_space:
+            res = self._mask_space(res)
+        return res
+
+    def _get_metadata(self, key, ds_info):
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
         actual_lat = float(self.nav_info['SSP_latitude'])
@@ -570,21 +657,27 @@ class AHIHSDFileHandler(BaseFileHandler):
                               b=float(self.proj_info['earth_polar_radius'] * 1000))
         actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
 
+        if self._round_actual_position:
+            actual_lon = round(actual_lon, 3)
+            actual_lat = round(actual_lat, 2)
+            actual_alt = round(actual_alt / 150) * 150  # to the nearest 150m
+
         # Update metadata
         new_info = dict(
-            units=info['units'],
-            standard_name=info['standard_name'],
-            wavelength=info['wavelength'],
+            units=ds_info['units'],
+            standard_name=ds_info['standard_name'],
+            wavelength=ds_info['wavelength'],
             resolution='resolution',
             id=key,
             name=key['name'],
-            scheduled_time=self.scheduled_time,
             platform_name=self.platform_name,
             sensor=self.sensor,
-            satellite_longitude=float(self.nav_info['SSP_longitude']),
-            satellite_latitude=float(self.nav_info['SSP_latitude']),
-            satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-                                     self.proj_info['earth_equatorial_radius']) * 1000,
+            time_parameters=dict(
+                nominal_start_time=self.nominal_start_time,
+                nominal_end_time=self.nominal_end_time,
+                observation_start_time=self.observation_start_time,
+                observation_end_time=self.observation_end_time,
+            ),
             orbital_parameters={
                 'projection_longitude': float(self.proj_info['sub_lon']),
                 'projection_latitude': 0.,
@@ -594,20 +687,13 @@ class AHIHSDFileHandler(BaseFileHandler):
                 'satellite_actual_latitude': actual_lat,
                 'satellite_actual_altitude': actual_alt,
                 'nadir_longitude': float(self.nav_info['nadir_longitude']),
-                'nadir_latitude': float(self.nav_info['nadir_latitude'])}
+                'nadir_latitude': float(self.nav_info['nadir_latitude']),
+            },
         )
-        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-
-        # Mask space pixels
-        if self.mask_space:
-            res = self._mask_space(res)
-
-        return res
+        return new_info
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
-
         if calibration == 'counts':
             return data
 
@@ -617,8 +703,6 @@ class AHIHSDFileHandler(BaseFileHandler):
             data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
             data = self._ir_calibrate(data)
-
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
 
     def convert_to_radiance(self, data):
@@ -638,27 +722,26 @@ class AHIHSDFileHandler(BaseFileHandler):
             dn_offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         # Assume no user correction
+        correction_type = self._get_user_calibration_correction_type()
+        if correction_type == 'DN':
+            # Replace file calibration with user calibration
+            dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
+                                                              self.user_calibration)
+
+        data = (data * dn_gain + dn_offset)
+        # If using radiance correction factors from GSICS or similar, apply here
+        if correction_type == 'RAD':
+            user_slope, user_offset = get_user_calibration_factors(self.band_name,
+                                                                   self.user_calibration)
+            data = apply_rad_correction(data, user_slope, user_offset)
+        return data
+
+    def _get_user_calibration_correction_type(self):
         correction_type = None
         if isinstance(self.user_calibration, dict):
             # Check if we have DN correction coeffs
-            if 'type' in self.user_calibration:
-                correction_type = self.user_calibration['type']
-            else:
-                # If not, assume radiance correction
-                correction_type = 'RAD'
-            if correction_type == 'DN':
-                # Replace file calibration with user calibration
-                dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
-                                                                  self.user_calibration)
-            elif correction_type == 'RAD':
-                user_slope, user_offset = get_user_calibration_factors(self.band_name,
-                                                                       self.user_calibration)
-
-        data = (data * dn_gain + dn_offset).clip(0)
-        # If using radiance correction factors from GSICS or similar, apply here
-        if correction_type == 'RAD':
-            data = apply_rad_correction(data, user_slope, user_offset)
-        return data
+            correction_type = self.user_calibration.get('type', 'RAD')
+        return correction_type
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""

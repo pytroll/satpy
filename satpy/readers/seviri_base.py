@@ -56,7 +56,7 @@ In order to change the default behaviour, use the ``reader_kwargs`` keyword
 argument upon Scene creation::
 
     import satpy
-    scene = satpy.Scene(filenames,
+    scene = satpy.Scene(filenames=filenames,
                         reader='seviri_l1b_...',
                         reader_kwargs={'calib_mode': 'GSICS'})
     scene.load(['VIS006', 'IR_108'])
@@ -106,24 +106,23 @@ removed on a per-channel basis using
 :func:`satpy.readers.utils.remove_earthsun_distance_correction`.
 
 
+Masking of bad quality scan lines
+---------------------------------
+
+By default bad quality scan lines are masked and replaced with ``np.nan`` for radiance, reflectance and
+brightness temperature calibrations based on the quality flags provided by the data (for details on quality
+flags see `MSG Level 1.5 Image Data Format Description`_ page 109). To disable masking
+``reader_kwargs={'mask_bad_quality_scan_lines': False}`` can be passed to the Scene.
+
+
 Metadata
-^^^^^^^^
+--------
 
 The SEVIRI L1.5 readers provide the following metadata:
 
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite
   position, as well as the projection centre. See the `Metadata` section in
   the :doc:`../readers` chapter for more information.
-* The ``raw_metadata`` attribute provides raw metadata from the file header
-  (HRIT and Native format). By default, arrays with more than 100 elements are
-  excluded to limit memory usage. This threshold can be adjusted using the
-  ``mda_max_array_size`` reader keyword argument:
-
-  .. code-block:: python
-
-       scene = satpy.Scene(filenames,
-                          reader='seviri_l1b_hrit/native',
-                          reader_kwargs={'mda_max_array_size': 1000})
 
 * The ``acq_time`` coordinate provides the mean acquisition time for each
   scanline. Use a ``MultiIndex`` to enable selection by acquisition time:
@@ -136,6 +135,20 @@ The SEVIRI L1.5 readers provide the following metadata:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
+* Raw metadata from the file header can be included by setting the reader
+  argument ``include_raw_metadata=True`` (HRIT and Native format only). Note
+  that this comes with a performance penalty of up to 10% if raw metadata from
+  multiple segments or scans need to be combined. By default, arrays with more
+  than 100 elements are excluded to limit the performance penalty. This
+  threshold can be adjusted using the ``mda_max_array_size`` reader keyword
+  argument:
+
+  .. code-block:: python
+
+       scene = satpy.Scene(filenames,
+                          reader='seviri_l1b_hrit/native',
+                          reader_kwargs={'include_raw_metadata': True,
+                                         'mda_max_array_size': 1000})
 
 References:
     - `MSG Level 1.5 Image Data Format Description`_
@@ -145,7 +158,7 @@ References:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+    https://www.eumetsat.int/media/45126
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
@@ -154,16 +167,16 @@ References:
 
 import warnings
 
-import numpy as np
-from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
+import numpy as np
 import pyproj
+from numpy.polynomial.chebyshev import Chebyshev
 
+from satpy.readers.eum_base import issue_revision, time_cds_short
 from satpy.readers.utils import apply_earthsun_distance_correction
-from satpy.readers.eum_base import (time_cds_short,
-                                    issue_revision)
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
     'MET09': 'Meteosat-9',
@@ -201,7 +214,7 @@ CHANNEL_NAMES = {1: "VIS006",
 VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
-BTFIT = {}
+BTFIT = dict()
 # [A, B, C]
 BTFIT['IR_039'] = [0.0, 1.011751900, -3.550400]
 BTFIT['WV_062'] = [0.00001805700, 1.000255533, -1.790930]
@@ -217,7 +230,7 @@ SATNUM = {321: "8",
           323: "10",
           324: "11"}
 
-CALIB = {}
+CALIB = dict()
 
 # Meteosat 8
 CALIB[321] = {'HRV': {'F': 78.7599},
@@ -411,8 +424,7 @@ def dec10216(inbuf):
     arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
     arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
     arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
-    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
-    arr16 = da.rechunk(arr16, arr16.shape[0])
+    arr16 = np.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
 
     return arr16
 
@@ -446,7 +458,12 @@ class MpefProductHeader(object):
             ('TerminationSpace', 'S1'),
             ('EncodingVersion', np.uint16),
             ('Channel', np.uint8),
-            ('Filler', 'S20'),
+            ('ImageLocation', 'S3'),
+            ('GsicsCalMode', np.bool_),
+            ('GsicsCalValidity', np.bool_),
+            ('Padding', 'S2'),
+            ('OffsetToData', np.uint32),
+            ('Padding2', 'S9'),
             ('RepeatCycle', 'S15'),
         ]
 
@@ -523,7 +540,7 @@ class SEVIRICalibrationAlgorithm:
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
-        reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
+        reflectances for SEVIRI warm channels: https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return apply_earthsun_distance_correction(reflectance, self._scan_time)
@@ -663,13 +680,13 @@ class OrbitPolynomial:
         self.end_time = end_time
 
     def evaluate(self, time):
-        """Get satellite position in earth-centered cartesion coordinates.
+        """Get satellite position in earth-centered cartesian coordinates.
 
         Args:
             time: Timestamp where to evaluate the polynomial
 
         Returns:
-            Earth-centered cartesion coordinates (x, y, z) in meters
+            Earth-centered cartesian coordinates (x, y, z) in meters
         """
         domain = [np.datetime64(self.start_time).astype('int64'),
                   np.datetime64(self.end_time).astype('int64')]
@@ -765,7 +782,8 @@ class OrbitPolynomialFinder:
         except ValueError:
             warnings.warn(
                 'No orbit polynomial valid for {}. Using closest '
-                'match.'.format(time)
+                'match.'.format(time),
+                stacklevel=2
             )
             match = self._get_closest_interval_within(time, max_delta)
         return OrbitPolynomial(
@@ -823,39 +841,44 @@ class OrbitPolynomialFinder:
         return closest_match, distance
 
 
+# def calculate_area_extent(center_point, north, east, south, west, we_offset, ns_offset, column_step, line_step):
 def calculate_area_extent(area_dict):
     """Calculate the area extent seen by a geostationary satellite.
 
     Args:
         area_dict: A dictionary containing the required parameters
             center_point: Center point for the projection
-            resolution: Pixel resulution in meters
             north: Northmost row number
             east: Eastmost column number
             west: Westmost column number
             south: Southmost row number
+            column_step: Pixel resolution in meters in east-west direction
+            line_step: Pixel resolution in meters in south-north direction
             [column_offset: Column offset, defaults to 0 if not given]
-            [row_offset: Row offset, defaults to 0 if not given]
+            [line_offset: Line offset, defaults to 0 if not given]
     Returns:
         tuple: An area extent for the scene defined by the lower left and
                upper right corners
 
+    # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
+    # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
     """
-    # For Earth model 2 and full disk resolution center point
-    # column and row is (1856.5, 1856.5)
-    # See: MSG Level 1.5 Image Data Format Description, Figure 7
-    cp_c = area_dict['center_point'] + area_dict.get('column_offset', 0)
-    cp_r = area_dict['center_point'] + area_dict.get('row_offset', 0)
+    center_point = area_dict['center_point']
+    east = area_dict['east']
+    west = area_dict['west']
+    south = area_dict['south']
+    north = area_dict['north']
+    column_step = area_dict['column_step']
+    line_step = area_dict['line_step']
+    column_offset = area_dict.get('column_offset', 0)
+    line_offset = area_dict.get('line_offset', 0)
 
-    # Calculate column and row for lower left and upper right corners.
-    ll_c = (area_dict['west'] - cp_c)
-    ll_r = (area_dict['north'] - cp_r + 1)
-    ur_c = (area_dict['east'] - cp_c - 1)
-    ur_r = (area_dict['south'] - cp_r)
+    ll_c = (center_point - east + 0.5 + column_offset) * column_step
+    ll_l = (north - center_point + 0.5 + line_offset) * line_step
+    ur_c = (center_point - west - 0.5 + column_offset) * column_step
+    ur_l = (south - center_point - 0.5 + line_offset) * line_step
 
-    aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
-
-    return tuple(aex)
+    return (ll_c, ll_l, ur_c, ur_l)
 
 
 def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
@@ -910,3 +933,51 @@ def pad_data_vertically(data, final_size, south_bound, north_bound):
     padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)
 
     return np.vstack((padding_south, data, padding_north))
+
+
+def _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality):
+    """Create bad quality scan lines mask.
+
+    For details on quality flags see `MSG Level 1.5 Image Data Format Description`_
+    page 109.
+
+    Args:
+        line_validity (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        numpy.ndarray: Indicating if the scan line is bad.
+    """
+    # Based on missing (2) or corrupted (3) data
+    line_mask = line_validity >= 2
+    line_mask &= line_validity <= 3
+    # Do not use (4)
+    line_mask &= line_radiometric_quality == 4
+    line_mask &= line_geometric_quality == 4
+    return line_mask
+
+
+def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality):
+    """Mask scan lines with bad quality.
+
+    Args:
+        data (xarray.DataArray):
+            Channel data
+        line_validity (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        xarray.DataArray: data with lines flagged as bad converted to np.nan.
+    """
+    line_mask = _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality)
+    line_mask = line_mask[:, np.newaxis]
+    data = data.where(~line_mask, np.nan).astype(np.float32)
+    return data

@@ -1,13 +1,17 @@
 reader:
-    description: VIIRS Active Fires Reader
     name: viirs_edr_active_fires
+    short_name: VIIRS active fires
+    long_name: VIIRS EDR Active Fires data in netCDF4 & CSV .txt format
+    description: VIIRS Active Fires Reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
 
 file_types:
     fires_netcdf_img:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
-        variable_prefix: ""
+        variable_prefix: "Fire Pixels/"
         file_patterns:
             - 'AFIMG_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
     fires_netcdf:

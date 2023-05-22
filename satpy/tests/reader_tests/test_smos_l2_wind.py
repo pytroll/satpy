@@ -20,10 +20,12 @@
 
 import os
 import unittest
+from datetime import datetime
+from unittest import mock
+
 import numpy as np
 import xarray as xr
-from unittest import mock
-from datetime import datetime
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
@@ -163,6 +165,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
     def test_adjust_lon(self):
         """Load adjust longitude dataset."""
         from xarray import DataArray
+
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
                                                 {}, filetype_info={'file_type': 'smos_l2_wind'})
@@ -176,6 +179,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
     def test_roll_dataset(self):
         """Load roll of dataset along the lon coordinate."""
         from xarray import DataArray
+
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
                                                 {}, filetype_info={'file_type': 'smos_l2_wind'})

@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS flood product."""
 
-from satpy.readers.hdf4_utils import HDF4FileHandler
-from pyresample import geometry
 import numpy as np
+from pyresample import geometry
+
+from satpy.readers.hdf4_utils import HDF4FileHandler
 
 
 class VIIRSEDRFlood(HDF4FileHandler):

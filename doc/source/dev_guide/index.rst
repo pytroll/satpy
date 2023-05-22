@@ -14,9 +14,11 @@ at the pages listed below.
     CONTRIBUTING
     xarray_migration
     custom_reader
+    remote_file_support
     plugins
     satpy_internals
     aux_data
+    writing_tests
 
 Coding guidelines
 =================
@@ -30,6 +32,8 @@ Satpy is now Python 3 only and it is no longer needed to support Python 2.
 Check ``setup.py`` for the current Python versions any new code needs
 to support.
 
+.. _devinstall:
+
 Development installation
 ========================
 
@@ -37,10 +41,10 @@ See the :doc:`../install` section for basic installation instructions. When
 it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
-a separate conda environment or virtualenv for development. For example, you 
+a separate conda environment or virtualenv for development. For example, you
 can do this using conda_::
 
-  conda create -n satpy-dev python=3.8
+  conda create -n satpy-dev python=3.11
   conda activate satpy-dev
 
 .. _conda: https://conda.io/
@@ -59,26 +63,71 @@ clone your fork. The package can then be installed in development mode by doing:
 The first command will install all dependencies needed by the Satpy
 conda-forge package, but won't actually install Satpy. The second command
 should be run from the root of the cloned Satpy repository (where the
-`setup.py` is) and will install the actual package.
+``setup.py`` is) and will install the actual package.
 
 You can now edit the python files in your cloned repository and have them
 immediately reflected in your conda environment.
 
+All the required dependencies for a full development environment, i.e. running the
+tests and building the documentation, can be installed with::
+
+    conda install eccodes
+    pip install -e ".[all]"
+
 Running tests
 =============
 
-Satpy tests are written using the python :mod:`unittest` module and the
-third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
-running::
+Satpy tests are written using the third-party :doc:`pytest <pytest:index>`
+package. There is usually no need to run all Satpy tests, but instead only
+run the tests related to the component you are working on. All tests are
+automatically run from the GitHub Pull Request using multiple versions of
+Python, multiple operating systems, and multiple versions of dependency
+libraries. If you want to run all Satpy tests you will need to install
+additional dependencies that aren't needed for regular Satpy usage. To install
+them run::
+
+    conda install eccodes
+    pip install -e ".[tests]"
+
+Satpy tests can be executed by running::
 
     pytest satpy/tests
+
+You can also run a specific tests by specifying a sub-directory or module::
+
+    pytest satpy/tests/reader_tests/test_abi_l1b.py
+
+Running benchmarks
+==================
+
+Satpy benchmarks are written using the
+`Airspeed Velocity <https://asv.readthedocs.io/en/stable/index.html>`_
+package (:mod:`asv`).
+The benchmarks can be run using::
+
+    asv run
+
+These are pretty computation intensive, and shouldn't be run unless you want to
+diagnose some performance issue for example.
+
+Once the benchmarks have run, you can use::
+
+    asv publish
+    asv preview
+
+to have a look at the results. Again, have a look at the `asv` documentation for
+more information.
 
 Documentation
 =============
 
 Satpy's documentation is built using Sphinx. All documentation lives in the
-``doc/`` directory of the project repository. After editing the source files
-there the documentation can be generated locally::
+``doc/`` directory of the project repository. For building the documentation,
+additional packages are needed. These can be installed with ::
+
+    pip install -e ".[all]".
+
+After editing the source files there the documentation can be generated locally::
 
     cd doc
     make html

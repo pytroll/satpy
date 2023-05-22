@@ -30,10 +30,15 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_extent, get_area_definition
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, time_cds_short)
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+    time_cds_short,
+)
 
 logger = logging.getLogger('hrit_electrol')
 
@@ -156,7 +161,6 @@ class HRITGOMSPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-        pass
 
 
 radiometric_processing = np.dtype([("TagType", "<u4"),
@@ -243,8 +247,12 @@ class HRITGOMSEpilogueFileHandler(HRITFileHandler):
 C1 = 1.19104273e-5
 C2 = 1.43877523
 
+
+# Defined in MSG Level 1.5 Image Data Format Description
+# https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 SPACECRAFTS = {19001: "Electro-L N1",
-               19002: "Electro-L N2"}
+               19002: "Electro-L N2",
+               19003: "Electro-L N3"}
 
 
 class HRITGOMSFileHandler(HRITFileHandler):
@@ -279,9 +287,6 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs['wavelength'] = info['wavelength']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'msu-gs'
-        res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = 0
-        res.attrs['satellite_altitude'] = 35785831.00
         res.attrs['orbital_parameters'] = {
             'satellite_nominal_longitude': self.mda['orbital_parameters']['satellite_nominal_longitude'],
             'satellite_nominal_latitude': 0.,

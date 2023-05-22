@@ -85,6 +85,51 @@ iteratively overlays the remaining datasets on top.
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
 
+
+Stacking scenes using weights
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is also possible to blend scenes together in a bit more sophisticated manner
+using pixel based weighting instead of just stacking the scenes on top of each
+other as described above. This can for instance be useful to make a cloud
+parameter (cover, height, etc) composite combining cloud parameters derived
+from both geostationary and polar orbiting satellite data close in time and
+over a given area. This is useful for instance at high latitudes where
+geostationary data degrade quickly with latitude and polar data are more
+frequent.
+
+This weighted blending can be accomplished via the use of the builtin
+:func:`~functools.partial` function (see `Partial
+<https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
+default :func:`~satpy.multiscene.stack` function. The
+:func:`~satpy.multiscene.stack` function can take the optional argument
+`weights` (`None` on default) which should be a sequence (of length equal to
+the number of scenes being blended) of arrays with pixel weights.
+
+The code below gives an example of how two cloud scenes can be blended using
+the satellite zenith angles to weight which pixels to take from each of the two
+scenes. The idea being that the reliability of the cloud parameter is higher
+when the satellite zenith angle is small.
+
+    >>> from satpy import Scene, MultiScene,  DataQuery
+    >>> from functools import partial
+    >>> from satpy.resample import get_area_def
+    >>> areaid = get_area_def("myarea")
+    >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
+    >>> geo_scene.load(['ct'])
+    >>> polar_scene = Scene(filenames=glob('/data/to/nwcsaf/pps/noaa18/files/*nc'), reader='nwcsaf-pps_nc')
+    >>> polar_scene.load(['cma', 'ct'])
+    >>> mscn = MultiScene([geo_scene, polar_scene])
+    >>> groups = {DataQuery(name='CTY_group'): ['ct']}
+    >>> mscn.group(groups)
+    >>> resampled = mscn.resample(areaid, reduce_data=False)
+    >>> weights = [1./geo_satz, 1./n18_satz]
+    >>> stack_with_weights = partial(stack, weights=weights)
+    >>> blended = resampled.blend(blend_function=stack_with_weights)
+    >>> blended_scene.save_dataset('CTY_group', filename='./blended_stack_weighted_geo_polar.nc')
+
+
+
 Grouping Similar Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -174,7 +219,7 @@ This will compute one video frame (image) at a time and write it to the MPEG-4
 video file. For users with more powerful systems it is possible to use
 the ``client`` and ``batch_size`` keyword arguments to compute multiple frames
 in parallel using the dask ``distributed`` library (if installed).
-See the :doc:`dask distributed <dask:setup/single-distributed>` documentation
+See the :doc:`dask distributed <dask:deploying-python>` documentation
 for information on creating a ``Client`` object. If working on a cluster
 you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
 of multiple nodes at a time.

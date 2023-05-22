@@ -25,39 +25,5 @@ class TestAHIComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        cl.load_sensor_composites('abi')
-
-    def test_corrected_green(self):
-        """Test adjusting the 'green' band."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
-        from satpy.composites.ahi import GreenCorrector
-        from pyresample.geometry import AreaDefinition
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
-            cols, rows,
-            (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
-
-        comp = GreenCorrector('green', prerequisites=(0.51, 0.85),
-                              standard_name='toa_bidirectional_reflectance')
-        c01 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.25,
-                           dims=('y', 'x'),
-                           attrs={'name': 'C01', 'area': area})
-        c02 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.30,
-                           dims=('y', 'x'),
-                           attrs={'name': 'C02', 'area': area})
-        res = comp((c01, c02))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'green')
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_bidirectional_reflectance')
-        data = res.compute()
-        np.testing.assert_allclose(data, 0.2575)
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['ahi'])

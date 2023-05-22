@@ -19,6 +19,7 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
 import xarray as xr
 
@@ -102,6 +103,7 @@ class TestSCMIFileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
+
         from satpy.tests.utils import make_dataid
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
@@ -121,6 +123,11 @@ class TestSCMIFileHandler(unittest.TestCase):
         self.assertNotIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'toa_bidirectional_reflectance')
+        assert 'orbital_parameters' in res.attrs
+        orb_params = res.attrs['orbital_parameters']
+        assert orb_params['projection_longitude'] == -90.0
+        assert orb_params['projection_latitude'] == 0.0
+        assert orb_params['projection_altitude'] == 35785831.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):

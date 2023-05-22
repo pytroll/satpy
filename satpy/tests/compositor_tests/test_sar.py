@@ -25,9 +25,10 @@ class TestSARComposites(unittest.TestCase):
 
     def test_sar_ice(self):
         """Test creating a the sar_ice composite."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
+        import xarray as xr
+
         from satpy.composites.sar import SARIce
 
         rows = 2
@@ -54,9 +55,10 @@ class TestSARComposites(unittest.TestCase):
 
     def test_sar_ice_log(self):
         """Test creating a the sar_ice_log composite."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
+        import xarray as xr
+
         from satpy.composites.sar import SARIceLog
 
         rows = 2

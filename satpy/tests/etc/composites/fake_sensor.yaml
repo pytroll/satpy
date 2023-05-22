@@ -241,3 +241,8 @@ composites:
         prerequisites:
           - name: ds13
             modifiers: ['mod1', 'mod_opt_only']
+  comp_multi:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+      - ds4_b

@@ -25,11 +25,16 @@ import dask.array as da
 import numpy as np
 from xarray import DataArray
 
-from satpy.readers.electrol_hrit import (HRITGOMSEpilogueFileHandler,
-                                         HRITGOMSFileHandler,
-                                         HRITGOMSPrologueFileHandler, epilogue,
-                                         image_acquisition, prologue,
-                                         recarray2dict, satellite_status)
+from satpy.readers.electrol_hrit import (
+    HRITGOMSEpilogueFileHandler,
+    HRITGOMSFileHandler,
+    HRITGOMSPrologueFileHandler,
+    epilogue,
+    image_acquisition,
+    prologue,
+    recarray2dict,
+    satellite_status,
+)
 from satpy.tests.utils import make_dataid
 
 # Simplify some type selections

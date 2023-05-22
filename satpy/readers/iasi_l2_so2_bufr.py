@@ -86,9 +86,10 @@ https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_20
 
 import logging
 from datetime import datetime
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 try:
     import eccodes as ec
@@ -98,10 +99,10 @@ except ImportError as e:
            Error: """, e)
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('IASIL2SO2BUFR')
-
+CHUNK_SIZE = get_legacy_chunk_size()
 data_center_dict = {3: 'METOP-1', 4: 'METOP-2', 5: 'METOP-3'}
 
 

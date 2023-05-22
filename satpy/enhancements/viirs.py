@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancements specific to the VIIRS instrument."""
-from trollimage.colormap import Colormap
 import numpy as np
-from satpy.enhancements import apply_enhancement
+from trollimage.colormap import Colormap
+
+from satpy.enhancements import exclude_alpha, using_map_blocks
 
 
 def water_detection(img, **kwargs):
@@ -29,14 +30,17 @@ def water_detection(img, **kwargs):
     palette = kwargs['palettes']
     palette['colors'] = tuple(map(tuple, palette['colors']))
 
-    def func(img_data):
-        data = np.asarray(img_data)
-        data[data == 150] = 31
-        data[data == 199] = 18
-        data[data >= 200] = data[data >= 200] - 100
-
-        return data
-
-    apply_enhancement(img.data, func, pass_dask=True)
+    _water_detection(img.data)
     cm = Colormap(*palette['colors'])
     img.palettize(cm)
+
+
+@exclude_alpha
+@using_map_blocks
+def _water_detection(img_data):
+    data = np.asarray(img_data).copy()
+    data[data == 150] = 31
+    data[data == 199] = 18
+    data[data >= 200] = data[data >= 200] - 100
+
+    return data

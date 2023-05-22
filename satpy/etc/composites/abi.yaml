@@ -3,7 +3,8 @@ sensor_name: visir/abi
 modifiers:
   rayleigh_corrected_crefl:
     modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
-    dem_filename: CMGDEM.hdf
+    url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
+    known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -194,7 +195,7 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: C03
         modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_green_sunz:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -207,7 +208,7 @@ composites:
         modifiers: [sunz_corrected]
       - name: C03
         modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_green:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -217,7 +218,7 @@ composites:
       - name: C01
       - name: C02
       - name: C03
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_true_color_sunz_rayleigh:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
@@ -271,14 +272,37 @@ composites:
       - name: C01
     standard_name: cimss_true_color
 
+  true_color_with_night_fires_nocorr:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_fires
+    prerequisites:
+      - true_color_nocorr
+      - cira_fire_temperature
+
+  true_color_with_night_fires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_fires
+    prerequisites:
+      - true_color
+      - cira_fire_temperature
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
-    lim_low: 90.0
-    lim_high: 100.0
+    lim_low: 80
+    lim_high: 90
     prerequisites:
       - true_color
       - night_ir_with_background
+
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
 
   true_color_with_night_ir_hires:
     compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -307,7 +331,7 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
@@ -321,7 +345,7 @@ composites:
       appear red. With the increasing intensity and temperature the fires will also be detected
       by the 2.2 μm and 1.6 μm bands resulting very intense fires in white.
     references:
-      Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+      Research Article: https://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
     prerequisites:
       - name: C07
       - name: C06
@@ -335,7 +359,7 @@ composites:
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
       to the mature storm stage.
     references:
-      Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+      Research Article: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -363,11 +387,12 @@ composites:
       - name: C04
       - name: C02
       - name: C05
+
   ash:
     description: >
       Ash RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -385,7 +410,7 @@ composites:
     description: >
       Dust RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -404,8 +429,8 @@ composites:
       Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
       Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Day_Cloud_Phase_Distinction.pdf
-      Cloud Type recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13_A&RevisionSelectionMethod=LatestReleased&Rendition=Web
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
     ## it uses the default used in etc/enhancements/generic.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -430,7 +455,7 @@ composites:
     description: >
       Simple Water Vapor RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Simple_Water_Vapor_RGB.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Simple_Water_Vapor_RGB.pdf
     ## it uses the default used in etc/enhancements/generic.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -443,7 +468,7 @@ composites:
     description: >
       Differential Water Vapor RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DifferentialWaterVaporRGB_final.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DifferentialWaterVaporRGB_final.pdf
     ## it uses the default used in etc/enhancements/generic.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -459,7 +484,7 @@ composites:
     description: >
       Day Convection RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -480,7 +505,7 @@ composites:
     description: >
       SO2 RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -498,7 +523,7 @@ composites:
     description: >
       Day Snow-Fog RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFog.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFogRGB_final_v2.pdf
     ## it uses the default used in etc/enhancements/generic.yaml of snow_defaul
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -516,7 +541,7 @@ composites:
     description: >
       Nighttime Microphysics RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_Final_20191206.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -534,7 +559,7 @@ composites:
     description: >
       Fire Temperature RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
     ## adapted from etc/composites/viirs.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -548,7 +573,7 @@ composites:
     description: >
       Day Land Cloud Fire RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C06
@@ -562,7 +587,7 @@ composites:
     description: >
       Day Land Cloud RGB, for GOESR: NASA, NOAA
     references:
-      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05
@@ -576,7 +601,8 @@ composites:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/visir.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -592,7 +618,8 @@ composites:
     description: >
       SEVIRI Day Microphysics RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/ahi.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -618,12 +645,10 @@ composites:
 
   cloud_phase:
     description: >
-      Cloud Phase RGB, for EUMETSAT
-      Day Cloud Phase RGB, for EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_2861499.html)
-      "When we use the NIR2.3 instead of the VIS0.8 on the green beam, we can devise a new RGB product (let us call it 'Day Cloud Phase RGB') that has similar cloud colours than the Natural Colour RGB, but with improved separation of ice and water clouds."
+      EUMETSAT Cloud Phase RGB product
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
-      Cloud Phase recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13&RevisionSelectionMethod=LatestReleased&Rendition=Web
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05
@@ -632,17 +657,17 @@ composites:
         modifiers: [sunz_corrected]
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: natural_color
+    standard_name: cloud_phase
 
   cloud_phase_raw:
     description: >
-      same as cloud_phase
+      same as eum_cloud_phase RGB product, without modifiers
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05
       - name: C06
       - name: C02
-    standard_name: natural_color
+    standard_name: cloud_phase
 
   tropical_airmass:
     description: >
@@ -680,3 +705,34 @@ composites:
     prerequisites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 77.
+    lim_high: 88.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+      - name: green_nocorr
+      - name: C01
+    standard_name: true_color_reproduction_color_stretch

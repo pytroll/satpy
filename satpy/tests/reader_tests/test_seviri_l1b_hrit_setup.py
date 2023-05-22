@@ -22,9 +22,7 @@ from unittest import mock
 
 import numpy as np
 
-from satpy.readers.seviri_l1b_hrit import (
-    HRITMSGFileHandler, HRITMSGPrologueFileHandler
-)
+from satpy.readers.seviri_l1b_hrit import HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 
@@ -59,6 +57,7 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
     m = mock.mock_open()
     with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile, \
             mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
+            mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
             mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'), \
             mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd), \
             mock.patch.object(HRITMSGPrologueFileHandler, 'read_prologue',
@@ -70,8 +69,12 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
                    ('hdr_id', int)]
         )
         newopen.return_value.__enter__.return_value.tell.return_value = 1
+        # The size of the return value hereafter was chosen arbitrarily with the expectation
+        # that it would return sufficiently many bytes for testing the fake-opening of HRIT
+        # files.
+        utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
         prologue = HRITMSGPrologueFileHandler(
-            filename=None,
+            filename='dummy_prologue_filename',
             filename_info=filename_info,
             filetype_info={}
         )
@@ -118,7 +121,8 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
          },
          'ImageAcquisition': {
             'PlannedAcquisitionTime': {
-                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888)
+                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
             }
          }
     }
@@ -156,7 +160,10 @@ def get_fake_mda(nlines, ncols, start_time):
         'coff': 10,
         'loff': 10,
         'image_segment_line_quality': {
-            'line_mean_acquisition': tline
+            'line_mean_acquisition': tline,
+            'line_validity': np.full(nlines, 3),
+            'line_radiometric_quality': np.full(nlines, 4),
+            'line_geometric_quality': np.full(nlines, 4)
         }
     }
 
@@ -209,9 +216,6 @@ def get_attrs_exp(projection_longitude=0.0):
         'standard_name': 'standard_name',
         'platform_name': 'Meteosat-11',
         'sensor': 'seviri',
-        'satellite_longitude': projection_longitude,
-        'satellite_latitude': 0.0,
-        'satellite_altitude': 35785831.0,
         'orbital_parameters': {'projection_longitude': projection_longitude,
                                'projection_latitude': 0.,
                                'projection_altitude': 35785831.0,
@@ -220,5 +224,7 @@ def get_attrs_exp(projection_longitude=0.0):
                                'satellite_actual_longitude': -3.55117540817073,
                                'satellite_actual_latitude': -0.5711243456528018,
                                'satellite_actual_altitude': 35783296.150123544},
-        'georef_offset_corrected': True
+        'georef_offset_corrected': True,
+        'nominal_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+        'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0, 0)
     }

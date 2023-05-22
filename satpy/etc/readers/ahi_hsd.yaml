@@ -4,8 +4,10 @@
 reader:
   name: ahi_hsd
   short_name: AHI HSD
-  long_name: Himawari AHI Level 1b (HSD)
+  long_name: Himawari (8 + 9) AHI Level 1b (HSD)
   description: Reader for the JMA Himawari AHI Level 1 data in HSD format
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
   sensors: [ahi]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
@@ -288,65 +290,65 @@ datasets:
 file_types:
   hsd_b01:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b02:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b03:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b04:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b05:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b06:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b07:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b08:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b09:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b10:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b11:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b12:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b13:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b14:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b15:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
   hsd_b16:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R{res_id:d}_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']

@@ -1,0 +1,33 @@
+reader:
+  name: fake4
+  description: Fake reader used for easier testing
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [fake_sensor_4]
+datasets:
+  lons:
+    name: lons
+    resolution: [250, 500, 1000]
+    standard_name: longitude
+    file_type: fake_file4
+  lats:
+    name: lats
+    resolution: [250, 500, 1000]
+    standard_name: latitude
+    file_type: fake_file4
+  ds4_a:
+    name: ds4_a
+    resolution: 1000
+    wavelength: [0.1, 0.2, 0.3]
+    file_type: fake_file4
+    coordinates: [lons, lats]
+  ds4_b:
+    name: ds4_b
+    resolution: 250
+    wavelength: [0.4, 0.5, 0.6]
+    file_type: fake_file4
+    coordinates: [lons, lats]
+file_types:
+  fake_file4:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake4_{file_idx:d}.txt']
+    sensor: fake_sensor_4
