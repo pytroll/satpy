@@ -420,6 +420,7 @@ IMAGE_DATA = {
 }
 # fmt: on
 
+
 def recarr2dict(arr, preserve=None):
     if not preserve:
         preserve = []
@@ -515,41 +516,45 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
-        """
+        dataset = self._get_image_data()
+        lons, lats = self._get_lons_lats(dataset_id, dataset)
+        self._attach_coords(dataset, lons, lats)
+        return dataset
 
-        TODO: Split in two methods
-        """
+    def _get_image_data(self):
+        dask_array = self._read_image_data()
+        return self._make_image_dataset(dask_array)
 
-        num_lines, num_pixels = self._get_actual_shape()
-        memmap = np.memmap(
+    def _read_image_data(self):
+        memmap = self._get_memmap()
+        return da.from_array(memmap, chunks=(CHUNK_SIZE,))
+
+    def _get_memmap(self):
+        num_lines, _ = self._get_actual_shape()
+        return np.memmap(
             filename=self._filename,
             mode='r',
             dtype=IMAGE_DATA[self._channel_type]['dtype'],
             offset=IMAGE_DATA[self._channel_type]['offset'],
             shape=(num_lines,)
         )
-        dask_array = da.from_array(memmap, chunks=(CHUNK_SIZE,))
-        data = xr.DataArray(
+
+    def _make_image_dataset(self, dask_array):
+        return xr.DataArray(
             dask_array['image_data'],
             dims=('y', 'x'),
             coords={
                 'acq_time': ('y', self._get_acq_time(dask_array)),
-                'line_number': ('y', dask_array['LCW']['line_number'].compute())
+                'line_number': ('y', self._get_line_number(dask_array))
             }
         )
-
-        lines, pixels = self._get_image_coords(data)
-        lons, lats = self._get_lons_lats(dataset_id, lines, pixels)
-        lons = xr.DataArray(lons, dims=('y', 'x'), attrs={'standard_name': 'longitude'})
-        lats = xr.DataArray(lats, dims=('y', 'x'), attrs={'standard_name': 'latitude'})
-        data.coords['lon'] = lons
-        data.coords['lat'] = lats
-
-        return data
 
     def _get_acq_time(self, dask_array):
         acq_time = dask_array['LCW']['scan_time'].compute()
         return mjd2datetime64(acq_time)
+
+    def _get_line_number(self, dask_array):
+        return dask_array['LCW']['line_number'].compute()
 
     def get_area_def_test(self, dsid):
         alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
@@ -599,25 +604,55 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
 
-    def _get_lons_lats(self, dataset_id, lines, pixels):
+    def _get_lons_lats(self, dataset_id, image_data):
         # TODO: Store channel name in self.channel_name
+        lines, pixels = self._get_image_coords(image_data)
+        static_params = self._get_static_navigation_params(dataset_id)
+        predicted_params = self._get_predicted_navigation_params()
+        lons, lats = nav.get_lons_lats(
+            lines=lines,
+            pixels=pixels,
+            static_params=static_params,
+            predicted_params=predicted_params
+        )
+        return self._make_lons_lats_data_array(lats, lons)
+
+    def _get_image_coords(self, data):
+        lines = data.coords['line_number'].values
+        pixels = np.arange(data.shape[1])
+        return lines.astype(np.float64), pixels.astype(np.float64)
+
+    def _get_static_navigation_params(self, dataset_id):
         alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
         mode_block = self._header['image_parameters']['mode']
         coord_conv = self._header['image_parameters']['coordinate_conversion']
-        att_pred = self._header['image_parameters']['attitude_prediction']['data']
-        orb_pred = self._header['image_parameters']['orbit_prediction']['data']
-
         center_line_vissr_frame = coord_conv['central_line_number_of_vissr_frame'][alt_ch_name]
         center_pixel_vissr_frame = coord_conv['central_pixel_number_of_vissr_frame'][alt_ch_name]
         pixel_offset = coord_conv['pixel_difference_of_vissr_center_from_normal_position'][
             alt_ch_name]
-
         scan_params = nav.ScanningParameters(
             start_time_of_scan=coord_conv['scheduled_observation_time'],
             spinning_rate=mode_block['spin_rate'],
             num_sensors=coord_conv['number_of_sensor_elements'][alt_ch_name],
             sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
         )
+        # Use earth radius and flattening from JMA's Msial library, because
+        # the values in the data seem to be pretty old. For example the
+        # equatorial radius is from the Bessel Ellipsoid (1841).
+        proj_params = nav.ProjectionParameters(
+            line_offset=center_line_vissr_frame,
+            pixel_offset=center_pixel_vissr_frame + pixel_offset,
+            stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
+            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
+            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment'].transpose().astype(np.float64)),
+            earth_flattening=nav.EARTH_FLATTENING,
+            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
+        )
+        return scan_params, proj_params
+
+    def _get_predicted_navigation_params(self):
+        att_pred = self._header['image_parameters']['attitude_prediction']['data']
+        orb_pred = self._header['image_parameters']['orbit_prediction']['data']
         attitude_prediction = nav.AttitudePrediction(
             prediction_times=att_pred['prediction_time_mjd'].astype(np.float64),
             angle_between_earth_and_sun=att_pred['sun_earth_angle'].astype(np.float64),
@@ -634,28 +669,15 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][:, 2].astype(np.float64),
             nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose(0, 2, 1).astype(np.float64))
         )
+        return attitude_prediction, orbit_prediction
 
-        # Use earth radius and flattening from JMA's Msial library, because
-        # the values in the data seem to be pretty old. For example the
-        # equatorial radius is from the Bessel Ellipsoid (1841).
-        proj_params = nav.ProjectionParameters(
-            line_offset=center_line_vissr_frame,
-            pixel_offset=center_pixel_vissr_frame + pixel_offset,
-            stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
-            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
-            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment'].transpose().astype(np.float64)),
-            earth_flattening=nav.EARTH_FLATTENING,
-            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
-        )
-        lons, lats = nav.get_lons_lats(
-            lines=lines.astype(np.float64),
-            pixels=pixels.astype(np.float64),
-            static_params=(scan_params, proj_params),
-            predicted_params=(attitude_prediction, orbit_prediction)
-        )
+    def _make_lons_lats_data_array(self, lats, lons):
+        lons = xr.DataArray(lons, dims=('y', 'x'),
+                            attrs={'standard_name': 'longitude'})
+        lats = xr.DataArray(lats, dims=('y', 'x'),
+                            attrs={'standard_name': 'latitude'})
         return lons, lats
 
-    def _get_image_coords(self, data):
-        lines = data.coords['line_number'].values
-        pixels = np.arange(data.shape[1])
-        return lines, pixels
+    def _attach_coords(self, dataset, lons, lats):
+        dataset.coords['lon'] = lons
+        dataset.coords['lat'] = lats
