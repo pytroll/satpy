@@ -647,18 +647,16 @@ def test_find_files_and_readers_fsspec_fsfile(tmp_path):
     assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
 
 
-def test_find_files_and_readers_fsspec_not_available(tmp_path):
+def test_find_files_and_readers_fsspec_not_available(monkeypatch, tmp_path):
     """Test that if fsspec is not installed filepath is returned as a string."""
     p = (tmp_path /
          "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
          "_c20152950029000.nc")
     p.touch()
 
-    with mock.patch.dict('sys.modules', {'fsspec': None}):
-        # delete find_files_and_readers import and reload
-        del sys.modules['satpy.readers']
+    with monkeypatch.context() as m:
+        m.delitem(sys.modules, "fsspec")
         from satpy.readers import FSFile, find_files_and_readers
-
         ri = find_files_and_readers(
                 base_dir=p.parent,
                 reader="abi_l1b")
