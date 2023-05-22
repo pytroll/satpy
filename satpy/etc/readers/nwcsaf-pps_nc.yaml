@@ -126,19 +126,19 @@ datasets:
     name: ct_conditions
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_conditions
+    standard_name: ct_conditions
 
   ct_quality:
     name: ct_quality
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_quality
+    standard_name: ct_quality
 
   ct_status_flag:
     name: ct_status_flag
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_status_flag
+    standard_name: ct_status_flag
 
   ct_pal:
     name: ct_pal
@@ -186,6 +186,7 @@ datasets:
 
   ctth_alti_pal:
     name: ctth_alti_pal
+    scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
   ctth_quality:
@@ -210,6 +211,7 @@ datasets:
 
   ctth_pres_pal:
     name: ctth_pres_pal
+    scale_offset_dataset: ctth_pres
     file_type: nc_nwcsaf_ctth
 
   ctth_tempe:
@@ -219,6 +221,7 @@ datasets:
 
   ctth_tempe_pal:
     name: ctth_tempe_pal
+    scale_offset_dataset: ctth_tempe
     file_type: nc_nwcsaf_ctth
 
 

@@ -47,9 +47,9 @@ class ABIL1B(GeoBenchmarks):
 
     def setup(self):
         """Set up the benchmarks."""
-        import satpy
+        import dask.config
         self.data_files = get_filenames(self.subdir)
-        satpy.CHUNK_SIZE = 2048
+        dask.config.set({"array.chunk-size": "32MiB"})
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""

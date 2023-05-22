@@ -86,7 +86,7 @@ msg_seviri_iodc_3km:
     with 3 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -103,7 +103,7 @@ msg_seviri_iodc_1km:
     with 1 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -155,7 +155,7 @@ msg_seviri_iodc_9km:
     with 9 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -206,7 +206,7 @@ msg_seviri_iodc_9km_ext:
     with 9 km resolution (extended outside original 3km grid)
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -257,7 +257,7 @@ msg_seviri_iodc_48km:
     with 48 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0

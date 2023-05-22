@@ -22,6 +22,10 @@ import xarray as xr
 
 from satpy.readers.atms_l1b_nc import AtmsL1bNCFileHandler
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 @pytest.fixture
 def reader(l1b_file):

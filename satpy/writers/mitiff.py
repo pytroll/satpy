@@ -724,6 +724,7 @@ class MITIFFWriter(ImageWriter):
             Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
                                                         compress_level=9, tiffinfo=tiffinfo)
         else:
+            mitiff_frames = []
             for _cn_i, _cn in enumerate(self.channel_order[kwargs['sensor']]):
                 for band in datasets['bands']:
                     if band == _cn:
@@ -736,6 +737,8 @@ class MITIFFWriter(ImageWriter):
                                                     self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                     self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
-                        Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
-                                                                    compress_level=9, tiffinfo=tiffinfo)
+                        mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
+
                         break
+            mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
+                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)

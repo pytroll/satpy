@@ -195,7 +195,7 @@ class TestLIL2():
         handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
 
         dataset_id = make_dataid(name='test_dataset')
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError):
             handler.get_dataset(dataset_id)
 
     def test_dataset_not_in_provided_dataset(self, filetype_infos):
@@ -323,7 +323,7 @@ class TestLIL2():
 
         handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
 
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError):
             handler.get_first_valid_variable(["dummy/path", "data/test/test_var"])
 
     def test_available_datasets(self, filetype_infos):

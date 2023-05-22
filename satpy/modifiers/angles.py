@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -185,7 +185,9 @@ class ZarrCacheHelper:
                 "has been rechunked for caching, but this is not optimal for "
                 "future calculations. "
                 f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
-                PerformanceWarning)
+                PerformanceWarning,
+                stacklevel=3
+            )
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
@@ -265,8 +267,10 @@ def _sanitize_observer_look_args(*args):
         if isinstance(arg, datetime):
             new_args.append(STATIC_EARTH_INERTIAL_DATETIME)
         elif isinstance(arg, (float, np.float64, np.float32)):
-            # round floating point numbers to nearest tenth
-            new_args.append(round(arg, 1))
+            # Round floating point numbers to nearest tenth. Numpy types don't
+            # serialize into JSON which is needed for hashing, thus the casting
+            # to float here:
+            new_args.append(float(round(arg, 1)))
         elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
             new_chunks = _regular_chunks_from_irregular_chunks(arg)
             new_args.append(new_chunks)
@@ -310,7 +314,9 @@ def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
     is when all chunks are the same size (except for the last one).
 
     """
-    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
+    if any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple):
+        return True
+    return any(chunks[-1] > chunks[0] for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
@@ -445,6 +451,7 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
     chunks = _geo_chunks_from_data_arr(data_arr)
+
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],
                                                  area_def, chunks)

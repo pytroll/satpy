@@ -185,11 +185,12 @@ import logging
 import xarray as xr
 from pyresample import AreaDefinition
 
-from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class SatpyCFFileHandler(BaseFileHandler):
@@ -282,14 +283,33 @@ class SatpyCFFileHandler(BaseFileHandler):
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
+    def _compare_attr(self, _ds_id_dict, key, data):
+        if key in ['name', 'modifiers']:
+            return True
+        elif key == 'wavelength':
+            return _ds_id_dict[key] == WavelengthRange.from_cf(data.attrs[key])
+        else:
+            return data.attrs[key] == _ds_id_dict[key]
+
+    def _dataid_attrs_equal(self, ds_id, data):
+        _ds_id_dict = ds_id.to_dict()
+        for key in _ds_id_dict:
+            try:
+                if not self._compare_attr(_ds_id_dict, key, data):
+                    return False
+            except KeyError:
+                pass
+        return True
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", ds_id['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
         name = ds_info.get('nc_store_name', ds_id['name'])
-        file_key = ds_info.get('file_key', name)
-        data = nc[file_key]
+        data = nc[ds_info.get('file_key', name)]
+        if not self._dataid_attrs_equal(ds_id, data):
+            return
         if name != ds_id['name']:
             data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets

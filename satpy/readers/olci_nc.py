@@ -40,20 +40,20 @@ References:
 
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import angle2xyz, xyz2angle
+from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B',
@@ -109,7 +109,6 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.open_file = None
 
     @cached_property
     def nc(self):
@@ -139,11 +138,6 @@ class NCOLCIBase(BaseFileHandler):
         variable = self.nc[key['name']]
 
         return variable
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError, TypeError):
-            self.nc.close()
 
 
 class NCOLCICal(NCOLCIBase):

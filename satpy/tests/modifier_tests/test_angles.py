@@ -31,6 +31,10 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 import satpy
 from satpy.utils import PerformanceWarning
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 def _angle_cache_area_def():
     area = AreaDefinition(
@@ -98,6 +102,10 @@ def _get_angle_test_data_rgb_nodims():
 
 def _get_angle_test_data_odd_chunks():
     return _get_angle_test_data(chunks=((2, 1, 2), (1, 1, 2, 1)))
+
+
+def _get_angle_test_data_odd_chunks2():
+    return _get_angle_test_data(chunks=((1, 4), (2, 3)))
 
 
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
@@ -222,6 +230,7 @@ class TestAngleGeneration:
             (_get_angle_test_data, 9, ((2, 2, 1), (2, 2, 1))),
             (_get_stacked_angle_test_data, 3, ((5,), (2, 2, 1))),
             (_get_angle_test_data_odd_chunks, 9, ((2, 1, 2), (1, 1, 2, 1))),
+            (_get_angle_test_data_odd_chunks2, 4, ((1, 4), (2, 3))),
             (_get_angle_test_data_rgb, 9, ((2, 2, 1), (2, 2, 1))),
             (_get_angle_test_data_rgb_nodims, 9, ((2, 2, 1), (2, 2, 1))),
         ])

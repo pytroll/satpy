@@ -176,5 +176,8 @@ class GreenCorrector(SpectralBlender):
         """Set default keyword argument values."""
         warnings.warn(
             "'GreenCorrector' is deprecated, use 'SpectralBlender' instead, or 'HybridGreen' for hybrid green"
-            " correction following Miller et al. (2016).", RuntimeWarning)
+            " correction following Miller et al. (2016).",
+            UserWarning,
+            stacklevel=2
+        )
         super().__init__(fractions=fractions, *args, **kwargs)

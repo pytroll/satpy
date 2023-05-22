@@ -34,7 +34,6 @@ from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
-from tempfile import gettempdir
 
 import dask
 import dask.array as da
@@ -43,6 +42,7 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
+from satpy import config
 from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
@@ -337,7 +337,7 @@ def _read_data(filename, mda):
 def decompressed(filename):
     """Decompress context manager."""
     try:
-        new_filename = decompress(filename, gettempdir())
+        new_filename = decompress(filename, config["tmp_dir"])
     except IOError as err:
         logger.error("Unpacking failed: %s", str(err))
         raise

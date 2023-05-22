@@ -772,6 +772,8 @@ class TestMITIFFWriter(unittest.TestCase):
                     self.fail("Not a valid channel description i the given key.")
         self.assertTrue(found_table_calibration, "Table_calibration is not found in the imagedescription.")
         self.assertEqual(number_of_calibrations, 6)
+        pillow_tif = Image.open(os.path.join(self.base_dir, filename))
+        self.assertEqual(pillow_tif.n_frames, 6)
         self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_dataset_with_calibration_one_dataset(self):

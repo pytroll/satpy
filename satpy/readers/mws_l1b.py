@@ -60,7 +60,7 @@ def get_channel_index_from_name(chname):
     chindex = MWS_CHANNEL_NAMES_TO_NUMBER.get(chname, 0) - 1
     if 0 <= chindex < 24:
         return chindex
-    raise AttributeError(f"Channel name '{chname}' not supported")
+    raise AttributeError(f"Channel name {chname!r} not supported")
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -243,7 +243,7 @@ class MWSL1BFile(NetCDF4FileHandler):
                       'surface_type', 'terrain_elevation']:
             var_key = AUX_DATA.get(dsname)
         else:
-            raise NotImplementedError(f"Dataset '{dsname}' not supported!")
+            raise NotImplementedError(f"Dataset {dsname!r} not supported!")
 
         try:
             variable = self[var_key]

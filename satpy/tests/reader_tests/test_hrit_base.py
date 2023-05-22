@@ -31,6 +31,10 @@ import pytest
 from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 class TestHRITDecompress(unittest.TestCase):
     """Test the on-the-fly decompression."""
