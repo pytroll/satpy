@@ -338,7 +338,7 @@ class MultiScene(object):
         then assigns those datasets to the blended scene.
 
         Blending functions provided in this module are :func:`stack`
-        (the default) and :func:`timeseries`, but the Python built-in
+        (the default), :func:`timeseries` and :func:`temporal_rgb`, but the Python built-in
         function :func:`sum` also works and may be appropriate for
         some types of data.
 
