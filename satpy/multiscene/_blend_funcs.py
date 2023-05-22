@@ -182,9 +182,6 @@ def timeseries(datasets):
 
 def temporal_rgb(
         data_arrays: Sequence[xr.DataArray],
-        weights: Optional[Sequence[xr.DataArray]] = None,
-        combine_times: bool = True,
-        blend_type: str = 'select_with_weights'
 ) -> xr.DataArray:
     """Combine a series of datasets as a temporal RGB.
 
