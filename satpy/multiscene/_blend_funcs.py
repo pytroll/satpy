@@ -191,6 +191,7 @@ def temporal_rgb(
     from satpy.composites import GenericCompositor
 
     compositor = GenericCompositor("temporal_composite")
-    composite = compositor((data_arrays[0], data_arrays[1], data_arrays[2]), attrs=data_arrays[2].attrs)
+    composite = compositor((data_arrays[0], data_arrays[1], data_arrays[2]))
+    composite.attrs = data_arrays[2].attrs
 
     return composite
