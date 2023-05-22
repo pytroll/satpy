@@ -1,13 +1,13 @@
 """Unit tests for GMS-5 VISSR reader."""
 
-import numpy as np
-import pytest
 from unittest import mock
 
-import satpy.readers.gms5_vissr_navigation as nav
-import satpy.readers.gms5_vissr_l1b as vissr
-from satpy.tests.utils import make_dataid
+import numpy as np
+import pytest
 
+import satpy.readers.gms5_vissr_l1b as vissr
+import satpy.readers.gms5_vissr_navigation as nav
+from satpy.tests.utils import make_dataid
 
 # Navigation references computed with JMA's Msial library (files
 # VISSR_19960217_2331_IR1.A.IMG and VISSR_19960217_2331_VIS.A.IMG). The VIS
@@ -654,6 +654,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def attitude_prediction(self):
+        # fmt: off
         return {
             'data': np.array([
                 (50130.93055556, (19960217, 222000), 3.14911863, 0.00054604, 4.3324597 , 99.21774527, 0.97415452, -1.56984055, 0., 0, 0),
@@ -692,9 +693,11 @@ class TestFileHandler:
                 dtype=vissr.ATTITUDE_PREDICTION_DATA
             ),
         }
+        # fmt: on
 
     @pytest.fixture
     def orbit_prediction(self):
+        # fmt: off
         return {
             'data': np.array([
                 (50130.96180556, (960217, 230500), [  2247604.14185506, -42110997.39399951,   -276688.79765022], [3069.77904265,  164.12584895,    3.65437628], [-32392525.09983424,  27002204.93121811,   -263873.25702763], [ 0.81859376,  0.6760037 , 17.44588753], 133.46391815, (330.12326803, -12.19424863), (197.27884747, -11.96904141), [[ 9.99936382e-01,  1.03449318e-02,  4.49611916e-03], [-1.03447475e-02,  9.99946490e-01, -6.42483646e-05], [-4.49654321e-03,  1.77330598e-05,  9.99989890e-01]], [ 2.46885475e+08, -2.07840219e+08, -7.66028692e+07], (-0.35887085, 140.18562594, 35793706.31768975), 0, 0),
@@ -718,6 +721,7 @@ class TestFileHandler:
                 dtype=vissr.ORBIT_PREDICTION_DATA
             )
         }
+        # fmt: on
 
     @pytest.fixture
     def vis_calibration(self):

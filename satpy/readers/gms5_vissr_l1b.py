@@ -24,11 +24,11 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.utils import get_legacy_chunk_size
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_jma import mjd2datetime64
 import satpy.readers._geos_area as geos_area
 import satpy.readers.gms5_vissr_navigation as nav
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hrit_jma import mjd2datetime64
+from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
@@ -54,6 +54,7 @@ TIME = [('date', I4), ('time', I4)]
 CHANNELS = [('VIS', R4), ('IR1', R4), ('IR2', R4), ('WV', R4)]
 VISIR_SOLAR = [('VIS', R4), ('IR', R4)]
 
+# fmt: off
 CONTROL_BLOCK = np.dtype([('control_block_size', I2),
                           ('head_block_number_of_parameter_block', I2),
                           ('parameter_block_size', I2),
@@ -417,7 +418,7 @@ IMAGE_DATA = {
         'dtype': IMAGE_DATA_BLOCK_IR
     }
 }
-
+# fmt: on
 
 def recarr2dict(arr, preserve=None):
     if not preserve:
@@ -591,6 +592,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             'scandir': 'N2S'
         }
         from pprint import pprint
+
         # pprint(mode_block)
         pprint(coord_conv)
         extent = geos_area.get_area_extent(proj_dict)
