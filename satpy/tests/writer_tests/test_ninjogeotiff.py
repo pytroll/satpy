@@ -652,8 +652,9 @@ def test_write_and_read_file_units(
             "No conversion applied.") in caplog.text
 
 
+@pytest.mark.parametrize("unit", ["N/A", "1", ""])
 def test_write_and_read_no_quantity(
-        test_image_small_mid_atlantic_L_no_quantity, tmp_path):
+        test_image_small_mid_atlantic_L_no_quantity, tmp_path, unit):
     """Test that no scale/offset written if no valid units present."""
     import rasterio
 
@@ -667,7 +668,7 @@ def test_write_and_read_no_quantity(
         blockysize=128,
         compress="lzw",
         predictor=2,
-        PhysicUnit="N/A",
+        PhysicUnit=unit,
         PhysicValue="N/A",
         SatelliteNameID=6400014,
         ChannelID=900015,

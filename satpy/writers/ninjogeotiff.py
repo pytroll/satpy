@@ -78,7 +78,7 @@ and only if the image has mode ``L`` or ``LA`` and ``PhysicUnit`` is not set
 to ``"N/A"``.  In other words, to suppress those tags for images with mode
 ``L`` or ``LA`` (for example, for the composite ``vis_with_ir``, where the
 physical interpretation of individual pixels is lost), one should set
-``PhysicUnit`` to ``"N/A"`` or ``"n/a"``.
+``PhysicUnit`` to ``"N/A"``, ``"n/a"``, ``"1"``, or ``""`` (empty string).
 """
 
 import copy
@@ -236,7 +236,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def _check_include_scale_offset(self, image, unit):
         """Check if scale-offset tags should be included."""
-        if image.mode.startswith("L") and unit.lower() != "n/a":
+        if image.mode.startswith("L") and unit.lower() not in ("n/a", "1", ""):
             return True
         return False
 
