@@ -1039,7 +1039,7 @@ class RatioSharpenedRGB(GenericCompositor):
         new_G = G * ratio
         new_B = B * ratio
 
-    In some cases, there could be another high resolution band:
+    In some cases, there could be another high resolution band::
 
         R_lo -  1000m resolution - shape=(2000, 2000)
         G_hi - 500m resolution - shape=(4000, 4000)
@@ -1047,7 +1047,7 @@ class RatioSharpenedRGB(GenericCompositor):
         R_hi -  500m resolution - shape=(4000, 4000)
 
     To avoid the green band getting involved in calculating ratio or sharpening,
-    specify it by "neutral_resolution_band: green" in YAML config file. Then:
+    specify it by "neutral_resolution_band: green" in YAML config file. Then::
 
         ratio = R_hi / R_lo
         new_R = R_hi
