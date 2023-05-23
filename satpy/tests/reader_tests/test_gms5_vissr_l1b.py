@@ -324,14 +324,16 @@ class TestPredictionInterpolation:
         [
             (-1, np.nan),
             (1.5, 0.75*np.pi),
-            (2.5, -np.pi),
-            (3.5, -0.75*np.pi),
+            (2.5, -0.75*np.pi),
+            (3.5, -0.25*np.pi),
             (5, np.nan),
         ]
     )
     def test_interpolate_angles(self, obs_time, expected):
         prediction_times = np.array([0, 1, 2, 3, 4])
-        predicted_angles = np.array([0, np.pi/2, np.pi, -np.pi, -np.pi/2])
+        predicted_angles = np.array(
+            [0, 0.5*np.pi, np.pi, 1.5*np.pi, 2*np.pi]
+        )  # already unwrapped
         res = nav.interpolate_angles(
             obs_time,
             prediction_times,
@@ -362,12 +364,14 @@ class TestPredictionInterpolation:
         np.testing.assert_allclose(res, expected)
 
     def test_interpolate_orbit_prediction(self, obs_time, orbit_prediction, orbit_expected):
+        orbit_prediction = orbit_prediction.to_numba()
         orbit = nav.interpolate_orbit_prediction(
             orbit_prediction, obs_time
         )
         assert_namedtuple_close(orbit, orbit_expected)
 
     def test_interpolate_attitude_prediction(self, obs_time, attitude_prediction, attitude_expected):
+        attitude_prediction = attitude_prediction.to_numba()
         attitude = nav.interpolate_attitude_prediction(
             attitude_prediction, obs_time
         )
@@ -395,12 +399,6 @@ class TestPredictionInterpolation:
             angle_between_earth_and_sun=1.5,
             angle_between_sat_spin_and_z_axis=1.6,
             angle_between_sat_spin_and_yz_plane=1.7,
-        )
-
-    @pytest.fixture
-    def nav_params_expected(self, attitude_expected, orbit_expected, proj_params):
-        return nav.NavigationParameters(
-            attitude_expected, orbit_expected, proj_params
         )
 
 
@@ -461,17 +459,6 @@ def proj_params(sampling_angle):
         earth_flattening=0.003352813177897,
         earth_equatorial_radius=6378136
     )
-
-
-@pytest.mark.parametrize(
-    'angles',
-    [
-        (np.array([0, np.pi/2, np.pi, -np.pi, -np.pi/2])),
-        (np.array([0, 0.78539816, 1.57079633, 5.49778714, 6.28318531]))
-    ]
-)
-def test_unwrap(angles):
-    np.testing.assert_allclose(nav.unwrap(angles), np.unwrap(angles))
 
 
 def test_get_observation_time():
@@ -757,6 +744,9 @@ class TestFileHandler:
 
     @pytest.fixture
     def dataset_exp(self, dataset_id, lons_lats_exp):
+
+        # TODO: Use dictionary
+
         lons, lats = lons_lats_exp
         if dataset_id["calibration"] == "counts":
             return xr.DataArray(
@@ -811,6 +801,10 @@ class TestFileHandler:
         pix = [1672, 1672, 1673, 1673]
         lin = [686, 2089, 686, 2089]
         """
+
+        # TODO: Use dictionary
+
+
         if dataset_id['name'] == 'IR1':
             lons = [[139.680120, 139.718902],
                     [140.307367, 140.346062]]

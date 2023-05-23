@@ -624,7 +624,6 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         dataset.coords['lat'] = lats
 
     def _get_lons_lats(self, dataset, dataset_id):
-        # TODO: Store channel name in self.channel_name
         lines, pixels = self._get_image_coords(dataset)
         static_params = self._get_static_navigation_params(dataset_id)
         predicted_params = self._get_predicted_navigation_params()
