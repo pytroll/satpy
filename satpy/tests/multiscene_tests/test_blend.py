@@ -411,8 +411,9 @@ class TestTemporalRGB:
     @staticmethod
     def _assert_results(res, expected_start_time, expected_result):
         assert res.attrs['start_time'] == expected_start_time
-        for i in range(3):
-            np.testing.assert_equal(res.data[i, :], expected_result[i])
+        np.testing.assert_equal(res.data[0, :], expected_result[0])
+        np.testing.assert_equal(res.data[1, :], expected_result[1])
+        np.testing.assert_equal(res.data[2, :], expected_result[2])
 
     def test_nominal(self, nominal_data, expected_result):
         """Test that nominal usage with 3 datasets works."""
