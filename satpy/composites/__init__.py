@@ -1039,15 +1039,35 @@ class RatioSharpenedRGB(GenericCompositor):
         new_G = G * ratio
         new_B = B * ratio
 
+    In some cases, there could be another high resolution band:
+
+        R_lo -  1000m resolution - shape=(2000, 2000)
+        G_hi - 500m resolution - shape=(4000, 4000)
+        B - 1000m resolution - shape=(2000, 2000)
+        R_hi -  500m resolution - shape=(4000, 4000)
+
+    To avoid the green band getting involved in calculating ratio or sharpening,
+    specify it by "neutral_resolution_band: green" in YAML config file. Then:
+
+        ratio = R_hi / R_lo
+        new_R = R_hi
+        new_G = G_hi
+        new_B = B * ratio
+
     """
 
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
         self.high_resolution_color = kwargs.pop("high_resolution_band", "red")
+        self.neutral_resolution_color = kwargs.pop("neutral_resolution_band", "red")
         if self.high_resolution_color not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_color))
+        if self.neutral_resolution_color not in ['red', 'green', 'blue', None]:
+            raise ValueError("RatioSharpenedRGB.neutral_resolution_band must "
+                             "be one of ['red', 'green', 'blue', None]. Not "
+                             "'{}'".format(self.neutral_resolution_color))
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -1082,12 +1102,22 @@ class RatioSharpenedRGB(GenericCompositor):
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            low_res_colors = ['red', 'green', 'blue']
-            low_resolution_index = low_res_colors.index(self.high_resolution_color)
+            colors = ['red', 'green', 'blue']
+            low_resolution_index = colors.index(self.high_resolution_color)
+            high_resolution_index = low_resolution_index
+            if self.neutral_resolution_color is not None:
+                neutral_resolution_index = colors.index(self.neutral_resolution_color)
+                neutral_res = datasets[neutral_resolution_index]
+            else:
+                neutral_res = None
+                neutral_resolution_index = 0
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
+            neutral_res = None
             low_resolution_index = 0
+            high_resolution_index = 0
+            neutral_resolution_index = 0
 
         if high_res is not None:
             low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
@@ -1100,9 +1130,27 @@ class RatioSharpenedRGB(GenericCompositor):
                 chunks=high_res.chunks,
             )
             with xr.set_options(keep_attrs=True):
-                low_res_red = high_res if low_resolution_index == 0 else low_res_red * ratio
-                low_res_green = high_res if low_resolution_index == 1 else low_res_green * ratio
-                low_res_blue = high_res if low_resolution_index == 2 else low_res_blue * ratio
+                if neutral_res is not None:
+                    if high_resolution_index == 0:
+                        low_res_red = high_res
+                        low_res_green = neutral_res if neutral_resolution_index == 1 else low_res_green * ratio
+                        low_res_blue = neutral_res if neutral_resolution_index == 2 else low_res_blue * ratio
+
+                    elif high_resolution_index == 1:
+                        low_res_red = neutral_res if neutral_resolution_index == 0 else low_res_red * ratio
+                        low_res_green = high_res
+                        low_res_blue = neutral_res if neutral_resolution_index == 2 else low_res_blue * ratio
+
+                    elif high_resolution_index == 2:
+                        low_res_red = neutral_res if neutral_resolution_index == 0 else low_res_red * ratio
+                        low_res_green = neutral_res if neutral_resolution_index == 1 else low_res_green * ratio
+                        low_res_blue = high_res
+
+                else:
+                    low_res_red = high_res if high_resolution_index == 0 else low_res_red * ratio
+                    low_res_green = high_res if high_resolution_index == 1 else low_res_green * ratio
+                    low_res_blue = high_res if high_resolution_index == 2 else low_res_blue * ratio
+
         return low_res_red, low_res_green, low_res_blue, new_attrs
 
     def _combined_sharpened_info(self, info, new_attrs):
