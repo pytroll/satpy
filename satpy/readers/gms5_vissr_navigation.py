@@ -41,6 +41,10 @@ Orbit = namedtuple(
 )
 
 
+ScanningParameters = namedtuple(
+    'ScanningParameters', ['start_time_of_scan', 'spinning_rate', 'num_sensors', 'sampling_angle']
+)
+
 ProjectionParameters = namedtuple(
     'ProjectionParameters',
     [
@@ -160,12 +164,11 @@ def get_lons_lats(lines, pixels, static_params, predicted_params):
         lines,
         pixels,
         static_params,
-        _get_predicted_params_numba(predicted_params)
+        _make_predicted_params_numba_compatible(predicted_params)
     )
 
 
-def _get_predicted_params_numba(predicted_params):
-    """Get predicted parameters in numba-compatible type."""
+def _make_predicted_params_numba_compatible(predicted_params):
     att_pred, orb_pred = predicted_params
     return att_pred.to_numba(), orb_pred.to_numba()
 
@@ -182,20 +185,31 @@ def _get_lons_lats_numba(lines, pixels, static_params, predicted_params):
     for i in range(num_lines):
         for j in range(num_pixels):
             point = (lines[i], pixels[j])
-            obs_time = get_observation_time(point, scan_params)
-            attitude, orbit = interpolate_navigation_prediction(
-                attitude_prediction, orbit_prediction, obs_time
+            nav_params = _get_navigation_parameters(
+                point,
+                attitude_prediction,
+                orbit_prediction,
+                proj_params,
+                scan_params
             )
-            nav_params = (attitude, orbit, proj_params)
             lon, lat = get_lon_lat(point, nav_params)
             lons[i, j] = lon
             lats[i, j] = lat
     return lons, lats
 
 
-ScanningParameters = namedtuple(
-    'ScanningParameters', ['start_time_of_scan', 'spinning_rate', 'num_sensors', 'sampling_angle']
-)
+@numba.njit
+def _get_navigation_parameters(
+        point,
+        attitude_prediction,
+        orbit_prediction,
+        proj_params,
+        scan_params):
+    obs_time = get_observation_time(point, scan_params)
+    attitude, orbit = interpolate_navigation_prediction(
+        attitude_prediction, orbit_prediction, obs_time
+    )
+    return attitude, orbit, proj_params
 
 
 @numba.njit
@@ -626,21 +640,6 @@ def interpolate_continuous(x, x_sample, y_sample):
 
 
 @numba.njit
-def interpolate_angles(x, x_sample, y_sample):
-    """Linear interpolation of angles.
-
-    Requires 2-pi periodicity to be unwrapped before (for
-    performance reasons). Interpolated angles are wrapped
-    back to [-pi, pi] to restore periodicity.
-    """
-    try:
-        return _wrap_2pi(_interpolate(x, x_sample, y_sample))
-    except:
-        # Numba cannot distinguish exception types
-        return np.nan
-
-
-@numba.njit
 def _interpolate(x, x_sample, y_sample):
     i = _find_enclosing_index(x, x_sample)
     offset = y_sample[i]
@@ -658,6 +657,17 @@ def _find_enclosing_index(x, x_sample):
         if x_sample[i] <= x < x_sample[i+1]:
             return i
     raise Exception('x not enclosed by x_sample')
+
+
+@numba.njit
+def interpolate_angles(x, x_sample, y_sample):
+    """Linear interpolation of angles.
+
+    Requires 2-pi periodicity to be unwrapped before (for
+    performance reasons). Interpolated angles are wrapped
+    back to [-pi, pi] to restore periodicity.
+    """
+    return _wrap_2pi(interpolate_continuous(x, x_sample, y_sample))
 
 
 @numba.njit
