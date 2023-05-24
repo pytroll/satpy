@@ -550,7 +550,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, ds_info):
         counts = self._get_counts()
         dataset = self._calibrate(counts, dataset_id)
-        self._attach_coords(dataset, dataset_id)  # FIXME
+        self._attach_coords(dataset, dataset_id)  # TODO: Remove
         return dataset
 
     def _get_counts(self):
@@ -741,20 +741,19 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
 
 class Calibrator:
-    def __init__(self, calib_table_y):
-        self.calib_table_y = calib_table_y
-        self.calib_table_x = np.arange(calib_table_y.size)
+    def __init__(self, calib_table):
+        self._calib_table = calib_table
 
     def calibrate(self, counts, calibration):
         if calibration == "counts":
             return counts
-        interp = counts.data.map_blocks(
-            _interpolate_calibration_table,
-            self.calib_table_x,
-            self.calib_table_y,
+        res = da.map_blocks(
+            self._lookup_calib_table,
+            counts.data,
+            calib_table=self._calib_table,
             dtype=np.float32,
         )
-        return self._make_data_array(interp, counts)
+        return self._make_data_array(res, counts)
 
     def _make_data_array(self, interp, counts):
         return xr.DataArray(
@@ -763,7 +762,5 @@ class Calibrator:
             coords=counts.coords,
         )
 
-
-def _interpolate_calibration_table(counts, calib_table_x, calib_table_y):
-    interp = np.interp(counts.ravel(), calib_table_x, calib_table_y)
-    return interp.reshape(counts.shape)
+    def _lookup_calib_table(self, counts, calib_table):
+        return calib_table[counts]
