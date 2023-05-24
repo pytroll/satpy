@@ -301,12 +301,16 @@ def has_projection_coords(ds_collection):
 def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
-    Non-dimensional (or alternative) coordinates, such as scanline timestamps, may occur in multiple datasets with
-    the same name and dimension but different values. In order to avoid conflicts, prepend the dataset name to the
-    coordinate name. If a non-dimensional coordinate is unique among all datasets and ``pretty=True``, its name will not
-    be modified.
+    Non-dimensional (or alternative) coordinates, such as scanline timestamps,
+    may occur in multiple datasets with the same name and dimension
+    but different values.
 
-    Since all datasets must have the same projection coordinates, this is not applied to latitude and longitude.
+    In order to avoid conflicts, prepend the dataset name to the coordinate name.
+    If a non-dimensional coordinate is unique among all datasets and ``pretty=True``,
+    its name will not be modified.
+
+    Since all datasets must have the same projection coordinates,
+    this is not applied to latitude and longitude.
 
     Args:
         datas (dict):
@@ -794,7 +798,7 @@ def _collect_cf_dataset(list_dataarrays,
                         pretty=False,
                         include_orig_name=True,
                         numeric_name_prefix='CHANNEL_'):
-    """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.DataArrays.
+    """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Dataset.
 
     Parameters
     ----------
@@ -821,43 +825,107 @@ def _collect_cf_dataset(list_dataarrays,
 
     Returns
     -------
-    dict_datarrays : dict
-        A dictionary of CF-compliant xr.DataArray: {name: xr.DataArray}
+    ds : xr.Dataset
+        A partially CF-compliant xr.Dataset
     """
+    # Create dictionary of input datarrays
+    # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
     ds_collection = {}
-    for ds in list_dataarrays:
-        ds_collection.update(get_extra_ds(ds))
+    for dataarray in list_dataarrays:
+        ds_collection.update(get_extra_ds(dataarray))
+
+    # Check ???
     got_lonlats = has_projection_coords(ds_collection)
-    datas = {}
-    # sort by name, but don't use the name
-    for _, ds in sorted(ds_collection.items()):
-        if ds.dtype not in CF_DTYPES:
+
+    # Sort dictionary by keys name
+    ds_collection = dict(sorted(ds_collection.items()))
+
+    dict_dataarrays = {}
+    for dataarray in ds_collection.values():
+        dataarray_type = dataarray.dtype
+        if dataarray_type not in CF_DTYPES:
             warnings.warn(
-                'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
+                f'dtype {dataarray_type} not compatible with {CF_VERSION}.',
                 stacklevel=3
             )
-        # we may be adding attributes, coordinates, or modifying the
-        # structure of attributes
-        ds = ds.copy(deep=True)
+        # Deep copy the datarray since adding/modifying attributes and coordinates
+        dataarray = dataarray.copy(deep=True)
+
+        # Add CF-compliant area information from the pyresample area
+        # - If include_lonlats=True, add latitude and longitude coordinates
+        # - Add grid_mapping attribute to the DataArray
+        # - Return the CRS DataArray as first list element
+        # - Return the CF-compliant input DataArray as second list element
         try:
-            new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
+            list_new_dataarrays = area2cf(dataarray,
+                                          strict=include_lonlats,
+                                          got_lonlats=got_lonlats)
         except KeyError:
-            new_datasets = [ds]
-        for new_ds in new_datasets:
-            new_var = make_cf_dataarray(new_ds, epoch=epoch,
-                                        flatten_attrs=flatten_attrs,
-                                        exclude_attrs=exclude_attrs,
-                                        include_orig_name=include_orig_name,
-                                        numeric_name_prefix=numeric_name_prefix)
-            datas[new_var.name] = new_var
+            list_new_dataarrays = [dataarray]
 
-    # Check and prepare coordinates
-    assert_xy_unique(datas)
-    link_coords(datas)
-    datas = make_alt_coords_unique(datas, pretty=pretty)
+        # Ensure each DataArray is CF-compliant
+        # --> NOTE: Here the CRS DataArray is repeatedly overwrited
+        # --> NOTE: If the input list_dataarrays have different pyresample areas with the same name
+        #           area information can be lost here !!!
+        for new_dataarray in list_new_dataarrays:
+            new_dataarray = make_cf_dataarray(new_dataarray,
+                                              epoch=epoch,
+                                              flatten_attrs=flatten_attrs,
+                                              exclude_attrs=exclude_attrs,
+                                              include_orig_name=include_orig_name,
+                                              numeric_name_prefix=numeric_name_prefix)
+            dict_dataarrays[new_dataarray.name] = new_dataarray
 
-    ds = xr.Dataset(datas)
+    # Check all DataArray have same size
+    assert_xy_unique(dict_dataarrays)
+
+    # Deal with the 'coordinates' attributes indicating lat/lon coords
+    # NOTE: this currently is dropped by default !!!
+    link_coords(dict_dataarrays)
+
+    # Ensure non-dimensional coordinates to be unique across DataArrays
+    # --> If not unique, prepend the DataArray name to the coordinate
+    # --> If unique, does not prepend the DataArray name only if pretty=True
+    # --> 'longitude' and 'latitude' coordinates are not prepended
+    dict_dataarrays = make_alt_coords_unique(dict_dataarrays, pretty=pretty)
+    # Create a xr.Dataset
+    ds = xr.Dataset(dict_dataarrays)
     return ds
+
+    # ds_collection = {}
+    # for dataarray in list_dataarrays:
+    #     ds_collection.update(get_extra_ds(dataarray))
+    # got_lonlats = has_projection_coords(ds_collection)
+    # datas = {}
+    # # sort by name, but don't use the name
+    # for _, ds in sorted(ds_collection.items()):
+    #     if ds.dtype not in CF_DTYPES:
+    #         warnings.warn(
+    #             'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
+    #             stacklevel=3
+    #         )
+    #     # we may be adding attributes, coordinates, or modifying the
+    #     # structure of attributes
+    #     ds = ds.copy(deep=True)
+    #     try:
+    #         new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
+    #     except KeyError:
+    #         new_datasets = [ds]
+    #     for new_ds in new_datasets:
+    #         new_var = make_cf_dataarray(new_ds, epoch=epoch,
+    #                                     flatten_attrs=flatten_attrs,
+    #                                     exclude_attrs=exclude_attrs,
+    #                                     include_orig_name=include_orig_name,
+    #                                     numeric_name_prefix=numeric_name_prefix)
+    #         datas[new_var.name] = new_var
+
+    # # Check and prepare coordinates
+    # assert_xy_unique(datas)
+    # link_coords(datas)
+    # datas = make_alt_coords_unique(datas, pretty=pretty)
+
+    # ds = xr.Dataset(datas)
+    # return ds
 
 
 def collect_cf_datasets(list_dataarrays,
