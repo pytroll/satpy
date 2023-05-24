@@ -6,7 +6,39 @@ TODO
 
 Navigation
 ----------
-TODO
+
+VISSR images are oversampled and not rectified.
+
+
+Oversampling
+~~~~~~~~~~~~
+VISSR oversamples the viewed scene in E-W direction by a factor of ~1.46:
+IR/VIS pixels are 14/3.5 urad on a side, but the instrument samples every
+9.57/2.39 urad in E-W direction. That means pixels are actually overlapping on
+the ground.
+
+This cannot be represented by a pyresample area definition, so each dataset
+is accompanied by 2-dimensional longitude and latitude coordinates. For
+resampling purpose an area definition with uniform sampling is provided via
+``scene[dataset].attrs["area_def_uniform_sampling"]``.
+
+
+Rectification
+~~~~~~~~~~~~~
+
+VISSR images are not rectified. That means lon/lat coordinates are different
+
+1) for all channels of the same repeat cycle, even if their spatial resolution
+   is identical (IR channels)
+2) for different repeat cycles, even if the channel is identical
+
+
+Calibration
+-----------
+
+Sensor counts are calibrated by looking up reflectance/temperature values in the
+calibration tables included in each file.
+
 
 References
 ----------
@@ -641,6 +673,16 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return lines.astype(np.float64), pixels.astype(np.float64)
 
     def _get_static_navigation_params(self, dataset_id):
+        """Get static navigation parameters.
+
+        Note that, "central_line_number_of_vissr_frame" is different for each
+        channel, even if their spatial resolution is identical. For example:
+
+        VIS: 5513.0
+        IR1: 1378.5
+        IR2: 1378.7
+        IR3: 1379.1001
+        """
         alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
         mode_block = self._header['image_parameters']['mode']
         coord_conv = self._header['image_parameters']['coordinate_conversion']
@@ -669,6 +711,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return scan_params, proj_params
 
     def _get_predicted_navigation_params(self):
+        """Get predictions of time-dependent navigation parameters."""
         att_pred = self._header['image_parameters']['attitude_prediction']['data']
         orb_pred = self._header['image_parameters']['orbit_prediction']['data']
         attitude_prediction = nav.AttitudePrediction(
