@@ -40,6 +40,24 @@ Sensor counts are calibrated by looking up reflectance/temperature values in the
 calibration tables included in each file.
 
 
+Space Pixels
+------------
+
+VISSR produces data for pixels outside the Earth disk (i,e: atmospheric limb or
+deep space pixels). By default, these pixels are masked out as they contain
+data of limited or no value, but some applications do require these pixels.
+To turn off masking, set ``mask_space=False`` upon scene creation::
+
+    import satpy
+    import glob
+
+    filenames = glob.glob("VISSR*.IMG")
+    scene = satpy.Scene(filenames,
+                        reader="gms5-vissr_l1b",
+                        reader_kwargs={"mask_space": False})
+    scene.load(["VIS"])
+
+
 References
 ----------
 
@@ -55,6 +73,7 @@ References
 import dask.array as da
 import numpy as np
 import xarray as xr
+import numba
 
 import satpy.readers._geos_area as geos_area
 import satpy.readers.gms5_vissr_navigation as nav
@@ -389,7 +408,7 @@ IMAGE_PARAMS = {
     'ir1_calibration': {
         'dtype': IR_CALIBRATION,
         'offset': {
-            VIS_CHANNEL: 4 * BLOCK_SIZE_VIS, 
+            VIS_CHANNEL: 4 * BLOCK_SIZE_VIS,
             IR_CHANNEL: 10 * BLOCK_SIZE_IR
         },
     },
@@ -470,12 +489,13 @@ def recarr2dict(arr, preserve=None):
 
 
 class GMS5VISSRFileHandler(BaseFileHandler):
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         super(GMS5VISSRFileHandler, self).__init__(filename, filename_info, filetype_info)
         self._filename = filename
         self._filename_info = filename_info
         self._header, self._channel_type = self._read_header(filename)
         self._mda = self._get_mda()
+        self._mask_space = mask_space
 
     def _read_header(self, filename):
         header = {}
@@ -515,11 +535,11 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         file_obj.seek(param['offset'][channel_type])
         data = np.fromfile(file_obj, dtype=param['dtype'], count=1)[0]
         return recarr2dict(data, preserve=param.get('preserve'))
-    
+
     @staticmethod
     def _concat_orbit_prediction(orb_pred_1, orb_pred_2):
         """Concatenate orbit prediction data.
-        
+
         It is split over two image parameter blocks in the header.
         """
         orb_pred = orb_pred_1
@@ -548,14 +568,13 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
-        counts = self._get_counts()
-        dataset = self._calibrate(counts, dataset_id)
-        self._attach_coords(dataset, dataset_id)  # TODO: Remove
-        return dataset
-
-    def _get_counts(self):
         image_data = self._read_image_data()
-        return self._make_counts_data_array(image_data)
+        counts = self._get_counts(image_data)
+        dataset = self._calibrate(counts, dataset_id)
+        space_masker = SpaceMasker(image_data, dataset_id["name"])
+        dataset = self._mask_space_pixels(dataset, space_masker)
+        self._attach_lons_lats(dataset, dataset_id)
+        return dataset
 
     def _read_image_data(self):
         memmap = self._get_memmap()
@@ -570,6 +589,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             offset=IMAGE_DATA[self._channel_type]['offset'],
             shape=(num_lines,)
         )
+
+    def _get_counts(self, image_data):
+        return self._make_counts_data_array(image_data)
 
     def _make_counts_data_array(self, image_data):
         return xr.DataArray(
@@ -595,7 +617,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_calibration_table(self, dataset_id):
         tables = {
-            "VIS": self._header['image_parameters']['vis_calibration']["vis1_calibration_table"],
+            "VIS": self._header['image_parameters']['vis_calibration']["vis1_calibration_table"]["brightness_albedo_conversion_table"],
             "IR1": self._header['image_parameters']['ir1_calibration']["conversion_table_of_equivalent_black_body_temperature"],
             "IR2": self._header['image_parameters']['ir2_calibration']["conversion_table_of_equivalent_black_body_temperature"],
             "IR3": self._header['image_parameters']['wv_calibration']["conversion_table_of_equivalent_black_body_temperature"]
@@ -650,7 +672,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
 
-    def _attach_coords(self, dataset, dataset_id):
+    def _mask_space_pixels(self, dataset, space_masker):
+        if self._mask_space:
+            return space_masker.mask_space(dataset)
+        return dataset
+
+    def _attach_lons_lats(self, dataset, dataset_id):
         lons, lats = self._get_lons_lats(dataset, dataset_id)
         dataset.coords['lon'] = lons
         dataset.coords['lat'] = lats
@@ -734,9 +761,11 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _make_lons_lats_data_array(self, lons, lats):
         lons = xr.DataArray(lons, dims=('y', 'x'),
-                            attrs={'standard_name': 'longitude'})
+                            attrs={'standard_name': 'longitude',
+                                   "units": "degrees_east"})
         lats = xr.DataArray(lats, dims=('y', 'x'),
-                            attrs={'standard_name': 'latitude'})
+                            attrs={'standard_name': 'latitude',
+                                   "units": "degrees_north"})
         return lons, lats
 
 
@@ -764,3 +793,62 @@ class Calibrator:
 
     def _lookup_calib_table(self, counts, calib_table):
         return calib_table[counts]
+
+
+class SpaceMasker:
+    _fill_value = -1  # scanline not intersecting the earth
+
+    def __init__(self, image_data, channel):
+        self._image_data = image_data
+        self._channel = channel
+        self._shape = image_data["image_data"].shape
+        self._earth_mask = self._get_earth_mask()
+
+    def mask_space(self, dataset):
+        return dataset.where(self._earth_mask).astype(np.float32)
+
+    def _get_earth_mask(self):
+        earth_edges = self._get_earth_edges()
+        return get_earth_mask(self._shape, earth_edges, self._fill_value)
+
+    def _get_earth_edges(self):
+        west_edges = self._get_earth_edges_per_scan_line("west_side_earth_edge")
+        east_edges = self._get_earth_edges_per_scan_line("east_side_earth_edge")
+        return west_edges, east_edges
+
+    def _get_earth_edges_per_scan_line(self, cardinal):
+        edges = self._image_data["LCW"][cardinal].compute().astype(np.int32)
+        if self._is_vis_channel():
+            edges = self._correct_vis_edges(edges)
+        return edges
+
+    def _is_vis_channel(self):
+        return self._channel == "VIS"
+
+    def _correct_vis_edges(self, edges):
+        """Correct VIS edges.
+
+        VIS data contains earth edges of IR channel. Compensate for that
+        by scaling with a factor of 4 (1 IR pixel ~ 4 VIS pixels).
+        """
+        return np.where(edges != self._fill_value, edges * 4, edges)
+
+
+@numba.njit
+def get_earth_mask(shape, earth_edges, fill_value=-1):
+    """Get binary mask where 1/0 indicates earth/space.
+
+    Args:
+        shape: Image shape
+        earth_edges: First and last earth pixel in each scanline
+        fill_value: Fill value for scanlines not intersecting the earth.
+    """
+    first_earth_pixels, last_earth_pixels = earth_edges
+    mask = np.zeros(shape, dtype=np.int8)
+    for line in range(shape[0]):
+        first = first_earth_pixels[line]
+        last = last_earth_pixels[line]
+        if first == fill_value or last == fill_value:
+            continue
+        mask[line, first:last+1] = 1
+    return mask

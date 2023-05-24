@@ -181,7 +181,6 @@ VIS_NAVIGATION_REFERENCE = [
 NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
 
 
-
 class TestSinglePixelNavigation:
     """Test navigation of a single pixel."""
 
@@ -296,6 +295,20 @@ class TestImageNavigation:
         )
         np.testing.assert_allclose(lons, lons_exp)
         np.testing.assert_allclose(lats, lats_exp)
+
+
+class TestEarthMask:
+    def test_get_earth_mask(self):
+        first_earth_pixels = np.array([-1, 1, 0, -1])
+        last_earth_pixels = np.array([-1, 3, 2, -1])
+        mask_exp = np.array(
+            [[0, 0, 0, 0],
+             [0, 1, 1, 1],
+             [1, 1, 1, 0],
+             [0, 0, 0, 0]]
+        )
+        mask = vissr.get_earth_mask(mask_exp.shape, first_earth_pixels, last_earth_pixels)
+        np.testing.assert_equal(mask, mask_exp)
 
 
 class TestPredictionInterpolation:
@@ -486,13 +499,18 @@ class TestFileHandler:
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1E-6)
 
     @pytest.fixture
-    def file_handler(self, header, dataset_id, image_data):
+    def file_handler(self, header, dataset_id, mask_space, image_data):
         channel_type = self.channel_types[dataset_id['name']]
         with mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_header') as _read_header, \
                 mock.patch('satpy.readers.gms5_vissr_l1b.np.memmap') as memmap:
             _read_header.return_value = header, channel_type
             memmap.return_value = image_data
-            fh = vissr.GMS5VISSRFileHandler('foo', {'foo': 'bar'}, {'foo': 'bar'})
+            fh = vissr.GMS5VISSRFileHandler(
+                'foo',
+                {'foo': 'bar'},
+                {'foo': 'bar'},
+                mask_space=mask_space
+            )
             # Yield instead of return, to make the memmap mock succeed.
             # See https://stackoverflow.com/a/59045506/5703449
             yield fh
@@ -505,33 +523,44 @@ class TestFileHandler:
     def dataset_id(self, request):
         return request.param
 
+    @pytest.fixture(params=[True, False])
+    def mask_space(self, request):
+        return request.param
+
     @pytest.fixture
     def image_data(self, dataset_id):
         """Get fake image data.
 
         Data type:
 
-        ((line number, timestamp), (data1, data2))
+        (
+            (line number, timestamp, west edge, east edge),
+            (data1, data2, ...)
+        )
 
         VIS channel:
 
         pix = [6688, 6688, 6689, 6689]
         lin = [2744, 8356, 2744, 8356]
+        earth mask = [[0, 0], [0, 1]]
 
         IR1 channel:
 
         pix = [1672, 1672, 1673, 1673]
         lin = [686, 2089, 686, 2089]
+        earth mask = [[1, 1], [1, 1]]
         """
         line_control_word = np.dtype([
             ('line_number', vissr.I4),
             ('scan_time', vissr.R8),
+            ('west_side_earth_edge', vissr.I4),
+            ('east_side_earth_edge', vissr.I4)
         ])
         dtype = np.dtype([('LCW', line_control_word),
                           ('image_data', vissr.U1, (2,))])
         cases = {
-            "IR1": np.array([((686, 50000), (0, 1)), ((2089, 50000), (2, 3))], dtype=dtype),
-            "VIS": np.array([((2744, 50000), (0, 1)), ((8356, 50000), (2, 3))], dtype=dtype)
+            "IR1": np.array([((686, 50000, 0, 1), (0, 1)), ((2089, 50000, 0, 1), (2, 3))], dtype=dtype),
+            "VIS": np.array([((2744, 50000, -1, -1), (0, 1)), ((8356, 50000, 0, 1), (2, 3))], dtype=dtype)
         }
         return cases[dataset_id["name"]]
 
@@ -715,7 +744,9 @@ class TestFileHandler:
     @pytest.fixture
     def vis_calibration(self):
         return {
-            "vis1_calibration_table": np.array([0, 0.25, 0.5, 1])
+            "vis1_calibration_table": {
+                "brightness_albedo_conversion_table": np.array([0, 0.25, 0.5, 1])
+            }
         }
 
     @pytest.fixture
@@ -743,9 +774,27 @@ class TestFileHandler:
         }
 
     @pytest.fixture
-    def dataset_exp(self, dataset_id, lons_lats_exp):
+    def vis_refl_exp(self, mask_space, lons_lats_exp):
         lons, lats = lons_lats_exp
-        ir1_counts = xr.DataArray(
+        if mask_space:
+            data = [[np.nan, np.nan], [0.5, 1]]
+        else:
+            data = [[0, 0.25], [0.5, 1]]
+        return xr.DataArray(
+            data,
+            dims=('y', 'x'),
+            coords={
+                "lon": lons,
+                "lat": lats,
+                'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
+                'line_number': ('y', [2744, 8356])
+            }
+        )
+
+    @pytest.fixture
+    def ir1_counts_exp(self, lons_lats_exp):
+        lons, lats = lons_lats_exp
+        return xr.DataArray(
             [[0, 1], [2, 3]],
             dims=('y', 'x'),
             coords={
@@ -756,7 +805,11 @@ class TestFileHandler:
                 'line_number': ('y', [686, 2089])
             }
         )
-        ir1_bt = xr.DataArray(
+
+    @pytest.fixture
+    def ir1_bt_exp(self, lons_lats_exp):
+        lons, lats = lons_lats_exp
+        return xr.DataArray(
             [[0, 100], [200, 300]],
             dims=('y', 'x'),
             coords={
@@ -767,20 +820,16 @@ class TestFileHandler:
                 'line_number': ('y', [686, 2089])
             }
         )
-        vis_refl = xr.DataArray(
-            [[0, 0.25], [0.5, 1]],
-            dims=('y', 'x'),
-            coords={
-                "lon": lons,
-                "lat": lats,
-                'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
-                'line_number': ('y', [2744, 8356])
-            }
-        )
+
+    @pytest.fixture
+    def dataset_exp(self, dataset_id, ir1_counts_exp, ir1_bt_exp, vis_refl_exp):
+        ir1_counts_id = make_dataid(name="IR1", calibration="counts")
+        ir1_bt_id = make_dataid(name="IR1", calibration="brightness_temperature")
+        vis_refl_id = make_dataid(name="VIS", calibration="reflectance")
         expectations = {
-            make_dataid(name="IR1", calibration="counts"): ir1_counts,
-            make_dataid(name="IR1", calibration="brightness_temperature"): ir1_bt,
-            make_dataid(name="VIS", calibration="reflectance"): vis_refl
+            ir1_counts_id: ir1_counts_exp,
+            ir1_bt_id: ir1_bt_exp,
+            vis_refl_id: vis_refl_exp
         }
         return expectations[dataset_id]
 

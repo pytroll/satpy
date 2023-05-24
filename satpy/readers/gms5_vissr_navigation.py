@@ -710,8 +710,9 @@ def _interpolate_nearest(x, x_sample, y_sample):
 
 # TODO
 """
-Possible acceleration:
 
+- Area def
+- Decompression
+- Finish Documentation
 - Call find_enclosing_index only once for all predictions
-- cache coordinates
 """
