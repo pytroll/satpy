@@ -56,7 +56,7 @@ In order to change the default behaviour, use the ``reader_kwargs`` keyword
 argument upon Scene creation::
 
     import satpy
-    scene = satpy.Scene(filenames,
+    scene = satpy.Scene(filenames=filenames,
                         reader='seviri_l1b_...',
                         reader_kwargs={'calib_mode': 'GSICS'})
     scene.load(['VIS006', 'IR_108'])
@@ -138,7 +138,7 @@ The SEVIRI L1.5 readers provide the following metadata:
 * Raw metadata from the file header can be included by setting the reader
   argument ``include_raw_metadata=True`` (HRIT and Native format only). Note
   that this comes with a performance penalty of up to 10% if raw metadata from
-  multiple segments or scans need to be combined. By default arrays with more
+  multiple segments or scans need to be combined. By default, arrays with more
   than 100 elements are excluded to limit the performance penalty. This
   threshold can be adjusted using the ``mda_max_array_size`` reader keyword
   argument:
@@ -158,7 +158,7 @@ References:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+    https://www.eumetsat.int/media/45126
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
@@ -173,10 +173,11 @@ import numpy as np
 import pyproj
 from numpy.polynomial.chebyshev import Chebyshev
 
-from satpy import CHUNK_SIZE
 from satpy.readers.eum_base import issue_revision, time_cds_short
 from satpy.readers.utils import apply_earthsun_distance_correction
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
     'MET09': 'Meteosat-9',
@@ -214,7 +215,7 @@ CHANNEL_NAMES = {1: "VIS006",
 VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
-BTFIT = {}
+BTFIT = dict()
 # [A, B, C]
 BTFIT['IR_039'] = [0.0, 1.011751900, -3.550400]
 BTFIT['WV_062'] = [0.00001805700, 1.000255533, -1.790930]
@@ -230,7 +231,7 @@ SATNUM = {321: "8",
           323: "10",
           324: "11"}
 
-CALIB = {}
+CALIB = dict()
 
 # Meteosat 8
 CALIB[321] = {'HRV': {'F': 78.7599},
@@ -680,13 +681,13 @@ class OrbitPolynomial:
         self.end_time = end_time
 
     def evaluate(self, time):
-        """Get satellite position in earth-centered cartesion coordinates.
+        """Get satellite position in earth-centered cartesian coordinates.
 
         Args:
             time: Timestamp where to evaluate the polynomial
 
         Returns:
-            Earth-centered cartesion coordinates (x, y, z) in meters
+            Earth-centered cartesian coordinates (x, y, z) in meters
         """
         domain = [np.datetime64(self.start_time).astype('int64'),
                   np.datetime64(self.end_time).astype('int64')]
@@ -852,8 +853,8 @@ def calculate_area_extent(area_dict):
             east: Eastmost column number
             west: Westmost column number
             south: Southmost row number
-            column_step: Pixel resulution in meters in east-west direction
-            line_step: Pixel resulution in meters in soutth-north direction
+            column_step: Pixel resolution in meters in east-west direction
+            line_step: Pixel resolution in meters in south-north direction
             [column_offset: Column offset, defaults to 0 if not given]
             [line_offset: Line offset, defaults to 0 if not given]
     Returns:

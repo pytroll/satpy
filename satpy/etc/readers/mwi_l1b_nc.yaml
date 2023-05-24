@@ -208,7 +208,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_18_vh
     coordinates: [lon_pixels_group_1, lat_pixels_group_1]
     n_18: 1
-    chan_index: 0
+    chan_index: 1
     frequency_range:
       central: 18.7
       bandwidth: 0.2
@@ -228,7 +228,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_23_vh
     coordinates: [lon_pixels_group_2, lat_pixels_group_2]
     n_23: 0
-    chan_index: 1
+    chan_index: 2
     frequency_range:
       central: 23.8
       bandwidth: 0.4
@@ -248,7 +248,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_23_vh
     coordinates: [lon_pixels_group_2, lat_pixels_group_2]
     n_23: 1
-    chan_index: 1
+    chan_index: 3
     frequency_range:
       central: 23.8
       bandwidth: 0.4
@@ -268,7 +268,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_31_vh
     coordinates: [lon_pixels_group_3, lat_pixels_group_3]
     n_31: 0
-    chan_index: 2
+    chan_index: 4
     frequency_range:
       central: 31.4
       bandwidth: 0.4
@@ -288,7 +288,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_31_vh
     coordinates: [lon_pixels_group_3, lat_pixels_group_3]
     n_31: 1
-    chan_index: 2
+    chan_index: 5
     frequency_range:
       central: 31.4
       bandwidth: 0.4
@@ -308,7 +308,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_v
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 0
-    chan_index: 3
+    chan_index: 6
     frequency_range:
       central: 50.3
       bandwidth: 0.4
@@ -328,7 +328,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_h
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 0
-    chan_index: 3
+    chan_index: 7
     frequency_range:
       central: 50.3
       bandwidth: 0.4
@@ -348,7 +348,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_v
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 1
-    chan_index: 4
+    chan_index: 8
     frequency_range:
       central: 52.61
       bandwidth: 0.4
@@ -368,7 +368,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_h
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 1
-    chan_index: 4
+    chan_index: 9
     frequency_range:
       central: 52.61
       bandwidth: 0.4
@@ -388,7 +388,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_v
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 2
-    chan_index: 5
+    chan_index: 10
     frequency_range:
       central: 53.24
       bandwidth: 0.4
@@ -408,7 +408,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_h
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 2
-    chan_index: 5
+    chan_index: 11
     frequency_range:
       central: 53.24
       bandwidth: 0.4
@@ -428,7 +428,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_v
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 3
-    chan_index: 6
+    chan_index: 12
     frequency_range:
       central: 53.75
       bandwidth: 0.4
@@ -448,7 +448,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_50_53_h
     coordinates: [lon_pixels_group_4, lat_pixels_group_4]
     n_50: 3
-    chan_index: 6
+    chan_index: 13
     frequency_range:
       central: 53.75
       bandwidth: 0.4
@@ -468,7 +468,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_89_vh
     coordinates: [lon_pixels_group_5, lat_pixels_group_5]
     n_89: 0
-    chan_index: 7
+    chan_index: 14
     frequency_range:
       central: 89.0
       bandwidth: 0.4
@@ -488,7 +488,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_89_vh
     coordinates: [lon_pixels_group_5, lat_pixels_group_5]
     n_89: 1
-    chan_index: 7
+    chan_index: 15
     frequency_range:
       central: 89.0
       bandwidth: 0.4
@@ -508,7 +508,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_118_v
     coordinates: [lon_pixels_group_6, lat_pixels_group_6]
     n_118: 0
-    chan_index: 8
+    chan_index: 16
     frequency_double_sideband:
       central: 118.7503
       side: 3.2
@@ -529,7 +529,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_118_v
     coordinates: [lon_pixels_group_6, lat_pixels_group_6]
     n_118: 1
-    chan_index: 9
+    chan_index: 17
     frequency_double_sideband:
       central: 118.7503
       side: 2.1
@@ -550,7 +550,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_118_v
     coordinates: [lon_pixels_group_6, lat_pixels_group_6]
     n_118: 2
-    chan_index: 10
+    chan_index: 18
     frequency_double_sideband:
       central: 118.7503
       side: 1.4
@@ -571,7 +571,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_118_v
     coordinates: [lon_pixels_group_6, lat_pixels_group_6]
     n_118: 3
-    chan_index: 11
+    chan_index: 19
     frequency_double_sideband:
       central: 118.7503
       side: 1.2
@@ -592,7 +592,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_165_v
     coordinates: [lon_pixels_group_7, lat_pixels_group_7]
     n_165: 0
-    chan_index: 12
+    chan_index: 20
     frequency_double_sideband:
       central: 165.5
       side: 0.75
@@ -613,7 +613,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_183_v
     coordinates: [lon_pixels_group_8, lat_pixels_group_8]
     n_183: 0
-    chan_index: 13
+    chan_index: 21
     frequency_double_sideband:
       central: 183.31
       side: 7.0
@@ -634,7 +634,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_183_v
     coordinates: [lon_pixels_group_8, lat_pixels_group_8]
     n_183: 1
-    chan_index: 14
+    chan_index: 22
     frequency_double_sideband:
       central: 183.31
       side: 6.1
@@ -655,7 +655,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_183_v
     coordinates: [lon_pixels_group_8, lat_pixels_group_8]
     n_183: 2
-    chan_index: 15
+    chan_index: 23
     frequency_double_sideband:
       central: 183.31
       side: 4.9
@@ -676,7 +676,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_183_v
     coordinates: [lon_pixels_group_8, lat_pixels_group_8]
     n_183: 3
-    chan_index: 16
+    chan_index: 24
     frequency_double_sideband:
       central: 183.31
       side: 3.4
@@ -697,7 +697,7 @@ datasets:
     file_key: data/measurement_data/mwi_radiance_183_v
     coordinates: [lon_pixels_group_8, lat_pixels_group_8]
     n_183: 4
-    chan_index: 17
+    chan_index: 25
     frequency_double_sideband:
       central: 183.31
       side: 2.0

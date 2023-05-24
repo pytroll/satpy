@@ -63,8 +63,10 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l2_grib.da')
     def test_data_reading(self, da_, xr_):
         """Test the reading of data from the product."""
-        from satpy import CHUNK_SIZE
         from satpy.readers.seviri_l2_grib import REPEAT_CYCLE_DURATION, SeviriL2GribFileHandler
+        from satpy.utils import get_legacy_chunk_size
+        CHUNK_SIZE = get_legacy_chunk_size()
+
         with mock.patch("builtins.open", mock.mock_open()) as mock_file:
             with mock.patch('satpy.readers.seviri_l2_grib.ec', self.ec_):
                 self.reader = SeviriL2GribFileHandler(
@@ -168,7 +170,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 with mock.patch('satpy.readers.seviri_l2_grib.calculate_area_extent',
                                 mock.Mock(name='calculate_area_extent')) as cae:
                     with mock.patch('satpy.readers.seviri_l2_grib.get_area_definition', mock.Mock()) as gad:
-                        self.reader.get_area_def(mock.Mock(resolution=400.))
+                        dataset_id = make_dataid(name='dummmy', resolution=400.)
+                        self.reader.get_area_def(dataset_id)
                         # Asserts that calculate_area_extent has been called with the correct arguments
                         expected_args = ({'center_point': 500, 'east': 1, 'west': 1000, 'south': 1, 'north': 1200,
                                          'column_step': 400., 'line_step': 400.},)

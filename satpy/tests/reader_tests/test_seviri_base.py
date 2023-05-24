@@ -25,7 +25,6 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.seviri_base import (
     NoValidOrbitParams,
     OrbitPolynomial,
@@ -39,6 +38,9 @@ from satpy.readers.seviri_base import (
     pad_data_vertically,
     round_nom_time,
 )
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def chebyshev4(c, x, domain):

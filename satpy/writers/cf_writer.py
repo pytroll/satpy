@@ -160,6 +160,7 @@ import json
 import logging
 import warnings
 from collections import OrderedDict, defaultdict
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -735,18 +736,20 @@ class CFWriter(Writer):
         if "area" in new_data.attrs:
             if isinstance(new_data.attrs["area"], AreaDefinition):
                 return new_data.attrs["area"].crs
-            # at least one test case passes an area of type str
-            logger.warning(
-                f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
-                "Assuming projected CRS.")
+            if not isinstance(new_data.attrs["area"], SwathDefinition):
+                logger.warning(
+                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
+                    "Assuming projected CRS.")
         if "crs" in new_data.coords:
             return new_data.coords["crs"].item()
 
     @staticmethod
     def _try_get_units_from_coords(new_data):
         for c in "xy":
-            if "units" in new_data.coords[c].attrs:
-                return new_data.coords[c].attrs["units"]
+            with suppress(KeyError):
+                # If the data has only 1 dimension, it has only one of x or y coords
+                if "units" in new_data.coords[c].attrs:
+                    return new_data.coords[c].attrs["units"]
 
     @staticmethod
     def _encode_xy_coords_projected(new_data):

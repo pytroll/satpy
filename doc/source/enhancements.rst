@@ -60,11 +60,6 @@ gamma
 invert
 ------
 
-crefl_scaling
--------------
-
-Deprecated. Use 'piecewise_linear_stretch' instead.
-
 piecewise_linear_stretch
 ------------------------
 
