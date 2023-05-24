@@ -677,10 +677,9 @@ class TestCFWriter(unittest.TestCase):
                            coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
         _ = CFWriter.da2cf(arr)
 
-    @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
-    def test_collect_datasets(self, *mocks):
+    def test_collect_cf_dataarrays(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
-        from satpy.writers.cf_writer import CFWriter
+        from satpy.writers.cf_writer import _collect_cf_dataset
 
         geos = pyresample.geometry.AreaDefinition(
             area_id='geos',
@@ -697,27 +696,26 @@ class TestCFWriter(unittest.TestCase):
         time = [1, 2]
         tstart = datetime(2019, 4, 1, 12, 0)
         tend = datetime(2019, 4, 1, 12, 15)
-        datasets = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
-                    xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var2', 'long_name': 'variable 2'})]
+        list_dataarrays = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
+                                        attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
+                           xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
+                                        attrs={'name': 'var2', 'long_name': 'variable 2'})]
 
         # Collect datasets
-        writer = CFWriter()
-        datas = writer._collect_datasets(datasets, include_lonlats=True)
+        ds = _collect_cf_dataset(list_dataarrays, include_lonlats=True)
 
         # Test results
-        self.assertEqual(len(datas), 3)
-        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
+        assert len(ds.keys()) == 3
+        assert set(ds.keys()) == {'var1', 'var2', 'geos'}
 
-        var1 = datas['var1']
-        var2 = datas['var2']
-        self.assertEqual(var1.name, 'var1')
-        self.assertEqual(var1.attrs['grid_mapping'], 'geos')
-        self.assertEqual(var1.attrs['long_name'], 'var1')
+        da_var1 = ds['var1']
+        da_var2 = ds['var2']
+        assert da_var1.name == 'var1'
+        assert da_var1.attrs['grid_mapping'] == 'geos'
+        assert da_var1.attrs['long_name'] == 'var1'
         # variable 2
-        self.assertNotIn('grid_mapping', var2.attrs)
-        self.assertEqual(var2.attrs['long_name'], 'variable 2')
+        assert 'grid_mapping' not in da_var2.attrs
+        assert da_var2.attrs['long_name'] == 'variable 2'
 
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
@@ -1079,7 +1077,7 @@ class TestCFWriter(unittest.TestCase):
             [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
         )
         lons_ref, lats_ref = area.get_lonlats()
-        dataarray = xr.DataArray(data=da.from_array(np.arange(3*10*10).reshape(3, 10, 10), chunks=(1, 5, 5)),
+        dataarray = xr.DataArray(data=da.from_array(np.arange(3 * 10 * 10).reshape(3, 10, 10), chunks=(1, 5, 5)),
                                  dims=('bands', 'y', 'x'), attrs={'area': area})
         res = area2lonlat(dataarray)
 
@@ -1195,28 +1193,26 @@ class TestCFWriterData(unittest.TestCase):
         self.datasets['lat'].attrs['standard_name'] = 'dummy'
         self.assertFalse(has_projection_coords(self.datasets))
 
-    @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
-    def test_collect_datasets_with_latitude_named_lat(self, *mocks):
+    def test_collect_cf_dataarrays_with_latitude_named_lat(self, *mocks):
         """Test collecting CF datasets with latitude named lat."""
         from operator import getitem
 
-        from satpy.writers.cf_writer import CFWriter
+        from satpy.writers.cf_writer import _collect_cf_dataset
 
         self.datasets_list = [self.datasets[key] for key in self.datasets]
         self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
 
         # Collect datasets
-        writer = CFWriter()
-        datas = writer._collect_datasets(self.datasets_list, include_lonlats=True)
-        datas2 = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
-        # Test results
+        ds = _collect_cf_dataset(self.datasets_list, include_lonlats=True)
+        ds2 = _collect_cf_dataset(self.datasets_list_no_latlon, include_lonlats=True)
 
-        self.assertEqual(len(datas), 5)
-        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'lon', 'lat', 'geos'})
-        self.assertRaises(KeyError, getitem, datas['var1'], 'latitude')
-        self.assertRaises(KeyError, getitem, datas['var1'], 'longitude')
-        self.assertEqual(datas2['var1']['latitude'].attrs['name'], 'latitude')
-        self.assertEqual(datas2['var1']['longitude'].attrs['name'], 'longitude')
+        # Test results
+        self.assertEqual(len(ds.keys()), 5)
+        self.assertEqual(set(ds.keys()), {'var1', 'var2', 'lon', 'lat', 'geos'})
+        self.assertRaises(KeyError, getitem, ds['var1'], 'latitude')
+        self.assertRaises(KeyError, getitem, ds['var1'], 'longitude')
+        self.assertEqual(ds2['var1']['latitude'].attrs['name'], 'latitude')
+        self.assertEqual(ds2['var1']['longitude'].attrs['name'], 'longitude')
 
 
 class EncodingUpdateTest(unittest.TestCase):
