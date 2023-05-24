@@ -18,6 +18,7 @@
 """The HRIT base reader tests package."""
 
 import bz2
+import gzip
 import os
 import unittest
 from datetime import datetime
@@ -29,6 +30,10 @@ import pytest
 
 from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 
 class TestHRITDecompress(unittest.TestCase):
@@ -157,6 +162,14 @@ def stub_bzipped_hrit_file(tmp_path):
 
 
 @pytest.fixture
+def stub_gzipped_hrit_file(tmp_path):
+    """Create a stub gzipped hrit file."""
+    filename = tmp_path / "some_hrit_file.gz"
+    create_stub_hrit(filename, open_fun=gzip.open)
+    return filename
+
+
+@pytest.fixture
 def stub_compressed_hrit_file(tmp_path):
     """Create a stub compressed hrit file."""
     filename = tmp_path / "some_hrit_file.C_"
@@ -240,6 +253,17 @@ class TestHRITFileHandler:
     def test_read_band_bzipped2_filepath(self, stub_bzipped_hrit_file):
         """Test reading a single band from a bzipped file."""
         self.reader.filename = stub_bzipped_hrit_file
+
+        res = self.reader.read_band('VIS006', None)
+        assert res.compute().shape == (464, 3712)
+
+    def test_read_band_gzip_stream(self, stub_gzipped_hrit_file):
+        """Test reading a single band from a gzip stream."""
+        import fsspec
+        filename = stub_gzipped_hrit_file
+
+        fs_file = fsspec.open(filename, compression="gzip")
+        self.reader.filename = FSFile(fs_file)
 
         res = self.reader.read_band('VIS006', None)
         assert res.compute().shape == (464, 3712)

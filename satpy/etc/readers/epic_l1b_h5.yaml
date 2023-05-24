@@ -1,0 +1,216 @@
+reader:
+  name: epic_l1b_h5
+  short_name: DSCOVR_EPIC_L1b
+  long_name: DSCOVR EPIC L1b hdf5
+  description: >
+    Reader for level 1b data produced by DSCOVR's EPIC sensor.
+    For documentation see: https://cmr.earthdata.nasa.gov/search/concepts/C1667168435-LARC_ASDC.html.
+  status: Beta
+  supports_fsspec: false
+  sensors: [epic]
+  default_channels: [B317, B325, B340, B388, B443, B551, B680, B688, B764, B780]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+    h5_std:
+        file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
+        file_patterns: [
+          "{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"
+        ]
+
+
+datasets:
+  B317:
+    name: B317
+    wavelength: [0.3174, 0.3175, 0.3176]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band317nm/Image
+
+  B325:
+    name: B325
+    wavelength: [0.3249, 0.325, 0.3251]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band325nm/Image
+
+  B340:
+    name: B340
+    wavelength: [0.3397, 0.340, 0.3403]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band340nm/Image
+
+  B388:
+    name: B388
+    wavelength: [0.3877, 0.388, 0.3883]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band388nm/Image
+
+  B443:
+    name: B443
+    wavelength: [0.442, 0.443, 0.444]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band443nm/Image
+
+  B551:
+    name: B551
+    wavelength: [0.550, 0.551, 0.552]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band551nm/Image
+
+  B680:
+    name: B680
+    wavelength: [0.678, 0.680, 0.682]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band680nm/Image
+
+  B688:
+    name: B688
+    wavelength: [0.6773, 0.6875, 0.6777]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band688nm/Image
+
+  B764:
+    name: B764
+    wavelength: [0.7638, 0.764, 0.7642]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band764nm/Image
+
+  B780:
+    name: B780
+    wavelength: [0.7792, 0.7795, 0.7798]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: count
+    file_type: h5_std
+    file_key: Band780nm/Image
+
+
+  longitude:
+    name: longitude
+    standard_name: longitude
+    long_name: "Longitude"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/Longitude
+
+  latitude:
+    name: latitude
+    standard_name: latitude
+    long_name: "Latitude"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/Latitude
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    long_name: "Solar zenith angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/SunAngleZenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    long_name: "Solar azimuth angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/SunAngleAzimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    long_name: "Satellite zenith angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/ViewAngleZenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    long_name: "Satellite azimuth angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/ViewAngleAzimuth
+
+  satellite_refraction_angle:
+    name:   satellite_refraction_angle
+    standard_name:   satellite_refraction_angle
+    long_name: "Satellite refraction angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/ViewAngleRefraction
+
+  earth_mask:
+    name:     earth_mask
+    standard_name:     earth_mask
+    long_name: "Satellite refraction angle"
+    units: degree
+    file_type: h5_std
+    file_key: Band688nm/Geolocation/Earth/Mask

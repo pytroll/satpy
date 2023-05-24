@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2019, 2022, 2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,7 +23,9 @@ from contextlib import contextmanager
 from unittest import mock
 
 import numpy as np
+import pytest
 
+from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -32,35 +34,6 @@ DEFAULT_FILE_SHAPE = (32, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
-
-DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
-                'SVDNB': 'VIIRS-DNB-SDR',
-                'GITCO': 'VIIRS-IMG-GEO-TC',
-                'GIMGO': 'VIIRS-IMG-GEO',
-                'SVI01': 'VIIRS-I1-SDR',
-                'SVI02': 'VIIRS-I2-SDR',
-                'SVI03': 'VIIRS-I3-SDR',
-                'SVI04': 'VIIRS-I4-SDR',
-                'SVI05': 'VIIRS-I5-SDR',
-                'GMTCO': 'VIIRS-MOD-GEO-TC',
-                'GMODO': 'VIIRS-MOD-GEO',
-                'SVM01': 'VIIRS-M1-SDR',
-                'SVM02': 'VIIRS-M2-SDR',
-                'SVM03': 'VIIRS-M3-SDR',
-                'SVM04': 'VIIRS-M4-SDR',
-                'SVM05': 'VIIRS-M5-SDR',
-                'SVM06': 'VIIRS-M6-SDR',
-                'SVM07': 'VIIRS-M7-SDR',
-                'SVM08': 'VIIRS-M8-SDR',
-                'SVM09': 'VIIRS-M9-SDR',
-                'SVM10': 'VIIRS-M10-SDR',
-                'SVM11': 'VIIRS-M11-SDR',
-                'SVM12': 'VIIRS-M12-SDR',
-                'SVM13': 'VIIRS-M13-SDR',
-                'SVM14': 'VIIRS-M14-SDR',
-                'SVM15': 'VIIRS-M15-SDR',
-                'SVM16': 'VIIRS-M16-SDR',
-                }
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -81,7 +54,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                      month=start_time.month,
                                                      day=start_time.day)
         begin_date = start_time.strftime('%Y%m%d')
+        begin_date = np.array(begin_date)
+
         begin_time = start_time.strftime('%H%M%S.%fZ')
+        begin_time = np.array(begin_time)
+
         ending_date = end_time.strftime('%Y%m%d')
         ending_time = end_time.strftime('%H%M%S.%fZ')
         new_file_content = {
@@ -343,10 +320,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -365,6 +342,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
+
+    def test_init_start_time_is_nodate(self):
+        """Test basic init with start_time being set to the no-date 1/1-1958."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with pytest.raises(ValueError) as exec_info:
+            _ = r.create_filehandlers([
+                'SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5',
+            ])
+        expected = 'Datetime invalid 1958-01-01 00:00:00'
+        assert str(exec_info.value) == expected
 
     def test_init_start_time_beyond(self):
         """Test basic init with start_time after the provided files."""
@@ -399,6 +387,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         from datetime import datetime
 
         from satpy.readers import load_reader
+
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             'start_time': datetime(2012, 2, 24),
@@ -695,7 +684,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             make_dsq(name='M14', calibration='radiance'),
             make_dsq(name='M15', calibration='radiance'),
             make_dsq(name='M16', calibration='radiance'),
-                     ])
+        ])
         self.assertEqual(len(ds), 16)
         for d in ds.values():
             self.assertTrue(np.issubdtype(d.dtype, np.float32))
@@ -900,10 +889,10 @@ class TestShortAggrVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeShortHDF5FileHandlerAggr,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeShortHDF5FileHandlerAggr,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 

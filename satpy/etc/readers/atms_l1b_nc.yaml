@@ -1,0 +1,396 @@
+reader:
+  name: atms_l1b_nc
+  short_name: ATMS L1B NetCDF4
+  long_name: S-NPP and JPSS-1 ATMS L1B (NetCDF4)
+  description: >
+    Reader for the S-NPP and JPSS-1 Advanced Technology Microwave Sounder Level 1B files in NetCDF4.
+  status: Beta
+  sensors: [atms]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  supports_fsspec: false
+
+  data_identification_keys:
+    name:
+      required: true
+    frequency_quadruple_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyQuadrupleSideBand
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
+    frequency_range:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
+    polarization:
+      enum:
+        - QH
+        - QV
+    calibration:
+      enum:
+        - brightness_temperature
+      transitive: true
+
+file_types:
+  atms_l1b_nc:
+    file_reader: !!python/name:satpy.readers.atms_l1b_nc.AtmsL1bNCFileHandler
+    file_patterns: ['{project_name:s}.{platform_name:s}.ATMS.{start_time:%Y%m%dT%H%M}.m{duration:2d}.g{granule_number:3d}.L1B.std.{version:s}.{producer:1s}.{creation_timestamp:d}.nc']
+    antenna_temperature: antenna_temp
+
+datasets:
+
+# --- Coordinates ---
+  lat:
+    name: lat
+    file_type: atms_l1b_nc
+    standard_name: latitude
+    units: degrees_north
+
+  lon:
+    name: lon
+    file_type: atms_l1b_nc
+    standard_name: longitude
+    units: degrees_east
+
+# --- Measurement data ---
+  '1':
+    name: '1'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 23.8
+      bandwidth: 0.27
+      unit: GHz
+    polarization: QV
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '2':
+    name: '2'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 31.4
+      bandwidth: 0.18
+      unit: GHz
+    polarization: QV
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '3':
+    name: '3'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 50.3
+      bandwidth: 0.18
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '4':
+    name: '4'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 51.76
+      bandwidth: 0.4
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '5':
+    name: '5'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 52.8
+      bandwidth: 0.4
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '6':
+    name: '6'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 53.596
+      side: 0.115
+      bandwidth: 0.17
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '7':
+    name: '7'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 54.4
+      bandwidth: 0.4
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '8':
+    name: '8'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 54.94
+      bandwidth: 0.4
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '9':
+    name: '9'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 55.5
+      bandwidth: 0.33
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '10':
+    name: '10'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 57.290344
+      bandwidth: 0.33
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '11':
+    name: '11'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 57.290344
+      side: 0.217
+      bandwidth: 0.078
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '12':
+    name: '12'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_quadruple_sideband:
+      central: 57.290344
+      side: 0.3222
+      sideside: 0.048
+      bandwidth: 0.036
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '13':
+    name: '13'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_quadruple_sideband:
+      central: 57.290344
+      side: 0.3222
+      sideside: 0.022
+      bandwidth: 0.016
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '14':
+    name: '14'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_quadruple_sideband:
+      central: 57.290344
+      side: 0.3222
+      sideside: 0.010
+      bandwidth: 0.008
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '15':
+    name: '15'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_quadruple_sideband:
+      central: 57.290344
+      side: 0.3222
+      sideside: 0.0045
+      bandwidth: 0.003
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '16':
+    name: '16'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 88.2
+      bandwidth: 2.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '17':
+    name: '17'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_range:
+      central: 165.5
+      bandwidth: 3.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '18':
+    name: '18'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 183.31
+      side: 7.0
+      bandwidth: 2.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '19':
+    name: '19'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 183.31
+      side: 4.5
+      bandwidth: 2.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '20':
+    name: '20'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 183.31
+      side: 3.0
+      bandwidth: 1.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '21':
+    name: '21'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 183.31
+      side: 1.8
+      bandwidth: 1.0
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  '22':
+    name: '22'
+    file_type: atms_l1b_nc
+    coordinates: [lon, lat]
+    frequency_double_sideband:
+      central: 183.31
+      side: 1.0
+      bandwidth: 0.5
+      unit: GHz
+    polarization: QH
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+# --- Navigation data ---
+  obs_time_tai93:
+    name: obs_time_tai93
+    standard_name: time
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+  sol_azi:
+    name: sol_azi
+    standard_name: solar_azimuth_angle
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+  sol_zen:
+    name: sol_zen
+    standard_name: solar_zenith_angle
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+  sat_azi:
+    name: sat_azi
+    standard_name: satellite_azimuth_angle
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+  sat_zen:
+    name: sat_zen
+    standard_name: satellite_zenith_angle
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+# --- Land surface data ---
+  land_frac:
+    name: land_frac
+    standard_name: land_area_fraction
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc
+
+  surf_alt:
+    name: surf_alt
+    standard_name: surface_altitude
+    coordinates: [lon, lat]
+    file_type: atms_l1b_nc

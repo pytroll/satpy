@@ -1,0 +1,10 @@
+enhancements:
+
+  flash_area:
+    standard_name: flash_area
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 20}

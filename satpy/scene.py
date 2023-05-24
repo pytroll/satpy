@@ -181,8 +181,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
@@ -326,8 +324,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'max_area' is deprecated, use 'finest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'max_area' is deprecated, use 'finest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.finest_area(datasets=datasets)
 
     def coarsest_area(self, datasets=None):
@@ -354,8 +355,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'min_area' is deprecated, use 'coarsest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'min_area' is deprecated, use 'coarsest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.coarsest_area(datasets=datasets)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
@@ -1002,10 +1006,15 @@ class Scene:
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims : list of str, optional
+            vdims (list of str, optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic : boolean, optional, default False
+            dynamic (bool, optional): Load and compute data on-the-fly during
+                visualization. Default is ``False``. See
+                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
+                for more information. Has no effect when data to be visualized
+                only has 2 dimensions (y/x or longitude/latitude) and doesn't
+                require grouping via the Holoviews ``groupby`` function.
 
         Returns: geoviews object
 
@@ -1031,10 +1040,12 @@ class Scene:
         else:
             gvds = gv.Dataset(ds)
 
+        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
+        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
         if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
         else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
 
         return gview
 
@@ -1080,7 +1091,11 @@ class Scene:
                   epoch=None,
                   include_orig_name=True,
                   numeric_name_prefix='CHANNEL_'):
-        """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xr.Dataset.
+        """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
+
+        If all Scene DataArrays are on the same area, it returns an xr.Dataset.
+        If Scene DataArrays are on different areas, currently it fails,
+        but in future will returns a xr.DataTree.
 
         Parameters
         ----------
@@ -1133,8 +1148,8 @@ class Scene:
 
         # Get list of DataArrays
         list_dataarrays = self._get_dataarrays_from_identifiers(datasets)
+
         # Check that some DataArray could be returned
-        # TODO: DECIDE BEHAVIOUR
         if len(list_dataarrays) == 0:
             return xr.Dataset()
         if not list_dataarrays:
@@ -1142,6 +1157,7 @@ class Scene:
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
+
         # Collect xr.Dataset for each group
         grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=list_dataarrays,
                                                              header_attrs=header_attrs,
@@ -1157,7 +1173,7 @@ class Scene:
             ds = grouped_datasets[None]
             return ds
         else:
-            msg = """The Scene object contains datasets with different dimensions.
+            msg = """The Scene object contains datasets with different areas.
                       Resample the Scene to have matching dimensions using i.e. scn.resample("native") """
             raise NotImplementedError(msg)
 

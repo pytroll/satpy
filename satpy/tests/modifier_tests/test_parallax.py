@@ -33,6 +33,12 @@ import satpy.resample
 
 from ...writers import get_enhanced_image
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+# - request
+
 
 @pytest.fixture
 def fake_tle():

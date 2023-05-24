@@ -31,7 +31,12 @@ import pytest
 
 import satpy
 from satpy import DatasetDict
+from satpy._config import cached_entry_point
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 
 class TestBuiltinAreas(unittest.TestCase):
@@ -61,8 +66,7 @@ class TestBuiltinAreas(unittest.TestCase):
                     # we didn't provide enough info to freeze, hard to guess
                     # in a generic test so just skip this area
                     continue
-            proj_dict = area_obj.proj_dict
-            _ = pyproj.Proj(proj_dict)
+            _ = pyproj.Proj(area_obj.crs)
 
     def test_areas_rasterio(self):
         """Test all areas have valid projections with rasterio."""
@@ -94,14 +98,7 @@ class TestBuiltinAreas(unittest.TestCase):
                     # we didn't provide enough info to freeze, hard to guess
                     # in a generic test so just skip this area
                     continue
-            proj_dict = area_obj.proj_dict
-            if proj_dict.get('proj') in ('ob_tran', 'nsper') and \
-                    'wktext' not in proj_dict:
-                # FIXME: rasterio doesn't understand ob_tran unless +wktext
-                # See: https://github.com/pyproj4/pyproj/issues/357
-                # pyproj 2.0+ seems to drop wktext from PROJ dict
-                continue
-            _ = CRS.from_dict(proj_dict)
+            _ = CRS.from_user_input(area_obj.crs)
 
 
 @contextlib.contextmanager
@@ -292,6 +289,10 @@ def _create_yamlbased_plugin(
 class TestPluginsConfigs:
     """Test that plugins are working."""
 
+    def setup_method(self):
+        """Set up the test."""
+        cached_entry_point.cache_clear()
+
     def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
         """Check that the plugin configs are looked for."""
         from satpy._config import get_entry_points_config_dirs
@@ -479,6 +480,26 @@ class TestConfigObject:
         # strings are not allowed, lists are
         with satpy.config.set(config_path='/single/string/paths/are/bad'):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
+
+    def test_tmp_dir_is_writable(self):
+        """Check that the default temporary directory is writable."""
+        import satpy
+        assert _is_writable(satpy.config["tmp_dir"])
+
+
+def test_is_writable():
+    """Test writable directory check."""
+    assert _is_writable(os.getcwd())
+    assert not _is_writable("/foo/bar")
+
+
+def _is_writable(directory):
+    import tempfile
+    try:
+        with tempfile.TemporaryFile(dir=directory):
+            return True
+    except OSError:
+        return False
 
 
 def _os_specific_multipaths():

@@ -535,7 +535,13 @@ the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
 
 .. note::
-   Be careful about the data types of the datasets your reader is returning.
+   Be careful about the data types of the DataArray attributes (`.attrs`) your reader is
+   returning. Satpy or other tools may attempt to serialize these attributes (ex. hashing for cache keys). For example, Numpy types don't serialize into JSON and
+   should therefore be cast to basic Python types (`float`, `int`, etc) before being
+   assigned to the attributes.
+
+.. note::
+   Be careful about the types of the data your reader is returning.
    It is easy to let the data be coerced into double precision floats (`np.float64`). At the
    moment, satellite instruments are rarely measuring in a resolution greater
    than what can be encoded in 16 bits. As such, to preserve processing power,
@@ -574,8 +580,8 @@ One way of implementing a file handler is shown below:
                 self.nc = xr.open_dataset(self.filename,
                                           decode_cf=True,
                                           mask_and_scale=True,
-                                          chunks={'num_columns_vis_ir': CHUNK_SIZE,
-                                                  'num_rows_vis_ir': CHUNK_SIZE})
+                                          chunks={'num_columns_vis_ir': "auto",
+                                                  'num_rows_vis_ir': "auto"})
                 self.nc = self.nc.rename({'num_columns_vir_ir': 'x', 'num_rows_vir_ir': 'y'})
             dataset = self.nc[dataset_info['nc_key']]
             dataset.attrs.update(dataset_info)

@@ -40,6 +40,12 @@ except ImportError:  # Remove when dropping Python < 3.8
         """Drop-in replacement for math.prod."""
         return reduce(mul, iterable, 1)
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - monkeypatch
+# - caplog
+
 
 def _get_fake_da(lo, hi, shp, dtype="f4"):
     """Generate dask array with synthetic data.

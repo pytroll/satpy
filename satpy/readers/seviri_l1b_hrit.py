@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-r"""SEVIRI HRIT format reader.
+r"""SEVIRI Level 1.5 HRIT format reader.
 
 Introduction
 ------------
@@ -46,7 +46,7 @@ Reader Arguments
 Some arguments can be provided to the reader to change its behaviour. These are
 provided through the `Scene` instantiation, eg::
 
-  Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
+  scn = Scene(filenames=filenames, reader="seviri_l1b_hrit", reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`HRITMSGFileHandler`.
@@ -59,7 +59,6 @@ This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT reader
 
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
-
 
 Example
 -------
@@ -175,10 +174,14 @@ Output:
 
 
 References:
+    - `EUMETSAT Product Navigator`_
     - `MSG Level 1.5 Image Data Format Description`_
+    - `fsspec`_
 
+.. _EUMETSAT Product Navigator:
+    https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+    https://www.eumetsat.int/media/45126
 .. _fsspec:
     https://filesystem-spec.readthedocs.io
 """
@@ -195,7 +198,6 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
@@ -217,10 +219,13 @@ from satpy.readers.seviri_base import (
     create_coef_dict,
     get_cds_time,
     get_satpos,
+    mask_bad_quality,
     pad_data_horizontally,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger('hrit_msg')
 
 # MSG implementation:
@@ -299,7 +304,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None):
+                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -372,7 +377,7 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None):
+                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -410,8 +415,8 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Padding of the HRV channel**
 
-    By default, the HRV channel is loaded padded with no-data, that is it is
-    returned as a full-disk dataset. If you want the original, unpadded, data,
+    By default, the HRV channel is loaded padded with no-data, returning
+    a full-disk dataset. If you want the original, unpadded data,
     just provide the `fill_hrv` as False in the `reader_kwargs`::
 
         scene = satpy.Scene(filenames,
@@ -427,7 +432,8 @@ class HRITMSGFileHandler(HRITFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue, calib_mode='nominal',
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=100, fill_hrv=True):
+                 mda_max_array_size=100, fill_hrv=True,
+                 mask_bad_quality_scan_lines=True):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -445,6 +451,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
+        self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
 
         self._get_header()
 
@@ -525,7 +532,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         if not self.mda['offset_corrected']:
             # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
-            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed and you
+            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed, and you
             # dragged the image to S-E until coastlines and data area aligned correctly.
             #
             # Although the image is flipped upside-down and left-right, the projection coordinates retain their
@@ -542,7 +549,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])
-        pdict = {}
+        pdict = dict()
         pdict['cfac'] = np.int32(self.mda['cfac'])
         pdict['lfac'] = np.int32(self.mda['lfac'])
         pdict['coff'] = np.float32(self.mda['coff'])
@@ -626,6 +633,11 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key['calibration'])
+
+        is_calibration = key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        if is_calibration and self.mask_bad_quality_scan_lines:  # noqa: E129
+            res = self._mask_bad_quality(res)
+
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
@@ -676,20 +688,15 @@ class HRITMSGFileHandler(HRITFileHandler):
             scan_time=self.start_time
         )
         res = calib.calibrate(data, calibration)
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self._mask_bad_quality(res)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
-        # Based on missing (2) or corrupted (3) data
-        line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
-        line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
-        # Do not use (4)
-        line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
-        line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
-        data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+        line_validity = self.mda['image_segment_line_quality']['line_validity']
+        line_radiometric_quality = self.mda['image_segment_line_quality']['line_radiometric_quality']
+        line_geometric_quality = self.mda['image_segment_line_quality']['line_geometric_quality']
+        data = mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality)
         return data
 
     def _get_raw_mda(self):

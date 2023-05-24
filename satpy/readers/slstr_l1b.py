@@ -27,10 +27,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
@@ -170,8 +172,11 @@ class NCSLSTR1B(BaseFileHandler):
             if chan_name in CHANCALIB_FACTORS:
                 adjust_fac = CHANCALIB_FACTORS[chan_name]
             else:
-                warnings.warn("Warning: No radiance adjustment supplied " +
-                              "for channel " + chan_name)
+                warnings.warn(
+                    "Warning: No radiance adjustment supplied " +
+                    "for channel " + chan_name,
+                    stacklevel=3
+                )
                 return radiances
         return radiances * adjust_fac
 

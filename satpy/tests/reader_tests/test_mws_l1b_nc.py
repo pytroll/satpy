@@ -30,6 +30,11 @@ from netCDF4 import Dataset
 
 from satpy.readers.mws_l1b import MWSL1BFile, get_channel_index_from_name
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+
 N_CHANNELS = 24
 N_CHANNELS_OS = 2
 N_SCANS = 2637

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2022 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -25,6 +25,7 @@ References:
 import functools
 import logging
 import os
+from contextlib import suppress
 from datetime import datetime
 
 import dask.array as da
@@ -33,11 +34,13 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 SENSOR = {'NOAA-19': 'avhrr-3',
           'NOAA-18': 'avhrr-3',
@@ -126,8 +129,16 @@ class NcNWCSAF(BaseFileHandler):
             data = var[0, :, :]
             data.attrs = var.attrs
             var = data
-
         return var
+
+    def drop_xycoords(self, variable):
+        """Drop x, y coords when y is scan line number."""
+        try:
+            if variable.coords['y'].attrs['long_name'] == "scan line number":
+                return variable.drop_vars(['y', 'x'])
+        except KeyError:
+            pass
+        return variable
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
@@ -148,8 +159,22 @@ class NcNWCSAF(BaseFileHandler):
         variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
+        variable = self.drop_xycoords(variable)
+
+        self.get_orbital_parameters(variable)
+        variable.attrs["start_time"] = self.start_time
+        variable.attrs["end_time"] = self.end_time
 
         return variable
+
+    def get_orbital_parameters(self, variable):
+        """Get the orbital parameters from the file if possible (geo)."""
+        with suppress(KeyError):
+            gdal_params = dict(elt.strip("+").split("=") for elt in self.nc.attrs["gdal_projection"].split())
+            variable.attrs["orbital_parameters"] = dict(
+                satellite_nominal_altitude=float(gdal_params["h"]),
+                satellite_nominal_longitude=float(self.nc.attrs["sub-satellite_longitude"]),
+                satellite_nominal_latitude=0)
 
     def _get_varname_in_file(self, info, info_type="file_key"):
         if isinstance(info[info_type], list):
@@ -175,6 +200,8 @@ class NcNWCSAF(BaseFileHandler):
 
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
+        if '_FillValue' in variable.attrs:
+            variable.attrs['scaled_FillValue'] = variable.attrs['_FillValue'] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
             variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
@@ -233,13 +260,16 @@ class NcNWCSAF(BaseFileHandler):
         except KeyError:
             scale = 1
             offset = 0
+            fill_value = 255
         else:
             scale = so_dataset.attrs['scale_factor']
             offset = so_dataset.attrs['add_offset']
+            fill_value = so_dataset.attrs['_FillValue']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
-        if variable.attrs['palette_meanings'][0] == 1:
-            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+
+        if fill_value not in variable.attrs['palette_meanings'] and 'fill_value_color' in variable.attrs:
+            variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
         val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
@@ -279,6 +309,8 @@ class NcNWCSAF(BaseFileHandler):
         lons, lats = satint.interpolate()
         lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
         lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        lat = self.drop_xycoords(lat)
+        lon = self.drop_xycoords(lon)
         return lon, lat
 
     def get_area_def(self, dsid):
@@ -334,34 +366,12 @@ class NcNWCSAF(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_start'])
 
     @property
     def end_time(self):
         """Return the end time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_end'])
 
     @property
     def sensor_names(self):
@@ -404,3 +414,16 @@ def remove_empties(variable):
             variable.attrs.pop(key)
 
     return variable
+
+
+def read_nwcsaf_time(time_value):
+    """Read the time, nwcsaf-style."""
+    try:
+        # MSG:
+        try:
+            return datetime.strptime(time_value, '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:  # Remove this in summer 2024 (this is not needed since h5netcdf 0.14)
+            return datetime.strptime(time_value.astype(str), '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        # PPS:
+        return datetime.strptime(time_value, '%Y%m%dT%H%M%S%fZ')

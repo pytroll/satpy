@@ -8,7 +8,7 @@ concurrency:
 on: [push, pull_request]
 
 env:
-  CACHE_NUMBER: 0
+  CACHE_NUMBER: 1
 
 jobs:
   lint:
@@ -40,10 +40,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         experimental: [false]
         include:
-          - python-version: "3.9"
+          - python-version: "3.11"
             os: "ubuntu-latest"
             experimental: true
 
