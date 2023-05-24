@@ -428,6 +428,24 @@ def add_time_cf_attrs(ds):
     return ds
 
 
+def _encode_time(dataarray, epoch):
+    """Add encodings to the 'time' coordinate."""
+    if 'time' in dataarray.coords:
+        dataarray['time'].encoding['units'] = epoch
+        dataarray['time'].attrs['standard_name'] = 'time'
+        dataarray['time'].attrs.pop('bounds', None)
+        dataarray = _add_time_dimension(dataarray)
+    return dataarray
+
+
+def _add_time_dimension(dataarray):
+    """Add 'time' dimension to the DataArray."""
+    # BUG: When number of timesteps equals the shape of y or x
+    if 'time' not in dataarray.dims and dataarray["time"].size not in dataarray.shape:
+        dataarray = dataarray.expand_dims('time')
+    return dataarray
+
+
 # --------------------------------------------------------------------------.
 # ### Attributes
 
@@ -755,41 +773,42 @@ def make_cf_dataarray(dataarray, epoch=EPOCH, flatten_attrs=False,
     if exclude_attrs is None:
         exclude_attrs = []
 
-    new_data = _preprocess_dataarray_name(dataarray=dataarray,
-                                          numeric_name_prefix=numeric_name_prefix,
-                                          include_orig_name=include_orig_name)
+    dataarray = _preprocess_dataarray_name(dataarray=dataarray,
+                                           numeric_name_prefix=numeric_name_prefix,
+                                           include_orig_name=include_orig_name)
 
-    new_data = _remove_satpy_attributes(new_data)
+    dataarray = _remove_satpy_attributes(dataarray)
 
-    new_data = CFWriter._encode_time(new_data, epoch)
-    new_data = CFWriter._encode_coords(new_data)
+    dataarray = _encode_time(dataarray, epoch=epoch)
+    dataarray = CFWriter._encode_coords(dataarray)
 
     # Remove area as well as user-defined attributes
     for key in ['area'] + exclude_attrs:
-        new_data.attrs.pop(key, None)
+        dataarray.attrs.pop(key, None)
 
-    anc = [ds.attrs['name']
-           for ds in new_data.attrs.get('ancillary_variables', [])]
-    if anc:
-        new_data.attrs['ancillary_variables'] = ' '.join(anc)
+    # Retrieve list of ancillary variables
+    list_ancillary_variables = [da_ancillary.attrs['name']
+                                for da_ancillary in dataarray.attrs.get('ancillary_variables', [])]
+    if list_ancillary_variables:
+        dataarray.attrs['ancillary_variables'] = ' '.join(list_ancillary_variables)
 
     # TODO: make this a grid mapping or lon/lats
     # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-    CFWriter._cleanup_attrs(new_data)
+    CFWriter._cleanup_attrs(dataarray)
 
-    if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
-        new_data.attrs['long_name'] = new_data.name
-    if 'prerequisites' in new_data.attrs:
-        new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
+    if 'long_name' not in dataarray.attrs and 'standard_name' not in dataarray.attrs:
+        dataarray.attrs['long_name'] = dataarray.name
+    if 'prerequisites' in dataarray.attrs:
+        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
 
     # Flatten dict-type attributes, if desired
     if flatten_attrs:
-        new_data.attrs = flatten_dict(new_data.attrs)
+        dataarray.attrs = flatten_dict(dataarray.attrs)
 
     # Encode attributes to netcdf-compatible datatype
-    new_data.attrs = encode_attrs_nc(new_data.attrs)
+    dataarray.attrs = encode_attrs_nc(dataarray.attrs)
 
-    return new_data
+    return dataarray
 
 
 def _collect_cf_dataset(list_dataarrays,
@@ -890,6 +909,7 @@ def _collect_cf_dataset(list_dataarrays,
     # --> If unique, does not prepend the DataArray name only if pretty=True
     # --> 'longitude' and 'latitude' coordinates are not prepended
     dict_dataarrays = make_alt_coords_unique(dict_dataarrays, pretty=pretty)
+
     # Create a xr.Dataset
     ds = xr.Dataset(dict_dataarrays)
     return ds
