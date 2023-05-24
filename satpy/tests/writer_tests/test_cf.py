@@ -70,6 +70,116 @@ class TempFile(object):
         os.remove(self.filename)
 
 
+def test_lonlat_storage(tmp_path):
+    """Test correct storage for area with lon/lat units."""
+    from ..utils import make_fake_scene
+    scn = make_fake_scene(
+            {"ketolysis": np.arange(25).reshape(5, 5)},
+            daskify=True,
+            area=create_area_def("mavas", 4326, shape=(5, 5),
+                                 center=(0, 0), resolution=(1, 1)))
+
+    filename = os.fspath(tmp_path / "test.nc")
+    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
+    with xr.open_dataset(filename) as ds:
+        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
+        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
+        assert ds["x"].attrs["units"] == "degrees_east"
+        assert ds["y"].attrs["units"] == "degrees_north"
+        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
+        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
+        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
+def test_da2cf_lonlat():
+    """Test correct da2cf encoding for area with lon/lat units."""
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf_writer import CFWriter
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = CFWriter.da2cf(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
+
+
+def test_is_projected(caplog):
+    """Tests for private _is_projected function."""
+    from satpy.writers.cf_writer import CFWriter
+
+    # test case with units but no area
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+    assert CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+    assert not CFWriter._is_projected(da)
+
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"))
+    with caplog.at_level(logging.WARNING):
+        assert CFWriter._is_projected(da)
+    assert "Failed to tell if data are projected." in caplog.text
+
+
+def test_preprocess_dataarray_name():
+    """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
+    from satpy import Scene
+    from satpy.writers.cf_writer import _preprocess_dataarray_name
+
+    scn = Scene()
+    scn['1'] = xr.DataArray([1, 2, 3])
+    dataarray = scn['1']
+    # If numeric_name_prefix is a string, test add the original_name attributes
+    out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix="TEST", include_orig_name=True)
+    assert out_da.attrs['original_name'] == '1'
+
+    # If numeric_name_prefix is empty string, False or None, test do not add original_name attributes
+    out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix="", include_orig_name=True)
+    assert "original_name" not in out_da.attrs
+
+    out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix=False, include_orig_name=True)
+    assert "original_name" not in out_da.attrs
+
+    out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix=None, include_orig_name=True)
+    assert "original_name" not in out_da.attrs
+
+
+def test_add_time_cf_attrs():
+    """Test addition of CF-compliant time attributes."""
+    from satpy import Scene
+    from satpy.writers.cf_writer import add_time_cf_attrs
+
+    scn = Scene()
+    test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+    times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
+                      '2018-05-30T10:05:02', '2018-05-30T10:05:03'], dtype=np.datetime64)
+    scn['test-array'] = xr.DataArray(test_array,
+                                     dims=['y', 'x'],
+                                     coords={'time': ('y', times)},
+                                     attrs=dict(start_time=times[0], end_time=times[-1]))
+    ds = scn['test-array'].to_dataset(name='test-array')
+    ds = add_time_cf_attrs(ds)
+    assert "bnds_1d" in ds.dims
+    assert ds.dims['bnds_1d'] == 2
+    assert "time_bnds" in list(ds.data_vars)
+    assert "bounds" in ds["time"].attrs
+    assert "standard_name" in ds["time"].attrs
+
+
 class TestCFWriter(unittest.TestCase):
     """Test case for CF writer."""
 
@@ -594,19 +704,16 @@ class TestCFWriter(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
+        datas = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
         self.assertEqual(len(datas), 3)
         self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
-        self.assertListEqual(start_times, [None, tstart, None])
-        self.assertListEqual(end_times, [None, tend, None])
+
         var1 = datas['var1']
         var2 = datas['var2']
         self.assertEqual(var1.name, 'var1')
         self.assertEqual(var1.attrs['grid_mapping'], 'geos')
-        self.assertEqual(var1.attrs['start_time'], '2019-04-01 12:00:00')
-        self.assertEqual(var1.attrs['end_time'], '2019-04-01 12:15:00')
         self.assertEqual(var1.attrs['long_name'], 'var1')
         # variable 2
         self.assertNotIn('grid_mapping', var2.attrs)
@@ -1038,71 +1145,6 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
 
-def test_lonlat_storage(tmp_path):
-    """Test correct storage for area with lon/lat units."""
-    from ..utils import make_fake_scene
-    scn = make_fake_scene(
-            {"ketolysis": np.arange(25).reshape(5, 5)},
-            daskify=True,
-            area=create_area_def("mavas", 4326, shape=(5, 5),
-                                 center=(0, 0), resolution=(1, 1)))
-
-    filename = os.fspath(tmp_path / "test.nc")
-    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
-    with xr.open_dataset(filename) as ds:
-        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
-        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
-        assert ds["x"].attrs["units"] == "degrees_east"
-        assert ds["y"].attrs["units"] == "degrees_north"
-        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
-        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
-        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
-
-
-def test_da2cf_lonlat():
-    """Test correct da2cf encoding for area with lon/lat units."""
-    from satpy.resample import add_crs_xy_coords
-    from satpy.writers.cf_writer import CFWriter
-
-    area = create_area_def("mavas", 4326, shape=(5, 5),
-                           center=(0, 0), resolution=(1, 1))
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        attrs={"area": area})
-    da = add_crs_xy_coords(da, area)
-    new_da = CFWriter.da2cf(da)
-    assert new_da["x"].attrs["units"] == "degrees_east"
-    assert new_da["y"].attrs["units"] == "degrees_north"
-
-
-def test_is_projected(caplog):
-    """Tests for private _is_projected function."""
-    from satpy.writers.cf_writer import CFWriter
-
-    # test case with units but no area
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
-                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
-    assert CFWriter._is_projected(da)
-
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
-                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
-    assert not CFWriter._is_projected(da)
-
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"))
-    with caplog.at_level(logging.WARNING):
-        assert CFWriter._is_projected(da)
-    assert "Failed to tell if data are projected." in caplog.text
-
-
 class TestCFWriterData(unittest.TestCase):
     """Test case for CF writer where data arrays are needed."""
 
@@ -1165,8 +1207,8 @@ class TestCFWriterData(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(self.datasets_list, include_lonlats=True)
-        datas2, start_times, end_times = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
+        datas = writer._collect_datasets(self.datasets_list, include_lonlats=True)
+        datas2 = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
         # Test results
 
         self.assertEqual(len(datas), 5)

@@ -53,6 +53,68 @@ class TestSceneConversions:
         assert len(xrds.variables) == 0
         assert len(xrds.coords) == 0
 
+    def test_to_xarray_with_empty_scene(self):
+        """Test converting empty Scene to xarray."""
+        scn = Scene()
+        ds = scn.to_xarray()
+        assert isinstance(ds, xr.Dataset)
+        assert len(ds.variables) == 0
+        assert len(ds.coords) == 0
+
+    def test_to_xarray_with_single_area_scene(self):
+        """Test converting single area Scene to xarray dataset."""
+        from pyresample.geometry import AreaDefinition
+
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        data_array = xr.DataArray(da.zeros((2, 2), chunks=-1),
+                                  dims=('y', 'x'),
+                                  attrs={'start_time': datetime(2018, 1, 1), 'area': area})
+
+        scn = Scene()
+        scn['var1'] = data_array
+        ds = scn.to_xarray()
+
+        # Assert dataset type
+        assert isinstance(ds, xr.Dataset)
+        # Assert var1 is a Dataset variables
+        assert "var1" in ds.data_vars
+
+        # Assert by default it include lon lats
+        assert "latitude" in ds.coords
+        assert "longitude" in ds.coords
+
+        # Assert include_lonlats=False works
+        ds = scn.to_xarray(include_lonlats=False)
+        assert "latitude" not in ds.coords
+        assert "longitude" not in ds.coords
+
+    def test_to_xarray_with_multiple_area_scene(self):
+        """Test converting muiltple area Scene to xarray."""
+        from pyresample.geometry import AreaDefinition
+
+        area1 = AreaDefinition('test', 'test', 'test',
+                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                               2, 2, [-200, -200, 200, 200])
+        area2 = AreaDefinition('test', 'test', 'test',
+                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                               4, 4, [-200, -200, 200, 200])
+
+        data_array1 = xr.DataArray(da.zeros((2, 2), chunks=-1),
+                                   dims=('y', 'x'),
+                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area1})
+        data_array2 = xr.DataArray(da.zeros((4, 4), chunks=-1),
+                                   dims=('y', 'x'),
+                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area2})
+        scn = Scene()
+        scn['var1'] = data_array1
+        scn['var2'] = data_array2
+
+        # TODO: in future adapt for DataTree implementation
+        with pytest.raises(NotImplementedError):
+            _ = scn.to_xarray()
+
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from pyresample.geometry import AreaDefinition
