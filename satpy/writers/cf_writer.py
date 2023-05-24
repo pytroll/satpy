@@ -226,15 +226,17 @@ def create_grid_mapping(area):
     return area.area_id, grid_mapping
 
 
-def get_extra_ds(dataset, keys=None):
+def get_extra_ds(dataarray, keys=None):
     """Get the extra datasets associated to *dataset*."""
     ds_collection = {}
-    for ds in dataset.attrs.get('ancillary_variables', []):
-        if keys and ds.name not in keys:
-            keys.append(ds.name)
-            ds_collection.update(get_extra_ds(ds, keys))
-    ds_collection[dataset.attrs['name']] = dataset
-
+    # Retrieve ancillary variable datarrays
+    for ancillary_dataarray in dataarray.attrs.get('ancillary_variables', []):
+        ancillary_variable = ancillary_dataarray.name
+        if keys and ancillary_variable not in keys:
+            keys.append(ancillary_variable)
+            ds_collection.update(get_extra_ds(ancillary_dataarray, keys=keys))
+    # Add input dataarray
+    ds_collection[dataarray.attrs['name']] = dataarray
     return ds_collection
 
 
@@ -891,41 +893,6 @@ def _collect_cf_dataset(list_dataarrays,
     # Create a xr.Dataset
     ds = xr.Dataset(dict_dataarrays)
     return ds
-
-    # ds_collection = {}
-    # for dataarray in list_dataarrays:
-    #     ds_collection.update(get_extra_ds(dataarray))
-    # got_lonlats = has_projection_coords(ds_collection)
-    # datas = {}
-    # # sort by name, but don't use the name
-    # for _, ds in sorted(ds_collection.items()):
-    #     if ds.dtype not in CF_DTYPES:
-    #         warnings.warn(
-    #             'Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION),
-    #             stacklevel=3
-    #         )
-    #     # we may be adding attributes, coordinates, or modifying the
-    #     # structure of attributes
-    #     ds = ds.copy(deep=True)
-    #     try:
-    #         new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
-    #     except KeyError:
-    #         new_datasets = [ds]
-    #     for new_ds in new_datasets:
-    #         new_var = make_cf_dataarray(new_ds, epoch=epoch,
-    #                                     flatten_attrs=flatten_attrs,
-    #                                     exclude_attrs=exclude_attrs,
-    #                                     include_orig_name=include_orig_name,
-    #                                     numeric_name_prefix=numeric_name_prefix)
-    #         datas[new_var.name] = new_var
-
-    # # Check and prepare coordinates
-    # assert_xy_unique(datas)
-    # link_coords(datas)
-    # datas = make_alt_coords_unique(datas, pretty=pretty)
-
-    # ds = xr.Dataset(datas)
-    # return ds
 
 
 def collect_cf_datasets(list_dataarrays,
