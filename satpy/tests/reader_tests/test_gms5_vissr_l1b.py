@@ -529,11 +529,11 @@ class TestFileHandler:
         ])
         dtype = np.dtype([('LCW', line_control_word),
                           ('image_data', vissr.U1, (2,))])
-        if dataset_id['name'] == 'IR1':
-            return np.array([((686, 50000), (0, 1)), ((2089, 50000), (2, 3))], dtype=dtype)
-        elif dataset_id['name'] == 'VIS':
-            return np.array([((2744, 50000), (0, 1)), ((8356, 50000), (2, 3))], dtype=dtype)
-        raise NotImplementedError
+        cases = {
+            "IR1": np.array([((686, 50000), (0, 1)), ((2089, 50000), (2, 3))], dtype=dtype),
+            "VIS": np.array([((2744, 50000), (0, 1)), ((8356, 50000), (2, 3))], dtype=dtype)
+        }
+        return cases[dataset_id["name"]]
 
     @pytest.fixture
     def header(self, control_block, image_params):
@@ -744,45 +744,45 @@ class TestFileHandler:
 
     @pytest.fixture
     def dataset_exp(self, dataset_id, lons_lats_exp):
-
-        # TODO: Use dictionary
-
         lons, lats = lons_lats_exp
-        if dataset_id["calibration"] == "counts":
-            return xr.DataArray(
-                [[0, 1], [2, 3]],
-                dims=('y', 'x'),
-                coords={
-                    "lon": lons,
-                    "lat": lats,
-                    'acq_time': ('y', [dt.datetime(1995, 10, 10),
-                                       dt.datetime(1995, 10, 10)]),
-                    'line_number': ('y', [686, 2089])
-                }
-            )
-        elif dataset_id["name"] == "VIS":
-            return xr.DataArray(
-                [[0, 0.25], [0.5, 1]],
-                dims=('y', 'x'),
-                coords={
-                    "lon": lons,
-                    "lat": lats,
-                    'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
-                    'line_number': ('y', [2744, 8356])
-                }
-            )
-        elif dataset_id["name"] == "IR1":
-            return xr.DataArray(
-                [[0, 100], [200, 300]],
-                dims=('y', 'x'),
-                coords={
-                    "lon": lons,
-                    "lat": lats,
-                    'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
-                    'line_number': ('y', [686, 2089])
-                }
-            )
-        raise NotImplementedError
+        ir1_counts = xr.DataArray(
+            [[0, 1], [2, 3]],
+            dims=('y', 'x'),
+            coords={
+                "lon": lons,
+                "lat": lats,
+                'acq_time': ('y', [dt.datetime(1995, 10, 10),
+                                   dt.datetime(1995, 10, 10)]),
+                'line_number': ('y', [686, 2089])
+            }
+        )
+        ir1_bt = xr.DataArray(
+            [[0, 100], [200, 300]],
+            dims=('y', 'x'),
+            coords={
+                "lon": lons,
+                "lat": lats,
+                'acq_time': (
+                'y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
+                'line_number': ('y', [686, 2089])
+            }
+        )
+        vis_refl = xr.DataArray(
+            [[0, 0.25], [0.5, 1]],
+            dims=('y', 'x'),
+            coords={
+                "lon": lons,
+                "lat": lats,
+                'acq_time': ('y', [dt.datetime(1995, 10, 10), dt.datetime(1995, 10, 10)]),
+                'line_number': ('y', [2744, 8356])
+            }
+        )
+        expectations = {
+            make_dataid(name="IR1", calibration="counts"): ir1_counts,
+            make_dataid(name="IR1", calibration="brightness_temperature"): ir1_bt,
+            make_dataid(name="VIS", calibration="reflectance"): vis_refl
+        }
+        return expectations[dataset_id]
 
     @pytest.fixture
     def lons_lats_exp(self, dataset_id):
@@ -801,24 +801,23 @@ class TestFileHandler:
         pix = [1672, 1672, 1673, 1673]
         lin = [686, 2089, 686, 2089]
         """
-
-        # TODO: Use dictionary
-
-
-        if dataset_id['name'] == 'IR1':
-            lons = [[139.680120, 139.718902],
-                    [140.307367, 140.346062]]
-            lats = [[35.045132, 35.045361],
-                    [-34.971012, -34.970738]]
-        elif dataset_id['name'] == 'VIS':
-            lons = [[139.665133, 139.674833],
-                    [140.292579, 140.302249]]
-            lats = [[35.076113, 35.076170],
-                    [-34.940439, -34.940370]]
-        else:
-            raise NotImplementedError
-        lons = xr.DataArray(lons, dims=("y", "x"))
-        lats = xr.DataArray(lats, dims=("y", "x"))
+        expectations = {
+            "IR1": {
+                "lons": [[139.680120, 139.718902],
+                         [140.307367, 140.346062]],
+                "lats": [[35.045132, 35.045361],
+                         [-34.971012, -34.970738]]
+            },
+            "VIS": {
+                "lons": [[139.665133, 139.674833],
+                         [140.292579, 140.302249]],
+                "lats": [[35.076113, 35.076170],
+                         [-34.940439, -34.940370]]
+            }
+        }
+        exp = expectations[dataset_id["name"]]
+        lons = xr.DataArray(exp["lons"], dims=("y", "x"))
+        lats = xr.DataArray(exp["lats"], dims=("y", "x"))
         return lons, lats
 
 
