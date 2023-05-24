@@ -633,7 +633,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             static_params=static_params,
             predicted_params=predicted_params
         )
-        return self._make_lons_lats_data_array(lats, lons)
+        return self._make_lons_lats_data_array(lons, lats)
 
     def _get_image_coords(self, data):
         lines = data.coords['line_number'].values
@@ -689,7 +689,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         )
         return attitude_prediction, orbit_prediction
 
-    def _make_lons_lats_data_array(self, lats, lons):
+    def _make_lons_lats_data_array(self, lons, lats):
         lons = xr.DataArray(lons, dims=('y', 'x'),
                             attrs={'standard_name': 'longitude'})
         lats = xr.DataArray(lats, dims=('y', 'x'),
@@ -709,7 +709,7 @@ class Calibrator:
             _interpolate_calibration_table,
             self.calib_table_x,
             self.calib_table_y,
-            dtype=np.float32
+            dtype=np.float32,
         )
         return self._make_data_array(interp, counts)
 

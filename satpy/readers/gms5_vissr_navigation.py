@@ -9,8 +9,12 @@ Reference: `GMS User Guide`_, Appendix E, S-VISSR Mapping.
 
 from collections import namedtuple
 
+import dask.array as da
 import numba
 import numpy as np
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 EARTH_FLATTENING = 1/298.257
 EARTH_EQUATORIAL_RADIUS = 6378136.0
@@ -160,12 +164,16 @@ class OrbitPrediction(object):
 
 
 def get_lons_lats(lines, pixels, static_params, predicted_params):
-    return _get_lons_lats_numba(
-        lines,
-        pixels,
-        static_params,
-        _make_predicted_params_numba_compatible(predicted_params)
+    pixels_2d, lines_2d = da.meshgrid(pixels, lines)
+    lons, lats = da.map_blocks(
+        _get_lons_lats_numba,
+        lines_2d,
+        pixels_2d,
+        static_params=static_params,
+        predicted_params=_make_predicted_params_numba_compatible(predicted_params),
+        **_get_map_blocks_kwargs(pixels_2d.chunks)
     )
+    return lons, lats
 
 
 def _make_predicted_params_numba_compatible(predicted_params):
@@ -173,38 +181,44 @@ def _make_predicted_params_numba_compatible(predicted_params):
     return att_pred.to_numba(), orb_pred.to_numba()
 
 
+def _get_map_blocks_kwargs(chunks):
+    # Get keyword arguments for da.map_blocks, so that it can be used
+    # with a function that returns two arguments.
+    return {
+        "new_axis": 0,
+        "chunks": (2, ) + chunks,
+        "dtype": np.float32,
+    }
+
+
 @numba.njit
-def _get_lons_lats_numba(lines, pixels, static_params, predicted_params):
-    scan_params, proj_params = static_params
-    attitude_prediction, orbit_prediction = predicted_params
-    num_lines = len(lines)
-    num_pixels = len(pixels)
-    output_shape = (num_lines, num_pixels)
-    lons = np.zeros(output_shape)
-    lats = np.zeros(output_shape)
-    for i in range(num_lines):
-        for j in range(num_pixels):
-            point = (lines[i], pixels[j])
+def _get_lons_lats_numba(lines_2d, pixels_2d, static_params, predicted_params):
+    shape = lines_2d.shape
+    lons = np.zeros(shape, dtype=np.float32)
+    lats = np.zeros(shape, dtype=np.float32)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            point = (lines_2d[i, j], pixels_2d[i, j])
             nav_params = _get_navigation_parameters(
                 point,
-                attitude_prediction,
-                orbit_prediction,
-                proj_params,
-                scan_params
+                static_params,
+                predicted_params
             )
             lon, lat = get_lon_lat(point, nav_params)
             lons[i, j] = lon
             lats[i, j] = lat
-    return lons, lats
+    # Stack lons and lats because da.map_blocks doesn't support multiple
+    # return values.
+    return np.stack((lons, lats))
 
 
 @numba.njit
 def _get_navigation_parameters(
         point,
-        attitude_prediction,
-        orbit_prediction,
-        proj_params,
-        scan_params):
+        static_params,
+        predicted_params):
+    scan_params, proj_params = static_params
+    attitude_prediction, orbit_prediction = predicted_params
     obs_time = get_observation_time(point, scan_params)
     attitude, orbit = interpolate_navigation_prediction(
         attitude_prediction, orbit_prediction, obs_time
@@ -692,3 +706,12 @@ def interpolate_nearest(x, x_sample, y_sample):
 def _interpolate_nearest(x, x_sample, y_sample):
     i = _find_enclosing_index(x, x_sample)
     return y_sample[i]
+
+
+# TODO
+"""
+Possible acceleration:
+
+- Call find_enclosing_index only once for all predictions
+- cache coordinates
+"""
