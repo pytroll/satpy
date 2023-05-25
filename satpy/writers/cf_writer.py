@@ -214,18 +214,6 @@ CF_DTYPES = [np.dtype('int8'),
 CF_VERSION = 'CF-1.7'
 
 
-def create_grid_mapping(area):
-    """Create the grid mapping instance for `area`."""
-    import pyproj
-    if Version(pyproj.__version__) < Version('2.4.1'):
-        # technically 2.2, but important bug fixes in 2.4.1
-        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
-    # let pyproj do the heavily lifting
-    # pyproj 2.0+ required
-    grid_mapping = area.crs.to_cf()
-    return area.area_id, grid_mapping
-
-
 def get_extra_ds(dataarray, keys=None):
     """Get the extra datasets associated to *dataset*."""
     ds_collection = {}
@@ -244,8 +232,8 @@ def get_extra_ds(dataarray, keys=None):
 # ### CF-Area
 
 
-def area2lonlat(dataarray):
-    """Convert an area to longitudes and latitudes."""
+def add_lonlat_coords(dataarray):
+    """Add 'longitude' and 'latitude' coordinates to DataArray."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
     ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
@@ -264,38 +252,50 @@ def area2lonlat(dataarray):
     return dataarray
 
 
-def area2gridmapping(dataarray):
+def _create_grid_mapping(area):
+    """Create the grid mapping instance for `area`."""
+    import pyproj
+
+    if Version(pyproj.__version__) < Version('2.4.1'):
+        # technically 2.2, but important bug fixes in 2.4.1
+        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
+    # let pyproj do the heavily lifting (pyproj 2.0+ required)
+    grid_mapping = area.crs.to_cf()
+    return area.area_id, grid_mapping
+
+
+def _add_grid_mapping(dataarray):
     """Convert an area to at CF grid mapping."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
-    gmapping_var_name, attrs = create_grid_mapping(area)
+    gmapping_var_name, attrs = _create_grid_mapping(area)
     dataarray.attrs['grid_mapping'] = gmapping_var_name
     return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
-def area2cf(dataarray, strict=False, got_lonlats=False):
+def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or strict):
-        dataarray = area2lonlat(dataarray)
+    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or include_lonlats):
+        dataarray = add_lonlat_coords(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
-        dataarray, gmapping = area2gridmapping(dataarray)
+        dataarray, gmapping = _add_grid_mapping(dataarray)
         res.append(gmapping)
     res.append(dataarray)
     return res
 
 
-def dataset_is_projection_coords(dataset):
-    """Check if dataset is a projection coords."""
-    if 'standard_name' in dataset.attrs and dataset.attrs['standard_name'] in ['longitude', 'latitude']:
+def is_lon_or_lat_dataarray(dataarray):
+    """Check if the DataArray represents the latitude or longitude coordinate."""
+    if 'standard_name' in dataarray.attrs and dataarray.attrs['standard_name'] in ['longitude', 'latitude']:
         return True
     return False
 
 
 def has_projection_coords(ds_collection):
-    """Check if collection has a projection coords among data arrays."""
-    for dataset in ds_collection.values():
-        if dataset_is_projection_coords(dataset):
+    """Check if DataArray collection has a "longitude" or "latitude" DataArray."""
+    for dataarray in ds_collection.values():
+        if is_lon_or_lat_dataarray(dataarray):
             return True
     return False
 
@@ -328,7 +328,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if not dataset_is_projection_coords(dataset[coord_name]) and coord_name not in dataset.dims:
+            if not is_lon_or_lat_dataarray(dataset[coord_name]) and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
@@ -788,8 +788,7 @@ def make_cf_dataarray(dataarray,
                       exclude_attrs=None,
                       include_orig_name=True,
                       numeric_name_prefix='CHANNEL_'):
-    """
-    Make the xr.DataArray CF-compliant.
+    """Make the xr.DataArray CF-compliant.
 
     Parameters
     ----------
@@ -871,7 +870,7 @@ def _collect_cf_dataset(list_dataarrays,
     for dataarray in list_dataarrays:
         ds_collection.update(get_extra_ds(dataarray))
 
-    # Do what ???
+    # Check if one DataArray in the collection has 'longitude' or 'latitude'
     got_lonlats = has_projection_coords(ds_collection)
 
     # Sort dictionary by keys name
@@ -895,7 +894,7 @@ def _collect_cf_dataset(list_dataarrays,
         # - Return the CF-compliant input DataArray as second list element
         try:
             list_new_dataarrays = area2cf(dataarray,
-                                          strict=include_lonlats,
+                                          include_lonlats=include_lonlats,
                                           got_lonlats=got_lonlats)
         except KeyError:
             list_new_dataarrays = [dataarray]

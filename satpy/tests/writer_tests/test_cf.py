@@ -837,15 +837,15 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy(deep=True)
         ds.attrs['area'] = geos
 
-        res = area2cf(ds)
+        res = area2cf(ds, include_lonlats=False)
         self.assertEqual(len(res), 2)
         self.assertEqual(res[0].size, 1)  # grid mapping variable
         self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
 
-        # b) Area Definition and strict=False
+        # b) Area Definition and include_lonlats=False
         ds = ds_base.copy(deep=True)
         ds.attrs['area'] = geos
-        res = area2cf(ds, strict=True)
+        res = area2cf(ds, include_lonlats=True)
         # same as above
         self.assertEqual(len(res), 2)
         self.assertEqual(res[0].size, 1)  # grid mapping variable
@@ -859,15 +859,15 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy(deep=True)
         ds.attrs['area'] = swath
 
-        res = area2cf(ds)
+        res = area2cf(ds, include_lonlats=False)
         self.assertEqual(len(res), 1)
         self.assertIn('longitude', res[0].coords)
         self.assertIn('latitude', res[0].coords)
         self.assertNotIn('grid_mapping', res[0].attrs)
 
-    def test_area2gridmapping(self):
+    def test__add_grid_mapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
-        from satpy.writers.cf_writer import area2gridmapping
+        from satpy.writers.cf_writer import _add_grid_mapping
 
         def _gm_matches(gmapping, expected):
             """Assert that all keys in ``expected`` match the values in ``gmapping``."""
@@ -905,7 +905,7 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
         if 'sweep_angle_axis' in grid_mapping.attrs:
             # older versions of pyproj might not include this
             self.assertEqual(grid_mapping.attrs['sweep_angle_axis'], 'y')
@@ -929,7 +929,7 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = cosmo7
 
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
         self.assertIn('crs_wkt', grid_mapping.attrs)
         wkt = grid_mapping.attrs['crs_wkt']
         self.assertIn('ELLIPSOID["WGS 84"', wkt)
@@ -962,7 +962,7 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
         self.assertEqual(new_ds.attrs['grid_mapping'], 'tmerc')
         _gm_matches(grid_mapping, tmerc_expected)
 
@@ -988,7 +988,7 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
 
         self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
@@ -1019,7 +1019,7 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = area
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
 
         self.assertEqual(new_ds.attrs['grid_mapping'], 'omerc_otf')
         _gm_matches(grid_mapping, omerc_expected)
@@ -1044,14 +1044,14 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        new_ds, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(ds)
 
         self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
 
-    def test_area2lonlat(self):
+    def test_add_lonlat_coords(self):
         """Test the conversion from areas to lon/lat."""
-        from satpy.writers.cf_writer import area2lonlat
+        from satpy.writers.cf_writer import add_lonlat_coords
 
         area = pyresample.geometry.AreaDefinition(
             'seviri',
@@ -1064,7 +1064,7 @@ class TestCFWriter(unittest.TestCase):
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), attrs={'area': area})
 
-        res = area2lonlat(dataarray)
+        res = add_lonlat_coords(dataarray)
 
         # original should be unmodified
         self.assertNotIn('longitude', dataarray.coords)
@@ -1087,7 +1087,7 @@ class TestCFWriter(unittest.TestCase):
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=da.from_array(np.arange(3 * 10 * 10).reshape(3, 10, 10), chunks=(1, 5, 5)),
                                  dims=('bands', 'y', 'x'), attrs={'area': area})
-        res = area2lonlat(dataarray)
+        res = add_lonlat_coords(dataarray)
 
         # original should be unmodified
         self.assertNotIn('longitude', dataarray.coords)
@@ -1188,12 +1188,12 @@ class TestCFWriterData(unittest.TestCase):
         self.datasets['var2'].attrs['name'] = 'var2'
         self.datasets['lon'].attrs['name'] = 'lon'
 
-    def test_dataset_is_projection_coords(self):
-        """Test the dataset_is_projection_coords function."""
-        from satpy.writers.cf_writer import dataset_is_projection_coords
+    def test_is_lon_or_lat_dataarray(self):
+        """Test the is_lon_or_lat_dataarray function."""
+        from satpy.writers.cf_writer import is_lon_or_lat_dataarray
 
-        self.assertTrue(dataset_is_projection_coords(self.datasets['lat']))
-        self.assertFalse(dataset_is_projection_coords(self.datasets['var1']))
+        self.assertTrue(is_lon_or_lat_dataarray(self.datasets['lat']))
+        self.assertFalse(is_lon_or_lat_dataarray(self.datasets['var1']))
 
     def test_has_projection_coords(self):
         """Test the has_projection_coords function."""
