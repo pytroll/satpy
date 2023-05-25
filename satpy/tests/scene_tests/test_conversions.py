@@ -112,7 +112,7 @@ class TestSceneConversions:
         scn['var2'] = data_array2
 
         # TODO: in future adapt for DataTree implementation
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             _ = scn.to_xarray()
 
     def test_geoviews_basic_with_area(self):
