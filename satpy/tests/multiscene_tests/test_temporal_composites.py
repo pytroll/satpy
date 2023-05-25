@@ -22,13 +22,11 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.composites import BaseTemporalCompositor, GenericCompositor
-
 composite_definition = """sensor_name: visir
 
 composites:
   temporal:
-    compositor: !!python/name:satpy.tests.multiscene_tests.test_temporal_composites._TemporalCompositor
+    compositor: !!python/name:satpy.composites.TemporalRGB
     prerequisites:
       - name: ir
         time: 0
@@ -38,13 +36,6 @@ composites:
         time: -20 min
     standard_name: temporal
 """
-
-
-class _TemporalCompositor(BaseTemporalCompositor, GenericCompositor):
-    """Dummy temporal compositor class."""
-
-    def __call__(self, *args, **kwargs):
-        return super().__call__(*args, **kwargs)
 
 
 @pytest.fixture
@@ -60,11 +51,12 @@ def fake_config(tmp_path):
 
 @pytest.fixture
 def fake_dataset():
-    """Create minimalle fake Satpy CF NC dataset."""
+    """Create minimal fake Satpy CF NC dataset."""
     ds = xr.Dataset()
     nx = ny = 4
     ds["ir"] = xr.DataArray(
             np.zeros((nx, ny)),
+            dims=("y", "x"),
             attrs={"sensor": "visir"})
     return ds
 
@@ -96,9 +88,7 @@ def test_load_temporal_composite(fake_files, fake_config):
         ms = MultiScene.from_files(fake_files, reader="satpy_cf_nc")
         ms.load(["temporal"])
         sc = ms.blend(blend_function=timeseries)
-        assert sc["temporal"].shape == (5, 3, 4, 4)
-        # first two should be fill values as conditions not met
-        assert np.isnan(sc["temporal"][0:2, ...]).all()
-        np.testing.assert_array_equal(sc["temporal"][2, 0, :, :], np.full((4, 4), 0))
-        np.testing.assert_array_equal(sc["temporal"][3, 1, :, :], np.full((4, 4), 2))
-        np.testing.assert_array_equal(sc["temporal"][4, 2, :, :], np.full((4, 4), 4))
+        assert sc["temporal"].shape == (3, 4, 4)
+        np.testing.assert_array_equal(sc["temporal"][0, :, :], np.full((4, 4), 4))
+        np.testing.assert_array_equal(sc["temporal"][1, :, :], np.full((4, 4), 3))
+        np.testing.assert_array_equal(sc["temporal"][2, :, :], np.full((4, 4), 2))

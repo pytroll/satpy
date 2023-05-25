@@ -360,7 +360,7 @@ class MultiScene(object):
             new_scn[ds_id] = blend_function(datasets)
 
         new_scn._wishlist = self.first_scene.wishlist.copy()
-        # without copying this, there is a KeyError in dependency_tree.trunk
+        # without copying the dependency tree, there is a KeyError in dependency_tree.trunk
         new_scn._dependency_tree = self.first_scene._dependency_tree.copy()
         new_scn.generate_possible_composites(True)
         return new_scn
