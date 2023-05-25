@@ -1047,7 +1047,8 @@ class RatioSharpenedRGB(GenericCompositor):
         R_hi -  500m resolution - shape=(4000, 4000)
 
     To avoid the green band getting involved in calculating ratio or sharpening,
-    specify it by "neutral_resolution_band: green" in YAML config file. Then::
+    specify it by "neutral_resolution_band: green" in YAML config file. Therefore,
+    only blue band will get sharpened::
 
         ratio = R_hi / R_lo
         new_R = R_hi
