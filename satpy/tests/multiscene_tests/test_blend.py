@@ -429,6 +429,6 @@ class TestTemporalRGB:
 
         da4 = xr.DataArray([0, 0, 1], attrs={'start_time': datetime(2023, 5, 22, 12, 0, 0)})
 
-        res = temporal_rgb(nominal_data + da4)
+        res = temporal_rgb(nominal_data + [da4,])
 
         self._assert_results(res, nominal_data[-1].attrs['start_time'], expected_result)
