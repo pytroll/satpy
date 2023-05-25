@@ -640,7 +640,7 @@ class MITIFFWriter(ImageWriter):
                 LOG.error("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
                 return
 
-            img.save(tmp_gen_filename, compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+            img.save(tmp_gen_filename, compression='raw', compress_level=9, tiffinfo=tiffinfo)
 
     def _save_as_enhanced(self, datasets, tmp_gen_filename, **kwargs):
         """Save datasets as an enhanced RGB image."""
@@ -659,7 +659,7 @@ class MITIFFWriter(ImageWriter):
             data = data.clip(0, 255)
             mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
         mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
-                              compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+                              compression='raw', compress_level=9, tiffinfo=tiffinfo)
 
     def _generate_intermediate_filename(self, gen_filename):
         """Replace mitiff ext because pillow doesn't recognise the file type."""
@@ -697,7 +697,7 @@ class MITIFFWriter(ImageWriter):
                         mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode='L'))
                         break
             mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
-                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+                                  compression='raw', compress_level=9, tiffinfo=tiffinfo)
         elif 'dataset' in datasets.attrs['name']:
             LOG.debug("Saving dataset as single dataset.")
             self._save_single_dataset(datasets, cns, tmp_gen_filename, tiffinfo, kwargs)
@@ -721,7 +721,7 @@ class MITIFFWriter(ImageWriter):
             data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0].get('calibration'),
                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
-            Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression='tiff_deflate',
+            Image.fromarray(data.astype(np.uint8)).save(tmp_gen_filename, compression="raw",
                                                         compress_level=9, tiffinfo=tiffinfo)
         else:
             mitiff_frames = []
@@ -741,4 +741,4 @@ class MITIFFWriter(ImageWriter):
 
                         break
             mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
-                                  compression='tiff_deflate', compress_level=9, tiffinfo=tiffinfo)
+                                  compression='raw', compress_level=9, tiffinfo=tiffinfo)
