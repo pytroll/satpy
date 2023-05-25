@@ -160,7 +160,6 @@ import json
 import logging
 import warnings
 from collections import OrderedDict, defaultdict
-from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -171,6 +170,7 @@ from pyresample.geometry import AreaDefinition, SwathDefinition
 from xarray.coding.times import CFDatetimeCoder
 
 from satpy.writers import Writer
+from satpy.writers.cf.coords_attrs import _add_xy_coords_attrs
 from satpy.writers.utils import flatten_dict
 
 logger = logging.getLogger(__name__)
@@ -811,9 +811,12 @@ def _get_groups(groups, list_datarrays):
     return grouped_dataarrays
 
 
-def make_cf_dataarray(dataarray, epoch=EPOCH, flatten_attrs=False,
+def make_cf_dataarray(dataarray,
+                      epoch=EPOCH,
+                      flatten_attrs=False,
                       exclude_attrs=None,
-                      include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+                      include_orig_name=True,
+                      numeric_name_prefix='CHANNEL_'):
     """
     Make the xr.DataArray CF-compliant.
 
@@ -848,9 +851,9 @@ def make_cf_dataarray(dataarray, epoch=EPOCH, flatten_attrs=False,
     dataarray = preprocess_datarray_attrs(dataarray=dataarray,
                                           flatten_attrs=flatten_attrs,
                                           exclude_attrs=exclude_attrs)
-
+    dataarray = _add_xy_coords_attrs(dataarray)
     dataarray = _encode_time(dataarray, epoch=epoch)
-    dataarray = CFWriter._encode_coords(dataarray)
+
     return dataarray
 
 
@@ -866,24 +869,24 @@ def _collect_cf_dataset(list_dataarrays,
 
     Parameters
     ----------
-    list_dataarrays (list):
+    list_dataarrays : list
         List of DataArrays to make CF compliant and merge into a xr.Dataset.
-    epoch (str):
+    epoch : str
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
         If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
-    flatten_attrs (bool):
+    flatten_attrs : bool, optional
         If True, flatten dict-type attributes.
-    exclude_attrs (list):
+    exclude_attrs : list, optional
         List of xr.DataArray attribute names to be excluded.
-    include_lonlats (bool):
+    include_lonlats : bool, optional
         If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
         If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
-    pretty (bool):
+    pretty : bool, optional
         Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-    include_orig_name (bool).
+    include_orig_name : bool, optional
         Include the original dataset name as a variable attribute in the xr.Dataset.
-    numeric_name_prefix (str):
+    numeric_name_prefix : str, optional
         Prefix to add the each variable with name starting with a digit.
         Use '' or None to leave this out.
 
@@ -977,7 +980,7 @@ def collect_cf_datasets(list_dataarrays,
     ----------
     list_dataarrays (list):
         List of DataArrays to make CF compliant and merge into groups of xr.Datasets.
-    header_attrs:
+    header_attrs: (dict):
         Global attributes of the output xr.Dataset.
     epoch (str):
         Reference time for encoding the time coordinates (if available).
@@ -999,7 +1002,9 @@ def collect_cf_datasets(list_dataarrays,
         Use '' or None to leave this out.
     groups (dict):
         Group datasets according to the given assignment:
-            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`.
+
+            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`
+
         It is used to create grouped netCDFs using the CF_Writer.
         If None (the default), no groups will be created.
 
@@ -1112,94 +1117,6 @@ class CFWriter(Writer):
                                  exclude_attrs=exclude_attrs,
                                  include_orig_name=include_orig_name,
                                  numeric_name_prefix=numeric_name_prefix)
-
-    @staticmethod
-    def _encode_coords(new_data):
-        """Encode coordinates."""
-        if not new_data.coords.keys() & {"x", "y", "crs"}:
-            # there are no coordinates
-            return new_data
-        is_projected = CFWriter._is_projected(new_data)
-        if is_projected:
-            new_data = CFWriter._encode_xy_coords_projected(new_data)
-        else:
-            new_data = CFWriter._encode_xy_coords_geographic(new_data)
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
-        return new_data
-
-    @staticmethod
-    def _is_projected(new_data):
-        """Guess whether data are projected or not."""
-        crs = CFWriter._try_to_get_crs(new_data)
-        if crs:
-            return crs.is_projected
-        units = CFWriter._try_get_units_from_coords(new_data)
-        if units:
-            if units.endswith("m"):
-                return True
-            if units.startswith("degrees"):
-                return False
-        logger.warning("Failed to tell if data are projected. Assuming yes.")
-        return True
-
-    @staticmethod
-    def _try_to_get_crs(new_data):
-        """Try to get a CRS from attributes."""
-        if "area" in new_data.attrs:
-            if isinstance(new_data.attrs["area"], AreaDefinition):
-                return new_data.attrs["area"].crs
-            if not isinstance(new_data.attrs["area"], SwathDefinition):
-                logger.warning(
-                    f"Could not tell CRS from area of type {type(new_data.attrs['area']).__name__:s}. "
-                    "Assuming projected CRS.")
-        if "crs" in new_data.coords:
-            return new_data.coords["crs"].item()
-
-    @staticmethod
-    def _try_get_units_from_coords(new_data):
-        for c in "xy":
-            with suppress(KeyError):
-                # If the data has only 1 dimension, it has only one of x or y coords
-                if "units" in new_data.coords[c].attrs:
-                    return new_data.coords[c].attrs["units"]
-
-    @staticmethod
-    def _encode_xy_coords_projected(new_data):
-        """Encode coordinates, assuming projected CRS."""
-        if 'x' in new_data.coords:
-            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
-            new_data['x'].attrs['units'] = 'm'
-        if 'y' in new_data.coords:
-            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
-            new_data['y'].attrs['units'] = 'm'
-        return new_data
-
-    @staticmethod
-    def _encode_xy_coords_geographic(new_data):
-        """Encode coordinates, assuming geographic CRS."""
-        if 'x' in new_data.coords:
-            new_data['x'].attrs['standard_name'] = 'longitude'
-            new_data['x'].attrs['units'] = 'degrees_east'
-        if 'y' in new_data.coords:
-            new_data['y'].attrs['standard_name'] = 'latitude'
-            new_data['y'].attrs['units'] = 'degrees_north'
-        return new_data
-
-    @staticmethod
-    def _encode_time(new_data, epoch):
-        if 'time' in new_data.coords:
-            new_data['time'].encoding['units'] = epoch
-            new_data['time'].attrs['standard_name'] = 'time'
-            new_data['time'].attrs.pop('bounds', None)
-            new_data = CFWriter._add_time_dimension(new_data)
-        return new_data
-
-    @staticmethod
-    def _add_time_dimension(new_data):
-        if 'time' not in new_data.dims and new_data["time"].size not in new_data.shape:
-            new_data = new_data.expand_dims('time')
-        return new_data
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):

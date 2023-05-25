@@ -110,7 +110,7 @@ def test_da2cf_lonlat():
 
 def test_is_projected(caplog):
     """Tests for private _is_projected function."""
-    from satpy.writers.cf_writer import CFWriter
+    from satpy.writers.cf.crs import _is_projected
 
     # test case with units but no area
     da = xr.DataArray(
@@ -118,20 +118,20 @@ def test_is_projected(caplog):
         dims=("y", "x"),
         coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
                 "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
-    assert CFWriter._is_projected(da)
+    assert _is_projected(da)
 
     da = xr.DataArray(
         np.arange(25).reshape(5, 5),
         dims=("y", "x"),
         coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
                 "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
-    assert not CFWriter._is_projected(da)
+    assert not _is_projected(da)
 
     da = xr.DataArray(
         np.arange(25).reshape(5, 5),
         dims=("y", "x"))
     with caplog.at_level(logging.WARNING):
-        assert CFWriter._is_projected(da)
+        assert _is_projected(da)
     assert "Failed to tell if data are projected." in caplog.text
 
 
@@ -178,6 +178,14 @@ def test_add_time_cf_attrs():
     assert "time_bnds" in list(ds.data_vars)
     assert "bounds" in ds["time"].attrs
     assert "standard_name" in ds["time"].attrs
+
+
+def test_empty_collect_cf_datasets():
+    """Test that if no DataArrays, collect_cf_datasets raise error."""
+    from satpy.writers.cf_writer import collect_cf_datasets
+
+    with pytest.raises(RuntimeError):
+        collect_cf_datasets(list_dataarrays=[])
 
 
 class TestCFWriter(unittest.TestCase):

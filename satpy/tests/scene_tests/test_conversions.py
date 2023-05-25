@@ -90,6 +90,14 @@ class TestSceneConversions:
         assert "latitude" not in ds.coords
         assert "longitude" not in ds.coords
 
+        # Assert dataset string is accepted
+        ds = scn.to_xarray(datasets="var1")
+        assert isinstance(ds, xr.Dataset)
+
+        # Assert wrong datasets key
+        with pytest.raises(KeyError):
+            ds = scn.to_xarray(datasets="var2")
+
     def test_to_xarray_with_multiple_area_scene(self):
         """Test converting muiltple area Scene to xarray."""
         from pyresample.geometry import AreaDefinition

@@ -1059,6 +1059,10 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
+        warnings.warn('Scene.to_xarray_dataset() is deprecated.'
+                      'Use Scene.to_xarray() instead, to obtain a CF-compliant xr.Dataset .',
+                      DeprecationWarning, stacklevel=3)
+
         dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
         if len(dataarrays) == 0:
@@ -1094,8 +1098,8 @@ class Scene:
         """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
 
         If all Scene DataArrays are on the same area, it returns an xr.Dataset.
-        If Scene DataArrays are on different areas, currently it fails,
-        but in future will returns a xr.DataTree.
+        If Scene DataArrays are on different areas, currently it fails, although
+        in future we might return a DataTree object, grouped by area.
 
         Parameters
         ----------
