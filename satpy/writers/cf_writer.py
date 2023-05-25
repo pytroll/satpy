@@ -556,6 +556,88 @@ def encode_attrs_nc(attrs):
     return OrderedDict(encoded_attrs)
 
 
+def _add_ancillary_variables_attrs(dataarray):
+    """Replace ancillary_variables DataArray with a list of their name."""
+    # Retrieve list of ancillary variables DataArrays name
+    list_ancillary_variables = [da_ancillary.attrs['name']
+                                for da_ancillary in dataarray.attrs.get('ancillary_variables', [])]
+    # Replace ancillary_variables attribute with the list of names
+    if list_ancillary_variables:
+        dataarray.attrs['ancillary_variables'] = ' '.join(list_ancillary_variables)
+    # If no ancillary_variables, drop the attribute
+    else:
+        dataarray.attrs.pop("ancillary_variables", None)
+    return dataarray
+
+
+def _drop_exclude_attrs(dataarray, exclude_attrs):
+    """Remove user-specified list of attributes."""
+    if exclude_attrs is None:
+        exclude_attrs = []
+    for key in exclude_attrs:
+        dataarray.attrs.pop(key, None)
+    return dataarray
+
+
+def _remove_satpy_attrs(new_data):
+    """Remove _satpy attribute."""
+    # Remove _satpy* attributes
+    satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+    for satpy_attr in satpy_attrs:
+        new_data.attrs.pop(satpy_attr)
+    new_data.attrs.pop('_last_resampler', None)
+    return new_data
+
+
+def _format_prerequisites_attrs(dataarray):
+    """Reformat prerequisites attribute value to string."""
+    if 'prerequisites' in dataarray.attrs:
+        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+    return dataarray
+
+
+def _cleanup_attrs(dataarray):
+    """Remove attribute keys with None value."""
+    for key, val in dataarray.attrs.copy().items():
+        if val is None:
+            dataarray.attrs.pop(key)
+    return dataarray
+
+
+def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
+    """Preprocess DataArray attributes to be written into CF-compliant netCDF/Zarr."""
+    # Remove _satpy attribute
+    dataarray = _remove_satpy_attrs(dataarray)
+
+    # Add ancillary_variables attribute
+    dataarray = _add_ancillary_variables_attrs(dataarray)
+
+    # Drop exclude_attrs keys from DataArray attributes
+    dataarray = _drop_exclude_attrs(dataarray, exclude_attrs)
+
+    # Remove 'area' attribute
+    _ = dataarray.attrs.pop("area", None)
+
+    # Set long_name to DataArray name if 'standard_name' attribute not provided
+    if 'long_name' not in dataarray.attrs and 'standard_name' not in dataarray.attrs:
+        dataarray.attrs['long_name'] = dataarray.name
+
+    # Format prequisites attribute
+    dataarray = _format_prerequisites_attrs(dataarray)
+
+    # Remove attribute keys when their value is None
+    dataarray = _cleanup_attrs(dataarray)
+
+    # If specified, flatten dict-type attributes
+    if flatten_attrs:
+        dataarray.attrs = flatten_dict(dataarray.attrs)
+
+    # Encode attributes to netcdf-compatible datatype
+    dataarray.attrs = encode_attrs_nc(dataarray.attrs)
+
+    return dataarray
+
+
 def preprocess_header_attrs(header_attrs, flatten_attrs=False):
     """Prepare header attributes."""
     # Define file header attributes
@@ -701,16 +783,6 @@ def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name
     return dataarray
 
 
-def _remove_satpy_attributes(new_data):
-    """Remove _satpy attribute."""
-    # Remove _satpy* attributes
-    satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
-    for satpy_attr in satpy_attrs:
-        new_data.attrs.pop(satpy_attr)
-    new_data.attrs.pop('_last_resampler', None)
-    return new_data
-
-
 def _add_history(attrs):
     """Add 'history' attribute to dictionary."""
     _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
@@ -770,44 +842,15 @@ def make_cf_dataarray(dataarray, epoch=EPOCH, flatten_attrs=False,
         CF-compliant xr.DataArray.
 
     """
-    if exclude_attrs is None:
-        exclude_attrs = []
-
     dataarray = _preprocess_dataarray_name(dataarray=dataarray,
                                            numeric_name_prefix=numeric_name_prefix,
                                            include_orig_name=include_orig_name)
-
-    dataarray = _remove_satpy_attributes(dataarray)
+    dataarray = preprocess_datarray_attrs(dataarray=dataarray,
+                                          flatten_attrs=flatten_attrs,
+                                          exclude_attrs=exclude_attrs)
 
     dataarray = _encode_time(dataarray, epoch=epoch)
     dataarray = CFWriter._encode_coords(dataarray)
-
-    # Remove area as well as user-defined attributes
-    for key in ['area'] + exclude_attrs:
-        dataarray.attrs.pop(key, None)
-
-    # Retrieve list of ancillary variables
-    list_ancillary_variables = [da_ancillary.attrs['name']
-                                for da_ancillary in dataarray.attrs.get('ancillary_variables', [])]
-    if list_ancillary_variables:
-        dataarray.attrs['ancillary_variables'] = ' '.join(list_ancillary_variables)
-
-    # TODO: make this a grid mapping or lon/lats
-    # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-    CFWriter._cleanup_attrs(dataarray)
-
-    if 'long_name' not in dataarray.attrs and 'standard_name' not in dataarray.attrs:
-        dataarray.attrs['long_name'] = dataarray.name
-    if 'prerequisites' in dataarray.attrs:
-        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
-
-    # Flatten dict-type attributes, if desired
-    if flatten_attrs:
-        dataarray.attrs = flatten_dict(dataarray.attrs)
-
-    # Encode attributes to netcdf-compatible datatype
-    dataarray.attrs = encode_attrs_nc(dataarray.attrs)
-
     return dataarray
 
 
@@ -1018,6 +1061,26 @@ def collect_cf_datasets(list_dataarrays,
     return grouped_datasets, header_attrs
 
 
+def _sanitize_writer_kwargs(writer_kwargs):
+    """Remove satpy-specific kwargs."""
+    writer_kwargs = copy.deepcopy(writer_kwargs)
+    satpy_kwargs = ['overlay', 'decorate', 'config_files']
+    for kwarg in satpy_kwargs:
+        writer_kwargs.pop(kwarg, None)
+    return writer_kwargs
+
+
+def _initialize_root_netcdf(filename, engine, header_attrs, to_netcdf_kwargs):
+    """Initialize root empty netCDF."""
+    root = xr.Dataset({}, attrs=header_attrs)
+    # - Define init kwargs
+    init_nc_kwargs = to_netcdf_kwargs.copy()
+    init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+    init_nc_kwargs.pop('unlimited_dims', None)
+    written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+    return written
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
@@ -1049,14 +1112,6 @@ class CFWriter(Writer):
                                  exclude_attrs=exclude_attrs,
                                  include_orig_name=include_orig_name,
                                  numeric_name_prefix=numeric_name_prefix)
-
-    @staticmethod
-    def _cleanup_attrs(new_data):
-        for key, val in new_data.attrs.copy().items():
-            if val is None:
-                new_data.attrs.pop(key)
-            if key == 'ancillary_variables' and val == []:
-                new_data.attrs.pop(key)
 
     @staticmethod
     def _encode_coords(new_data):
@@ -1218,21 +1273,16 @@ class CFWriter(Writer):
                                                              )
         # Remove satpy-specific kwargs
         # - This kwargs can contain encoding dictionary
-        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)
-        satpy_kwargs = ['overlay', 'decorate', 'config_files']
-        for kwarg in satpy_kwargs:
-            to_netcdf_kwargs.pop(kwarg, None)
+        to_netcdf_kwargs = _sanitize_writer_kwargs(to_netcdf_kwargs)
 
         # If writing grouped netCDF, create an empty "root" netCDF file
         # - Add the global attributes
         # - All groups will be appended in the for loop below
         if groups is not None:
-            root = xr.Dataset({}, attrs=header_attrs)
-            # - Define init kwargs
-            init_nc_kwargs = to_netcdf_kwargs.copy()
-            init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
-            init_nc_kwargs.pop('unlimited_dims', None)
-            written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+            written = _initialize_root_netcdf(filename=filename,
+                                              engine=engine,
+                                              header_attrs=header_attrs,
+                                              to_netcdf_kwargs=to_netcdf_kwargs)
             mode = "a"
         else:
             mode = "w"

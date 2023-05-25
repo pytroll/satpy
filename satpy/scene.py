@@ -1139,24 +1139,15 @@ class Scene:
         if epoch is None:
             epoch = EPOCH
 
-        # Check datasets
-        # - If None, retrieve all loaded datasets
-        if isinstance(datasets, str):
-            datasets = [datasets]
+        # Get list of DataArrays
+        # - If datasets=None, retrieve all loaded datasets
         if datasets is None:
             datasets = list(self.keys())  # list DataIDs
-
-        # Get list of DataArrays
         list_dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
         # Check that some DataArray could be returned
         if len(list_dataarrays) == 0:
             return xr.Dataset()
-        if not list_dataarrays:
-            raise RuntimeError("None of the requested datasets have been "
-                               "generated or could not be loaded. Requested "
-                               "composite inputs may need to have matching "
-                               "dimensions (eg. through resampling).")
 
         # Collect xr.Dataset for each group
         grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=list_dataarrays,
@@ -1178,11 +1169,18 @@ class Scene:
             raise NotImplementedError(msg)
 
     def _get_dataarrays_from_identifiers(self, identifiers):
+        """Return a list of DataArray based on a single or list of identifiers.
+
+        An identifier can be a DataID or a string with name of a valid DataID.
+        """
+        if isinstance(identifiers, (str, DataID)):
+            identifiers = [identifiers]
+
         if identifiers is not None:
             dataarrays = [self[ds] for ds in identifiers]
         else:
             dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
-            dataarrays = [ds for ds in dataarrays if ds is not None]
+            dataarrays = [dataarray for dataarray in dataarrays if dataarray is not None]
         return dataarrays
 
     def images(self):

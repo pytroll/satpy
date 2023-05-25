@@ -1183,20 +1183,20 @@ class TestCFWriterData(unittest.TestCase):
     def test_dataset_is_projection_coords(self):
         """Test the dataset_is_projection_coords function."""
         from satpy.writers.cf_writer import dataset_is_projection_coords
+
         self.assertTrue(dataset_is_projection_coords(self.datasets['lat']))
         self.assertFalse(dataset_is_projection_coords(self.datasets['var1']))
 
     def test_has_projection_coords(self):
         """Test the has_projection_coords function."""
         from satpy.writers.cf_writer import has_projection_coords
+
         self.assertTrue(has_projection_coords(self.datasets))
         self.datasets['lat'].attrs['standard_name'] = 'dummy'
         self.assertFalse(has_projection_coords(self.datasets))
 
     def test_collect_cf_dataarrays_with_latitude_named_lat(self, *mocks):
         """Test collecting CF datasets with latitude named lat."""
-        from operator import getitem
-
         from satpy.writers.cf_writer import _collect_cf_dataset
 
         self.datasets_list = [self.datasets[key] for key in self.datasets]
@@ -1207,12 +1207,14 @@ class TestCFWriterData(unittest.TestCase):
         ds2 = _collect_cf_dataset(self.datasets_list_no_latlon, include_lonlats=True)
 
         # Test results
-        self.assertEqual(len(ds.keys()), 5)
-        self.assertEqual(set(ds.keys()), {'var1', 'var2', 'lon', 'lat', 'geos'})
-        self.assertRaises(KeyError, getitem, ds['var1'], 'latitude')
-        self.assertRaises(KeyError, getitem, ds['var1'], 'longitude')
-        self.assertEqual(ds2['var1']['latitude'].attrs['name'], 'latitude')
-        self.assertEqual(ds2['var1']['longitude'].attrs['name'], 'longitude')
+        assert len(ds.keys()) == 5
+        assert set(ds.keys()) == {'var1', 'var2', 'lon', 'lat', 'geos'}
+        with pytest.raises(KeyError):
+            ds['var1'].attrs["latitude"]
+        with pytest.raises(KeyError):
+            ds['var1'].attrs["longitude"]
+        assert ds2['var1']['latitude'].attrs['name'] == 'latitude'
+        assert ds2['var1']['longitude'].attrs['name'] == 'longitude'
 
 
 class EncodingUpdateTest(unittest.TestCase):
