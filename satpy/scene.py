@@ -1061,7 +1061,7 @@ class Scene:
         """
         warnings.warn('Scene.to_xarray_dataset() is deprecated.'
                       'Use Scene.to_xarray() instead, to obtain a CF-compliant xr.Dataset .',
-                      DeprecationWarning, stacklevel=3)
+                      DeprecationWarning, stacklevel=2)
 
         dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
