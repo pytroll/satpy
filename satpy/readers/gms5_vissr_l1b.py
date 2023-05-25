@@ -4,6 +4,33 @@ Introduction
 ------------
 TODO
 
+
+Compression
+-----------
+
+Gzip-compressed VISSR files can be decompressed on the fly using
+:class:`~satpy.readers.FSFile`:
+
+.. code-block:: python
+
+    import fsspec
+    from satpy import Scene
+    from satpy.readers import FSFile
+
+    filename = "VISSR_19960217_2331_IR1.A.IMG.gz"
+    open_file = fsspec.open(filename, compression="gzip")
+    fs_file = FSFile(open_file)
+    scene = Scene([fs_file], reader="gms5-vissr_l1b")
+    scene.load(["IR1"])
+
+
+Calibration
+-----------
+
+Sensor counts are calibrated by looking up reflectance/temperature values in the
+calibration tables included in each file.
+
+
 Navigation
 ----------
 
@@ -20,7 +47,10 @@ the ground.
 This cannot be represented by a pyresample area definition, so each dataset
 is accompanied by 2-dimensional longitude and latitude coordinates. For
 resampling purpose an area definition with uniform sampling is provided via
-``scene[dataset].attrs["area_def_uniform_sampling"]``.
+
+.. code-block:: python
+
+    scene[dataset].attrs["area_def_uniform_sampling"]
 
 
 Rectification
@@ -33,13 +63,6 @@ VISSR images are not rectified. That means lon/lat coordinates are different
 2) for different repeat cycles, even if the channel is identical
 
 
-Calibration
------------
-
-Sensor counts are calibrated by looking up reflectance/temperature values in the
-calibration tables included in each file.
-
-
 Space Pixels
 ------------
 
@@ -47,6 +70,8 @@ VISSR produces data for pixels outside the Earth disk (i,e: atmospheric limb or
 deep space pixels). By default, these pixels are masked out as they contain
 data of limited or no value, but some applications do require these pixels.
 To turn off masking, set ``mask_space=False`` upon scene creation::
+
+.. code-block:: python
 
     import satpy
     import glob
@@ -56,6 +81,7 @@ To turn off masking, set ``mask_space=False`` upon scene creation::
                         reader="gms5-vissr_l1b",
                         reader_kwargs={"mask_space": False})
     scene.load(["VIS"])
+
 
 
 References
@@ -80,6 +106,7 @@ import satpy.readers.gms5_vissr_navigation as nav
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import get_legacy_chunk_size
+from satpy.readers.utils import generic_open
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
@@ -499,7 +526,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _read_header(self, filename):
         header = {}
-        with open(filename, mode='rb') as file_obj:
+        with generic_open(filename, mode='rb') as file_obj:
             header['control_block'] = self._read_control_block(file_obj)
             channel_type = self._get_channel_type(header['control_block']['parameter_block_size'])
             header['image_parameters'] = self._read_image_params(file_obj, channel_type)
@@ -591,7 +618,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def _read_image_data(self):
         num_lines, _ = self._get_actual_shape()
         specs = self._get_image_data_type_specs()
-        with open(self._filename, "rb") as file_obj:
+        with generic_open(self._filename, "rb") as file_obj:
             return read_from_file_obj(
                 file_obj,
                 dtype=specs["dtype"],
