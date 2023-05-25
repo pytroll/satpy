@@ -1169,7 +1169,7 @@ class Scene:
             return ds
         else:
             msg = """The Scene object contains datasets with different areas.
-                      Resample the Scene to have matching dimensions using i.e. scn.resample("native") """
+                      Resample the Scene to have matching dimensions using i.e. scn.resample(resampler="native") """
             raise NotImplementedError(msg)
 
     def _get_dataarrays_from_identifiers(self, identifiers):
