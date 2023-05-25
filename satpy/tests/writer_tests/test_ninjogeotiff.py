@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample import create_area_def
 
 from satpy import Scene
-from satpy.writers import get_enhanced_image
+from satpy.writers import get_enhanced_image, to_image
 
 try:
     from math import prod
@@ -53,7 +53,7 @@ def _get_fake_da(lo, hi, shp, dtype="f4"):
     This is more or less a 2d linspace: it'll return a 2-d dask array of shape
     ``shp``, lowest value is ``lo``, highest value is ``hi``.
     """
-    return da.arange(lo, hi, (hi-lo)/prod(shp), chunks=50, dtype=dtype).reshape(shp)
+    return da.linspace(lo, hi, prod(shp), dtype=dtype).reshape(shp)
 
 
 @pytest.fixture(scope="module")
@@ -204,6 +204,23 @@ def test_image_small_mid_atlantic_K_L(test_area_tiny_eqc_sphere):
 
 
 @pytest.fixture(scope="module")
+def test_image_small_mid_atlantic_L_no_quantity(test_area_tiny_eqc_sphere):
+    """Get a small test image, mode L, over Atlantic, with non-quantitywvalues.
+
+    This could be the case, for example, for vis_with_night_ir.
+    """
+    arr = xr.DataArray(
+        _get_fake_da(0, 273, test_area_tiny_eqc_sphere.shape + (1,)),
+        dims=("y", "x", "bands"),
+        attrs={
+            "name": "test-small-mid-atlantic",
+            "start_time": datetime.datetime(1985, 8, 13, 13, 0),
+            "area": test_area_tiny_eqc_sphere,
+            "units": "N/A"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
 def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
     """Get a large-ish test image in mode RGB, over Asia."""
     arr = xr.DataArray(
@@ -230,7 +247,7 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
-    return get_enhanced_image(arr)
+    return to_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -489,9 +506,9 @@ def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
-                               0.4653780307919959)
+                               0.46771654391851947)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
-                               -79.86837954904149)
+                               -79.86771951938239)
 
 
 def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
@@ -542,8 +559,8 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
-    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.30816176470588236)
-    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.603125)
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.31058823679007746)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.6)
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
     assert tgs["ninjo_TransparentPixel"] == "-1"  # meaning not set
 
@@ -574,6 +591,8 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
+    assert "ninjo_Gradient" not in tgs
+    assert "ninjo_AxisIntercept" not in tgs
 
 
 def test_write_and_read_file_units(
@@ -609,9 +628,9 @@ def test_write_and_read_file_units(
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
-                               0.465379, rtol=1e-5)
+                               0.467717, rtol=1e-5)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
-                               -79.86838)
+                               -79.86771)
     fn2 = os.fspath(tmp_path / "test2.tif")
     with caplog.at_level(logging.WARNING):
         ngtw.save_dataset(
@@ -631,6 +650,34 @@ def test_write_and_read_file_units(
     assert ("Writing F to ninjogeotiff headers, but "
             "data attributes have unit K. "
             "No conversion applied.") in caplog.text
+
+
+@pytest.mark.parametrize("unit", ["N/A", "1", ""])
+def test_write_and_read_no_quantity(
+        test_image_small_mid_atlantic_L_no_quantity, tmp_path, unit):
+    """Test that no scale/offset written if no valid units present."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_dataset(
+        test_image_small_mid_atlantic_L_no_quantity.data,
+        filename=fn,
+        blockxsize=128,
+        blockysize=128,
+        compress="lzw",
+        predictor=2,
+        PhysicUnit=unit,
+        PhysicValue="N/A",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN",
+        DataSource="dowsing rod")
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert "ninjo_Gradient" not in tgs.keys()
+    assert "ninjo_AxisIntercept" not in tgs.keys()
 
 
 def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
@@ -810,7 +857,6 @@ def test_get_max_gray_value_RGB(ntg2):
     assert ntg2.get_max_gray_value() == 255
 
 
-@pytest.mark.xfail(reason="Needs GeoTIFF P fixes, see GH#1844")
 def test_get_max_gray_value_P(ntg3):
     """Test getting max gray value for mode P."""
     assert ntg3.get_max_gray_value().compute().item() == 10
