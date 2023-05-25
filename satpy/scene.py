@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.composites import IncompatibleAreas
+from satpy.composites import IncompatibleAreas, MissingTime
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
@@ -1285,7 +1285,7 @@ class Scene:
 
         missing_str = ", ".join(str(x) for x in missing)
         LOG.warning("The following datasets were not created and may require "
-                    "resampling to be generated: {}".format(missing_str))
+                    "resampling or temporal blending to be generated: {}".format(missing_str))
 
     def unload(self, keepables=None):
         """Unload all unneeded datasets.
@@ -1521,8 +1521,9 @@ class Scene:
                 self._wishlist.remove(comp_node.name)
                 self._wishlist.add(cid)
             self._dependency_tree.update_node_name(comp_node, cid)
-        except IncompatibleAreas:
-            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
+        except (IncompatibleAreas, MissingTime):
+            LOG.debug("Delaying generation of %s because of incompatible areas "
+                      "or missing time dimension", str(compositor.id))
             preservable_datasets = set(self._datasets.keys())
             prereq_ids = set(p.name for p in prereqs)
             opt_prereq_ids = set(p.name for p in optional_prereqs)

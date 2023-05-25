@@ -359,6 +359,10 @@ class MultiScene(object):
             datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
             new_scn[ds_id] = blend_function(datasets)
 
+        new_scn._wishlist = self.first_scene.wishlist.copy()
+        # without copying this, there is a KeyError in dependency_tree.trunk
+        new_scn._dependency_tree = self.first_scene._dependency_tree.copy()
+        new_scn.generate_possible_composites(True)
         return new_scn
 
     def group(self, groups):

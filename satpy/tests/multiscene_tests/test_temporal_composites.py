@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.composites import GenericCompositor
+from satpy.composites import BaseTemporalCompositor, GenericCompositor
 
 composite_definition = """sensor_name: visir
 
@@ -40,8 +40,11 @@ composites:
 """
 
 
-class _TemporalCompositor(GenericCompositor):
+class _TemporalCompositor(BaseTemporalCompositor, GenericCompositor):
     """Dummy temporal compositor class."""
+
+    def __call__(self, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
 
 
 @pytest.fixture

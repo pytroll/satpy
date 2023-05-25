@@ -1701,3 +1701,28 @@ class LongitudeMaskingCompositor(SingleBandCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super().__call__([masked_projectable], **info)
+
+
+class MissingTime(Exception):
+    """Raised when temporal composite building lacks time dimension."""
+
+
+class BaseTemporalCompositor(CompositeBase):
+    """Compositors combining multiple time steps.
+
+    Base class for compositors that combine inputs from two or more time steps.
+    """
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Build the composite."""
+        self._check_time_dimension(projectables)
+        return super().__call__(projectables, nonprojectables, **info)
+
+    def _check_time_dimension(self, projectables):
+        """Make sure all projectables have a time dimension."""
+        for projectable in projectables:
+            if "time" not in projectable.dims:
+                raise MissingTime(
+                    "Creating temporal composite needs time dimensions. "
+                    "Typically, this comes from starting with a MultiScene "
+                    "and then performing timeseries blending.")
