@@ -9,7 +9,7 @@ from satpy.writers.cf.crs import _is_projected
 logger = logging.getLogger(__name__)
 
 
-def _add_xy_coords_attrs(dataarray):
+def add_xy_coords_attrs(dataarray):
     """Add relevant attributes to x, y coordinates."""
     # If there are no coords, return dataarray
     if not dataarray.coords.keys() & {"x", "y", "crs"}:

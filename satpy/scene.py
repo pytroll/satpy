@@ -1059,11 +1059,13 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
         warnings.warn('Scene.to_xarray_dataset() is deprecated.'
                       'Use Scene.to_xarray() instead, to obtain a CF-compliant xr.Dataset .',
                       DeprecationWarning, stacklevel=2)
 
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
 
         if len(dataarrays) == 0:
             return xr.Dataset()
@@ -1137,55 +1139,18 @@ class Scene:
             A CF-compliant xr.Dataset
 
         """
-        from satpy.writers.cf_writer import EPOCH, collect_cf_datasets
+        from satpy._scene_converters import to_xarray
 
-        # Retrieve epoch
-        if epoch is None:
-            epoch = EPOCH
-
-        # Get list of DataArrays
-        # - If datasets=None, retrieve all loaded datasets
-        if datasets is None:
-            datasets = list(self.keys())  # list DataIDs
-        list_dataarrays = self._get_dataarrays_from_identifiers(datasets)
-
-        # Check that some DataArray could be returned
-        if len(list_dataarrays) == 0:
-            return xr.Dataset()
-
-        # Collect xr.Dataset for each group
-        grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=list_dataarrays,
-                                                             header_attrs=header_attrs,
-                                                             exclude_attrs=exclude_attrs,
-                                                             flatten_attrs=flatten_attrs,
-                                                             pretty=pretty,
-                                                             include_lonlats=include_lonlats,
-                                                             epoch=epoch,
-                                                             include_orig_name=include_orig_name,
-                                                             numeric_name_prefix=numeric_name_prefix,
-                                                             groups=None)
-        if len(grouped_datasets) == 1:
-            ds = grouped_datasets[None]
-            return ds
-        else:
-            msg = """The Scene object contains datasets with different areas.
-                      Resample the Scene to have matching dimensions using i.e. scn.resample(resampler="native") """
-            raise NotImplementedError(msg)
-
-    def _get_dataarrays_from_identifiers(self, identifiers):
-        """Return a list of DataArray based on a single or list of identifiers.
-
-        An identifier can be a DataID or a string with name of a valid DataID.
-        """
-        if isinstance(identifiers, (str, DataID)):
-            identifiers = [identifiers]
-
-        if identifiers is not None:
-            dataarrays = [self[ds] for ds in identifiers]
-        else:
-            dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
-            dataarrays = [dataarray for dataarray in dataarrays if dataarray is not None]
-        return dataarrays
+        return to_xarray(scn=self,
+                         datasets=datasets,  # DataID
+                         header_attrs=header_attrs,
+                         exclude_attrs=exclude_attrs,
+                         flatten_attrs=flatten_attrs,
+                         pretty=pretty,
+                         include_lonlats=include_lonlats,
+                         epoch=epoch,
+                         include_orig_name=include_orig_name,
+                         numeric_name_prefix=numeric_name_prefix)
 
     def images(self):
         """Generate images for all the datasets from the scene."""
@@ -1286,7 +1251,9 @@ class Scene:
             close any objects that have a "close" method.
 
         """
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:
             raise RuntimeError("None of the requested datasets have been "
                                "generated or could not be loaded. Requested "

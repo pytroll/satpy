@@ -161,7 +161,7 @@ def test_preprocess_dataarray_name():
 def test_add_time_cf_attrs():
     """Test addition of CF-compliant time attributes."""
     from satpy import Scene
-    from satpy.writers.cf_writer import add_time_cf_attrs
+    from satpy.writers.cf_writer import add_time_bounds_dimension
 
     scn = Scene()
     test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -172,7 +172,7 @@ def test_add_time_cf_attrs():
                                      coords={'time': ('y', times)},
                                      attrs=dict(start_time=times[0], end_time=times[-1]))
     ds = scn['test-array'].to_dataset(name='test-array')
-    ds = add_time_cf_attrs(ds)
+    ds = add_time_bounds_dimension(ds)
     assert "bnds_1d" in ds.dims
     assert ds.dims['bnds_1d'] == 2
     assert "time_bnds" in list(ds.data_vars)
