@@ -621,8 +621,10 @@ def test_find_files_and_readers_fsspec_not_available(monkeypatch, tmp_path):
          "_c20152950029000.nc")
     p.touch()
 
+    import satpy
     with monkeypatch.context() as m:
-        m.delitem(sys.modules, "fsspec")
+        # m.delitem(sys.modules, "fsspec")
+        m.setattr(satpy.readers, "fsspec", None)
         from satpy.readers import FSFile, find_files_and_readers
         ri = find_files_and_readers(
                 base_dir=p.parent,
