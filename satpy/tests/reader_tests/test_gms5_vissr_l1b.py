@@ -502,9 +502,9 @@ class TestFileHandler:
     def file_handler(self, header, dataset_id, mask_space, image_data):
         channel_type = self.channel_types[dataset_id['name']]
         with mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_header') as _read_header, \
-                mock.patch('satpy.readers.gms5_vissr_l1b.np.memmap') as memmap:
+                mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_image_data') as _read_image_data:
             _read_header.return_value = header, channel_type
-            memmap.return_value = image_data
+            _read_image_data.return_value = image_data
             fh = vissr.GMS5VISSRFileHandler(
                 'foo',
                 {'foo': 'bar'},

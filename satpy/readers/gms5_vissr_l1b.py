@@ -514,8 +514,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         raise ValueError('Cannot determine channel type: Unknown parameter block size.')
 
     def _read_control_block(self, file_obj):
-        ctrl_block = np.fromfile(file_obj, dtype=CONTROL_BLOCK, count=1)[0]
-        return recarr2dict(ctrl_block)
+        ctrl_block = read_from_file_obj(
+            file_obj,
+            dtype=CONTROL_BLOCK,
+            count=1
+        )
+        return recarr2dict(ctrl_block[0])
 
     def _read_image_params(self, file_obj, channel_type):
         """Read image parameters from the header."""
@@ -532,9 +536,13 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     @staticmethod
     def _read_image_param(file_obj, param, channel_type):
         """Read a single image parameter block from the header."""
-        file_obj.seek(param['offset'][channel_type])
-        data = np.fromfile(file_obj, dtype=param['dtype'], count=1)[0]
-        return recarr2dict(data, preserve=param.get('preserve'))
+        image_params = read_from_file_obj(
+            file_obj,
+            dtype=param["dtype"],
+            count=1,
+            offset=param['offset'][channel_type]
+        )
+        return recarr2dict(image_params[0], preserve=param.get('preserve'))
 
     @staticmethod
     def _concat_orbit_prediction(orb_pred_1, orb_pred_2):
@@ -568,7 +576,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
-        image_data = self._read_image_data()
+        image_data = self._get_image_data()
         counts = self._get_counts(image_data)
         dataset = self._calibrate(counts, dataset_id)
         space_masker = SpaceMasker(image_data, dataset_id["name"])
@@ -576,19 +584,23 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         self._attach_lons_lats(dataset, dataset_id)
         return dataset
 
-    def _read_image_data(self):
-        memmap = self._get_memmap()
-        return da.from_array(memmap, chunks=(CHUNK_SIZE,))
+    def _get_image_data(self):
+        image_data = self._read_image_data()
+        return da.from_array(image_data, chunks=(CHUNK_SIZE,))
 
-    def _get_memmap(self):
+    def _read_image_data(self):
         num_lines, _ = self._get_actual_shape()
-        return np.memmap(
-            filename=self._filename,
-            mode='r',
-            dtype=IMAGE_DATA[self._channel_type]['dtype'],
-            offset=IMAGE_DATA[self._channel_type]['offset'],
-            shape=(num_lines,)
-        )
+        specs = self._get_image_data_type_specs()
+        with open(self._filename, "rb") as file_obj:
+            return read_from_file_obj(
+                file_obj,
+                dtype=specs["dtype"],
+                count=num_lines,
+                offset=specs["offset"]
+            )
+
+    def _get_image_data_type_specs(self):
+        return IMAGE_DATA[self._channel_type]
 
     def _get_counts(self, image_data):
         return self._make_counts_data_array(image_data)
@@ -767,6 +779,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                             attrs={'standard_name': 'latitude',
                                    "units": "degrees_north"})
         return lons, lats
+
+
+def read_from_file_obj(file_obj, dtype, count, offset=0):
+    file_obj.seek(offset)
+    data = file_obj.read(dtype.itemsize * count)
+    return np.frombuffer(data, dtype=dtype, count=count)
 
 
 class Calibrator:
