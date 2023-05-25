@@ -160,10 +160,11 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 EQUATOR_RADIUS = 6378140.0
 POLE_RADIUS = 6356755.0
 ALTITUDE = 42164000.0 - EQUATOR_RADIUS
@@ -433,7 +434,8 @@ class VisQualityControl:
             warnings.warn(
                 'All pixels of the VIS channel are flagged as "use with '
                 'caution". Use datasets "quality_pixel_bitmask" and '
-                '"data_quality_bitmask" to find out why.'
+                '"data_quality_bitmask" to find out why.',
+                stacklevel=2
             )
 
     def mask(self, ds):

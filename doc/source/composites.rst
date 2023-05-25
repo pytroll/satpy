@@ -14,12 +14,12 @@ Built-in Compositors
 
 .. py:currentmodule:: satpy.composites
 
-There are several built-in compositors available in SatPy.
-All of them use the :class:`GenericCompositor` base class
+There are many built-in compositors available in Satpy.
+The majority use the :class:`GenericCompositor` base class
 which handles various image modes (`L`, `LA`, `RGB`, and
 `RGBA` at the moment) and updates attributes.
 
-The below sections summarize the composites that come with SatPy and
+The below sections summarize the composites that come with Satpy and
 show basic examples of creating and using them with an existing
 :class:`~satpy.scene.Scene` object. It is recommended that any composites
 that are used repeatedly be configured in YAML configuration files.
@@ -59,6 +59,12 @@ is generated.  To get an image out of the above composite::
 This part is called `enhancement`, and is covered in more detail in
 :doc:`enhancements`.
 
+Single channel composites can also be generated with the
+:class:`GenericCompositor`, but in some cases, the
+:class:`SingleBandCompositor` may be more appropriate.  For example,
+the :class:`GenericCompositor` removes attributes such as ``units``
+because they are typically not meaningful for an RGB image.  Such attributes
+are retained in the :class:`SingleBandCompositor`.
 
 DifferenceCompositor
 --------------------
@@ -99,6 +105,23 @@ in the dataset mapping the value to an RGB triplet.  Typically the
 palette comes with the categorical (e.g. cloud mask) product that is
 being visualized.
 
+.. deprecated:: 0.40
+
+   Composites produced with :class:`PaletteCompositor` will result in
+   an image with mode RGB when enhanced.  To produce an image with mode P, use
+   the :class:`SingleBandCompositor` with an associated
+   :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
+   to :meth:`~satpy.Scene.save_datasets`.  If the colormap is sourced from
+   the same dataset as the dataset to be palettized, it must be contained
+   in the auxiliary datasets.
+
+   Since Satpy 0.40, all built-in composites that used
+   :class:`PaletteCompositor` have been migrated to use
+   :class:`SingleBandCompositor` instead.  This has no impact on resulting
+   images unless ``keep_palette=True`` is passed to
+   :meth:`~satpy.Scene.save_datasets`, but the loaded composite now has only
+   one band (previously three).
+
 DayNightCompositor
 ------------------
 
@@ -107,7 +130,7 @@ first composite will be placed on the day-side of the scene, and the
 second one on the night side.  The transition from day to night is
 done by calculating solar zenith angle (SZA) weighed average of the
 two composites.  The SZA can optionally be given as third dataset, and
-if not given, the angles will be calculated.  Three arguments are used
+if not given, the angles will be calculated.  Four arguments are used
 to generate the image (default values shown in the example below).
 They can be defined when initializing the compositor::
 
@@ -120,6 +143,10 @@ They can be defined when initializing the compositor::
  - day_night (string): "day_night" means both day and night portions will be kept
                        "day_only" means only day portion will be kept
                        "night_only" means only night portion will be kept
+ - include_alpha (bool): This only affects the "day only" or "night only" result.
+                         True means an alpha band will be added to the output image for transparency.
+                         False means the output is a single-band image with undesired pixels being masked out
+                         (replaced with NaNs).
 
 Usage (with default values)::
 
@@ -135,6 +162,18 @@ provides only a day product with night portion masked-out::
 
     >>> from satpy.composites import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
+    >>> composite = compositor([local_scene['true_color'])
+
+By default, the image under `day_only` or `night_only` flag will come out
+with an alpha band to display its transparency. It could be changed by
+setting `include_alpha` to False if there's no need for that alpha band.
+In such cases, it is recommended to use it together with `fill_value=0`
+when saving to geotiff to get a single-band image with black background.
+In the case below, the image shows its day portion and day/night
+transition with night portion blacked-out instead of transparent::
+
+    >>> from satpy.composites import DayNightCompositor
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", need_alpha=False)
     >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
@@ -477,7 +516,6 @@ Enhancing the images
     - stretch
     - gamma
     - invert
-    - crefl_scaling
     - cira_stretch
     - lookup
     - colorize
@@ -492,7 +530,7 @@ Enhancing the images
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called ``stretching``, and in SatPy it is implemented by
+procedure is called ``stretching``, and in Satpy it is implemented by
 ``enhancements``.
 
 The first step is to convert the composite to an
@@ -536,7 +574,24 @@ the file) as::
           kwargs:
             gamma: [1.7, 1.7, 1.7]
 
-More examples can be found in SatPy source code directory
+.. warning::
+   If you define a composite with no matching enhancement, Satpy will by
+   default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
+   cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
+   are enhancing a composite based on :class:`DayNightCompositor` where
+   the components have their own enhancements defined), you need to define
+   an enhancement that does nothing::
+
+      enhancements:
+        day_x:
+          standard_name: day_x
+          operations: []
+
+   It is recommended to define an enhancement even if you intend to use
+   the default, in case the default should change in future versions of
+   Satpy.
+
+More examples can be found in Satpy source code directory
 ``satpy/etc/enhancements/generic.yaml``.
 
 See the :doc:`enhancements` documentation for more information on

@@ -30,15 +30,18 @@ http://www.tropomi.eu/data-products/level-2-products
 """
 
 import logging
+from datetime import datetime
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+DATE_FMT = '%Y-%m-%dT%H:%M:%SZ'
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class TROPOMIL2FileHandler(NetCDF4FileHandler):
@@ -58,6 +61,16 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     def platform_shortname(self):
         """Get platform shortname."""
         return self.filename_info['platform_shortname']
+
+    @property
+    def time_coverage_start(self):
+        """Get time_coverage_start."""
+        return datetime.strptime(self['/attr/time_coverage_start'], DATE_FMT)
+
+    @property
+    def time_coverage_end(self):
+        """Get time_coverage_end."""
+        return datetime.strptime(self['/attr/time_coverage_end'], DATE_FMT)
 
     @property
     def sensor(self):
@@ -164,6 +177,8 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             'sensor': self.sensor,
             'start_time': self.start_time,
             'end_time': self.end_time,
+            'time_coverage_start': self.time_coverage_start,
+            'time_coverage_end': self.time_coverage_end,
         })
 
         return metadata

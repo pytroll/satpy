@@ -31,6 +31,10 @@ from satpy._config import get_config_path
 from satpy.readers import eps_l1b as eps
 from satpy.tests.utils import make_dataid
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
+
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
                       ("RECORD_SUBCLASS", "|i1"),

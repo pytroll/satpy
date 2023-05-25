@@ -31,6 +31,10 @@ from netCDF4 import Dataset
 
 from satpy.readers.ici_l1b_nc import IciL1bNCFileHandler, InterpolationType
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 N_CHANNELS = 13
 N_SCAN = 10
 N_SAMPLES = 784

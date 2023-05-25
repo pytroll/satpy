@@ -34,7 +34,6 @@ from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
-from tempfile import gettempdir
 
 import dask
 import dask.array as da
@@ -43,6 +42,8 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
+from satpy import config
+from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -336,7 +337,7 @@ def _read_data(filename, mda):
 def decompressed(filename):
     """Decompress context manager."""
     try:
-        new_filename = decompress(filename, gettempdir())
+        new_filename = decompress(filename, config["tmp_dir"])
     except IOError as err:
         logger.error("Unpacking failed: %s", str(err))
         raise
@@ -367,12 +368,12 @@ class HRITSegment:
         return data
 
     def _read_data_from_file(self):
-        # check, if 'filename' is a file on disk,
-        #  or a file like obj, possibly residing already in memory
-        try:
-            return self._read_data_from_disk()
-        except (FileNotFoundError, AttributeError):
+        if self._is_file_like():
             return self._read_file_like()
+        return self._read_data_from_disk()
+
+    def _is_file_like(self):
+        return isinstance(self.filename, FSFile)
 
     def _read_data_from_disk(self):
         # For reading the image data, unzip_context is faster than generic_open

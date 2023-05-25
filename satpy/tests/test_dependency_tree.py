@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -219,7 +217,7 @@ class TestMultipleSensors(unittest.TestCase):
         self.dependency_tree.populate_with_keys({'comp1'})
         comp_nodes = self.dependency_tree.trunk()
         self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].name.resolution, 500)
+        self.assertEqual(comp_nodes[0].name["resolution"], 500)
 
     def test_modifier_loaded_sensor_order(self):
         """Test that a modifier is loaded from the first alphabetical sensor."""

@@ -18,6 +18,7 @@ The following people have made contributions to this project:
 - Guido della Bruna - meteoswiss
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
+- [Manuel Carranza (manucarran)](https://github.com/manucarran)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
 - [Radar, Satellite and Nowcasting Division (meteoswiss-mdr)](https://github.com/meteoswiss-mdr)
@@ -48,6 +49,7 @@ The following people have made contributions to this project:
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
+- [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
@@ -56,6 +58,7 @@ The following people have made contributions to this project:
 - [Pepe Phillips (pepephillips)](https://github.com/pepephillips)
 - [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
+- [Martin Radenz (martin-rdz)](https://github.com/martin-rdz)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)

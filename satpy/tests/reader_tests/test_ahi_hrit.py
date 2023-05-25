@@ -24,6 +24,8 @@ import dask.array as da
 import numpy as np
 from xarray import DataArray
 
+from satpy.tests.utils import make_dataid
+
 
 class TestHRITJMAFileHandler(unittest.TestCase):
     """Test the HRITJMAFileHandler."""
@@ -271,9 +273,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
         reader = self._get_reader(mda=mda)
-
-        key = mock.MagicMock()
-        key.calibration = 'reflectance'
+        key = make_dataid(name="VIS", calibration="reflectance")
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
                                                           chunks=1024),

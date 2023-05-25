@@ -181,8 +181,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
@@ -326,8 +324,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'max_area' is deprecated, use 'finest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'max_area' is deprecated, use 'finest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.finest_area(datasets=datasets)
 
     def coarsest_area(self, datasets=None):
@@ -354,8 +355,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'min_area' is deprecated, use 'coarsest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'min_area' is deprecated, use 'coarsest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.coarsest_area(datasets=datasets)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
@@ -1002,10 +1006,15 @@ class Scene:
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims : list of str, optional
+            vdims (list of str, optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic : boolean, optional, default False
+            dynamic (bool, optional): Load and compute data on-the-fly during
+                visualization. Default is ``False``. See
+                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
+                for more information. Has no effect when data to be visualized
+                only has 2 dimensions (y/x or longitude/latitude) and doesn't
+                require grouping via the Holoviews ``groupby`` function.
 
         Returns: geoviews object
 
@@ -1031,10 +1040,12 @@ class Scene:
         else:
             gvds = gv.Dataset(ds)
 
+        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
+        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
         if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
         else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
 
         return gview
 
@@ -1296,7 +1307,7 @@ class Scene:
             del self._datasets[ds_id]
 
     def load(self, wishlist, calibration='*', resolution='*',
-             polarization='*', level='*', generate=True, unload=True,
+             polarization='*', level='*', modifiers='*', generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -1305,35 +1316,37 @@ class Scene:
         or they can not provide certain parameters and the "best" parameter
         will be chosen. For example, if a dataset is available in multiple
         resolutions and no resolution is specified in the wishlist's DataQuery
-        then the highest (smallest number) resolution will be chosen.
+        then the highest (the smallest number) resolution will be chosen.
 
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
             wishlist (iterable): List of names (str), wavelengths (float),
-                                 DataQuery objects or DataID of the requested
-                                 datasets to load. See `available_dataset_ids()`
-                                 for what datasets are available.
-            calibration (list, str): Calibration levels to limit available
-                                     datasets. This is a shortcut to
-                                     having to list each DataQuery/DataID in
-                                     `wishlist`.
+                DataQuery objects or DataID of the requested datasets to load.
+                See `available_dataset_ids()` for what datasets are available.
+            calibration (list | str): Calibration levels to limit available
+                datasets. This is a shortcut to having to list each
+                DataQuery/DataID in `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
-                                       This is a shortcut similar to
-                                       calibration.
+                This is a shortcut similar to calibration.
             polarization (list | str): Polarization ('V', 'H') to limit
-                                       available datasets. This is a shortcut
-                                       similar to calibration.
+                available datasets. This is a shortcut similar to calibration.
+            modifiers (tuple | str): Modifiers that should be applied to the
+                loaded datasets. This is a shortcut similar to calibration,
+                but only represents a single set of modifiers as a tuple.
+                For example, specifying
+                ``modifiers=('sunz_corrected', 'rayleigh_corrected')`` will
+                attempt to apply both of these modifiers to all loaded
+                datasets in the specified order ('sunz_corrected' first).
             level (list | str): Pressure level to limit available datasets.
-                                Pressure should be in hPa or mb. If an
-                                altitude is used it should be specified in
-                                inverse meters (1/m). The units of this
-                                parameter ultimately depend on the reader.
+                Pressure should be in hPa or mb. If an altitude is used it
+                should be specified in inverse meters (1/m). The units of this
+                parameter ultimately depend on the reader.
             generate (bool): Generate composites from the loaded datasets
-                             (default: True)
-            unload (bool): Unload datasets that were required to generate
-                           the requested datasets (composite dependencies)
-                           but are no longer needed.
+                (default: True)
+            unload (bool): Unload datasets that were required to generate the
+                requested datasets (composite dependencies) but are no longer
+                needed.
 
         """
         if isinstance(wishlist, str):
@@ -1343,6 +1356,7 @@ class Scene:
         query = DataQuery(calibration=calibration,
                           polarization=polarization,
                           resolution=resolution,
+                          modifiers=modifiers,
                           level=level)
         self._update_dependency_tree(needed_datasets, query)
 

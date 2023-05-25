@@ -22,7 +22,6 @@ import logging
 
 import numpy as np
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
@@ -36,9 +35,12 @@ from satpy.readers.seviri_base import (
     add_scanline_acq_time,
     get_cds_time,
     get_satpos,
+    mask_bad_quality,
 )
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('nc_msg')
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class NCSEVIRIFileHandler(BaseFileHandler):
@@ -57,10 +59,11 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mask_bad_quality_scan_lines=True):
         """Init the file handler."""
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.ext_calib_coefs = ext_calib_coefs or {}
+        self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
         self.get_metadata()
@@ -136,6 +139,10 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
+        is_calibration = dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
+            dataset = self._mask_bad_quality(dataset, dataset_info)
+
         self._update_attrs(dataset, dataset_info)
         return dataset
 
@@ -173,6 +180,14 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             },
             'radiance_type': self.nc['planned_chan_processing'].values[band_idx]
         }
+
+    def _mask_bad_quality(self, dataset, dataset_info):
+        """Mask scanlines with bad quality."""
+        ch_number = int(dataset_info['nc_key'][2:])
+        line_validity = self.nc['channel_data_visir_data_line_validity'][:, ch_number - 1].data
+        line_geometric_quality = self.nc['channel_data_visir_data_line_geometric_quality'][:, ch_number - 1].data
+        line_radiometric_quality = self.nc['channel_data_visir_data_line_radiometric_quality'][:, ch_number - 1].data
+        return mask_bad_quality(dataset, line_validity, line_geometric_quality, line_radiometric_quality)
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""
