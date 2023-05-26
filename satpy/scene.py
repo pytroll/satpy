@@ -1061,10 +1061,6 @@ class Scene:
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers
 
-        warnings.warn('Scene.to_xarray_dataset() is deprecated.'
-                      'Use Scene.to_xarray() instead, to obtain a CF-compliant xr.Dataset .',
-                      DeprecationWarning, stacklevel=2)
-
         dataarrays = _get_dataarrays_from_identifiers(self, datasets)
 
         if len(dataarrays) == 0:
