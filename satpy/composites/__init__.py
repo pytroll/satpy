@@ -1760,7 +1760,7 @@ class BaseTemporalCompositor(CompositeBase):
         ref_time = projectables[0]["time"][-1]
         new_projectables = []
         for (dq, proj) in zip(self.attrs["prerequisites"], projectables):
-            new_da = proj.sel(time=ref_time+pd.Timedelta(dq["time"]))
+            new_da = proj.sel(time=ref_time+pd.Timedelta(dq["time"]), method='nearest')
             new_projectables.append(new_da)
         return new_projectables
 
