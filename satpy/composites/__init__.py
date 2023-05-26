@@ -1770,6 +1770,7 @@ class TemporalRGB(BaseTemporalCompositor):
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Build the composite."""
+        projectables = self.match_data_arrays(projectables)
         self._check_time_dimension(projectables)
         new_projectables = self._apply_temporal_prerequisites(projectables)
         # need to drop the time coordinate, otherwise we can't concatenate
