@@ -642,3 +642,20 @@ composites:
       - wavelength: 3.9
       - wavelength: 6.2
       - wavelength: 1.6
+
+  temporal_rgb_vis06:
+    description: >
+      An RGB to highlight changes at 0.64 µm. To use this, start with a
+      MultiScene containing three scenes that are 10 minutes apart, such
+      as three subsequent FCI or ABI FD scenes. Load the composite from
+      the MultiScene, then apply timeseries blending. The resulting Scene
+      should have the composites.
+    compositor: !!python/name:satpy.composites.TemporalRGB
+    prerequisites:
+      - wavelength: 0.64
+        time: 0
+      - wavelength: 0.64
+        time: -10 min
+      - wavelength: 0.64
+        time: -20 min
+    standard_name: temporal_rgb_vis06
