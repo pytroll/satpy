@@ -25,7 +25,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers import load_reader
-from satpy.tests.reader_tests.test_netCDF_utils import FakeNetCDF4FileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 ABI_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc'
 DEFAULT_FILE_DTYPE = np.uint16
