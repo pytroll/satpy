@@ -778,6 +778,9 @@ class TestFileHandler:
     @pytest.fixture
     def simple_coordinate_conversion_table(self):
         table = np.zeros(1, dtype=vissr.SIMPLE_COORDINATE_CONVERSION_TABLE)
+        table["ssp_longitude"] = 141.0
+        table["ssp_latitude"] = 1.0
+        table["satellite_height"] = 123457.0
         return table
 
     @pytest.fixture
@@ -929,7 +932,10 @@ class TestFileHandler:
             "orbital_parameters": {
                 'satellite_nominal_longitude': 140.0,
                 'satellite_nominal_latitude': 0.0,
-                'satellite_nominal_altitude': 123456.0
+                'satellite_nominal_altitude': 123456.0,
+                'satellite_actual_longitude': 141.0,
+                'satellite_actual_latitude': 1.0,
+                'satellite_actual_altitude': 123457.0
             }
         }
 

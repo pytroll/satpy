@@ -613,11 +613,16 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def _get_orbital_parameters(self):
-        mode_block = self._header['image_parameters']['mode']
+        im_params = self._header['image_parameters']
+        mode_block = im_params['mode']
+        coord = im_params["simple_coordinate_conversion_table"]
         return {
             'satellite_nominal_longitude': mode_block["ssp_longitude"],
             'satellite_nominal_latitude': 0.0,
-            'satellite_nominal_altitude': mode_block["satellite_height"]
+            'satellite_nominal_altitude': mode_block["satellite_height"],
+            'satellite_actual_longitude': coord["ssp_longitude"],
+            'satellite_actual_latitude': coord["ssp_latitude"],
+            'satellite_actual_altitude': coord["satellite_height"]
         }
 
     def _get_time_parameters(self):

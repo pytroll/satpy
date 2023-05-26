@@ -710,8 +710,8 @@ def _interpolate_nearest(x, x_sample, y_sample):
 
 # TODO
 """
-- Orbital parameters
-- Area def
+
+- Area def: Attention! Nominal SSP (140) != Actual SSP (70)
 - Finish Documentation
 - Call find_enclosing_index only once for all predictions
 """
