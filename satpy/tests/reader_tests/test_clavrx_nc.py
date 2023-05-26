@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.clavrx module."""
-
 import os
 import unittest
 from unittest import mock
@@ -30,11 +29,13 @@ from satpy.tests.reader_tests.test_netCDF_utils import FakeNetCDF4FileHandler
 
 ABI_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc'
 DEFAULT_FILE_DTYPE = np.uint16
-DEFAULT_FILE_SHAPE = (10, 300)
+DEFAULT_FILE_SHAPE = (5, 5)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FLAGS = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                                dtype=np.byte).reshape(DEFAULT_FILE_SHAPE)
+DEFAULT_FILE_FLAGS_BEYOND_FILL = DEFAULT_FILE_FLAGS
+DEFAULT_FILE_FLAGS_BEYOND_FILL[-1][:-2] = [-127, -127, -128]
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
 DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
@@ -97,7 +98,7 @@ def fake_dataset():
     variable2 = variable2.where(variable2 % 2 != 0, FILL_VALUE)
 
     # category
-    variable3 = xr.DataArray(DEFAULT_FILE_FLAGS.astype(np.int8),
+    var_flags = xr.DataArray(DEFAULT_FILE_FLAGS.astype(np.int8),
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
                              attrs={'SCALED': 0,
@@ -105,12 +106,21 @@ def fake_dataset():
                                     'units': '1',
                                     'flag_values': [0, 1, 2, 3]})
 
+    out_of_range_flags = xr.DataArray(DEFAULT_FILE_FLAGS_BEYOND_FILL.astype(np.int8),
+                                      dims=('scan_lines_along_track_direction',
+                                            'pixel_elements_along_scan_direction'),
+                                      attrs={'SCALED': 0,
+                                             '_FillValue': -127,
+                                             'units': '1',
+                                             'flag_values': [0, 1, 2, 3]})
+
     ds_vars = {
         'longitude': longitude,
         'latitude': latitude,
         'variable1': variable1,
         'refl_0_65um_nom': variable2,
-        'variable3': variable3
+        'var_flags': var_flags,
+        'out_of_range_flags': out_of_range_flags,
     }
 
     ds = xr.Dataset(ds_vars, attrs=attrs)
@@ -142,13 +152,19 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(CLAVRXNetCDFFileHandler, '__bases__',
-                                   (FakeNetCDF4FileHandlerCLAVRx,), spec=True)
+                                   (FakeNetCDF4FileHandlerCLAVRx,))
         self.fake_open_dataset = mock.patch('satpy.readers.clavrx.xr.open_dataset',
                                             return_value=fake_dataset()).start()
+        self.expected_dataset = mock.patch('xarray.load_dataset',
+                                           return_value=fake_dataset()).start()
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-        self.addCleanup(mock.patch.stopall)
+    def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler."""
+        self.p.stop()
+        self.fake_open_dataset.stop()
+        self.expected_dataset.stop()
 
     def test_init(self):
         """Test basic init with no extra parameters."""
@@ -176,8 +192,8 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
         with mock.patch('satpy.readers.clavrx.glob') as g, \
                 mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
             g.return_value = ['fake_donor.nc']
-            x = np.linspace(-0.1518, 0.1518, 300)
-            y = np.linspace(0.1518, -0.1518, 10)
+            x = np.linspace(-0.1518, 0.1518, 5)
+            y = np.linspace(0.1518, -0.1518, 5)
             proj = mock.Mock(
                 semi_major_axis=6378137,
                 semi_minor_axis=6356752.3142,
@@ -198,11 +214,12 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
             self.assertNotIn("_FillValue", datasets["variable1"].attrs)
             self.assertEqual(np.float64, datasets["variable1"].dtype)
 
-            assert np.issubdtype(datasets["variable3"].dtype, np.integer)
-            self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+            assert np.issubdtype(datasets["var_flags"].dtype, np.integer)
+            self.assertIsNotNone(datasets['var_flags'].attrs.get('flag_meanings'))
             self.assertEqual('<flag_meanings_unknown>',
-                             datasets['variable3'].attrs.get('flag_meanings'),
+                             datasets['var_flags'].attrs.get('flag_meanings'),
                              )
+            assert np.issubdtype(datasets["out_of_range_flags"].dtype, np.integer)
 
             self.assertIsInstance(datasets["refl_0_65um_nom"].valid_range, list)
             self.assertEqual(np.float64, datasets["refl_0_65um_nom"].dtype)
@@ -232,7 +249,7 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
         ]
         new_ds_infos = list(r.file_handlers['clavrx_nc'][0].available_datasets(
             fake_dataset_info))
-        self.assertEqual(len(new_ds_infos), 9)
+        self.assertEqual(len(new_ds_infos), 10)
 
         # we have this and can provide the resolution
         self.assertTrue(new_ds_infos[0][0])
@@ -247,3 +264,38 @@ class TestCLAVRXReaderNetCDF(unittest.TestCase):
         # because a previous handler said it has it
         self.assertTrue(new_ds_infos[2][0])
         self.assertEqual(new_ds_infos[2][1]['resolution'], 2004)
+
+    def test_scale_data(self):
+        """Test that data is scaled when necessary and not scaled data are flags."""
+        from satpy.readers.clavrx import _scale_data
+        """Test scale data and results."""
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([ABI_FILE])
+        r.create_filehandlers(loadables)
+        with mock.patch('satpy.readers.clavrx.glob') as g, \
+                mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
+            g.return_value = ['fake_donor.nc']
+            x = np.linspace(-0.1518, 0.1518, 5)
+            y = np.linspace(0.1518, -0.1518, 5)
+            proj = mock.Mock(
+                semi_major_axis=6378137,
+                semi_minor_axis=6356752.3142,
+                perspective_point_height=35791000,
+                longitude_of_projection_origin=-137.2,
+                sweep_angle_axis='x',
+            )
+            d.return_value = fake_donor = mock.MagicMock(
+                variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+            )
+            fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
+
+            ds_scale = ["variable1", "refl_0_65um_nom"]
+            ds_no_scale = ["var_flags", "out_of_range_flags"]
+
+            with mock.patch("satpy.readers.clavrx._scale_data", wraps=_scale_data) as scale_data:
+                r.load(ds_scale)
+                scale_data.assert_called()
+
+            with mock.patch("satpy.readers.clavrx._scale_data", wraps=_scale_data) as scale_data2:
+                r.load(ds_no_scale)
+                scale_data2.assert_not_called()

@@ -33,7 +33,6 @@ from satpy.readers.hdf4_utils import SDS, HDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
-
 CF_UNITS = {
     'none': '1',
 }
@@ -69,18 +68,18 @@ NADIR_RESOLUTION = {
 }
 
 CHANNEL_ALIASES = {
-        "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
-                "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
-                "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
-                "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
-                "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
-                "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
-                },
-        "viirs": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
-                  "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
-                  "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
-                  }
-        }
+    "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+            "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+            "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
+            "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+            "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
+            "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
+            },
+    "viirs": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+              "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+              "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
+              }
+}
 
 
 def _get_sensor(sensor: str) -> str:
@@ -107,8 +106,28 @@ def _get_rows_per_scan(sensor: str) -> Optional[int]:
     return None
 
 
+def _scale_data(data_arr: Union[xr.DataArray, int], scale_factor: float, add_offset: float) -> xr.DataArray:
+    """Scale data, if needed."""
+    scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
+    if scaling_needed:
+        data_arr = data_arr * scale_factor + add_offset
+    return data_arr
+
+
 class _CLAVRxHelper:
     """A base class for the CLAVRx File Handlers."""
+
+    @staticmethod
+    def _get_nadir_resolution(sensor, resolution_from_filename_info):
+        """Get nadir resolution."""
+        for k, v in NADIR_RESOLUTION.items():
+            if sensor.startswith(k):
+                return v
+        res = resolution_from_filename_info
+        if res.endswith('m'):
+            return int(res[:-1])
+        elif res is not None:
+            return int(res)
 
     @staticmethod
     def _remove_attributes(attrs: dict) -> dict:
@@ -121,14 +140,6 @@ class _CLAVRxHelper:
         return attrs
 
     @staticmethod
-    def _scale_data(data_arr: Union[xr.DataArray, int], scale_factor: float, add_offset: float) -> xr.DataArray:
-        """Scale data, if needed."""
-        scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
-        if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
-        return data_arr
-
-    @staticmethod
     def _get_data(data, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
         if dataset_id.get('resolution'):
@@ -136,25 +147,28 @@ class _CLAVRxHelper:
 
         attrs = data.attrs.copy()
 
-        fill = attrs.get('_FillValue')
+        # don't need these attributes after applied.
         factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
         offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
+        flag_values = data.attrs.get("flag_values", [None])
         valid_range = attrs.get('valid_range', [None])
+        if isinstance(valid_range, np.ndarray):
+            attrs["valid_range"] = valid_range.tolist()
 
-        flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
-        if not flags:
-            data = data.where(data != fill)
-            data = _CLAVRxHelper._scale_data(data, factor, offset)
-            # don't need _FillValue if it has been applied.
-            attrs.pop('_FillValue', None)
-            if isinstance(valid_range, np.ndarray):
-                valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
-                valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
-                data = data.where((data >= valid_min) & (data <= valid_max))
-        else:
-            flag_values = attrs.get('flag_values', None)
-            if flag_values is not None and isinstance(flag_values, np.ndarray):
+        flags = not data.attrs.get("SCALED", 1) and any(flag_values)
+        if flags:
+            fill = attrs.get('_FillValue', None)
+            if isinstance(flag_values, np.ndarray) or isinstance(flag_values, list):
                 data = data.where((data >= flag_values[0]) & (data <= flag_values[-1]), fill)
+        else:
+            fill = attrs.pop('_FillValue', None)
+            data = data.where(data != fill)
+            data = _scale_data(data, factor, offset)
+
+            if valid_range[0] is not None:
+                valid_min = _scale_data(valid_range[0], factor, offset)
+                valid_max = _scale_data(valid_range[1], factor, offset)
+                data = data.where((data >= valid_min) & (data <= valid_max))
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
@@ -296,7 +310,8 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
         self.sensor = _get_sensor(self.file_content.get('/attr/sensor'))
         self.platform = _get_platform(self.file_content.get('/attr/platform'))
-        self.resolution = self.get_nadir_resolution(self.sensor)
+        self.resolution = _CLAVRxHelper._get_nadir_resolution(self.sensor,
+                                                              self.filename_info.get('resolution'))
 
     @property
     def start_time(self):
@@ -317,17 +332,6 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                                                 data.attrs, ds_info)
         return data
 
-    def get_nadir_resolution(self, sensor):
-        """Get nadir resolution."""
-        for k, v in NADIR_RESOLUTION.items():
-            if sensor.startswith(k):
-                return v
-        res = self.filename_info.get('resolution')
-        if res.endswith('m'):
-            return int(res[:-1])
-        elif res is not None:
-            return int(res)
-
     def _available_aliases(self, ds_info, current_var):
         """Add alias if there is a match."""
         new_info = ds_info.copy()
@@ -341,7 +345,6 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Add more information if this reader can provide it."""
         for is_avail, ds_info in (configured_datasets or []):
             # some other file handler knows how to load this
-            print(is_avail, ds_info)
             if is_avail is not None:
                 yield is_avail, ds_info
 
@@ -431,6 +434,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         self.platform = _get_platform(
             self.filename_info.get('platform_shortname', None))
         self.sensor = _get_sensor(self.nc.attrs.get('sensor', None))
+        self.resolution = _CLAVRxHelper._get_nadir_resolution(self.sensor,
+                                                              self.filename_info.get('resolution'))
         # coordinates need scaling and valid_range (mask_and_scale won't work on valid_range)
         self.nc.coords["latitude"] = _CLAVRxHelper._get_data(self.nc.coords["latitude"],
                                                              {"name": "latitude"})
@@ -439,7 +444,6 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
     def _dynamic_dataset_info(self, var_name):
         """Set data name and, if applicable, aliases."""
-        channel_info = None
         ds_info = {
             'file_type': self.filetype_info['file_type'],
             'name': var_name,
@@ -447,11 +451,12 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         yield True, ds_info
 
         if CHANNEL_ALIASES.get(self.sensor) is not None:
+            alias_info = ds_info.copy()
             channel_info = CHANNEL_ALIASES.get(self.sensor).get(var_name, None)
         if channel_info is not None:
             channel_info["file_key"] = var_name
-            ds_info.update(channel_info)
-        yield True, ds_info
+            alias_info.update(channel_info)
+            yield True, alias_info
 
     @staticmethod
     def _is_2d_yx_data_array(data_arr):
@@ -488,10 +493,15 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                 # we don't know any more information than the previous
                 # file handler so let's yield early
                 yield is_avail, ds_info
-                continue
-            if self.file_type_matches(ds_info['file_type']):
+
+            matches = self.file_type_matches(ds_info['file_type'])
+            if matches and ds_info.get('resolution') != self.resolution:
+                # reader knows something about this dataset (file type matches)
+                # add any information that this reader can add.
+                new_info = ds_info.copy()
+                new_info['resolution'] = self.resolution
                 handled_vars.add(ds_info['name'])
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+                yield True, new_info
         yield from self._available_file_datasets(handled_vars)
 
     def _is_polar(self):

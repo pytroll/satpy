@@ -173,6 +173,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             (None, {'name': 'variable1', 'file_type': ['level_fake']}),
             (True, {'name': 'variable3', 'file_type': ['clavrx_hdf4']}),
         ]
+
         new_ds_infos = list(r.file_handlers['clavrx_hdf4'][0].available_datasets(
             fake_dataset_info))
         self.assertEqual(len(new_ds_infos), 9)
