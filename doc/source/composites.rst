@@ -304,6 +304,43 @@ categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and m
     >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
     >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
 
+Time-dependent compositors
+--------------------------
+
+.. versionadded:: 0.43
+
+.. warning::
+
+   Time-dependent compositors are experimental.
+
+The built-in compositor :class:`TemporalRGB` creates an RGB consisting of
+three timesteps from the same channel.  When creating the compositor, the
+user must define the times using a :class:`~satpy.DataQuery`::
+
+    >>> temporal = TemporalRGB(
+    ...     "temporal_rgb",
+    ...     [DataQuery(wavelength=0.6, time=0),
+    ...      DataQuery(wavelength=0.6, time="-10 min"),
+    ...      DataQuery(wavelength=0.6, time="-20 min")])
+
+When calling the compositor, it should be passed a dataset that has a
+time dimension.  This can be obtained by blending a :class:`satpy.multiscene.MultiScene`
+with the :func:`satpy.multiscene.timeseries` function::
+
+    >>> ms = MultiScene.from_files(
+    ...         glob("/media/nas/x21308/MTG_test_data/2022_05_MTG_Testdata/RC007[012]/*BODY*.nc"),
+    ...         reader="fci_l1c_nc",
+    ...         group_keys=["repeat_cycle_in_day"])
+    >>> ms.load(["vis_06"])
+    >>> sc = ms.blend(blend_function=satpy.multiscene.timeseries)
+    >>> comp = temporal([sc["vis_06"]])
+
+When defining a time-dependent composite in a configuration file (see below)
+it should be loaded directly from the :class:`~satpy.multiscene.MultiScene`, but will be
+available only after timeseries blending::
+
+    >>> ms.load(["temporal_rgb_vis06"])
+    >>> sc = ms.blend(blend_function=timeseries)
 
 Creating composite configuration files
 ======================================

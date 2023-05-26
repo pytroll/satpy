@@ -1722,7 +1722,7 @@ class BaseTemporalCompositor(CompositeBase):
     the generation should work.
     """
 
-    def __init__(self, name, prerequisites, optional_prerequisites, **kwargs):
+    def __init__(self, name, prerequisites, optional_prerequisites=None, **kwargs):
         """Initialise a temporal compositor."""
         self._ensure_prerequisites_have_times(prerequisites)
         super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
@@ -1766,7 +1766,11 @@ class BaseTemporalCompositor(CompositeBase):
 
 
 class TemporalRGB(BaseTemporalCompositor):
-    """Make an RGB where different timesteps of the same channel go in different bands."""
+    """Make an RGB where different timesteps of the same channel go in different bands.
+
+    See the note in the parent class :class:`BaseTemporalCompositor` for
+    usage instructions.
+    """
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Build the composite."""
