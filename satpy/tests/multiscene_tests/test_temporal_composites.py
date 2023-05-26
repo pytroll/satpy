@@ -62,9 +62,26 @@ def fake_dataset():
 
 
 @pytest.fixture
+def fake_dataset_3d():
+    """Create fake 3D dataset."""
+    ds = xr.Dataset()
+    nt = 3
+    nx = ny = 4
+    times = np.array(
+            ["2017-09-01T10:00:00"], dtype="M8[s]") + np.array(
+                    [0, 600, 1200], dtype="m8[s]")
+    ds["ir"] = xr.DataArray(
+            np.zeros((nt, nx, ny)),
+            dims=("time", "y", "x"),
+            attrs={"sensor": "visir"},
+            coords={"time": times})
+    return ds
+
+
+@pytest.fixture
 def fake_files(tmp_path, fake_dataset):
     """Make fake files for the Satpy CF reader."""
-    start_time = datetime.datetime(2050, 5, 3, 12, 0, 0)
+    start_time = datetime.datetime(2050, 5, 3, 12, 0, 0, tzinfo=None)
     delta = datetime.timedelta(minutes=10)
     n_timesteps = 5
     offsets = [-2.2, 1.3, 0.5, -0.9, 0.7]
@@ -81,6 +98,18 @@ def fake_files(tmp_path, fake_dataset):
     return ofs
 
 
+@pytest.fixture
+def time_compositor():
+    """Construct a time compositor."""
+    from satpy import DataQuery
+    from satpy.composites import TemporalRGB
+    return TemporalRGB(
+            "temporal_rgb",
+            [DataQuery(wavelength=0.6, time=0),
+             DataQuery(wavelength=0.6, time="-10 min"),
+             DataQuery(wavelength=0.6, time="-20 min")])
+
+
 def test_load_temporal_composite(fake_files, fake_config):
     """Test loading a temporal composite."""
     from satpy import config
@@ -93,3 +122,25 @@ def test_load_temporal_composite(fake_files, fake_config):
         np.testing.assert_array_equal(sc["temporal"][0, :, :], np.full((4, 4), 4))
         np.testing.assert_array_equal(sc["temporal"][1, :, :], np.full((4, 4), 3))
         np.testing.assert_array_equal(sc["temporal"][2, :, :], np.full((4, 4), 2))
+
+
+def test_init_compositor():
+    """Initialise the temporal compositor."""
+    from satpy import DataQuery
+    from satpy.composites import TemporalRGB
+    TemporalRGB(
+            "temporal_rgb",
+            [DataQuery(wavelength=0.6, time=0),
+             DataQuery(wavelength=0.6, time="-10 min"),
+             DataQuery(wavelength=0.6, time="-20 min")])
+    with pytest.raises(KeyError):
+        TemporalRGB(
+            "temporal_rgb",
+            [DataQuery(wavelength=0.6, time=0),
+             DataQuery(wavelength=0.6),
+             DataQuery(wavelength=0.6, time="-20 min")])
+
+
+def test_call_compositor(time_compositor, fake_dataset_3d):
+    """Test calling the temporal compositor."""
+    time_compositor([fake_dataset_3d]*3)

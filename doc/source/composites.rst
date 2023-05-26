@@ -333,7 +333,7 @@ with the :func:`satpy.multiscene.timeseries` function::
     ...         group_keys=["repeat_cycle_in_day"])
     >>> ms.load(["vis_06"])
     >>> sc = ms.blend(blend_function=satpy.multiscene.timeseries)
-    >>> comp = temporal([sc["vis_06"]])
+    >>> comp = temporal([sc["vis_06"]]*3)  # pass three times: same source for each timestep
 
 When defining a time-dependent composite in a configuration file (see below)
 it should be loaded directly from the :class:`~satpy.multiscene.MultiScene`, but will be
