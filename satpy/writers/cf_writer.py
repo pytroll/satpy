@@ -807,7 +807,7 @@ def make_cf_dataarray(dataarray,
         The default is True.
     numeric_name_prefix : TYPE, optional
         Prepend dataset name with this if starting with a digit.
-        The default is 'CHANNEL_'.
+        The default is "CHANNEL_".
 
     Returns
     -------
