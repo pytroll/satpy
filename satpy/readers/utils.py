@@ -474,11 +474,3 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     with xr.set_options(keep_attrs=True):
         reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
     return reflectance
-
-
-def modified_julian_day_to_datetime64(mjd):
-    """Convert Modified Julian Day (MJD) to datetime64."""
-    epoch = np.datetime64('1858-11-17 00:00')
-    day2usec = 24 * 3600 * 1E6
-    mjd_usec = (mjd * day2usec).astype(np.int64).astype('timedelta64[us]')
-    return epoch + mjd_usec
