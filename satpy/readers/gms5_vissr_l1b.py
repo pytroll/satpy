@@ -100,6 +100,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 import numba
+import datetime as dt
 
 import satpy.readers._geos_area as geos_area
 import satpy.readers.gms5_vissr_navigation as nav
@@ -606,7 +607,29 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         mode_block = self._header['image_parameters']['mode']
         return {
             'platform': mode_block['satellite_name'].decode().strip().upper(),
-            'sensor': 'VISSR'
+            'sensor': 'VISSR',
+            'time_parameters': self._get_time_parameters(),
+            'orbital_parameters': self._get_orbital_parameters()
+        }
+
+    def _get_orbital_parameters(self):
+        mode_block = self._header['image_parameters']['mode']
+        return {
+            'satellite_nominal_longitude': mode_block["ssp_longitude"],
+            'satellite_nominal_latitude': 0.0,
+            'satellite_nominal_altitude': mode_block["satellite_height"]
+        }
+
+    def _get_time_parameters(self):
+        mode_block = self._header['image_parameters']['mode']
+        start_time = mjd2datetime64(mode_block["observation_time_mjd"])
+        start_time = start_time.astype(dt.datetime).replace(second=0, microsecond=0)
+        end_time = start_time + dt.timedelta(
+            minutes=25
+        )  # Source: GMS User Guide, section 3.3.1
+        return {
+            'nominal_start_time': start_time,
+            'nominal_end_time': end_time,
         }
 
     def get_dataset(self, dataset_id, ds_info):
@@ -616,6 +639,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         space_masker = SpaceMasker(image_data, dataset_id["name"])
         dataset = self._mask_space_pixels(dataset, space_masker)
         self._attach_lons_lats(dataset, dataset_id)
+        self._update_attrs(dataset)
         return dataset
 
     def _get_image_data(self):
@@ -813,6 +837,17 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                             attrs={'standard_name': 'latitude',
                                    "units": "degrees_north"})
         return lons, lats
+
+    def _update_attrs(self, dataset):
+        dataset.attrs.update(self._mda)
+
+    @property
+    def start_time(self):
+        return self._mda["time_parameters"]["nominal_start_time"]
+
+    @property
+    def end_time(self):
+        return self._mda["time_parameters"]["nominal_end_time"]
 
 
 def read_from_file_obj(file_obj, dtype, count, offset=0):

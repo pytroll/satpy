@@ -614,6 +614,9 @@ class TestFileHandler:
         mode = np.zeros(1, dtype=vissr.MODE_BLOCK)
         mode["satellite_name"] = b'GMS-5       '
         mode["spin_rate"] = 99.21774
+        mode["observation_time_mjd"] = 50000.0
+        mode["ssp_longitude"] = 140.0
+        mode["satellite_height"] = 123456.0
         mode["ir_frame_parameters"]["number_of_lines"] = 2
         mode["ir_frame_parameters"]["number_of_pixels"] = 2
         mode["vis_frame_parameters"]["number_of_lines"] = 2
@@ -918,13 +921,26 @@ class TestFileHandler:
     def attrs_exp(self):
         return {
             "platform": "GMS-5",
-            "sensor": "vissr",
+            "sensor": "VISSR",
+            "time_parameters": {
+                "nominal_start_time": dt.datetime(1995, 10, 10),
+                "nominal_end_time": dt.datetime(1995, 10, 10, 0, 25)
+            },
+            "orbital_parameters": {
+                'satellite_nominal_longitude': 140.0,
+                'satellite_nominal_latitude': 0.0,
+                'satellite_nominal_altitude': 123456.0
+            }
         }
 
     def test_get_dataset(self, file_handler, dataset_id, dataset_exp, attrs_exp):
         dataset = file_handler.get_dataset(dataset_id, None)
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1E-6)
-        # assert dataset.attrs == attrs_exp
+        assert dataset.attrs == attrs_exp
+
+    def test_time_attributes(self, file_handler, attrs_exp):
+        assert file_handler.start_time == attrs_exp["time_parameters"]["nominal_start_time"]
+        assert file_handler.end_time == attrs_exp["time_parameters"]["nominal_end_time"]
 
 
 class VissrFileWriter:
