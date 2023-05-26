@@ -118,6 +118,13 @@ R8 = '>f8'
 
 VIS_CHANNEL = 'VIS'
 IR_CHANNEL = 'IR'
+CHANNEL_TYPES = {
+    "VIS": VIS_CHANNEL,
+    "IR1": IR_CHANNEL,
+    "IR2": IR_CHANNEL,
+    "IR3": IR_CHANNEL,
+    "WV": IR_CHANNEL
+}
 ALT_CHANNEL_NAMES = {
     'VIS': 'VIS',
     'IR1': 'IR1',
@@ -863,12 +870,9 @@ class SpaceMasker:
 
     def _get_earth_edges_per_scan_line(self, cardinal):
         edges = self._image_data["LCW"][cardinal].compute().astype(np.int32)
-        if self._is_vis_channel():
+        if is_vis_channel(self._channel):
             edges = self._correct_vis_edges(edges)
         return edges
-
-    def _is_vis_channel(self):
-        return self._channel == "VIS"
 
     def _correct_vis_edges(self, edges):
         """Correct VIS edges.
@@ -897,3 +901,7 @@ def get_earth_mask(shape, earth_edges, fill_value=-1):
             continue
         mask[line, first:last+1] = 1
     return mask
+
+
+def is_vis_channel(channel_name):
+    return channel_name == "VIS"
