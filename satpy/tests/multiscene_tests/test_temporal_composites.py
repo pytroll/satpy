@@ -67,10 +67,11 @@ def fake_files(tmp_path, fake_dataset):
     start_time = datetime.datetime(2050, 5, 3, 12, 0, 0)
     delta = datetime.timedelta(minutes=10)
     n_timesteps = 5
+    offsets = [-2.2, 1.3, 0.5, -0.9, 0.7]
     ofs = []
     for i in range(n_timesteps):
-        begin = start_time + i*delta
-        end = start_time + (i+1)*delta
+        begin = start_time + i*delta + datetime.timedelta(seconds=offsets[i])
+        end = start_time + (i+1)*delta + datetime.timedelta(seconds=offsets[i])
         of = tmp_path / f"Meteosat99-imager-{begin:%Y%m%d%H%M%S}-{end:%Y%m%d%H%M%S}.nc"
         fd = fake_dataset.copy()
         fd["ir"][...] = i
