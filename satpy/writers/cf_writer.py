@@ -44,7 +44,7 @@ format:
   coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
-  with "CHANNEL_" by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
+  with ``"CHANNEL_"`` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
   Setting it to `None` or `''` will skip the prefixing.
 
 Grouping
@@ -807,7 +807,7 @@ def make_cf_dataarray(dataarray,
         The default is True.
     numeric_name_prefix : TYPE, optional
         Prepend dataset name with this if starting with a digit.
-        The default is "CHANNEL_".
+        The default is ``"CHANNEL_"``.
 
     Returns
     -------
