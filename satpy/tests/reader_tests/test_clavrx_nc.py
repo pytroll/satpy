@@ -17,15 +17,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.clavrx module."""
 import os
-import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers import load_reader
-from satpy.tests.reader_tests.test_netCDF_utils import FakeNetCDF4FileHandler
 
 ABI_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc'
 DEFAULT_FILE_DTYPE = np.uint16
@@ -41,17 +40,18 @@ DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FIL
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-ABI_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc'
+L1B_FILE = 'clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173'
+ABI_FILE = f'{L1B_FILE}.level2.nc'
 FILL_VALUE = -32768
 
 
-def fake_dataset():
+def fake_test_content(filename, **kwargs):
     """Mimic reader input file content."""
     attrs = {
         'platform': 'G16',
         'sensor': 'ABI',
         # this is a Level 2 file that came from a L1B file
-        'L1B': '"clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173',
+        'L1B': L1B_FILE,
     }
 
     longitude = xr.DataArray(DEFAULT_LON_DATA,
@@ -129,149 +129,168 @@ def fake_dataset():
     return ds
 
 
-class FakeNetCDF4FileHandlerCLAVRx(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler."""
-
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Get a fake dataset."""
-        return fake_dataset()
-
-
-class TestCLAVRXReaderNetCDF(unittest.TestCase):
-    """Test CLAVR-X Reader with NetCDF files."""
+class TestCLAVRXReaderGeo:
+    """Test CLAVR-X Reader with Geo files."""
 
     yaml_file = "clavrx.yaml"
-    filename = ABI_FILE
-    loadable_ids = list(fake_dataset().keys())
 
-    def setUp(self):
-        """Wrap NetCDF file handler with a fake handler."""
+    def setup_method(self):
+        """Read fake data."""
         from satpy._config import config_search_paths
-        from satpy.readers.clavrx import CLAVRXNetCDFFileHandler
-
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXNetCDFFileHandler, '__bases__',
-                                   (FakeNetCDF4FileHandlerCLAVRx,))
-        self.fake_open_dataset = mock.patch('satpy.readers.clavrx.xr.open_dataset',
-                                            return_value=fake_dataset()).start()
-        self.expected_dataset = mock.patch('xarray.load_dataset',
-                                           return_value=fake_dataset()).start()
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        self.p.stop()
-        self.fake_open_dataset.stop()
-        self.expected_dataset.stop()
+    @pytest.mark.parametrize(
+        ("filenames", "expected_loadables"),
+        [([ABI_FILE], 1)]
+    )
+    def test_reader_creation(self, filenames, expected_loadables):
+        """Test basic initialization."""
+        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+            od.side_effect = fake_test_content
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            assert len(loadables) == expected_loadables
+            r.create_filehandlers(loadables)
+            # make sure we have some files
+            assert r.file_handlers
 
-    def test_init(self):
-        """Test basic init with no extra parameters."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([ABI_FILE])
-        self.assertEqual(len(loadables), 1)
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        self.assertTrue(r.file_handlers)
-
-    def test_available_datasets(self):
+    @pytest.mark.parametrize(
+        ("filenames", "expected_datasets"),
+        [([ABI_FILE], ['variable1', 'refl_0_65um_nom', 'C02', 'var_flags',
+                       'out_of_range_flags', 'longitude', 'latitude']), ]
+    )
+    def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([ABI_FILE])
-        r.create_filehandlers(loadables)
-        avails = list(r.available_dataset_names)
-        expected_datasets = self.loadable_ids + ["latitude", "longitude"]
-        self.assertEqual(avails.sort(), expected_datasets.sort())
+        from satpy.readers import load_reader
+        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+            od.side_effect = fake_test_content
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables)
+            avails = list(r.available_dataset_names)
+            for var_name in expected_datasets:
+                assert var_name in avails
 
-    def test_load_all_new_donor(self):
+    @pytest.mark.parametrize(
+        ("filenames", "loadable_ids"),
+        [([ABI_FILE], ['variable1', 'refl_0_65um_nom', 'var_flags', 'out_of_range_flags']), ]
+    )
+    def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([ABI_FILE])
-        r.create_filehandlers(loadables)
-        with mock.patch('satpy.readers.clavrx.glob') as g, \
-                mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
-            g.return_value = ['fake_donor.nc']
-            x = np.linspace(-0.1518, 0.1518, 5)
-            y = np.linspace(0.1518, -0.1518, 5)
-            proj = mock.Mock(
-                semi_major_axis=6378137,
-                semi_minor_axis=6356752.3142,
-                perspective_point_height=35791000,
-                longitude_of_projection_origin=-137.2,
-                sweep_angle_axis='x',
-            )
-            d.return_value = fake_donor = mock.MagicMock(
-                variables={'goes_imager_projection': proj, 'x': x, 'y': y},
-            )
-            fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
+        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+            od.side_effect = fake_test_content
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables)
+            with mock.patch('satpy.readers.clavrx.glob') as g, \
+                    mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
+                g.return_value = ['fake_donor.nc']
+                x = np.linspace(-0.1518, 0.1518, DEFAULT_FILE_SHAPE[1])
+                y = np.linspace(0.1518, -0.1518, DEFAULT_FILE_SHAPE[0])
+                proj = mock.Mock(
+                    semi_major_axis=6378137,
+                    semi_minor_axis=6356752.3142,
+                    perspective_point_height=35791000,
+                    longitude_of_projection_origin=140.7,
+                    sweep_angle_axis='y',
+                )
+                d.return_value = fake_donor = mock.MagicMock(
+                    variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+                )
+                fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
 
-            datasets = r.load(self.loadable_ids + ["C02"])
-            self.assertEqual(len(datasets), len(self.loadable_ids)+1)
+                datasets = r.load(loadable_ids + ["C02"])
+                assert len(datasets) == len(loadable_ids)+1
 
-            # should have file variable and one alias for reflectance
-            self.assertNotIn("valid_range", datasets["variable1"].attrs)
-            self.assertNotIn("_FillValue", datasets["variable1"].attrs)
-            self.assertEqual(np.float64, datasets["variable1"].dtype)
+                # should have file variable and one alias for reflectance
+                assert "valid_range" not in datasets["variable1"].attrs
+                assert "_FillValue" not in datasets["variable1"].attrs
+                assert np.float64 == datasets["variable1"].dtype
 
-            assert np.issubdtype(datasets["var_flags"].dtype, np.integer)
-            self.assertIsNotNone(datasets['var_flags'].attrs.get('flag_meanings'))
-            self.assertEqual('<flag_meanings_unknown>',
-                             datasets['var_flags'].attrs.get('flag_meanings'),
-                             )
-            assert np.issubdtype(datasets["out_of_range_flags"].dtype, np.integer)
+                assert np.issubdtype(datasets["var_flags"].dtype, np.integer)
+                assert datasets['var_flags'].attrs.get('flag_meanings') is not None
+                assert '<flag_meanings_unknown>' == datasets['var_flags'].attrs.get('flag_meanings')
+                assert np.issubdtype(datasets["out_of_range_flags"].dtype, np.integer)
 
-            self.assertIsInstance(datasets["refl_0_65um_nom"].valid_range, list)
-            self.assertEqual(np.float64, datasets["refl_0_65um_nom"].dtype)
-            self.assertNotIn("_FillValue", datasets["refl_0_65um_nom"].attrs)
+                assert isinstance(datasets["refl_0_65um_nom"].valid_range, list)
+                assert np.float64 == datasets["refl_0_65um_nom"].dtype
+                assert "_FillValue" not in datasets["refl_0_65um_nom"].attrs
 
-            self.assertEqual("refl_0_65um_nom", datasets["C02"].file_key)
-            self.assertNotIn("_FillValue", datasets["C02"].attrs)
+                assert "refl_0_65um_nom" == datasets["C02"].file_key
+                assert "_FillValue" not in datasets["C02"].attrs
 
-            for v in datasets.values():
-                self.assertIsInstance(v.area, AreaDefinition)
-                self.assertEqual(v.platform_name, 'GOES-16')
-                self.assertEqual(v.sensor, 'abi')
+                for v in datasets.values():
+                    assert isinstance(v.area, AreaDefinition)
+                    assert v.platform_name == 'GOES-16'
+                    assert v.sensor == 'abi'
 
-                self.assertNotIn('calibration', v.attrs)
-                self.assertIn("units", v.attrs)
-                self.assertNotIn('rows_per_scan', v.coords.get('longitude').attrs)
+                    assert 'calibration' not in v.attrs
+                    assert 'rows_per_scan' not in v.coords.get('longitude').attrs
+                    assert "units" in v.attrs
 
-    def test_yaml_datasets(self):
+    @pytest.mark.parametrize(
+        ("filenames", "expected_loadables"),
+        [([ABI_FILE], 1)]
+    )
+    def test_yaml_datasets(self, filenames, expected_loadables):
         """Test available_datasets with fake variables from YAML."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([ABI_FILE])
-        r.create_filehandlers(loadables)
-        # mimic the YAML file being configured for more datasets
-        fake_dataset_info = [
-            (None, {'name': 'yaml1', 'resolution': None, 'file_type': ['clavrx_nc']}),
-            (True, {'name': 'yaml2', 'resolution': 0.5, 'file_type': ['clavrx_nc']}),
-        ]
-        new_ds_infos = list(r.file_handlers['clavrx_nc'][0].available_datasets(
-            fake_dataset_info))
-        self.assertEqual(len(new_ds_infos), 10)
+        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+            od.side_effect = fake_test_content
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables)
 
-        # we have this and can provide the resolution
-        self.assertTrue(new_ds_infos[0][0])
-        self.assertEqual(new_ds_infos[0][1]['resolution'], 2004)  # hardcoded
+            with mock.patch('satpy.readers.clavrx.glob') as g, \
+                    mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
+                g.return_value = ['fake_donor.nc']
+                x = np.linspace(-0.1518, 0.1518, 5)
+                y = np.linspace(0.1518, -0.1518, 5)
+                proj = mock.Mock(
+                    semi_major_axis=6378137,
+                    semi_minor_axis=6356752.3142,
+                    perspective_point_height=35791000,
+                    longitude_of_projection_origin=-137.2,
+                    sweep_angle_axis='x',
+                )
+                d.return_value = fake_donor = mock.MagicMock(
+                    variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+                )
+                fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
+            # mimic the YAML file being configured for more datasets
+            fake_dataset_info = [
+                (None, {'name': 'yaml1', 'resolution': None, 'file_type': ['clavrx_nc']}),
+                (True, {'name': 'yaml2', 'resolution': 0.5, 'file_type': ['clavrx_nc']}),
+            ]
+            new_ds_infos = list(r.file_handlers['clavrx_nc'][0].available_datasets(
+                fake_dataset_info))
+            assert len(new_ds_infos) == 10
 
-        # we have this, but previous file handler said it knew about it
-        # and it is producing the same resolution as what we have
-        self.assertTrue(new_ds_infos[1][0])
-        self.assertEqual(new_ds_infos[1][1]['resolution'], 0.5)
+            # we have this and can provide the resolution
+            assert (new_ds_infos[0][0])
+            assert new_ds_infos[0][1]['resolution'] == 2004  # hardcoded
 
-        # we have this, but don't want to change the resolution
-        # because a previous handler said it has it
-        self.assertTrue(new_ds_infos[2][0])
-        self.assertEqual(new_ds_infos[2][1]['resolution'], 2004)
+            # we have this, but previous file handler said it knew about it
+            # and it is producing the same resolution as what we have
+            assert (new_ds_infos[1][0])
+            assert new_ds_infos[1][1]['resolution'] == 0.5
 
-    def test_scale_data(self):
+            # we have this, but don't want to change the resolution
+            # because a previous handler said it has it
+            assert (new_ds_infos[2][0])
+            assert new_ds_infos[2][1]['resolution'] == 2004
+
+    @pytest.mark.parametrize(
+        ("filenames", "loadable_ids"),
+        [([ABI_FILE], ['variable1', 'refl_0_65um_nom', 'var_flags', 'out_of_range_flags']), ]
+    )
+    def test_scale_data(self, filenames, loadable_ids):
         """Test that data is scaled when necessary and not scaled data are flags."""
         from satpy.readers.clavrx import _scale_data
-        """Test scale data and results."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([ABI_FILE])
-        r.create_filehandlers(loadables)
+        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+            od.side_effect = fake_test_content
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables)
         with mock.patch('satpy.readers.clavrx.glob') as g, \
                 mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
             g.return_value = ['fake_donor.nc']
