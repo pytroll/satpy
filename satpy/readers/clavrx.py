@@ -207,13 +207,17 @@ class _CLAVRxHelper:
         return proj_dict
 
     @staticmethod
-    def _find_input_nc(filename: str, l1b_base: str) -> str:
+    def _find_input_nc(filename: str, sensor: str, l1b_base: str) -> str:
         dirname = os.path.dirname(filename)
         l1b_filename = os.path.join(dirname, l1b_base + '.nc')
         if os.path.exists(l1b_filename):
             return str(l1b_filename)
 
-        glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
+        if sensor == "AHI":
+            glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
+        else:
+            glob_pat = os.path.join(dirname, l1b_base + '*.nc')
+
         LOG.debug("searching for {0}".format(glob_pat))
         found_l1b_filenames = list(glob(glob_pat))
         if len(found_l1b_filenames) == 0:
@@ -223,7 +227,7 @@ class _CLAVRxHelper:
         return found_l1b_filenames[0]
 
     @staticmethod
-    def _read_axi_fixed_grid(filename: str, l1b_attr) -> geometry.AreaDefinition:
+    def _read_axi_fixed_grid(filename: str, sensor: str, l1b_attr) -> geometry.AreaDefinition:
         """Read a fixed grid.
 
         CLAVR-x does not transcribe fixed grid parameters to its output
@@ -238,7 +242,7 @@ class _CLAVRxHelper:
         """
         LOG.debug(f"looking for corresponding input file for {l1b_attr}"
                   " to act as fixed grid navigation donor")
-        l1b_path = _CLAVRxHelper._find_input_nc(filename, l1b_attr)
+        l1b_path = _CLAVRxHelper._find_input_nc(filename, sensor, l1b_attr)
         LOG.info(f"CLAVR-x does not include fixed-grid parameters, use input file {l1b_path} as donor")
         l1b = netCDF4.Dataset(l1b_path)
         proj = None
@@ -408,7 +412,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             return super(CLAVRXHDF4FileHandler, self).get_area_def(key)
 
         l1b_att = str(self.file_content.get('/attr/L1B', None))
-        area_def = _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
+        area_def = _CLAVRxHelper._read_axi_fixed_grid(self.filename, self.sensor, l1b_att)
         return area_def
 
 
@@ -453,10 +457,10 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         if CHANNEL_ALIASES.get(self.sensor) is not None:
             alias_info = ds_info.copy()
             channel_info = CHANNEL_ALIASES.get(self.sensor).get(var_name, None)
-        if channel_info is not None:
-            channel_info["file_key"] = var_name
-            alias_info.update(channel_info)
-            yield True, alias_info
+            if channel_info is not None:
+                channel_info["file_key"] = var_name
+                alias_info.update(channel_info)
+                yield True, alias_info
 
     @staticmethod
     def _is_2d_yx_data_array(data_arr):
@@ -516,7 +520,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
             return super(CLAVRXNetCDFFileHandler, self).get_area_def(key)
 
         l1b_att = str(self.nc.attrs.get('L1B', None))
-        return _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
+        return _CLAVRxHelper._read_axi_fixed_grid(self.filename, self.sensor, l1b_att)
 
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset for supported geostationary sensors."""
