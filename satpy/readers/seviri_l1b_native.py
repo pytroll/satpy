@@ -198,7 +198,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     @property
     def _repeat_cycle_duration(self):
-        """Get repeacyckle duration from the trailer."""
+        """Get repeat cycle duration from the trailer."""
         if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
             return 5
         return REPEAT_CYCLE_DURATION
