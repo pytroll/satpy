@@ -217,13 +217,13 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     @property
     def observation_start_time(self):
-        """Read the repeat cycle sensing start time from metadata."""
+        """Get observation start time from trailer."""
         return self.trailer['15TRAILER']['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
     def observation_end_time(self):
-        """Read the repeat cycle sensing end time from metadata."""
+        """Get observation end time from trailer."""
         return self.trailer['15TRAILER']['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
