@@ -452,9 +452,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
-        self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
-        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-            self.tres = 5
         self._get_header()
 
     def _get_header(self):
@@ -496,18 +493,25 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
+    def _repeat_cycle_duration(self):
+        """Get repeacyckle duration from epilogue."""
+        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            return 5
+        return REPEAT_CYCLE_DURATION
+
+    @property
     def nominal_start_time(self):
         """Get the start time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Get the end time and round it according to scan law."""
         tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
