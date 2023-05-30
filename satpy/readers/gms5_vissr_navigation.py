@@ -18,6 +18,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 
 EARTH_FLATTENING = 1/298.257
 EARTH_EQUATORIAL_RADIUS = 6378136.0
+EARTH_POLAR_RADIUS = EARTH_EQUATORIAL_RADIUS * (1 - EARTH_FLATTENING)
 """Constants taken from JMA's Msial library."""
 
 
@@ -710,8 +711,7 @@ def _interpolate_nearest(x, x_sample, y_sample):
 
 # TODO
 """
-
-- Area def: Attention! Nominal SSP (140) != Actual SSP (70)
+- Code formatting
 - Finish Documentation
 - Call find_enclosing_index only once for all predictions
 """

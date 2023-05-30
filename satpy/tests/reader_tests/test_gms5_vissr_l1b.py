@@ -533,9 +533,9 @@ class TestFileHandler:
         )
 
     @pytest.fixture(params=[
-        make_dataid(name="VIS", calibration="reflectance"),
-        make_dataid(name='IR1', calibration="brightness_temperature"),
-        make_dataid(name='IR1', calibration="counts")
+        make_dataid(name="VIS", calibration="reflectance", resolution=1250),
+        make_dataid(name='IR1', calibration="brightness_temperature", resolution=5000),
+        make_dataid(name='IR1', calibration="counts", resolution=5000)
     ])
     def dataset_id(self, request):
         return request.param
@@ -665,6 +665,9 @@ class TestFileHandler:
 
         conv["parameters"]["equatorial_radius"] = 6377397.0
         conv["parameters"]["oblateness_of_earth"] = 0.003342773
+
+        conv["orbital_parameters"]["longitude_of_ssp"] = 141.0
+        conv["orbital_parameters"]["latitude_of_ssp"] = 1.0
         # fmt: on
         return conv
     
@@ -778,8 +781,6 @@ class TestFileHandler:
     @pytest.fixture
     def simple_coordinate_conversion_table(self):
         table = np.zeros(1, dtype=vissr.SIMPLE_COORDINATE_CONVERSION_TABLE)
-        table["ssp_longitude"] = 141.0
-        table["ssp_latitude"] = 1.0
         table["satellite_height"] = 123457.0
         return table
 
@@ -910,9 +911,9 @@ class TestFileHandler:
 
     @pytest.fixture
     def dataset_exp(self, dataset_id, ir1_counts_exp, ir1_bt_exp, vis_refl_exp):
-        ir1_counts_id = make_dataid(name="IR1", calibration="counts")
-        ir1_bt_id = make_dataid(name="IR1", calibration="brightness_temperature")
-        vis_refl_id = make_dataid(name="VIS", calibration="reflectance")
+        ir1_counts_id = make_dataid(name="IR1", calibration="counts", resolution=5000)
+        ir1_bt_id = make_dataid(name="IR1", calibration="brightness_temperature", resolution=5000)
+        vis_refl_id = make_dataid(name="VIS", calibration="reflectance", resolution=1250)
         expectations = {
             ir1_counts_id: ir1_counts_exp,
             ir1_bt_id: ir1_bt_exp,
@@ -921,7 +922,28 @@ class TestFileHandler:
         return expectations[dataset_id]
 
     @pytest.fixture
-    def attrs_exp(self):
+    def area_def_exp(self, dataset_id):
+        from pyresample.geometry import AreaDefinition
+        if dataset_id["name"] == "IR1":
+            resol = 5
+            extent = (-8.641922536247211, -8.641922536247211, 25.925767608741637, 25.925767608741637)
+        else:
+            resol = 1
+            extent = (-2.1604801323784297, -2.1604801323784297, 6.481440397135289, 6.481440397135289)
+        area_id = f"gms-5_vissr_western-pacific_{resol}km"
+        desc = f"GMS-5 VISSR Western Pacific area definition with {resol} km resolution"
+        return AreaDefinition(
+            area_id=area_id,
+            description=desc,
+            proj_id=area_id,
+            projection={'ellps': 'SGS85', 'h': '123456', 'lon_0': '140', 'no_defs': 'None', 'proj': 'geos', 'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+            area_extent=extent,
+            width=2,
+            height=2
+        )
+
+    @pytest.fixture
+    def attrs_exp(self, area_def_exp):
         return {
             "platform": "GMS-5",
             "sensor": "VISSR",
@@ -936,17 +958,30 @@ class TestFileHandler:
                 'satellite_actual_longitude': 141.0,
                 'satellite_actual_latitude': 1.0,
                 'satellite_actual_altitude': 123457.0
-            }
+            },
+            "area_def_uniform_sampling": area_def_exp
         }
 
     def test_get_dataset(self, file_handler, dataset_id, dataset_exp, attrs_exp):
         dataset = file_handler.get_dataset(dataset_id, None)
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1E-6)
-        assert dataset.attrs == attrs_exp
+        self._assert_attrs_equal(dataset.attrs, attrs_exp)
 
     def test_time_attributes(self, file_handler, attrs_exp):
         assert file_handler.start_time == attrs_exp["time_parameters"]["nominal_start_time"]
         assert file_handler.end_time == attrs_exp["time_parameters"]["nominal_end_time"]
+
+    def _assert_attrs_equal(self, attrs_tst, attrs_exp):
+        area_tst = attrs_tst.pop("area_def_uniform_sampling")
+        area_exp = attrs_exp.pop("area_def_uniform_sampling")
+        assert attrs_tst == attrs_exp
+        self._assert_areas_close(area_tst, area_exp)
+
+    def _assert_areas_close(self, area_tst, area_exp):
+        lons_tst, lats_tst = area_tst.get_lonlats()
+        lons_exp, lats_exp = area_exp.get_lonlats()
+        np.testing.assert_allclose(lons_tst, lons_exp)
+        np.testing.assert_allclose(lats_tst, lats_exp)
 
 
 class VissrFileWriter:

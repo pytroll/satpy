@@ -613,16 +613,20 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def _get_orbital_parameters(self):
+        # Note: SSP longitude in simple coordinate conversion table seems to be
+        # incorrect (80 deg instead of 140 deg). Use orbital parameters instead.
         im_params = self._header['image_parameters']
-        mode_block = im_params['mode']
-        coord = im_params["simple_coordinate_conversion_table"]
+        mode = im_params['mode']
+        simple_coord = im_params["simple_coordinate_conversion_table"]
+        orb_params = im_params["coordinate_conversion"]["orbital_parameters"]
         return {
-            'satellite_nominal_longitude': mode_block["ssp_longitude"],
+            'satellite_nominal_longitude': mode["ssp_longitude"],
             'satellite_nominal_latitude': 0.0,
-            'satellite_nominal_altitude': mode_block["satellite_height"],
-            'satellite_actual_longitude': coord["ssp_longitude"],
-            'satellite_actual_latitude': coord["ssp_latitude"],
-            'satellite_actual_altitude': coord["satellite_height"]
+            'satellite_nominal_altitude': mode["satellite_height"],
+
+            'satellite_actual_longitude': orb_params["longitude_of_ssp"],
+            'satellite_actual_latitude': orb_params["latitude_of_ssp"],
+            'satellite_actual_altitude': simple_coord["satellite_height"]
         }
 
     def _get_time_parameters(self):
@@ -644,7 +648,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         space_masker = SpaceMasker(image_data, dataset_id["name"])
         dataset = self._mask_space_pixels(dataset, space_masker)
         self._attach_lons_lats(dataset, dataset_id)
-        self._update_attrs(dataset)
+        self._update_attrs(dataset, dataset_id)
         return dataset
 
     def _get_image_data(self):
@@ -699,50 +703,37 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
         return tables[dataset_id["name"]]
 
-    def get_area_def_test(self, dsid):
-        alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
-        num_lines, num_pixels = self._get_actual_shape()
-        mode_block = self._header['image_parameters']['mode']
+    def _get_area_def_uniform_sampling(self, dataset_id):
+        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
+        num_lines, _ = self._get_actual_shape()
         coord_conv = self._header['image_parameters']['coordinate_conversion']
         stepping_angle = coord_conv['stepping_angle_along_line'][alt_ch_name]
-        sampling_angle = coord_conv['sampling_angle_along_pixel'][alt_ch_name]
-        center_line_vissr_frame = coord_conv['central_line_number_of_vissr_frame'][alt_ch_name]
-        center_pixel_vissr_frame = coord_conv['central_pixel_number_of_vissr_frame'][alt_ch_name]
-        line_offset = self._header['control_block']['head_valid_line_number']
-        pixel_offset = coord_conv['pixel_difference_of_vissr_center_from_normal_position'][
-            alt_ch_name]
-        print(coord_conv['vissr_misalignment'])
-        print(coord_conv['matrix_of_misalignment'])
-
-        equatorial_radius = coord_conv['parameters']['equatorial_radius']
-        oblateness = coord_conv['parameters']['oblateness_of_earth']
         name_dict = geos_area.get_geos_area_naming({
             'platform_name': self._mda['platform'],
             'instrument_name': self._mda['sensor'],
             'service_name': 'western-pacific',
             'service_desc': 'Western Pacific',
-            'resolution': dsid['resolution']
+            'resolution': dataset_id['resolution']
         })
+        uniform_size = num_lines
+        uniform_line_pixel_offset = 0.5 * num_lines
+        uniform_sampling_angle = geos_area.sampling_to_lfac_cfac(stepping_angle)
         proj_dict = {
             'a_name': name_dict['area_id'],
             'p_id': name_dict['area_id'],
             'a_desc': name_dict['description'],
-            'ssp_lon': coord_conv['orbital_parameters']['longitude_of_ssp'],
-            'a': equatorial_radius,
-            'b': _get_polar_earth_radius(equatorial_radius, oblateness),
-            'h': mode_block['satellite_height'],
-            'nlines': num_lines,
-            'ncols': num_pixels,
-            'lfac': geos_area.sampling_to_lfac_cfac(stepping_angle),
-            'cfac': geos_area.sampling_to_lfac_cfac(sampling_angle),
-            'coff': center_pixel_vissr_frame - pixel_offset,
-            'loff': center_line_vissr_frame - line_offset,
+            'ssp_lon': self._mda["orbital_parameters"]["satellite_nominal_longitude"],
+            "a": nav.EARTH_EQUATORIAL_RADIUS,
+            "b": nav.EARTH_POLAR_RADIUS,
+            'h': self._mda["orbital_parameters"]["satellite_nominal_altitude"],
+            'nlines': uniform_size,
+            'ncols': uniform_size,
+            'lfac': uniform_sampling_angle,
+            'cfac': uniform_sampling_angle,
+            'coff': uniform_line_pixel_offset,
+            'loff': uniform_line_pixel_offset,
             'scandir': 'N2S'
         }
-        from pprint import pprint
-
-        # pprint(mode_block)
-        pprint(coord_conv)
         extent = geos_area.get_area_extent(proj_dict)
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
@@ -843,8 +834,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                                    "units": "degrees_north"})
         return lons, lats
 
-    def _update_attrs(self, dataset):
+    def _update_attrs(self, dataset, dataset_id):
         dataset.attrs.update(self._mda)
+        dataset.attrs["area_def_uniform_sampling"] = self._get_area_def_uniform_sampling(dataset_id)
 
     @property
     def start_time(self):
