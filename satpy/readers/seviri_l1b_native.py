@@ -196,22 +196,24 @@ class NativeMSGFileHandler(BaseFileHandler):
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
-        self.tres = REPEAT_CYCLE_DURATION  # base RC duration of 15
-        if filetype_info is not None:  # to avoid error in the pytest
-            if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
-                self.tres = 5
+    @property
+    def _repeat_cycle_duration(self):
+        """Get repeacyckle duration from the trailer."""
+        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            return 5
+        return REPEAT_CYCLE_DURATION
 
     @property
     def nominal_start_time(self):
         """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
