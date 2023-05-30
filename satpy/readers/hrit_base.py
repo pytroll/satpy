@@ -223,12 +223,12 @@ class HRITFileHandler(BaseFileHandler):
 
     @property
     def observation_start_time(self):
-        """Get start time."""
+        """Get observation start time."""
         return self._start_time
 
     @property
     def observation_end_time(self):
-        """Get end time."""
+        """Get observation end time."""
         return self._end_time
 
     @property
