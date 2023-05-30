@@ -202,10 +202,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        self.RC_period_min = 10
-        if not filename_info['coverage'] == 'FD':
-            raise NotImplementedError(f"coverage for {filename_info['coverage']} not supported by this reader")
-            self.RC_period_min = 2.5
         super().__init__(filename, filename_info,
                          filetype_info,
                          cache_var_size=0,
@@ -217,15 +213,26 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         self._cache = {}
 
     @property
+    def rc_period_min(self):
+        """Get nominal repeat cycle duration.
+
+        As RSS is not yet implemeted and error will be raised if RSS are to be read
+        """
+        if not self.filename_info['coverage'] == 'FD':
+            raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
+            return 2.5
+        return 10
+
+    @property
     def nominal_start_time(self):
         """Get nominal start time."""
-        RC_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        return RC_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*self.RC_period_min)
+        rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        return rc_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*self.rc_period_min)
 
     @property
     def nominal_end_time(self):
         """Get nominal end time."""
-        return self.nominal_start_time + timedelta(minutes=self.RC_period_min)
+        return self.nominal_start_time + timedelta(minutes=self.rc_period_min)
 
     @property
     def observation_start_time(self):
