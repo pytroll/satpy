@@ -70,7 +70,7 @@ Output:
         orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         time_parameters:          {'nominal_start_time': datetime.datetime(2021, ...
         units:                    K
-        wavelength:               10.8 µm (9.8-11.8 µm)
+        wavelength:               10.8 µm (9.8-11.8 µm)
         standard_name:            toa_brightness_temperature
         platform_name:            Meteosat-11
         sensor:                   seviri
@@ -200,12 +200,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         if filetype_info is not None:  # to avoid error in the pytest
             if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
                 self.tres = 5
-
-    def _has_archive_header(self):
-        """Check whether the file includes an ASCII archive header."""
-        ascii_startswith = b'FormatName                  : NATIVE'
-        with open(self.filename, mode='rb') as istream:
-            return istream.read(36) == ascii_startswith
 
     @property
     def nominal_start_time(self):
