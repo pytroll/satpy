@@ -1102,7 +1102,8 @@ class TestNativeMSGDataset:
                 'ImageProductionStats': {
                     'ActualScanningSummary': {
                         'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
+                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888),
+                        'ReducedScan': 0
                     }
                 }
             }
