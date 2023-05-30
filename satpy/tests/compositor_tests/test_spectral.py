@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for spectral correction compositors."""
+import warnings
 
 import dask.array as da
 import numpy as np
@@ -87,8 +88,10 @@ class TestSpectralComposites:
 
     def test_green_corrector(self):
         """Test the deprecated class for green corrections."""
-        comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
-                              standard_name='toa_bidirectional_reflectance')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, message=r'.*deprecated.*')
+            comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
+                                  standard_name='toa_bidirectional_reflectance')
         res = comp((self.c01, self.c03))
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)

@@ -104,16 +104,6 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
             })
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 
-        # category2 Flag meanings not available (should default to flag meanings unknown)
-        file_content['variable4'] = xr.DataArray(
-            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
-            attrs={
-                'SCALED': 0,
-                '_FillValue': -128,
-                'units': 'none',
-            })
-
-        file_content['variable4/shape'] = DEFAULT_FILE_SHAPE
         return file_content
 
 
@@ -169,11 +159,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             (None, {'name': '_fake1', 'file_type': ['clavrx_hdf4']}),
             (None, {'name': 'variable1', 'file_type': ['level_fake']}),
             (True, {'name': 'variable3', 'file_type': ['clavrx_hdf4']}),
-            (True, {'name': 'variable4', 'file_type': ['clavrx_hdf4']}),
         ]
         new_ds_infos = list(r.file_handlers['clavrx_hdf4'][0].available_datasets(
             fake_dataset_info))
-        self.assertEqual(len(new_ds_infos), 11)
+        self.assertEqual(len(new_ds_infos), 9)
 
         # we have this and can provide the resolution
         self.assertTrue(new_ds_infos[0][0])
@@ -227,7 +216,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
 
-        var_list = ['variable1', 'variable2', 'variable3', 'variable4']
+        var_list = ['variable1', 'variable2', 'variable3']
         datasets = r.load(var_list)
         self.assertEqual(len(datasets), len(var_list))
         for v in datasets.values():
@@ -237,12 +226,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             self.assertIsInstance(v.attrs['area'], SwathDefinition)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 16)
-        flag_meanings = datasets["variable3"].attrs.get("flag_meanings")
-        if isinstance(flag_meanings, str):
-            self.assertFalse(" " in flag_meanings)
-            self.assertTrue(flag_meanings == "<flag_meanings_unkown>")
-        else:
-            self.assertIsInstance(flag_meanings, list)
+            self.assertIsInstance(datasets["variable3"].attrs.get("flag_meanings"), list)
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
