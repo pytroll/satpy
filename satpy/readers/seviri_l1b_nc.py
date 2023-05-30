@@ -71,16 +71,24 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.get_metadata()
 
     @property
+    def _repeat_cycle_duration(self):
+        """Get repeat cycle duration from the metadata."""
+        if self.nc.attrs['nominal_image_scanning'] == 'T':
+            return 15
+        elif self.nc.attrs['reduced_scanning'] == 'T':
+            return 5
+
+    @property
     def nominal_start_time(self):
         """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.deltaSt
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.deltaEnd
-        return round_nom_time(tm, time_delta=timedelta(minutes=self.tres))
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
@@ -145,10 +153,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.deltaEnd = self.reference + datetime.timedelta(
             days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
             milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
-        if self.nc.attrs['nominal_image_scanning'] == 'T':
-            self.tres = 15
-        elif self.nc.attrs['reduced_scanning'] == 'T':
-            self.tres = 5
 
         self.north = int(self.nc.attrs['north_most_line'])
         self.east = int(self.nc.attrs['east_most_pixel'])
