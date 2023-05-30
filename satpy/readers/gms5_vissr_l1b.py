@@ -704,39 +704,14 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return tables[dataset_id["name"]]
 
     def _get_area_def_uniform_sampling(self, dataset_id):
-        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
-        num_lines, _ = self._get_actual_shape()
-        coord_conv = self._header['image_parameters']['coordinate_conversion']
-        stepping_angle = coord_conv['stepping_angle_along_line'][alt_ch_name]
-        name_dict = geos_area.get_geos_area_naming({
-            'platform_name': self._mda['platform'],
-            'instrument_name': self._mda['sensor'],
-            'service_name': 'western-pacific',
-            'service_desc': 'Western Pacific',
-            'resolution': dataset_id['resolution']
-        })
-        uniform_size = num_lines
-        uniform_line_pixel_offset = 0.5 * num_lines
-        uniform_sampling_angle = geos_area.sampling_to_lfac_cfac(stepping_angle)
-        proj_dict = {
-            'a_name': name_dict['area_id'],
-            'p_id': name_dict['area_id'],
-            'a_desc': name_dict['description'],
-            'ssp_lon': self._mda["orbital_parameters"]["satellite_nominal_longitude"],
-            "a": nav.EARTH_EQUATORIAL_RADIUS,
-            "b": nav.EARTH_POLAR_RADIUS,
-            'h': self._mda["orbital_parameters"]["satellite_nominal_altitude"],
-            'nlines': uniform_size,
-            'ncols': uniform_size,
-            'lfac': uniform_sampling_angle,
-            'cfac': uniform_sampling_angle,
-            'coff': uniform_line_pixel_offset,
-            'loff': uniform_line_pixel_offset,
-            'scandir': 'N2S'
-        }
-        extent = geos_area.get_area_extent(proj_dict)
-        area = geos_area.get_area_definition(proj_dict, extent)
-        return area
+        a = AreaDefEstimator(
+            coord_conv_params=self._header['image_parameters']['coordinate_conversion'],
+            metadata=self._mda
+        )
+        return a.get_area_def_uniform_sampling(
+            original_shape=self._get_actual_shape(),
+            dataset_id=dataset_id
+        )
 
     def _mask_space_pixels(self, dataset, space_masker):
         if self._mask_space:
@@ -937,3 +912,65 @@ def get_earth_mask(shape, earth_edges, fill_value=-1):
 
 def is_vis_channel(channel_name):
     return channel_name == "VIS"
+
+
+class AreaDefEstimator:
+    def __init__(self, coord_conv_params, metadata):
+        self.coord_conv = coord_conv_params
+        self.metadata = metadata
+
+    def get_area_def_uniform_sampling(self, original_shape, dataset_id):
+        """Get area definition with uniform sampling."""
+        proj_dict = self._get_proj_dict(dataset_id, original_shape)
+        extent = geos_area.get_area_extent(proj_dict)
+        return geos_area.get_area_definition(proj_dict, extent)
+
+    def _get_proj_dict(self, dataset_id, original_shape):
+        proj_dict = {}
+        proj_dict.update(self._get_name_dict(dataset_id))
+        proj_dict.update(self._get_proj4_dict())
+        proj_dict.update(self._get_shape_dict(original_shape, dataset_id))
+        return proj_dict
+
+    def _get_name_dict(self, dataset_id):
+        name_dict = geos_area.get_geos_area_naming({
+            'platform_name': self.metadata['platform'],
+            'instrument_name': self.metadata['sensor'],
+            'service_name': 'western-pacific',
+            'service_desc': 'Western Pacific',
+            'resolution': dataset_id['resolution']
+        })
+        return {
+            "a_name": name_dict["area_id"],
+            "p_id": name_dict["area_id"],
+            "a_desc": name_dict["description"]
+        }
+
+    def _get_proj4_dict(self, ):
+        # Use nominal parameters to make the area def as constant as possible
+        return {
+            'ssp_lon': self.metadata["orbital_parameters"]["satellite_nominal_longitude"],
+            "a": nav.EARTH_EQUATORIAL_RADIUS,
+            "b": nav.EARTH_POLAR_RADIUS,
+            'h': self.metadata["orbital_parameters"]["satellite_nominal_altitude"],
+        }
+
+    def _get_shape_dict(self, original_shape, dataset_id):
+        # Apply parameters from the vertical dimension (num lines, stepping
+        # angle) to the horizontal dimension to obtain a square area definition
+        # with uniform sampling.
+        num_lines, _ = original_shape
+        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id["name"]]
+        stepping_angle = self.coord_conv['stepping_angle_along_line'][alt_ch_name]
+        uniform_size = num_lines
+        uniform_line_pixel_offset = 0.5 * num_lines
+        uniform_sampling_angle = geos_area.sampling_to_lfac_cfac(stepping_angle)
+        return {
+            'nlines': uniform_size,
+            'ncols': uniform_size,
+            'lfac': uniform_sampling_angle,
+            'cfac': uniform_sampling_angle,
+            'coff': uniform_line_pixel_offset,
+            'loff': uniform_line_pixel_offset,
+            'scandir': 'N2S'
+        }
