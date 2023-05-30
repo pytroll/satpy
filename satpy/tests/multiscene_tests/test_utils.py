@@ -62,42 +62,40 @@ def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):
 
 def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
     """Create a test area definition."""
-    from pyresample.utils import proj4_str_to_dict
     if proj_str is None:
         proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. ' \
                    '+lat_0=25 +lat_1=25 +units=m +no_defs'
-    proj_dict = proj4_str_to_dict(proj_str)
     extents = extents or (-1000., -1500., 1000., 1500.)
 
     return AreaDefinition(
         'test',
         'test',
         'test',
-        proj_dict,
+        proj_str,
         shape[1],
         shape[0],
         extents
     )
 
 
-def _create_test_int8_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None):
+def _create_test_int8_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None, dims=("y", "x")):
     """Create a test DataArray object."""
     return xr.DataArray(
-        da.ones(shape, dtype=np.uint8, chunks=shape) * values, dims=('y', 'x'),
+        da.ones(shape, dtype=np.uint8, chunks=shape) * values, dims=dims,
         attrs={'_FillValue': 255,
                'valid_range': [1, 15],
                'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
 
-def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None):
+def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None, dims=("y", "x")):
     """Create a test DataArray object."""
     if values:
         return xr.DataArray(
-            da.ones(shape, dtype=np.float32, chunks=shape) * values, dims=('y', 'x'),
+            da.ones(shape, dtype=np.float32, chunks=shape) * values, dims=dims,
             attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
     return xr.DataArray(
-        da.zeros(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
+        da.zeros(shape, dtype=np.float32, chunks=shape), dims=dims,
         attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
 

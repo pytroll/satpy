@@ -34,10 +34,12 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE, config
+from satpy import config
 from satpy.readers import FSFile
+from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def np2str(value):
@@ -47,7 +49,7 @@ def np2str(value):
         value (ndarray): scalar or 1-element numpy array to convert
 
     Raises:
-        ValueError: if value is array larger than 1-element or it is not of
+        ValueError: if value is array larger than 1-element, or it is not of
                     type `numpy.string_` or it is not a numpy array
 
     """
@@ -389,9 +391,10 @@ def get_earth_radius(lon, lat, a, b):
         Earth Radius (meters)
 
     """
-    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
-    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    geocent = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b, "units": "m"})
+    latlong = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b, "units": "m"})
+    transformer = pyproj.Transformer.from_crs(latlong, geocent)
+    x, y, z = transformer.transform(lon, lat, 0.0)
     return np.sqrt(x**2 + y**2 + z**2)
 
 

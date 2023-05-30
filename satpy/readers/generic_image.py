@@ -35,8 +35,10 @@ import rasterio
 import xarray as xr
 from pyresample import utils
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 BANDS = {1: ['L'],
          2: ['L', 'A'],

@@ -36,7 +36,8 @@ def _get_test_datasets_2d():
         da.zeros((100, 200), chunks=50),
         dims=('y', 'x'),
         attrs={'name': 'test',
-               'start_time': datetime.utcnow()}
+               'start_time': datetime.utcnow(),
+               "units": "K"}
     )
     return [ds1]
 
@@ -212,3 +213,17 @@ class TestGeoTIFFWriter:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]['tiled']
+
+    def test_float_write_with_unit_conversion(self, tmp_path):
+        """Test that geotiffs can be written as floats and convert units."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        dataset = _get_test_datasets_2d()[0]
+        dtype = np.float32
+        w = GeoTIFFWriter(base_dir=tmp_path,
+                          enhance=False,
+                          dtype=dtype)
+        filename = tmp_path / "data_in_C.tif"
+        w.save_dataset(dataset, filename=filename, units="degC")
+        ds = xr.open_dataset(filename, engine="rasterio")
+        assert ds["band_data"].dtype == dtype
+        np.testing.assert_allclose(ds["band_data"], -273.15)

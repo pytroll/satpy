@@ -50,7 +50,7 @@ class TestMultiSceneSave(unittest.TestCase):
         except OSError:
             pass
 
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    @mock.patch('satpy.multiscene._multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_mp4_distributed(self):
         """Save a series of fake scenes to an mp4 video."""
         from satpy import MultiScene
@@ -76,7 +76,7 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock = mock.MagicMock()
         client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
         client_mock.gather.side_effect = lambda x: x
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+        with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer:
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
             mscn.save_animation(fn, client=client_mock, datasets=['ds1', 'ds2', 'ds3'])
@@ -98,8 +98,8 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock = mock.MagicMock()
         client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
         client_mock.gather.side_effect = lambda x: x
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer, \
-                mock.patch('satpy.multiscene.get_client', mock.Mock(side_effect=ValueError("No client"))):
+        with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer, \
+                mock.patch('satpy.multiscene._multiscene.get_client', mock.Mock(side_effect=ValueError("No client"))):
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
             mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
@@ -112,7 +112,7 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertEqual(filenames[1], 'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
         self.assertEqual(filenames[2], 'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
 
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    @mock.patch('satpy.multiscene._multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_mp4_no_distributed(self):
         """Save a series of fake scenes to an mp4 video when distributed isn't available."""
         from satpy import MultiScene
@@ -138,8 +138,8 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock = mock.MagicMock()
         client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
         client_mock.gather.side_effect = lambda x: x
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer, \
-                mock.patch('satpy.multiscene.get_client', None):
+        with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer, \
+                mock.patch('satpy.multiscene._multiscene.get_client', None):
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
             mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
@@ -152,7 +152,7 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertEqual(filenames[1], 'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
         self.assertEqual(filenames[2], 'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
 
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    @mock.patch('satpy.multiscene._multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_datasets_simple(self):
         """Save a series of fake scenes to an PNG images."""
         from satpy import MultiScene
@@ -174,7 +174,7 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock = mock.MagicMock()
         client_mock.compute.side_effect = lambda x: tuple(v for v in x)
         client_mock.gather.side_effect = lambda x: x
-        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+        with mock.patch('satpy.multiscene._multiscene.Scene.save_datasets') as save_datasets:
             save_datasets.return_value = [True]  # some arbitrary return value
             # force order of datasets by specifying them
             mscn.save_datasets(base_dir=self.base_dir, client=False, datasets=['ds1', 'ds2', 'ds3'],
@@ -183,7 +183,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         self.assertEqual(save_datasets.call_count, 2)
 
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    @mock.patch('satpy.multiscene._multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_datasets_distributed_delayed(self):
         """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
         from dask.delayed import Delayed
@@ -209,7 +209,7 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock.gather.side_effect = lambda x: x
         future_mock = mock.MagicMock()
         future_mock.__class__ = Delayed
-        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+        with mock.patch('satpy.multiscene._multiscene.Scene.save_datasets') as save_datasets:
             save_datasets.return_value = [future_mock]  # some arbitrary return value
             # force order of datasets by specifying them
             mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=['ds1', 'ds2', 'ds3'],
@@ -218,7 +218,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         self.assertEqual(save_datasets.call_count, 2)
 
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    @mock.patch('satpy.multiscene._multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_datasets_distributed_source_target(self):
         """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
         import dask.array as da
@@ -245,7 +245,7 @@ class TestMultiSceneSave(unittest.TestCase):
         source_mock = mock.MagicMock()
         source_mock.__class__ = da.Array
         target_mock = mock.MagicMock()
-        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+        with mock.patch('satpy.multiscene._multiscene.Scene.save_datasets') as save_datasets:
             save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
             # force order of datasets by specifying them
             with self.assertRaises(NotImplementedError):
@@ -299,7 +299,7 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
 
 
-@mock.patch('satpy.multiscene.get_enhanced_image')
+@mock.patch('satpy.multiscene._multiscene.get_enhanced_image')
 def test_save_mp4(smg, tmp_path):
     """Save a series of fake scenes to an mp4 video."""
     from satpy import MultiScene
@@ -322,7 +322,7 @@ def test_save_mp4(smg, tmp_path):
     fn = str(tmp_path /
              'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
     writer_mock = mock.MagicMock()
-    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+    with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer:
         get_writer.return_value = writer_mock
         # force order of datasets by specifying them
         mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'], client=False)
@@ -339,7 +339,7 @@ def test_save_mp4(smg, tmp_path):
     fn = str(tmp_path /
              'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
     writer_mock = mock.MagicMock()
-    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+    with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer:
         get_writer.return_value = writer_mock
         # force order of datasets by specifying them
         mscn.save_animation(fn, client=False)
@@ -355,7 +355,7 @@ def test_save_mp4(smg, tmp_path):
     fn = str(tmp_path /
              'test-{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}-rich.mp4')
     writer_mock = mock.MagicMock()
-    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+    with mock.patch('satpy.multiscene._multiscene.imageio.get_writer') as get_writer:
         get_writer.return_value = writer_mock
         mscn.save_animation(
             fn, client=False,
