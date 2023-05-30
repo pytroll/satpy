@@ -494,7 +494,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     @property
     def _repeat_cycle_duration(self):
-        """Get repeacyckle duration from epilogue."""
+        """Get repeat cycle duration from epilogue."""
         if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
             return 5
         return REPEAT_CYCLE_DURATION
