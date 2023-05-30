@@ -515,13 +515,13 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     @property
     def observation_start_time(self):
-        """Get the start time."""
+        """Get the observation start time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
     def observation_end_time(self):
-        """Get the end time."""
+        """Get the observation end time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
