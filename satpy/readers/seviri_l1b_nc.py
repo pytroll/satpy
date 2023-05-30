@@ -84,12 +84,12 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     @property
     def observation_start_time(self):
-        """Read the repeat cycle sensing start time from metadata."""
+        """Get the repeat cycle observation start time from metadata."""
         return self.deltaSt
 
     @property
     def observation_end_time(self):
-        """Read the repeat cycle sensing end time from metadata."""
+        """Get the repeat cycle observation end time from metadata."""
         return self.deltaEnd
 
     @property
