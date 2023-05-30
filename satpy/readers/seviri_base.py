@@ -166,7 +166,7 @@ References:
 """
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -984,7 +984,7 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     return data
 
 
-def round_nom_time(dt=None, time_delta=None):
+def round_nom_time(dt, time_delta):
     """Round a datetime object to a multiple of a timedelta.
 
     dt : datetime.datetime object, default now.
@@ -992,11 +992,7 @@ def round_nom_time(dt=None, time_delta=None):
     adapted for SEVIRI from:
         http://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
     """
-    if dt is None:
-        dt = datetime.now()
     seconds = (dt - dt.min).seconds
-    if time_delta is None:
-        time_delta = timedelta(minutes=1)
     round_to = time_delta.total_seconds()
 
     rounding = (seconds + round_to / 2) // round_to * round_to
