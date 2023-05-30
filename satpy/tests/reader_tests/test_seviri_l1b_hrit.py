@@ -46,7 +46,6 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing HRV."""
-        # self.observation_start_time = datetime(2016, 3, 3, 0, 0)
         self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.reader = setup.get_fake_file_handler(
@@ -145,7 +144,6 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        # self.observation_start_time = datetime(2016, 3, 3, 0, 0)
         self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.ncols = 3712
