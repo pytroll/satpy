@@ -563,6 +563,14 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     """File handler for GMS-5 VISSR data in VISSR archive format."""
 
     def __init__(self, filename, filename_info, filetype_info, mask_space=True):
+        """Initialize the file handler.
+
+        Args:
+            filename: Name of file to be read
+            filename_info: Information obtained from filename
+            filetype_info: Information about file type
+            mask_space: Mask space pixels.
+        """
         super(GMS5VISSRFileHandler, self).__init__(
             filename, filename_info, filetype_info
         )
@@ -922,6 +930,11 @@ class Calibrator:
     """
 
     def __init__(self, calib_table):
+        """Initialize the calibrator.
+
+        Args:
+            calib_table: Calibration table
+        """
         self._calib_table = calib_table
 
     def calibrate(self, counts, calibration):
@@ -953,6 +966,12 @@ class SpaceMasker:
     _fill_value = -1  # scanline not intersecting the earth
 
     def __init__(self, image_data, channel):
+        """Initialize the space masker.
+
+        Args:
+            image_data: Image data
+            channel: Channel name
+        """
         self._image_data = image_data
         self._channel = channel
         self._shape = image_data["image_data"].shape
@@ -1002,7 +1021,7 @@ def get_earth_mask(shape, earth_edges, fill_value=-1):
         last = last_earth_pixels[line]
         if first == fill_value or last == fill_value:
             continue
-        mask[line, first : last + 1] = 1
+        mask[line, first:last+1] = 1
     return mask
 
 
@@ -1015,6 +1034,12 @@ class AreaDefEstimator:
     """Estimate area definition for VISSR images."""
 
     def __init__(self, coord_conv_params, metadata):
+        """Initialize the area definition estimator.
+
+        Args:
+            coord_conv_params: Coordinate conversion parameters
+            metadata: VISSR file metadata
+        """
         self.coord_conv = coord_conv_params
         self.metadata = metadata
 

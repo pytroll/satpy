@@ -1,6 +1,5 @@
 """GMS-5 VISSR Navigation.
 
-
 Reference: `GMS User Guide`_, Appendix E, S-VISSR Mapping.
 
 .. _GMS User Guide:
@@ -92,7 +91,7 @@ _OrbitPrediction = namedtuple(
 )
 
 
-class AttitudePrediction(object):
+class AttitudePrediction:
     """Attitude prediction.
 
     Use .to_numba() to pass this object to jitted methods. This extra
@@ -107,9 +106,20 @@ class AttitudePrediction(object):
         angle_between_sat_spin_and_z_axis,
         angle_between_sat_spin_and_yz_plane,
     ):
-        # In order to accelerate interpolation, the 2-pi periodicity of angles
-        # is unwrapped here already (that means phase jumps greater than pi
-        # are wrapped to their 2*pi complement).
+        """Initialize attitude prediction.
+
+        In order to accelerate interpolation, the 2-pi periodicity of angles
+        is unwrapped here already (that means phase jumps greater than pi
+        are wrapped to their 2*pi complement).
+
+        Args:
+            prediction_times: Timestamps of predicted attitudes
+            angle_between_earth_and_sun: Angle between earth and sun
+            angle_between_sat_spin_and_z_axis: Angle between satellite's
+                spin-axis and the z-axis of the coordinate system
+            angle_between_sat_spin_and_yz_plane: Angle between satellite's
+                spin-axis and the yz-plane of the coordinate system
+        """
         self.prediction_times = prediction_times
         self.angle_between_earth_and_sun = np.unwrap(angle_between_earth_and_sun)
         self.angle_between_sat_spin_and_z_axis = np.unwrap(
@@ -129,7 +139,7 @@ class AttitudePrediction(object):
         )
 
 
-class OrbitPrediction(object):
+class OrbitPrediction:
     """Orbit prediction.
 
     Use .to_numba() to pass this object to jitted methods. This extra
@@ -148,9 +158,26 @@ class OrbitPrediction(object):
         sat_position_earth_fixed_z,
         nutation_precession,
     ):
-        # In order to accelerate interpolation, the 2-pi periodicity of angles
-        # is unwrapped here already (that means phase jumps greater than pi
-        # are wrapped to their 2*pi complement).
+        """Initialize orbit prediction.
+
+        In order to accelerate interpolation, the 2-pi periodicity of angles
+        is unwrapped here already (that means phase jumps greater than pi
+        are wrapped to their 2*pi complement).
+
+        Args:
+            prediction_times: Timestamps of orbit prediction.
+            greenwich_sidereal_time: Greenwich sidereal time
+            declination_from_sat_to_sun: Declination from satellite to sun
+            right_ascension_from_sat_to_sun: Right ascension from satellite to
+                sun
+            sat_position_earth_fixed_x: Satellite position in earth fixed
+                coordinates (x-component)
+            sat_position_earth_fixed_y: Satellite position in earth fixed
+                coordinates (y-component)
+            sat_position_earth_fixed_z: Satellite position in earth fixed
+                coordinates (z-component)
+            nutation_precession: Nutation and precession matrix.
+        """
         self.prediction_times = prediction_times
         self.greenwich_sidereal_time = np.unwrap(greenwich_sidereal_time)
         self.declination_from_sat_to_sun = np.unwrap(declination_from_sat_to_sun)
@@ -177,6 +204,14 @@ class OrbitPrediction(object):
 
 
 def get_lons_lats(lines, pixels, static_params, predicted_params):
+    """Compute lon/lat coordinates given VISSR image coordinates.
+
+    Args:
+        lines: VISSR image lines
+        pixels: VISSR image pixels
+        static_params: Static navigation parameters
+        predicted_params: Predicted time-dependent navigation parameters
+    """
     pixels_2d, lines_2d = da.meshgrid(pixels, lines)
     lons, lats = da.map_blocks(
         _get_lons_lats_numba,
@@ -256,6 +291,7 @@ def _get_relative_observation_time(point, scan_params):
 def interpolate_navigation_prediction(
     attitude_prediction, orbit_prediction, observation_time
 ):
+    """Interpolate predicted navigation parameters."""
     attitude = interpolate_attitude_prediction(attitude_prediction, observation_time)
     orbit = interpolate_orbit_prediction(orbit_prediction, observation_time)
     return attitude, orbit
@@ -559,6 +595,7 @@ def normalize_vector(v):
 
 @numba.njit
 def interpolate_orbit_prediction(orbit_prediction, observation_time):
+    """Interpolate orbit prediction."""
     greenwich_sidereal_time = interpolate_angles(
         observation_time,
         orbit_prediction.prediction_times,
@@ -607,6 +644,7 @@ def interpolate_orbit_prediction(orbit_prediction, observation_time):
 
 @numba.njit
 def interpolate_attitude_prediction(attitude_prediction, observation_time):
+    """Interpolate attitude prediction."""
     angle_between_earth_and_sun = interpolate_angles(
         observation_time,
         attitude_prediction.prediction_times,
@@ -638,7 +676,7 @@ def interpolate_continuous(x, x_sample, y_sample):
     """
     try:
         return _interpolate(x, x_sample, y_sample)
-    except:
+    except Exception:
         # Numba cannot distinguish exception types
         return np.nan
 
@@ -688,7 +726,7 @@ def interpolate_nearest(x, x_sample, y_sample):
     """Nearest neighbour interpolation."""
     try:
         return _interpolate_nearest(x, x_sample, y_sample)
-    except:
+    except Exception:
         return np.nan * np.ones_like(y_sample[0])
 
 
@@ -696,11 +734,3 @@ def interpolate_nearest(x, x_sample, y_sample):
 def _interpolate_nearest(x, x_sample, y_sample):
     i = _find_enclosing_index(x, x_sample)
     return y_sample[i]
-
-
-# TODO
-"""
-- Code formatting
-- Finish Documentation
-- Call find_enclosing_index only once for all predictions
-"""
