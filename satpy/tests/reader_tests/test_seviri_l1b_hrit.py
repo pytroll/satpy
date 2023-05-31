@@ -434,7 +434,6 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             fh.mda = mda
             fh.prologue = prolog
             fh.epilogue = epilog
-            fh.tres = 15
             return fh
 
     @pytest.mark.parametrize(
