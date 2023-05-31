@@ -60,6 +60,30 @@ This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT reader
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
 
+Nominal start/end time
+----------------------
+
+.. warning:: attribute access change
+
+``nominal_start_time`` and ``nominal_end_time`` should be accessed using the ``time_parameters`` attribute.
+
+``nominal_start_time`` and ``nominal_end_time`` are also available directly
+via ``start_time`` and ``end_time`` respectively.
+
+Here is an exmaple of the content of the start/end time and ``time_parameters`` attibutes
+
+.. code-block:: python
+
+    Start time: 2019-08-29 12:00:00
+    End time:   2019-08-29 12:15:00
+    time_parameters:
+                    {'nominal_start_time': datetime.datetime(2019, 8, 29, 12, 0),
+                     'nominal_end_time': datetime.datetime(2019, 8, 29, 12, 15),
+                     'observation_start_time': datetime.datetime(2019, 8, 29, 12, 0, 9, 338000),
+                     'observation_end_time': datetime.datetime(2019, 8, 29, 12, 15, 9, 203000)
+                     }
+
+
 Example
 -------
 Here is an example how to read the data in satpy:
