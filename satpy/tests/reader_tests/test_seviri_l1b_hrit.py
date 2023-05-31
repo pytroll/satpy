@@ -226,6 +226,19 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             res.attrs,
             setup.get_attrs_exp(self.projection_longitude)
         )
+        # testing start/end time
+        self.assertEqual(datetime(2006, 1, 1, 12, 15, 9, 304888), self.reader.observation_start_time)
+        self.assertEqual(datetime(2006, 1, 1, 12, 15,), self.reader.start_time)
+        self.assertEqual(self.reader.start_time, self.reader.nominal_start_time)
+
+        self.assertEqual(datetime(2006, 1, 1, 12, 27, 39), self.reader.observation_end_time)
+        self.assertEqual(self.reader.end_time, self.reader.nominal_end_time)
+        self.assertEqual(datetime(2006, 1, 1, 12, 30,), self.reader.end_time)
+        # test repeat cycle duration
+        self.assertEqual(15, self.reader._repeat_cycle_duration)
+        # Change the reducescan scenario to test the repeat cycle duration handling
+        self.reader.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] = 1
+        self.assertEqual(5, self.reader._repeat_cycle_duration)
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
