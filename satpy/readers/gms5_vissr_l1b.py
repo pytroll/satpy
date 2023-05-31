@@ -596,7 +596,10 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             return VIS_CHANNEL
         elif parameter_block_size == 16:
             return IR_CHANNEL
-        raise ValueError("Cannot determine channel type: Unknown parameter block size.")
+        raise ValueError(
+            f"Cannot determine channel type, possibly corrupt file "
+            f"(unknown parameter block size: {parameter_block_size})"
+        )
 
     def _read_control_block(self, file_obj):
         ctrl_block = read_from_file_obj(file_obj, dtype=CONTROL_BLOCK, count=1)

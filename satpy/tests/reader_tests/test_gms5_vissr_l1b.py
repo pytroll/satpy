@@ -1767,11 +1767,10 @@ class TestFileHandler:
 
     def test_time_attributes(self, file_handler, attrs_exp):
         """Test the file handler's time attributes."""
-        assert (
-            file_handler.start_time
-            == attrs_exp["time_parameters"]["nominal_start_time"]
-        )
-        assert file_handler.end_time == attrs_exp["time_parameters"]["nominal_end_time"]
+        start_time_exp = attrs_exp["time_parameters"]["nominal_start_time"]
+        end_time_exp = attrs_exp["time_parameters"]["nominal_end_time"]
+        assert file_handler.start_time == start_time_exp
+        assert file_handler.end_time == end_time_exp
 
     def _assert_attrs_equal(self, attrs_tst, attrs_exp):
         area_tst = attrs_tst.pop("area_def_uniform_sampling")
@@ -1786,10 +1785,44 @@ class TestFileHandler:
         np.testing.assert_allclose(lats_tst, lats_exp)
 
 
+class TestCorruptFile:
+    """Test reading corrupt files."""
+
+    @pytest.fixture
+    def file_contents(self):
+        """Get corrupt file contents (all zero)."""
+        control_block = np.zeros(1, dtype=vissr.CONTROL_BLOCK)
+        image_data = np.zeros(1, dtype=vissr.IMAGE_DATA_BLOCK_IR)
+        return {
+            "control_block": control_block,
+            "image_parameters": {},
+            "image_data": image_data,
+        }
+
+    @pytest.fixture
+    def corrupt_file(self, file_contents, tmp_path):
+        """Write corrupt VISSR file to disk."""
+        filename = tmp_path / "my_vissr_file"
+        writer = VissrFileWriter(ch_type="VIS", open_function=open)
+        writer.write(filename, file_contents)
+        return filename
+
+    def test_corrupt_file(self, corrupt_file):
+        """Test reading a corrupt file."""
+        with pytest.raises(ValueError, match=r'.* corrupt .*'):
+            vissr.GMS5VISSRFileHandler(corrupt_file, {}, {})
+
+
 class VissrFileWriter:
     """Write data in VISSR archive format."""
 
     def __init__(self, ch_type, open_function):
+        """Initialize the writer.
+
+        Args:
+            ch_type: Channel type (VIS or IR)
+            open_function: Open function to be used (e.g. open or gzip.open)
+        """
         self.ch_type = ch_type
         self.open_function = open_function
 
