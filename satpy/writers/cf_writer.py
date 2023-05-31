@@ -215,7 +215,7 @@ CF_VERSION = 'CF-1.7'
 
 
 def get_extra_ds(dataarray, keys=None):
-    """Get the extra datasets associated to *dataset*."""
+    """Get the ancillary_variables DataArrays associated to a dataset."""
     ds_collection = {}
     # Retrieve ancillary variable datarrays
     for ancillary_dataarray in dataarray.attrs.get('ancillary_variables', []):
