@@ -767,14 +767,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
-        res.attrs['nominal_start_time'] = """
-        Deprecation warning: nominal_start_time should be accessed via the time_parameters attrs
-        nominal_start_time is also available directly via start_time
-        """
-        res.attrs['nominal_end_time'] = """
-        deprecation warning: nominal_end_time should be accessed via the time_parameters attrs
-        nominal_end_time is also available directly via end_time
-        """
+        res.attrs['nominal_start_time'] = self.nominal_start_time,
+        res.attrs['nominal_end_time'] = self.nominal_end_time,
         res.attrs['time_parameters'] = {
             'nominal_start_time': self.nominal_start_time,
             'nominal_end_time': self.nominal_end_time,
