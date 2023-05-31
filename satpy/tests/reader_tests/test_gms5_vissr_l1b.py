@@ -1,18 +1,18 @@
 """Unit tests for GMS-5 VISSR reader."""
 
-import gzip
 import datetime as dt
+import gzip
 
+import fsspec
 import numpy as np
 import pytest
 import xarray as xr
-
 from pyresample.geometry import AreaDefinition
+
 import satpy.readers.gms5_vissr_l1b as vissr
 import satpy.readers.gms5_vissr_navigation as nav
-from satpy.tests.utils import make_dataid
 from satpy.readers import FSFile
-import fsspec
+from satpy.tests.utils import make_dataid
 
 # Navigation references computed with JMA's Msial library (files
 # VISSR_19960217_2331_IR1.A.IMG and VISSR_19960217_2331_VIS.A.IMG). The VIS

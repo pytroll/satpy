@@ -12,6 +12,7 @@ from collections import namedtuple
 import dask.array as da
 import numba
 import numpy as np
+
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()

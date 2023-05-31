@@ -136,18 +136,19 @@ see :ref:`dataset_metadata`.
 
 """
 
+import datetime as dt
+
 import dask.array as da
+import numba
 import numpy as np
 import xarray as xr
-import numba
-import datetime as dt
 
 import satpy.readers._geos_area as geos_area
 import satpy.readers.gms5_vissr_navigation as nav
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_jma import mjd2datetime64
-from satpy.utils import get_legacy_chunk_size
 from satpy.readers.utils import generic_open
+from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
