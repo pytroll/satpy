@@ -1060,7 +1060,7 @@ class RatioSharpenedRGB(GenericCompositor):
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
         self.high_resolution_color = kwargs.pop("high_resolution_band", "red")
-        self.neutral_resolution_color = kwargs.pop("neutral_resolution_band", "red")
+        self.neutral_resolution_color = kwargs.pop("neutral_resolution_band", None)
         if self.high_resolution_color not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
@@ -1103,15 +1103,12 @@ class RatioSharpenedRGB(GenericCompositor):
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            colors = ['red', 'green', 'blue']
+            colors = ['red', 'green', 'blue', None]
             low_resolution_index = colors.index(self.high_resolution_color)
             high_resolution_index = low_resolution_index
-            if self.neutral_resolution_color is not None:
-                neutral_resolution_index = colors.index(self.neutral_resolution_color)
-                neutral_res = datasets[neutral_resolution_index]
-            else:
-                neutral_res = None
-                neutral_resolution_index = 0
+            neutral_resolution_index = colors.index(self.neutral_resolution_color)
+            neutral_res = datasets[neutral_resolution_index] if neutral_resolution_index is not None else None
+
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
