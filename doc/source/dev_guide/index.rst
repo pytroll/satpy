@@ -125,7 +125,7 @@ Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. For building the documentation,
 additional packages are needed. These can be installed with ::
 
-    pip install -e ".[all]".
+    pip install -e ".[all]"
 
 After editing the source files there the documentation can be generated locally::
 
