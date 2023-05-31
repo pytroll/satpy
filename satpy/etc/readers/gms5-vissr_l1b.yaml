@@ -8,6 +8,8 @@ reader:
     - https://www.data.jma.go.jp/mscweb/en/operation/fig/VISSR_FORMAT_GMS-5.pdf
     - https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
 
+  status: Alpha
+  supports_fsspec: true
   sensors: [gms5-vissr]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

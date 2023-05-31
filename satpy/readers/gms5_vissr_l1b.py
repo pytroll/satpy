@@ -2,7 +2,46 @@
 
 Introduction
 ------------
-TODO
+The ``gms5_vissr_l1b`` reader can decode, navigate and calibrate Level 1B data
+from the Visible and Infrared Spin Scan Radiometer (VISSR) in `VISSR
+archive format`. Corresponding platforms are GMS-5 (Japanese Geostationary
+Meteorological Satellite) and GOES-09 (2003-2006 backup after MTSAT-1 launch
+failure).
+
+VISSR has four channels, each stored in a separate file:
+
+.. code-block:: none
+
+    VISSR_20020101_0031_IR1.A.IMG
+    VISSR_20020101_0031_IR2.A.IMG
+    VISSR_20020101_0031_IR3.A.IMG
+    VISSR_20020101_0031_VIS.A.IMG
+
+This is how to read them with Satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob(""/data/VISSR*")
+    scene = Scene(filenames, reader="gms5-vissr_l1b")
+    scene.load(["VIS", "IR1"])
+
+
+References
+~~~~~~~~~~
+
+Details about platform, instrument and data format can be found in the
+following references:
+
+    - `VISSR Format Description`_
+    - `GMS User Guide`_
+
+.. _VISSR Format Description:
+    https://www.data.jma.go.jp/mscweb/en/operation/fig/VISSR_FORMAT_GMS-5.pdf
+.. _GMS User Guide:
+    https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
 
 
 Compression
@@ -28,7 +67,8 @@ Calibration
 -----------
 
 Sensor counts are calibrated by looking up reflectance/temperature values in the
-calibration tables included in each file.
+calibration tables included in each file. See section 2.2 in the VISSR user
+guide.
 
 
 Navigation
@@ -46,7 +86,8 @@ the ground.
 
 This cannot be represented by a pyresample area definition, so each dataset
 is accompanied by 2-dimensional longitude and latitude coordinates. For
-resampling purpose an area definition with uniform sampling is provided via
+resampling purpose a square area definition with uniform sampling is provided
+via
 
 .. code-block:: python
 
@@ -62,14 +103,18 @@ VISSR images are not rectified. That means lon/lat coordinates are different
    is identical (IR channels)
 2) for different repeat cycles, even if the channel is identical
 
+However, the above area definition is using the nominal subsatellite point as
+projection center. As this rarely changes, the area definition is pretty
+constant.
+
 
 Space Pixels
 ------------
 
-VISSR produces data for pixels outside the Earth disk (i,e: atmospheric limb or
+VISSR produces data for pixels outside the Earth disk (i.e. atmospheric limb or
 deep space pixels). By default, these pixels are masked out as they contain
 data of limited or no value, but some applications do require these pixels.
-To turn off masking, set ``mask_space=False`` upon scene creation::
+To turn off masking, set ``mask_space=False`` upon scene creation:
 
 .. code-block:: python
 
@@ -80,20 +125,15 @@ To turn off masking, set ``mask_space=False`` upon scene creation::
     scene = satpy.Scene(filenames,
                         reader="gms5-vissr_l1b",
                         reader_kwargs={"mask_space": False})
-    scene.load(["VIS"])
+    scene.load(["VIS", "IR1])
 
 
+Metadata
+--------
 
-References
-----------
+Dataset attributes include metadata such as time or orbital parameters,
+see :ref:`dataset_metadata`.
 
-    - [FMT]: `VISSR Format Description`_
-    - [UG]: `GMS User Guide`_
-
-.. _VISSR Format Description:
-    https://www.data.jma.go.jp/mscweb/en/operation/fig/VISSR_FORMAT_GMS-5.pdf
-.. _GMS User Guide:
-    https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
 """
 
 import dask.array as da
@@ -507,7 +547,7 @@ IMAGE_DATA = {
 # fmt: on
 
 
-def recarr2dict(arr, preserve=None):
+def _recarr2dict(arr, preserve=None):
     if not preserve:
         preserve = []
     res = {}
@@ -516,7 +556,7 @@ def recarr2dict(arr, preserve=None):
             continue
         if value.dtype.names and key not in preserve:
             # Nested record array
-            res[key] = recarr2dict(value)
+            res[key] = _recarr2dict(value)
         else:
             # Scalar or record array that shall be preserved
             res[key] = value
@@ -524,6 +564,8 @@ def recarr2dict(arr, preserve=None):
 
 
 class GMS5VISSRFileHandler(BaseFileHandler):
+    """File handler for GMS-5 VISSR data in VISSR archive format."""
+
     def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         super(GMS5VISSRFileHandler, self).__init__(filename, filename_info, filetype_info)
         self._filename = filename
@@ -554,7 +596,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             dtype=CONTROL_BLOCK,
             count=1
         )
-        return recarr2dict(ctrl_block[0])
+        return _recarr2dict(ctrl_block[0])
 
     def _read_image_params(self, file_obj, channel_type):
         """Read image parameters from the header."""
@@ -577,7 +619,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             count=1,
             offset=param['offset'][channel_type]
         )
-        return recarr2dict(image_params[0], preserve=param.get('preserve'))
+        return _recarr2dict(image_params[0], preserve=param.get('preserve'))
 
     @staticmethod
     def _concat_orbit_prediction(orb_pred_1, orb_pred_2):
@@ -642,6 +684,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get dataset from file."""
         image_data = self._get_image_data()
         counts = self._get_counts(image_data)
         dataset = self._calibrate(counts, dataset_id)
@@ -815,24 +858,39 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Nominal start time of the dataset."""
         return self._mda["time_parameters"]["nominal_start_time"]
 
     @property
     def end_time(self):
+        """Nominal end time of the dataset."""
         return self._mda["time_parameters"]["nominal_end_time"]
 
 
 def read_from_file_obj(file_obj, dtype, count, offset=0):
+    """Read data from file object.
+
+    Args:
+        file_obj: An open file object.
+        dtype: Data type to be read.
+        count: Number of elements to be read.
+        offset: Byte offset where to start reading.
+    """
     file_obj.seek(offset)
     data = file_obj.read(dtype.itemsize * count)
     return np.frombuffer(data, dtype=dtype, count=count)
 
 
 class Calibrator:
+    """Calibrate VISSR data to reflectance or brightness temperature.
+
+    Reference: Section 2.2 in the VISSR User Guide.
+    """
     def __init__(self, calib_table):
         self._calib_table = calib_table
 
     def calibrate(self, counts, calibration):
+        """Transform counts to given calibration level."""
         if calibration == "counts":
             return counts
         res = da.map_blocks(
@@ -855,6 +913,8 @@ class Calibrator:
 
 
 class SpaceMasker:
+    """Mask pixels outside the earth disk."""
+
     _fill_value = -1  # scanline not intersecting the earth
 
     def __init__(self, image_data, channel):
@@ -864,6 +924,7 @@ class SpaceMasker:
         self._earth_mask = self._get_earth_mask()
 
     def mask_space(self, dataset):
+        """Mask space pixels in the given dataset."""
         return dataset.where(self._earth_mask).astype(np.float32)
 
     def _get_earth_mask(self):
@@ -911,16 +972,24 @@ def get_earth_mask(shape, earth_edges, fill_value=-1):
 
 
 def is_vis_channel(channel_name):
+    """Check if it's the visible channel."""
     return channel_name == "VIS"
 
 
 class AreaDefEstimator:
+    """Estimate area definition for VISSR images."""
+
     def __init__(self, coord_conv_params, metadata):
         self.coord_conv = coord_conv_params
         self.metadata = metadata
 
     def get_area_def_uniform_sampling(self, original_shape, dataset_id):
-        """Get area definition with uniform sampling."""
+        """Get square area definition with uniform sampling.
+
+        Args:
+            original_shape: Shape of the oversampled VISSR image.
+            dataset_id: ID of the corresponding dataset.
+        """
         proj_dict = self._get_proj_dict(dataset_id, original_shape)
         extent = geos_area.get_area_extent(proj_dict)
         return geos_area.get_area_definition(proj_dict, extent)

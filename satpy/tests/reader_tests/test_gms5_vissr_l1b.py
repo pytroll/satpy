@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from pyresample.geometry import AreaDefinition
 import satpy.readers.gms5_vissr_l1b as vissr
 import satpy.readers.gms5_vissr_navigation as nav
 from satpy.tests.utils import make_dataid
@@ -17,6 +18,7 @@ import fsspec
 # VISSR_19960217_2331_IR1.A.IMG and VISSR_19960217_2331_VIS.A.IMG). The VIS
 # navigation is slightly off (< 0.01 deg) compared to JMA's reference.
 # This is probably due to precision problems with the copied numbers.
+# fmt: off
 IR_NAVIGATION_REFERENCE = [
     {
         'line': 686,
@@ -179,6 +181,7 @@ VIS_NAVIGATION_REFERENCE = [
         )
     },
 ]
+# fmt: on
 
 NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
 
@@ -276,6 +279,7 @@ class TestSinglePixelNavigation:
 
 
 class TestImageNavigation:
+    """Test navigation of an entire image."""
     def test_get_lons_lats(
             self,
             scan_params,
@@ -283,12 +287,15 @@ class TestImageNavigation:
             orbit_prediction,
             proj_params
     ):
+        """Test getting lon/lat coordinates."""
+        # fmt: off
         lons_exp = [[-114.56923, -112.096837, -109.559702],
                     [8.33221, 8.793893, 9.22339],
                     [15.918476, 16.268354, 16.6332]]
         lats_exp = [[-23.078721, -24.629845, -26.133314],
                     [-42.513409, -39.790231, -37.06392],
                     [3.342834, 6.07043, 8.795932]]
+        # fmt: on
         lons, lats = nav.get_lons_lats(
             lines=np.array([1000, 1500, 2000]),
             pixels=np.array([1000, 1500, 2000]),
@@ -300,16 +307,20 @@ class TestImageNavigation:
 
 
 class TestEarthMask:
+    """Test getting the earth mask."""
     def test_get_earth_mask(self):
+        """Test getting the earth mask."""
         first_earth_pixels = np.array([-1, 1, 0, -1])
         last_earth_pixels = np.array([-1, 3, 2, -1])
         edges = first_earth_pixels, last_earth_pixels
+        # fmt: off
         mask_exp = np.array(
             [[0, 0, 0, 0],
              [0, 1, 1, 1],
              [1, 1, 1, 0],
              [0, 0, 0, 0]]
         )
+        # fmt: on
         mask = vissr.get_earth_mask(mask_exp.shape, edges)
         np.testing.assert_equal(mask, mask_exp)
 
@@ -326,6 +337,7 @@ class TestPredictionInterpolation:
         ]
     )
     def test_interpolate_continuous(self, obs_time, expected):
+        """Test interpolation of continuous variables."""
         prediction_times = np.array([0, 1, 2, 3])
         predicted_values = np.array([1, 2, 3, 4])
         res = nav.interpolate_continuous(
@@ -346,6 +358,7 @@ class TestPredictionInterpolation:
         ]
     )
     def test_interpolate_angles(self, obs_time, expected):
+        """Test interpolation of periodic angles."""
         prediction_times = np.array([0, 1, 2, 3, 4])
         predicted_angles = np.array(
             [0, 0.5*np.pi, np.pi, 1.5*np.pi, 2*np.pi]
@@ -366,6 +379,7 @@ class TestPredictionInterpolation:
         ]
     )
     def test_interpolate_nearest(self, obs_time, expected):
+        """Test nearest neighbour interpolation."""
         prediction_times = np.array([0, 1, 2])
         predicted_angles = np.array([
             np.zeros((2, 2)),
@@ -380,6 +394,7 @@ class TestPredictionInterpolation:
         np.testing.assert_allclose(res, expected)
 
     def test_interpolate_orbit_prediction(self, obs_time, orbit_prediction, orbit_expected):
+        """Test interpolating orbit prediction."""
         orbit_prediction = orbit_prediction.to_numba()
         orbit = nav.interpolate_orbit_prediction(
             orbit_prediction, obs_time
@@ -387,6 +402,7 @@ class TestPredictionInterpolation:
         assert_namedtuple_close(orbit, orbit_expected)
 
     def test_interpolate_attitude_prediction(self, obs_time, attitude_prediction, attitude_expected):
+        """Test interpolating attitude prediction."""
         attitude_prediction = attitude_prediction.to_numba()
         attitude = nav.interpolate_attitude_prediction(
             attitude_prediction, obs_time
@@ -395,10 +411,12 @@ class TestPredictionInterpolation:
 
     @pytest.fixture
     def obs_time(self):
+        """Get observation time."""
         return 2.5
 
     @pytest.fixture
     def orbit_expected(self):
+        """Get expected orbit."""
         return nav.Orbit(
             greenwich_sidereal_time=1.5,
             declination_from_sat_to_sun=1.6,
@@ -411,6 +429,7 @@ class TestPredictionInterpolation:
 
     @pytest.fixture
     def attitude_expected(self):
+        """Get expected attitude."""
         return nav.Attitude(
             angle_between_earth_and_sun=1.5,
             angle_between_sat_spin_and_z_axis=1.6,
@@ -420,11 +439,13 @@ class TestPredictionInterpolation:
 
 @pytest.fixture
 def sampling_angle():
+    """Get sampling angle."""
     return 0.000095719995443
 
 
 @pytest.fixture
 def scan_params(sampling_angle):
+    """Get scanning parameters."""
     return nav.ScanningParameters(
         start_time_of_scan=0,
         spinning_rate=0.5,
@@ -435,6 +456,7 @@ def scan_params(sampling_angle):
 
 @pytest.fixture
 def attitude_prediction():
+    """Get attitude prediction."""
     return nav.AttitudePrediction(
         prediction_times=np.array([1.0, 2.0, 3.0]),
         angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
@@ -445,6 +467,7 @@ def attitude_prediction():
 
 @pytest.fixture
 def orbit_prediction():
+    """Get orbit prediction."""
     return nav.OrbitPrediction(
         prediction_times=np.array([1.0, 2.0, 3.0, 4.0]),
         greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
@@ -466,6 +489,7 @@ def orbit_prediction():
 
 @pytest.fixture
 def proj_params(sampling_angle):
+    """Get projection parameters."""
     return nav.ProjectionParameters(
         line_offset=1378.5,
         pixel_offset=1672.5,
@@ -478,6 +502,7 @@ def proj_params(sampling_angle):
 
 
 def test_get_observation_time():
+    """Test getting a pixel's observation time."""
     scan_params = nav.ScanningParameters(
         start_time_of_scan=50000.0,
         spinning_rate=100,
@@ -490,6 +515,7 @@ def test_get_observation_time():
 
 
 def assert_namedtuple_close(a, b):
+    """Assert that two numba namedtuples are approximately equal."""
     assert a.__class__ == b.__class__
     for attr in a._fields:
         np.testing.assert_allclose(
@@ -500,8 +526,11 @@ def assert_namedtuple_close(a, b):
 
 
 class TestFileHandler:
+    """Test VISSR file handler."""
+
     @pytest.fixture(autouse=True)
     def patch_number_of_pixels_per_scanline(self, monkeypatch):
+        """Patch data types so that each scanline has two pixels."""
         num_pixels = 2
         IMAGE_DATA_BLOCK_IR = np.dtype([('LCW', vissr.LINE_CONTROL_WORD),
                       ('DOC', vissr.U1, (256,)),
@@ -538,6 +567,7 @@ class TestFileHandler:
         make_dataid(name='IR1', calibration="counts", resolution=5000)
     ])
     def dataset_id(self, request):
+        """Get dataset ID."""
         return request.param
 
     @pytest.fixture(params=[
@@ -545,18 +575,22 @@ class TestFileHandler:
         False
     ])
     def mask_space(self, request):
+        """Mask space pixels."""
         return request.param
 
     @pytest.fixture(params=[True, False])
     def with_compression(self, request):
+        """Enable compression."""
         return request.param
 
     @pytest.fixture
     def open_function(self, with_compression):
+        """Get open function for writing test files."""
         return gzip.open if with_compression else open
 
     @pytest.fixture
     def vissr_file(self, dataset_id, file_contents, open_function, tmp_path):
+        """Get test VISSR file."""
         filename = tmp_path / "vissr_file"
         ch_type = vissr.CHANNEL_TYPES[dataset_id["name"]]
         writer = VissrFileWriter(ch_type, open_function)
@@ -565,6 +599,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def file_contents(self, control_block, image_parameters, image_data):
+        """Get VISSR file contents."""
         return {
             "control_block": control_block,
             "image_parameters": image_parameters,
@@ -573,6 +608,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def control_block(self, dataset_id):
+        """Get VISSR control block."""
         block_size = {
             "IR1": 16,
             "VIS": 4
@@ -596,6 +632,7 @@ class TestFileHandler:
         wv_calibration,
         simple_coordinate_conversion_table,
     ):
+        """Get VISSR image parameters."""
         return {
             "mode": mode_block,
             "coordinate_conversion": coordinate_conversion,
@@ -611,6 +648,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def mode_block(self):
+        """Get VISSR mode block."""
         mode = np.zeros(1, dtype=vissr.MODE_BLOCK)
         mode["satellite_name"] = b'GMS-5       '
         mode["spin_rate"] = 99.21774
@@ -622,7 +660,7 @@ class TestFileHandler:
         mode["vis_frame_parameters"]["number_of_lines"] = 2
         mode["vis_frame_parameters"]["number_of_pixels"] = 2
         return mode
-    
+
     @pytest.fixture
     def coordinate_conversion(self):
         """Get parameters for coordinate conversions.
@@ -633,25 +671,25 @@ class TestFileHandler:
         """
         # fmt: off
         conv = np.zeros(1, dtype=vissr.COORDINATE_CONVERSION_PARAMETERS)
-        
+
         cline = conv["central_line_number_of_vissr_frame"]
         cline["IR1"] = 1378.5
         cline["VIS"] = 5513.0
-        
+
         cpix = conv["central_pixel_number_of_vissr_frame"]
         cpix["IR1"] = 0.5  # instead of 1672.5
         cpix["VIS"] = 0.5  # instead of 6688.5
-        
+
         conv['scheduled_observation_time'] = 50130.979089568464
-        
+
         nsensors = conv["number_of_sensor_elements"]
         nsensors["IR1"] = 1
         nsensors["VIS"] = 4
-        
+
         sampling_angle = conv["sampling_angle_along_pixel"]
         sampling_angle["IR1"] = 9.5719995e-05
         sampling_angle["VIS"] = 2.3929999e-05
-        
+
         stepping_angle = conv["stepping_angle_along_line"]
         stepping_angle["IR1"] = 0.00014000005
         stepping_angle["VIS"] = 3.5000005e-05
@@ -670,9 +708,10 @@ class TestFileHandler:
         conv["orbital_parameters"]["latitude_of_ssp"] = 1.0
         # fmt: on
         return conv
-    
+
     @pytest.fixture
     def attitude_prediction(self):
+        """Get attitude prediction."""
         att_pred = np.zeros(1, dtype=vissr.ATTITUDE_PREDICTION)
         # fmt: off
         att_pred["data"] = np.array([
@@ -716,6 +755,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def orbit_prediction_1(self):
+        """Get first block of orbit prediction data."""
         orb_pred = np.zeros(1, dtype=vissr.ORBIT_PREDICTION)
         # fmt: off
         orb_pred["data"] = np.array([
@@ -732,9 +772,10 @@ class TestFileHandler:
         )
         # fmt: on
         return orb_pred
-    
+
     @pytest.fixture
     def orbit_prediction_2(self):
+        """Get second block of orbit prediction data."""
         orb_pred = np.zeros(1, dtype=vissr.ORBIT_PREDICTION)
         # fmt: off
         orb_pred["data"] = np.array([
@@ -754,6 +795,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def vis_calibration(self):
+        """Get VIS calibration block."""
         vis_cal = np.zeros(1, dtype=vissr.VIS_CALIBRATION)
         table = vis_cal["vis1_calibration_table"][
             "brightness_albedo_conversion_table"
@@ -763,6 +805,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def ir1_calibration(self):
+        """Get IR1 calibration block."""
         cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
         table = cal["conversion_table_of_equivalent_black_body_temperature"]
         table[0, 0:4] = np.array([0, 100, 200, 300])
@@ -770,22 +813,26 @@ class TestFileHandler:
 
     @pytest.fixture
     def ir2_calibration(self):
+        """Get IR2 calibration block."""
         cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
         return cal
 
     @pytest.fixture
     def wv_calibration(self):
+        """Get WV calibration block."""
         cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
         return cal
 
     @pytest.fixture
     def simple_coordinate_conversion_table(self):
+        """Get simple coordinate conversion table."""
         table = np.zeros(1, dtype=vissr.SIMPLE_COORDINATE_CONVERSION_TABLE)
         table["satellite_height"] = 123457.0
         return table
 
     @pytest.fixture
     def image_data(self, dataset_id, image_data_ir1, image_data_vis):
+        """Get VISSR image data."""
         data = {
             "IR1": image_data_ir1,
             "VIS": image_data_vis
@@ -794,6 +841,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def image_data_ir1(self):
+        """Get IR1 image data."""
         image_data = np.zeros(2, vissr.IMAGE_DATA_BLOCK_IR)
         image_data["LCW"]["line_number"] = [686, 2089]
         image_data["LCW"]["scan_time"] = [50000, 50000]
@@ -804,6 +852,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def image_data_vis(self):
+        """Get VIS image data."""
         image_data = np.zeros(2, vissr.IMAGE_DATA_BLOCK_VIS)
         image_data["LCW"]["line_number"] = [2744, 8356]
         image_data["LCW"]["scan_time"] = [50000, 50000]
@@ -814,6 +863,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def vissr_file_like(self, vissr_file, with_compression):
+        """Get file-like object for VISSR test file."""
         if with_compression:
             open_file = fsspec.open(vissr_file, compression="gzip")
             return FSFile(open_file)
@@ -821,12 +871,14 @@ class TestFileHandler:
 
     @pytest.fixture
     def file_handler(self, vissr_file_like, mask_space):
+        """Get file handler to be tested."""
         return vissr.GMS5VISSRFileHandler(
             vissr_file_like, {}, {}, mask_space=mask_space
         )
 
     @pytest.fixture
     def vis_refl_exp(self, mask_space, lons_lats_exp):
+        """Get expected VIS reflectance."""
         lons, lats = lons_lats_exp
         if mask_space:
             data = [[np.nan, np.nan], [0.5, 1]]
@@ -845,6 +897,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def ir1_counts_exp(self, lons_lats_exp):
+        """Get expected IR1 counts."""
         lons, lats = lons_lats_exp
         return xr.DataArray(
             [[0, 1], [2, 3]],
@@ -860,6 +913,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def ir1_bt_exp(self, lons_lats_exp):
+        """Get expected IR1 brightness temperature."""
         lons, lats = lons_lats_exp
         return xr.DataArray(
             [[0, 100], [200, 300]],
@@ -890,6 +944,7 @@ class TestFileHandler:
         pix = [1672, 1672, 1673, 1673]
         lin = [686, 2089, 686, 2089]
         """
+        # fmt: off
         expectations = {
             "IR1": {
                 "lons": [[139.680120, 139.718902],
@@ -904,6 +959,7 @@ class TestFileHandler:
                          [-34.940439, -34.940370]]
             }
         }
+        # fmt: on
         exp = expectations[dataset_id["name"]]
         lons = xr.DataArray(exp["lons"], dims=("y", "x"))
         lats = xr.DataArray(exp["lats"], dims=("y", "x"))
@@ -911,6 +967,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def dataset_exp(self, dataset_id, ir1_counts_exp, ir1_bt_exp, vis_refl_exp):
+        """Get expected dataset."""
         ir1_counts_id = make_dataid(name="IR1", calibration="counts", resolution=5000)
         ir1_bt_id = make_dataid(name="IR1", calibration="brightness_temperature", resolution=5000)
         vis_refl_id = make_dataid(name="VIS", calibration="reflectance", resolution=1250)
@@ -923,7 +980,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def area_def_exp(self, dataset_id):
-        from pyresample.geometry import AreaDefinition
+        """Get expected area definition."""
         if dataset_id["name"] == "IR1":
             resol = 5
             extent = (-8.641922536247211, -8.641922536247211, 25.925767608741637, 25.925767608741637)
@@ -944,6 +1001,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def attrs_exp(self, area_def_exp):
+        """Get expected dataset attributes."""
         return {
             "platform": "GMS-5",
             "sensor": "VISSR",
@@ -963,11 +1021,13 @@ class TestFileHandler:
         }
 
     def test_get_dataset(self, file_handler, dataset_id, dataset_exp, attrs_exp):
+        """Test getting the dataset."""
         dataset = file_handler.get_dataset(dataset_id, None)
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1E-6)
         self._assert_attrs_equal(dataset.attrs, attrs_exp)
 
     def test_time_attributes(self, file_handler, attrs_exp):
+        """Test the file handler's time attributes."""
         assert file_handler.start_time == attrs_exp["time_parameters"]["nominal_start_time"]
         assert file_handler.end_time == attrs_exp["time_parameters"]["nominal_end_time"]
 
@@ -985,11 +1045,14 @@ class TestFileHandler:
 
 
 class VissrFileWriter:
+    """Write data in VISSR archive format."""
+
     def __init__(self, ch_type, open_function):
         self.ch_type = ch_type
         self.open_function = open_function
 
     def write(self, filename, contents):
+        """Write file contents to disk."""
         with self.open_function(filename, mode="wb") as fd:
             self._write_control_block(fd, contents)
             self._write_image_parameters(fd, contents)
