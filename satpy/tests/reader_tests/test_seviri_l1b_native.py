@@ -1205,6 +1205,23 @@ class TestNativeMSGDataset:
         assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
 
+    def test_time(self, file_handler):
+        """Test start/end nominal/observation time handling."""
+        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
+        assert datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
+        assert file_handler.start_time == file_handler.nominal_start_time
+
+        assert datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
+        assert file_handler.end_time == file_handler.nominal_end_time
+        assert datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
+
+    def test_repeat_cycle_duration(self, file_handler):
+        """Test repeat cycle handling for FD or ReduscedScan."""
+        assert 15 == file_handler._repeat_cycle_duration
+        # Change the reducescan scenario to test the repeat cycle duration handling
+        file_handler.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] = 1
+        assert 5 == file_handler._repeat_cycle_duration
+
     @staticmethod
     def _exp_data_array():
         expected = xr.DataArray(
