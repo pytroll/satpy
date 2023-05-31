@@ -1039,7 +1039,7 @@ class RatioSharpenedRGB(GenericCompositor):
         new_G = G * ratio
         new_B = B * ratio
 
-    In some cases, there could be another high resolution band::
+    In some cases, there could be multiple high resolution bands::
 
         R_lo -  1000m resolution - shape=(2000, 2000)
         G_hi - 500m resolution - shape=(4000, 4000)
