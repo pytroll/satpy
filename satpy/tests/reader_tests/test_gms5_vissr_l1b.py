@@ -12,6 +12,7 @@ from pyresample.geometry import AreaDefinition
 import satpy.readers.gms5_vissr_l1b as vissr
 import satpy.readers.gms5_vissr_navigation as nav
 from satpy.readers import FSFile
+from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import make_dataid
 
 # Navigation references computed with JMA's Msial library (files
@@ -184,6 +185,22 @@ VIS_NAVIGATION_REFERENCE = [
 # fmt: on
 
 NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
+
+
+@pytest.fixture(params=[False, True], autouse=True)
+def disable_jit(request, monkeypatch):
+    """Run tests with jit enabled and disabled.
+
+    Reason: Coverage report is only accurate with jit disabled.
+    """
+    if request.param:
+        jit_methods = get_jit_methods(nav)
+        jit_methods.update(get_jit_methods(vissr))
+        for name, method in jit_methods.items():
+            monkeypatch.setattr(
+                name,
+                method.py_func
+            )
 
 
 class TestSinglePixelNavigation:
