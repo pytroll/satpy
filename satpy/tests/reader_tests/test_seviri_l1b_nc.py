@@ -350,6 +350,25 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             res.attrs.pop(key, None)
         assert_attrs_equal(res.attrs, expected.attrs, tolerance=1e-4)
 
+    def test_time(self, file_handler):
+        """Test start/end nominal/observation time handling."""
+        assert datetime(2020, 1, 1, 0, 0) == file_handler.observation_start_time
+        assert datetime(2020, 1, 1, 0, 0) == file_handler.start_time
+        assert file_handler.start_time == file_handler.nominal_start_time
+
+        assert datetime(2020, 1, 1, 0, 0) == file_handler.observation_end_time
+        assert file_handler.end_time == file_handler.nominal_end_time
+        assert datetime(2020, 1, 1, 0, 0) == file_handler.end_time
+
+    def test_repeat_cycle_duration(self, file_handler):
+        """Test repeat cycle handling for FD or ReduscedScan."""
+        assert 15 == file_handler._repeat_cycle_duration
+        # Change the reducescan scenario to test the repeat cycle duration handling
+        file_handler.nc.attrs['nominal_image_scanning'] = ''
+        file_handler.nc.attrs['reduced_scanning'] = 'T'
+        # file_handler.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] = 1
+        assert 5 == file_handler._repeat_cycle_duration
+
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""
         dataset_id = make_dataid(name='VIS006', calibration='counts')
