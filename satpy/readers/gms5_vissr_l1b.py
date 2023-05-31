@@ -151,34 +151,29 @@ from satpy.readers.utils import generic_open
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
-U1 = '>u1'
-I2 = '>i2'
-I4 = '>i4'
-R4 = '>f4'
-R8 = '>f8'
+U1 = ">u1"
+I2 = ">i2"
+I4 = ">i4"
+R4 = ">f4"
+R8 = ">f8"
 
-VIS_CHANNEL = 'VIS'
-IR_CHANNEL = 'IR'
+VIS_CHANNEL = "VIS"
+IR_CHANNEL = "IR"
 CHANNEL_TYPES = {
     "VIS": VIS_CHANNEL,
     "IR1": IR_CHANNEL,
     "IR2": IR_CHANNEL,
     "IR3": IR_CHANNEL,
-    "WV": IR_CHANNEL
+    "WV": IR_CHANNEL,
 }
-ALT_CHANNEL_NAMES = {
-    'VIS': 'VIS',
-    'IR1': 'IR1',
-    'IR2': 'IR2',
-    'IR3': 'WV'
-}
+ALT_CHANNEL_NAMES = {"VIS": "VIS", "IR1": "IR1", "IR2": "IR2", "IR3": "WV"}
 BLOCK_SIZE_VIS = 13504
 BLOCK_SIZE_IR = 3664
 
 IMAGE_PARAM_ITEM_SIZE = 2688
-TIME = [('date', I4), ('time', I4)]
-CHANNELS = [('VIS', R4), ('IR1', R4), ('IR2', R4), ('WV', R4)]
-VISIR_SOLAR = [('VIS', R4), ('IR', R4)]
+TIME = [("date", I4), ("time", I4)]
+CHANNELS = [("VIS", R4), ("IR1", R4), ("IR2", R4), ("WV", R4)]
+VISIR_SOLAR = [("VIS", R4), ("IR", R4)]
 
 # fmt: off
 CONTROL_BLOCK = np.dtype([('control_block_size', I2),
@@ -552,7 +547,7 @@ def _recarr2dict(arr, preserve=None):
         preserve = []
     res = {}
     for key, value in zip(arr.dtype.names, arr):
-        if key.startswith('reserved'):
+        if key.startswith("reserved"):
             continue
         if value.dtype.names and key not in preserve:
             # Nested record array
@@ -567,7 +562,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     """File handler for GMS-5 VISSR data in VISSR archive format."""
 
     def __init__(self, filename, filename_info, filetype_info, mask_space=True):
-        super(GMS5VISSRFileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(GMS5VISSRFileHandler, self).__init__(
+            filename, filename_info, filetype_info
+        )
         self._filename = filename
         self._filename_info = filename_info
         self._header, self._channel_type = self._read_header(filename)
@@ -576,10 +573,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _read_header(self, filename):
         header = {}
-        with generic_open(filename, mode='rb') as file_obj:
-            header['control_block'] = self._read_control_block(file_obj)
-            channel_type = self._get_channel_type(header['control_block']['parameter_block_size'])
-            header['image_parameters'] = self._read_image_params(file_obj, channel_type)
+        with generic_open(filename, mode="rb") as file_obj:
+            header["control_block"] = self._read_control_block(file_obj)
+            channel_type = self._get_channel_type(
+                header["control_block"]["parameter_block_size"]
+            )
+            header["image_parameters"] = self._read_image_params(file_obj, channel_type)
         return header, channel_type
 
     @staticmethod
@@ -588,14 +587,10 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             return VIS_CHANNEL
         elif parameter_block_size == 16:
             return IR_CHANNEL
-        raise ValueError('Cannot determine channel type: Unknown parameter block size.')
+        raise ValueError("Cannot determine channel type: Unknown parameter block size.")
 
     def _read_control_block(self, file_obj):
-        ctrl_block = read_from_file_obj(
-            file_obj,
-            dtype=CONTROL_BLOCK,
-            count=1
-        )
+        ctrl_block = read_from_file_obj(file_obj, dtype=CONTROL_BLOCK, count=1)
         return _recarr2dict(ctrl_block[0])
 
     def _read_image_params(self, file_obj, channel_type):
@@ -604,9 +599,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         for name, param in IMAGE_PARAMS.items():
             image_params[name] = self._read_image_param(file_obj, param, channel_type)
 
-        image_params['orbit_prediction'] = self._concat_orbit_prediction(
-            image_params.pop('orbit_prediction_1'),
-            image_params.pop('orbit_prediction_2')
+        image_params["orbit_prediction"] = self._concat_orbit_prediction(
+            image_params.pop("orbit_prediction_1"),
+            image_params.pop("orbit_prediction_2"),
         )
         return image_params
 
@@ -617,9 +612,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             file_obj,
             dtype=param["dtype"],
             count=1,
-            offset=param['offset'][channel_type]
+            offset=param["offset"][channel_type],
         )
-        return _recarr2dict(image_params[0], preserve=param.get('preserve'))
+        return _recarr2dict(image_params[0], preserve=param.get("preserve"))
 
     @staticmethod
     def _concat_orbit_prediction(orb_pred_1, orb_pred_2):
@@ -628,59 +623,62 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         It is split over two image parameter blocks in the header.
         """
         orb_pred = orb_pred_1
-        orb_pred['data'] = np.concatenate([orb_pred_1['data'], orb_pred_2['data']])
+        orb_pred["data"] = np.concatenate([orb_pred_1["data"], orb_pred_2["data"]])
         return orb_pred
 
     def _get_frame_parameters_key(self):
         if self._channel_type == VIS_CHANNEL:
-            return 'vis_frame_parameters'
-        return 'ir_frame_parameters'
+            return "vis_frame_parameters"
+        return "ir_frame_parameters"
 
     def _get_actual_shape(self):
-        actual_num_lines = self._header['control_block']['available_block_size_of_image_data']
+        actual_num_lines = self._header["control_block"][
+            "available_block_size_of_image_data"
+        ]
         _, nominal_num_pixels = self._get_nominal_shape()
         return actual_num_lines, nominal_num_pixels
 
     def _get_nominal_shape(self):
-        frame_params = self._header['image_parameters']['mode'][self._get_frame_parameters_key()]
-        return frame_params['number_of_lines'], frame_params['number_of_pixels']
+        frame_params = self._header["image_parameters"]["mode"][
+            self._get_frame_parameters_key()
+        ]
+        return frame_params["number_of_lines"], frame_params["number_of_pixels"]
 
     def _get_mda(self):
-        mode_block = self._header['image_parameters']['mode']
+        mode_block = self._header["image_parameters"]["mode"]
         return {
-            'platform': mode_block['satellite_name'].decode().strip().upper(),
-            'sensor': 'VISSR',
-            'time_parameters': self._get_time_parameters(),
-            'orbital_parameters': self._get_orbital_parameters()
+            "platform": mode_block["satellite_name"].decode().strip().upper(),
+            "sensor": "VISSR",
+            "time_parameters": self._get_time_parameters(),
+            "orbital_parameters": self._get_orbital_parameters(),
         }
 
     def _get_orbital_parameters(self):
         # Note: SSP longitude in simple coordinate conversion table seems to be
         # incorrect (80 deg instead of 140 deg). Use orbital parameters instead.
-        im_params = self._header['image_parameters']
-        mode = im_params['mode']
+        im_params = self._header["image_parameters"]
+        mode = im_params["mode"]
         simple_coord = im_params["simple_coordinate_conversion_table"]
         orb_params = im_params["coordinate_conversion"]["orbital_parameters"]
         return {
-            'satellite_nominal_longitude': mode["ssp_longitude"],
-            'satellite_nominal_latitude': 0.0,
-            'satellite_nominal_altitude': mode["satellite_height"],
-
-            'satellite_actual_longitude': orb_params["longitude_of_ssp"],
-            'satellite_actual_latitude': orb_params["latitude_of_ssp"],
-            'satellite_actual_altitude': simple_coord["satellite_height"]
+            "satellite_nominal_longitude": mode["ssp_longitude"],
+            "satellite_nominal_latitude": 0.0,
+            "satellite_nominal_altitude": mode["satellite_height"],
+            "satellite_actual_longitude": orb_params["longitude_of_ssp"],
+            "satellite_actual_latitude": orb_params["latitude_of_ssp"],
+            "satellite_actual_altitude": simple_coord["satellite_height"],
         }
 
     def _get_time_parameters(self):
-        mode_block = self._header['image_parameters']['mode']
+        mode_block = self._header["image_parameters"]["mode"]
         start_time = mjd2datetime64(mode_block["observation_time_mjd"])
         start_time = start_time.astype(dt.datetime).replace(second=0, microsecond=0)
         end_time = start_time + dt.timedelta(
             minutes=25
         )  # Source: GMS User Guide, section 3.3.1
         return {
-            'nominal_start_time': start_time,
-            'nominal_end_time': end_time,
+            "nominal_start_time": start_time,
+            "nominal_end_time": end_time,
         }
 
     def get_dataset(self, dataset_id, ds_info):
@@ -703,10 +701,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         specs = self._get_image_data_type_specs()
         with generic_open(self._filename, "rb") as file_obj:
             return read_from_file_obj(
-                file_obj,
-                dtype=specs["dtype"],
-                count=num_lines,
-                offset=specs["offset"]
+                file_obj, dtype=specs["dtype"], count=num_lines, offset=specs["offset"]
             )
 
     def _get_image_data_type_specs(self):
@@ -717,20 +712,20 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _make_counts_data_array(self, image_data):
         return xr.DataArray(
-            image_data['image_data'],
-            dims=('y', 'x'),
+            image_data["image_data"],
+            dims=("y", "x"),
             coords={
-                'acq_time': ('y', self._get_acq_time(image_data)),
-                'line_number': ('y', self._get_line_number(image_data))
-            }
+                "acq_time": ("y", self._get_acq_time(image_data)),
+                "line_number": ("y", self._get_line_number(image_data)),
+            },
         )
 
     def _get_acq_time(self, dask_array):
-        acq_time = dask_array['LCW']['scan_time'].compute()
+        acq_time = dask_array["LCW"]["scan_time"].compute()
         return mjd2datetime64(acq_time)
 
     def _get_line_number(self, dask_array):
-        return dask_array['LCW']['line_number'].compute()
+        return dask_array["LCW"]["line_number"].compute()
 
     def _calibrate(self, counts, dataset_id):
         table = self._get_calibration_table(dataset_id)
@@ -739,21 +734,28 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_calibration_table(self, dataset_id):
         tables = {
-            "VIS": self._header['image_parameters']['vis_calibration']["vis1_calibration_table"]["brightness_albedo_conversion_table"],
-            "IR1": self._header['image_parameters']['ir1_calibration']["conversion_table_of_equivalent_black_body_temperature"],
-            "IR2": self._header['image_parameters']['ir2_calibration']["conversion_table_of_equivalent_black_body_temperature"],
-            "IR3": self._header['image_parameters']['wv_calibration']["conversion_table_of_equivalent_black_body_temperature"]
+            "VIS": self._header["image_parameters"]["vis_calibration"][
+                "vis1_calibration_table"
+            ]["brightness_albedo_conversion_table"],
+            "IR1": self._header["image_parameters"]["ir1_calibration"][
+                "conversion_table_of_equivalent_black_body_temperature"
+            ],
+            "IR2": self._header["image_parameters"]["ir2_calibration"][
+                "conversion_table_of_equivalent_black_body_temperature"
+            ],
+            "IR3": self._header["image_parameters"]["wv_calibration"][
+                "conversion_table_of_equivalent_black_body_temperature"
+            ],
         }
         return tables[dataset_id["name"]]
 
     def _get_area_def_uniform_sampling(self, dataset_id):
         a = AreaDefEstimator(
-            coord_conv_params=self._header['image_parameters']['coordinate_conversion'],
-            metadata=self._mda
+            coord_conv_params=self._header["image_parameters"]["coordinate_conversion"],
+            metadata=self._mda,
         )
         return a.get_area_def_uniform_sampling(
-            original_shape=self._get_actual_shape(),
-            dataset_id=dataset_id
+            original_shape=self._get_actual_shape(), dataset_id=dataset_id
         )
 
     def _mask_space_pixels(self, dataset, space_masker):
@@ -763,8 +765,8 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _attach_lons_lats(self, dataset, dataset_id):
         lons, lats = self._get_lons_lats(dataset, dataset_id)
-        dataset.coords['lon'] = lons
-        dataset.coords['lat'] = lats
+        dataset.coords["lon"] = lons
+        dataset.coords["lat"] = lats
 
     def _get_lons_lats(self, dataset, dataset_id):
         lines, pixels = self._get_image_coords(dataset)
@@ -774,12 +776,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             lines=lines,
             pixels=pixels,
             static_params=static_params,
-            predicted_params=predicted_params
+            predicted_params=predicted_params,
         )
         return self._make_lons_lats_data_array(lons, lats)
 
     def _get_image_coords(self, data):
-        lines = data.coords['line_number'].values
+        lines = data.coords["line_number"].values
         pixels = np.arange(data.shape[1])
         return lines.astype(np.float64), pixels.astype(np.float64)
 
@@ -794,18 +796,23 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         IR2: 1378.7
         IR3: 1379.1001
         """
-        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
-        mode_block = self._header['image_parameters']['mode']
-        coord_conv = self._header['image_parameters']['coordinate_conversion']
-        center_line_vissr_frame = coord_conv['central_line_number_of_vissr_frame'][alt_ch_name]
-        center_pixel_vissr_frame = coord_conv['central_pixel_number_of_vissr_frame'][alt_ch_name]
-        pixel_offset = coord_conv['pixel_difference_of_vissr_center_from_normal_position'][
-            alt_ch_name]
+        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id["name"]]
+        mode_block = self._header["image_parameters"]["mode"]
+        coord_conv = self._header["image_parameters"]["coordinate_conversion"]
+        center_line_vissr_frame = coord_conv["central_line_number_of_vissr_frame"][
+            alt_ch_name
+        ]
+        center_pixel_vissr_frame = coord_conv["central_pixel_number_of_vissr_frame"][
+            alt_ch_name
+        ]
+        pixel_offset = coord_conv[
+            "pixel_difference_of_vissr_center_from_normal_position"
+        ][alt_ch_name]
         scan_params = nav.ScanningParameters(
-            start_time_of_scan=coord_conv['scheduled_observation_time'],
-            spinning_rate=mode_block['spin_rate'],
-            num_sensors=coord_conv['number_of_sensor_elements'][alt_ch_name],
-            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
+            start_time_of_scan=coord_conv["scheduled_observation_time"],
+            spinning_rate=mode_block["spin_rate"],
+            num_sensors=coord_conv["number_of_sensor_elements"][alt_ch_name],
+            sampling_angle=coord_conv["sampling_angle_along_pixel"][alt_ch_name],
         )
         # Use earth radius and flattening from JMA's Msial library, because
         # the values in the data seem to be pretty old. For example the
@@ -813,48 +820,74 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         proj_params = nav.ProjectionParameters(
             line_offset=center_line_vissr_frame,
             pixel_offset=center_pixel_vissr_frame + pixel_offset,
-            stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
-            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
-            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment'].transpose().astype(np.float64)),
+            stepping_angle=coord_conv["stepping_angle_along_line"][alt_ch_name],
+            sampling_angle=coord_conv["sampling_angle_along_pixel"][alt_ch_name],
+            misalignment=np.ascontiguousarray(
+                coord_conv["matrix_of_misalignment"].transpose().astype(np.float64)
+            ),
             earth_flattening=nav.EARTH_FLATTENING,
-            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
+            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS,
         )
         return scan_params, proj_params
 
     def _get_predicted_navigation_params(self):
         """Get predictions of time-dependent navigation parameters."""
-        att_pred = self._header['image_parameters']['attitude_prediction']['data']
-        orb_pred = self._header['image_parameters']['orbit_prediction']['data']
+        att_pred = self._header["image_parameters"]["attitude_prediction"]["data"]
+        orb_pred = self._header["image_parameters"]["orbit_prediction"]["data"]
         attitude_prediction = nav.AttitudePrediction(
-            prediction_times=att_pred['prediction_time_mjd'].astype(np.float64),
-            angle_between_earth_and_sun=att_pred['sun_earth_angle'].astype(np.float64),
-            angle_between_sat_spin_and_z_axis=att_pred['right_ascension_of_attitude'].astype(np.float64),
-            angle_between_sat_spin_and_yz_plane=att_pred['declination_of_attitude'].astype(np.float64),
+            prediction_times=att_pred["prediction_time_mjd"].astype(np.float64),
+            angle_between_earth_and_sun=att_pred["sun_earth_angle"].astype(np.float64),
+            angle_between_sat_spin_and_z_axis=att_pred[
+                "right_ascension_of_attitude"
+            ].astype(np.float64),
+            angle_between_sat_spin_and_yz_plane=att_pred[
+                "declination_of_attitude"
+            ].astype(np.float64),
         )
         orbit_prediction = nav.OrbitPrediction(
-            prediction_times=orb_pred['prediction_time_mjd'].astype(np.float64),
-            greenwich_sidereal_time=np.deg2rad(orb_pred['greenwich_sidereal_time'].astype(np.float64)),
-            declination_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['elevation'].astype(np.float64)),
-            right_ascension_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['azimuth'].astype(np.float64)),
-            sat_position_earth_fixed_x=orb_pred['satellite_position_earth_fixed'][:, 0].astype(np.float64),
-            sat_position_earth_fixed_y=orb_pred['satellite_position_earth_fixed'][:, 1].astype(np.float64),
-            sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][:, 2].astype(np.float64),
-            nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose(0, 2, 1).astype(np.float64))
+            prediction_times=orb_pred["prediction_time_mjd"].astype(np.float64),
+            greenwich_sidereal_time=np.deg2rad(
+                orb_pred["greenwich_sidereal_time"].astype(np.float64)
+            ),
+            declination_from_sat_to_sun=np.deg2rad(
+                orb_pred["sat_sun_vector_earth_fixed"]["elevation"].astype(np.float64)
+            ),
+            right_ascension_from_sat_to_sun=np.deg2rad(
+                orb_pred["sat_sun_vector_earth_fixed"]["azimuth"].astype(np.float64)
+            ),
+            sat_position_earth_fixed_x=orb_pred["satellite_position_earth_fixed"][
+                :, 0
+            ].astype(np.float64),
+            sat_position_earth_fixed_y=orb_pred["satellite_position_earth_fixed"][
+                :, 1
+            ].astype(np.float64),
+            sat_position_earth_fixed_z=orb_pred["satellite_position_earth_fixed"][
+                :, 2
+            ].astype(np.float64),
+            nutation_precession=np.ascontiguousarray(
+                orb_pred["conversion_matrix"].transpose(0, 2, 1).astype(np.float64)
+            ),
         )
         return attitude_prediction, orbit_prediction
 
     def _make_lons_lats_data_array(self, lons, lats):
-        lons = xr.DataArray(lons, dims=('y', 'x'),
-                            attrs={'standard_name': 'longitude',
-                                   "units": "degrees_east"})
-        lats = xr.DataArray(lats, dims=('y', 'x'),
-                            attrs={'standard_name': 'latitude',
-                                   "units": "degrees_north"})
+        lons = xr.DataArray(
+            lons,
+            dims=("y", "x"),
+            attrs={"standard_name": "longitude", "units": "degrees_east"},
+        )
+        lats = xr.DataArray(
+            lats,
+            dims=("y", "x"),
+            attrs={"standard_name": "latitude", "units": "degrees_north"},
+        )
         return lons, lats
 
     def _update_attrs(self, dataset, dataset_id):
         dataset.attrs.update(self._mda)
-        dataset.attrs["area_def_uniform_sampling"] = self._get_area_def_uniform_sampling(dataset_id)
+        dataset.attrs[
+            "area_def_uniform_sampling"
+        ] = self._get_area_def_uniform_sampling(dataset_id)
 
     @property
     def start_time(self):
@@ -886,6 +919,7 @@ class Calibrator:
 
     Reference: Section 2.2 in the VISSR User Guide.
     """
+
     def __init__(self, calib_table):
         self._calib_table = calib_table
 
@@ -967,7 +1001,7 @@ def get_earth_mask(shape, earth_edges, fill_value=-1):
         last = last_earth_pixels[line]
         if first == fill_value or last == fill_value:
             continue
-        mask[line, first:last+1] = 1
+        mask[line, first : last + 1] = 1
     return mask
 
 
@@ -1002,26 +1036,32 @@ class AreaDefEstimator:
         return proj_dict
 
     def _get_name_dict(self, dataset_id):
-        name_dict = geos_area.get_geos_area_naming({
-            'platform_name': self.metadata['platform'],
-            'instrument_name': self.metadata['sensor'],
-            'service_name': 'western-pacific',
-            'service_desc': 'Western Pacific',
-            'resolution': dataset_id['resolution']
-        })
+        name_dict = geos_area.get_geos_area_naming(
+            {
+                "platform_name": self.metadata["platform"],
+                "instrument_name": self.metadata["sensor"],
+                "service_name": "western-pacific",
+                "service_desc": "Western Pacific",
+                "resolution": dataset_id["resolution"],
+            }
+        )
         return {
             "a_name": name_dict["area_id"],
             "p_id": name_dict["area_id"],
-            "a_desc": name_dict["description"]
+            "a_desc": name_dict["description"],
         }
 
-    def _get_proj4_dict(self, ):
+    def _get_proj4_dict(
+        self,
+    ):
         # Use nominal parameters to make the area def as constant as possible
         return {
-            'ssp_lon': self.metadata["orbital_parameters"]["satellite_nominal_longitude"],
+            "ssp_lon": self.metadata["orbital_parameters"][
+                "satellite_nominal_longitude"
+            ],
             "a": nav.EARTH_EQUATORIAL_RADIUS,
             "b": nav.EARTH_POLAR_RADIUS,
-            'h': self.metadata["orbital_parameters"]["satellite_nominal_altitude"],
+            "h": self.metadata["orbital_parameters"]["satellite_nominal_altitude"],
         }
 
     def _get_shape_dict(self, original_shape, dataset_id):
@@ -1030,16 +1070,16 @@ class AreaDefEstimator:
         # with uniform sampling.
         num_lines, _ = original_shape
         alt_ch_name = ALT_CHANNEL_NAMES[dataset_id["name"]]
-        stepping_angle = self.coord_conv['stepping_angle_along_line'][alt_ch_name]
+        stepping_angle = self.coord_conv["stepping_angle_along_line"][alt_ch_name]
         uniform_size = num_lines
         uniform_line_pixel_offset = 0.5 * num_lines
         uniform_sampling_angle = geos_area.sampling_to_lfac_cfac(stepping_angle)
         return {
-            'nlines': uniform_size,
-            'ncols': uniform_size,
-            'lfac': uniform_sampling_angle,
-            'cfac': uniform_sampling_angle,
-            'coff': uniform_line_pixel_offset,
-            'loff': uniform_line_pixel_offset,
-            'scandir': 'N2S'
+            "nlines": uniform_size,
+            "ncols": uniform_size,
+            "lfac": uniform_sampling_angle,
+            "cfac": uniform_sampling_angle,
+            "coff": uniform_line_pixel_offset,
+            "loff": uniform_line_pixel_offset,
+            "scandir": "N2S",
         }
