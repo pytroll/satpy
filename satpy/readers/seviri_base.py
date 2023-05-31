@@ -990,7 +990,7 @@ def round_nom_time(dt, time_delta):
     dt : datetime.datetime object, default now.
     time_delta : timedelta object, we round to a multiple of this, default 1 minute.
     adapted for SEVIRI from:
-        http://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
+    https://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
     """
     seconds = (dt - dt.min).seconds
     round_to = time_delta.total_seconds()
