@@ -25,10 +25,7 @@ def disable_jit(request, monkeypatch):
     if request.param:
         jit_methods = get_jit_methods(vissr)
         for name, method in jit_methods.items():
-            monkeypatch.setattr(
-                name,
-                method.py_func
-            )
+            monkeypatch.setattr(name, method.py_func)
 
 
 class TestEarthMask:
@@ -146,31 +143,45 @@ class TestFileHandler:
         return ctrl_block
 
     @pytest.fixture
-    def image_parameters(
+    def image_parameters(self, mode_block, cal_params, nav_params):
+        """Get VISSR image parameters."""
+        image_params = {"mode": mode_block}
+        image_params.update(cal_params)
+        image_params.update(nav_params)
+        return image_params
+
+    @pytest.fixture
+    def nav_params(
         self,
-        mode_block,
         coordinate_conversion,
         attitude_prediction,
         orbit_prediction_1,
         orbit_prediction_2,
-        vis_calibration,
-        ir1_calibration,
-        ir2_calibration,
-        wv_calibration,
         simple_coordinate_conversion_table,
     ):
-        """Get VISSR image parameters."""
+        """Get navigation parameters."""
         return {
-            "mode": mode_block,
             "coordinate_conversion": coordinate_conversion,
             "attitude_prediction": attitude_prediction,
             "orbit_prediction_1": orbit_prediction_1,
             "orbit_prediction_2": orbit_prediction_2,
+            "simple_coordinate_conversion_table": simple_coordinate_conversion_table,
+        }
+
+    @pytest.fixture
+    def cal_params(
+        self,
+        vis_calibration,
+        ir1_calibration,
+        ir2_calibration,
+        wv_calibration,
+    ):
+        """Get calibration parameters."""
+        return {
             "vis_calibration": vis_calibration,
             "ir1_calibration": ir1_calibration,
             "ir2_calibration": ir2_calibration,
             "wv_calibration": wv_calibration,
-            "simple_coordinate_conversion_table": simple_coordinate_conversion_table,
         }
 
     @pytest.fixture
@@ -560,12 +571,25 @@ class TestCorruptFile:
 
     def test_corrupt_file(self, corrupt_file):
         """Test reading a corrupt file."""
-        with pytest.raises(ValueError, match=r'.* corrupt .*'):
+        with pytest.raises(ValueError, match=r".* corrupt .*"):
             vissr.GMS5VISSRFileHandler(corrupt_file, {}, {})
 
 
 class VissrFileWriter:
     """Write data in VISSR archive format."""
+
+    image_params_order = [
+        "mode",
+        "coordinate_conversion",
+        "attitude_prediction",
+        "orbit_prediction_1",
+        "orbit_prediction_2",
+        "vis_calibration",
+        "ir1_calibration",
+        "ir2_calibration",
+        "wv_calibration",
+        "simple_coordinate_conversion_table",
+    ]
 
     def __init__(self, ch_type, open_function):
         """Initialize the writer.
@@ -588,9 +612,14 @@ class VissrFileWriter:
         self._write(fd, contents["control_block"])
 
     def _write_image_parameters(self, fd, contents):
-        for key, im_param in contents["image_parameters"].items():
-            offset = vissr.IMAGE_PARAMS[key]["offset"][self.ch_type]
-            self._write(fd, im_param, offset)
+        for name in self.image_params_order:
+            im_param = contents["image_parameters"].get(name)
+            if im_param:
+                self._write_image_parameter(fd, im_param, name)
+
+    def _write_image_parameter(self, fd, im_param, name):
+        offset = vissr.IMAGE_PARAMS[name]["offset"][self.ch_type]
+        self._write(fd, im_param, offset)
 
     def _write_image_data(self, fd, contents):
         offset = vissr.IMAGE_DATA[self.ch_type]["offset"]
