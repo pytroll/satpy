@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import satpy.readers.gms5_vissr_l1b as vissr
+import satpy.readers.gms5_vissr_format as fmt
 
 ATTITUDE_PREDICTION = np.array(
     [
@@ -436,7 +436,7 @@ ATTITUDE_PREDICTION = np.array(
             0,
         ),
     ],
-    dtype=vissr.ATTITUDE_PREDICTION_DATA,
+    dtype=fmt.ATTITUDE_PREDICTION_DATA,
 )
 
 ORBIT_PREDICTION_1 = np.array(
@@ -622,7 +622,7 @@ ORBIT_PREDICTION_1 = np.array(
             0,
         ),
     ],
-    dtype=vissr.ORBIT_PREDICTION_DATA,
+    dtype=fmt.ORBIT_PREDICTION_DATA,
 )
 
 ORBIT_PREDICTION_2 = np.array(
@@ -808,5 +808,5 @@ ORBIT_PREDICTION_2 = np.array(
             0,
         ),
     ],
-    dtype=vissr.ORBIT_PREDICTION_DATA,
+    dtype=fmt.ORBIT_PREDICTION_DATA,
 )

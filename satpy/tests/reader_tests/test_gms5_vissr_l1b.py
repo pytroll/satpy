@@ -9,6 +9,7 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
+import satpy.readers.gms5_vissr_format as fmt
 import satpy.readers.gms5_vissr_l1b as vissr
 import satpy.tests.reader_tests.test_gms5_vissr_data as real_world
 from satpy.readers import FSFile
@@ -57,35 +58,35 @@ class TestFileHandler:
         num_pixels = 2
         IMAGE_DATA_BLOCK_IR = np.dtype(
             [
-                ("LCW", vissr.LINE_CONTROL_WORD),
-                ("DOC", vissr.U1, (256,)),
-                ("image_data", vissr.U1, num_pixels),
+                ("LCW", fmt.LINE_CONTROL_WORD),
+                ("DOC", fmt.U1, (256,)),
+                ("image_data", fmt.U1, num_pixels),
             ]
         )
         IMAGE_DATA_BLOCK_VIS = np.dtype(
             [
-                ("LCW", vissr.LINE_CONTROL_WORD),
-                ("DOC", vissr.U1, (64,)),
-                ("image_data", vissr.U1, (num_pixels,)),
+                ("LCW", fmt.LINE_CONTROL_WORD),
+                ("DOC", fmt.U1, (64,)),
+                ("image_data", fmt.U1, (num_pixels,)),
             ]
         )
         IMAGE_DATA = {
-            vissr.VIS_CHANNEL: {
-                "offset": 6 * vissr.BLOCK_SIZE_VIS,
+            fmt.VIS_CHANNEL: {
+                "offset": 6 * fmt.BLOCK_SIZE_VIS,
                 "dtype": IMAGE_DATA_BLOCK_VIS,
             },
-            vissr.IR_CHANNEL: {
-                "offset": 18 * vissr.BLOCK_SIZE_IR,
+            fmt.IR_CHANNEL: {
+                "offset": 18 * fmt.BLOCK_SIZE_IR,
                 "dtype": IMAGE_DATA_BLOCK_IR,
             },
         }
         monkeypatch.setattr(
-            "satpy.readers.gms5_vissr_l1b.IMAGE_DATA_BLOCK_IR", IMAGE_DATA_BLOCK_IR
+            "satpy.readers.gms5_vissr_format.IMAGE_DATA_BLOCK_IR", IMAGE_DATA_BLOCK_IR
         )
         monkeypatch.setattr(
-            "satpy.readers.gms5_vissr_l1b.IMAGE_DATA_BLOCK_VIS", IMAGE_DATA_BLOCK_VIS
+            "satpy.readers.gms5_vissr_format.IMAGE_DATA_BLOCK_VIS", IMAGE_DATA_BLOCK_VIS
         )
-        monkeypatch.setattr("satpy.readers.gms5_vissr_l1b.IMAGE_DATA", IMAGE_DATA)
+        monkeypatch.setattr("satpy.readers.gms5_vissr_format.IMAGE_DATA", IMAGE_DATA)
 
     @pytest.fixture(
         params=[
@@ -119,7 +120,7 @@ class TestFileHandler:
     def vissr_file(self, dataset_id, file_contents, open_function, tmp_path):
         """Get test VISSR file."""
         filename = tmp_path / "vissr_file"
-        ch_type = vissr.CHANNEL_TYPES[dataset_id["name"]]
+        ch_type = fmt.CHANNEL_TYPES[dataset_id["name"]]
         writer = VissrFileWriter(ch_type, open_function)
         writer.write(filename, file_contents)
         return filename
@@ -137,7 +138,7 @@ class TestFileHandler:
     def control_block(self, dataset_id):
         """Get VISSR control block."""
         block_size = {"IR1": 16, "VIS": 4}
-        ctrl_block = np.zeros(1, dtype=vissr.CONTROL_BLOCK)
+        ctrl_block = np.zeros(1, dtype=fmt.CONTROL_BLOCK)
         ctrl_block["parameter_block_size"] = block_size[dataset_id["name"]]
         ctrl_block["available_block_size_of_image_data"] = 2
         return ctrl_block
@@ -187,7 +188,7 @@ class TestFileHandler:
     @pytest.fixture
     def mode_block(self):
         """Get VISSR mode block."""
-        mode = np.zeros(1, dtype=vissr.MODE_BLOCK)
+        mode = np.zeros(1, dtype=fmt.MODE_BLOCK)
         mode["satellite_name"] = b"GMS-5       "
         mode["spin_rate"] = 99.21774
         mode["observation_time_mjd"] = 50000.0
@@ -208,7 +209,7 @@ class TestFileHandler:
         Otherwise, all pixels would be in space.
         """
         # fmt: off
-        conv = np.zeros(1, dtype=vissr.COORDINATE_CONVERSION_PARAMETERS)
+        conv = np.zeros(1, dtype=fmt.COORDINATE_CONVERSION_PARAMETERS)
 
         cline = conv["central_line_number_of_vissr_frame"]
         cline["IR1"] = 1378.5
@@ -250,28 +251,28 @@ class TestFileHandler:
     @pytest.fixture
     def attitude_prediction(self):
         """Get attitude prediction."""
-        att_pred = np.zeros(1, dtype=vissr.ATTITUDE_PREDICTION)
+        att_pred = np.zeros(1, dtype=fmt.ATTITUDE_PREDICTION)
         att_pred["data"] = real_world.ATTITUDE_PREDICTION
         return att_pred
 
     @pytest.fixture
     def orbit_prediction_1(self):
         """Get first block of orbit prediction data."""
-        orb_pred = np.zeros(1, dtype=vissr.ORBIT_PREDICTION)
+        orb_pred = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
         orb_pred["data"] = real_world.ORBIT_PREDICTION_1
         return orb_pred
 
     @pytest.fixture
     def orbit_prediction_2(self):
         """Get second block of orbit prediction data."""
-        orb_pred = np.zeros(1, dtype=vissr.ORBIT_PREDICTION)
+        orb_pred = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
         orb_pred["data"] = real_world.ORBIT_PREDICTION_2
         return orb_pred
 
     @pytest.fixture
     def vis_calibration(self):
         """Get VIS calibration block."""
-        vis_cal = np.zeros(1, dtype=vissr.VIS_CALIBRATION)
+        vis_cal = np.zeros(1, dtype=fmt.VIS_CALIBRATION)
         table = vis_cal["vis1_calibration_table"]["brightness_albedo_conversion_table"]
         table[0, 0:4] = np.array([0, 0.25, 0.5, 1])
         return vis_cal
@@ -279,7 +280,7 @@ class TestFileHandler:
     @pytest.fixture
     def ir1_calibration(self):
         """Get IR1 calibration block."""
-        cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
+        cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
         table = cal["conversion_table_of_equivalent_black_body_temperature"]
         table[0, 0:4] = np.array([0, 100, 200, 300])
         return cal
@@ -287,19 +288,19 @@ class TestFileHandler:
     @pytest.fixture
     def ir2_calibration(self):
         """Get IR2 calibration block."""
-        cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
+        cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
         return cal
 
     @pytest.fixture
     def wv_calibration(self):
         """Get WV calibration block."""
-        cal = np.zeros(1, dtype=vissr.IR_CALIBRATION)
+        cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
         return cal
 
     @pytest.fixture
     def simple_coordinate_conversion_table(self):
         """Get simple coordinate conversion table."""
-        table = np.zeros(1, dtype=vissr.SIMPLE_COORDINATE_CONVERSION_TABLE)
+        table = np.zeros(1, dtype=fmt.SIMPLE_COORDINATE_CONVERSION_TABLE)
         table["satellite_height"] = 123457.0
         return table
 
@@ -312,7 +313,7 @@ class TestFileHandler:
     @pytest.fixture
     def image_data_ir1(self):
         """Get IR1 image data."""
-        image_data = np.zeros(2, vissr.IMAGE_DATA_BLOCK_IR)
+        image_data = np.zeros(2, fmt.IMAGE_DATA_BLOCK_IR)
         image_data["LCW"]["line_number"] = [686, 2089]
         image_data["LCW"]["scan_time"] = [50000, 50000]
         image_data["LCW"]["west_side_earth_edge"] = [0, 0]
@@ -323,7 +324,7 @@ class TestFileHandler:
     @pytest.fixture
     def image_data_vis(self):
         """Get VIS image data."""
-        image_data = np.zeros(2, vissr.IMAGE_DATA_BLOCK_VIS)
+        image_data = np.zeros(2, fmt.IMAGE_DATA_BLOCK_VIS)
         image_data["LCW"]["line_number"] = [2744, 8356]
         image_data["LCW"]["scan_time"] = [50000, 50000]
         image_data["LCW"]["west_side_earth_edge"] = [-1, 0]
@@ -553,8 +554,8 @@ class TestCorruptFile:
     @pytest.fixture
     def file_contents(self):
         """Get corrupt file contents (all zero)."""
-        control_block = np.zeros(1, dtype=vissr.CONTROL_BLOCK)
-        image_data = np.zeros(1, dtype=vissr.IMAGE_DATA_BLOCK_IR)
+        control_block = np.zeros(1, dtype=fmt.CONTROL_BLOCK)
+        image_data = np.zeros(1, dtype=fmt.IMAGE_DATA_BLOCK_IR)
         return {
             "control_block": control_block,
             "image_parameters": {},
@@ -618,11 +619,11 @@ class VissrFileWriter:
                 self._write_image_parameter(fd, im_param, name)
 
     def _write_image_parameter(self, fd, im_param, name):
-        offset = vissr.IMAGE_PARAMS[name]["offset"][self.ch_type]
+        offset = fmt.IMAGE_PARAMS[name]["offset"][self.ch_type]
         self._write(fd, im_param, offset)
 
     def _write_image_data(self, fd, contents):
-        offset = vissr.IMAGE_DATA[self.ch_type]["offset"]
+        offset = fmt.IMAGE_DATA[self.ch_type]["offset"]
         self._write(fd, contents["image_data"], offset)
 
     def _write(self, fd, data, offset=None):
