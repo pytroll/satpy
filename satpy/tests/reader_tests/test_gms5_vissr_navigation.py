@@ -41,17 +41,23 @@ IR_NAVIGATION_REFERENCE = [
                 ),
             ),
             nav.ProjectionParameters(
-                line_offset=1378.5,
-                pixel_offset=1672.5,
-                stepping_angle=0.000140000047395,
-                sampling_angle=0.000095719995443,
-                misalignment=np.array(
-                    [[0.999999165534973, 0.000510364072397, 0.001214201096445],
-                     [-0.000511951977387, 0.999999046325684, 0.001307720085606],
-                     [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                image_offset=nav.ImageOffset(
+                    line_offset=1378.5,
+                    pixel_offset=1672.5,
                 ),
-                earth_flattening=0.003352813177897,
-                earth_equatorial_radius=6378136.0
+                scanning_angles=nav.ScanningAngles(
+                    stepping_angle=0.000140000047395,
+                    sampling_angle=0.000095719995443,
+                    misalignment=np.array(
+                        [[0.999999165534973, 0.000510364072397, 0.001214201096445],
+                         [-0.000511951977387, 0.999999046325684, 0.001307720085606],
+                         [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                    )
+                ),
+                earth_ellipsoid=nav.EarthEllipsoid(
+                    flattening=0.003352813177897,
+                    equatorial_radius=6378136.0
+                )
             ),
         )
     },
@@ -84,17 +90,23 @@ IR_NAVIGATION_REFERENCE = [
                 ),
             ),
             nav.ProjectionParameters(
-                line_offset=1378.5,
-                pixel_offset=1672.5,
-                stepping_angle=0.000140000047395,
-                sampling_angle=0.000095719995443,
-                misalignment=np.array(
-                    [[0.999999165534973, 0.000510364072397, 0.001214201096445],
-                     [-0.000511951977387, 0.999999046325684, 0.001307720085606],
-                     [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                image_offset=nav.ImageOffset(
+                    line_offset=1378.5,
+                    pixel_offset=1672.5,
                 ),
-                earth_flattening=0.003352813177897,
-                earth_equatorial_radius=6378136
+                scanning_angles=nav.ScanningAngles(
+                    stepping_angle=0.000140000047395,
+                    sampling_angle=0.000095719995443,
+                    misalignment=np.array(
+                        [[0.999999165534973, 0.000510364072397, 0.001214201096445],
+                         [-0.000511951977387, 0.999999046325684, 0.001307720085606],
+                         [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                    ),
+                ),
+                earth_ellipsoid=nav.EarthEllipsoid(
+                    flattening=0.003352813177897,
+                    equatorial_radius=6378136
+                )
             ),
         )
     }
@@ -131,17 +143,23 @@ VIS_NAVIGATION_REFERENCE = [
                 ),
             ),
             nav.ProjectionParameters(
-                line_offset=5513.0,
-                pixel_offset=6688.5,
-                stepping_angle=0.000035000004573,
-                sampling_angle=0.000023929998861,
-                misalignment=np.array(
-                    [[0.999999165534973, 0.000510364072397, 0.001214201096445],
-                     [-0.000511951977387, 0.999999046325684, 0.001307720085606],
-                     [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                image_offset=nav.ImageOffset(
+                    line_offset=5513.0,
+                    pixel_offset=6688.5,
                 ),
-                earth_flattening=0.003352813177897,
-                earth_equatorial_radius=6378136
+                scanning_angles=nav.ScanningAngles(
+                    stepping_angle=0.000035000004573,
+                    sampling_angle=0.000023929998861,
+                    misalignment=np.array(
+                        [[0.999999165534973, 0.000510364072397, 0.001214201096445],
+                         [-0.000511951977387, 0.999999046325684, 0.001307720085606],
+                         [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                    ),
+                ),
+                earth_ellipsoid=nav.EarthEllipsoid(
+                    flattening=0.003352813177897,
+                    equatorial_radius=6378136
+                )
             ),
         )
     },
@@ -174,17 +192,23 @@ VIS_NAVIGATION_REFERENCE = [
                 ),
             ),
             nav.ProjectionParameters(
-                line_offset=5513.0,
-                pixel_offset=6688.5,
-                stepping_angle=0.000035000004573,
-                sampling_angle=0.000023929998861,
-                misalignment=np.array(
-                    [[0.999999165534973, 0.000510364072397, 0.001214201096445],
-                     [-0.000511951977387, 0.999999046325684, 0.001307720085606],
-                     [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                image_offset=nav.ImageOffset(
+                    line_offset=5513.0,
+                    pixel_offset=6688.5,
                 ),
-                earth_flattening=0.003352813177897,
-                earth_equatorial_radius=6378136
+                scanning_angles=nav.ScanningAngles(
+                    stepping_angle=0.000035000004573,
+                    sampling_angle=0.000023929998861,
+                    misalignment=np.array(
+                        [[0.999999165534973, 0.000510364072397, 0.001214201096445],
+                         [-0.000511951977387, 0.999999046325684, 0.001307720085606],
+                         [-0.001213532872498, -0.001308340579271, 0.999998450279236]]
+                    ),
+                ),
+                earth_ellipsoid=nav.EarthEllipsoid(
+                    flattening=0.003352813177897,
+                    equatorial_radius=6378136
+                )
             ),
         )
     },
@@ -223,10 +247,19 @@ class TestSinglePixelNavigation:
 
     def test_transform_image_coords_to_scanning_angles(self):
         """Test transformation from image coordinates to scanning angles."""
+        offset = nav.ImageOffset(
+            line_offset=100,
+            pixel_offset=200
+        )
+        scanning_angles = nav.ScanningAngles(
+            stepping_angle=0.01,
+            sampling_angle=0.02,
+            misalignment=-999
+        )
         angles = nav.transform_image_coords_to_scanning_angles(
             point=np.array([199, 99]),
-            offset=np.array([100, 200]),
-            sampling=np.array([0.01, 0.02]),
+            image_offset=offset,
+            scanning_angles=scanning_angles
         )
         np.testing.assert_allclose(angles, [-2, 1])
 
@@ -266,12 +299,18 @@ class TestSinglePixelNavigation:
     def test_intersect_view_vector_with_earth(self):
         """Test intersection of a view vector with the earth's surface."""
         view_vector = np.array([-1, 0, 0], dtype=float)
-        sat_pos = np.array([36000 * 1000, 0, 0], dtype=float)
-        eq_radius = 6371 * 1000
-        flattening = 0.003
-        ellipsoid = np.array([eq_radius, flattening])
+        ellipsoid = nav.EarthEllipsoid(
+            equatorial_radius=6371 * 1000,
+            flattening=0.003
+        )
+        sat_pos = nav.SatellitePositionEarthFixed(
+            x=36000 * 1000.0,
+            y=0.0,
+            z=0.0
+        )
         point = nav.intersect_with_earth(view_vector, sat_pos, ellipsoid)
-        np.testing.assert_allclose(point, [eq_radius, 0, 0])
+        exp = [ellipsoid.equatorial_radius, 0, 0]
+        np.testing.assert_allclose(point, exp)
 
     @pytest.mark.parametrize(
         "point_earth_fixed,point_geodetic_exp",
@@ -481,13 +520,19 @@ def orbit_prediction():
 def proj_params(sampling_angle):
     """Get projection parameters."""
     return nav.ProjectionParameters(
-        line_offset=1378.5,
-        pixel_offset=1672.5,
-        stepping_angle=0.000140000047395,
-        sampling_angle=sampling_angle,
-        misalignment=np.identity(3).astype(np.float64),
-        earth_flattening=0.003352813177897,
-        earth_equatorial_radius=6378136,
+        image_offset=nav.ImageOffset(
+            line_offset=1378.5,
+            pixel_offset=1672.5,
+        ),
+        scanning_angles=nav.ScanningAngles(
+            stepping_angle=0.000140000047395,
+            sampling_angle=sampling_angle,
+            misalignment=np.identity(3).astype(np.float64),
+        ),
+        earth_ellipsoid=nav.EarthEllipsoid(
+            flattening=0.003352813177897,
+            equatorial_radius=6378136,
+        )
     )
 
 

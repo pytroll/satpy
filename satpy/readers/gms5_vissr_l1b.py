@@ -657,9 +657,8 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return frame_params["number_of_lines"], frame_params["number_of_pixels"]
 
     def _get_mda(self):
-        mode_block = self._header["image_parameters"]["mode"]
         return {
-            "platform": mode_block["satellite_name"].decode().strip().upper(),
+            "platform": self._mode_block["satellite_name"].decode().strip().upper(),
             "sensor": "VISSR",
             "time_parameters": self._get_time_parameters(),
             "orbital_parameters": self._get_orbital_parameters(),
@@ -682,8 +681,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def _get_time_parameters(self):
-        mode_block = self._header["image_parameters"]["mode"]
-        start_time = mjd2datetime64(mode_block["observation_time_mjd"])
+        start_time = mjd2datetime64(self._mode_block["observation_time_mjd"])
         start_time = start_time.astype(dt.datetime).replace(second=0, microsecond=0)
         end_time = start_time + dt.timedelta(
             minutes=25
@@ -808,39 +806,60 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         IR2: 1378.7
         IR3: 1379.1001
         """
-        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id["name"]]
-        mode_block = self._header["image_parameters"]["mode"]
-        coord_conv = self._header["image_parameters"]["coordinate_conversion"]
-        center_line_vissr_frame = coord_conv["central_line_number_of_vissr_frame"][
-            alt_ch_name
-        ]
-        center_pixel_vissr_frame = coord_conv["central_pixel_number_of_vissr_frame"][
-            alt_ch_name
-        ]
-        pixel_offset = coord_conv[
-            "pixel_difference_of_vissr_center_from_normal_position"
-        ][alt_ch_name]
+        alt_ch_name = _get_alternative_channel_name(dataset_id)
         scan_params = nav.ScanningParameters(
-            start_time_of_scan=coord_conv["scheduled_observation_time"],
-            spinning_rate=mode_block["spin_rate"],
-            num_sensors=coord_conv["number_of_sensor_elements"][alt_ch_name],
-            sampling_angle=coord_conv["sampling_angle_along_pixel"][alt_ch_name],
+            start_time_of_scan=self._coord_conv["scheduled_observation_time"],
+            spinning_rate=self._mode_block["spin_rate"],
+            num_sensors=self._coord_conv["number_of_sensor_elements"][alt_ch_name],
+            sampling_angle=self._coord_conv["sampling_angle_along_pixel"][alt_ch_name],
         )
+        proj_params = self._get_proj_params(dataset_id)
+        return scan_params, proj_params
+
+    def _get_proj_params(self, dataset_id):
+        proj_params = nav.ProjectionParameters(
+            image_offset=self._get_image_offset(dataset_id),
+            scanning_angles=self._get_scanning_angles(dataset_id),
+            earth_ellipsoid=self._get_earth_ellipsoid()
+        )
+        return proj_params
+
+    def _get_earth_ellipsoid(self):
         # Use earth radius and flattening from JMA's Msial library, because
         # the values in the data seem to be pretty old. For example the
         # equatorial radius is from the Bessel Ellipsoid (1841).
-        proj_params = nav.ProjectionParameters(
+        return nav.EarthEllipsoid(
+            flattening=nav.EARTH_FLATTENING,
+            equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS,
+        )
+
+    def _get_scanning_angles(self, dataset_id):
+        alt_ch_name = _get_alternative_channel_name(dataset_id)
+        misalignment = np.ascontiguousarray(
+            self._coord_conv["matrix_of_misalignment"].transpose().astype(np.float64)
+        )
+        return nav.ScanningAngles(
+            stepping_angle=self._coord_conv["stepping_angle_along_line"][alt_ch_name],
+            sampling_angle=self._coord_conv["sampling_angle_along_pixel"][
+                alt_ch_name],
+            misalignment=misalignment
+        )
+
+    def _get_image_offset(self, dataset_id):
+        alt_ch_name = _get_alternative_channel_name(dataset_id)
+        center_line_vissr_frame = self._coord_conv["central_line_number_of_vissr_frame"][
+            alt_ch_name
+        ]
+        center_pixel_vissr_frame = self._coord_conv["central_pixel_number_of_vissr_frame"][
+            alt_ch_name
+        ]
+        pixel_offset = self._coord_conv[
+            "pixel_difference_of_vissr_center_from_normal_position"
+        ][alt_ch_name]
+        return nav.ImageOffset(
             line_offset=center_line_vissr_frame,
             pixel_offset=center_pixel_vissr_frame + pixel_offset,
-            stepping_angle=coord_conv["stepping_angle_along_line"][alt_ch_name],
-            sampling_angle=coord_conv["sampling_angle_along_pixel"][alt_ch_name],
-            misalignment=np.ascontiguousarray(
-                coord_conv["matrix_of_misalignment"].transpose().astype(np.float64)
-            ),
-            earth_flattening=nav.EARTH_FLATTENING,
-            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS,
         )
-        return scan_params, proj_params
 
     def _get_predicted_navigation_params(self):
         """Get predictions of time-dependent navigation parameters."""
@@ -922,6 +941,18 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def end_time(self):
         """Nominal end time of the dataset."""
         return self._mda["time_parameters"]["nominal_end_time"]
+
+    @property
+    def _coord_conv(self):
+        return self._header["image_parameters"]["coordinate_conversion"]
+
+    @property
+    def _mode_block(self):
+        return self._header["image_parameters"]["mode"]
+
+
+def _get_alternative_channel_name(dataset_id):
+    return ALT_CHANNEL_NAMES[dataset_id["name"]]
 
 
 def read_from_file_obj(file_obj, dtype, count, offset=0):
@@ -1110,7 +1141,7 @@ class AreaDefEstimator:
         # angle) to the horizontal dimension to obtain a square area definition
         # with uniform sampling.
         num_lines, _ = original_shape
-        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id["name"]]
+        alt_ch_name = _get_alternative_channel_name(dataset_id)
         stepping_angle = self.coord_conv["stepping_angle_along_line"][alt_ch_name]
         uniform_size = num_lines
         uniform_line_pixel_offset = 0.5 * num_lines

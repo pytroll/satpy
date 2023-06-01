@@ -30,6 +30,7 @@ Attitude = namedtuple(
         "angle_between_sat_spin_and_yz_plane",
     ],
 )
+"""Units: radians"""
 
 
 Orbit = namedtuple(
@@ -57,29 +58,65 @@ OrbitAngles = namedtuple(
         "right_ascension_from_sat_to_sun",
     ],
 )
+"""Units: radians"""
+
 
 SatellitePositionEarthFixed = namedtuple(
     "SatellitePositionEarthFixed",
     ["x", "y", "z"],
 )
+"""Units: meters"""
+
 
 ScanningParameters = namedtuple(
     "ScanningParameters",
     ["start_time_of_scan", "spinning_rate", "num_sensors", "sampling_angle"],
 )
 
+
 ProjectionParameters = namedtuple(
     "ProjectionParameters",
     [
-        "line_offset",
-        "pixel_offset",
-        "stepping_angle",
-        "sampling_angle",
-        "misalignment",
-        "earth_flattening",
-        "earth_equatorial_radius",
+        "image_offset",
+        "scanning_angles",
+        "earth_ellipsoid",
     ],
 )
+
+
+ImageOffset = namedtuple(
+    "ImageOffset",
+    [
+        "line_offset",
+        "pixel_offset",
+    ]
+)
+
+
+ScanningAngles = namedtuple(
+    "ScanningAngles",
+    [
+        "stepping_angle",
+        "sampling_angle",
+        "misalignment"
+    ]
+)
+ScanningAngles.__doc__ = """Scanning angles
+
+Args:
+    stepping_angle: Scanning angle along line (rad)
+    sampling_angle: Scanning angle along pixel (rad)
+    misalignment: Misalignment matrix (3x3)
+"""
+
+EarthEllipsoid = namedtuple(
+    "EarthEllipsoid",
+    [
+        "flattening",
+        "equatorial_radius"
+    ]
+)
+"""Units: meters"""
 
 
 _AttitudePrediction = namedtuple(
@@ -301,10 +338,13 @@ def get_lon_lat(point, nav_params):
     """
     attitude, orbit, proj_params = nav_params
     scan_angles = transform_image_coords_to_scanning_angles(
-        point, _get_image_offset(proj_params), _get_sampling(proj_params)
+        point,
+        proj_params.image_offset,
+        proj_params.scanning_angles
     )
     view_vector_sat = transform_scanning_angles_to_satellite_coords(
-        scan_angles, proj_params.misalignment
+        scan_angles,
+        proj_params.scanning_angles.misalignment
     )
     view_vector_earth_fixed = transform_satellite_to_earth_fixed_coords(
         view_vector_sat,
@@ -312,10 +352,10 @@ def get_lon_lat(point, nav_params):
         attitude
     )
     point_on_earth = intersect_with_earth(
-        view_vector_earth_fixed, _get_sat_pos(orbit), _get_ellipsoid(proj_params)
+        view_vector_earth_fixed, orbit.sat_position, proj_params.earth_ellipsoid
     )
     lon, lat = transform_earth_fixed_to_geodetic_coords(
-        point_on_earth, proj_params.earth_flattening
+        point_on_earth, proj_params.earth_ellipsoid.flattening
     )
     return lon, lat
 
@@ -339,36 +379,32 @@ def _get_spin_angles(attitude):
 
 
 @numba.njit
-def _get_sat_pos(orbit):
+def _get_sat_pos_vector(sat_position):
     return np.array(
         (
-            orbit.sat_position.x,
-            orbit.sat_position.y,
-            orbit.sat_position.z,
+            sat_position.x,
+            sat_position.y,
+            sat_position.z,
         )
     )
 
 
 @numba.njit
-def _get_ellipsoid(proj_params):
-    return (proj_params.earth_equatorial_radius, proj_params.earth_flattening)
-
-
-@numba.njit
-def transform_image_coords_to_scanning_angles(point, offset, sampling):
+def transform_image_coords_to_scanning_angles(point, image_offset, scanning_angles):
     """Transform image coordinates to scanning angles.
 
     Args:
         point: Point (line, pixel) in image coordinates.
-        offset: Offset (line, pixel) from image center.
-        sampling: Stepping angle (along line) and sampling angle (along pixels)
-            in radians.
+        image_offset (ImageOffset): Image offset.
+        scanning_angles (ScanningAngles): Scanning angles.
     Returns:
         Scanning angles (x, y) at the pixel center (rad).
     """
     line, pixel = point
-    line_offset, pixel_offset = offset
-    stepping_angle, sampling_angle = sampling
+    line_offset = image_offset.line_offset
+    pixel_offset = image_offset.pixel_offset
+    stepping_angle = scanning_angles.stepping_angle
+    sampling_angle = scanning_angles.sampling_angle
     x = sampling_angle * (pixel + 1 - pixel_offset)
     y = stepping_angle * (line + 1 - line_offset)
     return np.array([x, y])
@@ -491,13 +527,15 @@ def intersect_with_earth(view_vector, sat_pos, ellipsoid):
     Args:
         view_vector: Instrument viewing vector (x, y, z) in earth-fixed
             coordinates.
-        sat_pos: Satellite position (x, y, z) in earth-fixed coordinates.
-        ellipsoid: Flattening and equatorial radius of the earth.
+        sat_pos (SatellitePositionEarthFixed): Satellite position in
+            earth-fixed coordinates.
+        ellipsoid (EarthEllipsoid): Earth ellipsoid.
     Returns:
         Intersection (x', y', z') with the earth's surface.
     """
     distance = _get_distance_to_intersection(view_vector, sat_pos, ellipsoid)
-    return sat_pos + distance * view_vector
+    sat_pos_vec = _get_sat_pos_vector(sat_pos)
+    return sat_pos_vec + distance * view_vector
 
 
 @numba.njit
@@ -514,14 +552,13 @@ def _get_distance_to_intersection(view_vector, sat_pos, ellipsoid):
 
 @numba.njit
 def _get_distances_to_intersections(view_vector, sat_pos, ellipsoid):
-    equatorial_radius, flattening = ellipsoid
-    flat2 = (1 - flattening) ** 2
+    flat2 = (1 - ellipsoid.flattening) ** 2
     ux, uy, uz = view_vector
-    x, y, z = sat_pos
+    x, y, z = sat_pos.x, sat_pos.y, sat_pos.z
 
     a = flat2 * (ux**2 + uy**2) + uz**2
     b = flat2 * (x * ux + y * uy) + z * uz
-    c = flat2 * (x**2 + y**2 - equatorial_radius**2) + z**2
+    c = flat2 * (x**2 + y**2 - ellipsoid.equatorial_radius**2) + z**2
 
     tmp = np.sqrt((b**2 - a * c))
     dist_1 = (-b + tmp) / a
