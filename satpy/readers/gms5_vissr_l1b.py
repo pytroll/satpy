@@ -850,15 +850,19 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_attitude_prediction(self):
         att_pred = self._header["image_parameters"]["attitude_prediction"]["data"]
-        attitude_prediction = nav.AttitudePrediction(
-            prediction_times=att_pred["prediction_time_mjd"].astype(np.float64),
-            angle_between_earth_and_sun=att_pred["sun_earth_angle"].astype(np.float64),
+        attitudes = nav.Attitude(
+            angle_between_earth_and_sun=att_pred["sun_earth_angle"].astype(
+                np.float64),
             angle_between_sat_spin_and_z_axis=att_pred[
                 "right_ascension_of_attitude"
             ].astype(np.float64),
             angle_between_sat_spin_and_yz_plane=att_pred[
                 "declination_of_attitude"
             ].astype(np.float64),
+        )
+        attitude_prediction = nav.AttitudePrediction(
+            prediction_times=att_pred["prediction_time_mjd"].astype(np.float64),
+            attitude=attitudes
         )
         return attitude_prediction
 

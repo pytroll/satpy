@@ -242,8 +242,11 @@ class TestSinglePixelNavigation:
     def test_transform_satellite_to_earth_fixed_coords(self):
         """Test transformation from satellite to earth-fixed coordinates."""
         point_sat = np.array([1, 2, 3], dtype=float)
-        earth_sun_angle = np.pi
-        spin_angles = np.array([np.pi, np.pi / 2])
+        attitude = nav.Attitude(
+            angle_between_earth_and_sun=np.pi,
+            angle_between_sat_spin_and_z_axis=np.pi,
+            angle_between_sat_spin_and_yz_plane=np.pi / 2
+        )
         orbit = nav.Orbit(
             angles=nav.OrbitAngles(
                 greenwich_sidereal_time=np.pi,
@@ -256,8 +259,7 @@ class TestSinglePixelNavigation:
         res = nav.transform_satellite_to_earth_fixed_coords(
             point_sat,
             orbit,
-            earth_sun_angle,
-            spin_angles,
+            attitude
         )
         np.testing.assert_allclose(res, [-3, 1, -2])
 
@@ -441,9 +443,11 @@ def attitude_prediction():
     """Get attitude prediction."""
     return nav.AttitudePrediction(
         prediction_times=np.array([1.0, 2.0, 3.0]),
-        angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
-        angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
-        angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
+        attitude=nav.Attitude(
+            angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
+            angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
+            angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
+        )
     )
 
 

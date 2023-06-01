@@ -86,9 +86,7 @@ _AttitudePrediction = namedtuple(
     "_AttitudePrediction",
     [
         "prediction_times",
-        "angle_between_earth_and_sun",
-        "angle_between_sat_spin_and_z_axis",
-        "angle_between_sat_spin_and_yz_plane",
+        "attitude"
     ],
 )
 
@@ -115,9 +113,7 @@ class AttitudePrediction:
     def __init__(
         self,
         prediction_times,
-        angle_between_earth_and_sun,
-        angle_between_sat_spin_and_z_axis,
-        angle_between_sat_spin_and_yz_plane,
+        attitude
     ):
         """Initialize attitude prediction.
 
@@ -127,28 +123,23 @@ class AttitudePrediction:
 
         Args:
             prediction_times: Timestamps of predicted attitudes
-            angle_between_earth_and_sun: Angle between earth and sun
-            angle_between_sat_spin_and_z_axis: Angle between satellite's
-                spin-axis and the z-axis of the coordinate system
-            angle_between_sat_spin_and_yz_plane: Angle between satellite's
-                spin-axis and the yz-plane of the coordinate system
+            attitude (Attitude): Attitude angles
         """
         self.prediction_times = prediction_times
-        self.angle_between_earth_and_sun = np.unwrap(angle_between_earth_and_sun)
-        self.angle_between_sat_spin_and_z_axis = np.unwrap(
-            angle_between_sat_spin_and_z_axis
-        )
-        self.angle_between_sat_spin_and_yz_plane = np.unwrap(
-            angle_between_sat_spin_and_yz_plane
+        self.attitude = self._unwrap_angles(attitude)
+
+    def _unwrap_angles(self, attitude):
+        return Attitude(
+            np.unwrap(attitude.angle_between_earth_and_sun),
+            np.unwrap(attitude.angle_between_sat_spin_and_z_axis),
+            np.unwrap(attitude.angle_between_sat_spin_and_yz_plane),
         )
 
     def to_numba(self):
         """Convert to numba-compatible type."""
         return _AttitudePrediction(
             prediction_times=self.prediction_times,
-            angle_between_earth_and_sun=self.angle_between_earth_and_sun,
-            angle_between_sat_spin_and_z_axis=self.angle_between_sat_spin_and_z_axis,
-            angle_between_sat_spin_and_yz_plane=self.angle_between_sat_spin_and_yz_plane,
+            attitude=self.attitude
         )
 
 
@@ -318,8 +309,7 @@ def get_lon_lat(point, nav_params):
     view_vector_earth_fixed = transform_satellite_to_earth_fixed_coords(
         view_vector_sat,
         orbit,
-        attitude.angle_between_earth_and_sun,
-        _get_spin_angles(attitude),
+        attitude
     )
     point_on_earth = intersect_with_earth(
         view_vector_earth_fixed, _get_sat_pos(orbit), _get_ellipsoid(proj_params)
@@ -413,59 +403,44 @@ def _get_transforms_from_scanning_angles_to_satellite_coords(angles):
 def transform_satellite_to_earth_fixed_coords(
     point,
     orbit,
-    earth_sun_angle,
-    spin_angles,
+    attitude
 ):
     """Transform from earth-fixed to satellite angular momentum coordinates.
 
     Args:
         point: Point (x, y, z) in satellite angular momentum coordinates.
         orbit (Orbit): Orbital parameters
-        earth_sun_angle: Angle between sun and earth center on the z-axis
-            vertical plane (rad)
-        spin_angles: Angle between satellite spin axis and z-axis (rad),
-            angle between satellite spin axis and yz-plane
+        attitude (Attitude): Attitude parameters
     Returns:
         Point (x', y', z') in earth-fixed coordinates.
     """
-    sat_unit_vectors = _get_satellite_unit_vectors(
-        orbit,
-        earth_sun_angle,
-        spin_angles,
-    )
+    sat_unit_vectors = _get_satellite_unit_vectors(orbit, attitude)
     return np.dot(sat_unit_vectors, point)
 
 
 @numba.njit
-def _get_satellite_unit_vectors(
-    orbit,
-    earth_sun_angle,
-    spin_angles,
-):
-    unit_vector_z = _get_satellite_unit_vector_z(
-        spin_angles, orbit.angles.greenwich_sidereal_time, orbit.nutation_precession
-    )
+def _get_satellite_unit_vectors(orbit, attitude):
+    unit_vector_z = _get_satellite_unit_vector_z(attitude, orbit)
     unit_vector_x = _get_satellite_unit_vector_x(
-        earth_sun_angle, orbit.angles, unit_vector_z
+        attitude, orbit, unit_vector_z
     )
     unit_vector_y = _get_satellite_unit_vector_y(unit_vector_x, unit_vector_z)
     return np.stack((unit_vector_x, unit_vector_y, unit_vector_z), axis=-1)
 
 
 @numba.njit
-def _get_satellite_unit_vector_z(
-    spin_angles, greenwich_sidereal_time, nutation_precession
-):
-    sat_z_axis_1950 = _get_satellite_z_axis_1950(spin_angles)
-    rotation = _get_transform_from_1950_to_earth_fixed(greenwich_sidereal_time)
-    z_vec = np.dot(rotation, np.dot(nutation_precession, sat_z_axis_1950))
+def _get_satellite_unit_vector_z(attitude, orbit):
+    sat_z_axis_1950 = _get_satellite_z_axis_1950(attitude)
+    rotation = _get_transform_from_1950_to_earth_fixed(orbit.angles.greenwich_sidereal_time)
+    z_vec = np.dot(rotation, np.dot(orbit.nutation_precession, sat_z_axis_1950))
     return normalize_vector(z_vec)
 
 
 @numba.njit
-def _get_satellite_z_axis_1950(spin_angles):
+def _get_satellite_z_axis_1950(attitude):
     """Get satellite z-axis (spin) in mean of 1950 coordinates."""
-    alpha, delta = spin_angles
+    alpha = attitude.angle_between_sat_spin_and_z_axis
+    delta = attitude.angle_between_sat_spin_and_yz_plane
     cos_delta = np.cos(delta)
     x = np.sin(delta)
     y = -cos_delta * np.sin(alpha)
@@ -481,9 +456,9 @@ def _get_transform_from_1950_to_earth_fixed(greenwich_sidereal_time):
 
 
 @numba.njit
-def _get_satellite_unit_vector_x(earth_sun_angle, orbit_angles, sat_unit_vector_z):
-    beta = earth_sun_angle
-    sat_sun_vector = _get_vector_from_satellite_to_sun(orbit_angles)
+def _get_satellite_unit_vector_x(attitude, orbit, sat_unit_vector_z):
+    beta = attitude.angle_between_earth_and_sun
+    sat_sun_vector = _get_vector_from_satellite_to_sun(orbit.angles)
     z_cross_satsun = np.cross(sat_unit_vector_z, sat_sun_vector)
     z_cross_satsun = normalize_vector(z_cross_satsun)
     x_vec = z_cross_satsun * np.sin(beta) + np.cross(
@@ -645,17 +620,17 @@ def interpolate_attitude_prediction(attitude_prediction, observation_time):
     angle_between_earth_and_sun = interpolate_angles(
         observation_time,
         attitude_prediction.prediction_times,
-        attitude_prediction.angle_between_earth_and_sun,
+        attitude_prediction.attitude.angle_between_earth_and_sun,
     )
     angle_between_sat_spin_and_z_axis = interpolate_angles(
         observation_time,
         attitude_prediction.prediction_times,
-        attitude_prediction.angle_between_sat_spin_and_z_axis,
+        attitude_prediction.attitude.angle_between_sat_spin_and_z_axis,
     )
     angle_between_sat_spin_and_yz_plane = interpolate_angles(
         observation_time,
         attitude_prediction.prediction_times,
-        attitude_prediction.angle_between_sat_spin_and_yz_plane,
+        attitude_prediction.attitude.angle_between_sat_spin_and_yz_plane,
     )
     return Attitude(
         angle_between_earth_and_sun,
