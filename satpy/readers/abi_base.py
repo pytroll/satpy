@@ -25,6 +25,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+import satpy
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
@@ -44,7 +45,7 @@ PLATFORM_NAMES = {
 class NC_ABI_BASE(BaseFileHandler):
     """Base reader for ABI L1B  L2+ NetCDF4 files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, clip_negative_radiances=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
 
@@ -55,6 +56,10 @@ class NC_ABI_BASE(BaseFileHandler):
         self.ncols = self.nc['x'].size
 
         self.coords = {}
+
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("clip_negative_radiances")
+        self.clip_negative_radiances = clip_negative_radiances
 
     @cached_property
     def nc(self):

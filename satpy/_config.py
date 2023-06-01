@@ -62,6 +62,7 @@ _CONFIG_DEFAULTS = {
     'demo_data_dir': '.',
     'download_aux': True,
     'sensor_angles_position_preference': 'actual',
+    'clip_negative_radiances': False,
 }
 
 # Satpy main configuration object
