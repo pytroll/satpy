@@ -757,7 +757,8 @@ class Scene:
                                     `Scene`. Defaults to all datasets.
             func (string): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
-                           'argmax', 'prod', 'std', 'var'.
+                           'argmax', 'prod', 'std', 'var' strings or a custom
+                           function (callable).
                            'mean' is the default.
             boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
             side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
@@ -789,8 +790,10 @@ class Scene:
                 resolution = max(target_area.lats.resolution, target_area.lons.resolution)
             for ds_id in ds_ids:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
-
-                new_scn._datasets[ds_id] = getattr(res, func)()
+                if callable(func):
+                    new_scn._datasets[ds_id] = res.reduce(func)
+                else:
+                    new_scn._datasets[ds_id] = getattr(res, func)()
                 new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
