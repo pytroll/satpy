@@ -605,13 +605,25 @@ class Calibrator:
         """Transform counts to given calibration level."""
         if calibration == "counts":
             return counts
-        res = da.map_blocks(
+        res = self._calibrate(counts)
+        res = self._postproc(res, calibration)
+        return self._make_data_array(res, counts)
+
+    def _calibrate(self, counts):
+        return da.map_blocks(
             self._lookup_calib_table,
             counts.data,
             calib_table=self._calib_table,
             dtype=np.float32,
         )
-        return self._make_data_array(res, counts)
+
+    def _postproc(self, res, calibration):
+        if calibration == "reflectance":
+            res = self._convert_to_percent(res)
+        return res
+
+    def _convert_to_percent(self, res):
+        return res * 100
 
     def _make_data_array(self, interp, counts):
         return xr.DataArray(

@@ -364,9 +364,9 @@ class TestFileHandler:
         """Get expected VIS reflectance."""
         lons, lats = lons_lats_exp
         if mask_space:
-            data = [[np.nan, np.nan], [0.5, 1]]
+            data = [[np.nan, np.nan], [50, 100]]
         else:
-            data = [[0, 0.25], [0.5, 1]]
+            data = [[0, 25], [50, 100]]
         return xr.DataArray(
             data,
             dims=("y", "x"),
