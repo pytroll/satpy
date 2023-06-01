@@ -17,13 +17,13 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1680,
         'lon': 139.990380,
         'lat': 35.047056,
-        'nav_params': (
-            nav.Attitude(
+        'nav_params': nav.PixelNavigationParameters(
+            attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397917902958,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            nav.Orbit(
+            orbit=nav.Orbit(
                 angles=nav.OrbitAngles(
                     greenwich_sidereal_time=2.468529732418296,
                     declination_from_sat_to_sun=-0.208770861178982,
@@ -40,7 +40,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            nav.ProjectionParameters(
+            proj_params=nav.ProjectionParameters(
                 image_offset=nav.ImageOffset(
                     line_offset=1378.5,
                     pixel_offset=1672.5,
@@ -66,13 +66,13 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1793,
         'lon': 144.996967,
         'lat': -34.959853,
-        'nav_params': (
-            nav.Attitude(
+        'nav_params': nav.PixelNavigationParameters(
+            attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944355762,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            nav.Orbit(
+            orbit=nav.Orbit(
                 angles=nav.OrbitAngles(
                     greenwich_sidereal_time=2.530392320846865,
                     declination_from_sat_to_sun=-0.208713576872247,
@@ -89,7 +89,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            nav.ProjectionParameters(
+            proj_params=nav.ProjectionParameters(
                 image_offset=nav.ImageOffset(
                     line_offset=1378.5,
                     pixel_offset=1672.5,
@@ -119,13 +119,13 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 6720,
         'lon': 139.975527,
         'lat': 35.078028,
-        'nav_params': (
-            nav.Attitude(
+        'nav_params': nav.PixelNavigationParameters(
+            attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397918405798,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            nav.Orbit(
+            orbit=nav.Orbit(
                 angles=nav.OrbitAngles(
                     greenwich_sidereal_time=2.468529731914041,
                     declination_from_sat_to_sun=-0.208770861179448,
@@ -142,7 +142,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            nav.ProjectionParameters(
+            proj_params=nav.ProjectionParameters(
                 image_offset=nav.ImageOffset(
                     line_offset=5513.0,
                     pixel_offset=6688.5,
@@ -168,13 +168,13 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 7172,
         'lon': 144.980104,
         'lat': -34.929123,
-        'nav_params': (
-            nav.Attitude(
+        'nav_params': nav.PixelNavigationParameters(
+            attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944858620,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            nav.Orbit(
+            orbit=nav.Orbit(
                 angles=nav.OrbitAngles(
                     greenwich_sidereal_time=2.530392320342610,
                     declination_from_sat_to_sun=-0.208713576872715,
@@ -191,7 +191,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            nav.ProjectionParameters(
+            proj_params=nav.ProjectionParameters(
                 image_offset=nav.ImageOffset(
                     line_offset=5513.0,
                     pixel_offset=6688.5,
@@ -341,26 +341,30 @@ class TestSinglePixelNavigation:
 class TestImageNavigation:
     """Test navigation of an entire image."""
 
-    def test_get_lons_lats(
-        self, scan_params, attitude_prediction, orbit_prediction, proj_params
-    ):
-        """Test getting lon/lat coordinates."""
+    @pytest.fixture
+    def expected(self):
+        """Get expected coordinates."""
         # fmt: off
-        lons_exp = [[-114.56923, -112.096837, -109.559702],
+        exp = {
+            "lon": [[-114.56923, -112.096837, -109.559702],
                     [8.33221, 8.793893, 9.22339],
-                    [15.918476, 16.268354, 16.6332]]
-        lats_exp = [[-23.078721, -24.629845, -26.133314],
+                    [15.918476, 16.268354, 16.6332]],
+            "lat": [[-23.078721, -24.629845, -26.133314],
                     [-42.513409, -39.790231, -37.06392],
                     [3.342834, 6.07043, 8.795932]]
+        }
         # fmt: on
+        return exp
+
+    def test_get_lons_lats(self, navigation_params, expected):
+        """Test getting lon/lat coordinates."""
         lons, lats = nav.get_lons_lats(
             lines=np.array([1000, 1500, 2000]),
             pixels=np.array([1000, 1500, 2000]),
-            static_params=(scan_params, proj_params),
-            predicted_params=(attitude_prediction, orbit_prediction),
+            nav_params=navigation_params
         )
-        np.testing.assert_allclose(lons, lons_exp)
-        np.testing.assert_allclose(lats, lats_exp)
+        np.testing.assert_allclose(lons, expected["lon"])
+        np.testing.assert_allclose(lats, expected["lat"])
 
 
 class TestPredictionInterpolation:
@@ -533,6 +537,30 @@ def proj_params(sampling_angle):
             flattening=0.003352813177897,
             equatorial_radius=6378136,
         )
+    )
+
+
+@pytest.fixture
+def static_nav_params(proj_params, scan_params):
+    """Get static navigation parameters."""
+    return nav.StaticNavigationParameters(
+        proj_params, scan_params
+    )
+
+
+@pytest.fixture
+def predicted_nav_params(attitude_prediction, orbit_prediction):
+    """Get predicted navigation parameters."""
+    return nav.PredictedNavigationParameters(
+        attitude_prediction, orbit_prediction
+    )
+
+
+@pytest.fixture
+def navigation_params(static_nav_params, predicted_nav_params):
+    """Get image navigation parameters."""
+    return nav.ImageNavigationParameters(
+        static_nav_params, predicted_nav_params
     )
 
 

@@ -30,7 +30,10 @@ Attitude = namedtuple(
         "angle_between_sat_spin_and_yz_plane",
     ],
 )
-"""Units: radians"""
+"""Attitude parameters.
+
+Units: radians
+"""
 
 
 Orbit = namedtuple(
@@ -41,7 +44,7 @@ Orbit = namedtuple(
         "nutation_precession",
     ],
 )
-Orbit.__doc__ = """Orbital Parameters
+"""Orbital Parameters
 
 Args:
     angles (OrbitAngles): Orbit angles
@@ -58,19 +61,87 @@ OrbitAngles = namedtuple(
         "right_ascension_from_sat_to_sun",
     ],
 )
-"""Units: radians"""
+"""Orbit angles.
+
+Units: radians
+"""
 
 
 SatellitePositionEarthFixed = namedtuple(
     "SatellitePositionEarthFixed",
     ["x", "y", "z"],
 )
-"""Units: meters"""
+"""Satellite position in earth-fixed coordinates.
+
+Units: meters
+"""
+
+
+ImageNavigationParameters = namedtuple(
+    "ImageNavigationParameters",
+    ["static", "predicted"]
+)
+"""Navigation parameters for the entire image.
+
+Args:
+    static (StaticNavigationParameters): Static parameters.
+    predicted (PredictedNavigationParameters): Predicted time-dependent parameters.
+"""
+
+
+PixelNavigationParameters = namedtuple(
+    "PixelNavigationParameters",
+    ["attitude", "orbit", "proj_params"]
+)
+"""Navigation parameters for a single pixel.
+
+Args:
+    attitude (Attitude): Attitude parameters
+    orbit (Orbit): Orbit parameters
+    proj_params (ProjectionParameters): Projection parameters
+"""
+
+
+StaticNavigationParameters = namedtuple(
+    "StaticNavigationParameters",
+    [
+        "proj_params",
+        "scan_params"
+    ]
+)
+"""Navigation parameters which are constant for the entire scan.
+
+Args:
+    proj_params (ProjectionParameters): Projection parameters
+    scan_params (ScanningParameters): Scanning parameters
+"""
+
+
+PredictedNavigationParameters = namedtuple(
+    "PredictedNavigationParameters",
+    [
+        "attitude",
+        "orbit"
+    ]
+)
+"""Predictions of time-dependent navigation parameters.
+
+They need to be evaluated for each pixel.
+
+Args:
+    attitude (AttitudePrediction): Attitude prediction
+    orbit (OrbitPrediction): Orbit prediction
+"""
 
 
 ScanningParameters = namedtuple(
     "ScanningParameters",
-    ["start_time_of_scan", "spinning_rate", "num_sensors", "sampling_angle"],
+    [
+        "start_time_of_scan",
+        "spinning_rate",
+        "num_sensors",
+        "sampling_angle"
+    ],
 )
 
 
@@ -82,6 +153,13 @@ ProjectionParameters = namedtuple(
         "earth_ellipsoid",
     ],
 )
+"""Projection parameters.
+
+Args:
+    image_offset (ImageOffset): Image offset
+    scanning_angles (ScanningAngles): Scanning angles
+    earth_ellipsoid (EarthEllipsoid): Earth ellipsoid
+"""
 
 
 ImageOffset = namedtuple(
@@ -91,6 +169,12 @@ ImageOffset = namedtuple(
         "pixel_offset",
     ]
 )
+"""Image offset
+
+Args:
+    line_offset: Line offset from image center
+    pixel_offset: Pixel offset from image center
+"""
 
 
 ScanningAngles = namedtuple(
@@ -101,13 +185,14 @@ ScanningAngles = namedtuple(
         "misalignment"
     ]
 )
-ScanningAngles.__doc__ = """Scanning angles
+"""Scanning angles
 
 Args:
     stepping_angle: Scanning angle along line (rad)
     sampling_angle: Scanning angle along pixel (rad)
     misalignment: Misalignment matrix (3x3)
 """
+
 
 EarthEllipsoid = namedtuple(
     "EarthEllipsoid",
@@ -116,7 +201,12 @@ EarthEllipsoid = namedtuple(
         "equatorial_radius"
     ]
 )
-"""Units: meters"""
+"""Earth ellipsoid.
+
+Args:
+    flattening: Ellipsoid flattening
+    equatorial_radius: Equatorial radius (meters)
+"""
 
 
 _AttitudePrediction = namedtuple(
@@ -160,7 +250,7 @@ class AttitudePrediction:
 
         Args:
             prediction_times: Timestamps of predicted attitudes
-            attitude (Attitude): Attitude angles
+            attitude (Attitude): Attitudes at prediction times
         """
         self.prediction_times = prediction_times
         self.attitude = self._unwrap_angles(attitude)
@@ -231,30 +321,31 @@ class OrbitPrediction:
         )
 
 
-def get_lons_lats(lines, pixels, static_params, predicted_params):
+def get_lons_lats(lines, pixels, nav_params):
     """Compute lon/lat coordinates given VISSR image coordinates.
 
     Args:
         lines: VISSR image lines
         pixels: VISSR image pixels
-        static_params: Static navigation parameters
-        predicted_params: Predicted time-dependent navigation parameters
+        nav_params: Image navigation parameters
     """
     pixels_2d, lines_2d = da.meshgrid(pixels, lines)
     lons, lats = da.map_blocks(
         _get_lons_lats_numba,
         lines_2d,
         pixels_2d,
-        static_params=static_params,
-        predicted_params=_make_predicted_params_numba_compatible(predicted_params),
+        nav_params=_make_nav_params_numba_compatible(nav_params),
         **_get_map_blocks_kwargs(pixels_2d.chunks)
     )
     return lons, lats
 
 
-def _make_predicted_params_numba_compatible(predicted_params):
-    att_pred, orb_pred = predicted_params
-    return att_pred.to_numba(), orb_pred.to_numba()
+def _make_nav_params_numba_compatible(nav_params):
+    predicted = PredictedNavigationParameters(
+        attitude=nav_params.predicted.attitude.to_numba(),
+        orbit=nav_params.predicted.orbit.to_numba()
+    )
+    return ImageNavigationParameters(nav_params.static, predicted)
 
 
 def _get_map_blocks_kwargs(chunks):
@@ -268,17 +359,17 @@ def _get_map_blocks_kwargs(chunks):
 
 
 @numba.njit
-def _get_lons_lats_numba(lines_2d, pixels_2d, static_params, predicted_params):
+def _get_lons_lats_numba(lines_2d, pixels_2d, nav_params):
     shape = lines_2d.shape
     lons = np.zeros(shape, dtype=np.float32)
     lats = np.zeros(shape, dtype=np.float32)
     for i in range(shape[0]):
         for j in range(shape[1]):
             point = (lines_2d[i, j], pixels_2d[i, j])
-            nav_params = _get_navigation_parameters(
-                point, static_params, predicted_params
+            nav_params_pix = _get_pixel_navigation_parameters(
+                point, nav_params
             )
-            lon, lat = get_lon_lat(point, nav_params)
+            lon, lat = get_lon_lat(point, nav_params_pix)
             lons[i, j] = lon
             lats[i, j] = lat
     # Stack lons and lats because da.map_blocks doesn't support multiple
@@ -287,14 +378,18 @@ def _get_lons_lats_numba(lines_2d, pixels_2d, static_params, predicted_params):
 
 
 @numba.njit
-def _get_navigation_parameters(point, static_params, predicted_params):
-    scan_params, proj_params = static_params
-    attitude_prediction, orbit_prediction = predicted_params
-    obs_time = get_observation_time(point, scan_params)
+def _get_pixel_navigation_parameters(point, im_nav_params):
+    obs_time = get_observation_time(point, im_nav_params.static.scan_params)
     attitude, orbit = interpolate_navigation_prediction(
-        attitude_prediction, orbit_prediction, obs_time
+        attitude_prediction=im_nav_params.predicted.attitude,
+        orbit_prediction=im_nav_params.predicted.orbit,
+        observation_time=obs_time
     )
-    return attitude, orbit, proj_params
+    return PixelNavigationParameters(
+        attitude=attitude,
+        orbit=orbit,
+        proj_params=im_nav_params.static.proj_params
+    )
 
 
 @numba.njit
@@ -331,31 +426,32 @@ def get_lon_lat(point, nav_params):
 
     Args:
         point: Point (line, pixel) in image coordinates.
-        nav_params: Navigation parameters (Attitude, Orbit, Projection
-            Parameters)
+        nav_params (PixelNavigationParameters): Navigation parameters for a
+            single pixel.
     Returns:
         Longitude and latitude in degrees.
     """
-    attitude, orbit, proj_params = nav_params
     scan_angles = transform_image_coords_to_scanning_angles(
         point,
-        proj_params.image_offset,
-        proj_params.scanning_angles
+        nav_params.proj_params.image_offset,
+        nav_params.proj_params.scanning_angles
     )
     view_vector_sat = transform_scanning_angles_to_satellite_coords(
         scan_angles,
-        proj_params.scanning_angles.misalignment
+        nav_params.proj_params.scanning_angles.misalignment
     )
     view_vector_earth_fixed = transform_satellite_to_earth_fixed_coords(
         view_vector_sat,
-        orbit,
-        attitude
+        nav_params.orbit,
+        nav_params.attitude
     )
     point_on_earth = intersect_with_earth(
-        view_vector_earth_fixed, orbit.sat_position, proj_params.earth_ellipsoid
+        view_vector_earth_fixed,
+        nav_params.orbit.sat_position,
+        nav_params.proj_params.earth_ellipsoid
     )
     lon, lat = transform_earth_fixed_to_geodetic_coords(
-        point_on_earth, proj_params.earth_ellipsoid.flattening
+        point_on_earth, nav_params.proj_params.earth_ellipsoid.flattening
     )
     return lon, lat
 

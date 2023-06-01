@@ -131,7 +131,7 @@ To turn off masking, set ``mask_space=False`` upon scene creation:
 Metadata
 --------
 
-Dataset attributes include metadata such as time or orbital parameters,
+Dataset attributes include metadata such as time and orbital parameters,
 see :ref:`dataset_metadata`.
 
 """
@@ -780,20 +780,20 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_lons_lats(self, dataset, dataset_id):
         lines, pixels = self._get_image_coords(dataset)
-        static_params = self._get_static_navigation_params(dataset_id)
-        predicted_params = self._get_predicted_navigation_params()
-        lons, lats = nav.get_lons_lats(
-            lines=lines,
-            pixels=pixels,
-            static_params=static_params,
-            predicted_params=predicted_params,
-        )
+        nav_params = self._get_navigation_parameters(dataset_id)
+        lons, lats = nav.get_lons_lats(lines, pixels, nav_params)
         return self._make_lons_lats_data_array(lons, lats)
 
     def _get_image_coords(self, data):
         lines = data.coords["line_number"].values
         pixels = np.arange(data.shape[1])
         return lines.astype(np.float64), pixels.astype(np.float64)
+
+    def _get_navigation_parameters(self, dataset_id):
+        return nav.ImageNavigationParameters(
+            static=self._get_static_navigation_params(dataset_id),
+            predicted=self._get_predicted_navigation_params()
+        )
 
     def _get_static_navigation_params(self, dataset_id):
         """Get static navigation parameters.
@@ -814,7 +814,10 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             sampling_angle=self._coord_conv["sampling_angle_along_pixel"][alt_ch_name],
         )
         proj_params = self._get_proj_params(dataset_id)
-        return scan_params, proj_params
+        return nav.StaticNavigationParameters(
+            proj_params=proj_params,
+            scan_params=scan_params
+        )
 
     def _get_proj_params(self, dataset_id):
         proj_params = nav.ProjectionParameters(
@@ -865,7 +868,10 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         """Get predictions of time-dependent navigation parameters."""
         attitude_prediction = self._get_attitude_prediction()
         orbit_prediction = self._get_orbit_prediction()
-        return attitude_prediction, orbit_prediction
+        return nav.PredictedNavigationParameters(
+            attitude=attitude_prediction,
+            orbit=orbit_prediction
+        )
 
     def _get_attitude_prediction(self):
         att_pred = self._header["image_parameters"]["attitude_prediction"]["data"]
