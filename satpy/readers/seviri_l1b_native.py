@@ -70,7 +70,7 @@ Output:
         orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         time_parameters:          {'nominal_start_time': datetime.datetime(2021, ...
         units:                    K
-        wavelength:               10.8 µm (9.8-11.8 µm)
+        wavelength:               10.8 µm (9.8-11.8 µm)
         standard_name:            toa_brightness_temperature
         platform_name:            Meteosat-11
         sensor:                   seviri
@@ -99,7 +99,7 @@ References:
 
 import logging
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -114,6 +114,7 @@ from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     HRV_NUM_LINES,
+    REPEAT_CYCLE_DURATION,
     SATNUM,
     VISIR_NUM_COLUMNS,
     VISIR_NUM_LINES,
@@ -128,6 +129,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
+    round_nom_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
@@ -195,26 +197,33 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
     @property
+    def _repeat_cycle_duration(self):
+        """Get repeat cycle duration from the trailer."""
+        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            return 5
+        return REPEAT_CYCLE_DURATION
+
+    @property
     def nominal_start_time(self):
-        """Read the repeat cycle nominal start time from metadata."""
-        return self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        """Get the repeat cycle nominal start time from file header and round it to expected nominal time slot."""
+        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
-        """Read the repeat cycle nominal end time from metadata."""
-        return self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        """Get the repeat cycle nominal end time from file header and round it to expected nominal time slot."""
+        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
-        """Read the repeat cycle sensing start time from metadata."""
+        """Get observation start time from trailer."""
         return self.trailer['15TRAILER']['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
     def observation_end_time(self):
-        """Read the repeat cycle sensing end time from metadata."""
+        """Get observation end time from trailer."""
         return self.trailer['15TRAILER']['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
@@ -605,7 +614,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             channel_name=channel_name,
             coefs=self._get_calib_coefs(channel_name),
             calib_mode=self.calib_mode,
-            scan_time=self.start_time
+            scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, dataset_id['calibration'])
         logger.debug("Calibration time " + str(datetime.now() - tic))

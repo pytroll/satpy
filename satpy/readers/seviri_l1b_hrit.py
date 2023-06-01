@@ -60,6 +60,30 @@ This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT reader
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
 
+Nominal start/end time
+----------------------
+
+.. warning:: attribute access change
+
+``nominal_start_time`` and ``nominal_end_time`` should be accessed using the ``time_parameters`` attribute.
+
+``nominal_start_time`` and ``nominal_end_time`` are also available directly
+via ``start_time`` and ``end_time`` respectively.
+
+Here is an exmaple of the content of the start/end time and ``time_parameters`` attibutes
+
+.. code-block:: python
+
+    Start time: 2019-08-29 12:00:00
+    End time:   2019-08-29 12:15:00
+    time_parameters:
+                    {'nominal_start_time': datetime.datetime(2019, 8, 29, 12, 0),
+                     'nominal_end_time': datetime.datetime(2019, 8, 29, 12, 15),
+                     'observation_start_time': datetime.datetime(2019, 8, 29, 12, 0, 9, 338000),
+                     'observation_end_time': datetime.datetime(2019, 8, 29, 12, 15, 9, 203000)
+                     }
+
+
 Example
 -------
 Here is an example how to read the data in satpy:
@@ -190,7 +214,7 @@ from __future__ import division
 
 import copy
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -211,6 +235,7 @@ from satpy.readers.hrit_base import (
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
+    REPEAT_CYCLE_DURATION,
     SATNUM,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
@@ -221,6 +246,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     mask_bad_quality,
     pad_data_horizontally,
+    round_nom_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 from satpy.utils import get_legacy_chunk_size
@@ -342,14 +368,12 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         a, b = self.get_earth_radii()
-        start_time = self.prologue['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
         poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
             'Orbit']['OrbitPolynomial'])
-        orbit_polynomial = poly_finder.get_orbit_polynomial(start_time)
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.observation_start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=start_time,
+            time=self.observation_start_time,
             semi_major_axis=a,
             semi_minor_axis=b,
         )
@@ -452,7 +476,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
-
         self._get_header()
 
     def _get_header(self):
@@ -494,28 +517,47 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
+    def _repeat_cycle_duration(self):
+        """Get repeat cycle duration from epilogue."""
+        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            return 5
+        return REPEAT_CYCLE_DURATION
+
+    @property
     def nominal_start_time(self):
-        """Get the start time."""
-        return self.prologue['ImageAcquisition'][
+        """Get the start time and round it according to scan law."""
+        tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
-        """Get the end time."""
-        return self.prologue['ImageAcquisition'][
+        """Get the end time and round it according to scan law."""
+        tm = self.prologue['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
-    def start_time(self):
-        """Get the start time."""
+    def observation_start_time(self):
+        """Get the observation start time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
-    def end_time(self):
-        """Get the end time."""
+    def observation_end_time(self):
+        """Get the observation end time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
+
+    @property
+    def start_time(self):
+        """Get general start time for this file."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     def _get_area_extent(self, pdict):
         """Get the area extent of the file.
@@ -685,7 +727,7 @@ class HRITMSGFileHandler(HRITFileHandler):
             channel_name=self.channel_name,
             coefs=self._get_calib_coefs(self.channel_name),
             calib_mode=self.calib_mode,
-            scan_time=self.start_time
+            scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, calibration)
         logger.debug("Calibration time " + str(datetime.now() - tic))
@@ -725,8 +767,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
-        res.attrs['nominal_start_time'] = self.nominal_start_time
-        res.attrs['nominal_end_time'] = self.nominal_end_time
+        res.attrs['nominal_start_time'] = self.nominal_start_time,
+        res.attrs['nominal_end_time'] = self.nominal_end_time,
+        res.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+            }
         res.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
