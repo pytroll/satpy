@@ -31,6 +31,7 @@ from pyresample import AreaDefinition
 
 import satpy
 
+
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
@@ -129,7 +130,7 @@ class TestMatchDataArrays(unittest.TestCase):
         self.assertNotIn('acq_time', ret_datasets[0].coords)
 
 
-class TestRatioSharpenedCompositors(unittest.TestCase):
+class TestRatioSharpenedCompositors:
     """Test RatioSharpenedRGB and SelfSharpendRGB compositors."""
 
     def setUp(self):
@@ -150,17 +151,16 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
-        self.ds1 = ds1
+
         ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds2.attrs['name'] += '2'
-        self.ds2 = ds2
+
         ds3 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 3,
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds3.attrs['name'] += '3'
-        self.ds3 = ds3
 
         # high resolution version
         high_res_data = np.ones((2, 2), dtype=np.float64)
@@ -170,146 +170,147 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds4.attrs['name'] += '4'
         ds4.attrs['resolution'] = 500
-        self.ds4 = ds4
 
         # high resolution version - but too big
-        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                           attrs=attrs.copy(), dims=('y', 'x'),
-                           coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
-        ds4.attrs['name'] += '4'
-        ds4.attrs['resolution'] = 500
-        ds4.attrs['rows_per_scan'] = 1
-        ds4.attrs['area'] = AreaDefinition('test', 'test', 'test',
-                                           {'proj': 'merc'}, 4, 4,
-                                           (-2000, -2000, 2000, 2000))
-        self.ds4_big = ds4
+        ds4_big = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                               attrs=attrs.copy(), dims=('y', 'x'),
+                               coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
+        ds4_big.attrs['name'] += '4'
+        ds4_big.attrs['resolution'] = 500
+        ds4_big.attrs['rows_per_scan'] = 1
+        ds4_big.attrs['area'] = AreaDefinition('test', 'test', 'test',
+                                               {'proj': 'merc'}, 4, 4,
+                                               (-2000, -2000, 2000, 2000))
 
-    def test_high_bad_color(self):
-        """Test that only valid band colors can be provided."""
+        return ds1, ds2, ds3, ds4, ds4_big
+
+    @pytest.mark.parametrize(
+        ("case", "exp"),
+        [
+            ("high bad color", ValueError),
+            ("neutral bad color", ValueError),
+            ("match_data_arrays", satpy.composites.IncompatibleAreas),
+            ("more than three datasets", ValueError),
+            ("no high res band in self sharpened", ValueError)
+        ]
+    )
+    def test_errors(self, case, exp):
+        """Test errors under different cases."""
+        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
+
+        if case == "high bad color":
+            with pytest.raises(exp):
+                RatioSharpenedRGB(name='true_color', high_resolution_band="bad", neutral_resolution_band="red")
+
+        elif case == "neutral bad color":
+            with pytest.raises(exp):
+                RatioSharpenedRGB(name='true_color', high_resolution_band="red", neutral_resolution_band="bad")
+
+        elif case == "match_data_arrays":
+            comp = RatioSharpenedRGB(name='true_color')
+            with pytest.raises(exp):
+                comp((ds1, ds2, ds3), optional_datasets=(ds4_big,))
+
+        elif case == "more than three datasets":
+            comp = RatioSharpenedRGB(name='true_color')
+            with pytest.raises(exp):
+                comp((ds1, ds2, ds3, ds1), optional_datasets=(ds4_big,))
+
+        elif case == "no high res band in self sharpened":
+            comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
+            with pytest.raises(exp):
+                comp((ds1, ds2, ds3))
+
+    @pytest.mark.parametrize(
+        ("case", "exp"),
+        [
+            ("without optional high res", (3, 2, 2)),
+            ("high res band is None", (3, 2, 2))
+        ]
+    )
+    def test_basic_function(self, case, exp):
+        """Test basic composite function without sharpening."""
         from satpy.composites import RatioSharpenedRGB
-        self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
+        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
 
-    def test_neutral_bad_color(self):
-        """Test that only valid band colors can be provided."""
+        if case == "without optional high res":
+            comp = RatioSharpenedRGB(name='true_color')
+            res = comp((ds1, ds2, ds3))
+        elif case == "high res band is None":
+            comp = RatioSharpenedRGB(name='true_color', high_resolution_band=None)
+            res = comp((ds1, ds2, ds3), optional_datasets=(ds4,))
+
+        assert res.shape == exp
+
+    @pytest.mark.parametrize(
+        ("high_resolution_band", "neutral_resolution_band", "exp_r", "exp_g", "exp_b"),
+        [
+            ("red", None,
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64),
+             np.array([[0.6, 0.6], [np.nan, 3.0]], dtype=np.float64),
+             np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64)),
+            ("red", "green",
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64),
+             np.array([[3.0, 3.0], [np.nan, 3.0]], dtype=np.float64),
+             np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64)),
+            ("green", None,
+             np.array([[5 / 3, 5 / 3], [np.nan, 0.0]], dtype=np.float64),
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64),
+             np.array([[4 / 3, 4 / 3], [np.nan, 4 / 3]], dtype=np.float64)),
+            ("green", "blue",
+             np.array([[5 / 3, 5 / 3], [np.nan, 0.0]], dtype=np.float64),
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64),
+             np.array([[4.0, 4.0], [np.nan, 4.0]], dtype=np.float64)),
+            ("blue", None,
+             np.array([[1.25, 1.25], [np.nan, 0.0]], dtype=np.float64),
+             np.array([[0.75, 0.75], [np.nan, 0.75]], dtype=np.float64),
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64)),
+            ("blue", "red",
+             np.array([[5.0, 5.0], [np.nan, 0.0]], dtype=np.float64),
+             np.array([[0.75, 0.75], [np.nan, 0.75]], dtype=np.float64),
+             np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
+        ]
+    )
+    def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b):
+        """Test RatioSharpenedRGB by different groups of high_resolution_band and neutral_resolution_band."""
         from satpy.composites import RatioSharpenedRGB
-        self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', neutral_resolution_band='bad')
+        comp = RatioSharpenedRGB(name='true_color', high_resolution_band=high_resolution_band,
+                                 neutral_resolution_band=neutral_resolution_band)
+        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
+        res = comp((ds1, ds2, ds3), optional_datasets=(ds4,))
 
-    def test_match_data_arrays(self):
-        """Test that all areas have to be the same resolution."""
-        from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
-        self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
+        assert "units" not in res.attrs
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
 
-    def test_more_than_three_datasets(self):
-        """Test that only 3 datasets can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
-        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds3, self.ds1),
-                          optional_datasets=(self.ds4_big,))
+        data = res.values
+        np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
+        np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
+        np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
 
-    def test_basic_no_high_res(self):
-        """Test that three datasets can be passed without optional high res."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
-        res = comp((self.ds1, self.ds2, self.ds3))
-        self.assertEqual(res.shape, (3, 2, 2))
-
-    def test_basic_no_sharpen(self):
-        """Test that color None does no sharpening."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        self.assertEqual(res.shape, (3, 2, 2))
-
-    def test_basic_red_no_neutral(self):
-        """Test that basic high resolution red with no neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', neutral_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], self.ds4.values)
-        np.testing.assert_allclose(res[1], np.array([[0.6, 0.6], [np.nan, 3.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64))
-
-    def test_basic_red_neutral_green(self):
-        """Test that basic high resolution red with green neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', neutral_resolution_band='green')
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], self.ds4.values)
-        np.testing.assert_allclose(res[1], np.array([[3.0, 3.0], [np.nan, 3.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[0.8, 0.8], [np.nan, 4.0]], dtype=np.float64))
-
-    def test_high_green_no_neutral(self):
-        """Test that high resolution green with no neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band='green', neutral_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], np.array([[5/3, 5/3], [np.nan, 0.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[1], np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[4/3, 4/3], [np.nan, 4/3]], dtype=np.float64))
-
-    def test_high_green_neutral_blue(self):
-        """Test that high resolution green with blue neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band='green', neutral_resolution_band='blue')
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], np.array([[5/3, 5/3], [np.nan, 0.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[1], np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[4.0, 4.0], [np.nan, 4.0]], dtype=np.float64))
-
-    def test_high_blue_no_neutral(self):
-        """Test that high resolution blue with no neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band='blue', neutral_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], np.array([[1.25, 1.25], [np.nan, 0.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[1], np.array([[0.75, 0.75], [np.nan, 0.75]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
-
-    def test_high_blue_neutral_red(self):
-        """Test that high resolution blue with red neutral band can be passed."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band='blue', neutral_resolution_band='red')
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], np.array([[5.0, 5.0], [np.nan, 0.0]], dtype=np.float64))
-        np.testing.assert_allclose(res[1], np.array([[0.75, 0.75], [np.nan, 0.75]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
-
-    def test_self_sharpened_no_high_res(self):
-        """Test for exception when no high res band is specified."""
-        from satpy.composites import SelfSharpenedRGB
-        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
-        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds3))
-
-    def test_self_sharpened_basic(self):
+    @pytest.mark.parametrize(
+        ("exp_shape", "exp_r", "exp_g", "exp_b"),
+        [
+            ((3, 2, 2),
+             np.array([[5.0, 5.0], [5.0, 0]], dtype=np.float64),
+             np.array([[4.0, 4.0], [4.0, 0]], dtype=np.float64),
+             np.array([[16/3, 16/3], [16/3, 0]], dtype=np.float64))
+        ]
+    )
+    def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color')
-        res = comp((self.ds1, self.ds2, self.ds3))
-        res = res.values
-        self.assertEqual(res.shape, (3, 2, 2))
-        np.testing.assert_allclose(res[0], self.ds1.values)
-        np.testing.assert_allclose(res[1], np.array([[4, 4], [4, 0]], dtype=np.float64))
-        np.testing.assert_allclose(res[2], np.array([[5.333333, 5.333333], [5.333333, 0]], dtype=np.float64))
 
-    def test_no_units(self):
-        """Test that the computed RGB has no units attribute."""
-        from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
-        res = comp((self.ds1, self.ds2, self.ds3))
-        assert "units" not in res.attrs
+        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
+        res = comp((ds1, ds2, ds3))
+        data = res.values
+
+        assert data.shape == exp_shape
+        np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
+        np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
+        np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
 
 
 class TestDifferenceCompositor(unittest.TestCase):
@@ -526,7 +527,7 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp((self.data_a, ))
+        res = comp((self.data_a,))
         res = res.compute()
         expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
         expected_alpha = np.array([[1., 1.], [1., 1.]])
