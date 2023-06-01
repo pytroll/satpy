@@ -21,7 +21,7 @@ import bz2
 import gzip
 import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile, gettempdir
 from unittest import mock
 
@@ -267,6 +267,13 @@ class TestHRITFileHandler:
 
         res = self.reader.read_band('VIS006', None)
         assert res.compute().shape == (464, 3712)
+
+    def test_start_end_time(self):
+        """Test reading and converting start/end time."""
+        assert self.reader.start_time == datetime(2016, 3, 3, 0, 0)
+        assert self.reader.start_time == self.reader.observation_start_time
+        assert self.reader.end_time == datetime(2016, 3, 3, 0, 0) + timedelta(minutes=15)
+        assert self.reader.end_time == self.reader.observation_end_time
 
 
 def fake_decompress(infile, outdir='.'):

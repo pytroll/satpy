@@ -166,6 +166,7 @@ References:
 """
 
 import warnings
+from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -981,3 +982,19 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     line_mask = line_mask[:, np.newaxis]
     data = data.where(~line_mask, np.nan).astype(np.float32)
     return data
+
+
+def round_nom_time(dt, time_delta):
+    """Round a datetime object to a multiple of a timedelta.
+
+    dt : datetime.datetime object, default now.
+    time_delta : timedelta object, we round to a multiple of this, default 1 minute.
+    adapted for SEVIRI from:
+    https://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
+    """
+    seconds = (dt - dt.min).seconds
+    round_to = time_delta.total_seconds()
+
+    rounding = (seconds + round_to / 2) // round_to * round_to
+
+    return dt + timedelta(0, rounding - seconds, - dt.microsecond)

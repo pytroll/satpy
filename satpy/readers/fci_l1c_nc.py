@@ -112,6 +112,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from datetime import timedelta
 from functools import cached_property
 
 import dask.array as da
@@ -212,14 +213,46 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         self._cache = {}
 
     @property
+    def rc_period_min(self):
+        """Get nominal repeat cycle duration.
+
+        As RSS is not yet implemeted and error will be raised if RSS are to be read
+        """
+        if not self.filename_info['coverage'] == 'FD':
+            raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
+            return 2.5
+        return 10
+
+    @property
+    def nominal_start_time(self):
+        """Get nominal start time."""
+        rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        return rc_date + timedelta(minutes=(self.filename_info['repeat_cycle_in_day']-1)*self.rc_period_min)
+
+    @property
+    def nominal_end_time(self):
+        """Get nominal end time."""
+        return self.nominal_start_time + timedelta(minutes=self.rc_period_min)
+
+    @property
+    def observation_start_time(self):
+        """Get observation start time."""
+        return self.filename_info['start_time']
+
+    @property
+    def observation_end_time(self):
+        """Get observation end time."""
+        return self.filename_info['end_time']
+
+    @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.nominal_start_time
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info['end_time']
+        return self.nominal_end_time
 
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
@@ -348,7 +381,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
-
+        # Add time_parameter attributes
+        res.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+            }
         res.attrs.update(self.orbital_param)
 
         return res
