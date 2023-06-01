@@ -156,18 +156,14 @@ class TestFileHandler:
         self,
         coordinate_conversion,
         attitude_prediction,
-        orbit_prediction_1,
-        orbit_prediction_2,
-        simple_coordinate_conversion_table,
+        orbit_prediction,
     ):
         """Get navigation parameters."""
-        return {
-            "coordinate_conversion": coordinate_conversion,
-            "attitude_prediction": attitude_prediction,
-            "orbit_prediction_1": orbit_prediction_1,
-            "orbit_prediction_2": orbit_prediction_2,
-            "simple_coordinate_conversion_table": simple_coordinate_conversion_table,
-        }
+        nav_params = {}
+        nav_params.update(attitude_prediction)
+        nav_params.update(orbit_prediction)
+        nav_params.update(coordinate_conversion)
+        return nav_params
 
     @pytest.fixture
     def cal_params(
@@ -201,7 +197,15 @@ class TestFileHandler:
         return mode
 
     @pytest.fixture
-    def coordinate_conversion(self):
+    def coordinate_conversion(self, coord_conv, simple_coord_conv_table):
+        """Get all coordinate conversion parameters."""
+        return {
+            "coordinate_conversion": coord_conv,
+            "simple_coordinate_conversion_table": simple_coord_conv_table
+        }
+
+    @pytest.fixture
+    def coord_conv(self):
         """Get parameters for coordinate conversions.
 
         Adjust pixel offset so that the first column is at the image center.
@@ -253,7 +257,15 @@ class TestFileHandler:
         """Get attitude prediction."""
         att_pred = np.zeros(1, dtype=fmt.ATTITUDE_PREDICTION)
         att_pred["data"] = real_world.ATTITUDE_PREDICTION
-        return att_pred
+        return {"attitude_prediction": att_pred}
+
+    @pytest.fixture
+    def orbit_prediction(self, orbit_prediction_1, orbit_prediction_2):
+        """Get predictions of orbital parameters."""
+        return {
+            "orbit_prediction_1": orbit_prediction_1,
+            "orbit_prediction_2": orbit_prediction_2
+        }
 
     @pytest.fixture
     def orbit_prediction_1(self):
@@ -298,7 +310,7 @@ class TestFileHandler:
         return cal
 
     @pytest.fixture
-    def simple_coordinate_conversion_table(self):
+    def simple_coord_conv_table(self):
         """Get simple coordinate conversion table."""
         table = np.zeros(1, dtype=fmt.SIMPLE_COORDINATE_CONVERSION_TABLE)
         table["satellite_height"] = 123457.0

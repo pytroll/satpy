@@ -457,24 +457,6 @@ def get_lon_lat(point, nav_params):
 
 
 @numba.njit
-def _get_image_offset(proj_params):
-    return proj_params.line_offset, proj_params.pixel_offset
-
-
-@numba.njit
-def _get_sampling(proj_params):
-    return proj_params.stepping_angle, proj_params.sampling_angle
-
-
-@numba.njit
-def _get_spin_angles(attitude):
-    return (
-        attitude.angle_between_sat_spin_and_z_axis,
-        attitude.angle_between_sat_spin_and_yz_plane,
-    )
-
-
-@numba.njit
 def _get_sat_pos_vector(sat_position):
     return np.array(
         (
@@ -620,6 +602,8 @@ def _get_satellite_unit_vector_y(sat_unit_vector_x, sat_unit_vector_z):
 def intersect_with_earth(view_vector, sat_pos, ellipsoid):
     """Intersect instrument viewing vector with the earth's surface.
 
+    Reference: Appendix E, section 2.11 in the GMS user guide.
+
     Args:
         view_vector: Instrument viewing vector (x, y, z) in earth-fixed
             coordinates.
@@ -648,18 +632,31 @@ def _get_distance_to_intersection(view_vector, sat_pos, ellipsoid):
 
 @numba.njit
 def _get_distances_to_intersections(view_vector, sat_pos, ellipsoid):
-    flat2 = (1 - ellipsoid.flattening) ** 2
-    ux, uy, uz = view_vector
-    x, y, z = sat_pos.x, sat_pos.y, sat_pos.z
+    """Get distances to intersections with the earth's surface.
 
-    a = flat2 * (ux**2 + uy**2) + uz**2
-    b = flat2 * (x * ux + y * uy) + z * uz
-    c = flat2 * (x**2 + y**2 - ellipsoid.equatorial_radius**2) + z**2
-
+    Returns:
+        Distances to two intersections with the surface.
+    """
+    a, b, c = _get_abc_helper(view_vector, sat_pos, ellipsoid)
     tmp = np.sqrt((b**2 - a * c))
     dist_1 = (-b + tmp) / a
     dist_2 = (-b - tmp) / a
     return dist_1, dist_2
+
+
+@numba.njit
+def _get_abc_helper(view_vector, sat_pos, ellipsoid):
+    """Get a,b,c helper variables.
+
+    Reference: Appendix E, Equation (26) in the GMS user guide.
+    """
+    flat2 = (1 - ellipsoid.flattening) ** 2
+    ux, uy, uz = view_vector
+    x, y, z = sat_pos.x, sat_pos.y, sat_pos.z
+    a = flat2 * (ux ** 2 + uy ** 2) + uz ** 2
+    b = flat2 * (x * ux + y * uy) + z * uz
+    c = flat2 * (x ** 2 + y ** 2 - ellipsoid.equatorial_radius ** 2) + z ** 2
+    return a, b, c
 
 
 @numba.njit
