@@ -752,27 +752,41 @@ class Scene:
     def aggregate(self, dataset_ids=None, boundary='trim', side='left', func='mean', **dim_kwargs):
         """Create an aggregated version of the Scene.
 
-        Args:
-            dataset_ids (iterable): DataIDs to include in the returned
-                                    `Scene`. Defaults to all datasets.
-            func (string): Function to apply on each aggregation window. One of
-                           'mean', 'sum', 'min', 'max', 'median', 'argmin',
-                           'argmax', 'prod', 'std', 'var' strings or a custom
-                           function (callable).
-                           'mean' is the default.
-            boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
-            side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
-            dim_kwargs: the size of the windows to aggregate.
+        Parameters
+        ----------
+        dataset_ids : iterable, optional
+            DataIDs to include in the returned `Scene`.
+            If None, defaults to all datasets. The default is None.
+        boundary : str, optional
+            See :meth:`xarray.DataArray.coarsen`.
+            The default is 'trim'.
+        side : TYPE, optional
+            See :meth:`xarray.DataArray.coarsen`.
+            The default is 'left'.
+        func : str or callable, optional
+            Function to apply on each aggregation window.
+            One of 'mean', 'sum', 'min', 'max', 'median', 'argmin', 'argmax',
+            'prod', 'std', 'var' strings or a custom function (callable).
+            The default is 'mean'.
+        **dim_kwargs
+            The size of the windows to aggregate.
+            For example: x=2, y=2
 
-        Returns:
-            A new aggregated scene
+        Returns
+        -------
+        new_scn : satpy.Scene
+            A new aggregated scene.
 
-        See also:
-            xarray.DataArray.coarsen
+        See Also
+        --------
+        xarray.DataArray.coarsen`
+            A somewhat long description of the arguments.
 
-        Example:
-            `scn.aggregate(func='min', x=2, y=2)` will apply the `min` function
-            across a window of size 2 pixels.
+        Example
+        -------
+        Apply the `min` function across a window of size 2 pixels:
+
+        >> scn.aggregate(func='min', x=2, y=2)
 
         """
         new_scn = self.copy(datasets=dataset_ids)
