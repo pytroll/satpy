@@ -517,6 +517,7 @@ class TestFileHandler:
     def attrs_exp(self, area_def_exp):
         """Get expected dataset attributes."""
         return {
+            "yaml": "info",
             "platform": "GMS-5",
             "sensor": "VISSR",
             "time_parameters": {
@@ -536,7 +537,7 @@ class TestFileHandler:
 
     def test_get_dataset(self, file_handler, dataset_id, dataset_exp, attrs_exp):
         """Test getting the dataset."""
-        dataset = file_handler.get_dataset(dataset_id, None)
+        dataset = file_handler.get_dataset(dataset_id, {"yaml": "info"})
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1e-6)
         self._assert_attrs_equal(dataset.attrs, attrs_exp)
 

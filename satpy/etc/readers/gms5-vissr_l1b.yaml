@@ -67,7 +67,7 @@ datasets:
         units: 1
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: "K"
+        units: K
     file_type: gms5_vissr_ir1
 
   IR2:
@@ -81,7 +81,7 @@ datasets:
         units: 1
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: "K"
+        units: K
     file_type: gms5_vissr_ir2
 
   IR3:
@@ -95,5 +95,5 @@ datasets:
         units: 1
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: "K"
+        units: K
     file_type: gms5_vissr_ir3

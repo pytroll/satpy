@@ -310,7 +310,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         space_masker = SpaceMasker(image_data, dataset_id["name"])
         dataset = self._mask_space_pixels(dataset, space_masker)
         self._attach_lons_lats(dataset, dataset_id)
-        self._update_attrs(dataset, dataset_id)
+        self._update_attrs(dataset, dataset_id, ds_info)
         return dataset
 
     def _get_image_data(self):
@@ -543,7 +543,8 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         )
         return lons, lats
 
-    def _update_attrs(self, dataset, dataset_id):
+    def _update_attrs(self, dataset, dataset_id, ds_info):
+        dataset.attrs.update(ds_info)
         dataset.attrs.update(self._mda)
         dataset.attrs[
             "area_def_uniform_sampling"
