@@ -844,8 +844,12 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_predicted_navigation_params(self):
         """Get predictions of time-dependent navigation parameters."""
+        attitude_prediction = self._get_attitude_prediction()
+        orbit_prediction = self._get_orbit_prediction()
+        return attitude_prediction, orbit_prediction
+
+    def _get_attitude_prediction(self):
         att_pred = self._header["image_parameters"]["attitude_prediction"]["data"]
-        orb_pred = self._header["image_parameters"]["orbit_prediction"]["data"]
         attitude_prediction = nav.AttitudePrediction(
             prediction_times=att_pred["prediction_time_mjd"].astype(np.float64),
             angle_between_earth_and_sun=att_pred["sun_earth_angle"].astype(np.float64),
@@ -856,8 +860,11 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                 "declination_of_attitude"
             ].astype(np.float64),
         )
-        orbit_prediction = nav.OrbitPrediction(
-            prediction_times=orb_pred["prediction_time_mjd"].astype(np.float64),
+        return attitude_prediction
+
+    def _get_orbit_prediction(self):
+        orb_pred = self._header["image_parameters"]["orbit_prediction"]["data"]
+        orbit_angles = nav.OrbitAngles(
             greenwich_sidereal_time=np.deg2rad(
                 orb_pred["greenwich_sidereal_time"].astype(np.float64)
             ),
@@ -867,20 +874,21 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             right_ascension_from_sat_to_sun=np.deg2rad(
                 orb_pred["sat_sun_vector_earth_fixed"]["azimuth"].astype(np.float64)
             ),
-            sat_position_earth_fixed_x=orb_pred["satellite_position_earth_fixed"][
-                :, 0
-            ].astype(np.float64),
-            sat_position_earth_fixed_y=orb_pred["satellite_position_earth_fixed"][
-                :, 1
-            ].astype(np.float64),
-            sat_position_earth_fixed_z=orb_pred["satellite_position_earth_fixed"][
-                :, 2
-            ].astype(np.float64),
+        )
+        sat_position = nav.SatellitePositionEarthFixed(
+            x=orb_pred["satellite_position_earth_fixed"][:, 0].astype(np.float64),
+            y=orb_pred["satellite_position_earth_fixed"][:, 1].astype(np.float64),
+            z=orb_pred["satellite_position_earth_fixed"][:, 2].astype(np.float64),
+        )
+        orbit_prediction = nav.OrbitPrediction(
+            prediction_times=orb_pred["prediction_time_mjd"].astype(np.float64),
+            angles=orbit_angles,
+            sat_position=sat_position,
             nutation_precession=np.ascontiguousarray(
                 orb_pred["conversion_matrix"].transpose(0, 2, 1).astype(np.float64)
             ),
         )
-        return attitude_prediction, orbit_prediction
+        return orbit_prediction
 
     def _make_lons_lats_data_array(self, lons, lats):
         lons = xr.DataArray(

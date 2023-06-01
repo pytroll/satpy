@@ -24,12 +24,16 @@ IR_NAVIGATION_REFERENCE = [
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
             nav.Orbit(
-                greenwich_sidereal_time=2.468529732418296,
-                declination_from_sat_to_sun=-0.208770861178982,
-                right_ascension_from_sat_to_sun=3.304369303579407,
-                sat_position_earth_fixed_x=-32390963.148471601307392,
-                sat_position_earth_fixed_y=27003395.381247851997614,
-                sat_position_earth_fixed_z=-228134.860026293463307,
+                angles=nav.OrbitAngles(
+                    greenwich_sidereal_time=2.468529732418296,
+                    declination_from_sat_to_sun=-0.208770861178982,
+                    right_ascension_from_sat_to_sun=3.304369303579407,
+                ),
+                sat_position=nav.SatellitePositionEarthFixed(
+                    x=-32390963.148471601307392,
+                    y=27003395.381247851997614,
+                    z=-228134.860026293463307,
+                ),
                 nutation_precession=np.array(
                     [[0.999936381496146, -0.010344758016410, -0.004496547784299],
                      [0.010344942303489, 0.999946489495557, 0.000017727054455],
@@ -63,12 +67,16 @@ IR_NAVIGATION_REFERENCE = [
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
             nav.Orbit(
-                greenwich_sidereal_time=2.530392320846865,
-                declination_from_sat_to_sun=-0.208713576872247,
-                right_ascension_from_sat_to_sun=3.242660398458377,
-                sat_position_earth_fixed_x=-32390273.633551981300116,
-                sat_position_earth_fixed_y=27003859.543135114014149,
-                sat_position_earth_fixed_z=-210800.087589388160268,
+                angles=nav.OrbitAngles(
+                    greenwich_sidereal_time=2.530392320846865,
+                    declination_from_sat_to_sun=-0.208713576872247,
+                    right_ascension_from_sat_to_sun=3.242660398458377,
+                ),
+                sat_position=nav.SatellitePositionEarthFixed(
+                    x=-32390273.633551981300116,
+                    y=27003859.543135114014149,
+                    z=-210800.087589388160268,
+                ),
                 nutation_precession=np.array(
                     [[0.999936381432029, -0.010344763228876, -0.004496550050695],
                      [0.010344947502662, 0.999946489441823, 0.000017724053657],
@@ -106,12 +114,16 @@ VIS_NAVIGATION_REFERENCE = [
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
             nav.Orbit(
-                greenwich_sidereal_time=2.468529731914041,
-                declination_from_sat_to_sun=-0.208770861179448,
-                right_ascension_from_sat_to_sun=3.304369304082406,
-                sat_position_earth_fixed_x=-32390963.148477241396904,
-                sat_position_earth_fixed_y=27003395.381243918091059,
-                sat_position_earth_fixed_z=-228134.860164520738181,
+                angles=nav.OrbitAngles(
+                    greenwich_sidereal_time=2.468529731914041,
+                    declination_from_sat_to_sun=-0.208770861179448,
+                    right_ascension_from_sat_to_sun=3.304369304082406,
+                ),
+                sat_position=nav.SatellitePositionEarthFixed(
+                    x=-32390963.148477241396904,
+                    y=27003395.381243918091059,
+                    z=-228134.860164520738181,
+                ),
                 nutation_precession=np.array(
                     [[0.999936381496146, -0.010344758016410, -0.004496547784299],
                      [0.010344942303489, 0.999946489495557, 0.000017727054455],
@@ -145,12 +157,16 @@ VIS_NAVIGATION_REFERENCE = [
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
             nav.Orbit(
-                greenwich_sidereal_time=2.530392320342610,
-                declination_from_sat_to_sun=-0.208713576872715,
-                right_ascension_from_sat_to_sun=3.242660398961383,
-                sat_position_earth_fixed_x=-32390273.633557569235563,
-                sat_position_earth_fixed_y=27003859.543131537735462,
-                sat_position_earth_fixed_z=-210800.087734811415430,
+                angles=nav.OrbitAngles(
+                    greenwich_sidereal_time=2.530392320342610,
+                    declination_from_sat_to_sun=-0.208713576872715,
+                    right_ascension_from_sat_to_sun=3.242660398961383,
+                ),
+                sat_position=nav.SatellitePositionEarthFixed(
+                    x=-32390273.633557569235563,
+                    y=27003859.543131537735462,
+                    z=-210800.087734811415430,
+                ),
                 nutation_precession=np.array(
                     [[0.999936381432029, -0.010344763228876, -0.004496550050695],
                      [0.010344947502662, 0.999946489441823, 0.000017724053657],
@@ -187,10 +203,7 @@ def disable_jit(request, monkeypatch):
     if request.param:
         jit_methods = get_jit_methods(nav)
         for name, method in jit_methods.items():
-            monkeypatch.setattr(
-                name,
-                method.py_func
-            )
+            monkeypatch.setattr(name, method.py_func)
 
 
 class TestSinglePixelNavigation:
@@ -229,18 +242,22 @@ class TestSinglePixelNavigation:
     def test_transform_satellite_to_earth_fixed_coords(self):
         """Test transformation from satellite to earth-fixed coordinates."""
         point_sat = np.array([1, 2, 3], dtype=float)
-        greenwich_sidereal_time = np.pi
-        sat_sun_angles = np.array([np.pi, np.pi / 2])
         earth_sun_angle = np.pi
         spin_angles = np.array([np.pi, np.pi / 2])
-        nutation_precession = np.diag([1, 2, 3]).astype(float)
+        orbit = nav.Orbit(
+            angles=nav.OrbitAngles(
+                greenwich_sidereal_time=np.pi,
+                declination_from_sat_to_sun=np.pi,
+                right_ascension_from_sat_to_sun=np.pi / 2,
+            ),
+            sat_position=nav.SatellitePositionEarthFixed(-999, -999, -999),
+            nutation_precession=np.diag([1, 2, 3]).astype(float),
+        )
         res = nav.transform_satellite_to_earth_fixed_coords(
             point_sat,
-            greenwich_sidereal_time,
-            sat_sun_angles,
+            orbit,
             earth_sun_angle,
             spin_angles,
-            nutation_precession,
         )
         np.testing.assert_allclose(res, [-3, 1, -2])
 
@@ -360,7 +377,7 @@ class TestPredictionInterpolation:
         """Test interpolating orbit prediction."""
         orbit_prediction = orbit_prediction.to_numba()
         orbit = nav.interpolate_orbit_prediction(orbit_prediction, obs_time)
-        assert_namedtuple_close(orbit, orbit_expected)
+        _assert_namedtuple_close(orbit, orbit_expected)
 
     def test_interpolate_attitude_prediction(
         self, obs_time, attitude_prediction, attitude_expected
@@ -368,7 +385,7 @@ class TestPredictionInterpolation:
         """Test interpolating attitude prediction."""
         attitude_prediction = attitude_prediction.to_numba()
         attitude = nav.interpolate_attitude_prediction(attitude_prediction, obs_time)
-        assert_namedtuple_close(attitude, attitude_expected)
+        _assert_namedtuple_close(attitude, attitude_expected)
 
     @pytest.fixture
     def obs_time(self):
@@ -379,12 +396,16 @@ class TestPredictionInterpolation:
     def orbit_expected(self):
         """Get expected orbit."""
         return nav.Orbit(
-            greenwich_sidereal_time=1.5,
-            declination_from_sat_to_sun=1.6,
-            right_ascension_from_sat_to_sun=1.7,
-            sat_position_earth_fixed_x=1.8,
-            sat_position_earth_fixed_y=1.9,
-            sat_position_earth_fixed_z=2.0,
+            angles=nav.OrbitAngles(
+                greenwich_sidereal_time=1.5,
+                declination_from_sat_to_sun=1.6,
+                right_ascension_from_sat_to_sun=1.7,
+            ),
+            sat_position=nav.SatellitePositionEarthFixed(
+                x=1.8,
+                y=1.9,
+                z=2.0,
+            ),
             nutation_precession=1.6 * np.identity(3),
         )
 
@@ -431,12 +452,16 @@ def orbit_prediction():
     """Get orbit prediction."""
     return nav.OrbitPrediction(
         prediction_times=np.array([1.0, 2.0, 3.0, 4.0]),
-        greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
-        declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
-        right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
-        sat_position_earth_fixed_x=np.array([0.3, 1.3, 2.3, 3.3]),
-        sat_position_earth_fixed_y=np.array([0.4, 1.4, 2.4, 3.4]),
-        sat_position_earth_fixed_z=np.array([0.5, 1.5, 2.5, 3.5]),
+        angles=nav.OrbitAngles(
+            greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
+            declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
+            right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
+        ),
+        sat_position=nav.SatellitePositionEarthFixed(
+            x=np.array([0.3, 1.3, 2.3, 3.3]),
+            y=np.array([0.4, 1.4, 2.4, 3.4]),
+            z=np.array([0.5, 1.5, 2.5, 3.5]),
+        ),
         nutation_precession=np.array(
             [
                 0.6 * np.identity(3),
@@ -475,12 +500,20 @@ def test_get_observation_time():
     np.testing.assert_allclose(obs_time, 50000.0000705496871047)
 
 
-def assert_namedtuple_close(a, b):
-    """Assert that two numba namedtuples are approximately equal."""
+def _assert_namedtuple_close(a, b):
+    cls_name = b.__class__.__name__
     assert a.__class__ == b.__class__
-    for attr in a._fields:
+    for attr in b._fields:
+        a_attr = getattr(a, attr)
+        b_attr = getattr(b, attr)
+        if _is_namedtuple(b_attr):
+            _assert_namedtuple_close(a_attr, b_attr)
         np.testing.assert_allclose(
-            getattr(a, attr),
-            getattr(b, attr),
-            err_msg="{} attribute {} differs".format(a.__class__, attr),
+            a_attr,
+            b_attr,
+            err_msg=f"{cls_name} attribute {attr} differs"
         )
+
+
+def _is_namedtuple(obj):
+    return hasattr(obj, "_fields")

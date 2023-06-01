@@ -35,16 +35,33 @@ Attitude = namedtuple(
 Orbit = namedtuple(
     "Orbit",
     [
-        "greenwich_sidereal_time",
-        "declination_from_sat_to_sun",
-        "right_ascension_from_sat_to_sun",
-        "sat_position_earth_fixed_x",
-        "sat_position_earth_fixed_y",
-        "sat_position_earth_fixed_z",
+        "angles",
+        "sat_position",
         "nutation_precession",
     ],
 )
+Orbit.__doc__ = """Orbital Parameters
 
+Args:
+    angles (OrbitAngles): Orbit angles
+    sat_position (SatellitePositionEarthFixed): Satellite position
+    nutation_precession: Nutation and precession matrix (3x3)
+"""
+
+
+OrbitAngles = namedtuple(
+    "OrbitAngles",
+    [
+        "greenwich_sidereal_time",
+        "declination_from_sat_to_sun",
+        "right_ascension_from_sat_to_sun",
+    ],
+)
+
+SatellitePositionEarthFixed = namedtuple(
+    "SatellitePositionEarthFixed",
+    ["x", "y", "z"],
+)
 
 ScanningParameters = namedtuple(
     "ScanningParameters",
@@ -80,12 +97,8 @@ _OrbitPrediction = namedtuple(
     "_OrbitPrediction",
     [
         "prediction_times",
-        "greenwich_sidereal_time",
-        "declination_from_sat_to_sun",
-        "right_ascension_from_sat_to_sun",
-        "sat_position_earth_fixed_x",
-        "sat_position_earth_fixed_y",
-        "sat_position_earth_fixed_z",
+        "angles",
+        "sat_position",
         "nutation_precession",
     ],
 )
@@ -150,12 +163,8 @@ class OrbitPrediction:
     def __init__(
         self,
         prediction_times,
-        greenwich_sidereal_time,
-        declination_from_sat_to_sun,
-        right_ascension_from_sat_to_sun,
-        sat_position_earth_fixed_x,
-        sat_position_earth_fixed_y,
-        sat_position_earth_fixed_z,
+        angles,
+        sat_position,
         nutation_precession,
     ):
         """Initialize orbit prediction.
@@ -166,39 +175,30 @@ class OrbitPrediction:
 
         Args:
             prediction_times: Timestamps of orbit prediction.
-            greenwich_sidereal_time: Greenwich sidereal time
-            declination_from_sat_to_sun: Declination from satellite to sun
-            right_ascension_from_sat_to_sun: Right ascension from satellite to
-                sun
-            sat_position_earth_fixed_x: Satellite position in earth fixed
-                coordinates (x-component)
-            sat_position_earth_fixed_y: Satellite position in earth fixed
-                coordinates (y-component)
-            sat_position_earth_fixed_z: Satellite position in earth fixed
-                coordinates (z-component)
+            angles (OrbitAngles): Orbit angles
+            sat_position (SatellitePositionEarthFixed): Satellite position
             nutation_precession: Nutation and precession matrix.
         """
         self.prediction_times = prediction_times
-        self.greenwich_sidereal_time = np.unwrap(greenwich_sidereal_time)
-        self.declination_from_sat_to_sun = np.unwrap(declination_from_sat_to_sun)
-        self.right_ascension_from_sat_to_sun = np.unwrap(
-            right_ascension_from_sat_to_sun
-        )
-        self.sat_position_earth_fixed_x = sat_position_earth_fixed_x
-        self.sat_position_earth_fixed_y = sat_position_earth_fixed_y
-        self.sat_position_earth_fixed_z = sat_position_earth_fixed_z
+        self.angles = self._unwrap_angles(angles)
+        self.sat_position = sat_position
         self.nutation_precession = nutation_precession
+
+    def _unwrap_angles(self, angles):
+        return OrbitAngles(
+            greenwich_sidereal_time=np.unwrap(angles.greenwich_sidereal_time),
+            declination_from_sat_to_sun=np.unwrap(angles.declination_from_sat_to_sun),
+            right_ascension_from_sat_to_sun=np.unwrap(
+                angles.right_ascension_from_sat_to_sun
+            ),
+        )
 
     def to_numba(self):
         """Convert to numba-compatible type."""
         return _OrbitPrediction(
             prediction_times=self.prediction_times,
-            greenwich_sidereal_time=self.greenwich_sidereal_time,
-            declination_from_sat_to_sun=self.declination_from_sat_to_sun,
-            right_ascension_from_sat_to_sun=self.right_ascension_from_sat_to_sun,
-            sat_position_earth_fixed_x=self.sat_position_earth_fixed_x,
-            sat_position_earth_fixed_y=self.sat_position_earth_fixed_y,
-            sat_position_earth_fixed_z=self.sat_position_earth_fixed_z,
+            angles=self.angles,
+            sat_position=self.sat_position,
             nutation_precession=self.nutation_precession,
         )
 
@@ -317,11 +317,9 @@ def get_lon_lat(point, nav_params):
     )
     view_vector_earth_fixed = transform_satellite_to_earth_fixed_coords(
         view_vector_sat,
-        orbit.greenwich_sidereal_time,
-        _get_sat_sun_angles(orbit),
+        orbit,
         attitude.angle_between_earth_and_sun,
         _get_spin_angles(attitude),
-        orbit.nutation_precession,
     )
     point_on_earth = intersect_with_earth(
         view_vector_earth_fixed, _get_sat_pos(orbit), _get_ellipsoid(proj_params)
@@ -343,11 +341,6 @@ def _get_sampling(proj_params):
 
 
 @numba.njit
-def _get_sat_sun_angles(orbit):
-    return (orbit.declination_from_sat_to_sun, orbit.right_ascension_from_sat_to_sun)
-
-
-@numba.njit
 def _get_spin_angles(attitude):
     return (
         attitude.angle_between_sat_spin_and_z_axis,
@@ -359,9 +352,9 @@ def _get_spin_angles(attitude):
 def _get_sat_pos(orbit):
     return np.array(
         (
-            orbit.sat_position_earth_fixed_x,
-            orbit.sat_position_earth_fixed_y,
-            orbit.sat_position_earth_fixed_z,
+            orbit.sat_position.x,
+            orbit.sat_position.y,
+            orbit.sat_position.z,
         )
     )
 
@@ -419,50 +412,41 @@ def _get_transforms_from_scanning_angles_to_satellite_coords(angles):
 @numba.njit
 def transform_satellite_to_earth_fixed_coords(
     point,
-    greenwich_sidereal_time,
-    sat_sun_angles,
+    orbit,
     earth_sun_angle,
     spin_angles,
-    nutation_precession,
 ):
     """Transform from earth-fixed to satellite angular momentum coordinates.
 
     Args:
         point: Point (x, y, z) in satellite angular momentum coordinates.
-        greenwich_sidereal_time: True Greenwich sidereal time (rad).
-        sat_sun_angles: Declination from satellite to sun (rad),
-            right ascension from satellite to sun (rad)
+        orbit (Orbit): Orbital parameters
         earth_sun_angle: Angle between sun and earth center on the z-axis
             vertical plane (rad)
         spin_angles: Angle between satellite spin axis and z-axis (rad),
             angle between satellite spin axis and yz-plane
-        nutation_precession: Nutation and precession matrix (3x3)
     Returns:
         Point (x', y', z') in earth-fixed coordinates.
     """
     sat_unit_vectors = _get_satellite_unit_vectors(
-        greenwich_sidereal_time,
-        sat_sun_angles,
+        orbit,
         earth_sun_angle,
         spin_angles,
-        nutation_precession,
     )
     return np.dot(sat_unit_vectors, point)
 
 
 @numba.njit
 def _get_satellite_unit_vectors(
-    greenwich_sidereal_time,
-    sat_sun_angles,
+    orbit,
     earth_sun_angle,
     spin_angles,
-    nutation_precession,
 ):
     unit_vector_z = _get_satellite_unit_vector_z(
-        spin_angles, greenwich_sidereal_time, nutation_precession
+        spin_angles, orbit.angles.greenwich_sidereal_time, orbit.nutation_precession
     )
     unit_vector_x = _get_satellite_unit_vector_x(
-        earth_sun_angle, sat_sun_angles, unit_vector_z
+        earth_sun_angle, orbit.angles, unit_vector_z
     )
     unit_vector_y = _get_satellite_unit_vector_y(unit_vector_x, unit_vector_z)
     return np.stack((unit_vector_x, unit_vector_y, unit_vector_z), axis=-1)
@@ -497,9 +481,9 @@ def _get_transform_from_1950_to_earth_fixed(greenwich_sidereal_time):
 
 
 @numba.njit
-def _get_satellite_unit_vector_x(earth_sun_angle, sat_sun_angles, sat_unit_vector_z):
+def _get_satellite_unit_vector_x(earth_sun_angle, orbit_angles, sat_unit_vector_z):
     beta = earth_sun_angle
-    sat_sun_vector = _get_vector_from_satellite_to_sun(sat_sun_angles)
+    sat_sun_vector = _get_vector_from_satellite_to_sun(orbit_angles)
     z_cross_satsun = np.cross(sat_unit_vector_z, sat_sun_vector)
     z_cross_satsun = normalize_vector(z_cross_satsun)
     x_vec = z_cross_satsun * np.sin(beta) + np.cross(
@@ -509,8 +493,9 @@ def _get_satellite_unit_vector_x(earth_sun_angle, sat_sun_angles, sat_unit_vecto
 
 
 @numba.njit
-def _get_vector_from_satellite_to_sun(sat_sun_angles):
-    declination, right_ascension = sat_sun_angles
+def _get_vector_from_satellite_to_sun(orbit_angles):
+    declination = orbit_angles.declination_from_sat_to_sun
+    right_ascension = orbit_angles.right_ascension_from_sat_to_sun
     cos_declination = np.cos(declination)
     x = cos_declination * np.cos(right_ascension)
     y = cos_declination * np.sin(right_ascension)
@@ -596,50 +581,62 @@ def normalize_vector(v):
 @numba.njit
 def interpolate_orbit_prediction(orbit_prediction, observation_time):
     """Interpolate orbit prediction."""
-    greenwich_sidereal_time = interpolate_angles(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.greenwich_sidereal_time,
-    )
-    declination_from_sat_to_sun = interpolate_angles(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.declination_from_sat_to_sun,
-    )
-    right_ascension_from_sat_to_sun = interpolate_angles(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.right_ascension_from_sat_to_sun,
-    )
-    sat_position_earth_fixed_x = interpolate_continuous(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.sat_position_earth_fixed_x,
-    )
-    sat_position_earth_fixed_y = interpolate_continuous(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.sat_position_earth_fixed_y,
-    )
-    sat_position_earth_fixed_z = interpolate_continuous(
-        observation_time,
-        orbit_prediction.prediction_times,
-        orbit_prediction.sat_position_earth_fixed_z,
-    )
+    angles = _interpolate_orbit_angles(observation_time, orbit_prediction)
+    sat_position = _interpolate_sat_position(observation_time, orbit_prediction)
     nutation_precession = interpolate_nearest(
         observation_time,
         orbit_prediction.prediction_times,
         orbit_prediction.nutation_precession,
     )
     return Orbit(
-        greenwich_sidereal_time,
-        declination_from_sat_to_sun,
-        right_ascension_from_sat_to_sun,
-        sat_position_earth_fixed_x,
-        sat_position_earth_fixed_y,
-        sat_position_earth_fixed_z,
-        nutation_precession,
+        angles=angles,
+        sat_position=sat_position,
+        nutation_precession=nutation_precession,
     )
+
+
+@numba.njit
+def _interpolate_orbit_angles(observation_time, orbit_prediction):
+    sidereal_time = interpolate_angles(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.angles.greenwich_sidereal_time,
+    )
+    declination = interpolate_angles(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.angles.declination_from_sat_to_sun,
+    )
+    right_ascension = interpolate_angles(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.angles.right_ascension_from_sat_to_sun,
+    )
+    return OrbitAngles(
+        greenwich_sidereal_time=sidereal_time,
+        declination_from_sat_to_sun=declination,
+        right_ascension_from_sat_to_sun=right_ascension,
+    )
+
+
+@numba.njit
+def _interpolate_sat_position(observation_time, orbit_prediction):
+    x = interpolate_continuous(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.sat_position.x,
+    )
+    y = interpolate_continuous(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.sat_position.y,
+    )
+    z = interpolate_continuous(
+        observation_time,
+        orbit_prediction.prediction_times,
+        orbit_prediction.sat_position.z,
+    )
+    return SatellitePositionEarthFixed(x, y, z)
 
 
 @numba.njit
