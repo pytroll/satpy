@@ -247,19 +247,14 @@ class TestSinglePixelNavigation:
 
     def test_transform_image_coords_to_scanning_angles(self):
         """Test transformation from image coordinates to scanning angles."""
-        offset = nav.ImageOffset(
-            line_offset=100,
-            pixel_offset=200
-        )
+        offset = nav.ImageOffset(line_offset=100, pixel_offset=200)
         scanning_angles = nav.ScanningAngles(
-            stepping_angle=0.01,
-            sampling_angle=0.02,
-            misalignment=-999
+            stepping_angle=0.01, sampling_angle=0.02, misalignment=-999
         )
         angles = nav.transform_image_coords_to_scanning_angles(
             point=np.array([199, 99]),
             image_offset=offset,
-            scanning_angles=scanning_angles
+            scanning_angles=scanning_angles,
         )
         np.testing.assert_allclose(angles, [-2, 1])
 
@@ -278,7 +273,7 @@ class TestSinglePixelNavigation:
         attitude = nav.Attitude(
             angle_between_earth_and_sun=np.pi,
             angle_between_sat_spin_and_z_axis=np.pi,
-            angle_between_sat_spin_and_yz_plane=np.pi / 2
+            angle_between_sat_spin_and_yz_plane=np.pi / 2,
         )
         orbit = nav.Orbit(
             angles=nav.OrbitAngles(
@@ -289,25 +284,14 @@ class TestSinglePixelNavigation:
             sat_position=nav.SatellitePositionEarthFixed(-999, -999, -999),
             nutation_precession=np.diag([1, 2, 3]).astype(float),
         )
-        res = nav.transform_satellite_to_earth_fixed_coords(
-            point_sat,
-            orbit,
-            attitude
-        )
+        res = nav.transform_satellite_to_earth_fixed_coords(point_sat, orbit, attitude)
         np.testing.assert_allclose(res, [-3, 1, -2])
 
     def test_intersect_view_vector_with_earth(self):
         """Test intersection of a view vector with the earth's surface."""
         view_vector = np.array([-1, 0, 0], dtype=float)
-        ellipsoid = nav.EarthEllipsoid(
-            equatorial_radius=6371 * 1000,
-            flattening=0.003
-        )
-        sat_pos = nav.SatellitePositionEarthFixed(
-            x=36000 * 1000.0,
-            y=0.0,
-            z=0.0
-        )
+        ellipsoid = nav.EarthEllipsoid(equatorial_radius=6371 * 1000, flattening=0.003)
+        sat_pos = nav.SatellitePositionEarthFixed(x=36000 * 1000.0, y=0.0, z=0.0)
         point = nav.intersect_with_earth(view_vector, sat_pos, ellipsoid)
         exp = [ellipsoid.equatorial_radius, 0, 0]
         np.testing.assert_allclose(point, exp)
@@ -361,7 +345,7 @@ class TestImageNavigation:
         lons, lats = nav.get_lons_lats(
             lines=np.array([1000, 1500, 2000]),
             pixels=np.array([1000, 1500, 2000]),
-            nav_params=navigation_params
+            nav_params=navigation_params,
         )
         np.testing.assert_allclose(lons, expected["lon"])
         np.testing.assert_allclose(lats, expected["lat"])
@@ -490,7 +474,7 @@ def attitude_prediction():
             angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
             angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
             angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
-        )
+        ),
     )
 
 
@@ -536,32 +520,26 @@ def proj_params(sampling_angle):
         earth_ellipsoid=nav.EarthEllipsoid(
             flattening=0.003352813177897,
             equatorial_radius=6378136,
-        )
+        ),
     )
 
 
 @pytest.fixture
 def static_nav_params(proj_params, scan_params):
     """Get static navigation parameters."""
-    return nav.StaticNavigationParameters(
-        proj_params, scan_params
-    )
+    return nav.StaticNavigationParameters(proj_params, scan_params)
 
 
 @pytest.fixture
 def predicted_nav_params(attitude_prediction, orbit_prediction):
     """Get predicted navigation parameters."""
-    return nav.PredictedNavigationParameters(
-        attitude_prediction, orbit_prediction
-    )
+    return nav.PredictedNavigationParameters(attitude_prediction, orbit_prediction)
 
 
 @pytest.fixture
 def navigation_params(static_nav_params, predicted_nav_params):
     """Get image navigation parameters."""
-    return nav.ImageNavigationParameters(
-        static_nav_params, predicted_nav_params
-    )
+    return nav.ImageNavigationParameters(static_nav_params, predicted_nav_params)
 
 
 def test_get_observation_time():
@@ -586,9 +564,7 @@ def _assert_namedtuple_close(a, b):
         if _is_namedtuple(b_attr):
             _assert_namedtuple_close(a_attr, b_attr)
         np.testing.assert_allclose(
-            a_attr,
-            b_attr,
-            err_msg=f"{cls_name} attribute {attr} differs"
+            a_attr, b_attr, err_msg=f"{cls_name} attribute {attr} differs"
         )
 
 
