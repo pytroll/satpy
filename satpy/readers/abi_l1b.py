@@ -26,6 +26,7 @@ import logging
 
 import numpy as np
 
+import satpy
 from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,13 @@ logger = logging.getLogger(__name__)
 
 class NC_ABI_L1B(NC_ABI_BASE):
     """File reader for individual ABI L1B NetCDF4 files."""
+
+    def __init__(self, filename, filename_info, filetype_info, clip_negative_radiances=None):
+        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
+        super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("clip_negative_radiances")
+        self.clip_negative_radiances = clip_negative_radiances
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -157,8 +165,10 @@ class NC_ABI_L1B(NC_ABI_BASE):
         bc2 = float(self["planck_bc2"])
 
         if self.clip_negative_radiances:
+            print(self.clip_negative_radiances)
             min_rad = self._get_minimum_radiance(data)
-            data.data[data.data < min_rad] = min_rad
+            clip_mask = np.logical_and(data < min_rad, ~np.isnan(data))
+            data = data.where(~clip_mask, min_rad)
 
         res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs

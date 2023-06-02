@@ -218,14 +218,31 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
         )
         super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad)
 
-    def test_ir_calibrate(self):
+    def test_ir_calibrate_unclipped(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
             make_dataid(name='C05', calibration='brightness_temperature'), {})
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        assert np.allclose(res.data, expected, equal_nan=True)
+
+        # make sure the attributes from the file are in the data array
+        self.assertNotIn('scale_factor', res.attrs)
+        self.assertNotIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_brightness_temperature')
+        self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
+
+    def test_ir_calibrate_clipped(self):
+        """Test IR calibration."""
+        res = self.reader.get_dataset(
+            make_dataid(name='C05', calibration='brightness_temperature'), {})
+
+        expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
+                             [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
+        assert np.allclose(res.data, expected, equal_nan=True)
+
         # make sure the attributes from the file are in the data array
         self.assertNotIn('scale_factor', res.attrs)
         self.assertNotIn('_FillValue', res.attrs)
