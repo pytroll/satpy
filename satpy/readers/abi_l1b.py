@@ -165,7 +165,6 @@ class NC_ABI_L1B(NC_ABI_BASE):
         bc2 = float(self["planck_bc2"])
 
         if self.clip_negative_radiances:
-            print(self.clip_negative_radiances)
             min_rad = self._get_minimum_radiance(data)
             clip_mask = np.logical_and(data < min_rad, ~np.isnan(data))
             data = data.where(~clip_mask, min_rad)

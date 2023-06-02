@@ -257,6 +257,18 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
         )
         super(Test_NC_ABI_L1B_clipped_ir_cal, self).setUp(rad=rad, clip_negative_radiances=True)
 
+    def test_get_minimum_radiance(self):
+        """Test get_minimum_radiance from Rad DataArray."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
+        data = xr.DataArray(
+               attrs={
+                   'scale_factor': 0.5,
+                   'add_offset': -1.,
+                   '_FillValue': 1002,
+               }
+        )
+        np.testing.assert_allclose(NC_ABI_L1B._get_minimum_radiance(NC_ABI_L1B, data), 0.0)
+
     def test_ir_calibrate_unclipped(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
