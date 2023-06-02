@@ -31,7 +31,7 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_, rad=None):
+    def setUp(self, xr_, rad=None, clip_negative_radiances=False):
         """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
@@ -113,7 +113,8 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
                                   'suffix': 'custom',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                 {'filetype': 'info'})
+                                 {'filetype': 'info'},
+                                 clip_negative_radiances=False)
 
 
 class TestABIYAML:
@@ -199,7 +200,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
         np.testing.assert_allclose(call_args[6], (-2, -2, 8, 2))
 
 
-class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
+class Test_NC_ABI_L1B_unclipped_ir_cal(Test_NC_ABI_L1B_Base):
     """Test the NC_ABI_L1B reader's IR calibration."""
 
     def setUp(self):
@@ -213,10 +214,10 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
             attrs={
                 'scale_factor': 0.5,
                 'add_offset': -1.,
-                '_FillValue': 1002,
+                '_FillValue': 1002,  # last rad_data value
             }
         )
-        super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad)
+        super(Test_NC_ABI_L1B_unclipped_ir_cal, self).setUp(rad=rad)
 
     def test_ir_calibrate_unclipped(self):
         """Test IR calibration."""
@@ -234,12 +235,35 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
                          'toa_brightness_temperature')
         self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
 
-    def test_ir_calibrate_clipped(self):
+
+class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader's IR calibration."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        values = np.arange(10.)
+        values[0] = -0.0001  # introduce below minimum expected radiance
+        rad_data = (values.reshape((2, 5)) + 1.) * 50.
+        rad_data = (rad_data + 1.) / 0.5
+        rad_data = rad_data.astype(np.int16)
+        rad = xr.DataArray(
+            rad_data,
+            dims=('y', 'x'),
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': 1002,
+            }
+        )
+        super(Test_NC_ABI_L1B_clipped_ir_cal, self).setUp(rad=rad, clip_negative_radiances=True)
+
+    def test_ir_calibrate_unclipped(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='brightness_temperature'), {})
+            make_dataid(name='C07', calibration='brightness_temperature'), {})
 
-        expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
+        clipped_ir = 267.07775531
+        expected = np.array([[clipped_ir, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
         assert np.allclose(res.data, expected, equal_nan=True)
 
