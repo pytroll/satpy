@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -16,19 +16,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to work with multiple timesteps of satellite data."""
+from __future__ import annotations
 
 import copy
 import logging
 import warnings
 from queue import Queue
 from threading import Thread
+from typing import Callable, Collection, Mapping
 
 import dask.array as da
 import numpy as np
-import pandas as pd
 import xarray as xr
 
-from satpy.dataset import DataID, combine_metadata
+from satpy.dataset import DataID
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image, split_results
 
@@ -45,31 +46,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def stack(datasets):
-    """Overlay series of datasets on top of each other."""
-    base = datasets[0].copy()
-    for dataset in datasets[1:]:
-        base = base.where(dataset.isnull(), dataset)
-    return base
-
-
-def timeseries(datasets):
-    """Expand dataset with and concatenate by time dimension."""
-    expanded_ds = []
-    for ds in datasets:
-        if 'time' not in ds.dims:
-            tmp = ds.expand_dims("time")
-            tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
-        else:
-            tmp = ds
-        expanded_ds.append(tmp)
-
-    res = xr.concat(expanded_ds, dim="time")
-    res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
-    return res
-
-
-def group_datasets_in_scenes(scenes, groups):
+def _group_datasets_in_scenes(scenes, groups):
     """Group different datasets in multiple scenes by adding aliases.
 
     Args:
@@ -84,11 +61,11 @@ def group_datasets_in_scenes(scenes, groups):
 
     """
     for scene in scenes:
-        grp = GroupAliasGenerator(scene, groups)
+        grp = _GroupAliasGenerator(scene, groups)
         yield grp.duplicate_datasets_with_group_alias()
 
 
-class GroupAliasGenerator:
+class _GroupAliasGenerator:
     """Add group aliases to a scene."""
 
     def __init__(self, scene, groups):
@@ -215,17 +192,23 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(cls, files_to_sort, reader=None,
-                   ensure_all_readers=False, scene_kwargs=None, **kwargs):
+    def from_files(
+            cls,
+            files_to_sort: Collection[str],
+            reader: str | Collection[str] | None = None,
+            ensure_all_readers: bool = False,
+            scene_kwargs: Mapping | None = None,
+            **kwargs
+    ):
         """Create multiple Scene objects from multiple files.
 
         Args:
-            files_to_sort (Collection[str]): files to read
-            reader (str or Collection[str]): reader or readers to use
-            ensure_all_readers (bool): If True, limit to scenes where all
+            files_to_sort: files to read
+            reader: reader or readers to use
+            ensure_all_readers: If True, limit to scenes where all
                 readers have at least one file.  If False (default), include
                 all scenes where at least one reader has at least one file.
-            scene_kwargs (Mapping): additional arguments to pass on to
+            scene_kwargs: additional arguments to pass on to
                 :func:`Scene.__init__` for each created scene.
 
         This uses the :func:`satpy.readers.group_files` function to group
@@ -244,7 +227,9 @@ class MultiScene(object):
             warnings.warn(
                 "Argument ensure_all_readers is deprecated.  Use "
                 "missing='skip' instead.",
-                DeprecationWarning)
+                DeprecationWarning,
+                stacklevel=2
+            )
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
@@ -339,7 +324,10 @@ class MultiScene(object):
         """Resample the multiscene."""
         return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
 
-    def blend(self, blend_function=stack):
+    def blend(
+            self,
+            blend_function: Callable[..., xr.DataArray] | None = None
+    ) -> Scene:
         """Blend the datasets into one scene.
 
         Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
@@ -360,6 +348,11 @@ class MultiScene(object):
             MultiScene.
 
         """
+        if blend_function is None:
+            # delay importing blend funcs until now in case they aren't used
+            from ._blend_funcs import stack
+            blend_function = stack
+
         new_scn = Scene()
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
@@ -382,7 +375,7 @@ class MultiScene(object):
                 DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
-        self._scenes = group_datasets_in_scenes(self._scenes, groups)
+        self._scenes = _group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
@@ -508,7 +501,7 @@ class MultiScene(object):
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
-                    ds, enh_args["decorate"])
+                ds, enh_args["decorate"])
         img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
         if data.ndim == 3:
@@ -583,7 +576,10 @@ class MultiScene(object):
         load_thread.join(10)
         if load_thread.is_alive():
             import warnings
-            warnings.warn("Background thread still alive after failing to die gracefully")
+            warnings.warn(
+                "Background thread still alive after failing to die gracefully",
+                stacklevel=3
+            )
         else:
             log.debug("Child thread died successfully")
 
@@ -632,7 +628,7 @@ class MultiScene(object):
             info_datasets = [scn.get(dataset_id) for scn in info_scenes]
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
             data_to_write = self._get_animation_frames(
-                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+                all_datasets, shape, this_fill, ignore_missing, enh_args)
 
             writer = imageio.get_writer(this_fn, **imio_args)
             frames[dataset_id] = data_to_write
@@ -703,8 +699,8 @@ class MultiScene(object):
             raise ImportError("Missing required 'imageio' library")
 
         (writers, frames) = self._get_writers_and_frames(
-                filename, datasets, fill_value, ignore_missing,
-                enh_args, imio_args={"fps": fps, **kwargs})
+            filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames

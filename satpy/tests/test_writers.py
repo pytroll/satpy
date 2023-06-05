@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 import shutil
 import unittest
@@ -863,3 +864,52 @@ class TestOverlays(unittest.TestCase):
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         self.assertEqual('RGBA', new_img.mode)
+
+
+def test_group_results_by_output_file(tmp_path):
+    """Test grouping results by output file.
+
+    Add a test for grouping the results from save_datasets(..., compute=False)
+    by output file.  This is useful if for some reason we want to treat each
+    output file as a seperate computation (that can still be computed together
+    later).
+    """
+    from pyresample import create_area_def
+
+    from satpy.writers import group_results_by_output_file
+
+    from .utils import make_fake_scene
+    x = 10
+    fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
+    fake_scene = make_fake_scene(
+        {"dragon_top_height": (dat := xr.DataArray(
+            dims=("y", "x"),
+            data=da.arange(x*x).reshape((x, x)))),
+         "penguin_bottom_height": dat,
+         "kraken_depth": dat},
+        daskify=True,
+        area=fake_area,
+        common_attrs={"start_time": datetime.datetime(2022, 11, 16, 13, 27)})
+    # NB: even if compute=False, ``save_datasets`` creates (empty) files
+    (sources, targets) = fake_scene.save_datasets(
+            filename=os.fspath(tmp_path / "test-{name}.tif"),
+            writer="ninjogeotiff",
+            compress="NONE",
+            fill_value=0,
+            compute=False,
+            ChannelID="x",
+            DataType="x",
+            PhysicUnit="K",
+            PhysicValue="Temperature",
+            SatelliteNameID="x")
+
+    grouped = group_results_by_output_file(sources, targets)
+
+    assert len(grouped) == 3
+    assert len({x.rfile.path for x in grouped[0][1]}) == 1
+    for x in grouped:
+        assert len(x[0]) == len(x[1])
+    assert sources[:5] == grouped[0][0]
+    assert targets[:5] == grouped[0][1]
+    assert sources[10:] == grouped[2][0]
+    assert targets[10:] == grouped[2][1]

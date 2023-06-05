@@ -41,16 +41,16 @@ from threading import Lock
 import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
-import rioxarray
 import xarray as xr
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def dictify(r):
@@ -479,17 +479,22 @@ class XMLArray:
         return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
-def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
+def interpolate_xarray(xpoints, ypoints, values, shape,
                        blocksize=CHUNK_SIZE):
     """Interpolate, generating a dask array."""
+    from scipy.interpolate import RectBivariateSpline
+
     vchunks = range(0, shape[0], blocksize)
     hchunks = range(0, shape[1], blocksize)
 
-    token = tokenize(blocksize, xpoints, ypoints, values, kind, shape)
+    token = tokenize(blocksize, xpoints, ypoints, values, shape)
     name = 'interpolate-' + token
 
-    from scipy.interpolate import interp2d
-    interpolator = interp2d(xpoints, ypoints, values, kind=kind)
+    spline = RectBivariateSpline(xpoints, ypoints, values.T)
+
+    def interpolator(xnew, ynew):
+        """Interpolator function."""
+        return spline(xnew, ynew).T
 
     dskx = {(name, i, j): (interpolate_slice,
                            slice(vcs, min(vcs + blocksize, shape[0])),
@@ -580,7 +585,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = xr.open_dataset(self.filename, engine="rasterio",
+                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords['x'])),
                                       y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)

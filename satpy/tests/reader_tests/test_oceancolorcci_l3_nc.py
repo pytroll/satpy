@@ -26,35 +26,39 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 @pytest.fixture()
 def fake_dataset():
     """Create a CLAAS-like test dataset."""
     adg = xr.DataArray(
         [[1.0, 0.47, 4.5, 1.2], [0.2, 0, 1.3, 1.3]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     atot = xr.DataArray(
         [[0.001, 0.08, 23.4, 0.1], [2.1, 1.2, 4.7, 306.]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     kd = xr.DataArray(
         [[0.8, 0.01, 5.34, 1.23], [0.4, 1.0, 3.2, 1.23]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     nobs = xr.DataArray(
         [[5, 118, 5, 100], [0, 15, 0, 1]],
-        dims=("y", "x"),
+        dims=("lat", "lon"),
         attrs={'_FillValue': 0}
     )
     nobs_filt = xr.DataArray(
         [[5, 118, 5, 100], [np.nan, 15, np.nan, 1]],
-        dims=("y", "x"),
+        dims=("lat", "lon"),
         attrs={'_FillValue': 0}
     )
     watcls = xr.DataArray(
         [[12.2, 0.01, 6.754, 5.33], [12.5, 101.5, 103.5, 204.]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     attrs = {
         "geospatial_lon_resolution": "90",
@@ -128,7 +132,7 @@ def fake_file_dict(fake_dataset, tmp_path):
 class TestOCCCIReader:
     """Test the Ocean Color reader."""
 
-    def setup(self):
+    def setup_method(self):
         """Set up the reader tests."""
         from satpy._config import config_search_paths
 
@@ -238,3 +242,11 @@ class TestOCCCIReader:
         """Test end time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
         assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)
+
+    def test_correct_dimnames(self, fake_file_dict):
+        """Check that the loaded dimension names are correct."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_5d']])
+        res = reader.load(ds_list_all)
+        for dsname in ds_list_all:
+            assert res[dsname].dims[0] == 'y'
+            assert res[dsname].dims[1] == 'x'

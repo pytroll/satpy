@@ -3,8 +3,8 @@
 #  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
 
 reader:
-  name: agri_l1
-  short_name: AGRI L1
+  name: agri_fy4a_l1
+  short_name: AGRI FY4A L1
   long_name: FY-4A AGRI L1 data in HDF5 format
   description: FY-4A AGRI instrument HDF5 reader
   status: Beta

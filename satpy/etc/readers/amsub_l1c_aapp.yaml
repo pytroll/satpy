@@ -13,9 +13,9 @@ reader:
     name:
       required: true
     frequency_double_sideband:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyDoubleSideBand
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
     frequency_range:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyRange
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
     resolution:
     polarization:
       enum:

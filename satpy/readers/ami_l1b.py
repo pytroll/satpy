@@ -26,13 +26,14 @@ import pyproj
 import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
-from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import apply_rad_correction, get_user_calibration_factors
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
     'GK-2A': 'GEO-KOMPSAT-2A',
     'GK-2B': 'GEO-KOMPSAT-2B',
@@ -160,10 +161,10 @@ class AMIL1bNetCDF(BaseFileHandler):
         sc_position = self.nc['sc_position'].attrs['sc_position_center_pixel']
 
         # convert ECEF coordinates to lon, lat, alt
-        ecef = pyproj.Proj(proj='geocent', a=a, b=b)
-        lla = pyproj.Proj(proj='latlong', a=a, b=b)
-        sc_position = pyproj.transform(
-            ecef, lla, sc_position[0], sc_position[1], sc_position[2])
+        ecef = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b})
+        lla = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b})
+        transformer = pyproj.Transformer.from_crs(ecef, lla)
+        sc_position = transformer.transform(sc_position[0], sc_position[1], sc_position[2])
 
         orbital_parameters = {
             'projection_longitude': float(lon_0),

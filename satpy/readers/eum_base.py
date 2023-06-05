@@ -90,7 +90,8 @@ def get_service_mode(instrument_name, ssp_lon):
     """Get information about service mode for a given instrument and subsatellite longitude."""
     service_modes = {'seviri': {'0.0':  {'service_name': 'fes', 'service_desc': 'Full Earth Scanning service'},
                                 '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
-                                '41.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'}
+                                '41.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'},
+                                '45.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'}
                                 },
                      'fci':    {'0.0':  {'service_name': 'fdss', 'service_desc': 'Full Disk Scanning Service'},
                                 '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},

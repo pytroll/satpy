@@ -68,6 +68,8 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         """Standardize dims to y, x."""
         if 'num_pixels' in variable.dims:
             variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
+        if 'num_points_act' in variable.dims:
+            variable = variable.rename({'num_points_act': 'x', 'num_points_alt': 'y'})
         if variable.dims[0] == 'x':
             variable = variable.transpose('y', 'x')
         return variable

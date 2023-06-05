@@ -2,39 +2,70 @@ sensor_name: visir/ami
 
 composites:
   green_raw:
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    deprecation_warning: "'green_raw' is a deprecated composite. Use the equivalent 'hybrid_green_raw' instead."
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
         modifiers: [sunz_corrected]
       - name: VI008
         modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
-    fractions: [0.85, 0.15]
+    fraction: 0.15
 
   green:
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    deprecation_warning: "'green' is a deprecated composite. Use the equivalent 'hybrid_green' instead."
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: VI008
         modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
-    fractions: [0.85, 0.15]
+    fraction: 0.15
 
   green_nocorr:
-    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    deprecation_warning: "'green_nocorr' is a deprecated composite. Use the equivalent 'hybrid_green_nocorr' instead."
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     prerequisites:
       - name: VI005
       - name: VI008
     standard_name: toa_reflectance
-    fractions: [0.85, 0.15]
+    fraction: 0.15
+
+  hybrid_green_raw:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+    fraction: 0.15
+
+  hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+    fraction: 0.15
+
+  hybrid_green_nocorr:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
+    prerequisites:
+      - name: VI005
+      - name: VI008
+    standard_name: toa_reflectance
+    fraction: 0.15
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected]
-      - name: green_raw
+      - name: hybrid_green_raw
       - name: VI004
         modifiers: [sunz_corrected]
     standard_name: true_color
@@ -44,7 +75,7 @@ composites:
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: green
+      - name: hybrid_green
       - name: VI004
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
@@ -53,7 +84,7 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: VI006
-      - name: green_nocorr
+      - name: hybrid_green_nocorr
       - name: VI004
     standard_name: true_color
 
@@ -228,3 +259,35 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 73.
+    lim_high: 85.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: VI006
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: VI004
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: VI006
+      - name: green_nocorr
+      - name: VI004
+    standard_name: true_color_reproduction_color_stretch

@@ -15,7 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the goes imager nc reader."""
+"""Tests for the goes imager nc reader (NOAA CLASS variant)."""
+
 import datetime
 import unittest
 from unittest import mock
@@ -23,8 +24,14 @@ from unittest import mock
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
 
+from satpy.readers.goes_imager_nc import is_vis_channel
 from satpy.tests.utils import make_dataid
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - request
 
 
 class GOESNCBaseFileHandlerTest(unittest.TestCase):
@@ -48,7 +55,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         self.band = 1
         self.nc = xr.Dataset(
             {'data': xr.DataArray(self.dummy3d, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.dummy2d,  dims=('yc', 'xc')),
+             'lon': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
              'time': xr.DataArray(data=np.array([self.time],
                                                 dtype='datetime64[ms]'),
@@ -84,27 +91,6 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
             earth_mask=earth_mask, sector=FULL_DISC)
         self.assertEqual((nadir_row, nadir_col), (2, 1),
                          msg='Incorrect nadir pixel')
-
-    def test_get_earth_mask(self):
-        """Test identification of earth/space pixels."""
-        lat = xr.DataArray([-100, -90, -45, 0, 45, 90, 100])
-        expected = np.array([0, 1, 1, 1, 1, 1, 0])
-        mask = self.reader._get_earth_mask(lat)
-        self.assertTrue(np.all(mask == expected),
-                        msg='Incorrect identification of earth/space pixel')
-
-    def test_is_yaw_flip(self):
-        """Test yaw flip identification."""
-        lat_asc = xr.DataArray([[1, 1, 1],
-                                [2, 2, 2],
-                                [3, 3, 3]])
-        lat_dsc = xr.DataArray([[3, 3, 3],
-                                [2, 2, 3],
-                                [1, 1, 1]])
-        self.assertEqual(self.reader._is_yaw_flip(lat_asc, delta=1), True,
-                         msg='Yaw flip not identified')
-        self.assertEqual(self.reader._is_yaw_flip(lat_dsc, delta=1), False,
-                         msg='Yaw flip false alarm')
 
     def test_viscounts2radiance(self):
         """Test conversion from VIS counts to radiance."""
@@ -213,6 +199,153 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
             self.assertEqual(self.reader.end_time, end_time)
 
 
+class TestMetadata:
+    """Testcase for dataset metadata."""
+
+    @pytest.fixture(params=[1, 2])
+    def channel_id(self, request):
+        """Set channel ID."""
+        return request.param
+
+    @pytest.fixture(params=[True, False])
+    def yaw_flip(self, request):
+        """Set yaw-flip flag."""
+        return request.param
+
+    def _apply_yaw_flip(self, data_array, yaw_flip):
+        if yaw_flip:
+            data_array.data = np.flipud(data_array.data)
+        return data_array
+
+    @pytest.fixture
+    def lons_lats(self, yaw_flip):
+        """Get longitudes and latitudes."""
+        lon = xr.DataArray(
+            [[-1, 0, 1, 2],
+             [-1, 0, 1, 2],
+             [-1, 0, 1, 2]],
+            dims=("yc", "xc")
+        )
+        lat = xr.DataArray(
+            [[9999, 9999, 9999, 9999],
+             [1, 1, 1, 1],
+             [-1, -1, -1, -1]],
+            dims=("yc", "xc")
+        )
+        self._apply_yaw_flip(lat, yaw_flip)
+        return lon, lat
+
+    @pytest.fixture
+    def dataset(self, lons_lats, channel_id):
+        """Create a fake dataset."""
+        lon, lat = lons_lats
+        data = xr.DataArray(
+            [[[1, 2, 3, 4],
+              [5, 6, 7, 8],
+              [9, 10, 11, 12]]],
+            dims=("time", "yc", "xc")
+        )
+        time = xr.DataArray(
+            [np.datetime64("2018-01-01 12:00:00")],
+            dims="time"
+        )
+        bands = xr.DataArray([channel_id], dims="bands")
+        return xr.Dataset(
+            {
+                'data': data,
+                'lon': lon,
+                'lat': lat,
+                'time': time,
+                'bands': bands,
+            },
+            attrs={'Satellite Sensor': 'G-15'}
+        )
+
+    @pytest.fixture
+    def earth_mask(self, yaw_flip):
+        """Get expected earth mask."""
+        earth_mask = xr.DataArray(
+            [[False, False, False, False],
+             [True, True, True, True],
+             [True, True, True, True]],
+            dims=("yc", "xc"),
+        )
+        self._apply_yaw_flip(earth_mask, yaw_flip)
+        return earth_mask
+
+    @pytest.fixture
+    def geometry(self, channel_id, yaw_flip):
+        """Get expected geometry."""
+        shapes = {
+            1: {"width": 10847, "height": 10810},
+            2: {"width": 2712, "height": 2702}
+        }
+        return {
+            "nadir_row": 0 if yaw_flip else 1,
+            "projection_longitude": -1 if yaw_flip else 1,
+            "shape": shapes[channel_id]
+        }
+
+    @pytest.fixture
+    def expected(self, geometry, earth_mask, yaw_flip):
+        """Define expected metadata."""
+        proj_dict = {
+            'a': '6378169',
+            'h': '35785831',
+            'lon_0': '0',
+            'no_defs': 'None',
+            'proj': 'geos',
+            'rf': '295.488065897001',
+            'type': 'crs',
+            'units': 'm',
+            'x_0': '0',
+            'y_0': '0'
+        }
+        area = AreaDefinition(
+            area_id="goes_geos_uniform",
+            proj_id="goes_geos_uniform",
+            description="GOES-15 geostationary projection (uniform sampling)",
+            projection=proj_dict,
+            area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992),
+            **geometry["shape"]
+        )
+        return {
+            "area_def_uni": area,
+            "earth_mask": earth_mask,
+            "yaw_flip": yaw_flip,
+            "lon0": 0,
+            "lat0": geometry["projection_longitude"],
+            "nadir_row": geometry["nadir_row"],
+            "nadir_col": 1
+        }
+
+    @pytest.fixture
+    def mocked_file_handler(self, dataset):
+        """Mock file handler to load the given fake dataset."""
+        from satpy.readers.goes_imager_nc import FULL_DISC, GOESNCFileHandler
+        with mock.patch("satpy.readers.goes_imager_nc.xr") as xr_:
+            xr_.open_dataset.return_value = dataset
+            GOESNCFileHandler.vis_sectors[(3, 4)] = FULL_DISC
+            GOESNCFileHandler.ir_sectors[(3, 4)] = FULL_DISC
+            GOESNCFileHandler.yaw_flip_sampling_distance = 1
+            return GOESNCFileHandler(
+                filename='dummy',
+                filename_info={},
+                filetype_info={},
+            )
+
+    def test_metadata(self, mocked_file_handler, expected):
+        """Test dataset metadata."""
+        metadata = mocked_file_handler.meta
+        self._assert_earth_mask_equal(metadata, expected)
+        assert metadata == expected
+
+    def _assert_earth_mask_equal(self, metadata, expected):
+        earth_mask_tst = metadata.pop("earth_mask")
+        earth_mask_ref = expected.pop("earth_mask")
+        xr.testing.assert_allclose(earth_mask_tst, earth_mask_ref)
+
+
 class GOESNCFileHandlerTest(unittest.TestCase):
     """Test the file handler."""
 
@@ -227,9 +360,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         self.all_coefs = CALIB_COEFS
         self.channels = sorted(self.coefs.keys())
         self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESNCFileHandler._is_vis(ch)])
+                                   if not is_vis_channel(ch)])
         self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESNCFileHandler._is_vis(ch)])
+                                    if is_vis_channel(ch)])
 
         # Mock file access to return a fake dataset. Choose a medium count value
         # (100) to avoid elements being masked due to invalid
@@ -242,7 +375,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         xr_.open_dataset.return_value = xr.Dataset(
             {'data': xr.DataArray(data=self.counts, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+             'lon': xr.DataArray(data=self.lon, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc')),
              'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
                                   dims=('time',)),
@@ -340,7 +473,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
         for ch in self.channels:
-            if self.reader._is_vis(ch):
+            if is_vis_channel(ch):
                 calibs = {'radiance': '_viscounts2radiance',
                           'reflectance': '_calibrate_vis'}
             else:
@@ -391,143 +524,23 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                              msg='Incorrect sector identification')
 
 
-class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
-    """Tests for the radiances."""
+class TestChannelIdentification:
+    """Test identification of channel type."""
 
-    longMessage = True
+    @pytest.mark.parametrize(
+        "channel_name,expected",
+        [
+            ("00_7", True),
+            ("10_7", False),
+            (1, True),
+            (2, False)
+        ]
+    )
+    def test_is_vis_channel(self, channel_name, expected):
+        """Test vis channel identification."""
+        assert is_vis_channel(channel_name) == expected
 
-    @mock.patch('satpy.readers.goes_imager_nc.xr')
-    def setUp(self, xr_):
-        """Set up the tests."""
-        from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESEUMNCFileHandler
-
-        self.coefs = CALIB_COEFS['GOES-15']
-        self.all_coefs = CALIB_COEFS
-        self.channels = sorted(self.coefs.keys())
-        self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESEUMNCFileHandler._is_vis(ch)])
-        self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESEUMNCFileHandler._is_vis(ch)])
-
-        # Mock file access to return a fake dataset.
-        nrows = ncols = 300
-        self.radiance = np.ones((1, nrows, ncols))  # IR channels
-        self.lon = np.zeros((nrows, ncols))  # Dummy
-        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
-            nrows, ncols)  # Includes invalid values to be masked
-
-        xr_.open_dataset.return_value = xr.Dataset(
-            {'data': xr.DataArray(data=self.radiance, dims=('time', 'yc', 'xc')),
-             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
-                                  dims=('time',)),
-             'bands': xr.DataArray(data=np.array([1]))},
-            attrs={'Satellite Sensor': 'G-15'})
-
-        geo_data = xr.Dataset(
-            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
-             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
-            attrs={'Satellite Sensor': 'G-15'})
-
-        # Instantiate reader using the mocked open_dataset() method
-        self.reader = GOESEUMNCFileHandler(filename='dummy', filename_info={},
-                                           filetype_info={}, geo_data=geo_data)
-
-    def test_get_dataset_radiance(self):
-        """Test getting the radiances."""
-        for ch in self.channels:
-            if not self.reader._is_vis(ch):
-                radiance = self.reader.get_dataset(
-                    key=make_dataid(name=ch, calibration='radiance'), info={})
-                # ... this only compares the valid (unmasked) elements
-                self.assertTrue(np.all(self.radiance == radiance.to_masked_array()),
-                                msg='get_dataset() returns invalid radiance for '
-                                'channel {}'.format(ch))
-
-    def test_calibrate(self):
-        """Test whether the correct calibration methods are called."""
-        for ch in self.channels:
-            if not self.reader._is_vis(ch):
-                calibs = {'brightness_temperature': '_calibrate_ir'}
-                for calib, method in calibs.items():
-                    with mock.patch.object(self.reader, method) as target_func:
-                        self.reader.calibrate(data=self.reader.nc['data'],
-                                              calibration=calib, channel=ch)
-                        target_func.assert_called()
-
-    def test_get_sector(self):
-        """Test sector identification."""
-        from satpy.readers.goes_imager_nc import (
-            FULL_DISC,
-            NORTH_HEMIS_EAST,
-            NORTH_HEMIS_WEST,
-            SOUTH_HEMIS_EAST,
-            SOUTH_HEMIS_WEST,
-            UNKNOWN_SECTOR,
-        )
-        shapes = {
-            (2700, 5200): FULL_DISC,
-            (1850, 3450): NORTH_HEMIS_EAST,
-            (600, 3500): SOUTH_HEMIS_EAST,
-            (1310, 3300): NORTH_HEMIS_WEST,
-            (1099, 2800): SOUTH_HEMIS_WEST,
-            (123, 456): UNKNOWN_SECTOR
-        }
-        for (nlines, ncols), sector_ref in shapes.items():
-            for channel in ('00_7', '10_7'):
-                sector = self.reader._get_sector(channel=channel, nlines=nlines,
-                                                 ncols=ncols)
-                self.assertEqual(sector, sector_ref,
-                                 msg='Incorrect sector identification')
-
-
-class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
-    """Testing the reflectances."""
-
-    longMessage = True
-
-    @mock.patch('satpy.readers.goes_imager_nc.xr')
-    def setUp(self, xr_):
-        """Set up the tests."""
-        from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESEUMNCFileHandler
-
-        self.coefs = CALIB_COEFS['GOES-15']
-        self.all_coefs = CALIB_COEFS
-        self.channels = sorted(self.coefs.keys())
-        self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESEUMNCFileHandler._is_vis(ch)])
-        self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESEUMNCFileHandler._is_vis(ch)])
-
-        # Mock file access to return a fake dataset.
-        nrows = ncols = 300
-        self.reflectance = 50 * np.ones((1, nrows, ncols))  # Vis channel
-        self.lon = np.zeros((nrows, ncols))  # Dummy
-        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
-            nrows, ncols)  # Includes invalid values to be masked
-
-        xr_.open_dataset.return_value = xr.Dataset(
-            {'data': xr.DataArray(data=self.reflectance, dims=('time', 'yc', 'xc')),
-             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
-                                  dims=('time',)),
-             'bands': xr.DataArray(data=np.array([1]))},
-            attrs={'Satellite Sensor': 'G-15'})
-
-        geo_data = xr.Dataset(
-            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
-             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
-            attrs={'Satellite Sensor': 'G-15'})
-
-        # Instantiate reader using the mocked open_dataset() method
-        self.reader = GOESEUMNCFileHandler(filename='dummy', filename_info={},
-                                           filetype_info={}, geo_data=geo_data)
-
-    def test_get_dataset_reflectance(self):
-        """Test getting the reflectance."""
-        for ch in self.channels:
-            if self.reader._is_vis(ch):
-                refl = self.reader.get_dataset(
-                    key=make_dataid(name=ch, calibration='reflectance'), info={})
-                # ... this only compares the valid (unmasked) elements
-                self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
-                                msg='get_dataset() returns invalid reflectance for '
-                                'channel {}'.format(ch))
+    def test_invalid_channel(self):
+        """Test handling of invalid channel type."""
+        with pytest.raises(ValueError):
+            is_vis_channel({"foo": "bar"})

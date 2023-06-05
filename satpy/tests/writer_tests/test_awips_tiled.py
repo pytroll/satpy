@@ -35,6 +35,11 @@ from satpy.resample import update_resampled_coords
 START_TIME = datetime(2018, 1, 1, 12, 0, 0)
 END_TIME = START_TIME + timedelta(minutes=20)
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+
 
 def _check_production_location(ds):
     if 'production_site' in ds.attrs:

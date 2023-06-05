@@ -180,10 +180,12 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
                 group_key = tuple(file_info.get(k) for k in group_keys)
                 if all(g is None for g in group_key):
                     warnings.warn(
-                            f"Found matching file {f:s} for reader "
-                            "{reader_name:s}, but none of group keys found. "
-                            "Group keys requested: " + ", ".join(group_keys),
-                            UserWarning)
+                        f"Found matching file {f:s} for reader "
+                        "{reader_name:s}, but none of group keys found. "
+                        "Group keys requested: " + ", ".join(group_keys),
+                        UserWarning,
+                        stacklevel=3
+                    )
                 file_keys[reader_name].append((group_key, f))
     return file_keys
 
@@ -263,7 +265,7 @@ def _filter_groups(groups, missing="pass"):
         return
     if missing not in ("raise", "skip"):
         raise ValueError("Invalid value for ``missing`` argument.  Expected "
-                         f"'raise', 'skip', or 'pass', got '{missing!s}'")
+                         f"'raise', 'skip', or 'pass', got {missing!r}")
     for (i, grp) in enumerate(groups):
         readers_without_files = _get_keys_with_empty_values(grp)
         if readers_without_files:
@@ -356,9 +358,12 @@ def get_valid_reader_names(reader):
 
         if reader_name in PENDING_OLD_READER_NAMES:
             new_name = PENDING_OLD_READER_NAMES[reader_name]
-            warnings.warn("Reader name '{}' is being deprecated and will be removed soon."
-                          "Please use '{}' instead.".format(reader_name, new_name),
-                          FutureWarning)
+            warnings.warn(
+                "Reader name '{}' is being deprecated and will be removed soon."
+                "Please use '{}' instead.".format(reader_name, new_name),
+                FutureWarning,
+                stacklevel=2
+            )
             new_readers.append(new_name)
         else:
             new_readers.append(reader_name)
@@ -680,6 +685,7 @@ class FSFile(os.PathLike):
             fs (fsspec filesystem, optional)
                 Object implementing the fsspec filesystem protocol.
         """
+        self._fs_open_kwargs = _get_fs_open_kwargs(file)
         try:
             self._file = file.path
             self._fs = file.fs
@@ -704,10 +710,17 @@ class FSFile(os.PathLike):
 
         This is read-only.
         """
+        fs_open_kwargs = self._update_with_fs_open_kwargs(kwargs)
         try:
-            return self._fs.open(self._file, *args, **kwargs)
+            return self._fs.open(self._file, *args, **fs_open_kwargs)
         except AttributeError:
             return open(self._file, *args, **kwargs)
+
+    def _update_with_fs_open_kwargs(self, user_kwargs):
+        """Complement keyword arguments for opening a file via file system."""
+        kwargs = user_kwargs.copy()
+        kwargs.update(self._fs_open_kwargs)
+        return kwargs
 
     def __lt__(self, other):
         """Implement ordering.
@@ -745,6 +758,23 @@ class FSFile(os.PathLike):
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
             fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
+
+
+def _get_fs_open_kwargs(file):
+    """Get keyword arguments for opening a file via file system.
+
+    For example compression.
+    """
+    return {
+        "compression": _get_compression(file)
+    }
+
+
+def _get_compression(file):
+    try:
+        return file.compression
+    except AttributeError:
+        return None
 
 
 def open_file_or_filename(unknown_file_thing):

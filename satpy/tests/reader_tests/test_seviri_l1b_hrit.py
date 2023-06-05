@@ -46,10 +46,10 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing HRV."""
-        self.start_time = datetime(2016, 3, 3, 0, 0)
+        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.reader = setup.get_fake_file_handler(
-            start_time=self.start_time,
+            observation_start_time=self.observation_start_time,
             nlines=self.nlines,
             ncols=5568,
         )
@@ -88,7 +88,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         self.assert_attrs_equal(res.attrs, setup.get_attrs_exp())
         np.testing.assert_equal(
             res['acq_time'],
-            setup.get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.observation_start_time, self.nlines)
         )
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
@@ -111,7 +111,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         self.assert_attrs_equal(res.attrs, setup.get_attrs_exp())
         np.testing.assert_equal(
             res['acq_time'],
-            setup.get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.observation_start_time, self.nlines)
         )
 
     def test_get_area_def(self):
@@ -144,16 +144,20 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        self.start_time = datetime(2016, 3, 3, 0, 0)
+        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.ncols = 3712
         self.projection_longitude = 9.5
         self.reader = setup.get_fake_file_handler(
-            start_time=self.start_time,
+            observation_start_time=self.observation_start_time,
             nlines=self.nlines,
             ncols=self.ncols,
             projection_longitude=self.projection_longitude
         )
+        self.reader.mda.update({
+            'segment_sequence_number': 18,
+            'planned_start_segment_number': 1
+        })
 
     def _get_fake_data(self):
         return xr.DataArray(
@@ -209,10 +213,51 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         res = self.reader.get_dataset(key, info)
 
         # Test method calls
+        new_data = np.zeros_like(data.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = data.copy(data=new_data)
+
+        expected['acq_time'] = (
+            'y',
+            setup.get_acq_time_exp(self.observation_start_time, self.nlines)
+        )
+        xr.testing.assert_equal(res, expected)
+        self.assert_attrs_equal(
+            res.attrs,
+            setup.get_attrs_exp(self.projection_longitude)
+        )
+        # testing start/end time
+        self.assertEqual(datetime(2006, 1, 1, 12, 15, 9, 304888), self.reader.observation_start_time)
+        self.assertEqual(datetime(2006, 1, 1, 12, 15,), self.reader.start_time)
+        self.assertEqual(self.reader.start_time, self.reader.nominal_start_time)
+
+        self.assertEqual(datetime(2006, 1, 1, 12, 27, 39), self.reader.observation_end_time)
+        self.assertEqual(self.reader.end_time, self.reader.nominal_end_time)
+        self.assertEqual(datetime(2006, 1, 1, 12, 30,), self.reader.end_time)
+        # test repeat cycle duration
+        self.assertEqual(15, self.reader._repeat_cycle_duration)
+        # Change the reducescan scenario to test the repeat cycle duration handling
+        self.reader.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] = 1
+        self.assertEqual(5, self.reader._repeat_cycle_duration)
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
+    def test_get_dataset_without_masking_bad_scan_lines(self, calibrate, parent_get_dataset):
+        """Test getting the dataset."""
+        data = self._get_fake_data()
+        parent_get_dataset.return_value = mock.MagicMock()
+        calibrate.return_value = data
+
+        key = make_dataid(name='VIS006', calibration='reflectance')
+        info = setup.get_fake_dataset_info()
+        self.reader.mask_bad_quality_scan_lines = False
+        res = self.reader.get_dataset(key, info)
+
+        # Test method calls
         expected = data.copy()
         expected['acq_time'] = (
             'y',
-            setup.get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.observation_start_time, self.nlines)
         )
         xr.testing.assert_equal(res, expected)
         self.assert_attrs_equal(
@@ -245,7 +290,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_satpos_no_valid_orbit_polynomial(self):
         """Test satellite position if there is no valid orbit polynomial."""
         reader = setup.get_fake_file_handler(
-            start_time=self.start_time,
+            observation_start_time=self.observation_start_time,
             nlines=self.nlines,
             ncols=self.ncols,
             projection_longitude=self.projection_longitude,
@@ -263,7 +308,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     def setUp(self, *mocks):
         """Set up the test case."""
         fh = setup.get_fake_file_handler(
-            start_time=datetime(2016, 3, 3, 0, 0),
+            observation_start_time=datetime(2016, 3, 3, 0, 0),
             nlines=464,
             ncols=3712,
         )
@@ -371,7 +416,12 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
                 'Level15ImageProduction': {
                     'PlannedChanProcessing': self.radiance_types
                 }
-            }
+            },
+            'ImageAcquisition': {
+                'PlannedAcquisitionTime': {
+                    'TrueRepeatCycleStart': self.scan_time,
+                    }
+                }
         }
         epilog = {
             'ImageProductionStats': {
@@ -382,9 +432,9 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         }
         mda = {
             'image_segment_line_quality': {
-                'line_validity': np.zeros(2),
-                'line_radiometric_quality': np.zeros(2),
-                'line_geometric_quality': np.zeros(2)
+                'line_validity': np.array([3, 3]),
+                'line_radiometric_quality': np.array([4, 4]),
+                'line_geometric_quality': np.array([4, 4])
             },
         }
 
@@ -447,6 +497,23 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         fh.channel_name = channel
         fh.calib_mode = calib_mode
         fh.ext_calib_coefs = external_coefs
-
         res = fh.calibrate(counts, calibration)
         xr.testing.assert_allclose(res, expected)
+
+    def test_mask_bad_quality(self, file_handler):
+        """Test the masking of bad quality scan lines."""
+        channel = 'VIS006'
+        expected = self._get_expected(
+            channel=channel,
+            calibration='radiance',
+            calib_mode='NOMINAL',
+            use_ext_coefs=False
+        )
+
+        fh = file_handler
+
+        res = fh._mask_bad_quality(expected)
+        new_data = np.zeros_like(expected.data).astype('float32')
+        new_data[:, :] = np.nan
+        expected = expected.copy(data=new_data)
+        xr.testing.assert_equal(res, expected)
