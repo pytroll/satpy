@@ -26,8 +26,8 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from pyresample.area_config import generate_area_def_rst_list  # noqa: E402
-from reader_table import generate_reader_table  # noqa: E402
+from pyresample.area_config import _read_yaml_area_file_content, generate_area_def_rst_list  # noqa: E402
+from reader_table import generate_reader_table, rst_table_header, rst_table_row  # noqa: E402
 
 from satpy.resample import get_area_file  # noqa: E402
 
@@ -83,8 +83,20 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())
 
+# create table from area definition yaml file
 area_file = get_area_file()[0]
+
+area_dict = _read_yaml_area_file_content(area_file)
+area_table = [rst_table_header("Area Definitions", header=["Name", "Description", "Projection"],
+                               widths=[45, 60, 10], class_name="area-table")]
+
+for aname, params in area_dict.items():
+    area_table.append(rst_table_row([f"`{aname}`_", params.get("description", ""),
+                                     params.get("projection").get("proj")]))
+
 with open("area_def_list.rst", mode="w") as f:
+    f.write("".join(area_table))
+    f.write("\n\n")
     f.write(generate_area_def_rst_list(area_file))
 
 # -- General configuration -----------------------------------------------------
