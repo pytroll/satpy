@@ -421,6 +421,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             else:
                 self.assertNotIn('_FillValue', v.attrs)
             if v.attrs["name"] == 'refl_1_38um_nom':
+                self.assertIn("valid_range", v.attrs)
                 self.assertIsInstance(v.attrs["valid_range"], list)
             else:
                 self.assertNotIn('valid_range', v.attrs)

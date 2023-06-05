@@ -171,6 +171,7 @@ class _CLAVRxHelper:
                 valid_min = _scale_data(valid_range[0], factor, offset)
                 valid_max = _scale_data(valid_range[1], factor, offset)
                 data = data.where((data >= valid_min) & (data <= valid_max))
+                attrs['valid_range'] = [valid_min, valid_max]
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
