@@ -108,6 +108,19 @@ projection center. As this rarely changes, the area definition is pretty
 constant.
 
 
+Performance
+~~~~~~~~~~~
+
+Navigation of VISSR images is computationally expensive, because for each pixel
+the view vector of the (rotating) instrument needs to be intersected with the
+earth, including interpolation of attitude and orbit prediction.
+
+Currently, navigation takes about 20 seconds for IR channels and 8 minutes for
+the VIS channel. Although the navigation module is jit-compiled using numba,
+JMA's C library ``Msial`` is still four times faster. So there's certainly room
+for optimization.
+
+
 Space Pixels
 ------------
 
