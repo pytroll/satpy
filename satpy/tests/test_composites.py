@@ -194,7 +194,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_high_bad_color(self, exp):
         """Test that only valid band colors can be provided."""
-        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        from satpy.composites import RatioSharpenedRGB
         with pytest.raises(exp):
             RatioSharpenedRGB(name='true_color', high_resolution_band="bad", neutral_resolution_band="red")
 
@@ -206,7 +206,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_neutral_bad_color(self, exp):
         """Test that only valid band colors can be provided."""
-        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        from satpy.composites import RatioSharpenedRGB
         with pytest.raises(exp):
             RatioSharpenedRGB(name='true_color', high_resolution_band="red", neutral_resolution_band="bad")
 
@@ -218,7 +218,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_match_data_arrays(self, exp):
         """Test that all areas have to be the same resolution."""
-        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         with pytest.raises(exp):
             comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
@@ -231,7 +231,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_more_than_three_datasets(self, exp):
         """Test that only 3 datasets can be passed."""
-        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
         with pytest.raises(exp):
             comp((self.ds1, self.ds2, self.ds3))
@@ -244,7 +244,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_self_sharpened_no_high_res(self, exp):
         """Test for exception when no high_res band is specified."""
-        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
         with pytest.raises(exp):
             comp((self.ds1, self.ds2, self.ds3))
