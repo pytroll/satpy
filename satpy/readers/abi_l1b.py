@@ -166,8 +166,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         if self.clip_negative_radiances:
             min_rad = self._get_minimum_radiance(data)
-            clip_mask = np.logical_and(data < min_rad, ~np.isnan(data))
-            data = data.where(~clip_mask, min_rad)
+            data = data.clip(min=min_rad)
 
         res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
