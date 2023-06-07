@@ -1103,41 +1103,30 @@ class RatioSharpenedRGB(GenericCompositor):
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            colors = ['red', 'green', 'blue', None]
-            low_resolution_index = colors.index(self.high_resolution_color)
-            neutral_resolution_index = colors.index(self.neutral_resolution_color)
-            neutral_res = datasets[neutral_resolution_index] if self.neutral_resolution_color is not None else None
 
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
-            neutral_res = None
-            low_resolution_index = 0
-            neutral_resolution_index = 0
 
         if high_res is not None:
-            bands = locals()
-            colors = ['red', 'green', 'blue']
-            bands["low_res_" + self.high_resolution_color] = high_res
-            colors.remove(self.high_resolution_color)
-            low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
+            bands = {'red': low_res_red, 'green': low_res_green, 'blue': low_res_blue}
+
             ratio = da.map_blocks(
                 _get_sharpening_ratio,
                 high_res.data,
-                low_res.data,
+                bands[self.high_resolution_color].data,
                 meta=np.array((), dtype=high_res.dtype),
                 dtype=high_res.dtype,
                 chunks=high_res.chunks,
             )
+
+            bands[self.high_resolution_color] = high_res
+
             with xr.set_options(keep_attrs=True):
-                if neutral_res is not None:
-                    if low_resolution_index != neutral_resolution_index:
-                        colors.remove(self.neutral_resolution_color)
-
-                for color in colors:
-                    bands["low_res_" + color] = bands["low_res_" + color] * ratio
-
-            return bands["low_res_red"], bands["low_res_green"], bands["low_res_blue"], new_attrs
+                for color in bands.keys():
+                    if color != self.neutral_resolution_color and color != self.high_resolution_color:
+                        bands[color] = bands[color] * ratio
+                return bands['red'], bands['green'], bands['blue'], new_attrs
 
         else:
             return low_res_red, low_res_green, low_res_blue, new_attrs

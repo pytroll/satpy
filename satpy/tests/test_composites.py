@@ -132,7 +132,7 @@ class TestMatchDataArrays(unittest.TestCase):
 class TestRatioSharpenedCompositors:
     """Test RatioSharpenedRGB and SelfSharpendRGB compositors."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create test data."""
         from pyresample.geometry import AreaDefinition
         area = AreaDefinition('test', 'test', 'test',
@@ -150,16 +150,19 @@ class TestRatioSharpenedCompositors:
         ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
+        self.ds1 = ds1
 
         ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds2.attrs['name'] += '2'
+        self.ds2 = ds2
 
         ds3 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 3,
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds3.attrs['name'] += '3'
+        self.ds3 = ds3
 
         # high resolution version
         high_res_data = np.ones((2, 2), dtype=np.float64)
@@ -169,6 +172,7 @@ class TestRatioSharpenedCompositors:
                            coords={'y': [0, 1], 'x': [0, 1]})
         ds4.attrs['name'] += '4'
         ds4.attrs['resolution'] = 500
+        self.ds4 = ds4
 
         # high resolution version - but too big
         ds4_big = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
@@ -180,46 +184,70 @@ class TestRatioSharpenedCompositors:
         ds4_big.attrs['area'] = AreaDefinition('test', 'test', 'test',
                                                {'proj': 'merc'}, 4, 4,
                                                (-2000, -2000, 2000, 2000))
-
-        return ds1, ds2, ds3, ds4, ds4_big
+        self.ds4_big = ds4_big
 
     @pytest.mark.parametrize(
-        ("case", "exp"),
+        "exp",
         [
-            ("high bad color", ValueError),
-            ("neutral bad color", ValueError),
-            ("match_data_arrays", satpy.composites.IncompatibleAreas),
-            ("more than three datasets", ValueError),
-            ("no high res band in self sharpened", ValueError)
+            ValueError,
         ]
     )
-    def test_errors(self, case, exp):
-        """Test errors under different cases."""
+    def test_high_bad_color(self, exp):
+        """Test that only valid band colors can be provided."""
         from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
-        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
+        with pytest.raises(exp):
+            RatioSharpenedRGB(name='true_color', high_resolution_band="bad", neutral_resolution_band="red")
 
-        if case == "high bad color":
-            with pytest.raises(exp):
-                RatioSharpenedRGB(name='true_color', high_resolution_band="bad", neutral_resolution_band="red")
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            ValueError,
+        ]
+    )
+    def test_neutral_bad_color(self, exp):
+        """Test that only valid band colors can be provided."""
+        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        with pytest.raises(exp):
+            RatioSharpenedRGB(name='true_color', high_resolution_band="red", neutral_resolution_band="bad")
 
-        elif case == "neutral bad color":
-            with pytest.raises(exp):
-                RatioSharpenedRGB(name='true_color', high_resolution_band="red", neutral_resolution_band="bad")
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            satpy.composites.IncompatibleAreas,
+        ]
+    )
+    def test_match_data_arrays(self, exp):
+        """Test that all areas have to be the same resolution."""
+        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        with pytest.raises(exp):
+            comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 
-        elif case == "match_data_arrays":
-            comp = RatioSharpenedRGB(name='true_color')
-            with pytest.raises(exp):
-                comp((ds1, ds2, ds3), optional_datasets=(ds4_big,))
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            ValueError,
+        ]
+    )
+    def test_more_than_three_datasets(self, exp):
+        """Test that only 3 datasets can be passed."""
+        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
+        with pytest.raises(exp):
+            comp((self.ds1, self.ds2, self.ds3))
 
-        elif case == "more than three datasets":
-            comp = RatioSharpenedRGB(name='true_color')
-            with pytest.raises(exp):
-                comp((ds1, ds2, ds3, ds1), optional_datasets=(ds4_big,))
-
-        elif case == "no high res band in self sharpened":
-            comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
-            with pytest.raises(exp):
-                comp((ds1, ds2, ds3))
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            ValueError,
+        ]
+    )
+    def test_self_sharpened_no_high_res(self, exp):
+        """Test for exception when no high_res band is specified."""
+        from satpy.composites import RatioSharpenedRGB, SelfSharpenedRGB
+        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
+        with pytest.raises(exp):
+            comp((self.ds1, self.ds2, self.ds3))
 
     @pytest.mark.parametrize(
         ("case", "exp"),
@@ -231,14 +259,13 @@ class TestRatioSharpenedCompositors:
     def test_basic_function(self, case, exp):
         """Test basic composite function without sharpening."""
         from satpy.composites import RatioSharpenedRGB
-        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
 
         if case == "without optional high res":
             comp = RatioSharpenedRGB(name='true_color')
-            res = comp((ds1, ds2, ds3))
+            res = comp((self.ds1, self.ds2, self.ds3))
         elif case == "high res band is None":
             comp = RatioSharpenedRGB(name='true_color', high_resolution_band=None)
-            res = comp((ds1, ds2, ds3), optional_datasets=(ds4,))
+            res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
 
         assert res.shape == exp
 
@@ -276,8 +303,7 @@ class TestRatioSharpenedCompositors:
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color', high_resolution_band=high_resolution_band,
                                  neutral_resolution_band=neutral_resolution_band)
-        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
-        res = comp((ds1, ds2, ds3), optional_datasets=(ds4,))
+        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
 
         assert "units" not in res.attrs
         assert isinstance(res, xr.DataArray)
@@ -301,9 +327,7 @@ class TestRatioSharpenedCompositors:
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color')
-
-        ds1, ds2, ds3, ds4, ds4_big = self.setUp()
-        res = comp((ds1, ds2, ds3))
+        res = comp((self.ds1, self.ds2, self.ds3))
         data = res.values
 
         assert data.shape == exp_shape
