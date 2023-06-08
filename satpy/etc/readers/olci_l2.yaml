@@ -367,7 +367,7 @@ datasets:
     sensor: olci
     resolution: 300
     standard_name: cdm_absorption_coefficient
-    units: "lg(re m-l)"
+    units: "lg(re m-1)"
     coordinates: [longitude, latitude]
     file_type: esa_l2_iop_nn
     nc_key: ADG443_NN
@@ -377,7 +377,7 @@ datasets:
     sensor: olci
     resolution: 300
     standard_name: diffuse_attenuation_coefficient
-    units: "lg(re m-l)"
+    units: "lg(re m-1)"
     coordinates: [longitude, latitude]
     file_type: esa_l2_trsp
     nc_key: KD490_M07
