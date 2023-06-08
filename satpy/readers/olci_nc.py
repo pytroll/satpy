@@ -100,7 +100,7 @@ class NCOLCIBase(BaseFileHandler):
     cols_name = "columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the olci reader base."""
         super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
@@ -203,6 +203,11 @@ class NCOLCI1B(NCOLCIChannelBase):
 class NCOLCI2(NCOLCIChannelBase):
     """File handler for OLCI l2."""
 
+    def __init__(self, filename, filename_info, filetype_info, engine=None, unlog=False):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, engine)
+        self.unlog = unlog
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel is not None and self.channel != key['name']:
@@ -221,7 +226,19 @@ class NCOLCI2(NCOLCIChannelBase):
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
+        if self.unlog:
+            dataset = self.delog(dataset)
+
         return dataset
+
+    def delog(self, data_array):
+        """Remove log10 from the units and values."""
+        units = data_array.attrs["units"]
+
+        if units.startswith("lg("):
+            data_array = 10 ** data_array
+            data_array.attrs["units"] = units.split("lg(re ")[1].strip(")")
+        return data_array
 
     def getbitmask(self, wqsf, items=None):
         """Get the bitmask."""
@@ -240,7 +257,7 @@ class NCOLCILowResData(NCOLCIBase):
     cols_name = "tie_columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.l_step = self.nc.attrs['al_subsampling_factor']
