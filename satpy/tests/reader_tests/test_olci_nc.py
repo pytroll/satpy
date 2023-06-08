@@ -94,7 +94,7 @@ class TestOLCIReader(unittest.TestCase):
                 open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
 
     @mock.patch('xarray.open_dataset')
-    def test_get_dataset(self, mocked_dataset):
+    def test_get_mask(self, mocked_dataset):
         """Test reading datasets."""
         import numpy as np
         import xarray as xr
@@ -110,6 +110,32 @@ class TestOLCIReader(unittest.TestCase):
         test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
         res = test.get_dataset(ds_id, {'nc_key': 'mask'})
         self.assertEqual(res.dtype, np.dtype('bool'))
+        expected = np.array([[True, False, True, True, True, True],
+                             [False, False, True, True, False, False],
+                             [False, False, False, False, False, True],
+                             [False, True, False, False, False, True],
+                             [True, False, False, True, False, False]])
+        np.testing.assert_array_equal(res.values, expected)
+
+    @mock.patch('xarray.open_dataset')
+    def test_get_mask_with_alternative_items(self, mocked_dataset):
+        """Test reading datasets."""
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2
+        from satpy.tests.utils import make_dataid
+        mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
+                                                           np.array([1 << x for x in range(30)]).reshape(5, 6))},
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)})
+        ds_id = make_dataid(name='mask')
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
+        test = NCOLCI2('somedir/somefile.nc', filename_info, 'c', mask_items=["INVALID"])
+        res = test.get_dataset(ds_id, {'nc_key': 'mask'})
+        self.assertEqual(res.dtype, np.dtype('bool'))
+        expected = np.array([True] + [False] * 29).reshape(5, 6)
+        np.testing.assert_array_equal(res.values, expected)
 
     @mock.patch('xarray.open_dataset')
     def test_olci_angles(self, mocked_dataset):

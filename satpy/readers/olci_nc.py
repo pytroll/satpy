@@ -51,6 +51,10 @@ from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
+DEFAULT_MASK_ITEMS = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -203,10 +207,11 @@ class NCOLCI1B(NCOLCIChannelBase):
 class NCOLCI2(NCOLCIChannelBase):
     """File handler for OLCI l2."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None, unlog=False):
+    def __init__(self, filename, filename_info, filetype_info, engine=None, unlog=False, mask_items=None):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.unlog = unlog
+        self.mask_items = mask_items
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -221,8 +226,7 @@ class NCOLCI2(NCOLCIChannelBase):
         if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
         elif key['name'] == 'mask':
-            dataset = self.getbitmask(dataset)
-
+            dataset = self.getbitmask(dataset, self.mask_items)
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
@@ -243,9 +247,7 @@ class NCOLCI2(NCOLCIChannelBase):
     def getbitmask(self, wqsf, items=None):
         """Get the bitmask."""
         if items is None:
-            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+            items = DEFAULT_MASK_ITEMS
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
