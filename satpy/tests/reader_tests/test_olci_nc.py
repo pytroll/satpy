@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.olci_nc module."""
+import datetime
 import unittest
 import unittest.mock as mock
 
@@ -93,7 +94,7 @@ class TestOLCIReader(unittest.TestCase):
                 open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
 
     @mock.patch('xarray.open_dataset')
-    def test_get_dataset(self, mocked_dataset):
+    def test_get_mask(self, mocked_dataset):
         """Test reading datasets."""
         import numpy as np
         import xarray as xr
@@ -109,6 +110,32 @@ class TestOLCIReader(unittest.TestCase):
         test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
         res = test.get_dataset(ds_id, {'nc_key': 'mask'})
         self.assertEqual(res.dtype, np.dtype('bool'))
+        expected = np.array([[True, False, True, True, True, True],
+                             [False, False, True, True, False, False],
+                             [False, False, False, False, False, True],
+                             [False, True, False, False, False, True],
+                             [True, False, False, True, False, False]])
+        np.testing.assert_array_equal(res.values, expected)
+
+    @mock.patch('xarray.open_dataset')
+    def test_get_mask_with_alternative_items(self, mocked_dataset):
+        """Test reading datasets."""
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2
+        from satpy.tests.utils import make_dataid
+        mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
+                                                           np.array([1 << x for x in range(30)]).reshape(5, 6))},
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)})
+        ds_id = make_dataid(name='mask')
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
+        test = NCOLCI2('somedir/somefile.nc', filename_info, 'c', mask_items=["INVALID"])
+        res = test.get_dataset(ds_id, {'nc_key': 'mask'})
+        self.assertEqual(res.dtype, np.dtype('bool'))
+        expected = np.array([True] + [False] * 29).reshape(5, 6)
+        np.testing.assert_array_equal(res.values, expected)
 
     @mock.patch('xarray.open_dataset')
     def test_olci_angles(self, mocked_dataset):
@@ -176,6 +203,42 @@ class TestOLCIReader(unittest.TestCase):
         test.get_dataset(ds_id2, filename_info)
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
+
+    @mock.patch("xarray.open_dataset")
+    def test_chl_nn(self, mocked_dataset):
+        """Test unlogging the chl_nn product."""
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2
+        from satpy.tests.utils import make_dataid
+        attr_dict = {
+            'ac_subsampling_factor': 64,
+            'al_subsampling_factor': 1,
+        }
+        data = {'CHL_NN': (['rows', 'columns'],
+                           np.arange(30).reshape(5, 6).astype(float),
+                           {"units": "lg(re mg.m-3)"})}
+        mocked_dataset.return_value = xr.Dataset(data,
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)},
+                                                 attrs=attr_dict)
+        ds_info = {'name': 'chl_nn', 'sensor': 'olci', 'resolution': 300,
+                   'standard_name': 'algal_pigment_concentration', 'units': 'lg(re mg.m-3)',
+                   'coordinates': ('longitude', 'latitude'), 'file_type': 'esa_l2_chl_nn', 'nc_key': 'CHL_NN',
+                   'modifiers': ()}
+        filename_info = {'mission_id': 'S3A', 'datatype_id': 'WFR',
+                         'start_time': datetime.datetime(2019, 9, 24, 9, 29, 39),
+                         'end_time': datetime.datetime(2019, 9, 24, 9, 32, 39),
+                         'creation_time': datetime.datetime(2019, 9, 24, 11, 40, 26), 'duration': 179, 'cycle': 49,
+                         'relative_orbit': 307, 'frame': 1800, 'centre': 'MAR', 'mode': 'O', 'timeliness': 'NR',
+                         'collection': '002'}
+        ds_id = make_dataid(name='chl_nn')
+        file_handler = NCOLCI2('somedir/somefile.nc', filename_info, None, unlog=True)
+        res = file_handler.get_dataset(ds_id, ds_info)
+
+        assert res.attrs["units"] == "mg.m-3"
+        assert res.values[-1, -1] == 1e29
 
 
 class TestBitFlags(unittest.TestCase):
