@@ -187,18 +187,16 @@ class TestRatioSharpenedCompositors:
         self.ds4_big = ds4_big
 
     @pytest.mark.parametrize(
-        "init_kwarg",
+        "init_kwargs",
         [
-            "bad",
-            "bad"
+            {'name': "true_color", "high_resolution_band": "bad", "neutral_resolution_band": "bad"},
         ]
     )
-    def test_bad_colors(self, init_kwarg):
+    def test_bad_colors(self, init_kwargs):
         """Test that only valid band colors can be provided."""
         from satpy.composites import RatioSharpenedRGB
         with pytest.raises(ValueError):
-            RatioSharpenedRGB(name='true_color', high_resolution_band="red", neutral_resolution_band=init_kwarg)
-            RatioSharpenedRGB(name='true_color', high_resolution_band=init_kwarg, neutral_resolution_band="red")
+            RatioSharpenedRGB(**init_kwargs)
 
     @pytest.mark.parametrize(
         "exp",
