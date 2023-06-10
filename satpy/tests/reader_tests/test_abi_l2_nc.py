@@ -96,30 +96,12 @@ def _create_mcmip_dataset():
 class Test_NC_ABI_L2_get_dataset:
     """Test get dataset function of the NC_ABI_L2 reader."""
 
-    def setup_method(self):
-        """Create fake data for the tests."""
-        from satpy.readers.abi_l2_nc import NC_ABI_L2
-        fake_cmip_dataset = _create_cmip_dataset()
-        with mock.patch('satpy.readers.abi_base.xr') as xr_:
-            xr_.open_dataset.return_value = fake_cmip_dataset
-            self.reader = NC_ABI_L2(
-                'filename',
-                {
-                    'platform_shortname': 'G16',
-                    'scan_mode': 'M3',
-                    'scene_abbr': 'M1',
-                },
-                {
-                    'file_type': 'info',
-                    'observation_type': 'ACHA',
-                },
-            )
-
     def test_get_dataset(self):
         """Test basic L2 load."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name='HT')
-        res = self.reader.get_dataset(key, {'file_key': 'HT'})
+        with _create_reader_for_fake_data("ACHA", _create_cmip_dataset()) as reader:
+            res = reader.get_dataset(key, {'file_key': 'HT'})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
@@ -133,7 +115,7 @@ class Test_NC_ABI_L2_get_dataset:
                      'platform_shortname': 'G16',
                      'production_site': None,
                      'scan_mode': 'M3',
-                     'scene_abbr': 'M1',
+                     'scene_abbr': 'C',
                      'scene_id': None,
                      'sensor': 'abi',
                      'timeline_ID': None,
@@ -199,7 +181,7 @@ class Test_NC_ABI_L2_area_fixedgrid:
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
-        with _create_reader_for_fake_data(_create_cmip_dataset()) as reader:
+        with _create_reader_for_fake_data("RSR", _create_cmip_dataset()) as reader:
             reader.get_area_def(None)
 
         assert adef.call_count == 1
@@ -259,7 +241,7 @@ class Test_NC_ABI_L2_area_latlon:
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
-        with _create_reader_for_fake_data(self.fake_dataset) as reader:
+        with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
             reader.get_area_def(None)
 
         assert adef.call_count == 1
@@ -319,7 +301,7 @@ class Test_NC_ABI_L2_area_AOD:
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_xy(self, adef):
         """Test the area generation."""
-        with _create_reader_for_fake_data(self.fake_dataset) as reader:
+        with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
             reader.get_area_def(None)
 
         assert adef.call_count == 1
@@ -332,16 +314,16 @@ class Test_NC_ABI_L2_area_AOD:
 
 
 @contextlib.contextmanager
-def _create_reader_for_fake_data(fake_dataset: xr.Dataset):
+def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset):
     from satpy.readers.abi_l2_nc import NC_ABI_L2
 
     reader_args = (
         "filename",
         {
-            'platform_shortname': 'G16', 'observation_type': 'RSR',
+            'platform_shortname': 'G16',
             'scene_abbr': 'C', 'scan_mode': 'M3'
         },
-        {'filetype': 'info'},
+        {'file_type': 'info', 'observation_type': observation_type},
     )
     with mock.patch('satpy.readers.abi_base.xr') as xr_:
         xr_.open_dataset.return_value = fake_dataset
