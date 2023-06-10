@@ -31,6 +31,7 @@ from pyresample import AreaDefinition
 
 import satpy
 
+
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
@@ -189,73 +190,50 @@ class TestRatioSharpenedCompositors:
     @pytest.mark.parametrize(
         "init_kwargs",
         [
-            {'name': "true_color", "high_resolution_band": "bad", "neutral_resolution_band": "bad"},
+            {'high_resolution_band': "bad", 'neutral_resolution_band': "red"},
+            {'high_resolution_band': "red", 'neutral_resolution_band': "bad"}
         ]
     )
     def test_bad_colors(self, init_kwargs):
         """Test that only valid band colors can be provided."""
         from satpy.composites import RatioSharpenedRGB
         with pytest.raises(ValueError):
-            RatioSharpenedRGB(**init_kwargs)
+            RatioSharpenedRGB(name='true_color', **init_kwargs)
 
-    @pytest.mark.parametrize(
-        "exp",
-        [
-            satpy.composites.IncompatibleAreas,
-        ]
-    )
-    def test_match_data_arrays(self, exp):
+    def test_match_data_arrays(self):
         """Test that all areas have to be the same resolution."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
         comp = RatioSharpenedRGB(name='true_color')
-        with pytest.raises(exp):
+        with pytest.raises(IncompatibleAreas):
             comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 
-    @pytest.mark.parametrize(
-        "exp",
-        [
-            ValueError,
-        ]
-    )
-    def test_more_than_three_datasets(self, exp):
+    def test_more_than_three_datasets(self):
         """Test that only 3 datasets can be passed."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
-        with pytest.raises(exp):
+        with pytest.raises(ValueError):
             comp((self.ds1, self.ds2, self.ds3))
 
-    @pytest.mark.parametrize(
-        "exp",
-        [
-            ValueError,
-        ]
-    )
-    def test_self_sharpened_no_high_res(self, exp):
+    def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
-        with pytest.raises(exp):
+        with pytest.raises(ValueError):
             comp((self.ds1, self.ds2, self.ds3))
 
-    @pytest.mark.parametrize(
-        ("case", "exp"),
-        [
-            ("without optional high res", (3, 2, 2)),
-            ("high res band is None", (3, 2, 2))
-        ]
-    )
-    def test_basic_function(self, case, exp):
-        """Test basic composite function without sharpening."""
+    def test_basic_no_high_res(self):
+        """Test that three datasets can be passed without optional high res."""
         from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name="true_color")
+        res = comp((self.ds1, self.ds2, self.ds3))
+        assert res.shape == (3, 2, 2)
 
-        if case == "without optional high res":
-            comp = RatioSharpenedRGB(name='true_color')
-            res = comp((self.ds1, self.ds2, self.ds3))
-        elif case == "high res band is None":
-            comp = RatioSharpenedRGB(name='true_color', high_resolution_band=None)
-            res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
-
-        assert res.shape == exp
+    def test_basic_no_sharpen(self):
+        """Test that color None does no sharpening."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name="true_color", high_resolution_band=None)
+        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        assert res.shape == (3, 2, 2)
 
     @pytest.mark.parametrize(
         ("high_resolution_band", "neutral_resolution_band", "exp_r", "exp_g", "exp_b"),
@@ -308,7 +286,7 @@ class TestRatioSharpenedCompositors:
             ((3, 2, 2),
              np.array([[5.0, 5.0], [5.0, 0]], dtype=np.float64),
              np.array([[4.0, 4.0], [4.0, 0]], dtype=np.float64),
-             np.array([[16/3, 16/3], [16/3, 0]], dtype=np.float64))
+             np.array([[16 / 3, 16 / 3], [16 / 3, 0]], dtype=np.float64))
         ]
     )
     def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b):
