@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l2_nc reader tests package."""
 import contextlib
-import unittest
 from unittest import mock
 
 import numpy as np
@@ -94,10 +93,10 @@ def _create_mcmip_dataset():
     return fake_dataset
 
 
-class Test_NC_ABI_L2_base(unittest.TestCase):
-    """Test the NC_ABI_L2 reader."""
+class Test_NC_ABI_L2_get_dataset:
+    """Test get dataset function of the NC_ABI_L2 reader."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create fake data for the tests."""
         from satpy.readers.abi_l2_nc import NC_ABI_L2
         fake_cmip_dataset = _create_cmip_dataset()
@@ -115,10 +114,6 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
                     'observation_type': 'ACHA',
                 },
             )
-
-
-class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
-    """Test get dataset function of the NC_ABI_L2 reader."""
 
     def test_get_dataset(self):
         """Test basic L2 load."""
@@ -144,7 +139,7 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
                      'timeline_ID': None,
                      'units': 'm'}
 
-        self.assertTrue(np.allclose(res.data, exp_data, equal_nan=True))
+        np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
         _compare_subdict(res.attrs, exp_attrs)
         _assert_orbital_parameters(res.attrs['orbital_parameters'])
 
@@ -198,30 +193,29 @@ class TestMCMIPReading:
         _assert_orbital_parameters(res.attrs['orbital_parameters'])
 
 
-class Test_NC_ABI_L2_area_fixedgrid(Test_NC_ABI_L2_base):
+class Test_NC_ABI_L2_area_fixedgrid:
     """Test the NC_ABI_L2 reader."""
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
-        self.reader.get_area_def(None)
+        with _create_reader_for_fake_data(_create_cmip_dataset()) as reader:
+            reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0,
-                                            'proj': 'geos', 'sweep': 'x', 'units': 'm'})
-        self.assertEqual(call_args[4], self.reader.ncols)
-        self.assertEqual(call_args[5], self.reader.nlines)
+        assert call_args[3] == {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0,
+                                'proj': 'geos', 'sweep': 'x', 'units': 'm'}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2.,  2.,  2.))
 
 
-class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
+class Test_NC_ABI_L2_area_latlon:
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setup_method(self):
         """Create fake data for the tests."""
-        from satpy.readers.abi_l2_nc import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={'semi_major_axis': 1.,
@@ -260,24 +254,20 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
                 'RSR': xr.DataArray(np.ones((2, 2)), dims=('lat', 'lon')),
             },
         )
-        xr_.open_dataset.return_value = fake_dataset
-
-        self.reader = NC_ABI_L2('filename',
-                                {'platform_shortname': 'G16', 'observation_type': 'RSR',
-                                 'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                {'filetype': 'info'})
+        self.fake_dataset = fake_dataset
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
-        self.reader.get_area_def(None)
+        with _create_reader_for_fake_data(self.fake_dataset) as reader:
+            reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
-                                            'lon_0': -75.0, 'lat_0': 0.0})
-        self.assertEqual(call_args[4], self.reader.ncols)
-        self.assertEqual(call_args[5], self.reader.nlines)
+        assert call_args[3] == {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
+                                'lon_0': -75.0, 'lat_0': 0.0}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
 
 
