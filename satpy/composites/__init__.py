@@ -1125,7 +1125,6 @@ class RatioSharpenedRGB(GenericCompositor):
                 for color in bands.keys():
                     if color != self.neutral_resolution_color and color != self.high_resolution_color:
                         bands[color] = bands[color] * ratio
-                return bands['red'], bands['green'], bands['blue'], new_attrs
 
         return bands['red'], bands['green'], bands['blue'], new_attrs
 
