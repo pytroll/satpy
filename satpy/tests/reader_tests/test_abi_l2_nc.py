@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l2_nc reader tests package."""
-
+import contextlib
 import unittest
 from unittest import mock
 
@@ -281,13 +281,11 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
 
 
-class Test_NC_ABI_L2_area_AOD(unittest.TestCase):
+class Test_NC_ABI_L2_area_AOD:
     """Test the NC_ABI_L2 reader for the AOD product."""
 
-    @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setup_method(self, xr_):
         """Create fake data for the tests."""
-        from satpy.readers.abi_l2_nc import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={'semi_major_axis': 1.,
@@ -326,22 +324,36 @@ class Test_NC_ABI_L2_area_AOD(unittest.TestCase):
                 'RSR': xr.DataArray(np.ones((2, 2)), dims=('y', 'x')),
             },
         )
-        xr_.open_dataset.return_value = fake_dataset
-
-        self.reader = NC_ABI_L2('filename',
-                                {'platform_shortname': 'G16', 'observation_type': 'RSR',
-                                 'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                {'filetype': 'info'})
+        self.fake_dataset = fake_dataset
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_xy(self, adef):
         """Test the area generation."""
-        self.reader.get_area_def(None)
+        with _create_reader_for_fake_data(self.fake_dataset) as reader:
+            reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
-                                            'lon_0': -75.0, 'lat_0': 0.0})
-        self.assertEqual(call_args[4], self.reader.ncols)
-        self.assertEqual(call_args[5], self.reader.nlines)
+        assert call_args[3] == {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
+                                'lon_0': -75.0, 'lat_0': 0.0}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
+
+
+@contextlib.contextmanager
+def _create_reader_for_fake_data(fake_dataset: xr.Dataset):
+    from satpy.readers.abi_l2_nc import NC_ABI_L2
+
+    reader_args = (
+        "filename",
+        {
+            'platform_shortname': 'G16', 'observation_type': 'RSR',
+            'scene_abbr': 'C', 'scan_mode': 'M3'
+        },
+        {'filetype': 'info'},
+    )
+    with mock.patch('satpy.readers.abi_base.xr') as xr_:
+        xr_.open_dataset.return_value = fake_dataset
+        reader = NC_ABI_L2(*reader_args)
+        yield reader
