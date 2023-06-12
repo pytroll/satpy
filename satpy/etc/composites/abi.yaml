@@ -736,3 +736,18 @@ composites:
       - name: green_nocorr
       - name: C01
     standard_name: true_color_reproduction_color_stretch
+
+  thermal_false_color:
+    reader: geocat
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: channel_15_brightness_temperature
+          - name: channel_13_brightness_temperature
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: channel_13_brightness_temperature
+          - name: channel_7_brightness_temperature
+      - name: channel_13_brightness_temperature
+    standard_name: thermal_false_color
