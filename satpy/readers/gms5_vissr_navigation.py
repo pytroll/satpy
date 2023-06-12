@@ -22,6 +22,33 @@ EARTH_POLAR_RADIUS = EARTH_EQUATORIAL_RADIUS * (1 - EARTH_FLATTENING)
 """Constants taken from JMA's Msial library."""
 
 
+Pixel = namedtuple(
+    "Pixel",
+    ["line", "pixel"]
+)
+"""A VISSR pixel."""
+
+Vector2D = namedtuple(
+    "Vector2D",
+    ["x", "y"]
+)
+"""A 2D vector."""
+
+
+Vector3D = namedtuple(
+    "Vector3D",
+    ["x", "y", "z"]
+)
+"""A 3D vector."""
+
+
+Satpos = namedtuple(
+    "Satpos",
+    ["x", "y", "z"]
+)
+"""A 3D vector."""
+
+
 Attitude = namedtuple(
     "Attitude",
     [
@@ -48,7 +75,7 @@ Orbit = namedtuple(
 
 Args:
     angles (OrbitAngles): Orbit angles
-    sat_position (SatellitePositionEarthFixed): Satellite position
+    sat_position (Vector3D): Satellite position
     nutation_precession: Nutation and precession matrix (3x3)
 """
 
@@ -64,16 +91,6 @@ OrbitAngles = namedtuple(
 """Orbit angles.
 
 Units: radians
-"""
-
-
-SatellitePositionEarthFixed = namedtuple(
-    "SatellitePositionEarthFixed",
-    ["x", "y", "z"],
-)
-"""Satellite position in earth-fixed coordinates.
-
-Units: meters
 """
 
 
@@ -294,7 +311,7 @@ class OrbitPrediction:
         Args:
             prediction_times: Timestamps of orbit prediction.
             angles (OrbitAngles): Orbit angles
-            sat_position (SatellitePositionEarthFixed): Satellite position
+            sat_position (Vector3D): Satellite position
             nutation_precession: Nutation and precession matrix.
         """
         self.prediction_times = prediction_times
@@ -365,11 +382,11 @@ def _get_lons_lats_numba(lines_2d, pixels_2d, nav_params):
     lats = np.zeros(shape, dtype=np.float32)
     for i in range(shape[0]):
         for j in range(shape[1]):
-            point = (lines_2d[i, j], pixels_2d[i, j])
+            pixel = Pixel(lines_2d[i, j], pixels_2d[i, j])
             nav_params_pix = _get_pixel_navigation_parameters(
-                point, nav_params
+                pixel, nav_params
             )
-            lon, lat = get_lon_lat(point, nav_params_pix)
+            lon, lat = get_lon_lat(pixel, nav_params_pix)
             lons[i, j] = lon
             lats[i, j] = lat
     # Stack lons and lats because da.map_blocks doesn't support multiple
@@ -421,18 +438,18 @@ def interpolate_navigation_prediction(
 
 
 @numba.njit
-def get_lon_lat(point, nav_params):
+def get_lon_lat(pixel, nav_params):
     """Get longitude and latitude coordinates for a given image pixel.
 
     Args:
-        point: Point (line, pixel) in image coordinates.
+        pixel (Pixel): Point in image coordinates.
         nav_params (PixelNavigationParameters): Navigation parameters for a
             single pixel.
     Returns:
         Longitude and latitude in degrees.
     """
     scan_angles = transform_image_coords_to_scanning_angles(
-        point,
+        pixel,
         nav_params.proj_params.image_offset,
         nav_params.proj_params.scanning_angles
     )
@@ -457,35 +474,23 @@ def get_lon_lat(point, nav_params):
 
 
 @numba.njit
-def _get_sat_pos_vector(sat_position):
-    return np.array(
-        (
-            sat_position.x,
-            sat_position.y,
-            sat_position.z,
-        )
-    )
-
-
-@numba.njit
 def transform_image_coords_to_scanning_angles(point, image_offset, scanning_angles):
     """Transform image coordinates to scanning angles.
 
     Args:
-        point: Point (line, pixel) in image coordinates.
+        point (Pixel): Point in image coordinates.
         image_offset (ImageOffset): Image offset.
         scanning_angles (ScanningAngles): Scanning angles.
     Returns:
         Scanning angles (x, y) at the pixel center (rad).
     """
-    line, pixel = point
     line_offset = image_offset.line_offset
     pixel_offset = image_offset.pixel_offset
     stepping_angle = scanning_angles.stepping_angle
     sampling_angle = scanning_angles.sampling_angle
-    x = sampling_angle * (pixel + 1 - pixel_offset)
-    y = stepping_angle * (line + 1 - line_offset)
-    return np.array([x, y])
+    x = sampling_angle * (point.pixel + 1 - pixel_offset)
+    y = stepping_angle * (point.line + 1 - line_offset)
+    return Vector2D(x, y)
 
 
 @numba.njit
@@ -493,24 +498,26 @@ def transform_scanning_angles_to_satellite_coords(angles, misalignment):
     """Transform scanning angles to satellite angular momentum coordinates.
 
     Args:
-        angles: Scanning angles (x, y) in radians.
+        angles (Vector2D): Scanning angles in radians.
         misalignment: Misalignment matrix (3x3)
 
     Returns:
-        View vector (x, y, z) in satellite angular momentum coordinates.
+        View vector (Vector3D) in satellite angular momentum coordinates.
     """
-    rotation, vector = _get_transforms_from_scanning_angles_to_satellite_coords(angles)
-    return np.dot(rotation, np.dot(misalignment, vector))
-
-
-@numba.njit
-def _get_transforms_from_scanning_angles_to_satellite_coords(angles):
-    x, y = angles
-    cos_x = np.cos(x)
+    x, y = angles.x, angles.y
     sin_x = np.sin(x)
-    rot = np.array(((cos_x, -sin_x, 0), (sin_x, cos_x, 0), (0, 0, 1)))
-    vec = np.array([np.cos(y), 0, np.sin(y)])
-    return rot, vec
+    cos_x = np.cos(x)
+    view = Vector3D(np.cos(y), 0.0, np.sin(y))
+
+    # Correct for misalignment
+    view = matrix_vector(misalignment, view)
+
+    # Rotate around z-axis
+    return Vector3D(
+        cos_x * view.x - sin_x * view.y,
+        sin_x * view.x + cos_x * view.y,
+        view.z
+    )
 
 
 @numba.njit
@@ -522,80 +529,141 @@ def transform_satellite_to_earth_fixed_coords(
     """Transform from earth-fixed to satellite angular momentum coordinates.
 
     Args:
-        point: Point (x, y, z) in satellite angular momentum coordinates.
+        point (Vector3D): Point in satellite angular momentum coordinates.
         orbit (Orbit): Orbital parameters
         attitude (Attitude): Attitude parameters
     Returns:
-        Point (x', y', z') in earth-fixed coordinates.
+        Point (Vector3D) in earth-fixed coordinates.
     """
-    sat_unit_vectors = _get_satellite_unit_vectors(orbit, attitude)
-    return np.dot(sat_unit_vectors, point)
-
-
-@numba.njit
-def _get_satellite_unit_vectors(orbit, attitude):
     unit_vector_z = _get_satellite_unit_vector_z(attitude, orbit)
-    unit_vector_x = _get_satellite_unit_vector_x(
-        attitude, orbit, unit_vector_z
-    )
+    unit_vector_x = _get_satellite_unit_vector_x(unit_vector_z, attitude, orbit)
     unit_vector_y = _get_satellite_unit_vector_y(unit_vector_x, unit_vector_z)
-    return np.stack((unit_vector_x, unit_vector_y, unit_vector_z), axis=-1)
+    return _get_earth_fixed_coords(
+        point,
+        unit_vector_x,
+        unit_vector_y,
+        unit_vector_z
+    )
 
 
 @numba.njit
 def _get_satellite_unit_vector_z(attitude, orbit):
-    sat_z_axis_1950 = _get_satellite_z_axis_1950(attitude)
-    rotation = _get_transform_from_1950_to_earth_fixed(orbit.angles.greenwich_sidereal_time)
-    z_vec = np.dot(rotation, np.dot(orbit.nutation_precession, sat_z_axis_1950))
-    return normalize_vector(z_vec)
+    v1950 = _get_satellite_z_axis_1950(
+        attitude.angle_between_sat_spin_and_z_axis,
+        attitude.angle_between_sat_spin_and_yz_plane
+    )
+    vcorr = _correct_nutation_precession(
+        v1950,
+        orbit.nutation_precession
+    )
+    return _rotate_to_greenwich(
+        vcorr,
+        orbit.angles.greenwich_sidereal_time
+    )
 
 
 @numba.njit
-def _get_satellite_z_axis_1950(attitude):
+def _get_satellite_z_axis_1950(
+    angle_between_sat_spin_and_z_axis,
+    angle_between_sat_spin_and_yz_plane
+):
     """Get satellite z-axis (spin) in mean of 1950 coordinates."""
-    alpha = attitude.angle_between_sat_spin_and_z_axis
-    delta = attitude.angle_between_sat_spin_and_yz_plane
+    alpha = angle_between_sat_spin_and_z_axis
+    delta = angle_between_sat_spin_and_yz_plane
     cos_delta = np.cos(delta)
-    x = np.sin(delta)
-    y = -cos_delta * np.sin(alpha)
-    z = cos_delta * np.cos(alpha)
-    return np.array([x, y, z])
+    return Vector3D(
+        x=np.sin(delta),
+        y=-cos_delta * np.sin(alpha),
+        z=cos_delta * np.cos(alpha)
+    )
 
 
 @numba.njit
-def _get_transform_from_1950_to_earth_fixed(greenwich_sidereal_time):
-    cos = np.cos(greenwich_sidereal_time)
-    sin = np.sin(greenwich_sidereal_time)
-    return np.array(((cos, sin, 0), (-sin, cos, 0), (0, 0, 1)))
+def _correct_nutation_precession(vector, nutation_precession):
+    return matrix_vector(nutation_precession, vector)
 
 
 @numba.njit
-def _get_satellite_unit_vector_x(attitude, orbit, sat_unit_vector_z):
-    beta = attitude.angle_between_earth_and_sun
-    sat_sun_vector = _get_vector_from_satellite_to_sun(orbit.angles)
-    z_cross_satsun = np.cross(sat_unit_vector_z, sat_sun_vector)
-    z_cross_satsun = normalize_vector(z_cross_satsun)
-    x_vec = z_cross_satsun * np.sin(beta) + np.cross(
-        z_cross_satsun, sat_unit_vector_z
-    ) * np.cos(beta)
-    return normalize_vector(x_vec)
+def _rotate_to_greenwich(vector, greenwich_sidereal_time):
+    cos_sid = np.cos(greenwich_sidereal_time)
+    sin_sid = np.sin(greenwich_sidereal_time)
+    rotated = Vector3D(
+        x=cos_sid * vector.x + sin_sid * vector.y,
+        y=-sin_sid * vector.x + cos_sid * vector.y,
+        z=vector.z
+    )
+    return normalize_vector(rotated)
 
 
 @numba.njit
-def _get_vector_from_satellite_to_sun(orbit_angles):
-    declination = orbit_angles.declination_from_sat_to_sun
-    right_ascension = orbit_angles.right_ascension_from_sat_to_sun
+def _get_satellite_unit_vector_x(unit_vector_z, attitude, orbit):
+    sat_sun_vec = _get_vector_from_satellite_to_sun(
+        orbit.angles.declination_from_sat_to_sun,
+        orbit.angles.right_ascension_from_sat_to_sun
+    )
+    return _get_unit_vector_x(
+        sat_sun_vec,
+        unit_vector_z,
+        attitude.angle_between_earth_and_sun
+    )
+
+
+@numba.njit
+def _get_vector_from_satellite_to_sun(
+    declination_from_sat_to_sun,
+    right_ascension_from_sat_to_sun
+):
+    declination = declination_from_sat_to_sun
+    right_ascension = right_ascension_from_sat_to_sun
     cos_declination = np.cos(declination)
-    x = cos_declination * np.cos(right_ascension)
-    y = cos_declination * np.sin(right_ascension)
-    z = np.sin(declination)
-    return np.array([x, y, z])
+    return Vector3D(
+        x=cos_declination * np.cos(right_ascension),
+        y=cos_declination * np.sin(right_ascension),
+        z=np.sin(declination)
+    )
 
 
 @numba.njit
-def _get_satellite_unit_vector_y(sat_unit_vector_x, sat_unit_vector_z):
-    y_vec = np.cross(sat_unit_vector_z, sat_unit_vector_x)
-    return normalize_vector(y_vec)
+def _get_unit_vector_x(
+    sat_sun_vec,
+    unit_vector_z,
+    angle_between_earth_and_sun
+
+):
+    beta = angle_between_earth_and_sun
+    sin_beta = np.sin(beta)
+    cos_beta = np.cos(beta)
+    cross1 = _get_uz_cross_satsun(unit_vector_z, sat_sun_vec)
+    cross2 = cross_product(cross1, unit_vector_z)
+    unit_vector_x = Vector3D(
+        x=sin_beta * cross1.x + cos_beta * cross2.x,
+        y=sin_beta * cross1.y + cos_beta * cross2.y,
+        z=sin_beta * cross1.z + cos_beta * cross2.z
+    )
+    return normalize_vector(unit_vector_x)
+
+
+@numba.njit
+def _get_uz_cross_satsun(unit_vector_z, sat_sun_vec):
+    res = cross_product(unit_vector_z, sat_sun_vec)
+    return normalize_vector(res)
+
+
+@numba.njit
+def _get_satellite_unit_vector_y(unit_vector_x, unit_vector_z):
+    res = cross_product(unit_vector_z, unit_vector_x)
+    return normalize_vector(res)
+
+
+@numba.njit
+def _get_earth_fixed_coords(point, unit_vector_x, unit_vector_y, unit_vector_z):
+    ux, uy, uz = unit_vector_x, unit_vector_y, unit_vector_z
+    # Multiply with matrix of satellite unit vectors [ux, uy, uz]
+    return Vector3D(
+        x=ux.x * point.x + uy.x * point.y + uz.x * point.z,
+        y=ux.y * point.x + uy.y * point.y + uz.y * point.z,
+        z=ux.z * point.x + uy.z * point.y + uz.z * point.z
+    )
 
 
 @numba.njit
@@ -605,17 +673,19 @@ def intersect_with_earth(view_vector, sat_pos, ellipsoid):
     Reference: Appendix E, section 2.11 in the GMS user guide.
 
     Args:
-        view_vector: Instrument viewing vector (x, y, z) in earth-fixed
+        view_vector (Vector3D): Instrument viewing vector in earth-fixed
             coordinates.
-        sat_pos (SatellitePositionEarthFixed): Satellite position in
-            earth-fixed coordinates.
+        sat_pos (Vector3D): Satellite position in earth-fixed coordinates.
         ellipsoid (EarthEllipsoid): Earth ellipsoid.
     Returns:
-        Intersection (x', y', z') with the earth's surface.
+        Intersection (Vector3D) with the earth's surface.
     """
     distance = _get_distance_to_intersection(view_vector, sat_pos, ellipsoid)
-    sat_pos_vec = _get_sat_pos_vector(sat_pos)
-    return sat_pos_vec + distance * view_vector
+    return Vector3D(
+        sat_pos.x + distance * view_vector.x,
+        sat_pos.y + distance * view_vector.y,
+        sat_pos.z + distance * view_vector.z
+    )
 
 
 @numba.njit
@@ -651,7 +721,7 @@ def _get_abc_helper(view_vector, sat_pos, ellipsoid):
     Reference: Appendix E, Equation (26) in the GMS user guide.
     """
     flat2 = (1 - ellipsoid.flattening) ** 2
-    ux, uy, uz = view_vector
+    ux, uy, uz = view_vector.x, view_vector.y, view_vector.z
     x, y, z = sat_pos.x, sat_pos.y, sat_pos.z
     a = flat2 * (ux ** 2 + uy ** 2) + uz ** 2
     b = flat2 * (x * ux + y * uy) + z * uz
@@ -664,13 +734,13 @@ def transform_earth_fixed_to_geodetic_coords(point, earth_flattening):
     """Transform from earth-fixed to geodetic coordinates.
 
     Args:
-        point: Point (x, y, z) in earth-fixed coordinates.
+        point (Vector3D): Point in earth-fixed coordinates.
         earth_flattening: Flattening of the earth.
 
     Returns:
         Geodetic longitude and latitude (degrees).
     """
-    x, y, z = point
+    x, y, z = point.x, point.y, point.z
     f = earth_flattening
     lon = np.arctan2(y, x)
     lat = np.arctan2(z, ((1 - f) ** 2 * np.sqrt(x**2 + y**2)))
@@ -678,14 +748,8 @@ def transform_earth_fixed_to_geodetic_coords(point, earth_flattening):
 
 
 @numba.njit
-def normalize_vector(v):
-    """Normalize the given vector."""
-    return v / np.sqrt(np.dot(v, v))
-
-
-@numba.njit
 def interpolate_orbit_prediction(orbit_prediction, observation_time):
-    """Interpolate orbit prediction."""
+    """Interpolate orbit prediction at the given observation time."""
     angles = _interpolate_orbit_angles(observation_time, orbit_prediction)
     sat_position = _interpolate_sat_position(observation_time, orbit_prediction)
     nutation_precession = interpolate_nearest(
@@ -741,12 +805,12 @@ def _interpolate_sat_position(observation_time, orbit_prediction):
         orbit_prediction.prediction_times,
         orbit_prediction.sat_position.z,
     )
-    return SatellitePositionEarthFixed(x, y, z)
+    return Vector3D(x, y, z)
 
 
 @numba.njit
 def interpolate_attitude_prediction(attitude_prediction, observation_time):
-    """Interpolate attitude prediction."""
+    """Interpolate attitude prediction at given observation time."""
     angle_between_earth_and_sun = interpolate_angles(
         observation_time,
         attitude_prediction.prediction_times,
@@ -836,3 +900,33 @@ def interpolate_nearest(x, x_sample, y_sample):
 def _interpolate_nearest(x, x_sample, y_sample):
     i = _find_enclosing_index(x, x_sample)
     return y_sample[i]
+
+
+@numba.njit
+def matrix_vector(m, v):
+    """Multiply (3,3)-matrix and Vector3D."""
+    x = m[0, 0] * v.x + m[0, 1] * v.y + m[0, 2] * v.z
+    y = m[1, 0] * v.x + m[1, 1] * v.y + m[1, 2] * v.z
+    z = m[2, 0] * v.x + m[2, 1] * v.y + m[2, 2] * v.z
+    return Vector3D(x, y, z)
+
+
+@numba.njit
+def cross_product(a, b):
+    """Compute vector product a x b."""
+    return Vector3D(
+        x=a.y * b.z - a.z * b.y,
+        y=a.z * b.x - a.x * b.z,
+        z=a.x * b.y - a.y * b.x
+    )
+
+
+@numba.njit
+def normalize_vector(v):
+    """Normalize a Vector3D."""
+    norm = np.sqrt(v.x**2 + v.y**2 + v.z**2)
+    return Vector3D(
+        v.x / norm,
+        v.y / norm,
+        v.z / norm
+    )

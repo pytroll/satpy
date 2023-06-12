@@ -113,12 +113,8 @@ Performance
 
 Navigation of VISSR images is computationally expensive, because for each pixel
 the view vector of the (rotating) instrument needs to be intersected with the
-earth, including interpolation of attitude and orbit prediction.
-
-Currently, navigation takes about 20 seconds for IR channels and 8 minutes for
-the VIS channel. Although the navigation module is jit-compiled using numba,
-JMA's C library ``Msial`` is still four times faster. So there's certainly room
-for optimization.
+earth, including interpolation of attitude and orbit prediction. For IR channels
+this takes about 10 seconds, for VIS channels about 160 seconds.
 
 
 Space Pixels
@@ -528,7 +524,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                 orb_pred["sat_sun_vector_earth_fixed"]["azimuth"].astype(np.float64)
             ),
         )
-        sat_position = nav.SatellitePositionEarthFixed(
+        sat_position = nav.Satpos(
             x=orb_pred["satellite_position_earth_fixed"][:, 0].astype(np.float64),
             y=orb_pred["satellite_position_earth_fixed"][:, 1].astype(np.float64),
             z=orb_pred["satellite_position_earth_fixed"][:, 2].astype(np.float64),

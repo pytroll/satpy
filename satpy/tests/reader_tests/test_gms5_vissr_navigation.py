@@ -13,8 +13,7 @@ from satpy.tests.reader_tests.utils import get_jit_methods
 # fmt: off
 IR_NAVIGATION_REFERENCE = [
     {
-        'line': 686,
-        'pixel': 1680,
+        "pixel": nav.Pixel(line=686, pixel=1680),
         'lon': 139.990380,
         'lat': 35.047056,
         'nav_params': nav.PixelNavigationParameters(
@@ -29,7 +28,7 @@ IR_NAVIGATION_REFERENCE = [
                     declination_from_sat_to_sun=-0.208770861178982,
                     right_ascension_from_sat_to_sun=3.304369303579407,
                 ),
-                sat_position=nav.SatellitePositionEarthFixed(
+                sat_position=nav.Vector3D(
                     x=-32390963.148471601307392,
                     y=27003395.381247851997614,
                     z=-228134.860026293463307,
@@ -62,8 +61,7 @@ IR_NAVIGATION_REFERENCE = [
         )
     },
     {
-        'line': 2089,
-        'pixel': 1793,
+        "pixel": nav.Pixel(line=2089, pixel=1793),
         'lon': 144.996967,
         'lat': -34.959853,
         'nav_params': nav.PixelNavigationParameters(
@@ -78,7 +76,7 @@ IR_NAVIGATION_REFERENCE = [
                     declination_from_sat_to_sun=-0.208713576872247,
                     right_ascension_from_sat_to_sun=3.242660398458377,
                 ),
-                sat_position=nav.SatellitePositionEarthFixed(
+                sat_position=nav.Vector3D(
                     x=-32390273.633551981300116,
                     y=27003859.543135114014149,
                     z=-210800.087589388160268,
@@ -115,8 +113,7 @@ IR_NAVIGATION_REFERENCE = [
 
 VIS_NAVIGATION_REFERENCE = [
     {
-        'line': 2744,
-        'pixel': 6720,
+        "pixel": nav.Pixel(line=2744, pixel=6720),
         'lon': 139.975527,
         'lat': 35.078028,
         'nav_params': nav.PixelNavigationParameters(
@@ -131,7 +128,7 @@ VIS_NAVIGATION_REFERENCE = [
                     declination_from_sat_to_sun=-0.208770861179448,
                     right_ascension_from_sat_to_sun=3.304369304082406,
                 ),
-                sat_position=nav.SatellitePositionEarthFixed(
+                sat_position=nav.Vector3D(
                     x=-32390963.148477241396904,
                     y=27003395.381243918091059,
                     z=-228134.860164520738181,
@@ -164,8 +161,7 @@ VIS_NAVIGATION_REFERENCE = [
         )
     },
     {
-        'line': 8356,
-        'pixel': 7172,
+        "pixel": nav.Pixel(line=8356, pixel=7172),
         'lon': 144.980104,
         'lat': -34.929123,
         'nav_params': nav.PixelNavigationParameters(
@@ -180,7 +176,7 @@ VIS_NAVIGATION_REFERENCE = [
                     declination_from_sat_to_sun=-0.208713576872715,
                     right_ascension_from_sat_to_sun=3.242660398961383,
                 ),
-                sat_position=nav.SatellitePositionEarthFixed(
+                sat_position=nav.Vector3D(
                     x=-32390273.633557569235563,
                     y=27003859.543131537735462,
                     z=-210800.087734811415430,
@@ -236,7 +232,7 @@ class TestSinglePixelNavigation:
     @pytest.mark.parametrize(
         "point,nav_params,expected",
         [
-            ((ref["line"], ref["pixel"]), ref["nav_params"], (ref["lon"], ref["lat"]))
+            (ref["pixel"], ref["nav_params"], (ref["lon"], ref["lat"]))
             for ref in NAVIGATION_REFERENCE
         ],
     )
@@ -252,7 +248,7 @@ class TestSinglePixelNavigation:
             stepping_angle=0.01, sampling_angle=0.02, misalignment=-999
         )
         angles = nav.transform_image_coords_to_scanning_angles(
-            point=np.array([199, 99]),
+            point=nav.Pixel(199, 99),
             image_offset=offset,
             scanning_angles=scanning_angles,
         )
@@ -260,7 +256,7 @@ class TestSinglePixelNavigation:
 
     def test_transform_scanning_angles_to_satellite_coords(self):
         """Test transformation from scanning angles to satellite coordinates."""
-        scanning_angles = np.array([np.pi, np.pi / 2])
+        scanning_angles = nav.Vector2D(np.pi, np.pi / 2)
         misalignment = np.diag([1, 2, 3]).astype(float)
         point_sat = nav.transform_scanning_angles_to_satellite_coords(
             scanning_angles, misalignment
@@ -269,7 +265,7 @@ class TestSinglePixelNavigation:
 
     def test_transform_satellite_to_earth_fixed_coords(self):
         """Test transformation from satellite to earth-fixed coordinates."""
-        point_sat = np.array([1, 2, 3], dtype=float)
+        point_sat = nav.Vector3D(1, 2, 3)
         attitude = nav.Attitude(
             angle_between_earth_and_sun=np.pi,
             angle_between_sat_spin_and_z_axis=np.pi,
@@ -281,7 +277,7 @@ class TestSinglePixelNavigation:
                 declination_from_sat_to_sun=np.pi,
                 right_ascension_from_sat_to_sun=np.pi / 2,
             ),
-            sat_position=nav.SatellitePositionEarthFixed(-999, -999, -999),
+            sat_position=nav.Vector3D(-999, -999, -999),
             nutation_precession=np.diag([1, 2, 3]).astype(float),
         )
         res = nav.transform_satellite_to_earth_fixed_coords(point_sat, orbit, attitude)
@@ -289,9 +285,9 @@ class TestSinglePixelNavigation:
 
     def test_intersect_view_vector_with_earth(self):
         """Test intersection of a view vector with the earth's surface."""
-        view_vector = np.array([-1, 0, 0], dtype=float)
+        view_vector = nav.Vector3D(-1, 0, 0)
         ellipsoid = nav.EarthEllipsoid(equatorial_radius=6371 * 1000, flattening=0.003)
-        sat_pos = nav.SatellitePositionEarthFixed(x=36000 * 1000.0, y=0.0, z=0.0)
+        sat_pos = nav.Vector3D(x=36000 * 1000.0, y=0.0, z=0.0)
         point = nav.intersect_with_earth(view_vector, sat_pos, ellipsoid)
         exp = [ellipsoid.equatorial_radius, 0, 0]
         np.testing.assert_allclose(point, exp)
@@ -311,15 +307,18 @@ class TestSinglePixelNavigation:
     ):
         """Test transformation from earth-fixed to geodetic coordinates."""
         point_geodetic = nav.transform_earth_fixed_to_geodetic_coords(
-            np.array(point_earth_fixed), 0.003
+            nav.Vector3D(*point_earth_fixed),
+            0.003
         )
         np.testing.assert_allclose(point_geodetic, point_geodetic_exp)
 
     def test_normalize_vector(self):
         """Test vector normalization."""
-        v = np.array([1, 2, 3], dtype=float)
+        v = nav.Vector3D(1, 2, 3)
+        norm = np.sqrt(14)
+        exp = nav.Vector3D(1 / norm, 2 / norm, 3 / norm)
         normed = nav.normalize_vector(v)
-        np.testing.assert_allclose(normed, v / np.sqrt(14))
+        np.testing.assert_allclose(normed, exp)
 
 
 class TestImageNavigation:
@@ -430,7 +429,7 @@ class TestPredictionInterpolation:
                 declination_from_sat_to_sun=1.6,
                 right_ascension_from_sat_to_sun=1.7,
             ),
-            sat_position=nav.SatellitePositionEarthFixed(
+            sat_position=nav.Vector3D(
                 x=1.8,
                 y=1.9,
                 z=2.0,
@@ -488,7 +487,7 @@ def orbit_prediction():
             declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
             right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
         ),
-        sat_position=nav.SatellitePositionEarthFixed(
+        sat_position=nav.Vector3D(
             x=np.array([0.3, 1.3, 2.3, 3.3]),
             y=np.array([0.4, 1.4, 2.4, 3.4]),
             z=np.array([0.5, 1.5, 2.5, 3.5]),
@@ -550,8 +549,8 @@ def test_get_observation_time():
         num_sensors=1,
         sampling_angle=0.01,
     )
-    point = np.array([11, 100])
-    obs_time = nav.get_observation_time(point, scan_params)
+    pixel = nav.Pixel(11, 100)
+    obs_time = nav.get_observation_time(pixel, scan_params)
     np.testing.assert_allclose(obs_time, 50000.0000705496871047)
 
 
