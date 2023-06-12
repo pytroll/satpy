@@ -31,7 +31,6 @@ from pyresample import AreaDefinition
 
 import satpy
 
-
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
@@ -202,7 +201,7 @@ class TestRatioSharpenedCompositors:
 
     def test_match_data_arrays(self):
         """Test that all areas have to be the same resolution."""
-        from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
+        from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         with pytest.raises(IncompatibleAreas):
             comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
