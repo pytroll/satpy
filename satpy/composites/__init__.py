@@ -1109,6 +1109,11 @@ class RatioSharpenedRGB(GenericCompositor):
             high_res = None
 
         bands = {'red': low_res_red, 'green': low_res_green, 'blue': low_res_blue}
+        self._sharpen_bands_with_high_res(bands, high_res)
+
+        return bands['red'], bands['green'], bands['blue'], new_attrs
+
+    def _sharpen_bands_with_high_res(self, bands, high_res):
         if high_res is not None:
             ratio = da.map_blocks(
                 _get_sharpening_ratio,
@@ -1125,8 +1130,6 @@ class RatioSharpenedRGB(GenericCompositor):
                 for color in bands.keys():
                     if color != self.neutral_resolution_color and color != self.high_resolution_color:
                         bands[color] = bands[color] * ratio
-
-        return bands['red'], bands['green'], bands['blue'], new_attrs
 
     def _combined_sharpened_info(self, info, new_attrs):
         combined_info = {}

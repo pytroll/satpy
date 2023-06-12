@@ -209,10 +209,10 @@ class TestRatioSharpenedCompositors:
 
     def test_more_than_three_datasets(self):
         """Test that only 3 datasets can be passed."""
-        from satpy.composites import SelfSharpenedRGB
-        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
         with pytest.raises(ValueError):
-            comp((self.ds1, self.ds2, self.ds3))
+            comp((self.ds1, self.ds2, self.ds3, self.ds1), optional_datasets=(self.ds4_big,))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
