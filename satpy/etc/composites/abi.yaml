@@ -737,7 +737,7 @@ composites:
       - name: C01
     standard_name: true_color_reproduction_color_stretch
 
-  thermal_false_color:
+  ThermalFalseColor:
     reader: geocat
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
