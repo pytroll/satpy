@@ -86,7 +86,7 @@ the ground.
 
 This cannot be represented by a pyresample area definition, so each dataset
 is accompanied by 2-dimensional longitude and latitude coordinates. For
-resampling purpose a square area definition with uniform sampling is provided
+resampling purpose a full disc area definition with uniform sampling is provided
 via
 
 .. code-block:: python
@@ -143,6 +143,12 @@ Metadata
 Dataset attributes include metadata such as time and orbital parameters,
 see :ref:`dataset_metadata`.
 
+Partial Scans
+-------------
+
+Between 2001 and 2003 VISSR also recorded partial scans of the northern
+hemisphere. On demand a special Typhoon schedule would be activated between
+03:00 and 05:00 UTC.
 """
 
 import datetime as dt
@@ -384,9 +390,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             coord_conv_params=self._header["image_parameters"]["coordinate_conversion"],
             metadata=self._mda,
         )
-        return a.get_area_def_uniform_sampling(
-            original_shape=self._get_actual_shape(), dataset_id=dataset_id
-        )
+        return a.get_area_def_uniform_sampling(dataset_id)
 
     def _mask_space_pixels(self, dataset, space_masker):
         if self._mask_space:
@@ -718,6 +722,11 @@ def is_vis_channel(channel_name):
 class AreaDefEstimator:
     """Estimate area definition for VISSR images."""
 
+    full_disk_size = {
+        "IR":  2366,
+        "VIS": 9464,
+    }
+
     def __init__(self, coord_conv_params, metadata):
         """Initialize the area definition estimator.
 
@@ -728,22 +737,21 @@ class AreaDefEstimator:
         self.coord_conv = coord_conv_params
         self.metadata = metadata
 
-    def get_area_def_uniform_sampling(self, original_shape, dataset_id):
-        """Get square area definition with uniform sampling.
+    def get_area_def_uniform_sampling(self, dataset_id):
+        """Get full disk area definition with uniform sampling.
 
         Args:
-            original_shape: Shape of the oversampled VISSR image.
             dataset_id: ID of the corresponding dataset.
         """
-        proj_dict = self._get_proj_dict(dataset_id, original_shape)
+        proj_dict = self._get_proj_dict(dataset_id)
         extent = geos_area.get_area_extent(proj_dict)
         return geos_area.get_area_definition(proj_dict, extent)
 
-    def _get_proj_dict(self, dataset_id, original_shape):
+    def _get_proj_dict(self, dataset_id):
         proj_dict = {}
         proj_dict.update(self._get_name_dict(dataset_id))
         proj_dict.update(self._get_proj4_dict())
-        proj_dict.update(self._get_shape_dict(original_shape, dataset_id))
+        proj_dict.update(self._get_shape_dict(dataset_id))
         return proj_dict
 
     def _get_name_dict(self, dataset_id):
@@ -775,22 +783,21 @@ class AreaDefEstimator:
             "h": self.metadata["orbital_parameters"]["satellite_nominal_altitude"],
         }
 
-    def _get_shape_dict(self, original_shape, dataset_id):
-        # Apply parameters from the vertical dimension (num lines, stepping
-        # angle) to the horizontal dimension to obtain a square area definition
-        # with uniform sampling.
-        num_lines, _ = original_shape
+    def _get_shape_dict(self, dataset_id):
+        # Apply sampling from the vertical dimension to the horizontal
+        # dimension to obtain a square area definition with uniform sampling.
+        ch_type = fmt.CHANNEL_TYPES[dataset_id["name"]]
         alt_ch_name = _get_alternative_channel_name(dataset_id)
         stepping_angle = self.coord_conv["stepping_angle_along_line"][alt_ch_name]
-        uniform_size = num_lines
-        uniform_line_pixel_offset = 0.5 * num_lines
-        uniform_sampling_angle = geos_area.sampling_to_lfac_cfac(stepping_angle)
+        size = self.full_disk_size[ch_type]
+        line_pixel_offset = 0.5 * size
+        lfac_cfac = geos_area.sampling_to_lfac_cfac(stepping_angle)
         return {
-            "nlines": uniform_size,
-            "ncols": uniform_size,
-            "lfac": uniform_sampling_angle,
-            "cfac": uniform_sampling_angle,
-            "coff": uniform_line_pixel_offset,
-            "loff": uniform_line_pixel_offset,
+            "nlines": size,
+            "ncols": size,
+            "lfac": lfac_cfac,
+            "cfac": lfac_cfac,
+            "coff": line_pixel_offset,
+            "loff": line_pixel_offset,
             "scandir": "N2S",
         }

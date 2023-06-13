@@ -11,6 +11,7 @@ from pyresample.geometry import AreaDefinition
 
 import satpy.readers.gms5_vissr_format as fmt
 import satpy.readers.gms5_vissr_l1b as vissr
+import satpy.readers.gms5_vissr_navigation as nav
 import satpy.tests.reader_tests.test_gms5_vissr_data as real_world
 from satpy.readers import FSFile
 from satpy.tests.reader_tests.utils import get_jit_methods
@@ -477,20 +478,12 @@ class TestFileHandler:
         """Get expected area definition."""
         if dataset_id["name"] == "IR1":
             resol = 5
-            extent = (
-                -8.641922536247211,
-                -8.641922536247211,
-                25.925767608741637,
-                25.925767608741637,
-            )
+            size = 2366
+            extent = (-20438.1468, -20438.1468, 20455.4306, 20455.4306)
         else:
             resol = 1
-            extent = (
-                -2.1604801323784297,
-                -2.1604801323784297,
-                6.481440397135289,
-                6.481440397135289,
-            )
+            size = 9464
+            extent = (-20444.6235, -20444.6235, 20448.9445, 20448.9445)
         area_id = f"gms-5_vissr_western-pacific_{resol}km"
         desc = f"GMS-5 VISSR Western Pacific area definition with {resol} km resolution"
         return AreaDefinition(
@@ -498,7 +491,8 @@ class TestFileHandler:
             description=desc,
             proj_id=area_id,
             projection={
-                "ellps": "SGS85",
+                "a": nav.EARTH_EQUATORIAL_RADIUS,
+                "b": nav.EARTH_POLAR_RADIUS,
                 "h": "123456",
                 "lon_0": "140",
                 "no_defs": "None",
@@ -509,8 +503,8 @@ class TestFileHandler:
                 "y_0": "0",
             },
             area_extent=extent,
-            width=2,
-            height=2,
+            width=size,
+            height=size,
         )
 
     @pytest.fixture
@@ -539,7 +533,7 @@ class TestFileHandler:
         """Test getting the dataset."""
         dataset = file_handler.get_dataset(dataset_id, {"yaml": "info"})
         xr.testing.assert_allclose(dataset.compute(), dataset_exp, atol=1e-6)
-        self._assert_attrs_equal(dataset.attrs, attrs_exp)
+        assert dataset.attrs == attrs_exp
 
     def test_time_attributes(self, file_handler, attrs_exp):
         """Test the file handler's time attributes."""
@@ -547,18 +541,6 @@ class TestFileHandler:
         end_time_exp = attrs_exp["time_parameters"]["nominal_end_time"]
         assert file_handler.start_time == start_time_exp
         assert file_handler.end_time == end_time_exp
-
-    def _assert_attrs_equal(self, attrs_tst, attrs_exp):
-        area_tst = attrs_tst.pop("area_def_uniform_sampling")
-        area_exp = attrs_exp.pop("area_def_uniform_sampling")
-        assert attrs_tst == attrs_exp
-        self._assert_areas_close(area_tst, area_exp)
-
-    def _assert_areas_close(self, area_tst, area_exp):
-        lons_tst, lats_tst = area_tst.get_lonlats()
-        lons_exp, lats_exp = area_exp.get_lonlats()
-        np.testing.assert_allclose(lons_tst, lons_exp)
-        np.testing.assert_allclose(lats_tst, lats_exp)
 
 
 class TestCorruptFile:
