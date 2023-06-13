@@ -89,6 +89,17 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content['variable2/attr/units'] = '1'
         file_content['variable2/shape'] = DEFAULT_FILE_SHAPE
 
+        # data with an alias values
+        file_content['channel_15_brightness_temperature'] = np.ma.masked_array(
+            DEFAULT_FILE_DATA.astype(np.float32),
+            mask=np.zeros_like(DEFAULT_FILE_DATA))
+        file_content['channel_15_brightness_temperature'].mask[::5, ::5] = True
+        file_content['channel_15_brightness_temperature/attr/_FillValue'] = -1
+        file_content['channel_15_brightness_temperature/attr/scale_factor'] = 1.
+        file_content['channel_15_brightness_temperature/attr/add_offset'] = 0.
+        file_content['channel_15_brightness_temperature/attr/units'] = '1'
+        file_content['channel_15_brightness_temperature/shape'] = DEFAULT_FILE_SHAPE
+
         # category
         file_content['variable3'] = DEFAULT_FILE_DATA.astype(np.byte)
         file_content['variable3/attr/_FillValue'] = -128
@@ -198,3 +209,19 @@ class TestGEOCATReader(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
         self.assertIsInstance(datasets['variable1'].attrs['area'], AreaDefinition)
+
+    def test_load_an_alias_goes17_hdf4(self):
+        """Test loading an alias from GOES-17 hdf4 file.."""
+        import xarray as xr
+
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
+            loadables = r.select_files_from_pathnames([
+                'geocatL2.GOES-17.CONUS.2020041.163130.hdf',
+            ])
+            r.create_filehandlers(loadables)
+        # verify that an alias returns the correct var_name.
+        datasets = r.load(['C15'])
+        self.assertEqual(len(datasets), 1)
+        self.assertEqual(datasets["C15"].file_key, 'channel_15_brightness_temperature')
