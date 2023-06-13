@@ -1109,27 +1109,27 @@ class RatioSharpenedRGB(GenericCompositor):
             high_res = None
 
         bands = {'red': low_res_red, 'green': low_res_green, 'blue': low_res_blue}
-        self._sharpen_bands_with_high_res(bands, high_res)
+        if high_res is not None:
+            self._sharpen_bands_with_high_res(bands, high_res)
 
         return bands['red'], bands['green'], bands['blue'], new_attrs
 
     def _sharpen_bands_with_high_res(self, bands, high_res):
-        if high_res is not None:
-            ratio = da.map_blocks(
-                _get_sharpening_ratio,
-                high_res.data,
-                bands[self.high_resolution_color].data,
-                meta=np.array((), dtype=high_res.dtype),
-                dtype=high_res.dtype,
-                chunks=high_res.chunks,
-            )
+        ratio = da.map_blocks(
+            _get_sharpening_ratio,
+            high_res.data,
+            bands[self.high_resolution_color].data,
+            meta=np.array((), dtype=high_res.dtype),
+            dtype=high_res.dtype,
+            chunks=high_res.chunks,
+        )
 
-            bands[self.high_resolution_color] = high_res
+        bands[self.high_resolution_color] = high_res
 
-            with xr.set_options(keep_attrs=True):
-                for color in bands.keys():
-                    if color != self.neutral_resolution_color and color != self.high_resolution_color:
-                        bands[color] = bands[color] * ratio
+        with xr.set_options(keep_attrs=True):
+            for color in bands.keys():
+                if color != self.neutral_resolution_color and color != self.high_resolution_color:
+                    bands[color] = bands[color] * ratio
 
     def _combined_sharpened_info(self, info, new_attrs):
         combined_info = {}
