@@ -13,67 +13,67 @@ file_types:
 
     esa_l2_reflectance:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_reflectance.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_reflectance.nc'
     esa_l2_chl_nn:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_nn.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_nn.nc'
     esa_l2_chl_oc4me:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_oc4me.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_oc4me.nc'
     esa_l2_iop_nn:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/iop_nn.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/iop_nn.nc'
     esa_l2_trsp:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/trsp.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/trsp.nc'
     esa_l2_tsm_nn:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tsm_nn.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tsm_nn.nc'
     esa_l2_wqsf:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/wqsf.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/wqsf.nc'
     esa_l2_gifapar:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/gifapar.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/gifapar.nc'
     esa_l2_rc_gifapar:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/rc_gifapar.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/rc_gifapar.nc'
     esa_l2_iwv:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/iwv.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/iwv.nc'
     esa_l2_otci:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/otci.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/otci.nc'
     esa_angles:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCIAngles
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tie_geometries.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tie_geometries.nc'
     esa_geo:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCIGeo
-        file_patterns: 
+        file_patterns:
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geo_coordinates.nc'
          - '{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}______{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geo_coordinates.nc'
 
