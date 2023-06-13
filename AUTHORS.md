@@ -35,6 +35,7 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Lloyd Hughes (system123)](https://github.com/system123)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
@@ -85,4 +86,4 @@ The following people have made contributions to this project:
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
-- [Lloyd Hughes (system123)](https://github.com/system123)
+
