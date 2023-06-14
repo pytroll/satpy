@@ -38,6 +38,9 @@ PLATFORM_NAMES = {
     'G17': 'GOES-17',
     'G18': 'GOES-18',
     'G19': 'GOES-19',
+    'GOES16': 'GOES-16',
+    'GOES17': 'GOES-17',
+    'GOES18': 'GOES-18',
 }
 
 

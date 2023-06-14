@@ -61,7 +61,7 @@ class NC_ABI_L2(NC_ABI_BASE):
 
         # add in information from the filename that may be useful to the user
         for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
-            variable.attrs[attr] = self.filename_info[attr]
+            variable.attrs[attr] = self.filename_info.get(attr)
 
         # add in information hardcoded in the filetype YAML
         for attr in ('observation_type',):

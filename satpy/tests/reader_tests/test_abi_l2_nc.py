@@ -16,13 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l2_nc reader tests package."""
 import contextlib
+from typing import Optional
 from unittest import mock
 
 import numpy as np
 import xarray as xr
 
 
-def _create_cmip_dataset():
+def _create_cmip_dataset(data_variable: str = "HT"):
     proj = xr.DataArray(
         [],
         attrs={
@@ -57,7 +58,7 @@ def _create_cmip_dataset():
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'HT': ht_da,
+            data_variable: ht_da,
             "nominal_satellite_subpoint_lat": np.array(0.0),
             "nominal_satellite_subpoint_lon": np.array(-89.5),
             "nominal_satellite_height": np.array(35786.02),
@@ -86,11 +87,7 @@ def _assert_orbital_parameters(orb_params):
 
 
 def _create_mcmip_dataset():
-    fake_dataset = _create_cmip_dataset()
-    fake_dataset = fake_dataset.copy(deep=True)
-    fake_dataset['CMI_C14'] = fake_dataset['HT']
-    del fake_dataset['HT']
-    return fake_dataset
+    return _create_cmip_dataset("CMI_C14")
 
 
 class Test_NC_ABI_L2_get_dataset:
@@ -124,6 +121,15 @@ class Test_NC_ABI_L2_get_dataset:
         np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
         _compare_subdict(res.attrs, exp_attrs)
         _assert_orbital_parameters(res.attrs['orbital_parameters'])
+
+    def test_get_dataset_gfls(self):
+        """Test that Low Cloud and Fog filenames work."""
+        from satpy.tests.utils import make_dataid
+        filename_info = {'platform_shortname': 'GOES16', 'scene_abbr': 'FD'}
+        key = make_dataid(name='MVFR_Fog_Prob')
+        with _create_reader_for_fake_data("GFLS", _create_cmip_dataset("MVFR_Fog_Prob"), filename_info) as reader:
+            res = reader.get_dataset(key, {'file_key': 'MVFR_Fog_Prob'})
+        assert res.attrs["platform_name"] == "GOES-16"
 
 
 class TestMCMIPReading:
@@ -314,15 +320,17 @@ class Test_NC_ABI_L2_area_AOD:
 
 
 @contextlib.contextmanager
-def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset):
+def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset, filename_info: Optional[dict] = None):
     from satpy.readers.abi_l2_nc import NC_ABI_L2
 
-    reader_args = (
-        "filename",
-        {
+    if filename_info is None:
+        filename_info = {
             'platform_shortname': 'G16',
             'scene_abbr': 'C', 'scan_mode': 'M3'
-        },
+        }
+    reader_args = (
+        "filename",
+        filename_info,
         {'file_type': 'info', 'observation_type': observation_type},
     )
     with mock.patch('satpy.readers.abi_base.xr') as xr_:
