@@ -72,10 +72,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  **kwargs):
         """Open and perform initial investigation of NetCDF file."""
-        kwargs.setdefault('xarray_kwargs', {}).setdefault(
-            'decode_times', False)
-        kwargs.setdefault('xarray_kwargs', {}).setdefault(
-            'engine', "netcdf4")
+        kwargs.setdefault("xarray_kwargs", {"decode_times": False,
+                                            "engine": "netcdf4"})
 
         super(GEOCATFileHandler, self).__init__(
             filename, filename_info, filetype_info,
