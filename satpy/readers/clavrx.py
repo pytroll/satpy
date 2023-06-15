@@ -348,8 +348,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             new_info.update(alias_info)
             yield True, new_info
 
-    def _supplement_configured(self, configured_datasets=None):
+    def available_datasets(self, configured_datasets=None):
         """Add more information if this reader can provide it."""
+        handled_variables = set()
         for is_avail, ds_info in (configured_datasets or []):
             # some other file handler knows how to load this
             if is_avail is not None:
@@ -362,6 +363,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             # we can confidently say that we can provide this dataset and can
             # provide more info
             if matches and var_name in self and this_res != self.resolution:
+                handled_variables.add(var_name)
                 new_info['resolution'] = self.resolution
                 if self._is_polar():
                     new_info['coordinates'] = ds_info.get('coordinates', ('longitude', 'latitude'))
@@ -370,6 +372,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                 # if we didn't know how to handle this dataset and no one else did
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
+
+        # get data from file dynamically
+        yield from self._dynamic_datasets()
 
     def _dynamic_datasets(self):
         """Get data from file and build aliases."""
@@ -389,14 +394,6 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                     # yield variable as it is
                     # yield any associated aliases
                     yield from self._available_aliases(ds_info, var_name)
-
-    def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file."""
-        # update previously configured datasets
-        yield from self._supplement_configured(configured_datasets)
-
-        # get data from file dynamically
-        yield from self._dynamic_datasets()
 
     def get_shape(self, dataset_id, ds_info):
         """Get the shape."""
