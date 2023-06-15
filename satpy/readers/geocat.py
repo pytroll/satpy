@@ -60,7 +60,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     **Loading data with decode_times=True**
 
-    By default, this reader will use xarray_kwargs={"engine": "netcdf4", "decode_times": False}.
+    By default, this reader will use ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
     to match behavior of xarray when the geocat reader was first written.  To use different options
     use reader_kwargs when loading the Scene::
 
