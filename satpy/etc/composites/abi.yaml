@@ -736,3 +736,52 @@ composites:
       - name: green_nocorr
       - name: C01
     standard_name: true_color_reproduction_color_stretch
+
+
+  tcr_night_ir:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    # Blended at night with the `cloudtop` composite.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    lim_low: 82.
+    lim_high: 90.
+    prerequisites:
+      - true_color_reproduction
+      - cloudtop
+
+  true_color_flames:
+      compositor: !!python/name:satpy.composites.BackgroundCompositor
+      standard_name: true_color_flames
+      prerequisites:
+        - fire_rgb_masked_alpha
+        - tcr_night_ir
+
+  multi_fires:
+      compositor: !!python/name:satpy.composites.MultiFireCompositor
+      standard_name: multi_fires
+      prerequisites:
+        - Power
+
+  fire_rgb_masked_alpha:
+      compositor: !!python/name:satpy.composites.MaskingCompositor
+      standard_name: fire_power_masked_alpha_col
+      conditions:
+        - method: isnan
+          transparency: 100
+        - method: less
+          value: 2
+          transparency: 100
+        - method: less
+          value: 70
+          transparency: 99
+        - method: less
+          value: 150
+          transparency: 90
+        - method: less
+          value: 220
+          transparency: 30
+      prerequisites:
+        # Composite
+        - name: multi_fires
+        # Data used in masking
+        - name: multi_fires

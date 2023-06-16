@@ -579,12 +579,12 @@ class ColormapCompositor(GenericCompositor):
         """
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         cmap = Colormap.from_array_with_metadata(
-                palette,
-                dtype,
-                color_scale=255,
-                valid_range=info.get("valid_range"),
-                scale_factor=info.get("scale_factor", 1),
-                add_offset=info.get("add_offset", 0))
+            palette,
+            dtype,
+            color_scale=255,
+            valid_range=info.get("valid_range"),
+            scale_factor=info.get("scale_factor", 1),
+            add_offset=info.get("add_offset", 0))
 
         return cmap, squeezed_palette
 
@@ -592,7 +592,7 @@ class ColormapCompositor(GenericCompositor):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
+                             (len(projectables),))
         data, palette = projectables
 
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
@@ -1056,7 +1056,7 @@ class RatioSharpenedRGB(GenericCompositor):
         The resulting RGB has the units attribute removed.
         """
         if len(datasets) != 3:
-            raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
+            raise ValueError("Expected 3 datasets, got %d" % (len(datasets),))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
                 (optional_datasets and
                  optional_datasets[0].shape != datasets[0].shape):
@@ -1701,3 +1701,60 @@ class LongitudeMaskingCompositor(SingleBandCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super().__call__([masked_projectable], **info)
+
+
+class MultiFireCompositor(GenericCompositor):
+    """Combines an RGB image, such as true_color, with a fire radiative power dataset."""
+
+    def __init__(self, name, min_frp=0., max_frp=255., weight=1., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lim_low (float): lower limit of Sun zenith angle for the
+                             blending of the given channels
+            lim_high (float): upper limit of Sun zenith angle for the
+                             blending of the given channels
+            day_night (string): "day_night" means both day and night portions will be kept
+                                "day_only" means only day portion will be kept
+                                "night_only" means only night portion will be kept
+            include_alpha (bool): This only affects the "day only" or "night only" result.
+                                  True means an alpha band will be added to the output image for transparency.
+                                  False means the output is a single-band image with undesired pixels being masked out
+                                  (replaced with NaNs).
+
+        """
+        self.min_frp = min_frp
+        self.max_frp = max_frp
+        self.w = weight
+
+        super(MultiFireCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        """Generate the composite."""
+        from scipy.ndimage import convolve
+
+        projectables = self.match_data_arrays(projectables)
+        # At least one composite is requested.
+
+        the_frp = projectables[0]
+
+        frp_data = np.array(the_frp.data)
+
+        kernel = np.array([[self.w * 0.1, self.w * 0.3, self.w * 0.1],
+                           [self.w * 0.3, self.w * 1.0, self.w * 0.3],
+                           [self.w * 0.1, self.w * 0.3, self.w * 0.1]])
+
+        frp_data = np.where(np.isfinite(frp_data), frp_data, 0)
+        frp_data = np.where(frp_data > self.max_frp, self.max_frp, frp_data)
+        frp_data = np.where(frp_data < self.min_frp, self.min_frp, frp_data)
+        frp_data = frp_data / self.max_frp
+
+        output_data = convolve(frp_data, kernel, mode='constant')
+
+        output_data = da.where(output_data < self.min_frp, np.nan, output_data)
+
+        output_data = output_data / np.nanmax(output_data)
+
+        the_frp.data = output_data * 255.
+
+        return super(MultiFireCompositor, self).__call__([the_frp], **kwargs)
