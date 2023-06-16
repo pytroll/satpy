@@ -66,7 +66,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         scene = satpy.Scene(filenames,
                             reader='geocat',
-                            reader_kwargs={'xarray_kwargs': {'decode_times': True}})
+                            reader_kwargs={'xarray_kwargs': {'engine': 'netcdf4', 'decode_times': True}})
     """
 
     def __init__(self, filename, filename_info, filetype_info,
