@@ -136,3 +136,34 @@ and save them all at once.
     ...                          compute=False)
     >>> results = [res1, res2]
     >>> compute_writer_results(results)
+
+
+Adding text to images
+=====================
+
+Satpy, via `pydecorate`, can add text to images when they're being saved.
+To use this functionality, you must create a dictionary describing the text
+to be added.
+
+::
+
+    >>> decodict = {'decorate': [{'text': {'txt': f'  {my_text}',
+    >>>                                    'align': {'top_bottom': 'top', 'left_right': 'left'},
+    >>>                                    'font': <path_to_font>,
+    >>>                                    'font_size': 48,
+    >>>                                    'line': 'white',
+    >>>                                    'bg_opacity': 255,
+    >>>                                    'bg': 'black',
+    >>>                                    'height': 30,
+    >>>                                     }}]}
+
+Where `my_text` is the text you wish to add and `<path_to_font>` is the
+location of the font file you wish to use, often in `/usr/share/fonts/`
+
+This dictionary can then be passed to the `save_dataset` or `save_datasets` command.
+
+::
+
+    >>> scene.save_dataset(my_dataset, writer='simple_image', fill_value=False,
+    >>>                    decorate=decodict)
+
