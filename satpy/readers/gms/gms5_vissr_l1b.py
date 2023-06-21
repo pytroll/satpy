@@ -723,7 +723,7 @@ class AreaDefEstimator:
     """Estimate area definition for VISSR images."""
 
     full_disk_size = {
-        "IR":  2366,
+        "IR": 2366,
         "VIS": 9464,
     }
 
