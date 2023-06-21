@@ -16,26 +16,26 @@ reader:
 
 file_types:
     gms5_vissr_vis:
-        file_reader: !!python/name:satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
         file_patterns:
         - 'VISSR_{start_time:%Y%m%d_%H%M}_VIS.{mode}.IMG'
         - 'VISSR_{start_time:%Y%m%d_%H%M}_VIS.{mode}.IMG.gz'
 
     gms5_vissr_ir1:
-        file_reader: !!python/name:satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
         file_patterns:
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR1.{mode}.IMG'
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR1.{mode}.IMG.gz'
 
     gms5_vissr_ir2:
-        file_reader: !!python/name:satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
         file_patterns:
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR2.{mode}.IMG'
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR2.{mode}.IMG.gz'
 
 
     gms5_vissr_ir3:
-        file_reader: !!python/name:satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
         file_patterns:
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR3.{mode}.IMG'
         - 'VISSR_{start_time:%Y%m%d_%H%M}_IR3.{mode}.IMG.gz'

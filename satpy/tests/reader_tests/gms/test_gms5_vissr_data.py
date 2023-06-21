@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import satpy.readers.gms5_vissr_format as fmt
+import satpy.readers.gms.gms5_vissr_format as fmt
 
 ATTITUDE_PREDICTION = np.array(
     [

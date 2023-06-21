@@ -9,10 +9,10 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-import satpy.readers.gms5_vissr_format as fmt
-import satpy.readers.gms5_vissr_l1b as vissr
-import satpy.readers.gms5_vissr_navigation as nav
-import satpy.tests.reader_tests.test_gms5_vissr_data as real_world
+import satpy.readers.gms.gms5_vissr_format as fmt
+import satpy.readers.gms.gms5_vissr_l1b as vissr
+import satpy.readers.gms.gms5_vissr_navigation as nav
+import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
 from satpy.readers import FSFile
 from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import make_dataid
@@ -82,12 +82,12 @@ class TestFileHandler:
             },
         }
         monkeypatch.setattr(
-            "satpy.readers.gms5_vissr_format.IMAGE_DATA_BLOCK_IR", IMAGE_DATA_BLOCK_IR
+            "satpy.readers.gms.gms5_vissr_format.IMAGE_DATA_BLOCK_IR", IMAGE_DATA_BLOCK_IR
         )
         monkeypatch.setattr(
-            "satpy.readers.gms5_vissr_format.IMAGE_DATA_BLOCK_VIS", IMAGE_DATA_BLOCK_VIS
+            "satpy.readers.gms.gms5_vissr_format.IMAGE_DATA_BLOCK_VIS", IMAGE_DATA_BLOCK_VIS
         )
-        monkeypatch.setattr("satpy.readers.gms5_vissr_format.IMAGE_DATA", IMAGE_DATA)
+        monkeypatch.setattr("satpy.readers.gms.gms5_vissr_format.IMAGE_DATA", IMAGE_DATA)
 
     @pytest.fixture(
         params=[

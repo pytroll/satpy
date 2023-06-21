@@ -159,8 +159,8 @@ import numpy as np
 import xarray as xr
 
 import satpy.readers._geos_area as geos_area
-import satpy.readers.gms5_vissr_format as fmt
-import satpy.readers.gms5_vissr_navigation as nav
+import satpy.readers.gms.gms5_vissr_format as fmt
+import satpy.readers.gms.gms5_vissr_navigation as nav
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.readers.utils import generic_open

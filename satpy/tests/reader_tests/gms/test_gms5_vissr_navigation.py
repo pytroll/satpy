@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-import satpy.readers.gms5_vissr_navigation as nav
+import satpy.readers.gms.gms5_vissr_navigation as nav
 from satpy.tests.reader_tests.utils import get_jit_methods
 
 # Navigation references computed with JMA's Msial library (files
