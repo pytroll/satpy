@@ -1089,6 +1089,11 @@ class Scene:
             dataarrays = [ds for ds in dataarrays if ds is not None]
         return dataarrays
 
+    def to_xarray_datatree(self, **kwargs):
+        """Convert this Scene into an Xarray DataTree object."""
+        from ._scene_converters import to_xarray_datatree
+        return to_xarray_datatree(self, **kwargs)
+
     def images(self):
         """Generate images for all the datasets from the scene."""
         for ds_id, projectable in self._datasets.items():
