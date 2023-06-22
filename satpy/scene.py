@@ -50,9 +50,8 @@ def _get_area_resolution(area):
     return resolution
 
 
-def _aggregate_data_array(data_array, **coarsen_kwargs):
+def _aggregate_data_array(data_array, func, **coarsen_kwargs):
     """Aggregate xr.DataArray."""
-    func = coarsen_kwargs.pop("func")
     res = data_array.coarsen(**coarsen_kwargs)
     if callable(func):
         out = res.reduce(func)
