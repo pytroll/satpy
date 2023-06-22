@@ -39,7 +39,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super().__init__(filename, filename_info, filetype_info)
         if clip_negative_radiances is None:
-            clip_negative_radiances = satpy.config.get("clip_negative_radiances")
+            clip_negative_radiances = satpy.config.get("readers.clip_negative_radiances")
         self.clip_negative_radiances = clip_negative_radiances
 
     def get_dataset(self, key, info):

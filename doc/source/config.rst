@@ -261,11 +261,11 @@ correction.
 Clipping Negative Infrared Radiances
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* **Environment variable**: ``SATPY_CLIP_NEGATIVE_RADIANCES``
-* **YAML/Config Key**: ``clip_negative_radiances``
+* **Environment variable**: ``SATPY_READERS__CLIP_NEGATIVE_RADIANCES``
+* **YAML/Config Key**: ``readers.clip_negative_radiances``
 * **Default**: False
 
-Whether to clip negative infrared radiances to the minimum possible value before
+Whether to clip negative infrared radiances to the minimum allowable value before
 computing the brightness temperature.
 If ``clip_negative_radiances=False``, pixels with negative radiances will have
 ``np.nan`` brightness temperatures.
