@@ -1,0 +1,21 @@
+reader:
+  name: datatailor_nc
+  short_name: EUMETSAT Data Tailor NetCDF
+  long_name:  Generic reader for simplified NetCDF files coming from the EUMETSAT Data Tailor
+  description: >
+    The EUMETSAT Data Tailor is a tool published by EUMETSAT that allows tailoring
+    satellite data to and from various file formats, among other things.
+    This is a generic reader for the simplified NetCDF output format.
+    For more information on the data tailor, see https://www.eumetsat.int/data-tailor
+  status: Alpha
+  supports_fsspec: True
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [many]
+  default_datasets:
+
+file_types:
+  datatailor_simple_nc:
+    file_reader: !!python/name:satpy.readers.datatailor_nc.DataTaliorNC
+    file_patterns:
+      - '{product_key}{start_sensing_time}{stop_sensing_time}epct{process_uuid}_{steps_acronym}.nc'
+      - "{stem}.nc"
