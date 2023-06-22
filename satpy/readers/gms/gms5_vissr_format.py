@@ -32,7 +32,6 @@ TIME = [("date", I4), ("time", I4)]
 CHANNELS = [("VIS", R4), ("IR1", R4), ("IR2", R4), ("WV", R4)]
 VISIR_SOLAR = [("VIS", R4), ("IR", R4)]
 
-# fmt: off
 CONTROL_BLOCK = np.dtype([('control_block_size', I2),
                           ('head_block_number_of_parameter_block', I2),
                           ('parameter_block_size', I2),
@@ -396,4 +395,3 @@ IMAGE_DATA = {
         'dtype': IMAGE_DATA_BLOCK_IR
     }
 }
-# fmt: on

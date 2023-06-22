@@ -38,14 +38,12 @@ class TestEarthMask:
         first_earth_pixels = np.array([-1, 1, 0, -1])
         last_earth_pixels = np.array([-1, 3, 2, -1])
         edges = first_earth_pixels, last_earth_pixels
-        # fmt: off
         mask_exp = np.array(
             [[0, 0, 0, 0],
              [0, 1, 1, 1],
              [1, 1, 1, 0],
              [0, 0, 0, 0]]
         )
-        # fmt: on
         mask = vissr.get_earth_mask(mask_exp.shape, edges)
         np.testing.assert_equal(mask, mask_exp)
 
@@ -213,7 +211,6 @@ class TestFileHandler:
         This has the advantage that we can test with very small 2x2 images.
         Otherwise, all pixels would be in space.
         """
-        # fmt: off
         conv = np.zeros(1, dtype=fmt.COORDINATE_CONVERSION_PARAMETERS)
 
         cline = conv["central_line_number_of_vissr_frame"]
@@ -250,7 +247,6 @@ class TestFileHandler:
 
         conv["orbital_parameters"]["longitude_of_ssp"] = 141.0
         conv["orbital_parameters"]["latitude_of_ssp"] = 1.0
-        # fmt: on
         return conv
 
     @pytest.fixture
@@ -435,7 +431,6 @@ class TestFileHandler:
         pix = [1672, 1672, 1673, 1673]
         lin = [686, 2089, 686, 2089]
         """
-        # fmt: off
         expectations = {
             "IR1": {
                 "lons": [[139.680120, 139.718902],
@@ -450,7 +445,6 @@ class TestFileHandler:
                          [-34.940439, -34.940370]]
             }
         }
-        # fmt: on
         exp = expectations[dataset_id["name"]]
         lons = xr.DataArray(exp["lons"], dims=("y", "x"))
         lats = xr.DataArray(exp["lats"], dims=("y", "x"))

@@ -10,7 +10,6 @@ from satpy.tests.reader_tests.utils import get_jit_methods
 # VISSR_19960217_2331_IR1.A.IMG and VISSR_19960217_2331_VIS.A.IMG). The VIS
 # navigation is slightly off (< 0.01 deg) compared to JMA's reference.
 # This is probably due to precision problems with the copied numbers.
-# fmt: off
 IR_NAVIGATION_REFERENCE = [
     {
         "pixel": nav.Pixel(line=686, pixel=1680),
@@ -209,7 +208,6 @@ VIS_NAVIGATION_REFERENCE = [
         )
     },
 ]
-# fmt: on
 
 NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
 
@@ -327,7 +325,6 @@ class TestImageNavigation:
     @pytest.fixture
     def expected(self):
         """Get expected coordinates."""
-        # fmt: off
         exp = {
             "lon": [[-114.56923, -112.096837, -109.559702],
                     [8.33221, 8.793893, 9.22339],
@@ -336,7 +333,6 @@ class TestImageNavigation:
                     [-42.513409, -39.790231, -37.06392],
                     [3.342834, 6.07043, 8.795932]]
         }
-        # fmt: on
         return exp
 
     def test_get_lons_lats(self, navigation_params, expected):
