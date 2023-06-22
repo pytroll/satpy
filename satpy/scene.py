@@ -46,7 +46,7 @@ def _get_area_resolution(area):
     try:
         resolution = max(area.pixel_size_x, area.pixel_size_y)
     except AttributeError:
-        resolution = max(area.lats.resolution, area.lons.resolution)
+        resolution = max(area.lats.attrs["resolution"], area.lons.attrs["resolution"])
     return resolution
 
 
