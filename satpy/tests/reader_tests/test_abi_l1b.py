@@ -276,7 +276,7 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
             }
         )
 
-        super(Test_NC_ABI_L1B_clipped_ir_cal, self).setUp(rad=rad, clip_negative_radiances=True)
+        super().setUp(rad=rad, clip_negative_radiances=True)
 
     def test_clip_negative_radiances_attribute(self):
         """Assert that clip_negative_radiances has been set to True."""
