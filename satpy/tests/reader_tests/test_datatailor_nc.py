@@ -18,14 +18,15 @@
 import numpy as np
 import pytest
 import xarray
+from pyresample import SwathDefinition
 
 
 @pytest.fixture
 def fake_datatailor_dataset():
     """Generate the contents for a fake data tailor NetCDF file."""
-    nx = 10
-    ny = 10
-    nz = 5
+    nx = 5
+    ny = 5
+    nz = 3
     lats = np.linspace(-89, 89, nx*ny).reshape(nx, ny)
     lons = np.linspace(-189, 189, nx*ny).reshape(nx, ny)
     iwv = np.linspace(0, 1, nx*ny).reshape(nx, ny)
@@ -136,5 +137,9 @@ def test_datatailor_nc(fake_datatailor_nc_file):
     """Test the datatailor NC reader."""
     from satpy import Scene
     sc = Scene(filenames=[fake_datatailor_nc_file], reader=["datatailor_nc"])
-    assert sc.available_dataset_names() == {"lat", "lon", "temp", "iwv"}
-    sc.load(["lat", "lon", "temp", "iwv"])
+    exp = {"lat", "lon", "nlt", "atmospheric_temperature", "integrated_water_vapour"}
+    assert set(sc.available_dataset_names()) == exp
+    sc.load(exp)
+    assert sc["atmospheric_temperature"].dims == ("y", "x", "nlt")
+    assert isinstance(sc["atmospheric_temperature"].attrs["area"],
+                      SwathDefinition)

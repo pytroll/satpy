@@ -15,7 +15,7 @@ reader:
 
 file_types:
   datatailor_simple_nc:
-    file_reader: !!python/name:satpy.readers.datatailor_nc.DataTaliorNC
+    file_reader: !!python/name:satpy.readers.datatailor_nc.DataTailorNC
     file_patterns:
       - '{product_key}{start_sensing_time}{stop_sensing_time}epct{process_uuid}_{steps_acronym}.nc'
       - "{stem}.nc"
