@@ -35,6 +35,12 @@ class DataTailorNC(NetCDF4FsspecFileHandler):
     _coord_dims = {"along_track", "across_track"}
     _coord_vars = ["lon", "lat"]
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 **kwargs):
+        """Initialise object."""
+        super().__init__(filename, filename_info, filetype_info,
+                         auto_maskandscale=True, **kwargs)
+
     def get_dataset(self, data_id, ds_info):
         """Obtain dataset."""
         da = self[data_id["name"]]

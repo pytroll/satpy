@@ -129,11 +129,18 @@ def fake_datatailor_dataset():
 def fake_datatailor_nc_file(fake_datatailor_dataset, tmp_path):
     """Generate a fake data tailor NetCDF file."""
     of = tmp_path / "fakesat-fakesensor-30010401000000-30010401010000.nc"
-    fake_datatailor_dataset.to_netcdf(of)
+    enc = {
+        "scale_factor": 0.01,
+        "dtype": "uint16"}
+    fake_datatailor_dataset.to_netcdf(
+            of,
+            encoding={
+                "integrated_water_vapour": enc,
+                "atmospheric_temperature": enc})
     return of
 
 
-def test_datatailor_nc(fake_datatailor_nc_file):
+def test_datatailor_nc(fake_datatailor_nc_file, fake_datatailor_dataset):
     """Test the datatailor NC reader."""
     from satpy import Scene
     sc = Scene(filenames=[fake_datatailor_nc_file], reader=["datatailor_nc"])
@@ -141,5 +148,10 @@ def test_datatailor_nc(fake_datatailor_nc_file):
     assert set(sc.available_dataset_names()) == exp
     sc.load(exp)
     assert sc["atmospheric_temperature"].dims == ("y", "x", "nlt")
+    assert sc["atmospheric_temperature"].dtype == np.dtype("float32")
+    np.testing.assert_array_almost_equal(
+            sc["atmospheric_temperature"],
+            fake_datatailor_dataset["atmospheric_temperature"],
+            decimal=2)
     assert isinstance(sc["atmospheric_temperature"].attrs["area"],
                       SwathDefinition)
