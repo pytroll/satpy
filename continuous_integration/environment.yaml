@@ -9,6 +9,7 @@ dependencies:
   - appdirs
   - toolz
   - Cython
+  - numba
   - sphinx
   - cartopy
   - panel>=0.12.7
