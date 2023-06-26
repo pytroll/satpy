@@ -41,6 +41,25 @@ from satpy.writers import load_writer
 LOG = logging.getLogger(__name__)
 
 
+def _get_area_resolution(area):
+    """Attempt to retrieve resolution from AreaDefinition."""
+    try:
+        resolution = max(area.pixel_size_x, area.pixel_size_y)
+    except AttributeError:
+        resolution = max(area.lats.attrs["resolution"], area.lons.attrs["resolution"])
+    return resolution
+
+
+def _aggregate_data_array(data_array, func, **coarsen_kwargs):
+    """Aggregate xr.DataArray."""
+    res = data_array.coarsen(**coarsen_kwargs)
+    if callable(func):
+        out = res.reduce(func)
+    else:
+        out = getattr(res, func)()
+    return out
+
+
 class DelayedGeneration(KeyError):
     """Mark that a dataset can't be generated without further modification."""
 
@@ -755,10 +774,10 @@ class Scene:
         Args:
             dataset_ids (iterable): DataIDs to include in the returned
                                     `Scene`. Defaults to all datasets.
-            func (string): Function to apply on each aggregation window. One of
+            func (string, callable): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
-                           'argmax', 'prod', 'std', 'var'.
-                           'mean' is the default.
+                           'argmax', 'prod', 'std', 'var' strings or a custom
+                           function. 'mean' is the default.
             boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
             side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
             dim_kwargs: the size of the windows to aggregate.
@@ -783,18 +802,16 @@ class Scene:
                 continue
 
             target_area = src_area.aggregate(boundary=boundary, **dim_kwargs)
-            try:
-                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
-            except AttributeError:
-                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
+            resolution = _get_area_resolution(target_area)
             for ds_id in ds_ids:
-                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
-
-                new_scn._datasets[ds_id] = getattr(res, func)()
+                new_scn._datasets[ds_id] = _aggregate_data_array(self[ds_id],
+                                                                 func=func,
+                                                                 boundary=boundary,
+                                                                 side=side,
+                                                                 **dim_kwargs)
                 new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
-
         return new_scn
 
     def get(self, key, default=None):
