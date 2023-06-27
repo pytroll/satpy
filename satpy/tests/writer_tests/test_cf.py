@@ -51,7 +51,7 @@ except ImportError:
 # - request
 
 
-class TempFile(object):
+class TempFile:
     """A temporary filename class."""
 
     def __init__(self, suffix=".nc"):
@@ -188,7 +188,7 @@ def test_empty_collect_cf_datasets():
         collect_cf_datasets(list_dataarrays=[])
 
 
-class TestCFWriter():
+class TestCFWriter:
     """Test case for CF writer."""
 
     def test_init(self):
@@ -1223,32 +1223,39 @@ class TestCFWriterData(unittest.TestCase):
         assert ds2['var1']['longitude'].attrs['name'] == 'longitude'
 
 
-class EncodingUpdateTest(unittest.TestCase):
+class EncodingUpdateTest:
     """Test update of netCDF encoding."""
 
-    def setUp(self):
+    @ pytest.fixture
+    def fake_ds(self):
         """Create fake data for testing."""
-        self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
-                              'bar': (('y', 'x'), [[3, 4], [5, 6]])},
-                             coords={'y': [1, 2],
-                                     'x': [3, 4],
-                                     'lon': (('y', 'x'), [[7, 8], [9, 10]])})
-        self.ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]]),
-                                    'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]])},
-                                   coords={'y': [1, 2],
-                                           'x': [3, 4],
-                                           'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+        ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
+                         'bar': (('y', 'x'), [[3, 4], [5, 6]])},
+                        coords={'y': [1, 2],
+                                'x': [3, 4],
+                                'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+        return ds
 
-    def test_dataset_name_digit(self):
+    @ pytest.fixture
+    def fake_ds_digit(self):
+        """Create fake data for testing."""
+        ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]]),
+                               'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]])},
+                              coords={'y': [1, 2],
+                                      'x': [3, 4],
+                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+        return ds_digit
+
+    def test_dataset_name_digit(self, fake_ds_digit):
         """Test data with dataset name staring with a digit."""
         from satpy.writers.cf_writer import update_encoding
 
         # Dataset with name staring with digit
-        ds = self.ds_digit
+        ds_digit = fake_ds_digit
         kwargs = {'encoding': {'1': {'dtype': 'float32'},
                                '2': {'dtype': 'float32'}},
                   'other': 'kwargs'}
-        enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL_')
+        enc, other_kwargs = update_encoding(ds_digit, kwargs, numeric_name_prefix='CHANNEL_')
         expected_dict = {
             'y': {'_FillValue': None},
             'x': {'_FillValue': None},
@@ -1258,12 +1265,12 @@ class EncodingUpdateTest(unittest.TestCase):
         assert enc == expected_dict
         assert other_kwargs == {'other': 'kwargs'}
 
-    def test_without_time(self):
+    def test_without_time(self, fake_ds):
         """Test data with no time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # Without time dimension
-        ds = self.ds.chunk(2)
+        ds = fake_ds.chunk(2)
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
@@ -1278,7 +1285,7 @@ class EncodingUpdateTest(unittest.TestCase):
         assert other_kwargs == {'other': 'kwargs'}
 
         # Chunksize may not exceed shape
-        ds = self.ds.chunk(8)
+        ds = fake_ds.chunk(8)
         kwargs = {'encoding': {}, 'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
         expected_dict = {
@@ -1290,12 +1297,12 @@ class EncodingUpdateTest(unittest.TestCase):
         }
         assert enc == expected_dict
 
-    def test_with_time(self):
+    def test_with_time(self, fake_ds):
         """Test data with a time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # With time dimension
-        ds = self.ds.chunk(8).expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
+        ds = fake_ds.chunk(8).expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
