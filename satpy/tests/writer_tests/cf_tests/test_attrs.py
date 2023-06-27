@@ -35,8 +35,8 @@ class TestCFAttributeEncoding:
         """
         # TODO: this is also used by test_da2cf
         attrs = {'name': 'IR_108',
-                 'start_time': datetime(2018, 1, 1, 0),
-                 'end_time': datetime(2018, 1, 1, 0, 15),
+                 'start_time': datetime.datetime(2018, 1, 1, 0),
+                 'end_time': datetime.datetime(2018, 1, 1, 0, 15),
                  'int': 1,
                  'float': 1.0,
                  'none': None,  # should be dropped

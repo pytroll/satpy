@@ -198,7 +198,7 @@ def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
 
 def _add_history(attrs):
     """Add 'history' attribute to dictionary."""
-    _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+    _history_create = 'Created by pytroll/satpy on {}'.format(datetime.datetime.utcnow())
     if 'history' in attrs:
         if isinstance(attrs['history'], list):
             attrs['history'] = ''.join(attrs['history'])
