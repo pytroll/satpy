@@ -164,11 +164,9 @@ import xarray as xr
 from packaging.version import Version
 
 from satpy.writers import Writer
-from satpy.writers.cf.coords_attrs import add_xy_coords_attrs
+from satpy.writers.cf.time import EPOCH
 
 logger = logging.getLogger(__name__)
-
-EPOCH = u"seconds since 1970-01-01 00:00:00"
 
 # Check availability of either netCDF4 or h5netcdf package
 try:
@@ -225,101 +223,6 @@ def get_extra_ds(dataarray, keys=None):
 # ### CF-conversion
 
 
-def _handle_dataarray_name(original_name, numeric_name_prefix):
-    if original_name[0].isdigit():
-        if numeric_name_prefix:
-            new_name = numeric_name_prefix + original_name
-        else:
-            warnings.warn(
-                f'Invalid NetCDF dataset name: {original_name} starts with a digit.',
-                stacklevel=5
-            )
-            new_name = original_name  # occurs when numeric_name_prefix = '', None or False
-    else:
-        new_name = original_name
-    return original_name, new_name
-
-
-def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name):
-    """Change the DataArray name by prepending numeric_name_prefix if the name is a digit."""
-    original_name = None
-    dataarray = dataarray.copy()
-    if 'name' in dataarray.attrs:
-        original_name = dataarray.attrs.pop('name')
-        original_name, new_name = _handle_dataarray_name(original_name, numeric_name_prefix)
-        dataarray = dataarray.rename(new_name)
-
-    if include_orig_name and numeric_name_prefix and original_name and original_name != new_name:
-        dataarray.attrs['original_name'] = original_name
-
-    return dataarray
-
-
-def _get_groups(groups, list_datarrays):
-    """Return a dictionary with the list of xr.DataArray associated to each group.
-
-    If no groups (groups=None), return all DataArray attached to a single None key.
-    Else, collect the DataArrays associated to each group.
-    """
-    if groups is None:
-        grouped_dataarrays = {None: list_datarrays}
-    else:
-        grouped_dataarrays = defaultdict(list)
-        for datarray in list_datarrays:
-            for group_name, group_members in groups.items():
-                if datarray.attrs['name'] in group_members:
-                    grouped_dataarrays[group_name].append(datarray)
-                    break
-    return grouped_dataarrays
-
-
-def make_cf_dataarray(dataarray,
-                      epoch=EPOCH,
-                      flatten_attrs=False,
-                      exclude_attrs=None,
-                      include_orig_name=True,
-                      numeric_name_prefix='CHANNEL_'):
-    """Make the xr.DataArray CF-compliant.
-
-    Parameters
-    ----------
-    dataarray : xr.DataArray
-        The data array to be made CF-compliant.
-    epoch : str, optional
-        Reference time for encoding of time coordinates.
-    flatten_attrs : bool, optional
-        If True, flatten dict-type attributes.
-        The default is False.
-    exclude_attrs : list, optional
-        List of dataset attributes to be excluded.
-        The default is None.
-    include_orig_name : bool, optional
-        Include the original dataset name in the netcdf variable attributes.
-        The default is True.
-    numeric_name_prefix : TYPE, optional
-        Prepend dataset name with this if starting with a digit.
-        The default is ``"CHANNEL_"``.
-
-    Returns
-    -------
-    new_data : xr.DataArray
-        CF-compliant xr.DataArray.
-
-    """
-    from satpy.writers.cf.attrs import preprocess_datarray_attrs
-    from satpy.writers.cf.time import _process_time_coord
-
-    dataarray = _preprocess_dataarray_name(dataarray=dataarray,
-                                           numeric_name_prefix=numeric_name_prefix,
-                                           include_orig_name=include_orig_name)
-    dataarray = preprocess_datarray_attrs(dataarray=dataarray,
-                                          flatten_attrs=flatten_attrs,
-                                          exclude_attrs=exclude_attrs)
-    dataarray = add_xy_coords_attrs(dataarray)
-    dataarray = _process_time_coord(dataarray, epoch=epoch)
-    return dataarray
-
-
 def _collect_cf_dataset(list_dataarrays,
                         epoch=EPOCH,
                         flatten_attrs=False,
@@ -365,6 +268,7 @@ def _collect_cf_dataset(list_dataarrays,
         link_coords,
         make_alt_coords_unique,
     )
+    from satpy.writers.cf.dataarray import make_cf_dataarray
 
     # Create dictionary of input datarrays
     # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
@@ -534,6 +438,24 @@ def collect_cf_datasets(list_dataarrays,
     return grouped_datasets, header_attrs
 
 
+def _get_groups(groups, list_datarrays):
+    """Return a dictionary with the list of xr.DataArray associated to each group.
+
+    If no groups (groups=None), return all DataArray attached to a single None key.
+    Else, collect the DataArrays associated to each group.
+    """
+    if groups is None:
+        grouped_dataarrays = {None: list_datarrays}
+    else:
+        grouped_dataarrays = defaultdict(list)
+        for datarray in list_datarrays:
+            for group_name, group_members in groups.items():
+                if datarray.attrs['name'] in group_members:
+                    grouped_dataarrays[group_name].append(datarray)
+                    break
+    return grouped_dataarrays
+
+
 def _sanitize_writer_kwargs(writer_kwargs):
     """Remove satpy-specific kwargs."""
     writer_kwargs = copy.deepcopy(writer_kwargs)
@@ -575,6 +497,7 @@ class CFWriter(Writer):
             numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit
         """
+        from satpy.writers.cf.dataarray import make_cf_dataarray
         warnings.warn('CFWriter.da2cf is deprecated.'
                       'Use satpy.writers.cf_writer.make_cf_dataarray instead.',
                       DeprecationWarning, stacklevel=3)

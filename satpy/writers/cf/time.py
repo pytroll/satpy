@@ -19,6 +19,8 @@
 import numpy as np
 import xarray as xr
 
+EPOCH = u"seconds since 1970-01-01 00:00:00"
+
 
 def add_time_bounds_dimension(ds, time="time"):
     """Add time bound dimension to xr.Dataset."""
