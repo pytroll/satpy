@@ -240,9 +240,9 @@ class TestCFWriter(unittest.TestCase):
                 np.testing.assert_array_equal(f['test-array'][:], [[1, 2, 3]])
                 np.testing.assert_array_equal(f['x'][:], [0, 1, 2])
                 np.testing.assert_array_equal(f['y'][:], [0])
-                self.assertNotIn('crs', f)
-                self.assertNotIn('_FillValue', f['x'].attrs)
-                self.assertNotIn('_FillValue', f['y'].attrs)
+                assert 'crs' not in f
+                assert '_FillValue' not in f['x'].attrs
+                assert '_FillValue' not in f['y'].attrs
                 expected_prereq = ("DataQuery(name='hej')")
                 assert f['test-array'].attrs['prerequisites'] == expected_prereq
 
@@ -282,7 +282,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='')
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f['1'][:], [1, 2, 3])
-                self.assertNotIn('original_name', f['1'].attrs)
+                assert 'original_name' not in f['1'].attrs
 
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
@@ -339,14 +339,14 @@ class TestCFWriter(unittest.TestCase):
                               pretty=True)
 
             nc_root = xr.open_dataset(filename)
-            self.assertIn('history', nc_root.attrs)
-            self.assertSetEqual(set(nc_root.variables.keys()), set())
+            assert 'history' in nc_root.attrs
+            assert set(nc_root.variables.keys()) == set()
 
             nc_visir = xr.open_dataset(filename, group='visir')
             nc_hrv = xr.open_dataset(filename, group='hrv')
-            self.assertSetEqual(set(nc_visir.variables.keys()), {'VIS006', 'IR_108', 'y', 'x', 'VIS006_acq_time',
-                                                                 'IR_108_acq_time'})
-            self.assertSetEqual(set(nc_hrv.variables.keys()), {'HRV', 'y', 'x', 'acq_time'})
+            assert set(nc_visir.variables.keys()) == {'VIS006', 'IR_108',
+                                                      'y', 'x', 'VIS006_acq_time', 'IR_108_acq_time'}
+            assert set(nc_hrv.variables.keys()) == {'HRV', 'y', 'x', 'acq_time'}
             for tst, ref in zip([nc_visir['VIS006'], nc_visir['IR_108'], nc_hrv['HRV']],
                                 [scn['VIS006'], scn['IR_108'], scn['HRV']]):
                 np.testing.assert_array_equal(tst.data, ref.data)
@@ -356,7 +356,8 @@ class TestCFWriter(unittest.TestCase):
 
         # Different projection coordinates in one group are not supported
         with TempFile() as filename:
-            self.assertRaises(ValueError, scn.save_datasets, datasets=['VIS006', 'HRV'], filename=filename, writer='cf')
+            with pytest.raises(ValueError):
+                scn.save_datasets(datasets=['VIS006', 'HRV'], filename=filename, writer='cf')
 
     def test_single_time_value(self):
         """Test setting a single time value."""
@@ -482,7 +483,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', unlimited_dims=['time'])
             with xr.open_dataset(filename) as f:
-                self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
+                assert set(f.encoding['unlimited_dims']) == {'time'}
 
     def test_header_attrs(self):
         """Check global attributes are set."""
@@ -507,7 +508,7 @@ class TestCFWriter(unittest.TestCase):
                               flatten_attrs=True,
                               writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertIn('history', f.attrs)
+                assert 'history' in f.attrs
                 assert f.attrs['sensor'] == 'SEVIRI'
                 assert f.attrs['orbit'] == 99999
                 np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
@@ -518,7 +519,7 @@ class TestCFWriter(unittest.TestCase):
                 assert f.attrs['nested_outer_inner2'] == 2
                 assert f.attrs['bool'] == 'true'
                 assert f.attrs['bool_'] == 'true'
-                self.assertTrue('none' not in f.attrs.keys())
+                assert 'none' not in f.attrs.keys()
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
@@ -604,7 +605,7 @@ class TestCFWriter(unittest.TestCase):
 
     def assertDictWithArraysEqual(self, d1, d2):
         """Check that dicts containing arrays are equal."""
-        self.assertSetEqual(set(d1.keys()), set(d2.keys()))
+        assert set(d1.keys()) == set(d2.keys())
         for key, val1 in d1.items():
             val2 = d2[key]
             if isinstance(val1, np.ndarray):
@@ -613,7 +614,7 @@ class TestCFWriter(unittest.TestCase):
             else:
                 assert val1 == val2
                 if isinstance(val1, (np.floating, np.integer, np.bool_)):
-                    self.assertTrue(isinstance(val2, np.generic))
+                    assert isinstance(val2, np.generic)
                     assert val1.dtype == val2.dtype
 
     def test_encode_attrs_nc(self):
@@ -630,10 +631,10 @@ class TestCFWriter(unittest.TestCase):
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
                             'flag': 'true',
                             'dict': {'a': 1, 'b': [1, 2, 3]}}
-        self.assertDictEqual(json.loads(encoded['raw_metadata']), raw_md_roundtrip)
-        self.assertListEqual(json.loads(encoded['array_3d']), [[[1, 2], [3, 4]], [[1, 2], [3, 4]]])
-        self.assertDictEqual(json.loads(encoded['nested_dict']), {"l1": {"l2": {"l3": [1, 2, 3]}}})
-        self.assertListEqual(json.loads(encoded['nested_list']), ["1", ["2", [3]]])
+        assert json.loads(encoded['raw_metadata']) == raw_md_roundtrip
+        assert json.loads(encoded['array_3d']) == [[[1, 2], [3, 4]], [[1, 2], [3, 4]]]
+        assert json.loads(encoded['nested_dict']) == {"l1": {"l2": {"l3": [1, 2, 3]}}}
+        assert json.loads(encoded['nested_list']) == ["1", ["2", [3]]]
 
     def test_da2cf(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
@@ -664,8 +665,8 @@ class TestCFWriter(unittest.TestCase):
         np.testing.assert_array_equal(res['x'], arr['x'])
         np.testing.assert_array_equal(res['y'], arr['y'])
         np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
-        self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
-        self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
+        assert res['x'].attrs == {'units': 'm', 'standard_name': 'projection_x_coordinate'}
+        assert res['y'].attrs == {'units': 'm', 'standard_name': 'projection_y_coordinate'}
         self.assertDictWithArraysEqual(res.attrs, attrs_expected)
 
         # Test attribute kwargs
@@ -732,7 +733,8 @@ class TestCFWriter(unittest.TestCase):
         assert_xy_unique(datas)
 
         datas['c'] = xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 3], 'x': [3, 4]})
-        self.assertRaises(ValueError, assert_xy_unique, datas)
+        with pytest.raises(ValueError):
+            assert_xy_unique(datas)
 
     def test_link_coords(self):
         """Check that coordinates link has been established correctly."""
@@ -755,19 +757,19 @@ class TestCFWriter(unittest.TestCase):
         link_coords(datasets)
 
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
-        self.assertIn('lon', datasets['var1'].coords)
-        self.assertIn('lat', datasets['var1'].coords)
+        assert 'lon' in datasets['var1'].coords
+        assert 'lat' in datasets['var1'].coords
         np.testing.assert_array_equal(datasets['var1']['lon'].data, lon)
         np.testing.assert_array_equal(datasets['var1']['lat'].data, lat)
-        self.assertNotIn('coordinates', datasets['var1'].attrs)
+        assert 'coordinates' not in datasets['var1'].attrs
 
         # There should be no link if there was no 'coordinate' attribute
-        self.assertNotIn('lon', datasets['var2'].coords)
-        self.assertNotIn('lat', datasets['var2'].coords)
+        assert 'lon' not in datasets['var2'].coords
+        assert 'lat' not in datasets['var2'].coords
 
-        # The non-existant dimension or coordinate should be dropped
-        self.assertNotIn('time', datasets['var3'].coords)
-        self.assertNotIn('not_exist', datasets['var4'].coords)
+        # The non-existent dimension or coordinate should be dropped
+        assert 'time' not in datasets['var3'].coords
+        assert 'not_exist' not in datasets['var4'].coords
 
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
@@ -789,8 +791,8 @@ class TestCFWriter(unittest.TestCase):
         res = make_alt_coords_unique(datasets)
         np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
         np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
-        self.assertNotIn('acq_time', res['var1'].coords)
-        self.assertNotIn('acq_time', res['var2'].coords)
+        assert 'acq_time' not in res['var1'].coords
+        assert 'acq_time' not in res['var2'].coords
 
         # Make sure nothing else is modified
         np.testing.assert_array_equal(res['var1']['x'], x)
@@ -804,16 +806,16 @@ class TestCFWriter(unittest.TestCase):
             warn.assert_called()
             np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
             np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
-            self.assertNotIn('acq_time', res['var1'].coords)
-            self.assertNotIn('acq_time', res['var2'].coords)
+            assert 'acq_time' not in res['var1'].coords
+            assert 'acq_time' not in res['var2'].coords
 
         # Coords unique and pretty=True -> Don't modify coordinate names
         datasets['var2']['acq_time'] = ('y', time1)
         res = make_alt_coords_unique(datasets, pretty=True)
         np.testing.assert_array_equal(res['var1']['acq_time'], time1)
         np.testing.assert_array_equal(res['var2']['acq_time'], time1)
-        self.assertNotIn('var1_acq_time', res['var1'].coords)
-        self.assertNotIn('var2_acq_time', res['var2'].coords)
+        assert 'var1_acq_time' not in res['var1'].coords
+        assert 'var2_acq_time' not in res['var2'].coords
 
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
@@ -847,8 +849,8 @@ class TestCFWriter(unittest.TestCase):
         assert res[0].size == 1  # grid mapping variable
         assert res[0].name == res[1].attrs['grid_mapping']
         # but now also have the lon/lats
-        self.assertIn('longitude', res[1].coords)
-        self.assertIn('latitude', res[1].coords)
+        assert 'longitude' in res[1].coords
+        assert 'latitude' in res[1].coords
 
         # c) Swath Definition
         swath = pyresample.geometry.SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
@@ -857,9 +859,9 @@ class TestCFWriter(unittest.TestCase):
 
         res = area2cf(ds, include_lonlats=False)
         assert len(res) == 1
-        self.assertIn('longitude', res[0].coords)
-        self.assertIn('latitude', res[0].coords)
-        self.assertNotIn('grid_mapping', res[0].attrs)
+        assert 'longitude' in res[0].coords
+        assert 'latitude' in res[0].coords
+        assert 'grid_mapping' not in res[0].attrs
 
     def test__add_grid_mapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
@@ -909,7 +911,7 @@ class TestCFWriter(unittest.TestCase):
         assert new_ds.attrs['grid_mapping'] == 'geos'
         _gm_matches(grid_mapping, geos_expected)
         # should not have been modified
-        self.assertNotIn('grid_mapping', ds.attrs)
+        assert 'grid_mapping' not in ds.attrs
 
         # b) Projection does not have a corresponding CF representation (COSMO)
         cosmo7 = pyresample.geometry.AreaDefinition(
@@ -926,13 +928,13 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = cosmo7
 
         new_ds, grid_mapping = _add_grid_mapping(ds)
-        self.assertIn('crs_wkt', grid_mapping.attrs)
+        assert 'crs_wkt' in grid_mapping.attrs
         wkt = grid_mapping.attrs['crs_wkt']
-        self.assertIn('ELLIPSOID["WGS 84"', wkt)
-        self.assertIn('PARAMETER["lat_0",46', wkt)
-        self.assertIn('PARAMETER["lon_0",4.535', wkt)
-        self.assertIn('PARAMETER["o_lat_p",90', wkt)
-        self.assertIn('PARAMETER["o_lon_p",-5.465', wkt)
+        assert 'ELLIPSOID["WGS 84"' in wkt
+        assert 'PARAMETER["lat_0",46' in wkt
+        assert 'PARAMETER["lon_0",4.535' in wkt
+        assert 'PARAMETER["o_lat_p",90' in wkt
+        assert 'PARAMETER["o_lon_p",-5.465' in wkt
         assert new_ds.attrs['grid_mapping'] == 'cosmo7'
 
         # c) Projection Transverse Mercator
@@ -1063,7 +1065,7 @@ class TestCFWriter(unittest.TestCase):
         res = add_lonlat_coords(dataarray)
 
         # original should be unmodified
-        self.assertNotIn('longitude', dataarray.coords)
+        assert 'longitude' not in dataarray.coords
         assert set(res.coords) == {'longitude', 'latitude'}
         lat = res['latitude']
         lon = res['longitude']
@@ -1086,7 +1088,7 @@ class TestCFWriter(unittest.TestCase):
         res = add_lonlat_coords(dataarray)
 
         # original should be unmodified
-        self.assertNotIn('longitude', dataarray.coords)
+        assert 'longitude' not in dataarray.coords
         assert set(res.coords) == {'longitude', 'latitude'}
         lat = res['latitude']
         lon = res['longitude']
@@ -1124,7 +1126,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
                 assert f.attrs['Conventions'] == 'CF-1.7'
-                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+                assert 'Created by pytroll/satpy on' in f.attrs['history']
 
     def test_global_attr_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
@@ -1143,8 +1145,8 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
             with xr.open_dataset(filename) as f:
                 assert f.attrs['Conventions'] == 'CF-1.7, ACDD-1.3'
-                self.assertIn('TEST add history\n', f.attrs['history'])
-                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+                assert 'TEST add history\n' in f.attrs['history']
+                assert 'Created by pytroll/satpy on' in f.attrs['history']
 
 
 class TestCFWriterData(unittest.TestCase):
@@ -1188,16 +1190,16 @@ class TestCFWriterData(unittest.TestCase):
         """Test the is_lon_or_lat_dataarray function."""
         from satpy.writers.cf_writer import is_lon_or_lat_dataarray
 
-        self.assertTrue(is_lon_or_lat_dataarray(self.datasets['lat']))
-        self.assertFalse(is_lon_or_lat_dataarray(self.datasets['var1']))
+        assert is_lon_or_lat_dataarray(self.datasets['lat'])
+        assert not is_lon_or_lat_dataarray(self.datasets['var1'])
 
     def test_has_projection_coords(self):
         """Test the has_projection_coords function."""
         from satpy.writers.cf_writer import has_projection_coords
 
-        self.assertTrue(has_projection_coords(self.datasets))
+        assert has_projection_coords(self.datasets)
         self.datasets['lat'].attrs['standard_name'] = 'dummy'
-        self.assertFalse(has_projection_coords(self.datasets))
+        assert not has_projection_coords(self.datasets)
 
     def test_collect_cf_dataarrays_with_latitude_named_lat(self, *mocks):
         """Test collecting CF datasets with latitude named lat."""
@@ -1247,11 +1249,14 @@ class EncodingUpdateTest(unittest.TestCase):
                                '2': {'dtype': 'float32'}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL_')
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'CHANNEL_1': {'dtype': 'float32'},
-                                   'CHANNEL_2': {'dtype': 'float32'}})
-        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+        expected_dict = {
+            'y': {'_FillValue': None},
+            'x': {'_FillValue': None},
+            'CHANNEL_1': {'dtype': 'float32'},
+            'CHANNEL_2': {'dtype': 'float32'}
+        }
+        assert enc == expected_dict
+        assert other_kwargs == {'other': 'kwargs'}
 
     def test_without_time(self):
         """Test data with no time dimension."""
@@ -1262,22 +1267,28 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (2, 2)},
-                                   'bar': {'chunksizes': (1, 1)}})
-        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+        expected_dict = {
+            'y': {'_FillValue': None},
+            'x': {'_FillValue': None},
+            'lon': {'chunksizes': (2, 2)},
+            'foo': {'chunksizes': (2, 2)},
+            'bar': {'chunksizes': (1, 1)}
+        }
+        assert enc == expected_dict
+        assert other_kwargs == {'other': 'kwargs'}
 
         # Chunksize may not exceed shape
         ds = self.ds.chunk(8)
         kwargs = {'encoding': {}, 'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (2, 2)},
-                                   'bar': {'chunksizes': (2, 2)}})
+        expected_dict = {
+            'y': {'_FillValue': None},
+            'x': {'_FillValue': None},
+            'lon': {'chunksizes': (2, 2)},
+            'foo': {'chunksizes': (2, 2)},
+            'bar': {'chunksizes': (2, 2)}
+        }
+        assert enc == expected_dict
 
     def test_with_time(self):
         """Test data with a time dimension."""
@@ -1288,26 +1299,28 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (1, 2, 2)},
-                                   'bar': {'chunksizes': (1, 1, 1)},
-                                   'time': {'_FillValue': None,
-                                            'calendar': 'proleptic_gregorian',
-                                            'units': 'days since 2009-07-01 12:15:00'},
-                                   'time_bnds': {'_FillValue': None,
-                                                 'calendar': 'proleptic_gregorian',
-                                                 'units': 'days since 2009-07-01 12:15:00'}})
-
+        expected_dict = {
+            'y': {'_FillValue': None},
+            'x': {'_FillValue': None},
+            'lon': {'chunksizes': (2, 2)},
+            'foo': {'chunksizes': (1, 2, 2)},
+            'bar': {'chunksizes': (1, 1, 1)},
+            'time': {'_FillValue': None,
+                     'calendar': 'proleptic_gregorian',
+                     'units': 'days since 2009-07-01 12:15:00'},
+            'time_bnds': {'_FillValue': None,
+                          'calendar': 'proleptic_gregorian',
+                          'units': 'days since 2009-07-01 12:15:00'}
+        }
+        assert enc == expected_dict
         # User-defined encoding may not be altered
-        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
+        assert kwargs['encoding'] == {'bar': {'chunksizes': (1, 1, 1)}}
 
 
 class TestEncodingKwarg:
     """Test CF writer with 'encoding' keyword argument."""
 
-    @pytest.fixture
+    @ pytest.fixture
     def scene(self):
         """Create a fake scene."""
         scn = Scene()
@@ -1318,12 +1331,12 @@ class TestEncodingKwarg:
         scn['test-array'] = xr.DataArray([1., 2, 3], attrs=attrs)
         return scn
 
-    @pytest.fixture(params=[True, False])
+    @ pytest.fixture(params=[True, False])
     def compression_on(self, request):
         """Get compression options."""
         return request.param
 
-    @pytest.fixture
+    @ pytest.fixture
     def encoding(self, compression_on):
         """Get encoding."""
         enc = {
@@ -1339,19 +1352,19 @@ class TestEncodingKwarg:
             enc["test-array"].update(comp_params)
         return enc
 
-    @pytest.fixture
+    @ pytest.fixture
     def filename(self, tmp_path):
         """Get output filename."""
         return str(tmp_path / "test.nc")
 
-    @pytest.fixture
+    @ pytest.fixture
     def complevel_exp(self, compression_on):
         """Get expected compression level."""
         if compression_on:
             return 7
         return 0
 
-    @pytest.fixture
+    @ pytest.fixture
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
@@ -1399,7 +1412,7 @@ class TestEncodingKwarg:
 class TestEncodingAttribute(TestEncodingKwarg):
     """Test CF writer with 'encoding' dataset attribute."""
 
-    @pytest.fixture
+    @ pytest.fixture
     def scene_with_encoding(self, scene, encoding):
         """Create scene with a dataset providing the 'encoding' attribute."""
         scene["test-array"].encoding = encoding["test-array"]
