@@ -1149,7 +1149,7 @@ class TestCFWriter:
 class TestCFWriterData:
     """Test case for CF writer where data arrays are needed."""
 
-    @ pytest.fixture
+    @pytest.fixture
     def datasets(self):
         """Create test dataset."""
         data = [[75, 2], [3, 4]]
@@ -1226,7 +1226,7 @@ class TestCFWriterData:
 class EncodingUpdateTest:
     """Test update of netCDF encoding."""
 
-    @ pytest.fixture
+    @pytest.fixture
     def fake_ds(self):
         """Create fake data for testing."""
         ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
@@ -1236,7 +1236,7 @@ class EncodingUpdateTest:
                                 'lon': (('y', 'x'), [[7, 8], [9, 10]])})
         return ds
 
-    @ pytest.fixture
+    @pytest.fixture
     def fake_ds_digit(self):
         """Create fake data for testing."""
         ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]]),
@@ -1327,7 +1327,7 @@ class EncodingUpdateTest:
 class TestEncodingKwarg:
     """Test CF writer with 'encoding' keyword argument."""
 
-    @ pytest.fixture
+    @pytest.fixture
     def scene(self):
         """Create a fake scene."""
         scn = Scene()
@@ -1338,12 +1338,12 @@ class TestEncodingKwarg:
         scn['test-array'] = xr.DataArray([1., 2, 3], attrs=attrs)
         return scn
 
-    @ pytest.fixture(params=[True, False])
+    @pytest.fixture(params=[True, False])
     def compression_on(self, request):
         """Get compression options."""
         return request.param
 
-    @ pytest.fixture
+    @pytest.fixture
     def encoding(self, compression_on):
         """Get encoding."""
         enc = {
@@ -1359,19 +1359,19 @@ class TestEncodingKwarg:
             enc["test-array"].update(comp_params)
         return enc
 
-    @ pytest.fixture
+    @pytest.fixture
     def filename(self, tmp_path):
         """Get output filename."""
         return str(tmp_path / "test.nc")
 
-    @ pytest.fixture
+    @pytest.fixture
     def complevel_exp(self, compression_on):
         """Get expected compression level."""
         if compression_on:
             return 7
         return 0
 
-    @ pytest.fixture
+    @pytest.fixture
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
@@ -1419,7 +1419,7 @@ class TestEncodingKwarg:
 class TestEncodingAttribute(TestEncodingKwarg):
     """Test CF writer with 'encoding' dataset attribute."""
 
-    @ pytest.fixture
+    @pytest.fixture
     def scene_with_encoding(self, scene, encoding):
         """Create scene with a dataset providing the 'encoding' attribute."""
         scene["test-array"].encoding = encoding["test-array"]
