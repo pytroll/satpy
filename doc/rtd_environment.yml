@@ -6,6 +6,7 @@ dependencies:
   - pip
   - appdirs
   - dask
+  - dask-image
   - defusedxml
   - donfig
   # 2.19.1 seems to cause library linking issues
