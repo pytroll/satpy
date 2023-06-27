@@ -74,10 +74,10 @@ def test_lonlat_storage(tmp_path):
     """Test correct storage for area with lon/lat units."""
     from ..utils import make_fake_scene
     scn = make_fake_scene(
-            {"ketolysis": np.arange(25).reshape(5, 5)},
-            daskify=True,
-            area=create_area_def("mavas", 4326, shape=(5, 5),
-                                 center=(0, 0), resolution=(1, 1)))
+        {"ketolysis": np.arange(25).reshape(5, 5)},
+        daskify=True,
+        area=create_area_def("mavas", 4326, shape=(5, 5),
+                             center=(0, 0), resolution=(1, 1)))
 
     filename = os.fspath(tmp_path / "test.nc")
     scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
@@ -212,8 +212,7 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f['test-array'][:], [1, 2, 3])
                 expected_prereq = ("DataQuery(name='hej')")
-                self.assertEqual(f['test-array'].attrs['prerequisites'],
-                                 expected_prereq)
+                assert f['test-array'].attrs['prerequisites'] == expected_prereq
 
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
@@ -245,8 +244,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertNotIn('_FillValue', f['x'].attrs)
                 self.assertNotIn('_FillValue', f['y'].attrs)
                 expected_prereq = ("DataQuery(name='hej')")
-                self.assertEqual(f['test-array'].attrs['prerequisites'],
-                                 expected_prereq)
+                assert f['test-array'].attrs['prerequisites'] == expected_prereq
 
     def test_save_dataset_a_digit(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit."""
@@ -274,7 +272,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='TEST')
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f['TEST1'][:], [1, 2, 3])
-                self.assertEqual(f['TEST1'].attrs['original_name'], '1')
+                assert f['TEST1'].attrs['original_name'] == '1'
 
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
         """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
@@ -303,10 +301,8 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertEqual(f['test-array-1'].attrs['ancillary_variables'],
-                                 'test-array-2')
-                self.assertEqual(f['test-array-2'].attrs['ancillary_variables'],
-                                 'test-array-1')
+                assert f['test-array-1'].attrs['ancillary_variables'] == 'test-array-2'
+                assert f['test-array-2'].attrs['ancillary_variables'] == 'test-array-1'
 
     def test_groups(self):
         """Test creating a file with groups."""
@@ -412,7 +408,7 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
-                self.assertEqual(f['time'].attrs['bounds'], 'time_bnds')
+                assert f['time'].attrs['bounds'] == 'time_bnds'
 
             # Check raw time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=False) as f:
@@ -512,16 +508,16 @@ class TestCFWriter(unittest.TestCase):
                               writer='cf')
             with xr.open_dataset(filename) as f:
                 self.assertIn('history', f.attrs)
-                self.assertEqual(f.attrs['sensor'], 'SEVIRI')
-                self.assertEqual(f.attrs['orbit'], 99999)
+                assert f.attrs['sensor'] == 'SEVIRI'
+                assert f.attrs['orbit'] == 99999
                 np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
-                self.assertEqual(f.attrs['set'], '{1, 2, 3}')
-                self.assertEqual(f.attrs['dict_a'], 1)
-                self.assertEqual(f.attrs['dict_b'], 2)
-                self.assertEqual(f.attrs['nested_outer_inner1'], 1)
-                self.assertEqual(f.attrs['nested_outer_inner2'], 2)
-                self.assertEqual(f.attrs['bool'], 'true')
-                self.assertEqual(f.attrs['bool_'], 'true')
+                assert f.attrs['set'] == '{1, 2, 3}'
+                assert f.attrs['dict_a'] == 1
+                assert f.attrs['dict_b'] == 2
+                assert f.attrs['nested_outer_inner1'] == 1
+                assert f.attrs['nested_outer_inner2'] == 2
+                assert f.attrs['bool'] == 'true'
+                assert f.attrs['bool_'] == 'true'
                 self.assertTrue('none' not in f.attrs.keys())
 
     def get_test_attrs(self):
@@ -553,9 +549,9 @@ class TestCFWriter(unittest.TestCase):
                  'dict': {'a': 1, 'b': 2},
                  'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3], dtype='uint8')}}},
                  'raw_metadata': OrderedDict([
-                      ('recarray', np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')])),
-                      ('flag', np.bool_(True)),
-                      ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3], dtype='uint8'))]))
+                     ('recarray', np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')])),
+                     ('flag', np.bool_(True)),
+                     ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3], dtype='uint8'))]))
                  ])}
         encoded = {'name': 'IR_108',
                    'start_time': '2018-01-01 00:00:00',
@@ -613,12 +609,12 @@ class TestCFWriter(unittest.TestCase):
             val2 = d2[key]
             if isinstance(val1, np.ndarray):
                 np.testing.assert_array_equal(val1, val2)
-                self.assertEqual(val1.dtype, val2.dtype)
+                assert val1.dtype == val2.dtype
             else:
-                self.assertEqual(val1, val2)
+                assert val1 == val2
                 if isinstance(val1, (np.floating, np.integer, np.bool_)):
                     self.assertTrue(isinstance(val2, np.generic))
-                    self.assertEqual(val1.dtype, val2.dtype)
+                    assert val1.dtype == val2.dtype
 
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
@@ -838,18 +834,18 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
 
         res = area2cf(ds, include_lonlats=False)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0].size, 1)  # grid mapping variable
-        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
+        assert len(res) == 2
+        assert res[0].size == 1  # grid mapping variable
+        assert res[0].name == res[1].attrs['grid_mapping']
 
         # b) Area Definition and include_lonlats=False
         ds = ds_base.copy(deep=True)
         ds.attrs['area'] = geos
         res = area2cf(ds, include_lonlats=True)
         # same as above
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0].size, 1)  # grid mapping variable
-        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
+        assert len(res) == 2
+        assert res[0].size == 1  # grid mapping variable
+        assert res[0].name == res[1].attrs['grid_mapping']
         # but now also have the lon/lats
         self.assertIn('longitude', res[1].coords)
         self.assertIn('latitude', res[1].coords)
@@ -860,7 +856,7 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = swath
 
         res = area2cf(ds, include_lonlats=False)
-        self.assertEqual(len(res), 1)
+        assert len(res) == 1
         self.assertIn('longitude', res[0].coords)
         self.assertIn('latitude', res[0].coords)
         self.assertNotIn('grid_mapping', res[0].attrs)
@@ -874,7 +870,7 @@ class TestCFWriter(unittest.TestCase):
             for attr_key, attr_val in expected.attrs.items():
                 test_val = gmapping.attrs[attr_key]
                 if attr_val is None or isinstance(attr_val, str):
-                    self.assertEqual(test_val, attr_val)
+                    assert test_val == attr_val
                 else:
                     np.testing.assert_almost_equal(test_val, attr_val, decimal=3)
 
@@ -908,9 +904,9 @@ class TestCFWriter(unittest.TestCase):
         new_ds, grid_mapping = _add_grid_mapping(ds)
         if 'sweep_angle_axis' in grid_mapping.attrs:
             # older versions of pyproj might not include this
-            self.assertEqual(grid_mapping.attrs['sweep_angle_axis'], 'y')
+            assert grid_mapping.attrs['sweep_angle_axis'] == 'y'
 
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
+        assert new_ds.attrs['grid_mapping'] == 'geos'
         _gm_matches(grid_mapping, geos_expected)
         # should not have been modified
         self.assertNotIn('grid_mapping', ds.attrs)
@@ -937,7 +933,7 @@ class TestCFWriter(unittest.TestCase):
         self.assertIn('PARAMETER["lon_0",4.535', wkt)
         self.assertIn('PARAMETER["o_lat_p",90', wkt)
         self.assertIn('PARAMETER["o_lon_p",-5.465', wkt)
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'cosmo7')
+        assert new_ds.attrs['grid_mapping'] == 'cosmo7'
 
         # c) Projection Transverse Mercator
         lat_0 = 36.5
@@ -963,7 +959,7 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
         new_ds, grid_mapping = _add_grid_mapping(ds)
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'tmerc')
+        assert new_ds.attrs['grid_mapping'] == 'tmerc'
         _gm_matches(grid_mapping, tmerc_expected)
 
         # d) Projection that has a representation but no explicit a/b
@@ -990,7 +986,7 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
         new_ds, grid_mapping = _add_grid_mapping(ds)
 
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
+        assert new_ds.attrs['grid_mapping'] == 'geos'
         _gm_matches(grid_mapping, geos_expected)
 
         # e) oblique Mercator
@@ -1021,7 +1017,7 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = area
         new_ds, grid_mapping = _add_grid_mapping(ds)
 
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'omerc_otf')
+        assert new_ds.attrs['grid_mapping'] == 'omerc_otf'
         _gm_matches(grid_mapping, omerc_expected)
 
         # f) Projection that has a representation but no explicit a/b
@@ -1046,7 +1042,7 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
         new_ds, grid_mapping = _add_grid_mapping(ds)
 
-        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
+        assert new_ds.attrs['grid_mapping'] == 'geos'
         _gm_matches(grid_mapping, geos_expected)
 
     def test_add_lonlat_coords(self):
@@ -1068,7 +1064,7 @@ class TestCFWriter(unittest.TestCase):
 
         # original should be unmodified
         self.assertNotIn('longitude', dataarray.coords)
-        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        assert set(res.coords) == {'longitude', 'latitude'}
         lat = res['latitude']
         lon = res['longitude']
         np.testing.assert_array_equal(lat.data, lats_ref)
@@ -1091,7 +1087,7 @@ class TestCFWriter(unittest.TestCase):
 
         # original should be unmodified
         self.assertNotIn('longitude', dataarray.coords)
-        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        assert set(res.coords) == {'longitude', 'latitude'}
         lat = res['latitude']
         lon = res['longitude']
         np.testing.assert_array_equal(lat.data, lats_ref)
@@ -1127,7 +1123,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertEqual(f.attrs['Conventions'], 'CF-1.7')
+                assert f.attrs['Conventions'] == 'CF-1.7'
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
     def test_global_attr_history_and_Conventions(self):
@@ -1146,7 +1142,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
             with xr.open_dataset(filename) as f:
-                self.assertEqual(f.attrs['Conventions'], 'CF-1.7, ACDD-1.3')
+                assert f.attrs['Conventions'] == 'CF-1.7, ACDD-1.3'
                 self.assertIn('TEST add history\n', f.attrs['history'])
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
