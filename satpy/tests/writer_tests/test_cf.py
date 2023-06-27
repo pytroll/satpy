@@ -17,18 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
-import logging
 import os
 import tempfile
 import warnings
 from datetime import datetime
 
 import numpy as np
-import pyresample.geometry
 import pytest
 import xarray as xr
 from packaging.version import Version
-from pyresample import create_area_def
 
 from satpy import Scene
 from satpy.tests.utils import make_dsq
@@ -42,7 +39,6 @@ except ImportError:
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
-# - caplog
 # - request
 
 
@@ -63,54 +59,6 @@ class TempFile:
     def __exit__(self, *args):
         """Exit."""
         os.remove(self.filename)
-
-
-def test_lonlat_storage(tmp_path):
-    """Test correct storage for area with lon/lat units."""
-    from ..utils import make_fake_scene
-    scn = make_fake_scene(
-        {"ketolysis": np.arange(25).reshape(5, 5)},
-        daskify=True,
-        area=create_area_def("mavas", 4326, shape=(5, 5),
-                             center=(0, 0), resolution=(1, 1)))
-
-    filename = os.fspath(tmp_path / "test.nc")
-    scn.save_datasets(filename=filename, writer="cf", include_lonlats=False)
-    with xr.open_dataset(filename) as ds:
-        assert ds["ketolysis"].attrs["grid_mapping"] == "mavas"
-        assert ds["mavas"].attrs["grid_mapping_name"] == "latitude_longitude"
-        assert ds["x"].attrs["units"] == "degrees_east"
-        assert ds["y"].attrs["units"] == "degrees_north"
-        assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
-        np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
-        np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
-
-
-def test_is_projected(caplog):
-    """Tests for private _is_projected function."""
-    from satpy.writers.cf.crs import _is_projected
-
-    # test case with units but no area
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
-                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
-    assert _is_projected(da)
-
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
-                "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
-    assert not _is_projected(da)
-
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"))
-    with caplog.at_level(logging.WARNING):
-        assert _is_projected(da)
-    assert "Failed to tell if data are projected." in caplog.text
 
 
 class TestCFWriter:
@@ -496,62 +444,6 @@ class TestCFWriter:
                 assert f.attrs['Conventions'] == 'CF-1.7, ACDD-1.3'
                 assert 'TEST add history\n' in f.attrs['history']
                 assert 'Created by pytroll/satpy on' in f.attrs['history']
-
-
-class TestCFWriterData:
-    """Test case for CF writer where data arrays are needed."""
-
-    @pytest.fixture
-    def datasets(self):
-        """Create test dataset."""
-        data = [[75, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        geos = pyresample.geometry.AreaDefinition(
-            area_id='geos',
-            description='geos',
-            proj_id='geos',
-            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
-            width=2, height=2,
-            area_extent=[-1, -1, 1, 1])
-        datasets = {
-            'var1': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'var2': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'lat': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x}),
-            'lon': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x})}
-        datasets['lat'].attrs['standard_name'] = 'latitude'
-        datasets['var1'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['area'] = geos
-        datasets['var1'].attrs['area'] = geos
-        datasets['lat'].attrs['name'] = 'lat'
-        datasets['var1'].attrs['name'] = 'var1'
-        datasets['var2'].attrs['name'] = 'var2'
-        datasets['lon'].attrs['name'] = 'lon'
-        return datasets
-
-    def test_is_lon_or_lat_dataarray(self, datasets):
-        """Test the is_lon_or_lat_dataarray function."""
-        from satpy.writers.cf.area import is_lon_or_lat_dataarray
-
-        assert is_lon_or_lat_dataarray(datasets['lat'])
-        assert not is_lon_or_lat_dataarray(datasets['var1'])
-
-    def test_has_projection_coords(self, datasets):
-        """Test the has_projection_coords function."""
-        from satpy.writers.cf.area import has_projection_coords
-
-        assert has_projection_coords(datasets)
-        datasets['lat'].attrs['standard_name'] = 'dummy'
-        assert not has_projection_coords(datasets)
 
 
 class TestNetcdfEncodingKwargs:
