@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
-import json
 import logging
 import os
 import tempfile
@@ -153,28 +152,6 @@ def test_preprocess_dataarray_name():
 
     out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix=None, include_orig_name=True)
     assert "original_name" not in out_da.attrs
-
-
-def test_add_time_cf_attrs():
-    """Test addition of CF-compliant time attributes."""
-    from satpy import Scene
-    from satpy.writers.cf_writer import add_time_bounds_dimension
-
-    scn = Scene()
-    test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
-                      '2018-05-30T10:05:02', '2018-05-30T10:05:03'], dtype=np.datetime64)
-    scn['test-array'] = xr.DataArray(test_array,
-                                     dims=['y', 'x'],
-                                     coords={'time': ('y', times)},
-                                     attrs=dict(start_time=times[0], end_time=times[-1]))
-    ds = scn['test-array'].to_dataset(name='test-array')
-    ds = add_time_bounds_dimension(ds)
-    assert "bnds_1d" in ds.dims
-    assert ds.dims['bnds_1d'] == 2
-    assert "time_bnds" in list(ds.data_vars)
-    assert "bounds" in ds["time"].attrs
-    assert "standard_name" in ds["time"].attrs
 
 
 def test_empty_collect_cf_datasets():
@@ -525,6 +502,7 @@ class TestCFWriter:
             Attributes, encoded attributes, encoded and flattened attributes
 
         """
+        # TODO: also used by cf/test_attrs.py
         attrs = {'name': 'IR_108',
                  'start_time': datetime(2018, 1, 1, 0),
                  'end_time': datetime(2018, 1, 1, 0, 15),
@@ -602,6 +580,7 @@ class TestCFWriter:
 
     def assertDictWithArraysEqual(self, d1, d2):
         """Check that dicts containing arrays are equal."""
+        # TODO: also used by cf/test_attrs.py
         assert set(d1.keys()) == set(d2.keys())
         for key, val1 in d1.items():
             val2 = d2[key]
@@ -613,25 +592,6 @@ class TestCFWriter:
                 if isinstance(val1, (np.floating, np.integer, np.bool_)):
                     assert isinstance(val2, np.generic)
                     assert val1.dtype == val2.dtype
-
-    def test_encode_attrs_nc(self):
-        """Test attributes encoding."""
-        from satpy.writers.cf_writer import encode_attrs_nc
-
-        attrs, expected, _ = self.get_test_attrs()
-
-        # Test encoding
-        encoded = encode_attrs_nc(attrs)
-        self.assertDictWithArraysEqual(expected, encoded)
-
-        # Test decoding of json-encoded attributes
-        raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
-                            'flag': 'true',
-                            'dict': {'a': 1, 'b': [1, 2, 3]}}
-        assert json.loads(encoded['raw_metadata']) == raw_md_roundtrip
-        assert json.loads(encoded['array_3d']) == [[[1, 2], [3, 4]], [[1, 2], [3, 4]]]
-        assert json.loads(encoded['nested_dict']) == {"l1": {"l2": {"l3": [1, 2, 3]}}}
-        assert json.loads(encoded['nested_list']) == ["1", ["2", [3]]]
 
     def test_da2cf(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
