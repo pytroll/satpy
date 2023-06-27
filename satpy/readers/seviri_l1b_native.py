@@ -370,7 +370,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
         self.mda['hrv_number_of_columns'] = cols_hrv
 
-        if self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
+        if '15_MAIN_PRODUCT_HEADER' not in self.header:
+            logger.info("Quality flag check was not possible due to missing 15_MAIN_PRODUCT_HEADER.")
+        elif self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
             warnings.warn(
                 "The quality flag for this file indicates not OK. "
                 "Use this data with caution!",

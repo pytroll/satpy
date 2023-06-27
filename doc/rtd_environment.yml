@@ -12,6 +12,7 @@ dependencies:
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
   - graphviz
+  - numba
   - numpy
   - pillow
   - pooch

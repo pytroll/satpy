@@ -41,6 +41,25 @@ from satpy.writers import load_writer
 LOG = logging.getLogger(__name__)
 
 
+def _get_area_resolution(area):
+    """Attempt to retrieve resolution from AreaDefinition."""
+    try:
+        resolution = max(area.pixel_size_x, area.pixel_size_y)
+    except AttributeError:
+        resolution = max(area.lats.attrs["resolution"], area.lons.attrs["resolution"])
+    return resolution
+
+
+def _aggregate_data_array(data_array, func, **coarsen_kwargs):
+    """Aggregate xr.DataArray."""
+    res = data_array.coarsen(**coarsen_kwargs)
+    if callable(func):
+        out = res.reduce(func)
+    else:
+        out = getattr(res, func)()
+    return out
+
+
 class DelayedGeneration(KeyError):
     """Mark that a dataset can't be generated without further modification."""
 
@@ -755,10 +774,10 @@ class Scene:
         Args:
             dataset_ids (iterable): DataIDs to include in the returned
                                     `Scene`. Defaults to all datasets.
-            func (string): Function to apply on each aggregation window. One of
+            func (string, callable): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
-                           'argmax', 'prod', 'std', 'var'.
-                           'mean' is the default.
+                           'argmax', 'prod', 'std', 'var' strings or a custom
+                           function. 'mean' is the default.
             boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
             side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
             dim_kwargs: the size of the windows to aggregate.
@@ -783,18 +802,16 @@ class Scene:
                 continue
 
             target_area = src_area.aggregate(boundary=boundary, **dim_kwargs)
-            try:
-                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
-            except AttributeError:
-                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
+            resolution = _get_area_resolution(target_area)
             for ds_id in ds_ids:
-                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
-
-                new_scn._datasets[ds_id] = getattr(res, func)()
+                new_scn._datasets[ds_id] = _aggregate_data_array(self[ds_id],
+                                                                 func=func,
+                                                                 boundary=boundary,
+                                                                 side=side,
+                                                                 **dim_kwargs)
                 new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
-
         return new_scn
 
     def get(self, key, default=None):
@@ -1059,7 +1076,9 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
 
         if len(dataarrays) == 0:
             return xr.Dataset()
@@ -1081,13 +1100,70 @@ class Scene:
         ds.attrs = mdata
         return ds
 
-    def _get_dataarrays_from_identifiers(self, identifiers):
-        if identifiers is not None:
-            dataarrays = [self[ds] for ds in identifiers]
-        else:
-            dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
-            dataarrays = [ds for ds in dataarrays if ds is not None]
-        return dataarrays
+    def to_xarray(self,
+                  datasets=None,  # DataID
+                  header_attrs=None,
+                  exclude_attrs=None,
+                  flatten_attrs=False,
+                  pretty=True,
+                  include_lonlats=True,
+                  epoch=None,
+                  include_orig_name=True,
+                  numeric_name_prefix='CHANNEL_'):
+        """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
+
+        If all Scene DataArrays are on the same area, it returns an xr.Dataset.
+        If Scene DataArrays are on different areas, currently it fails, although
+        in future we might return a DataTree object, grouped by area.
+
+        Parameters
+        ----------
+        datasets (iterable):
+            List of Satpy Scene datasets to include in the output xr.Dataset.
+            Elements can be string name, a wavelength as a number, a DataID,
+            or DataQuery object.
+            If None (the default), it include all loaded Scene datasets.
+        header_attrs:
+            Global attributes of the output xr.Dataset.
+        epoch (str):
+            Reference time for encoding the time coordinates (if available).
+            Example format: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is retrieved using "from satpy.cf_writer import EPOCH"
+        flatten_attrs (bool):
+            If True, flatten dict-type attributes.
+        exclude_attrs (list):
+            List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool):
+            If True, it includes 'latitude' and 'longitude' coordinates.
+            If the 'area' attribute is a SwathDefinition, it always includes
+            latitude and longitude coordinates.
+        pretty (bool):
+            Don't modify coordinate names, if possible. Makes the file prettier,
+            but possibly less consistent.
+        include_orig_name (bool).
+            Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str):
+            Prefix to add the each variable with name starting with a digit.
+            Use '' or None to leave this out.
+
+        Returns
+        -------
+        ds, xr.Dataset
+            A CF-compliant xr.Dataset
+
+        """
+        from satpy._scene_converters import to_xarray
+
+        return to_xarray(scn=self,
+                         datasets=datasets,  # DataID
+                         header_attrs=header_attrs,
+                         exclude_attrs=exclude_attrs,
+                         flatten_attrs=flatten_attrs,
+                         pretty=pretty,
+                         include_lonlats=include_lonlats,
+                         epoch=epoch,
+                         include_orig_name=include_orig_name,
+                         numeric_name_prefix=numeric_name_prefix)
 
     def images(self):
         """Generate images for all the datasets from the scene."""
@@ -1188,7 +1264,9 @@ class Scene:
             close any objects that have a "close" method.
 
         """
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:
             raise RuntimeError("None of the requested datasets have been "
                                "generated or could not be loaded. Requested "
