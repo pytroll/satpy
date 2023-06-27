@@ -87,10 +87,10 @@ def test_lonlat_storage(tmp_path):
         np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
 
 
-def test_da2cf_lonlat():
-    """Test correct da2cf encoding for area with lon/lat units."""
+def test_make_cf_dataarray_lonlat():
+    """Test correct CF encoding for area with lon/lat units."""
     from satpy.resample import add_crs_xy_coords
-    from satpy.writers.cf_writer import CFWriter
+    from satpy.writers.cf_writer import make_cf_dataarray
 
     area = create_area_def("mavas", 4326, shape=(5, 5),
                            center=(0, 0), resolution=(1, 1))
@@ -99,7 +99,7 @@ def test_da2cf_lonlat():
         dims=("y", "x"),
         attrs={"area": area})
     da = add_crs_xy_coords(da, area)
-    new_da = CFWriter.da2cf(da)
+    new_da = make_cf_dataarray(da)
     assert new_da["x"].attrs["units"] == "degrees_east"
     assert new_da["y"].attrs["units"] == "degrees_north"
 
@@ -593,9 +593,9 @@ class TestCFWriter:
                     assert isinstance(val2, np.generic)
                     assert val1.dtype == val2.dtype
 
-    def test_da2cf(self):
+    def test_make_cf_dataarray(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
-        from satpy.writers.cf_writer import CFWriter
+        from satpy.writers.cf_writer import make_cf_dataarray
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
@@ -618,7 +618,7 @@ class TestCFWriter:
                            coords={'y': [0, 1], 'x': [1, 2], 'acq_time': ('y', [3, 4])})
 
         # Test conversion to something cf-compliant
-        res = CFWriter.da2cf(arr)
+        res = make_cf_dataarray(arr)
         np.testing.assert_array_equal(res['x'], arr['x'])
         np.testing.assert_array_equal(res['y'], arr['y'])
         np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
@@ -627,17 +627,17 @@ class TestCFWriter:
         self.assertDictWithArraysEqual(res.attrs, attrs_expected)
 
         # Test attribute kwargs
-        res_flat = CFWriter.da2cf(arr, flatten_attrs=True, exclude_attrs=['int'])
+        res_flat = make_cf_dataarray(arr, flatten_attrs=True, exclude_attrs=['int'])
         attrs_expected_flat.pop('int')
         self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
-    def test_da2cf_one_dimensional_array(self):
+    def test_make_cf_dataarray_one_dimensional_array(self):
         """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
-        from satpy.writers.cf_writer import CFWriter
+        from satpy.writers.cf_writer import make_cf_dataarray
 
         arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
                            coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
-        _ = CFWriter.da2cf(arr)
+        _ = make_cf_dataarray(arr)
 
     def test_collect_cf_dataarrays(self):
         """Test collecting CF datasets from a DataArray objects."""
