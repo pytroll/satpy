@@ -188,7 +188,7 @@ def test_empty_collect_cf_datasets():
         collect_cf_datasets(list_dataarrays=[])
 
 
-class TestCFWriter(unittest.TestCase):
+class TestCFWriter():
     """Test case for CF writer."""
 
     def test_init(self):
