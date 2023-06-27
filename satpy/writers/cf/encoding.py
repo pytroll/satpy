@@ -16,10 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF encoding."""
+import logging
 
 import numpy as np
 import xarray as xr
 from xarray.coding.times import CFDatetimeCoder
+
+logger = logging.getLogger(__name__)
 
 
 def _set_default_chunks(encoding, dataset):

@@ -24,9 +24,6 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
-logger = logging.getLogger(__name__)
-
-
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - caplog

@@ -16,11 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utility to generate a CF-compliant DataArray."""
+import logging
 import warnings
 
 from satpy.writers.cf.attrs import preprocess_datarray_attrs
 from satpy.writers.cf.coords_attrs import add_xy_coords_attrs
 from satpy.writers.cf.time import EPOCH, _process_time_coord
+
+logger = logging.getLogger(__name__)
 
 
 def _handle_dataarray_name(original_name, numeric_name_prefix):

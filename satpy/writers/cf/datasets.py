@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utility to generate a CF-compliant Datasets."""
+import logging
 import warnings
 from collections import defaultdict
 
@@ -23,6 +24,8 @@ import xarray as xr
 
 from satpy.writers.cf.time import EPOCH
 from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
+
+logger = logging.getLogger(__name__)
 
 
 def get_extra_ds(dataarray, keys=None):

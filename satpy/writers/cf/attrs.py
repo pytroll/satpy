@@ -16,14 +16,16 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of attributes."""
-
 import datetime
 import json
+import logging
 from collections import OrderedDict
 
 import numpy as np
 
 from satpy.writers.utils import flatten_dict
+
+logger = logging.getLogger(__name__)
 
 
 class AttributeEncoder(json.JSONEncoder):

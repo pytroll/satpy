@@ -16,8 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of time dimension and coordinates."""
+import logging
+
 import numpy as np
 import xarray as xr
+
+logger = logging.getLogger(__name__)
+
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
