@@ -90,7 +90,8 @@ def to_xarray(scn,
         A CF-compliant xr.Dataset
 
     """
-    from satpy.writers.cf_writer import EPOCH, collect_cf_datasets
+    from satpy.writers.cf.datasets import collect_cf_datasets
+    from satpy.writers.cf.time import EPOCH
 
     if epoch is None:
         epoch = EPOCH
