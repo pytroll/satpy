@@ -47,7 +47,6 @@ except ImportError:
 # - tmp_path
 # - caplog
 # - request
-# - mocker
 
 
 class TempFile:
@@ -770,8 +769,7 @@ class TestCFWriter:
         assert 'time' not in datasets['var3'].coords
         assert 'not_exist' not in datasets['var4'].coords
 
-    @pytest.mark.usefixtures("mocker")
-    def test_make_alt_coords_unique(self, mocker):
+    def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
         from satpy.writers.cf_writer import make_alt_coords_unique
 
@@ -801,9 +799,8 @@ class TestCFWriter:
         np.testing.assert_array_equal(res['var2']['y'], y)
 
         # Coords not unique -> Dataset names must be prepended, even if pretty=True
-        mocker.patch('satpy.writers.cf_writer.warnings.warn')
-        res = make_alt_coords_unique(datasets, pretty=True)
-        warnings.warn.assert_called()
+        with pytest.warns(UserWarning, match='Cannot pretty-format "acq_time"'):
+            res = make_alt_coords_unique(datasets, pretty=True)
         np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
         np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
         assert 'acq_time' not in res['var1'].coords
