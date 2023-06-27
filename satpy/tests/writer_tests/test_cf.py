@@ -86,23 +86,6 @@ def test_lonlat_storage(tmp_path):
         np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
 
 
-def test_make_cf_dataarray_lonlat():
-    """Test correct CF encoding for area with lon/lat units."""
-    from satpy.resample import add_crs_xy_coords
-    from satpy.writers.cf.dataarray import make_cf_dataarray
-
-    area = create_area_def("mavas", 4326, shape=(5, 5),
-                           center=(0, 0), resolution=(1, 1))
-    da = xr.DataArray(
-        np.arange(25).reshape(5, 5),
-        dims=("y", "x"),
-        attrs={"area": area})
-    da = add_crs_xy_coords(da, area)
-    new_da = make_cf_dataarray(da)
-    assert new_da["x"].attrs["units"] == "degrees_east"
-    assert new_da["y"].attrs["units"] == "degrees_north"
-
-
 def test_is_projected(caplog):
     """Tests for private _is_projected function."""
     from satpy.writers.cf.crs import _is_projected
@@ -128,14 +111,6 @@ def test_is_projected(caplog):
     with caplog.at_level(logging.WARNING):
         assert _is_projected(da)
     assert "Failed to tell if data are projected." in caplog.text
-
-
-def test_empty_collect_cf_datasets():
-    """Test that if no DataArrays, collect_cf_datasets raise error."""
-    from satpy.writers.cf_writer import collect_cf_datasets
-
-    with pytest.raises(RuntimeError):
-        collect_cf_datasets(list_dataarrays=[])
 
 
 class TestCFWriter:
@@ -471,46 +446,6 @@ class TestCFWriter:
                 assert f.attrs['bool_'] == 'true'
                 assert 'none' not in f.attrs.keys()
 
-    def test_collect_cf_dataarrays(self):
-        """Test collecting CF datasets from a DataArray objects."""
-        from satpy.writers.cf_writer import _collect_cf_dataset
-
-        geos = pyresample.geometry.AreaDefinition(
-            area_id='geos',
-            description='geos',
-            proj_id='geos',
-            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
-            width=2, height=2,
-            area_extent=[-1, -1, 1, 1])
-
-        # Define test datasets
-        data = [[1, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        time = [1, 2]
-        tstart = datetime(2019, 4, 1, 12, 0)
-        tend = datetime(2019, 4, 1, 12, 15)
-        list_dataarrays = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                        attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
-                           xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                        attrs={'name': 'var2', 'long_name': 'variable 2'})]
-
-        # Collect datasets
-        ds = _collect_cf_dataset(list_dataarrays, include_lonlats=True)
-
-        # Test results
-        assert len(ds.keys()) == 3
-        assert set(ds.keys()) == {'var1', 'var2', 'geos'}
-
-        da_var1 = ds['var1']
-        da_var2 = ds['var2']
-        assert da_var1.name == 'var1'
-        assert da_var1.attrs['grid_mapping'] == 'geos'
-        assert da_var1.attrs['long_name'] == 'var1'
-        # variable 2
-        assert 'grid_mapping' not in da_var2.attrs
-        assert da_var2.attrs['long_name'] == 'variable 2'
-
     def test_load_module_with_old_pyproj(self):
         """Test that cf_writer can still be loaded with pyproj 1.9.6."""
         import importlib
@@ -617,27 +552,6 @@ class TestCFWriterData:
         assert has_projection_coords(datasets)
         datasets['lat'].attrs['standard_name'] = 'dummy'
         assert not has_projection_coords(datasets)
-
-    def test_collect_cf_dataarrays_with_latitude_named_lat(self, datasets):
-        """Test collecting CF datasets with latitude named lat."""
-        from satpy.writers.cf_writer import _collect_cf_dataset
-
-        datasets_list = [datasets[key] for key in datasets.keys()]
-        datasets_list_no_latlon = [datasets[key] for key in ['var1', 'var2']]
-
-        # Collect datasets
-        ds = _collect_cf_dataset(datasets_list, include_lonlats=True)
-        ds2 = _collect_cf_dataset(datasets_list_no_latlon, include_lonlats=True)
-
-        # Test results
-        assert len(ds.keys()) == 5
-        assert set(ds.keys()) == {'var1', 'var2', 'lon', 'lat', 'geos'}
-        with pytest.raises(KeyError):
-            ds['var1'].attrs["latitude"]
-        with pytest.raises(KeyError):
-            ds['var1'].attrs["longitude"]
-        assert ds2['var1']['latitude'].attrs['name'] == 'latitude'
-        assert ds2['var1']['longitude'].attrs['name'] == 'longitude'
 
 
 class TestNetcdfEncodingKwargs:

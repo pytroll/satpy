@@ -49,6 +49,25 @@ def test_preprocess_dataarray_name():
     assert "original_name" not in out_da.attrs
 
 
+def test_make_cf_dataarray_lonlat():
+    """Test correct CF encoding for area with lon/lat units."""
+    from pyresample import create_area_def
+
+    from satpy.resample import add_crs_xy_coords
+    from satpy.writers.cf.dataarray import make_cf_dataarray
+
+    area = create_area_def("mavas", 4326, shape=(5, 5),
+                           center=(0, 0), resolution=(1, 1))
+    da = xr.DataArray(
+        np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"area": area})
+    da = add_crs_xy_coords(da, area)
+    new_da = make_cf_dataarray(da)
+    assert new_da["x"].attrs["units"] == "degrees_east"
+    assert new_da["y"].attrs["units"] == "degrees_north"
+
+
 class TestCFWriter:
     """Test creation of CF DataArray."""
 
