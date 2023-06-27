@@ -21,11 +21,9 @@ import json
 import logging
 import os
 import tempfile
-import unittest
 import warnings
 from collections import OrderedDict
 from datetime import datetime
-from unittest import mock
 
 import dask.array as da
 import numpy as np
@@ -49,6 +47,7 @@ except ImportError:
 # - tmp_path
 # - caplog
 # - request
+# - mocker
 
 
 class TempFile:
@@ -682,7 +681,7 @@ class TestCFWriter:
                            coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
         _ = CFWriter.da2cf(arr)
 
-    def test_collect_cf_dataarrays(self, *mocks):
+    def test_collect_cf_dataarrays(self):
         """Test collecting CF datasets from a DataArray objects."""
         from satpy.writers.cf_writer import _collect_cf_dataset
 
@@ -771,7 +770,8 @@ class TestCFWriter:
         assert 'time' not in datasets['var3'].coords
         assert 'not_exist' not in datasets['var4'].coords
 
-    def test_make_alt_coords_unique(self):
+    @pytest.mark.usefixtures("mocker")
+    def test_make_alt_coords_unique(self, mocker):
         """Test that created coordinate variables are unique."""
         from satpy.writers.cf_writer import make_alt_coords_unique
 
@@ -801,13 +801,13 @@ class TestCFWriter:
         np.testing.assert_array_equal(res['var2']['y'], y)
 
         # Coords not unique -> Dataset names must be prepended, even if pretty=True
-        with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
-            res = make_alt_coords_unique(datasets, pretty=True)
-            warn.assert_called()
-            np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
-            np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
-            assert 'acq_time' not in res['var1'].coords
-            assert 'acq_time' not in res['var2'].coords
+        mocker.patch('satpy.writers.cf_writer.warnings.warn')
+        res = make_alt_coords_unique(datasets, pretty=True)
+        warnings.warn.assert_called()
+        np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
+        np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
+        assert 'acq_time' not in res['var1'].coords
+        assert 'acq_time' not in res['var2'].coords
 
         # Coords unique and pretty=True -> Don't modify coordinate names
         datasets['var2']['acq_time'] = ('y', time1)
@@ -1149,11 +1149,12 @@ class TestCFWriter:
                 assert 'Created by pytroll/satpy on' in f.attrs['history']
 
 
-class TestCFWriterData(unittest.TestCase):
+class TestCFWriterData:
     """Test case for CF writer where data arrays are needed."""
 
-    def setUp(self):
-        """Create some test data."""
+    @ pytest.fixture
+    def datasets(self):
+        """Create test dataset."""
         data = [[75, 2], [3, 4]]
         y = [1, 2]
         x = [1, 2]
@@ -1164,53 +1165,55 @@ class TestCFWriterData(unittest.TestCase):
             projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
-        self.datasets = {'var1': xr.DataArray(data=data,
-                                              dims=('y', 'x'),
-                                              coords={'y': y, 'x': x}),
-                         'var2': xr.DataArray(data=data,
-                                              dims=('y', 'x'),
-                                              coords={'y': y, 'x': x}),
-                         'lat': xr.DataArray(data=data,
-                                             dims=('y', 'x'),
-                                             coords={'y': y, 'x': x}),
-                         'lon': xr.DataArray(data=data,
-                                             dims=('y', 'x'),
-                                             coords={'y': y, 'x': x})}
-        self.datasets['lat'].attrs['standard_name'] = 'latitude'
-        self.datasets['var1'].attrs['standard_name'] = 'dummy'
-        self.datasets['var2'].attrs['standard_name'] = 'dummy'
-        self.datasets['var2'].attrs['area'] = geos
-        self.datasets['var1'].attrs['area'] = geos
-        self.datasets['lat'].attrs['name'] = 'lat'
-        self.datasets['var1'].attrs['name'] = 'var1'
-        self.datasets['var2'].attrs['name'] = 'var2'
-        self.datasets['lon'].attrs['name'] = 'lon'
+        datasets = {
+            'var1': xr.DataArray(data=data,
+                                 dims=('y', 'x'),
+                                 coords={'y': y, 'x': x}),
+            'var2': xr.DataArray(data=data,
+                                 dims=('y', 'x'),
+                                 coords={'y': y, 'x': x}),
+            'lat': xr.DataArray(data=data,
+                                dims=('y', 'x'),
+                                coords={'y': y, 'x': x}),
+            'lon': xr.DataArray(data=data,
+                                dims=('y', 'x'),
+                                coords={'y': y, 'x': x})}
+        datasets['lat'].attrs['standard_name'] = 'latitude'
+        datasets['var1'].attrs['standard_name'] = 'dummy'
+        datasets['var2'].attrs['standard_name'] = 'dummy'
+        datasets['var2'].attrs['area'] = geos
+        datasets['var1'].attrs['area'] = geos
+        datasets['lat'].attrs['name'] = 'lat'
+        datasets['var1'].attrs['name'] = 'var1'
+        datasets['var2'].attrs['name'] = 'var2'
+        datasets['lon'].attrs['name'] = 'lon'
+        return datasets
 
-    def test_is_lon_or_lat_dataarray(self):
+    def test_is_lon_or_lat_dataarray(self, datasets):
         """Test the is_lon_or_lat_dataarray function."""
         from satpy.writers.cf_writer import is_lon_or_lat_dataarray
 
-        assert is_lon_or_lat_dataarray(self.datasets['lat'])
-        assert not is_lon_or_lat_dataarray(self.datasets['var1'])
+        assert is_lon_or_lat_dataarray(datasets['lat'])
+        assert not is_lon_or_lat_dataarray(datasets['var1'])
 
-    def test_has_projection_coords(self):
+    def test_has_projection_coords(self, datasets):
         """Test the has_projection_coords function."""
         from satpy.writers.cf_writer import has_projection_coords
 
-        assert has_projection_coords(self.datasets)
-        self.datasets['lat'].attrs['standard_name'] = 'dummy'
-        assert not has_projection_coords(self.datasets)
+        assert has_projection_coords(datasets)
+        datasets['lat'].attrs['standard_name'] = 'dummy'
+        assert not has_projection_coords(datasets)
 
-    def test_collect_cf_dataarrays_with_latitude_named_lat(self, *mocks):
+    def test_collect_cf_dataarrays_with_latitude_named_lat(self, datasets):
         """Test collecting CF datasets with latitude named lat."""
         from satpy.writers.cf_writer import _collect_cf_dataset
 
-        self.datasets_list = [self.datasets[key] for key in self.datasets]
-        self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
+        datasets_list = [datasets[key] for key in datasets.keys()]
+        datasets_list_no_latlon = [datasets[key] for key in ['var1', 'var2']]
 
         # Collect datasets
-        ds = _collect_cf_dataset(self.datasets_list, include_lonlats=True)
-        ds2 = _collect_cf_dataset(self.datasets_list_no_latlon, include_lonlats=True)
+        ds = _collect_cf_dataset(datasets_list, include_lonlats=True)
+        ds2 = _collect_cf_dataset(datasets_list_no_latlon, include_lonlats=True)
 
         # Test results
         assert len(ds.keys()) == 5
