@@ -2,11 +2,10 @@
 import logging
 
 import xarray as xr
-from dask_image.ndfilters import median_filter
 
 from satpy.modifiers import ModifierBase
 
-logger = logging.getLogger('filters')
+logger = logging.getLogger(__name__)
 
 
 class Median(ModifierBase):
@@ -25,6 +24,8 @@ class Median(ModifierBase):
 
     def __call__(self, arrays, **info):
         """Get the median filtered band."""
+        from dask_image.ndfilters import median_filter
+
         data = arrays[0]
         logger.debug(f"Apply median filtering with parameters {self.median_filter_params}.")
         res = xr.DataArray(median_filter(data.data, **self.median_filter_params),
