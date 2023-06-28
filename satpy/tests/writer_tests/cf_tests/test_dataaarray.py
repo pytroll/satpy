@@ -68,7 +68,7 @@ def test_make_cf_dataarray_lonlat():
     assert new_da["y"].attrs["units"] == "degrees_north"
 
 
-class TestCFWriter:
+class TestCfDataArray:
     """Test creation of CF DataArray."""
 
     def get_test_attrs(self):
