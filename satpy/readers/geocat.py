@@ -56,7 +56,30 @@ GEO_PROJS = {
 
 
 class GEOCATFileHandler(NetCDF4FileHandler):
-    """GEOCAT netCDF4 file handler."""
+    """GEOCAT netCDF4 file handler.
+
+    **Loading data with decode_times=True**
+
+    By default, this reader will use ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
+    to match behavior of xarray when the geocat reader was first written.  To use different options
+    use reader_kwargs when loading the Scene::
+
+        scene = satpy.Scene(filenames,
+                            reader='geocat',
+                            reader_kwargs={'xarray_kwargs': {'engine': 'netcdf4', 'decode_times': True}})
+    """
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 **kwargs):
+        """Open and perform initial investigation of NetCDF file."""
+        kwargs.setdefault('xarray_kwargs', {}).setdefault(
+            'engine', "netcdf4")
+        kwargs.setdefault('xarray_kwargs', {}).setdefault(
+            'decode_times', False)
+
+        super(GEOCATFileHandler, self).__init__(
+            filename, filename_info, filetype_info,
+            xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
         'goes': 'goes_imager',

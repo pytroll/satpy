@@ -1423,6 +1423,14 @@ def test_header_warning():
         with pytest.warns(UserWarning, match=exp_warning):
             NativeMSGFileHandler('myfile', {}, None)
 
+        # check that without Main Header the code doesn't crash
+        header_missing = header_good.copy()
+        header_missing.pop('15_MAIN_PRODUCT_HEADER')
+        fromfile.return_value = header_missing
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            NativeMSGFileHandler('myfile', {}, None)
+
 
 @pytest.mark.parametrize(
     "starts_with, expected",
