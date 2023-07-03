@@ -130,10 +130,22 @@ class TestGEOCATReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'geocatL2.GOES-13.2015143.234500.nc',
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
+
+    def test_init_with_kwargs(self):
+        """Test basic init with extra parameters."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs, xarray_kwargs={"decode_times": True})
+        loadables = r.select_files_from_pathnames([
+            'geocatL2.GOES-13.2015143.234500.nc',
+        ])
+        assert len(loadables) == 1
+        r.create_filehandlers(loadables, fh_kwargs={"xarray_kwargs": {'decode_times': True}})
+        # make sure we have some files
+        assert r.file_handlers
 
     def test_load_all_old_goes(self):
         """Test loading all test datasets from old GOES files."""

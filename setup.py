@@ -38,7 +38,8 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
-                 's3fs']
+                 's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
+                 'skyfield', 'ephem', 'pint-xarray', 'astropy', 'dask-image']
 
 extras_require = {
     # Readers:
@@ -61,11 +62,12 @@ extras_require = {
     'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
     'seviri_l1b_native': ['pyorbital >= 1.3.1'],
     'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
-    'seviri_l2_bufr': ['eccodes-python'],
-    'seviri_l2_grib': ['eccodes-python'],
+    'seviri_l2_bufr': ['eccodes'],
+    'seviri_l2_grib': ['eccodes'],
     'hsaf_grib': ['pygrib'],
     'remote_reading': ['fsspec'],
     'insat_3d': ['xarray-datatree'],
+    'gms5-vissr_l1b': ["numba"],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
@@ -75,6 +77,7 @@ extras_require = {
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
     'angles': ['pyorbital >= 1.3.1'],
+    'filters': ['dask-image'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:

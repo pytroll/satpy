@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for reader tests."""
 
+import inspect
+
 
 def default_attr_processor(root, attr):
     """Do not change the attribute."""
@@ -43,3 +45,19 @@ def fill_h5(root, contents, attr_processor=default_attr_processor):
         if "attrs" in val:
             for attr_name, attr_val in val["attrs"].items():
                 root[key].attrs[attr_name] = attr_processor(root, attr_val)
+
+
+def get_jit_methods(module):
+    """Get all jit-compiled methods in a module."""
+    res = {}
+    module_name = module.__name__
+    members = inspect.getmembers(module)
+    for member_name, obj in members:
+        if _is_jit_method(obj):
+            full_name = f"{module_name}.{member_name}"
+            res[full_name] = obj
+    return res
+
+
+def _is_jit_method(obj):
+    return hasattr(obj, "py_func")

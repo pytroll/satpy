@@ -80,3 +80,87 @@ class TestSceneConversions:
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
+
+
+class TestToXarrayConversion:
+    """Test Scene.to_xarray() conversion."""
+
+    def test_with_empty_scene(self):
+        """Test converting empty Scene to xarray."""
+        scn = Scene()
+        ds = scn.to_xarray()
+        assert isinstance(ds, xr.Dataset)
+        assert len(ds.variables) == 0
+        assert len(ds.coords) == 0
+
+    @pytest.fixture
+    def single_area_scn(self):
+        """Define Scene with single area."""
+        from pyresample.geometry import AreaDefinition
+
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        data_array = xr.DataArray(da.zeros((2, 2), chunks=-1),
+                                  dims=('y', 'x'),
+                                  attrs={'start_time': datetime(2018, 1, 1), 'area': area})
+        scn = Scene()
+        scn['var1'] = data_array
+        return scn
+
+    @pytest.fixture
+    def multi_area_scn(self):
+        """Define Scene with multiple area."""
+        from pyresample.geometry import AreaDefinition
+
+        area1 = AreaDefinition('test', 'test', 'test',
+                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                               2, 2, [-200, -200, 200, 200])
+        area2 = AreaDefinition('test', 'test', 'test',
+                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                               4, 4, [-200, -200, 200, 200])
+
+        data_array1 = xr.DataArray(da.zeros((2, 2), chunks=-1),
+                                   dims=('y', 'x'),
+                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area1})
+        data_array2 = xr.DataArray(da.zeros((4, 4), chunks=-1),
+                                   dims=('y', 'x'),
+                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area2})
+        scn = Scene()
+        scn['var1'] = data_array1
+        scn['var2'] = data_array2
+        return scn
+
+    def test_with_single_area_scene_type(self, single_area_scn):
+        """Test converting single area Scene to xarray dataset."""
+        ds = single_area_scn.to_xarray()
+        assert isinstance(ds, xr.Dataset)
+        assert "var1" in ds.data_vars
+
+    def test_include_lonlats_true(self, single_area_scn):
+        """Test include lonlats."""
+        ds = single_area_scn.to_xarray(include_lonlats=True)
+        assert "latitude" in ds.coords
+        assert "longitude" in ds.coords
+
+    def test_include_lonlats_false(self, single_area_scn):
+        """Test exclude lonlats."""
+        ds = single_area_scn.to_xarray(include_lonlats=False)
+        assert "latitude" not in ds.coords
+        assert "longitude" not in ds.coords
+
+    def test_dataset_string_accepted(self, single_area_scn):
+        """Test accept dataset string."""
+        ds = single_area_scn.to_xarray(datasets="var1")
+        assert isinstance(ds, xr.Dataset)
+
+    def test_wrong_dataset_key(self, single_area_scn):
+        """Test raise error if unexisting dataset."""
+        with pytest.raises(KeyError):
+            _ = single_area_scn.to_xarray(datasets="var2")
+
+    def test_to_xarray_with_multiple_area_scene(self, multi_area_scn):
+        """Test converting muiltple area Scene to xarray."""
+        # TODO: in future adapt for DataTree implementation
+        with pytest.raises(ValueError):
+            _ = multi_area_scn.to_xarray()
