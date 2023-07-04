@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from xml.etree.ElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree  # nosec
 
 import numpy as np
 
@@ -28,8 +28,12 @@ VARIABLES: dict[str, str] = {}
 TYPEC = {"boolean": ">i1",
          "integer2": ">i2",
          "integer4": ">i4",
+         "vinteger4": ">i4",
+         "uinteger1": ">u1",
          "uinteger2": ">u2",
-         "uinteger4": ">u4", }
+         "vuinteger2": ">u2",
+         "uinteger4": ">u4",
+         "vuinteger4": ">u4"}
 
 
 def process_delimiter(elt, ascii=False):

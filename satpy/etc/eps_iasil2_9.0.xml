@@ -48,25 +48,25 @@
 	<parameters>
 		<!-- <parameter name="M" value="232" description="Length of complete state vector"/> -->
 		<!-- <parameter name="N" value="3844" description="Number of wavelets that give approximate 10x compression of covariance matrix"/> -->
-		<!-- <parameter name="NEW" value="12" description="Number of wavelengths for Emissivities"/> -->
-		<!-- <parameter name="NLO" value="101" description="Number of pressure Levels for ozone profiles"/> -->
-		<!-- <parameter name="NLQ" value="101" description="Number of Pressure Levels for Water Vapour profiles"/> -->
-		<!-- <parameter name="NLT" value="101" description="Number of Pressure Levels for Temperature profiles"/> -->
+		<parameter name="NEW" value="12" description="Number of wavelengths for Emissivities"/>
+		<parameter name="NLO" value="101" description="Number of pressure Levels for ozone profiles"/>
+		<parameter name="NLQ" value="101" description="Number of Pressure Levels for Water Vapour profiles"/>
+		<parameter name="NLT" value="101" description="Number of Pressure Levels for Temperature profiles"/>
 		<parameter name="NL_CO" value="19" description="Number of partial layers for CO"/>
-		<!-- <parameter name="NL_HNO3" value="19" description="Number of partial layers for HNO3"/> -->
+		<parameter name="NL_HNO3" value="19" description="Number of partial layers for HNO3"/>
 		<parameter name="NL_O3" value="40" description="Number of partial layers for O3"/>
 		<parameter name="NL_SO2" value="5" description="Number of estimated SO2 plume heights"/>
-		<!-- <parameter name="NERR" value="30" description="Number of error data records"/> -->
+		<parameter name="NERR" value="30" description="Number of error data records"/>
 		<parameter name="NERRT" value="406" description="Number of elements in the temperature error record = NPCT*(NPCT+1)/2"/>
 		<parameter name="NERRW" value="171" description="Number of elements in the water-vapour error record = NPCT*(NPCT+1)/2"/>
 		<parameter name="NERRO" value="55" description="Number of elements in the ozone error record = NPCT*(NPCT+1)/2"/>
-		<!-- <parameter name="CO_NBR" value="50"/> -->
+		<parameter name="CO_NBR" value="50"/>
 		<parameter name="NEVA_CO" value="10" description="Maximum number of eigenvectors for the CO sensitivity matrix"/>
 		<parameter name="NEVA_HNO3" value="21" description="Maximum number of eigenvectors for the HNO3 sensitivity matrix"/>
 		<parameter name="NEVE_HNO3" value="861" description="Maximum number of elements in the HNO3 sensitivity matrix eigenvectors = NEVA_HNO3 * NL_HNO3"/>
 		<parameter name="NEVE_CO" value="190" description="Maximum number of elements in the CO sensitivity matrix eigenvectors = NEVA_CO * NL_CO"/>
-		<!-- <parameter name="HNO3_NBR" value="0"/> -->
-		<!-- <parameter name="O3_NBR" value="0"/> -->
+		<parameter name="HNO3_NBR" value="0"/>
+		<parameter name="O3_NBR" value="0"/>
 		<parameter name="NEVA_O3" value="21" description="Maximum number of eigenvectors for the O3 sensitivity matrix"/>
 		<parameter name="NEVE_O3" value="861" description="Maximum number of elements in the O3 sensitivity matrix eigenvectors = NEVA_O3 * NL_O3"/>
 		<!-- <parameter name="NPCT" value="28" description="Number of principal components for temperature in the ERROR_DATA (GIADR :: NUM_TEMPERATURE_PCS)"/> -->
