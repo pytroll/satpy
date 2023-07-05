@@ -25,14 +25,13 @@ import pytest
 def test_parse_format(form):
     """Test parsing the XML format."""
     from satpy._config import get_config_path
-    from satpy.readers.xmlformat import parse_format
+    from satpy.readers.xmlformat import XMLFormat
     filename = get_config_path(form)
-    (_, _, _) = parse_format(filename)
+    XMLFormat(filename)
 
 
 def test_process_array(monkeypatch):
     """Test processing an array tag."""
-    from satpy.readers import xmlformat
     from satpy.readers.xmlformat import process_array
     elt = Element(
         "array",
@@ -48,13 +47,32 @@ def test_process_array(monkeypatch):
          "scaling-factor": "10^2,10^2,10^4,10^2,10^2"})
     elt.append(elt2)
     elt2.append(elt3)
-    monkeypatch.setattr(xmlformat, "VARIABLES", {"NE": 10})
-    dims = {}
-    (name, tp, shp, scl) = process_array(elt, False, dims)
+    variables = {"NE": 10}
+#    dims = {}
+    (name, tp, shp, scl) = process_array(elt, variables, False)
     assert name == "SCENE_RADIANCES"
     assert tp == ">i2"
     assert shp == (5, 10)
     np.testing.assert_allclose(
         scl,
         np.array([0.01, 0.01, 0.0001, 0.01, 0.01]))
-    assert dims == {"FOV": "NE"}
+#    assert dims == {"FOV": "NE"}
+
+    elt = Element(
+        "array",
+        {"name": "ATMOSPHERIC_WATER_VAPOUR",
+         "length": "120"})
+    elt2 = Element(
+        "array",
+        {"length": "$NLQ"})
+    elt3 = Element(
+            "field",
+            {"type": "uinteger4",
+             "scaling-factor": "10^7",
+             "units": "kg/kg"})
+    elt.append(elt2)
+    elt2.append(elt3)
+    variables = {"NLQ": 125}
+#    dims = {}
+    (name, tp, shp, scl) = process_array(elt, variables, False)
+#    assert dims == {"ATMOSPHERIC_WATER_VAPOUR": "NLQ"}

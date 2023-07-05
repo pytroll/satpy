@@ -23,8 +23,6 @@ from xml.etree.ElementTree import ElementTree  # nosec
 
 import numpy as np
 
-VARIABLES: dict[str, str] = {}
-
 TYPEC = {"boolean": ">i1",
          "integer2": ">i2",
          "integer4": ">i4",
@@ -36,12 +34,11 @@ TYPEC = {"boolean": ">i1",
          "vuinteger4": ">u4"}
 
 
-def process_delimiter(elt, ascii=False, dims={}):  # noqa: B006
+def process_delimiter(elt, variables, ascii=False):
     """Process a 'delimiter' tag."""
-    del elt, ascii
 
 
-def process_field(elt, ascii=False, dims={}):  # noqa: B006
+def process_field(elt, variables, ascii=False):
     """Process a 'field' tag."""
     # NOTE: if there is a variable defined in this field and it is different
     # from the default, we could change the value and restart.
@@ -69,23 +66,21 @@ def process_field(elt, ascii=False, dims={}):  # noqa: B006
     return ((elt.get("name"), current_type, scale))
 
 
-def process_array(elt, ascii=False, dims={}):  # noqa: B006
+def process_array(elt, variables, ascii=False):
     """Process an 'array' tag."""
     chld = list(elt)
     if len(chld) > 1:
         raise ValueError()
     chld = chld[0]
     try:
-        name, current_type, scale = CASES[chld.tag](chld, ascii, dims)
+        name, current_type, scale = CASES[chld.tag](chld, variables, ascii)
         size = None
     except ValueError:
-        name, current_type, size, scale = CASES[chld.tag](chld, ascii, dims)
-    del name
+        name, current_type, size, scale = CASES[chld.tag](chld, variables, ascii)
     myname = elt.get("name") or elt.get("label")
     if elt.get("length").startswith("$"):
         dimname = elt.get("length")[1:]
-        length = int(VARIABLES[dimname])
-        dims[myname] = dimname
+        length = int(variables[dimname])
     else:
         length = int(elt.get("length"))
     if size is not None:
@@ -143,36 +138,6 @@ def to_scales(val):
     return scales
 
 
-def parse_format(xml_file, dims={}):  # noqa: B006
-    """Parse the xml file to create types, scaling factor types, and scales."""
-    tree = ElementTree()
-    tree.parse(xml_file)
-    for param in tree.find("parameters"):
-        VARIABLES[param.get("name")] = param.get("value")
-
-    types_scales = {}
-
-    for prod in tree.find("product"):
-        ascii = (prod.tag in ["mphr", "sphr"])
-        res = []
-        for i in prod:
-            lres = CASES[i.tag](i, ascii, dims)
-            if lres is not None:
-                res.append(lres)
-        types_scales[(prod.tag, int(prod.get("subclass")))] = res
-
-    types = {}
-    stypes = {}
-    scales = {}
-
-    for key, val in types_scales.items():
-        types[key] = to_dtype(val)
-        stypes[key] = to_scaled_dtype(val)
-        scales[key] = to_scales(val)
-
-    return types, stypes, scales
-
-
 def _apply_scales(array, scales, dtype):
     """Apply scales to the array."""
     new_array = np.empty(array.shape, dtype)
@@ -187,12 +152,14 @@ def _apply_scales(array, scales, dtype):
     return new_array
 
 
-class XMLFormat(object):
+class XMLFormat:
     """XMLFormat object."""
 
     def __init__(self, filename):
         """Init the format reader."""
-        self.types, self.stypes, self.scales = parse_format(filename)
+        self.dims = {}
+        self.variables = {}
+        self.types, self.stypes, self.scales = self.parse_format(filename)
 
         self.translator = {}
 
@@ -207,6 +174,31 @@ class XMLFormat(object):
         """Apply scales to *array*."""
         return _apply_scales(array, *self.translator[array.dtype])
 
+    def parse_format(self, xml_file):
+        """Parse the xml file to create types, scaling factor types, and scales."""
+        tree = ElementTree()
+        tree.parse(xml_file)
+        for param in tree.find("parameters"):
+            self.variables[param.get("name")] = param.get("value")
 
-if __name__ == '__main__':
-    pass
+        types_scales = {}
+
+        for prod in tree.find("product"):
+            ascii = (prod.tag in ["mphr", "sphr"])
+            res = []
+            for i in prod:
+                lres = CASES[i.tag](i, self.variables, ascii)
+                if lres is not None:
+                    res.append(lres)
+            types_scales[(prod.tag, int(prod.get("subclass")))] = res
+
+        types = {}
+        stypes = {}
+        scales = {}
+
+        for key, val in types_scales.items():
+            types[key] = to_dtype(val)
+            stypes[key] = to_scaled_dtype(val)
+            scales[key] = to_scales(val)
+
+        return types, stypes, scales
