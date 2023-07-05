@@ -21,6 +21,7 @@ import logging
 import dask.array as da
 import numpy as np
 import xarray as xr
+from pyresample.geometry import SwathDefinition
 
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
@@ -124,9 +125,83 @@ def create_xarray(arr):
     return res
 
 
-class EPSFile(BaseFileHandler):
+class EPSBaseFileHandler(BaseFileHandler):
     """Base class for EPS level 1b readers."""
 
     spacecrafts = {"M01": "Metop-B",
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
+
+    xml_conf: str
+    mdr_subclass: int
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize FileHandler."""
+        super().__init__(filename, filename_info, filetype_info)
+
+        self.area = None
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
+        self.form = None
+        self.scanlines = None
+        self.sections = None
+
+    def _read_all(self):
+        logger.debug("Reading %s", self.filename)
+        self.sections, self.form = read_records(self.filename, self.xml_conf)
+        self.scanlines = self['TOTAL_MDR']
+        if self.scanlines != len(self.sections[('mdr', self.mdr_subclass)]):
+            logger.warning("Number of declared records doesn't match number of scanlines in the file.")
+            self.scanlines = len(self.sections[('mdr', self.mdr_subclass)])
+
+    def __getitem__(self, key):
+        """Get value for given key."""
+        for altkey in self.form.scales:
+            try:
+                try:
+                    return self.sections[altkey][key] * self.form.scales[altkey][key]
+                except TypeError:
+                    val = self.sections[altkey][key].item().decode().split("=")[1]
+                    try:
+                        return float(val) * self.form.scales[altkey][key].item()
+                    except ValueError:
+                        return val.strip()
+            except (KeyError, ValueError):
+                continue
+        raise KeyError("No matching value for " + str(key))
+
+    def keys(self):
+        """List of reader's keys."""
+        keys = []
+        for val in self.form.scales.values():
+            keys += val.dtype.fields.keys()
+        return keys
+
+    def get_lonlats(self):
+        """Get lonlats."""
+        if self.area is None:
+            lons, lats = self.get_full_lonlats()
+            self.area = SwathDefinition(lons, lats)
+            self.area.name = '_'.join([self.platform_name, str(self.start_time),
+                                       str(self.end_time)])
+        return self.area
+
+    @property
+    def platform_name(self):
+        """Get platform name."""
+        return self.spacecrafts[self["SPACECRAFT_ID"]]
+
+    @property
+    def sensor_name(self):
+        """Get sensor name."""
+        return self.sensors[self["INSTRUMENT_ID"]]
+
+    @property
+    def start_time(self):
+        """Get start time."""
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """Get end time."""
+        return self._end_time

@@ -23,10 +23,9 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from dask.delayed import delayed
-from pyresample.geometry import SwathDefinition
 
 from satpy._compat import cached_property
-from satpy.readers.eps_base import EPSFile, XMLFormat, read_records, record_class  # noqa
+from satpy.readers.eps_base import EPSBaseFileHandler, XMLFormat, read_records, record_class  # noqa
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -54,7 +53,7 @@ def create_xarray(arr):
     return res
 
 
-class EPSAVHRRFile(EPSFile):
+class EPSAVHRRFile(EPSBaseFileHandler):
     """EPS level 1b reader for AVHRR data."""
 
     sensors = {"AVHR": "avhrr-3"}
@@ -62,56 +61,24 @@ class EPSAVHRRFile(EPSFile):
     units = {"reflectance": "%",
              "brightness_temperature": "K"}
 
+    xml_conf = "eps_avhrrl1b_6.5.xml"
+    mdr_subclass = 2
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
-        super(EPSAVHRRFile, self).__init__(
-            filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
-        self.area = None
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
-        self.form = None
-        self.scanlines = None
-        self.pixels = None
-        self.sections = None
         self.get_full_angles = functools.lru_cache(maxsize=1)(
             self._get_full_angles_uncached
         )
         self.get_full_lonlats = functools.lru_cache(maxsize=1)(
             self._get_full_lonlats_uncached
         )
+        self.pixels = None
 
     def _read_all(self):
-        logger.debug("Reading %s", self.filename)
-        self.sections, self.form = read_records(self.filename, "eps_avhrrl1b_6.5.xml")
-        self.scanlines = self['TOTAL_MDR']
-        if self.scanlines != len(self.sections[('mdr', 2)]):
-            logger.warning("Number of declared records doesn't match number of scanlines in the file.")
-            self.scanlines = len(self.sections[('mdr', 2)])
+        super()._read_all()
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
-
-    def __getitem__(self, key):
-        """Get value for given key."""
-        for altkey in self.form.scales:
-            try:
-                try:
-                    return self.sections[altkey][key] * self.form.scales[altkey][key]
-                except TypeError:
-                    val = self.sections[altkey][key].item().decode().split("=")[1]
-                    try:
-                        return float(val) * self.form.scales[altkey][key].item()
-                    except ValueError:
-                        return val.strip()
-            except (KeyError, ValueError):
-                continue
-        raise KeyError("No matching value for " + str(key))
-
-    def keys(self):
-        """List of reader's keys."""
-        keys = []
-        for val in self.form.scales.values():
-            keys += val.dtype.fields.keys()
-        return keys
 
     def _get_full_lonlats_uncached(self):
         """Get the interpolated longitudes and latitudes."""
@@ -198,6 +165,19 @@ class EPSAVHRRFile(EPSFile):
                           self["EARTH_LOCATION_FIRST"][-1, [1]]])
         return lons.ravel(), lats.ravel()
 
+    def _get_angle_dataarray(self, key):
+        """Get an angle dataarray."""
+        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
+        if key['name'] == 'solar_zenith_angle':
+            return create_xarray(sun_zen)
+        if key['name'] == 'solar_azimuth_angle':
+            return create_xarray(sun_azi)
+        if key['name'] == 'satellite_zenith_angle':
+            return create_xarray(sat_zen)
+        if key['name'] == 'satellite_azimuth_angle':
+            return create_xarray(sat_azi)
+        raise ValueError(f"Unknown angle data-array: {key['name']:s}")
+
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
         if self.sections is None:
@@ -225,19 +205,6 @@ class EPSAVHRRFile(EPSFile):
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
-        return dataset
-
-    def _get_angle_dataarray(self, key):
-        """Get an angle dataarray."""
-        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-        if key['name'] == 'solar_zenith_angle':
-            dataset = create_xarray(sun_zen)
-        elif key['name'] == 'solar_azimuth_angle':
-            dataset = create_xarray(sun_azi)
-        if key['name'] == 'satellite_zenith_angle':
-            dataset = create_xarray(sat_zen)
-        elif key['name'] == 'satellite_azimuth_angle':
-            dataset = create_xarray(sat_azi)
         return dataset
 
     @cached_property
@@ -283,46 +250,3 @@ class EPSAVHRRFile(EPSFile):
         if mask is not None:
             dataset = dataset.where(~mask)
         return dataset
-
-    def get_lonlats(self):
-        """Get lonlats."""
-        if self.area is None:
-            lons, lats = self.get_full_lonlats()
-            self.area = SwathDefinition(lons, lats)
-            self.area.name = '_'.join([self.platform_name, str(self.start_time),
-                                       str(self.end_time)])
-        return self.area
-
-    @property
-    def platform_name(self):
-        """Get platform name."""
-        return self.spacecrafts[self["SPACECRAFT_ID"]]
-
-    @property
-    def sensor_name(self):
-        """Get sensor name."""
-        return self.sensors[self["INSTRUMENT_ID"]]
-
-    @property
-    def start_time(self):
-        """Get start time."""
-        # return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """Get end time."""
-        # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
-        return self._end_time
-
-
-class EPSIASIFile(EPSFile):
-    """EPS level 2 reader for IASI data.
-
-    Reader for the IASI Level 2 combined sounding products in native format.
-
-    Overview of the data including links to the product user guide, product format
-    specification, validation reports, and other documents, can be found at the
-    EUMETSAT Data Services at https://data.eumetsat.int/product/EO:EUM:DAT:METOP:IASSND02
-
-    """
