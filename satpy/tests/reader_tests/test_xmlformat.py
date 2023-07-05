@@ -27,7 +27,7 @@ def test_parse_format(form):
     from satpy._config import get_config_path
     from satpy.readers.xmlformat import parse_format
     filename = get_config_path(form)
-    parse_format(filename)
+    (_, _, _) = parse_format(filename)
 
 
 def test_process_array(monkeypatch):
@@ -49,10 +49,12 @@ def test_process_array(monkeypatch):
     elt.append(elt2)
     elt2.append(elt3)
     monkeypatch.setattr(xmlformat, "VARIABLES", {"NE": 10})
-    (name, tp, shp, scl) = process_array(elt, False)
+    dims = {}
+    (name, tp, shp, scl) = process_array(elt, False, dims)
     assert name == "SCENE_RADIANCES"
     assert tp == ">i2"
     assert shp == (5, 10)
     np.testing.assert_allclose(
         scl,
         np.array([0.01, 0.01, 0.0001, 0.01, 0.01]))
+    assert dims == {"FOV": "NE"}

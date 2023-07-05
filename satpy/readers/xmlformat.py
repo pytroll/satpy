@@ -36,12 +36,12 @@ TYPEC = {"boolean": ">i1",
          "vuinteger4": ">u4"}
 
 
-def process_delimiter(elt, ascii=False):
+def process_delimiter(elt, ascii=False, dims={}):  # noqa: B006
     """Process a 'delimiter' tag."""
     del elt, ascii
 
 
-def process_field(elt, ascii=False):
+def process_field(elt, ascii=False, dims={}):  # noqa: B006
     """Process a 'field' tag."""
     # NOTE: if there is a variable defined in this field and it is different
     # from the default, we could change the value and restart.
@@ -69,28 +69,28 @@ def process_field(elt, ascii=False):
     return ((elt.get("name"), current_type, scale))
 
 
-def process_array(elt, ascii=False):
+def process_array(elt, ascii=False, dims={}):  # noqa: B006
     """Process an 'array' tag."""
-    del ascii
     chld = list(elt)
     if len(chld) > 1:
         raise ValueError()
     chld = chld[0]
     try:
-        name, current_type, scale = CASES[chld.tag](chld)
+        name, current_type, scale = CASES[chld.tag](chld, ascii, dims)
         size = None
     except ValueError:
-        name, current_type, size, scale = CASES[chld.tag](chld)
+        name, current_type, size, scale = CASES[chld.tag](chld, ascii, dims)
     del name
     myname = elt.get("name") or elt.get("label")
     if elt.get("length").startswith("$"):
-        length = int(VARIABLES[elt.get("length")[1:]])
+        dimname = elt.get("length")[1:]
+        length = int(VARIABLES[dimname])
+        dims[myname] = dimname
     else:
         length = int(elt.get("length"))
     if size is not None:
         return (myname, current_type, (length, ) + size, scale)
-    else:
-        return (myname, current_type, (length, ), scale)
+    return (myname, current_type, (length, ), scale)
 
 
 CASES = {"delimiter": process_delimiter,
@@ -143,7 +143,7 @@ def to_scales(val):
     return scales
 
 
-def parse_format(xml_file):
+def parse_format(xml_file, dims={}):  # noqa: B006
     """Parse the xml file to create types, scaling factor types, and scales."""
     tree = ElementTree()
     tree.parse(xml_file)
@@ -156,7 +156,7 @@ def parse_format(xml_file):
         ascii = (prod.tag in ["mphr", "sphr"])
         res = []
         for i in prod:
-            lres = CASES[i.tag](i, ascii)
+            lres = CASES[i.tag](i, ascii, dims)
             if lres is not None:
                 res.append(lres)
         types_scales[(prod.tag, int(prod.get("subclass")))] = res
