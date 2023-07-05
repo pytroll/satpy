@@ -96,6 +96,11 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
+  median5x5:
+    modifier: !!python/name:satpy.modifiers.filters.Median
+    median_filter_params:
+      size: 5
+
 composites:
 
   airmass:

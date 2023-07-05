@@ -1,0 +1,99 @@
+reader:
+  name: gms5-vissr_l1b
+  short_name: GMS-5 VISSR L1b
+  long_name: GMS-5 VISSR Level 1b
+  description: >
+    Reader for GMS-5 VISSR Level 1b data. References:
+
+    - https://www.data.jma.go.jp/mscweb/en/operation/fig/VISSR_FORMAT_GMS-5.pdf
+    - https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
+
+  status: Alpha
+  supports_fsspec: true
+  sensors: [gms5-vissr]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    gms5_vissr_vis:
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_patterns:
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_VIS.{mode}.IMG'
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_VIS.{mode}.IMG.gz'
+
+    gms5_vissr_ir1:
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_patterns:
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR1.{mode}.IMG'
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR1.{mode}.IMG.gz'
+
+    gms5_vissr_ir2:
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_patterns:
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR2.{mode}.IMG'
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR2.{mode}.IMG.gz'
+
+
+    gms5_vissr_ir3:
+        file_reader: !!python/name:satpy.readers.gms.gms5_vissr_l1b.GMS5VISSRFileHandler
+        file_patterns:
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR3.{mode}.IMG'
+        - 'VISSR_{start_time:%Y%m%d_%H%M}_IR3.{mode}.IMG.gz'
+
+
+datasets:
+  VIS:
+    name: VIS
+    sensor: gms5-vissr
+    wavelength: [0.55, 0.73, 0.9]
+    resolution: 1250
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: gms5_vissr_vis
+
+  IR1:
+    name: IR1
+    sensor: gms5-vissr
+    wavelength: [10.5, 11.0, 11.5]
+    resolution: 5000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: gms5_vissr_ir1
+
+  IR2:
+    name: IR2
+    sensor: gms5-vissr
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 5000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: gms5_vissr_ir2
+
+  IR3:
+    name: IR3
+    sensor: gms5-vissr
+    wavelength: [6.5, 6.75, 7.0]
+    resolution: 5000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: gms5_vissr_ir3
