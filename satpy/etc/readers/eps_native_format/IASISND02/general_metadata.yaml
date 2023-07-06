@@ -1,0 +1,25 @@
+# Copyright 2017-2022, European Organisation for the Exploitation of Meteorological Satellites (EUMETSAT)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+'title': "IASI 2b the Infrared Atmospheric Sounding Interferometer"
+'title_short_name': "IASI L2"
+'summary': "NA"
+'comment': "Search for Infrared Atmospheric Sounding Interferometer in the references URL"
+'keywords': "EUMETSAT, DATA CENTRE, EPS, IASI1C, NetCDF"
+'reference_url': "https://navigator.eumetsat.int/product/EO:EUM:DAT:METOP:IASSND02"
+'wmo_filename': ""
+'data_format_type': ""
+'producer_agency': "EUMETSAT"
+'platform_type': "spacecraft"
+"contents": "IASI Level 2 Measurements"
