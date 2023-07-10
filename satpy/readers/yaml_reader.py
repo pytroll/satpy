@@ -778,6 +778,12 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             lons, lats = self._get_lons_lats_from_coords(coords)
             sdef = self._make_swath_definition_from_lons_lats(lons, lats)
             return sdef
+        if len(coords) == 4:
+            lons_tiepoints, lats_tiepoints = coords[2::]
+            lons, lats = self._get_lons_lats_from_coords(coords[0:2])
+            sdef = self._make_tiepoints_definition_from_lons_lats_and_gcps(lons, lats, lons_tiepoints,
+                                                                           lats_tiepoints)
+            return sdef
         if len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
@@ -804,6 +810,37 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             sdef = None
         if sdef is None:
             sdef = SwathDefinition(lons, lats)
+            sensor_str = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, lons.shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             lons.attrs.get('name', lons.name),
+                                             lats.attrs.get('name', lats.name))
+            if key is not None:
+                FileYAMLReader._coords_cache[key] = sdef
+        return sdef
+
+    def _make_tiepoints_definition_from_lons_lats_and_gcps(self, lons, lats, lons_tiepoints, lats_tiepoints):
+        """Make a swath definition instance from lons and lats.
+
+        Args:
+            lons (xarray.DataArray): Interpolated Longitudes.
+            lats (xarray.DataArray): Interpolated Latitudes.
+            lons_tiepoints (xarray.DataArray): Longitude tiepoints.
+            lats_tiepoints (xarray.DataArray): Latitude tiepoints.
+
+        Returns:
+            pyresample.geometry.GCPDefinition
+
+        """
+        from pyresample.geometry import GCPDefinition
+        key = None
+        try:
+            key = (lons.data.name, lats.data.name)
+            sdef = FileYAMLReader._coords_cache.get(key)
+        except AttributeError:
+            sdef = None
+        if sdef is None:
+            sdef = GCPDefinition(lons, lats, {"longitude": lons_tiepoints, "latitude": lats_tiepoints})
             sensor_str = '_'.join(self.info['sensors'])
             shape_str = '_'.join(map(str, lons.shape))
             sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,

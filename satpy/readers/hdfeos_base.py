@@ -295,6 +295,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     DATASET_NAMES = {
         'longitude': 'Longitude',
         'latitude': 'Latitude',
+        'longitude_tiepoints': 'Longitude',
+        'latitude_tiepoints': 'Latitude',
         'satellite_azimuth_angle': ('SensorAzimuth', 'Sensor_Azimuth'),
         'satellite_zenith_angle': ('SensorZenith', 'Sensor_Zenith'),
         'solar_azimuth_angle': ('SolarAzimuth', 'SolarAzimuth'),
@@ -392,6 +394,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             # otherwise use the default name for this variable
             data = self._load_ds_by_name(dataset_name)
         if resolution != self.geo_resolution:
+            if dataset_name in ["longitude_tiepoints", "latitude_tiepoints"]:
+                return data
             if in_file_dataset_name is not None:
                 # they specified a custom variable name but
                 # we don't know how to interpolate this yet
