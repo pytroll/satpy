@@ -118,10 +118,12 @@ def read_records(filename, format_definition):
     return sections, form
 
 
-def create_xarray(arr):
+def create_xarray(arr, dims=("y", "x"), attrs=None):
     """Create xarray with correct dimensions."""
     res = arr
-    res = xr.DataArray(res, dims=['y', 'x'])
+    if attrs is None:
+        attrs = {}
+    res = xr.DataArray(res, dims=dims, attrs=attrs)
     return res
 
 

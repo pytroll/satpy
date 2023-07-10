@@ -39,14 +39,17 @@
 import datetime
 import shutil
 
+import dask
 import pytest
 import requests
+
+from ..utils import CustomScheduler
 
 _url_sample_file = ("https://go.dwd-nextcloud.de/index.php/s/z87KfL72b9dM5xm/download/"
                     "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sample_file(tmp_path_factory):
     """Obtain sample file."""
     fn = tmp_path_factory.mktemp("data") / "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat"
@@ -127,5 +130,7 @@ def test_read_product_data(sample_file):
 def test_load(sample_file, tmp_path):
     """Test read at a scene and write again."""
     from satpy import Scene
-    sc = Scene(filenames=[sample_file], reader=["iasi_l2_eps"])
-    sc.load(["atmospheric_temperature"])
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        sc = Scene(filenames=[sample_file], reader=["iasi_l2_eps"])
+        sc.load(["atmospheric_temperature"])
+    assert isinstance(sc["atmospheric_temperature"], dask.array.Array)
