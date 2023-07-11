@@ -39,7 +39,7 @@ test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
                  's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
-                 'skyfield', 'ephem', 'pint-xarray', 'astropy']
+                 'skyfield', 'ephem', 'pint-xarray', 'astropy', 'dask-image']
 
 extras_require = {
     # Readers:
@@ -77,6 +77,7 @@ extras_require = {
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
     'angles': ['pyorbital >= 1.3.1'],
+    'filters': ['dask-image'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:

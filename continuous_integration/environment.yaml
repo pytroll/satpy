@@ -5,6 +5,7 @@ dependencies:
   - xarray!=2022.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
   - appdirs
   - toolz
