@@ -37,9 +37,11 @@
 """Test reading IASI L2 SND."""
 
 import datetime
+import pathlib
 import shutil
 
 import dask
+import numpy as np
 import pytest
 import requests
 
@@ -52,6 +54,9 @@ _url_sample_file = ("https://go.dwd-nextcloud.de/index.php/s/z87KfL72b9dM5xm/dow
 @pytest.fixture(scope="module")
 def sample_file(tmp_path_factory):
     """Obtain sample file."""
+    fn = pathlib.Path("/media/nas/x21308/IASI/IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
+    if fn.exists():
+        return fn
     fn = tmp_path_factory.mktemp("data") / "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat"
     data = requests.get(_url_sample_file, stream=True)
     with fn.open(mode="wb") as fp:
@@ -86,9 +91,11 @@ def test_read_all_rows(sample_file):
     """Test reading all rows from data."""
     from satpy.readers.epsnative_reader import assemble_descriptor
     from satpy.readers.iasi_l2_eps import read_all_rows
+
     sensing_start = datetime.datetime.strptime("20190605002352Z", "%Y%m%d%H%M%SZ")
     sensing_stop = datetime.datetime.strptime("20190605020856Z", "%Y%m%d%H%M%SZ")
     descriptor = assemble_descriptor("IASISND02")
+
     mdr_class_offset = 271719118  # last row
     with open(sample_file, "rb") as epsfile_obj:
         data_before_errors_section, algorithms_data, errors_data = read_all_rows(
@@ -109,28 +116,45 @@ def test_read_product_data(sample_file):
     """Test reading product data."""
     from satpy.readers.epsnative_reader import assemble_descriptor
     from satpy.readers.iasi_l2_eps import read_product_data
-    sensing_start = datetime.datetime.strptime("20190605002352Z", "%Y%m%d%H%M%SZ")
-    sensing_stop = datetime.datetime.strptime("20190605020856Z", "%Y%m%d%H%M%SZ")
     descriptor = assemble_descriptor("IASISND02")
-    mdr_class_offset = 271279642  # last row
-    with open(sample_file, "rb") as epsfile_obj:
-        (
-            stacked_data_before_errors,
-            stacked_algo_data,
-            stacked_errors_data,
-        ) = read_product_data(
-            epsfile_obj, descriptor, mdr_class_offset, sensing_start, sensing_stop
-        )
+    mdr_class_offset = 260002007  # not quite the last row
 
-    assert stacked_data_before_errors["INTEGRATED_CO"].shape == (2, 120)
-    assert list(stacked_algo_data.keys()) == ["CO"]
-    assert stacked_errors_data["SURFACE_Z"].shape == (2, 120)
+    with open(sample_file, "rb") as epsfile_obj:
+        (sdbs, sad, sed) = read_product_data(
+                epsfile_obj,
+                descriptor,
+                mdr_class_offset,
+                datetime.datetime(2019, 6, 5, 0, 23, 52),
+                datetime.datetime(2019, 6, 5, 2, 8, 56))
+    assert sdbs["SURFACE_TEMPERATURE"].shape == (37, 120)
+    assert sdbs["ATMOSPHERIC_TEMPERATURE"].shape == (37, 101, 120)
+    np.testing.assert_array_equal(
+            sdbs["SURFACE_TEMPERATURE"][0, 58:64],
+            np.array([27252, 27223, 27188, 27136, 27227, 65535], dtype=np.uint16))
+    np.testing.assert_array_equal(
+            sdbs["SURFACE_TEMPERATURE"][30, 80:86],
+            np.array([27366, 65535, 27368, 27369, 27350, 27406], dtype=np.uint16))
+    assert isinstance(sdbs["ATMOSPHERIC_TEMPERATURE"], dask.array.Array)
 
 
 def test_load(sample_file, tmp_path):
     """Test read at a scene and write again."""
     from satpy import Scene
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-        sc = Scene(filenames=[sample_file], reader=["iasi_l2_eps"])
-        sc.load(["atmospheric_temperature"])
-    assert isinstance(sc["atmospheric_temperature"], dask.array.Array)
+        sc = Scene(filenames=[sample_file], reader=["iasi_l2_eps2"])
+        sc.load(["surface_temperature"])
+    assert sc["surface_temperature"].dims == ("y", "x")
+    np.testing.assert_allclose(
+            sc["surface_temperature"][0, 104:110],
+            np.array([262.55, 261.83, 265.85, 265.81, 256.15, 255.23]))
+    np.testing.assert_allclose(
+            sc["surface_temperature"][1, 104:110],
+            np.array([261.9, 266.88, 268.47, 266.76, 256.63, 261.32]))
+    np.testing.assert_allclose(
+            sc["surface_temperature"][2, 108:112],
+            np.array([262.33, 265.42, 268.32, 266.21]))
+    np.testing.assert_allclose(
+            sc["surface_temperature"][10, 83:89],
+            np.array([271.11, 280.07, 278.65, 278.84, 278.37, 281.54]))
+
+    assert isinstance(sc["surface_temperature"], dask.array.Array)

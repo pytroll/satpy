@@ -61,8 +61,7 @@ class EPSIASIL2FileHandler(BaseFileHandler):
         if self._nc is None:
             self._nc = self._get_netcdf_dataset()
         da = self._nc[dataid["name"]]
-        # scale factor is not relevant and gets in the way
-        da.attrs.pop("scale_factor", None)
+        da = da * da.attrs.pop("scale_factor", 1)
         return da
 
     def _get_netcdf_dataset(self):
@@ -610,12 +609,12 @@ def get_var_dimensions(var_name, values, dimensions):
     dims = {}
     for idx, k in enumerate(values.shape):
         if idx == 0:
-            dims["along_track"] = dimensions["along_track"]
+            dims["y"] = dimensions["y"]
         elif idx == 1:
             if var_name in var_2nd_dim:
                 dims[var_2nd_dim[var_name]] = k
             else:
-                dims["across_track"] = k
+                dims["x"] = k
         else:
             if var_name in var_3rd_dim:
                 dims[var_3rd_dim[var_name]] = k
@@ -670,8 +669,8 @@ def assemble_dimensions(giadr, nr_rows, max_nerr):
     :return dict:
     """
     dimensions = {
-        "across_track": NR_FOV,
-        "along_track": nr_rows,
+        "x": NR_FOV,
+        "y": nr_rows,
         "cloud_formations": 3,
         "co_nbr": NR_FOV,  # pad to FOV number; real value for CO_NBR is provided in MDR
         "nerr": max_nerr,  # max value of NERR values provided in MDR
