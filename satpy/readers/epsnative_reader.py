@@ -154,7 +154,11 @@ def grh_reader(eps_fileobj):
     :param eps_fileobj:
     :return:
     """
-    grh_array = np.fromfile(eps_fileobj, np.dtype(grh_type), 1)
+    dtp = np.dtype(grh_type)
+    if isinstance(eps_fileobj, np.memmap):
+        grh_array = eps_fileobj[:dtp.itemsize].view(dtp)
+    else:
+        grh_array = np.fromfile(eps_fileobj, dtp, 1)
     # When the EOF is reached
     if grh_array.size == 0:
         return ()
