@@ -180,7 +180,7 @@ def read_giadr(input_product, descriptor, **kwargs):
     return class_data
 
 
-def set_values_in_mdr_descriptor(epsfile_obj, mdr_descriptor, mdr_class_offset, field_name):
+def set_values_in_mdr_descriptor(epsfile_mmap, mdr_descriptor, mdr_class_offset, field_name):
     """FIXME DOC.
 
     :param _io.BinaryIO epsfile_obj:
@@ -193,9 +193,8 @@ def set_values_in_mdr_descriptor(epsfile_obj, mdr_descriptor, mdr_class_offset, 
     row_idx = row.index[0]
     row = row.squeeze()
     # read values
-#    epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
-    epsfile_obj = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
-    value = read_values(epsfile_obj, row).astype(int)[0]
+    epsfile_mmap_subset = epsfile_mmap[mdr_class_offset + int(row["OFFSET"]):]
+    value = read_values(epsfile_mmap_subset, row).astype(int)[0]
     # set the read values in MDR-descriptor
     mdr_descriptor.loc[mdr_descriptor["DIM2"] == field_name.lower(), "DIM2"] = value
     return value, row_idx
@@ -265,8 +264,6 @@ def read_errors(epsfile_obj, mdr_descriptor, mdr_class_offset, max_nerr):
     for field in fields_to_read:
         row = mdr_descriptor.loc[mdr_descriptor["FIELD"] == field].squeeze()
         epsfile_mmap_subset = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
-#        epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
-#        values = read_values(epsfile_obj, row, reshape=True)
         values = read_values(epsfile_mmap_subset, row, reshape=True)
         if field != "SURFACE_Z":
             if row["DIM2"] == 0:
@@ -311,9 +308,7 @@ def read_algorithm_sections(
             section = {}
             for _, row in section_rows.iterrows():
                 epsfile_mmap_subset = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
-#                epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
                 values = read_values(epsfile_mmap_subset, row, reshape=True)
-#                values = read_values(epsfile_obj, row, reshape=True)
                 if row["FIELD"] in vars_must_be_extend_to_fov:
                     values = values.reshape(-1, 1) if values.ndim == 1 else values
                     values = np.pad(

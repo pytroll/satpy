@@ -21,12 +21,8 @@ This module is executed automatically by pytest.
 
 """
 import os
-import pathlib
-import shutil
 
-import numpy as np
 import pytest
-import requests
 
 import satpy
 
@@ -59,25 +55,3 @@ def include_test_etc():
     """Tell Satpy to use the config 'etc' directory from the tests directory."""
     with satpy.config.set(config_path=[TEST_ETC_DIR]):
         yield TEST_ETC_DIR
-
-
-_url_sample_file = (
-        "https://go.dwd-nextcloud.de/index.php/s/z87KfL72b9dM5xm/download/"
-        "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
-
-
-@pytest.fixture(scope="session")
-def sample_iasisndl2(tmp_path_factory, request):
-    """Obtain sample file."""
-    fn = pathlib.Path("/media/nas/x21308/IASI/IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
-    if not fn.exists():
-        fn = tmp_path_factory.mktemp("data") / "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat"
-        data = requests.get(_url_sample_file, stream=True)
-        with fn.open(mode="wb") as fp:
-            shutil.copyfileobj(data.raw, fp)
-    if request.param == "string":
-        return fn
-    if request.param == "file":
-        return open(fn, mode="rb")
-    if request.param == "mmap":
-        return np.memmap(fn, mode="r", offset=0)
