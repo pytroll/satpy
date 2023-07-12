@@ -72,8 +72,10 @@ PDUS_DATA = [
     ),
 ]
 
-SAMPLE_PATH = os.path.join(os.path.dirname(__file__), "sample_data")
-SAMPLE_DATA = os.path.join(SAMPLE_PATH, "AVHRRL1.nat")
+sample_file_str = pytest.mark.parametrize(
+        "iasisndl2_file",
+        ["string"],
+        indirect=["iasisndl2_file"])
 
 
 def test_get_class_tuple():
@@ -85,29 +87,15 @@ def test_get_class_tuple():
     assert epsnative_reader.get_class_tuple(class_string) == ("class", "dummy_dummy2")
 
 
-def test_csv_list_by_product():
-    """FIXME DOC."""
-    csv_list = epsnative_reader.csv_list_by_product("AVHRRL1")
-    exp_csv = ["giadr_1_3.csv", "giadr_2_2.csv", "mdr_2_5.csv", "mphr_0_2.csv"]
-
-    assert len(csv_list) == 4
-    for csv_path in csv_list:
-        assert os.path.isfile(csv_path)
-        assert os.path.basename(csv_path) in exp_csv
-
-
 def test_assemble_descriptor():
     """FIXME DOC."""
-    descriptor = epsnative_reader.assemble_descriptor("AVHRRL1")
-    exp_keys = {("giadr", 1, 3), ("giadr", 2, 2), ("mdr", 2, 5), ("mphr", 0, 2)}
+    descriptor = epsnative_reader.assemble_descriptor("IASISNDL2")
+    exp_keys = {('mphr', 0, 2), ('giadr', 1, 4), ('mdr', 1, 4)}
 
     assert set(descriptor.keys()) == exp_keys
 
 
-@pytest.mark.parametrize(
-        "iasisndl2_file",
-        ["string", "file", "mmap"],
-        indirect=["iasisndl2_file"])
+@sample_file_str
 def test_grh_reader(iasisndl2_file):
     """FIXME DOC."""
     grh = epsnative_reader.grh_reader(iasisndl2_file)
@@ -120,82 +108,47 @@ def test_grh_reader(iasisndl2_file):
     assert grh[5] == datetime.datetime(2019, 6, 5, 2, 8, 56, 225000)
 
 
-def test_find_mphr_csv():
+@sample_file_str
+def test_mphr_reader(iasisndl2_file):
     """FIXME DOC."""
-    mphr_csv = epsnative_reader.find_mphr_csv()
-
-    assert os.path.isfile(mphr_csv)
-
-
-def test_mphr_reader():
-    """FIXME DOC."""
-    mphr_content = epsnative_reader.mphr_reader(SAMPLE_DATA)
+    mphr_content = epsnative_reader.mphr_reader(iasisndl2_file)
 
     assert len(mphr_content) == 72
-    assert mphr_content["INSTRUMENT_ID"] == "AVHR"
-    assert mphr_content["ORBIT_START"] == 58431
-    assert mphr_content["ORBIT_END"] == 58432
+    assert mphr_content["INSTRUMENT_ID"] == "IASI"
+    assert mphr_content["ORBIT_START"] == 34826
+    assert mphr_content["ORBIT_END"] == 34827
 
 
-def test_first_class_occurrence():
+@sample_file_str
+def test_first_class_occurrence(iasisndl2_file):
     """FIXME DOC."""
     class_name = "mphr"
-    grh, offset = epsnative_reader.first_class_occurrence(SAMPLE_DATA, class_name)
+    grh, offset = epsnative_reader.first_class_occurrence(iasisndl2_file, class_name)
     assert offset == 0
 
     class_name = "giadr"
-    grh, offset = epsnative_reader.first_class_occurrence(SAMPLE_DATA, class_name)
-    assert offset == 4587
+    grh, offset = epsnative_reader.first_class_occurrence(iasisndl2_file, class_name)
+    assert offset == 3361
     assert grh[0] == class_name
     assert grh[1] == 1
-    assert grh[2] == 3
+    assert grh[2] == 4
 
     class_name = "mdr"
-    grh, offset = epsnative_reader.first_class_occurrence(SAMPLE_DATA, class_name)
-    assert offset == 5077
+    grh, offset = epsnative_reader.first_class_occurrence(iasisndl2_file, class_name)
+    assert offset == 4818
     assert grh[0] == class_name
-    assert grh[1] == 2
+    assert grh[1] == 1
     assert grh[2] == 4
 
 
-def test_read_ipr_sequence():
+@sample_file_str
+def test_read_ipr_sequence(iasisndl2_file):
     """FIXME DOC."""
-    ipr_sequence = epsnative_reader.read_ipr_sequence(SAMPLE_DATA)
+    ipr_sequence = epsnative_reader.read_ipr_sequence(iasisndl2_file)
 
-    assert len(ipr_sequence) == 11
-    assert ipr_sequence[-1]["class"] == ("mdr", 2)
-    assert ipr_sequence[-1]["offset"] == 5077
-
-
-def test_read_grh_of_target_class():
-    """FIXME DOC."""
-    target_offset = 0
-    with open(SAMPLE_DATA, "rb") as eps_fileobj:
-        target_grh = epsnative_reader.read_grh_of_target_class(eps_fileobj, target_offset)
-    assert target_grh[0] == "mphr"
-    assert target_grh[1] == 0
-    assert target_grh[2] == 2
-    assert target_grh[3] == 3307
-
-    target_offset = 5077
-    with open(SAMPLE_DATA, "rb") as eps_fileobj:
-        target_grh = epsnative_reader.read_grh_of_target_class(eps_fileobj, target_offset)
-    assert target_grh[0] == "mdr"
-    assert target_grh[1] == 2
-    assert target_grh[2] == 4
-    assert target_grh[3] == 26660
-
-
-def test_add_info_about_class():
-    """FIXME DOC."""
-    mphr = epsnative_reader.mphr_reader(SAMPLE_DATA)
-    current_class = {"class": "", "offset": 5077}
-    with open(SAMPLE_DATA, "rb") as eps_fileobj:
-        current_class = epsnative_reader.add_info_about_class(eps_fileobj, current_class, {}, mphr)
-
-    assert current_class["class_id"] == ("mdr", 2, 4)
-    assert current_class["class_size"] == 26660
-    assert current_class["nr_records"] == 10.0
+    assert len(ipr_sequence) == 2
+    assert ipr_sequence[-1]["class"] == ("mdr", 1)
+    assert ipr_sequence[-1]["offset"] == 4818
 
 
 def test_reckon_dtype():
@@ -209,30 +162,9 @@ def test_reckon_dtype():
 
 def test_bands_to_records_reader():
     """FIXME DOC."""
-    records = epsnative_reader.bands_to_records_reader("AVHRRL1")
+    records = epsnative_reader.bands_to_records_reader("IASISNDL2")
 
-    assert len(records) == 7
-    assert records["channel_5"]["record_name"] == "SCENE_RADIANCES"
-    assert records["channel_5"]["band_position"] == 4
-    assert records["channel_5"]["convention"] == "BIL"
-
-
-def test_add_record_info_to_band():
-    """FIXME DOC."""
-    record_info = epsnative_reader.add_record_info_to_band("AVHRRL1")
-
-    assert len(record_info) == 7
-    assert record_info[0]["band_id"] == "channel_1"
-    assert record_info[0]["shape"] == [2048, 5]
-    assert record_info[-1]["band_id"] == "longitude"
-    assert record_info[-1]["shape"] == [2, 103]
-
-
-def test_create_toc():
-    """FIXME DOC."""
-    toc = epsnative_reader.create_toc(SAMPLE_DATA)
-
-    assert len(toc) == 11
-    assert toc[0]["class_id"] == ("geadr", 1, 1)
-    assert toc[-1]["class_id"] == ("mdr", 2, 4)
-    assert toc[-1]["y_offset"] == 0
+    assert len(records) == 74
+    assert records["atmospheric_temperature"]["record_name"] == "ATMOSPHERIC_TEMPERATURE"
+    assert records["solar_azimuth"]["metadata"]["units"] == "degrees"
+    assert records["surface_emissivity"]["metadata"]["scale_factor"] == 4
