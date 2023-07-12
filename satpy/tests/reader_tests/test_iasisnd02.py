@@ -40,16 +40,34 @@ import datetime
 
 import dask
 import numpy as np
+import pandas as pd
+import pytest
 
 from ..utils import CustomScheduler
 
+sample_file_str = pytest.mark.parametrize(
+        "iasisndl2_file",
+        ["string"],
+        indirect=["iasisndl2_file"])
 
-def test_read_giadr(sample_file):
+sample_file_file = pytest.mark.parametrize(
+        "iasisndl2_file",
+        ["file"],
+        indirect=["iasisndl2_file"])
+
+sample_file_mmap = pytest.mark.parametrize(
+        "iasisndl2_file",
+        ["mmap"],
+        indirect=["iasisndl2_file"])
+
+
+@sample_file_str
+def test_read_giadr(iasisndl2_file):
     """Test reading GIADR."""
     from satpy.readers.epsnative_reader import assemble_descriptor
     from satpy.readers.iasi_l2_eps import read_giadr
     descriptor = assemble_descriptor("IASISND02")
-    class_data = read_giadr(sample_file, descriptor)
+    class_data = read_giadr(iasisndl2_file, descriptor)
 
     assert len(class_data) == 19
     assert class_data["PRESSURE_LEVELS_OZONE"]["units"] == "Pa"
@@ -67,7 +85,8 @@ def test_datetime_to_second_since_2000():
     assert sec == 60
 
 
-def test_read_all_rows(sample_file):
+@sample_file_mmap
+def test_read_all_rows(iasisndl2_file):
     """Test reading all rows from data."""
     from satpy.readers.epsnative_reader import assemble_descriptor
     from satpy.readers.iasi_l2_eps import read_all_rows
@@ -77,10 +96,9 @@ def test_read_all_rows(sample_file):
     descriptor = assemble_descriptor("IASISND02")
 
     mdr_class_offset = 271719118  # last row
-    with open(sample_file, "rb") as epsfile_obj:
-        data_before_errors_section, algorithms_data, errors_data = read_all_rows(
-            epsfile_obj, descriptor, mdr_class_offset, sensing_start, sensing_stop
-        )
+    data_before_errors_section, algorithms_data, errors_data = read_all_rows(
+        iasisndl2_file, descriptor, mdr_class_offset, sensing_start, sensing_stop
+    )
 
     assert len(data_before_errors_section) == 1
     assert data_before_errors_section[0]["INTEGRATED_CO"].min() == 7205
@@ -91,21 +109,81 @@ def test_read_all_rows(sample_file):
     assert len(errors_data) == 1
     assert errors_data[0]["SURFACE_Z"].min() == 30
 
+    np.testing.assert_array_equal(
+            data_before_errors_section[0]["ATMOSPHERIC_TEMPERATURE"][50, 50:55],
+            np.array([22859, 22844, 22848, 22816, 22812], dtype=np.uint16))
 
-def test_read_product_data(sample_file):
+
+@sample_file_mmap
+def test_read_nerr_values(iasisndl2_file):
+    """Test reading the number of uncertainty values."""
+    from satpy.readers.epsnative_reader import assemble_descriptor
+    from satpy.readers.iasi_l2_eps import read_nerr_values
+
+    descriptor = assemble_descriptor("IASISND02")[("mdr", 1, 4)]
+    nerr = read_nerr_values(iasisndl2_file, descriptor, 271719118)
+    np.testing.assert_array_equal(nerr, [69])
+
+
+@sample_file_mmap
+def test_read_values(iasisndl2_file):
+    """Test reading values from a mmap."""
+    from satpy.readers.iasi_l2_eps import read_values
+
+    row = pd.Series(
+            np.array(
+                ['NERR', 'Number of error data records for current scan line',
+                 0.0, np.nan, 1, '1', 1, 'u-byte', 1, 1.0, 207747.0],
+                dtype=object),
+            index=pd.Index(
+                ['FIELD', 'DESCRIPTION', 'SF', 'UNITS', 'DIM1', 'DIM2', 'DIM3',
+                 'TYPE', 'TYPE_SIZE', 'FIELD_SIZE', 'OFFSET'],
+                dtype=object),
+            name=52)
+    try:
+        iasisndl2_file.seek(271926865)
+    except AttributeError:
+        iasisndl2_file = iasisndl2_file[271926865:]
+
+    vals = read_values(iasisndl2_file, row, False)
+    np.testing.assert_array_equal(vals, [69])
+
+
+@sample_file_mmap
+def test_read_records_before_error_section(iasisndl2_file):
+    """Test reading records before the error section."""
+    from satpy.readers.epsnative_reader import assemble_descriptor
+    from satpy.readers.iasi_l2_eps import read_records_before_error_section
+
+    descriptor = assemble_descriptor("IASISND02")[("mdr", 1, 4)]
+    data = read_records_before_error_section(
+        iasisndl2_file,
+        descriptor[1:54],
+        271719118)
+    np.testing.assert_array_equal(
+            data["SURFACE_TEMPERATURE"][48:55],
+            np.array([29209, 29276, 29386, 29220, 29266, 29568, 29302],
+                     dtype=np.uint16))
+    np.testing.assert_array_equal(
+            data["ATMOSPHERIC_TEMPERATURE"][20:25, 50],
+            np.array([23917, 23741, 23583, 23436, 23290],
+                     dtype=np.uint16))
+
+
+@sample_file_file
+def test_read_product_data(iasisndl2_file):
     """Test reading product data."""
     from satpy.readers.epsnative_reader import assemble_descriptor
     from satpy.readers.iasi_l2_eps import read_product_data
     descriptor = assemble_descriptor("IASISND02")
     mdr_class_offset = 260002007  # not quite the last row
 
-    with open(sample_file, "rb") as epsfile_obj:
-        (sdbs, sad, sed) = read_product_data(
-                epsfile_obj,
-                descriptor,
-                mdr_class_offset,
-                datetime.datetime(2019, 6, 5, 0, 23, 52),
-                datetime.datetime(2019, 6, 5, 2, 8, 56))
+    (sdbs, sad, sed) = read_product_data(
+            iasisndl2_file,
+            descriptor,
+            mdr_class_offset,
+            datetime.datetime(2019, 6, 5, 0, 23, 52),
+            datetime.datetime(2019, 6, 5, 2, 8, 56))
     assert sdbs["SURFACE_TEMPERATURE"].shape == (37, 120)
     assert sdbs["ATMOSPHERIC_TEMPERATURE"].shape == (37, 101, 120)
     np.testing.assert_array_equal(
@@ -117,24 +195,22 @@ def test_read_product_data(sample_file):
     assert isinstance(sdbs["ATMOSPHERIC_TEMPERATURE"], dask.array.Array)
 
 
-def test_load(sample_file, tmp_path):
+@sample_file_str
+def test_load(iasisndl2_file, tmp_path):
     """Test read at a scene and write again."""
     from satpy import Scene
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-        sc = Scene(filenames=[sample_file], reader=["iasi_l2_eps2"])
+        sc = Scene(filenames=[iasisndl2_file], reader=["iasi_l2_eps2"])
         sc.load(["surface_temperature"])
     assert sc["surface_temperature"].dims == ("y", "x")
     np.testing.assert_allclose(
-            sc["surface_temperature"][0, 104:110],
-            np.array([262.55, 261.83, 265.85, 265.81, 256.15, 255.23]))
+            sc["surface_temperature"][0, 100:104],
+            np.array([270.39, 270.21, 269.65, 269.66]))
     np.testing.assert_allclose(
-            sc["surface_temperature"][1, 104:110],
-            np.array([261.9, 266.88, 268.47, 266.76, 256.63, 261.32]))
+            sc["surface_temperature"][1, 106:110],
+            np.array([269.91, 270.07, 270.02, 270.41]))
     np.testing.assert_allclose(
-            sc["surface_temperature"][2, 108:112],
-            np.array([262.33, 265.42, 268.32, 266.21]))
-    np.testing.assert_allclose(
-            sc["surface_temperature"][10, 83:89],
-            np.array([271.11, 280.07, 278.65, 278.84, 278.37, 281.54]))
+            sc["surface_temperature"][30, 60:66],
+            np.array([282.27, 283.18, 285.67, 282.98, 282.81, 282.9]))
 
-    assert isinstance(sc["surface_temperature"], dask.array.Array)
+    assert isinstance(sc["surface_temperature"].data, dask.array.Array)

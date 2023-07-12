@@ -29,6 +29,7 @@ import collections
 import datetime
 import itertools
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 
@@ -132,7 +133,10 @@ def read_values(eps_fileobj, row, reshape=False):
     shape = [int(row[k]) for k in row.keys() if k.lower().startswith("dim")]
     shape = [k for k in shape if k > 1]
     count = int(np.product(shape))
-    values = np.fromfile(eps_fileobj, dtype, count)
+    if isinstance(eps_fileobj, np.memmap):
+        values = eps_fileobj[:(np.dtype(dtype).itemsize*count)].view(dtype)
+    else:
+        values = np.fromfile(eps_fileobj, dtype, count)
     # if np.isfinite(row['SF']):
     #     values = values / 10 ** row['SF']
     if row["TYPE"].startswith("v-"):
@@ -189,7 +193,8 @@ def set_values_in_mdr_descriptor(epsfile_obj, mdr_descriptor, mdr_class_offset, 
     row_idx = row.index[0]
     row = row.squeeze()
     # read values
-    epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
+#    epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
+    epsfile_obj = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
     value = read_values(epsfile_obj, row).astype(int)[0]
     # set the read values in MDR-descriptor
     mdr_descriptor.loc[mdr_descriptor["DIM2"] == field_name.lower(), "DIM2"] = value
@@ -259,8 +264,10 @@ def read_errors(epsfile_obj, mdr_descriptor, mdr_class_offset, max_nerr):
     errors = {}
     for field in fields_to_read:
         row = mdr_descriptor.loc[mdr_descriptor["FIELD"] == field].squeeze()
-        epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
-        values = read_values(epsfile_obj, row, reshape=True)
+        epsfile_mmap_subset = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
+#        epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
+#        values = read_values(epsfile_obj, row, reshape=True)
+        values = read_values(epsfile_mmap_subset, row, reshape=True)
         if field != "SURFACE_Z":
             if row["DIM2"] == 0:
                 values = np.full((row["DIM1"], max_nerr), missing_value)
@@ -303,8 +310,10 @@ def read_algorithm_sections(
             section_rows = mdr_descriptor.loc[mdr_descriptor["FIELD"].str.startswith(prefix)]
             section = {}
             for _, row in section_rows.iterrows():
-                epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
-                values = read_values(epsfile_obj, row, reshape=True)
+                epsfile_mmap_subset = epsfile_obj[mdr_class_offset + int(row["OFFSET"]):]
+#                epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
+                values = read_values(epsfile_mmap_subset, row, reshape=True)
+#                values = read_values(epsfile_obj, row, reshape=True)
                 if row["FIELD"] in vars_must_be_extend_to_fov:
                     values = values.reshape(-1, 1) if values.ndim == 1 else values
                     values = np.pad(
@@ -429,11 +438,14 @@ def stack_non_algorithm_data(data):
         for key in stacked_data:
             stacked_data[key].append(row[key])
     for key, content in stacked_data.items():
-        stacked_data[key] = np.stack(content, axis=0)
+        if getattr(content[0], "size", 0) > 10:
+            stacked_data[key] = da.stack(content, axis=0)
+        else:
+            stacked_data[key] = np.stack(content, axis=0)
     return stacked_data
 
 
-def read_records_before_error_section(epsfile_obj, mdr_descriptor, mdr_class_offset):
+def read_records_before_error_section(epsfile_mmap, mdr_descriptor, mdr_class_offset):
     """FIXME DOC.
 
     :param _io.BinaryIO epsfile_obj:
@@ -443,9 +455,9 @@ def read_records_before_error_section(epsfile_obj, mdr_descriptor, mdr_class_off
     """
     data = {}
     for _, row in mdr_descriptor.iterrows():
-        epsfile_obj.seek(mdr_class_offset + int(row["OFFSET"]))
+        epsfile_mmap_subset = epsfile_mmap[mdr_class_offset + int(row["OFFSET"]):]
         reshape_flag = False if row["FIELD"] in ["EARTH_LOCATION", "ANGULAR_RELATION"] else True
-        values = read_values(epsfile_obj, row, reshape=reshape_flag)
+        values = read_values(epsfile_mmap_subset, row, reshape=reshape_flag)
         data[row["FIELD"]] = values
     return data
 
@@ -460,7 +472,7 @@ def datetime_to_second_since_2000(date):
     return (date - era).total_seconds()
 
 
-def read_nerr_values(epsfile_obj, mdr_descriptor, mdr_class_offset):
+def read_nerr_values(epsfile_mmap, mdr_descriptor, mdr_class_offset):
     """FIXME DOC.
 
     Return a numpy array of all NERR values as red from each MDR class (i.e. data row). The
@@ -474,21 +486,23 @@ def read_nerr_values(epsfile_obj, mdr_descriptor, mdr_class_offset):
     """
     nerr_row = mdr_descriptor.loc[mdr_descriptor["FIELD"] == "NERR"].iloc[0]
     nerr_values = []
-    epsfile_obj.seek(mdr_class_offset)
+    epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
     while True:
-        grh = epsnative_reader.grh_reader(epsfile_obj)
+        grh = epsnative_reader.grh_reader(epsfile_mmap_subset)
         if grh:
             if grh[0:3] == ("mdr", 1, 4):
-                epsfile_obj.seek(mdr_class_offset + int(nerr_row["OFFSET"]))
-                nerr_values.append(read_values(epsfile_obj, nerr_row, reshape=False)[0])
+                new_offset = mdr_class_offset + int(nerr_row["OFFSET"])
+                epsfile_mmap_subset = epsfile_mmap[new_offset:]
+                nerr_values.append(read_values(
+                    epsfile_mmap_subset, nerr_row, reshape=False)[0])
                 mdr_class_offset += grh[3]
-            epsfile_obj.seek(mdr_class_offset)
+            epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
         else:
             break
     return np.array(nerr_values)
 
 
-def read_all_rows(epsfile_obj, descriptor, mdr_class_offset, sensing_start, sensing_stop):
+def read_all_rows(epsfile_mmap, descriptor, mdr_class_offset, sensing_start, sensing_stop):
     """FIXME DOC.
 
     :param _io.BinaryIO epsfile_obj:
@@ -502,13 +516,13 @@ def read_all_rows(epsfile_obj, descriptor, mdr_class_offset, sensing_start, sens
     last_constant_row = mdr_descriptor.loc[mdr_descriptor["FIELD"] == "ERROR_DATA_INDEX"].index[0]
     mdr_descr_constant_offsets = mdr_descriptor[1:last_constant_row + 1]
     vars_must_be_extend_to_fov = get_vars_must_be_extend_to_fov(mdr_descriptor)
-    max_nerr = read_nerr_values(epsfile_obj, mdr_descriptor, mdr_class_offset).max()
+    max_nerr = read_nerr_values(epsfile_mmap, mdr_descriptor, mdr_class_offset).max()
     algorithms_data = []
     data_before_errors_section = []
     errors_data = []
-    epsfile_obj.seek(mdr_class_offset)
+    epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
     while True:
-        grh = epsnative_reader.grh_reader(epsfile_obj)
+        grh = epsnative_reader.grh_reader(epsfile_mmap_subset)
         if grh:
             if grh[0:3] == ("mdr", 1, 4):
                 overlap = reckon_overlap(
@@ -519,13 +533,13 @@ def read_all_rows(epsfile_obj, descriptor, mdr_class_offset, sensing_start, sens
                     record_stop_time = datetime_to_second_since_2000(grh[-1])
 
                     records_before_error_section = read_records_before_error_section(
-                        epsfile_obj, mdr_descr_constant_offsets, mdr_class_offset
+                       epsfile_mmap, mdr_descr_constant_offsets, mdr_class_offset
                     )
                     records_before_error_section["record_start_time"] = record_start_time
                     records_before_error_section["record_stop_time"] = record_stop_time
                     data_before_errors_section.append(records_before_error_section)
                     algorithm_data, errors = read_algorithm_sections(
-                        epsfile_obj,
+                        epsfile_mmap,
                         mdr_descriptor,
                         mdr_class_offset,
                         vars_must_be_extend_to_fov,
@@ -538,7 +552,7 @@ def read_all_rows(epsfile_obj, descriptor, mdr_class_offset, sensing_start, sens
                     mdr_class_offset += grh[3]
             else:
                 algorithms_data.append("dummy_mdr")
-            epsfile_obj.seek(mdr_class_offset)
+            epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
         else:
             break
     return data_before_errors_section, algorithms_data, errors_data
@@ -554,8 +568,9 @@ def read_product_data(epsfile_obj, descriptor, mdr_class_offset, sensing_start, 
     :param datetime.datetime sensing_stop:
     :return (dict, dict, dict):
     """
+    epsfile_mmap = np.memmap(epsfile_obj, mode="r")
     data_before_errors, algorithms_data, errors = read_all_rows(
-        epsfile_obj, descriptor, mdr_class_offset, sensing_start, sensing_stop
+        epsfile_mmap, descriptor, mdr_class_offset, sensing_start, sensing_stop
     )
     algorithms_data = fill_invalid_rows(algorithms_data)
     stacked_algo_data = initialize_stacked_algorithms_output(algorithms_data)

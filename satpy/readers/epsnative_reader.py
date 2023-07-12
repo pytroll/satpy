@@ -155,7 +155,9 @@ def grh_reader(eps_fileobj):
     :return:
     """
     dtp = np.dtype(grh_type)
-    if isinstance(eps_fileobj, np.memmap):
+    # test for ndarray instead of memmap, because an empty slice from a memmap
+    # becomes an ndarray, and this happens at EOF
+    if isinstance(eps_fileobj, np.ndarray):
         grh_array = eps_fileobj[:dtp.itemsize].view(dtp)
     else:
         grh_array = np.fromfile(eps_fileobj, dtp, 1)

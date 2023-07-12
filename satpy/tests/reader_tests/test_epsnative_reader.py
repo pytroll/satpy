@@ -40,7 +40,6 @@
 import datetime
 import os
 
-import numpy as np
 import pytest
 
 from satpy.readers import epsnative_reader
@@ -105,17 +104,13 @@ def test_assemble_descriptor():
     assert set(descriptor.keys()) == exp_keys
 
 
-@pytest.mark.parametrize("how", ["string", "file", "mmap"])
-def test_grh_reader(sample_file, how):
+@pytest.mark.parametrize(
+        "iasisndl2_file",
+        ["string", "file", "mmap"],
+        indirect=["iasisndl2_file"])
+def test_grh_reader(iasisndl2_file):
     """FIXME DOC."""
-    if how == "file":
-        sample = open(sample_file, mode="rb")
-    elif how == "mmap":
-        sample = np.memmap(sample_file, mode="r", offset=0)
-    else:
-        sample = sample_file
-
-    grh = epsnative_reader.grh_reader(sample)
+    grh = epsnative_reader.grh_reader(iasisndl2_file)
     assert len(grh) == 6
     assert grh[0] == "mphr"
     assert grh[1] == 0
