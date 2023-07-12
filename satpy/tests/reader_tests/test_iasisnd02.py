@@ -200,7 +200,7 @@ def test_load(iasisndl2_file, tmp_path):
     """Test read at a scene and write again."""
     from satpy import Scene
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-        sc = Scene(filenames=[iasisndl2_file], reader=["iasi_l2_eps2"])
+        sc = Scene(filenames=[iasisndl2_file], reader=["iasi_l2_eps"])
         sc.load(["surface_temperature"])
     assert sc["surface_temperature"].dims == ("y", "x")
     np.testing.assert_allclose(
