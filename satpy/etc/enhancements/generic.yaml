@@ -942,6 +942,16 @@ enhancements:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
             - {colors: greys, min_value: 253.15, max_value: 303.15}
 
+  land_surface_temperature:
+    standard_name: land_surface_temperature
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylgnbu, min_value: -50., max_value: 20., reverse: True}
+            - {colors: ylorrd, min_value: 20., max_value: 70.}
+
   vis_sharpened_ir:
     standard_name: vis_sharpened_ir
     operations:
