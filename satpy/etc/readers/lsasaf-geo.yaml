@@ -12,7 +12,8 @@ reader:
 file_types:
     h5_nwcsaf_lst:
         file_reader: !!python/name:satpy.readers.lsasaf_h5.H5LSASAF
-        file_patterns: ['HDF5_LSASAF_MSG_LST_{region_id}_{start_time:%Y%m%d%H%M}']
+        file_patterns: ['HDF5_LSASAF_MSG_LST_{region_id}_{start_time:%Y%m%d%H%M}',
+                        'S-LSA_HDF5_LSASAF_MSG_LST_{region_id}_{start_time:%Y%m%d%H%M}',]
 
 datasets:
 
