@@ -166,4 +166,3 @@ This dictionary can then be passed to the `save_dataset` or `save_datasets` comm
 
     >>> scene.save_dataset(my_dataset, writer='simple_image', fill_value=False,
     >>>                    decorate=decodict)
-
