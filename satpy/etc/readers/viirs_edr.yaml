@@ -1,6 +1,6 @@
 reader:
-    description: VIIRS NOAA Enterprise L2 product reader
-    name: viirs_l2_jrr
+    description: VIIRS NOAA Enterprise EDR product reader
+    name: viirs_edr
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
     group_keys: ['platform_shortname']

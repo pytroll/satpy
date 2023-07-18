@@ -27,7 +27,7 @@ from unittest.mock import MagicMock
 
 import xarray as xr
 
-from satpy.readers.viirs_l2_jrr import VIIRSJRRFileHandler
+from satpy.readers.viirs_edr import VIIRSJRRFileHandler
 
 
 class TestVIIRSJRRReader(unittest.TestCase):
