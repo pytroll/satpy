@@ -18,13 +18,28 @@
 """test file handler baseclass."""
 
 import unittest
+from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
 import pytest
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.tests.utils import FakeFileHandler
+
+
+def test_open_dataset():
+    """Test xr.open_dataset wrapper."""
+    fn = mock.MagicMock()
+    str_file_path = "path/to/file.nc"
+    with mock.patch('xarray.open_dataset') as xr_open:
+        _ = open_dataset(fn, decode_cf=True, chunks=500)
+        fn.open.assert_called_once_with()
+        xr_open.assert_called_once_with(fn.open(), decode_cf=True, chunks=500)
+
+        xr_open.reset_mock()
+        _ = open_dataset(str_file_path, decode_cf=True, chunks=500)
+        xr_open.assert_called_once_with(str_file_path, decode_cf=True, chunks=500)
 
 
 class TestBaseFileHandler(unittest.TestCase):
@@ -32,8 +47,6 @@ class TestBaseFileHandler(unittest.TestCase):
 
     def setUp(self):
         """Set up the test."""
-        self._old_set = BaseFileHandler.__abstractmethods__
-        BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
             'filename', {'filename_info': 'bla'}, 'filetype_info')
 
@@ -143,6 +156,28 @@ class TestBaseFileHandler(unittest.TestCase):
         # Empty
         self.fh.combine_info([{}])
 
+    def test_combine_time_parameters(self):
+        """Combine times in 'time_parameters."""
+        time_params1 = {
+            'nominal_start_time': datetime(2020, 1, 1, 12, 0, 0),
+            'nominal_end_time': datetime(2020, 1, 1, 12, 2, 30),
+            'observation_start_time': datetime(2020, 1, 1, 12, 0, 2, 23821),
+            'observation_end_time': datetime(2020, 1, 1, 12, 2, 23, 12348),
+        }
+        time_params2 = {}
+        time_shift = timedelta(seconds=1.5)
+        for key, value in time_params1.items():
+            time_params2[key] = value + time_shift
+        res = self.fh.combine_info([
+            {'time_parameters': time_params1},
+            {'time_parameters': time_params2}
+        ])
+        res_time_params = res['time_parameters']
+        assert res_time_params['nominal_start_time'] == datetime(2020, 1, 1, 12, 0, 0)
+        assert res_time_params['nominal_end_time'] == datetime(2020, 1, 1, 12, 2, 31, 500000)
+        assert res_time_params['observation_start_time'] == datetime(2020, 1, 1, 12, 0, 2, 23821)
+        assert res_time_params['observation_end_time'] == datetime(2020, 1, 1, 12, 2, 24, 512348)
+
     def test_file_is_kept_intact(self):
         """Test that the file object passed (string, path, or other) is kept intact."""
         open_file = mock.MagicMock()
@@ -153,10 +188,6 @@ class TestBaseFileHandler(unittest.TestCase):
         filename = Path('/bla/bla.nc')
         bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
         assert isinstance(bfh.filename, Path)
-
-    def tearDown(self):
-        """Tear down the test."""
-        BaseFileHandler.__abstractmethods__ = self._old_set
 
 
 @pytest.mark.parametrize(

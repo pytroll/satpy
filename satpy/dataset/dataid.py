@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2021 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,7 +17,6 @@
 
 import logging
 import numbers
-import warnings
 from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
@@ -45,7 +42,14 @@ def get_keys_from_config(common_id_keys, config):
 
 
 class ValueList(IntEnum):
-    """A static value list."""
+    """A static value list.
+
+    This class is meant to be used for dynamically created Enums. Due to this
+    it should not be used as a normal Enum class or there may be some
+    unexpected behavior. For example, this class contains custom pickling and
+    unpickling handling that may break in subclasses.
+
+    """
 
     @classmethod
     def convert(cls, value):
@@ -54,6 +58,21 @@ class ValueList(IntEnum):
             return cls[value]
         except KeyError:
             raise ValueError('{} invalid value for {}'.format(value, cls))
+
+    @classmethod
+    def _unpickle(cls, enum_name, enum_members, enum_member):
+        """Create dynamic class that was previously pickled.
+
+        See :meth:`__reduce_ex__` for implementation details.
+
+        """
+        enum_cls = cls(enum_name, enum_members)
+        return enum_cls[enum_member]
+
+    def __reduce_ex__(self, proto):
+        """Reduce the object for pickling."""
+        return (ValueList._unpickle,
+                (self.__class__.__name__, list(self.__class__.__members__.keys()), self.name))
 
     def __eq__(self, other):
         """Check equality."""
@@ -378,15 +397,6 @@ class DataID(dict):
                 res_dict[key] = value
         return res_dict
 
-    def __getattr__(self, key):
-        """Support old syntax for getting items."""
-        if key in self._id_keys:
-            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.',
-                          stacklevel=2)
-            return self[key]
-        else:
-            return super().__getattr__(key)
-
     def __deepcopy__(self, memo=None):
         """Copy this object.
 
@@ -447,7 +457,7 @@ class DataID(dict):
     popitem = _immutable
     clear = _immutable
     update = _immutable  # type: ignore
-    setdefault = _immutable
+    setdefault = _immutable  # type: ignore
 
     def _find_modifiers_key(self):
         for key, val in self.items():
@@ -486,7 +496,7 @@ class DataQuery:
     """The data query object.
 
     A DataQuery can be used in Satpy to query for a Dataset. This way
-    a fully qualified DataID can be found even if some of the DataID
+    a fully qualified DataID can be found even if some DataID
     elements are unknown. In this case a `*` signifies something that is
     unknown or not applicable to the requested Dataset.
     """

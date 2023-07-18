@@ -3,7 +3,8 @@ sensor_name: visir/abi
 modifiers:
   rayleigh_corrected_crefl:
     modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
-    dem_filename: CMGDEM.hdf
+    url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
+    known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -271,14 +272,37 @@ composites:
       - name: C01
     standard_name: cimss_true_color
 
+  true_color_with_night_fires_nocorr:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_fires
+    prerequisites:
+      - true_color_nocorr
+      - cira_fire_temperature
+
+  true_color_with_night_fires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_fires
+    prerequisites:
+      - true_color
+      - cira_fire_temperature
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
-    lim_low: 90.0
-    lim_high: 100.0
+    lim_low: 80
+    lim_high: 90
     prerequisites:
       - true_color
       - night_ir_with_background
+
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
 
   true_color_with_night_ir_hires:
     compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -307,7 +331,7 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
@@ -577,7 +601,8 @@ composites:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/visir.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -593,7 +618,8 @@ composites:
     description: >
       SEVIRI Day Microphysics RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/ahi.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -621,8 +647,8 @@ composites:
     description: >
       EUMETSAT Cloud Phase RGB product
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
-      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05
@@ -679,3 +705,34 @@ composites:
     prerequisites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 77.
+    lim_high: 88.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+      - name: green_nocorr
+      - name: C01
+    standard_name: true_color_reproduction_color_stretch

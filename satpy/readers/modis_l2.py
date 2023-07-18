@@ -46,14 +46,16 @@ References:
 """
 import logging
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf4_utils import from_sds
 from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class ModisL2HDFFileHandler(HDFEOSGeoReader):
@@ -188,33 +190,47 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                               in zip(dataset.shape, quality_assurance.shape)]
         quality_assurance = np.tile(quality_assurance, duplication_factor)
         # Replace unassured data by NaN value
-        dataset[np.where(quality_assurance == 0)] = dataset.attrs["_FillValue"]
+        dataset = dataset.where(quality_assurance != 0, dataset.attrs["_FillValue"])
         return dataset
 
 
 def _extract_byte_mask(dataset, byte_information, bit_start, bit_count):
+    attrs = dataset.attrs.copy()
+
     if isinstance(byte_information, int):
         # Only one byte: select the byte information
         byte_dataset = dataset[byte_information, :, :]
+        dataset = _bits_strip(bit_start, bit_count, byte_dataset)
     elif isinstance(byte_information, (list, tuple)) and len(byte_information) == 2:
         # Two bytes: recombine the two bytes
-        dataset_a = dataset[byte_information[0], :, :]
-        dataset_b = dataset[byte_information[1], :, :]
-        dataset_a = np.uint16(dataset_a)
-        dataset_a = np.left_shift(dataset_a, 8)  # dataset_a << 8
-        byte_dataset = np.bitwise_or(dataset_a, dataset_b).astype(np.uint16)
-        shape = byte_dataset.shape
-        # We replicate the concatenated byte with the right shape
-        byte_dataset = np.repeat(np.repeat(byte_dataset, 4, axis=0), 4, axis=1)
-        # All bits carry information, we update bit_start consequently
-        bit_start = np.arange(16, dtype=np.uint16).reshape((4, 4))
-        bit_start = np.tile(bit_start, (shape[0], shape[1]))
+        byte_mask = da.map_blocks(
+            _extract_two_byte_mask,
+            dataset.data[byte_information[0]],
+            dataset.data[byte_information[1]],
+            bit_start=bit_start,
+            bit_count=bit_count,
+            dtype=np.uint16,
+            meta=np.array((), dtype=np.uint16),
+            chunks=tuple(tuple(chunk_size * 4 for chunk_size in dim_chunks) for dim_chunks in dataset.chunks[1:]),
+        )
+        dataset = xr.DataArray(byte_mask, dims=dataset.dims[1:])
 
     # Compute the final bit mask
-    attrs = dataset.attrs.copy()
-    dataset = _bits_strip(bit_start, bit_count, byte_dataset)
     dataset.attrs = attrs
     return dataset
+
+
+def _extract_two_byte_mask(data_a: np.ndarray, data_b: np.ndarray, bit_start: int, bit_count: int) -> np.ndarray:
+    data_a = data_a.astype(np.uint16, copy=False)
+    data_a = np.left_shift(data_a, 8)  # dataset_a << 8
+    byte_dataset = np.bitwise_or(data_a, data_b).astype(np.uint16)
+    shape = byte_dataset.shape
+    # We replicate the concatenated byte with the right shape
+    byte_dataset = np.repeat(np.repeat(byte_dataset, 4, axis=0), 4, axis=1)
+    # All bits carry information, we update bit_start consequently
+    bit_start = np.arange(16, dtype=np.uint16).reshape((4, 4))
+    bit_start = np.tile(bit_start, (shape[0], shape[1]))
+    return _bits_strip(bit_start, bit_count, byte_dataset)
 
 
 def _bits_strip(bit_start, bit_count, value):

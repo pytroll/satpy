@@ -1,0 +1,29 @@
+sensor_name: visir/insat_img
+
+composites:
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.8
+      - wavelength: 0.64
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - wavelength: 1.6
+        modifiers: [ sunz_corrected ]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.8
+      - wavelength: 0.64
+      - wavelength: 1.6
+    standard_name: cloud_phase_distinction

@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
+from contextlib import contextmanager
 from datetime import datetime
 from unittest import mock
 
@@ -178,7 +179,8 @@ class FakeCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **kwargs):
         """Produce test compositor data depending on modifiers and input data provided."""
-        projectables = self.match_data_arrays(projectables)
+        if projectables:
+            projectables = self.match_data_arrays(projectables)
         if nonprojectables:
             self.match_data_arrays(nonprojectables)
         info = self.attrs.copy()
@@ -193,8 +195,12 @@ class FakeCompositor(GenericCompositor):
             raise ValueError("Not enough prerequisite datasets passed")
 
         info.update(kwargs)
-        info['area'] = projectables[0].attrs['area']
-        dim_sizes = projectables[0].sizes
+        if projectables:
+            info['area'] = projectables[0].attrs['area']
+            dim_sizes = projectables[0].sizes
+        else:
+            # static_image
+            dim_sizes = {'y': 4, 'x': 5}
         return DataArray(data=da.zeros((dim_sizes['y'], dim_sizes['x'], 3)),
                          attrs=info,
                          dims=['y', 'x', 'bands'],
@@ -284,6 +290,14 @@ class CustomScheduler(object):
         return dask.get(dsk, keys, **kwargs)
 
 
+@contextmanager
+def assert_maximum_dask_computes(max_computes=1):
+    """Context manager to make sure dask computations are not executed more than ``max_computes`` times."""
+    import dask
+    with dask.config.set(scheduler=CustomScheduler(max_computes=max_computes)) as new_config:
+        yield new_config
+
+
 def make_fake_scene(content_dict, daskify=False, area=True,
                     common_attrs=None):
     """Create a fake Scene.
@@ -316,9 +330,9 @@ def make_fake_scene(content_dict, daskify=False, area=True,
         area (bool or BaseDefinition): Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
-            the default, automatically generate areas.  If ``False``, values
-            will not have assigned areas.  If an instance of
-            ``pyresample.geometry.BaseDefinition``, those instances will be
+            the default, automatically generate areas with the name "test-area".
+            If ``False``, values will not have assigned areas.  If an instance
+            of ``pyresample.geometry.BaseDefinition``, those instances will be
             used for all generated fake datasets.  Warning: Passing an area as
             a string (``area="germ"``) is not supported.
         common_attrs (Mapping): optional, additional attributes that will
@@ -332,29 +346,43 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     sc = Scene()
     for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        if isinstance(area, BaseDefinition):
-            extra_attrs["area"] = area
-        elif area:
-            extra_attrs["area"] = create_area_def(
-                    "test-area",
-                    {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
-                     "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
-                     "no_defs": None, "type": "crs"},
-                    units="m",
-                    shape=arr.shape,
-                    resolution=1000,
-                    center=(0, 0))
-        if isinstance(arr, DataArray):
-            sc[did] = arr.copy()  # don't change attributes of input
-            sc[did].attrs.update(extra_attrs)
-        else:
-            if daskify:
-                arr = da.from_array(arr)
-            sc[did] = DataArray(
-                    arr,
-                    dims=("y", "x"),
-                    attrs=extra_attrs)
+        if area:
+            extra_attrs["area"] = _get_fake_scene_area(arr, area)
+        sc[did] = _get_did_for_fake_scene(area, arr, extra_attrs, daskify)
     return sc
+
+
+def _get_fake_scene_area(arr, area):
+    """Get area for fake scene.  Helper for make_fake_scene."""
+    if isinstance(area, BaseDefinition):
+        return area
+    return create_area_def(
+        "test-area",
+        {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
+         "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
+         "no_defs": None, "type": "crs"},
+        units="m",
+        shape=arr.shape,
+        resolution=1000,
+        center=(0, 0))
+
+
+def _get_did_for_fake_scene(area, arr, extra_attrs, daskify):
+    """Add instance to fake scene.  Helper for make_fake_scene."""
+    from satpy.resample import add_crs_xy_coords
+    if isinstance(arr, DataArray):
+        new = arr.copy()  # don't change attributes of input
+        new.attrs.update(extra_attrs)
+    else:
+        if daskify:
+            arr = da.from_array(arr)
+        new = DataArray(
+                arr,
+                dims=("y", "x"),
+                attrs=extra_attrs)
+    if area:
+        new = add_crs_xy_coords(new, extra_attrs["area"])
+    return new
 
 
 def assert_attrs_equal(attrs, attrs_exp, tolerance=0):

@@ -30,16 +30,20 @@ temporary directory for reading.
 
 import logging
 import os
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from io import BytesIO
-from subprocess import PIPE, Popen
-from tempfile import gettempdir
+from subprocess import PIPE, Popen  # nosec B404
 
+import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+import satpy.readers.utils as utils
+from satpy import config
+from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -132,7 +136,7 @@ def decompress(infile, outdir='.'):
     cwd = os.getcwd()
     os.chdir(outdir)
 
-    p = Popen([cmd, infile], stdout=PIPE)
+    p = Popen([cmd, infile], stdout=PIPE)  # nosec B603
     stdout = BytesIO(p.communicate()[0])
     status = p.returncode
     os.chdir(cwd)
@@ -148,6 +152,18 @@ def decompress(infile, outdir='.'):
     return os.path.join(outdir, outfile.decode('utf-8'))
 
 
+def get_header_id(fp):
+    """Return the HRIT header common data."""
+    data = fp.read(common_hdr.itemsize)
+    return np.frombuffer(data, dtype=common_hdr, count=1)[0]
+
+
+def get_header_content(fp, header_dtype, count=1):
+    """Return the content of the HRIT header."""
+    data = fp.read(header_dtype.itemsize * count)
+    return np.frombuffer(data, dtype=header_dtype, count=count)
+
+
 class HRITFileHandler(BaseFileHandler):
     """HRIT standard format reader."""
 
@@ -157,17 +173,8 @@ class HRITFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self.mda = {}
-        self._get_hd(hdr_info)
-
-        if self.mda.get('compression_flag_for_data'):
-            logger.debug('Unpacking %s', filename)
-            try:
-                self.filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.warning("Unpacking failed: %s", str(err))
-            self.mda = {}
-            self._get_hd(hdr_info)
-
+        self.hdr_info = hdr_info
+        self._get_hd(self.hdr_info)
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
 
@@ -175,17 +182,15 @@ class HRITFileHandler(BaseFileHandler):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
-        with open(self.filename) as fp:
+        with utils.generic_open(self.filename, mode='rb') as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
-                hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
+                hdr_id = get_header_id(fp)
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
-                    current_hdr = np.fromfile(fp,
-                                              dtype=the_type,
-                                              count=field_length)
+                    current_hdr = get_header_content(fp, the_type, field_length)
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -198,14 +203,10 @@ class HRITFileHandler(BaseFileHandler):
                                        the_type.itemsize)
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
-                    current_hdr = np.fromfile(fp,
-                                              dtype=new_type,
-                                              count=1)[0]
+                    current_hdr = get_header_content(fp, new_type)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
-                    current_hdr = np.fromfile(fp,
-                                              dtype=the_type,
-                                              count=1)[0]
+                    current_hdr = get_header_content(fp, the_type)[0]
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
@@ -220,9 +221,15 @@ class HRITFileHandler(BaseFileHandler):
                                              'SSP_longitude': 0.0}
         self.mda['orbital_parameters'] = {}
 
-    def get_shape(self, dsid, ds_info):
-        """Get shape."""
-        return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
+    @property
+    def observation_start_time(self):
+        """Get observation start time."""
+        return self._start_time
+
+    @property
+    def observation_end_time(self):
+        """Get observation end time."""
+        return self._end_time
 
     @property
     def start_time(self):
@@ -313,20 +320,101 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        shape = int(np.ceil(self.mda['data_field_length'] / 8.))
-        if self.mda['number_of_bits_per_pixel'] == 16:
-            dtype = '>u2'
-            shape //= 2
-        elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
-            dtype = np.uint8
-        shape = (shape, )
-        data = np.memmap(self.filename, mode='r',
-                         offset=self.mda['total_header_length'],
-                         dtype=dtype,
-                         shape=shape)
-        data = da.from_array(data, chunks=shape[0])
-        if self.mda['number_of_bits_per_pixel'] == 10:
+        output_dtype, output_shape = self._get_output_info()
+        return da.from_delayed(_read_data(self.filename, self.mda),
+                               shape=output_shape,
+                               dtype=output_dtype)
+
+    def _get_output_info(self):
+        bpp = self.mda['number_of_bits_per_pixel']
+        if bpp in [10, 16]:
+            output_dtype = np.uint16
+        elif bpp == 8:
+            output_dtype = np.uint8
+        else:
+            raise ValueError(f"Unexpected number of bits per pixel: {bpp}")
+        output_shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+        return output_dtype, output_shape
+
+
+@dask.delayed
+def _read_data(filename, mda):
+    return HRITSegment(filename, mda).read_data()
+
+
+@contextmanager
+def decompressed(filename):
+    """Decompress context manager."""
+    try:
+        new_filename = decompress(filename, config["tmp_dir"])
+    except IOError as err:
+        logger.error("Unpacking failed: %s", str(err))
+        raise
+    yield new_filename
+    os.remove(new_filename)
+
+
+class HRITSegment:
+    """An HRIT segment with data."""
+
+    def __init__(self, filename, mda):
+        """Set up the segment."""
+        self.filename = filename
+        self.mda = mda
+        self.lines = mda['number_of_lines']
+        self.cols = mda['number_of_columns']
+        self.bpp = mda['number_of_bits_per_pixel']
+        self.compressed = mda['compression_flag_for_data'] == 1
+        self.offset = mda['total_header_length']
+        self.zipped = os.fspath(filename).endswith('.bz2')
+
+    def read_data(self):
+        """Read the data."""
+        data = self._read_data_from_file()
+        if self.bpp == 10:
             data = dec10216(data)
-        data = data.reshape((self.mda['number_of_lines'],
-                             self.mda['number_of_columns']))
+        data = data.reshape((self.lines, self.cols))
         return data
+
+    def _read_data_from_file(self):
+        if self._is_file_like():
+            return self._read_file_like()
+        return self._read_data_from_disk()
+
+    def _is_file_like(self):
+        return isinstance(self.filename, FSFile)
+
+    def _read_data_from_disk(self):
+        # For reading the image data, unzip_context is faster than generic_open
+        dtype, shape = self._get_input_info()
+        with utils.unzip_context(self.filename) as fn:
+            with decompressed(fn) if self.compressed else nullcontext(fn) as filename:
+                return np.fromfile(filename,
+                                   offset=self.offset,
+                                   dtype=dtype,
+                                   count=np.prod(shape))
+
+    def _read_file_like(self):
+        # filename is likely to be a file-like object, already in memory
+        dtype, shape = self._get_input_info()
+        with utils.generic_open(self.filename, mode="rb") as fp:
+            no_elements = np.prod(shape)
+            fp.seek(self.offset)
+            return np.frombuffer(
+                fp.read(np.dtype(dtype).itemsize * no_elements),
+                dtype=np.dtype(dtype),
+                count=no_elements.item()
+            ).reshape(shape)
+
+    def _get_input_info(self):
+        total_bits = int(self.lines) * int(self.cols) * int(self.bpp)
+        input_shape = int(np.ceil(total_bits / 8.))
+        if self.bpp == 16:
+            input_dtype = '>u2'
+            input_shape //= 2
+        elif self.bpp in [8, 10]:
+            input_dtype = np.uint8
+        else:
+            raise ValueError(f"Unexpected number of bits per pixel: {self.bpp}")
+        input_shape = (input_shape,)
+        return input_dtype, input_shape

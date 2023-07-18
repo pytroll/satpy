@@ -313,6 +313,6 @@ Helpful functions
 - :func:`~dask.array.store`
 - :func:`~dask.array.tokenize`
 - :func:`~dask.compute`
-- :doc:`delayed`
+- :doc:`dask:delayed`
 - :func:`~dask.array.rechunk`
 - :attr:`~dask.array.Array.vindex`

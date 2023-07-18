@@ -20,10 +20,13 @@
 This module is executed automatically by pytest.
 
 """
+import os
 
 import pytest
 
 import satpy
+
+TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
 
 
 @pytest.fixture(autouse=True)
@@ -38,3 +41,17 @@ def reset_satpy_config(tmpdir):
     }
     with satpy.config.set(test_config):
         yield
+
+
+@pytest.fixture(autouse=True)
+def clear_function_caches():
+    """Clear out global function-level caches that may cause conflicts between tests."""
+    from satpy.composites.config_loader import load_compositor_configs_for_sensor
+    load_compositor_configs_for_sensor.cache_clear()
+
+
+@pytest.fixture
+def include_test_etc():
+    """Tell Satpy to use the config 'etc' directory from the tests directory."""
+    with satpy.config.set(config_path=[TEST_ETC_DIR]):
+        yield TEST_ETC_DIR

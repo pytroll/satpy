@@ -215,10 +215,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
                 'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
             ])
             r.create_filehandlers(loadables)
-        datasets = r.load(['variable1',
-                           'variable2',
-                           'variable3'])
-        self.assertEqual(len(datasets), 3)
+
+        var_list = ['variable1', 'variable2', 'variable3']
+        datasets = r.load(var_list)
+        self.assertEqual(len(datasets), len(var_list))
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '1')
             self.assertEqual(v.attrs['platform_name'], 'npp')
@@ -226,7 +226,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             self.assertIsInstance(v.attrs['area'], SwathDefinition)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 16)
-        self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+            self.assertIsInstance(datasets["variable3"].attrs.get("flag_meanings"), list)
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):

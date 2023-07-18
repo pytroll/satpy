@@ -1,0 +1,223 @@
+reader:
+  name: msu_gsa_l1b
+  short_name: MSU-GS/A
+  long_name: Arctica-M (N1) MSU-GS/A data in HDF5 format
+  description: H5 reader for MSG-GS/A data
+  status: Beta
+  supports_fsspec: false
+  sensors: [msu_gsa]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+    msu_gsa_l1b:
+        file_reader: !!python/name:satpy.readers.msu_gsa_l1b.MSUGSAFileHandler
+        file_patterns: ['ArcticaM{mission_id:1s}_{start_time:%Y%m%d%H%M}.h5']
+
+datasets:
+  longitude:
+    name: longitude
+    units: degrees_east
+    standard_name: longitude
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Geolocation/resolution_4km/Longitude
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Geolocation/resolution_1km/Longitude
+  latitude:
+    name: latitude
+    units: degrees_north
+    standard_name: latitude
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Geolocation/resolution_4km/Latitude
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Geolocation/resolution_1km/Latitude
+
+  # The channels C01-C03 (VIS) are available at 1km resolution
+  C01:
+    name: C01
+    sensor: msu_gsa
+    wavelength: [0.5, 0.6, 0.65]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_1km/Radiance_01
+  C02:
+    name: C02
+    sensor: msu_gsa
+    wavelength: [0.65, 0.7, 0.8]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_1km/Radiance_02
+  C03:
+    name: C03
+    sensor: msu_gsa
+    wavelength: [0.8, 0.9, 0.9]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_1km/Radiance_03
+
+  # The channels C04-C10 (IR) are available at 4km resolution
+  C04:
+    name: C04
+    sensor: msu_gsa
+    wavelength: [3.5, 3.8, 4.0]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_04
+  C05:
+    name: C05
+    sensor: msu_gsa
+    wavelength: [5.7, 6.4, 7.0]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_05
+  C06:
+    name: C06
+    sensor: msu_gsa
+    wavelength: [7.5, 8.0, 8.5]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_06
+  C07:
+    name: C07
+    sensor: msu_gsa
+    wavelength: [8.2, 8.7, 9.2]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_07
+  C08:
+    name: C08
+    sensor: msu_gsa
+    wavelength: [9.2, 9.7, 10.2]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_08
+  C09:
+    name: C09
+    sensor: msu_gsa
+    wavelength: [10.2, 10.8, 11.2]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_09
+  C10:
+    name: C10
+    sensor: msu_gsa
+    wavelength: [11.2, 11.9, 12.5]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [longitude, latitude]
+    file_type: msu_gsa_l1b
+    file_key: Data/resolution_4km/Brightness_Temperature_10
+
+  # The solar and viewing geometry is available at both resolutions
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degrees
+    standard_name: solar_zenith_angle
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_4km/Solar_Zenith_Angle
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_1km/Solar_Zenith_Angle
+    coordinates: [longitude, latitude]
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degrees
+    standard_name: solar_azimuth_angle
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_4km/Solar_Azimuth_Angle
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_1km/Solar_Azimuth_Angle
+    coordinates: [longitude, latitude]
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degrees
+    standard_name: satellite_zenith_angle
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_4km/Satellite_Zenith_Angle
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_1km/Satellite_Zenith_Angle
+    coordinates: [longitude, latitude]
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degrees
+    standard_name: satellite_azimuth_angle
+    resolution:
+      4000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_4km/Satellite_Azimuth_Angle
+      1000:
+        file_type: msu_gsa_l1b
+        file_key: Data/resolution_1km/Satellite_Azimuth_Angle
+    coordinates: [longitude, latitude]

@@ -4,8 +4,10 @@
 reader:
   name: ahi_hsd
   short_name: AHI HSD
-  long_name: Himawari AHI Level 1b (HSD)
+  long_name: Himawari (8 + 9) AHI Level 1b (HSD)
   description: Reader for the JMA Himawari AHI Level 1 data in HSD format
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
   sensors: [ahi]
   # file pattern keys to sort files by with 'satpy.utils.group_files'

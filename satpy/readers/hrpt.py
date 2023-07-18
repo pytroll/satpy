@@ -41,7 +41,7 @@ from pyorbital.geoloc_instrument_definitions import avhrr
 from pyorbital.orbital import Orbital
 
 from satpy._compat import cached_property
-from satpy.readers.aapp_l1b import LINE_CHUNK
+from satpy.readers.aapp_l1b import get_avhrr_lac_chunks
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -138,6 +138,11 @@ class HRPTFile(BaseFileHandler):
         return time_seconds(self._data["timecode"], self.year)
 
     @cached_property
+    def _chunks(self):
+        """Get the best chunks for this data."""
+        return get_avhrr_lac_chunks((self._data.shape[0], 2048), float)
+
+    @cached_property
     def _data(self):
         """Get the data."""
         return self.read()
@@ -171,7 +176,7 @@ class HRPTFile(BaseFileHandler):
 
     def _get_channel_data(self, key):
         """Get channel data."""
-        data = da.from_array(self._data["image_data"][:, :, _get_channel_index(key)], chunks=(LINE_CHUNK, 2048))
+        data = da.from_array(self._data["image_data"][:, :, _get_channel_index(key)], chunks=self._chunks)
         if key['calibration'] != 'counts':
             if key['name'] in ['1', '2', '3a']:
                 data = self.calibrate_solar_channel(data, key)
@@ -184,9 +189,9 @@ class HRPTFile(BaseFileHandler):
         """Get navigation data."""
         lons, lats = self.lons_lats
         if key['name'] == 'latitude':
-            data = da.from_array(lats, chunks=(LINE_CHUNK, 2048))
+            data = da.from_array(lats, chunks=self._chunks)
         else:
-            data = da.from_array(lons, chunks=(LINE_CHUNK, 2048))
+            data = da.from_array(lons, chunks=self._chunks)
         return data
 
     def _get_ch3_mask_or_true(self, key):

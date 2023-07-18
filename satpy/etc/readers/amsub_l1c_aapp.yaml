@@ -1,6 +1,10 @@
 reader:
   name: amsub_l1c_aapp
+  short_name: AMSU-B l1c
+  long_name: AAPP L1C AMSU-B format
   description: AAPP l1c Reader for AMSU-B data
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [amsub,]
   default_channels: [16, 17, 18, 19, 20]
@@ -9,9 +13,9 @@ reader:
     name:
       required: true
     frequency_double_sideband:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyDoubleSideBand
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
     frequency_range:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyRange
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
     resolution:
     polarization:
       enum:

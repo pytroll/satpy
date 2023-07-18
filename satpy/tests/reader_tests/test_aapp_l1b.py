@@ -106,12 +106,12 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             for name in ['1', '2', '3a']:
                 key = make_dataid(name=name, calibration='reflectance')
                 res = fh.get_dataset(key, info)
-                assert(res.min() == 0)
-                assert(res.max() >= 100)
+                assert res.min() == 0
+                assert res.max() >= 100
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
                 if name == '3a':
-                    assert(np.all(np.isnan(res[:2, :])))
+                    assert np.all(np.isnan(res[:2, :]))
 
             for name in ['3b', '4', '5']:
                 key = make_dataid(name=name, calibration='reflectance')
@@ -119,7 +119,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
                 if name == '3b':
-                    assert(np.all(np.isnan(res[2:, :])))
+                    assert np.all(np.isnan(res[2:, :]))
 
             np.testing.assert_allclose(mins, [0., 0., 0., 204.10106939, 103.23477235, 106.42609758])
             np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
@@ -136,7 +136,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             info = {}
             key = make_dataid(name='solar_zenith_angle')
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
+            assert np.all(res == 0)
 
     def test_navigation(self):
         """Test reading the lon and lats."""
@@ -149,10 +149,10 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             info = {}
             key = make_dataid(name='longitude')
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
+            assert np.all(res == 0)
             key = make_dataid(name='latitude')
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
+            assert np.all(res == 0)
 
     def test_interpolation(self):
         """Test reading the lon and lats."""

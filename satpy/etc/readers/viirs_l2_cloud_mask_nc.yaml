@@ -1,0 +1,50 @@
+reader:
+  name: viirs_l2_cloud_mask_nc
+  short_name: VIIRS CSPP Cloud Mask
+  long_name: VIIRS CSPP Cloud Mask data in NetCDF4 format
+  description: VIIRS CSPP Cloud Mask reader
+  status: beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs]
+
+file_types:
+  cspp_cloud_mask_file:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSCloudMaskFileHandler
+    file_patterns: ['JRR-CloudMask_{delivery_package:4s}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+    # Example filenames
+    # JRR-CloudMask_v3r0_npp_s202212070726217_e202212070727459_c202212071917430.nc
+
+datasets:
+  longitude:
+    name: longitude
+    resolution: 750
+    file_type: cspp_cloud_mask_file
+    file_key: Longitude
+    file_units: "degrees_east"
+    standard_name: longitude
+    coordinates: [longitude, latitude]
+  latitude:
+    name: latitude
+    resolution: 750
+    file_type: cspp_cloud_mask_file
+    file_key: Latitude
+    file_units: "degrees_north"
+    standard_name: latitude
+    coordinates: [longitude, latitude]
+  cloud_mask:
+    name: cloud_mask
+    resolution: 750
+    file_type: cspp_cloud_mask_file
+    file_key: CloudMask
+    file_units: "1"
+    standard_name: cloud_mask
+    coordinates: [longitude, latitude]
+  cloud_mask_binary:
+    name: cloud_mask_binary
+    resolution: 750
+    file_type: cspp_cloud_mask_file
+    file_key: CloudMaskBinary
+    file_units: "1"
+    standard_name: cloud_mask_binary
+    coordinates: [longitude, latitude]

@@ -1,8 +1,10 @@
 reader:
-  description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
   name: mirs
   short_name: MiRS Level 2 NetCDF4
-  long_name: MiRS Level 2 Swath Product Reader (NetCDF4)
+  long_name: MiRS Level 2 Precipitation and Surface Swath Product Reader in netCDF4 format
+  description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
   data_files:

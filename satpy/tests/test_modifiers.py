@@ -16,11 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for modifiers in modifiers/__init__.py."""
-
 import unittest
-from datetime import datetime, timedelta
-from glob import glob
-from typing import Optional, Union
+from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -29,8 +26,6 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 from pytest_lazyfixture import lazy_fixture
-
-import satpy
 
 
 def _sunz_area_def():
@@ -238,7 +233,9 @@ class TestNIRReflectance(unittest.TestCase):
         info = {'modifiers': None}
         res = comp([self.nir, self.ir_], optional_datasets=[], **info)
 
-        self.get_lonlats.assert_called()
+        # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
+        # we must used the area from the final result DataArray
+        res.attrs["area"].get_lonlats.assert_called()
         sza.assert_called_with(self.start_time, self.lons, self.lats)
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()
@@ -395,6 +392,148 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 
 
+class TestPSPRayleighReflectance:
+    """Test the pyspectral-based Rayleigh correction modifier."""
+
+    def _make_data_area(self):
+        """Create test area definition and data."""
+        rows = 3
+        cols = 5
+        area = AreaDefinition(
+            'some_area_name', 'On-the-fly area', 'geosabii',
+            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
+             'units': 'm'},
+            cols, rows,
+            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
+
+        data = np.zeros((rows, cols)) + 25
+        data[1, :] += 25
+        data[2, :] += 50
+        data = da.from_array(data, chunks=2)
+        return area, data
+
+    def _create_test_data(self, name, wavelength, resolution):
+        area, dnb = self._make_data_area()
+        input_band = xr.DataArray(dnb,
+                                  dims=('y', 'x'),
+                                  attrs={
+                                      'platform_name': 'Himawari-8',
+                                      'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                      'name': name, 'resolution': resolution, 'sensor': 'ahi',
+                                      'start_time': '2017-09-20 17:30:40.800000',
+                                      'end_time': '2017-09-20 17:41:17.500000',
+                                      'area': area, 'ancillary_variables': [],
+                                      'orbital_parameters': {
+                                          'satellite_nominal_longitude': -89.5,
+                                          'satellite_nominal_latitude': 0.0,
+                                          'satellite_nominal_altitude': 35786023.4375,
+                                      },
+                                  })
+
+        red_band = xr.DataArray(dnb,
+                                dims=('y', 'x'),
+                                attrs={
+                                    'platform_name': 'Himawari-8',
+                                    'calibration': 'reflectance', 'units': '%', 'wavelength': (0.62, 0.64, 0.66),
+                                    'name': 'B03', 'resolution': 500, 'sensor': 'ahi',
+                                    'start_time': '2017-09-20 17:30:40.800000',
+                                    'end_time': '2017-09-20 17:41:17.500000',
+                                    'area': area, 'ancillary_variables': [],
+                                    'orbital_parameters': {
+                                        'satellite_nominal_longitude': -89.5,
+                                        'satellite_nominal_latitude': 0.0,
+                                        'satellite_nominal_altitude': 35786023.4375,
+                                    },
+                                })
+        fake_angle_data = da.ones_like(dnb, dtype=np.float32) * 90.0
+        angle1 = xr.DataArray(fake_angle_data,
+                              dims=('y', 'x'),
+                              attrs={
+                                  'platform_name': 'Himawari-8',
+                                  'calibration': 'reflectance', 'units': '%', 'wavelength': wavelength,
+                                  'name': "satellite_azimuth_angle", 'resolution': resolution, 'sensor': 'ahi',
+                                  'start_time': '2017-09-20 17:30:40.800000',
+                                  'end_time': '2017-09-20 17:41:17.500000',
+                                  'area': area, 'ancillary_variables': [],
+                              })
+        return input_band, red_band, angle1, angle1, angle1, angle1
+
+    @pytest.mark.parametrize(
+        ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength",
+         "exp_mean", "exp_unique"),
+        [
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", 70, 95, 1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+            ("B02", (0.49, 0.51, 0.53), 1000, "rayleigh_only", 70, 95, 1, 43.663805,
+             np.array([13.15770104, 14.26526104, 16.49084485, 40.88633902, 42.60682921, 46.04288,
+                       46.2356062, 46.28276282, 70.92799823, 71.33561614, 72.07001693])),
+            ("B03", (0.62, 0.64, 0.66), 500, "rayleigh_only", 70, 95, 1, 46.916187,
+             np.array([19.22922328, 19.76884762, 20.91027446, 45.51075967, 46.39925968, 48.10221156,
+                       48.15715058, 48.18698356, 73.01115816, 73.21552816, 73.58666477])),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1, 41.540239,
+             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
+                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+        ]
+    )
+    def test_rayleigh_corrector(self, name, wavelength, resolution, aerosol_type, reduce_lim_low, reduce_lim_high,
+                                reduce_strength, exp_mean, exp_unique):
+        """Test PSPRayleighReflectance with fake data."""
+        from satpy.modifiers.atmosphere import PSPRayleighReflectance
+        ray_cor = PSPRayleighReflectance(name=name, atmosphere='us-standard', aerosol_types=aerosol_type,
+                                         reduce_lim_low=reduce_lim_low, reduce_lim_high=reduce_lim_high,
+                                         reduce_strength=reduce_strength)
+        assert ray_cor.attrs['name'] == name
+        assert ray_cor.attrs['atmosphere'] == 'us-standard'
+        assert ray_cor.attrs['aerosol_types'] == aerosol_type
+        assert ray_cor.attrs['reduce_lim_low'] == reduce_lim_low
+        assert ray_cor.attrs['reduce_lim_high'] == reduce_lim_high
+        assert ray_cor.attrs['reduce_strength'] == reduce_strength
+
+        input_band, red_band, *_ = self._create_test_data(name, wavelength, resolution)
+        res = ray_cor([input_band, red_band])
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+
+        data = res.values
+        unique = np.unique(data[~np.isnan(data)])
+        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
+        assert data.shape == (3, 5)
+        np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
+
+    @pytest.mark.parametrize("as_optionals", [False, True])
+    def test_rayleigh_with_angles(self, as_optionals):
+        """Test PSPRayleighReflectance with angles provided."""
+        from satpy.modifiers.atmosphere import PSPRayleighReflectance
+        aerosol_type = "rayleigh_only"
+        ray_cor = PSPRayleighReflectance(name="B01", atmosphere='us-standard', aerosol_types=aerosol_type)
+        prereqs, opt_prereqs = self._get_angles_prereqs_and_opts(as_optionals)
+        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles:
+            res = ray_cor(prereqs, opt_prereqs)
+        get_angles.assert_not_called()
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+
+        data = res.values
+        unique = np.unique(data[~np.isnan(data)])
+        np.testing.assert_allclose(unique, np.array([-75.0, -37.71298492, 31.14350754]), rtol=1e-5)
+        assert data.shape == (3, 5)
+
+    def _get_angles_prereqs_and_opts(self, as_optionals):
+        wavelength = (0.45, 0.47, 0.49)
+        resolution = 1000
+        input_band, red_band, *angles = self._create_test_data("B01", wavelength, resolution)
+        prereqs = [input_band, red_band]
+        opt_prereqs = []
+        if as_optionals:
+            opt_prereqs = angles
+        else:
+            prereqs += angles
+        return prereqs, opt_prereqs
+
+
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
@@ -431,152 +570,3 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         psp = PSPAtmosphericalCorrection(name='dummy')
         res = psp(projectables=[band])
         res.compute()
-
-
-def _angle_cache_area_def():
-    area = AreaDefinition(
-        "test", "", "",
-        {"proj": "merc"},
-        5, 5,
-        (-2500, -2500, 2500, 2500),
-    )
-    return area
-
-
-def _angle_cache_stacked_area_def():
-    area1 = AreaDefinition(
-        "test", "", "",
-        {"proj": "merc"},
-        5, 2,
-        (-2500, 500, 2500, 2500),
-    )
-    area2 = AreaDefinition(
-        "test", "", "",
-        {"proj": "merc"},
-        5, 3,
-        (-2500, -2500, 2500, 500),
-    )
-    return StackedAreaDefinition(area1, area2)
-
-
-def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
-                         chunks: Optional[Union[int, tuple]] = 2) -> xr.DataArray:
-    if area_def is None:
-        area_def = _angle_cache_area_def()
-    orb_params = {
-        "satellite_nominal_altitude": 12345678,
-        "satellite_nominal_longitude": 10.0,
-        "satellite_nominal_latitude": 0.0,
-    }
-    stime = datetime(2020, 1, 1, 12, 0, 0)
-    data = da.zeros((5, 5), chunks=chunks)
-    print(data.chunks)
-    vis = xr.DataArray(data,
-                       attrs={
-                           'area': area_def,
-                           'start_time': stime,
-                           'orbital_parameters': orb_params,
-                       })
-    return vis
-
-
-def _get_stacked_angle_test_data():
-    return _get_angle_test_data(area_def=_angle_cache_stacked_area_def(),
-                                chunks=(5, (2, 2, 1)))
-
-
-def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
-    # change data slightly
-    new_data = orig_data.copy()
-    old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
-    new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
-    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
-    return new_data
-
-
-def _diff_sat_pos_datetime(orig_data):
-    return _similar_sat_pos_datetime(orig_data, lon_offset=0.05)
-
-
-class TestAngleGeneration:
-    """Test the angle generation utility functions."""
-
-    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
-    def test_get_angles(self, input_func):
-        """Test sun and satellite angle calculation."""
-        from satpy.modifiers.angles import get_angles
-        data = input_func()
-
-        from pyorbital.orbital import get_observer_look
-        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
-            angles = get_angles(data)
-            assert all(isinstance(x, xr.DataArray) for x in angles)
-            da.compute(angles)
-
-        # get_observer_look should have been called once per array chunk
-        assert gol.call_count == data.data.blocks.size
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        args = gol.call_args[0]
-        assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
-
-    @pytest.mark.parametrize(
-        ("input2_func", "exp_equal_sun", "exp_num_zarr"),
-        [
-            (lambda x: x, True, 4),
-            (_similar_sat_pos_datetime, False, 4),
-            (_diff_sat_pos_datetime, False, 6),
-        ]
-    )
-    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
-    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
-        """Test get_angles when caching is enabled."""
-        from satpy.modifiers.angles import (
-            STATIC_EARTH_INERTIAL_DATETIME,
-            _get_sensor_angles_from_sat_pos,
-            _get_valid_lonlats,
-            get_angles,
-        )
-
-        # Patch methods
-        data = input_func()
-        additional_cache = exp_num_zarr > 4
-
-        # Compute angles
-        from pyorbital.orbital import get_observer_look
-        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
-                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
-            res = get_angles(data)
-            assert all(isinstance(x, xr.DataArray) for x in res)
-
-            # call again, should be cached
-            new_data = input2_func(data)
-            res2 = get_angles(new_data)
-            assert all(isinstance(x, xr.DataArray) for x in res2)
-            res, res2 = da.compute(res, res2)
-            for r1, r2 in zip(res[:2], res2[:2]):
-                if additional_cache:
-                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
-                else:
-                    np.testing.assert_allclose(r1, r2)
-
-            for r1, r2 in zip(res[2:], res2[2:]):
-                if exp_equal_sun:
-                    np.testing.assert_allclose(r1, r2)
-                else:
-                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
-
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
-
-            _get_sensor_angles_from_sat_pos.cache_clear()
-            _get_valid_lonlats.cache_clear()
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == 0
-
-        assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
-        args = gol.call_args_list[0][0]
-        assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
-        exp_sat_lon = 10.1 if additional_cache else 10.0
-        args = gol.call_args_list[-1][0]
-        assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)

@@ -828,7 +828,9 @@ class NetCDFTemplate:
         # determine fill value and
         if 'encoding' in var_config:
             new_encoding.update(var_config['encoding'])
-        new_encoding.setdefault('dtype', 'uint16')
+        if "dtype" not in new_encoding:
+            new_encoding['dtype'] = 'int16'
+            new_encoding['_Unsigned'] = 'true'
         return new_encoding
 
     def _render_variable(self, data_arr):
@@ -937,11 +939,14 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
 
         if len(prod_location) > 31:
-            warnings.warn("Production location attribute is longer than 31 "
-                          "characters (AWIPS limit). Set it to a smaller "
-                          "value with the 'ORGANIZATION' environment "
-                          "variable. Defaults to hostname and is currently "
-                          "set to '{}'.".format(prod_location))
+            warnings.warn(
+                "Production location attribute is longer than 31 "
+                "characters (AWIPS limit). Set it to a smaller "
+                "value with the 'ORGANIZATION' environment "
+                "variable. Defaults to hostname and is currently "
+                "set to '{}'.".format(prod_location),
+                stacklevel=2
+            )
             prod_location = prod_location[:31]
         return prod_location
 
@@ -1006,14 +1011,14 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if crs.is_geographic:
             self._fill_units_and_standard_name(y_attrs, 'degrees_north', 'latitude')
         else:
-            self._fill_units_and_standard_name(y_attrs, 'meter', 'projection_y_coordinate')
+            self._fill_units_and_standard_name(y_attrs, 'meters', 'projection_y_coordinate')
             y_attrs['axis'] = 'Y'
 
         x_attrs = new_ds.coords['x'].attrs
         if crs.is_geographic:
             self._fill_units_and_standard_name(x_attrs, 'degrees_east', 'longitude')
         else:
-            self._fill_units_and_standard_name(x_attrs, 'meter', 'projection_x_coordinate')
+            self._fill_units_and_standard_name(x_attrs, 'meters', 'projection_x_coordinate')
             x_attrs['axis'] = 'X'
 
     @staticmethod
@@ -1021,6 +1026,9 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         """Fill in units and standard_name if not set in `attrs`."""
         if attrs.get('units') is None:
             attrs['units'] = units
+        if attrs['units'] in ('meter', 'metre'):
+            # AWIPS doesn't like 'meter'
+            attrs['units'] = 'meters'
         if attrs.get('standard_name') is None:
             attrs['standard_name'] = standard_name
 
@@ -1098,7 +1106,9 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if len(attrs.get("units", "")) > 26:
             warnings.warn(
                 "AWIPS 'units' must be limited to a maximum of 26 characters. "
-                "Units '{}' is too long and will be truncated.".format(attrs["units"]))
+                "Units '{}' is too long and will be truncated.".format(attrs["units"]),
+                stacklevel=2
+            )
             attrs["units"] = attrs["units"][:26]
         return attrs
 
@@ -1257,9 +1267,13 @@ class AWIPSTiledWriter(Writer):
         self._enhancer = None
 
         if self.fix_awips:
-            warnings.warn("'fix_awips' flag no longer has any effect and is "
-                          "deprecated. Modern versions of AWIPS should not "
-                          "require this hack.", DeprecationWarning)
+            warnings.warn(
+                "'fix_awips' flag no longer has any effect and is "
+                "deprecated. Modern versions of AWIPS should not "
+                "require this hack.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             self.fix_awips = False
 
     @property

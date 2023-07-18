@@ -47,14 +47,14 @@ class TestViiL2NCFileHandler(unittest.TestCase):
             g1 = nc.createGroup('data')
 
             # Add dimensions to data group
-            g1.createDimension('num_pixels', 10)
-            g1.createDimension('num_lines', 100)
+            g1.createDimension('num_pixels', 100)
+            g1.createDimension('num_lines', 10)
 
             # Create measurement_data group
             g1_2 = g1.createGroup('measurement_data')
 
             # Add variables to data/measurement_data group
-            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_pixels', 'num_lines'))
+            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_lines', 'num_pixels'))
             delta_lat[:] = 0.1
 
         self.reader = ViiL2NCFileHandler(
@@ -82,7 +82,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         """Test the functions."""
         # Checks that the _perform_orthorectification function is correctly executed
         variable = xr.DataArray(
-            dims=('num_pixels', 'num_lines'),
+            dims=('num_lines', 'num_pixels'),
             name='test_name',
             attrs={
                 'key_1': 'value_1',

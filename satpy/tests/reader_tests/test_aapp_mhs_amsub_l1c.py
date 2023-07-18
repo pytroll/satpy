@@ -416,8 +416,8 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
                 key = make_dataid(name=name, calibration='brightness_temperature')
                 res = fh_.get_dataset(key, info)
 
-                assert(res.min() == chmin[chn])
-                assert(res.max() == chmax[chn])
+                assert res.min() == chmin[chn]
+                assert res.max() == chmax[chn]
 
     def test_angles(self):
         """Test reading the angles."""
@@ -431,8 +431,8 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
             key = make_dataid(name='solar_zenith_angle')
             res = fh_.get_dataset(key, info)
 
-            assert(np.all(res[2] == 0))
-            assert(np.all(res[1] == 0))
+            assert np.all(res[2] == 0)
+            assert np.all(res[1] == 0)
             expected = np.array([76.82, 77.09, 77.33, 77.56, 77.77, 77.97, 78.16, 78.34, 78.51,
                                  78.68, 78.83, 78.99, 79.13, 79.27, 79.4, 79.53, 79.66, 79.78,
                                  79.9, 80.01, 80.13, 80.23, 80.34, 80.45, 80.55, 80.65, 80.75,
@@ -458,8 +458,8 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
             key = make_dataid(name='longitude')
             res = fh_.get_dataset(key, info)
 
-            assert(np.all(res[2] == 0))
-            assert(np.all(res[1] == 0))
+            assert np.all(res[2] == 0)
+            assert np.all(res[1] == 0)
             expected = np.array([78.7602,  78.6999,  78.6407,  78.5827,  78.5255,  78.4692,
                                  78.4134,  78.3583,  78.3035,  78.2492,  78.1951,  78.1412,
                                  78.0875,  78.0338,  77.9801,  77.9264,  77.8726,  77.8186,
@@ -481,8 +481,8 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
             key = make_dataid(name='latitude')
             res = fh_.get_dataset(key, info)
 
-            assert(np.all(res[2] == 0))
-            assert(np.all(res[1] == 0))
+            assert np.all(res[2] == 0)
+            assert np.all(res[1] == 0)
             expected = np.array([71.5994, 72.0651, 72.4976, 72.9013, 73.2799, 73.6362, 73.9728,
                                  74.2919, 74.5953, 74.8844, 75.1607, 75.4254, 75.6796, 75.924,
                                  76.1597, 76.3872, 76.6073, 76.8206, 77.0275, 77.2287, 77.4245,

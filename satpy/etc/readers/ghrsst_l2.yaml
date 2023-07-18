@@ -1,0 +1,101 @@
+reader:
+  name: ghrsst_l2
+  short_name: GHRSST l2
+  long_name: Sentinel-3 SLSTR SST data in netCDF4 format
+  description: NC Reader for GHRSST Level 2 data
+  status: Beta
+  supports_fsspec: false
+  sensors: ['slstr', 'avhrr/3', 'viirs']
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    GHRSST_OSISAF:
+        file_reader: !!python/name:satpy.readers.ghrsst_l2.GHRSSTL2FileHandler
+        # S-OSI_-FRA_-NPP_-NARSST_FIELD-202010141300Z.nc
+        file_patterns: ['S-OSI_-{generating_centre:4s}-{satid:s}-{field_type:s}_FIELD-{valid_time:%Y%m%d%H%M}Z.nc']
+
+    SLSTR:
+        file_reader: !!python/name:satpy.readers.ghrsst_l2.GHRSSTL2FileHandler
+        file_patterns: ['{dt1:%Y%m%d%H%M%S}-{generating_centre:3s}-{type_id:3s}_GHRSST-SSTskin-SLSTR{something:1s}-{dt2:%Y%m%d%H%M%S}-{version}.nc',
+        '{mission_id:3s}_SL_{processing_level:1s}_WST____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3.tar']
+
+datasets:
+  # SLSTR SST and Sea Ice products
+  longitude_slstr:
+    name: longitude_slstr
+    resolution: 1000
+    view: nadir
+    file_type: SLSTR
+    standard_name: lon
+    units: degree
+
+  latitude_slstr:
+    name: latitude_slstr
+    resolution: 1000
+    view: nadir
+    file_type: SLSTR
+    standard_name: lat
+    units: degree
+
+  sea_surface_temperature_slstr:
+    name: sea_surface_temperature
+    sensor: slstr
+    coordinates: [longitude_slstr, latitude_slstr]
+    file_type: SLSTR
+    resolution: 1000
+    view: nadir
+    units: kelvin
+    standard_name: sea_surface_temperature
+
+  sea_ice_fraction_slstr:
+    name: sea_ice_fraction
+    sensor: slstr
+    coordinates: [longitude_slstr, latitude_slstr]
+    file_type: SLSTR
+    resolution: 1000
+    view: nadir
+    units: "%"
+    standard_name: sea_ice_fraction
+
+  # Quality estimation 0-5: no data, cloud, worst, low, acceptable, best
+  quality_level_slstr:
+    name: quality_level
+    sensor: slstr
+    coordinates: [longitude_slstr, latitude_slstr]
+    file_type: SLSTR
+    resolution: 1000
+    view: nadir
+    standard_name: quality_level
+
+
+  # OSISAF SST:
+  longitude_osisaf:
+    name: longitude_osisaf
+    resolution: 2000
+    file_type: GHRSST_OSISAF
+    standard_name: lon
+    units: degree
+
+  latitude_osisaf:
+    name: latitude_osisaf
+    resolution: 2000
+    file_type: GHRSST_OSISAF
+    standard_name: lat
+    units: degree
+
+  sea_surface_temperature_osisaf:
+    name: sea_surface_temperature
+    coordinates: [longitude_osisaf, latitude_osisaf]
+    file_type: GHRSST_OSISAF
+    resolution: 2000
+    units: kelvin
+    standard_name: sea_surface_temperature
+
+  sea_ice_fraction_osisaf:
+    name: sea_ice_fraction
+    coordinates: [longitude_osisaf, latitude_osisaf]
+    file_type: GHRSST_OSISAF
+    resolution: 2000
+    units: "%"
+    standard_name: sea_ice_fraction

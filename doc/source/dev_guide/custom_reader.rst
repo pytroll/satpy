@@ -60,17 +60,24 @@ if needed (ex. goes-imager).
 :file format: If the file format of the files is informative to the user or
     can distinguish one reader from another then this field should be
     specified. Common format names should be abbreviated following existing
-    abbreviations like `nc` for NetCDF3 or NetCDF4, `hdf` for HDF4, `h5` for
+    abbreviations like ``nc`` for NetCDF3 or NetCDF4, ``hdf`` for HDF4, ``h5`` for
     HDF5.
 
 The existing :ref:`reader's table <reader_table>` can be used for reference.
-When in doubt, reader names can be discussed in the github pull
-request when this reader is added to Satpy or a github issue.
+When in doubt, reader names can be discussed in the GitHub pull
+request when this reader is added to Satpy, or in a GitHub issue.
 
 The YAML file
 -------------
 
-The yaml file is composed of three sections:
+If your reader is going to be part of Satpy, the YAML file should be
+located in the ``satpy/etc/readers`` directory, along with the YAML
+files for all other readers.  If you are developing a reader for internal
+purposes (such as for unpublished data), the YAML file should be located
+in any directory in ``$SATPY_CONFIG_PATH`` within the subdirectory
+``readers/`` (see :doc:`../../config`).
+
+The YAML file is composed of three sections:
 
  - the :ref:`reader <custom_reader_reader_section>` section,
    that provides basic parameters for the reader
@@ -88,28 +95,37 @@ The ``reader`` section provides basic parameters for the overall reader.
 
 The parameters to provide in this section are:
 
- - name: This is the name of the reader, it should be the same as the
-   filename (without the .yaml extension). The naming convention for
-   this is described above in the :ref:`reader_naming` section above.
- - short_name (optional): Human-readable version of the reader 'name'.
-   If not provided, applications using this can default to taking the 'name',
-   replacing ``_`` with spaces and uppercasing every letter.
- - long_name: Human-readable title for the reader. This may be used as a
-   section title on a website or in GUI applications using Satpy. Default
-   naming scheme is ``<space program> <sensor> Level <level> [<format>]``.
-   For example, for the ``abi_l1b`` reader this is ``"GOES-R ABI Level 1b"``
-   where "GOES-R" is the name of the program and **not** the name of the
-   platform/satellite. This scheme may not work for all readers, but in
-   general should be followed. See existing readers for more examples.
- - description: General description of the reader. This may include any
-   `restructuredtext <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
-   formatted text like links to PDFs or sites with more information on the
-   file format. This can be multiline if formatted properly in YAML (see
-   example below).
- - sensors: The list of sensors this reader will support. This must be
-   all lowercase letters for full support throughout in Satpy.
- - reader: The main python reader class to use, in most cases the
-   ``FileYAMLReader`` is a good choice.
+ name
+    This is the name of the reader, it should be the same as the
+    filename (without the .yaml extension). The naming convention for
+    this is described above in the :ref:`reader_naming` section above.
+    short_name (optional): Human-readable version of the reader 'name'.
+    If not provided, applications using this can default to taking the 'name',
+    replacing ``_`` with spaces and uppercasing every letter.
+ long_name
+    Human-readable title for the reader. This may be used as a
+    section title on a website or in GUI applications using Satpy. Default
+    naming scheme is ``<space program> <sensor> Level <level> [<format>]``.
+    For example, for the ``abi_l1b`` reader this is ``"GOES-R ABI Level 1b"``
+    where "GOES-R" is the name of the program and **not** the name of the
+    platform/satellite. This scheme may not work for all readers, but in
+    general should be followed. See existing readers for more examples.
+ description
+    General description of the reader. This may include any
+    `restructuredtext <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
+    formatted text like links to PDFs or sites with more information on the
+    file format. This can be multiline if formatted properly in YAML (see
+    example below).
+ status
+    The status of the reader (one of: Nominal, Beta, Alpha)
+ supports_fsspec
+    If the reader supports reading data via fsspec (either true or false).
+ sensors
+    The list of sensors this reader will support. This must be
+    all lowercase letters for full support throughout in Satpy.
+ reader
+    The main python reader class to use, in most cases the
+    ``FileYAMLReader`` is a good choice.
 
 .. code:: yaml
 
@@ -122,8 +138,8 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
-Optionally, if you need to customize the `DataID` for this reader, you can provide the
-relevant keys with a `data_identification_keys` item here. See the :doc:`satpy_internals`
+Optionally, if you need to customize the ``DataID`` for this reader, you can provide the
+relevant keys with a ``data_identification_keys`` item here. See the :doc:`satpy_internals`
 section for more information.
 
 .. _custom_reader_file_types_section:
@@ -203,7 +219,7 @@ Parameters you can define for example are:
    is optional if the data being read is gridded already. Swath data,
    from example data from some polar-orbiting satellites, should have these
    defined or no geolocation information will be available when the data
-   is loaded. For gridded datasets a `get_area_def` function will be
+   are loaded. For gridded datasets a ``get_area_def`` function will be
    implemented in python (see below) to define geolocation information.
  - Any other field that is relevant for the reader or could be useful metadata
    provided to the user.
@@ -433,7 +449,7 @@ This method is good when you want to:
 
 1. Define datasets dynamically without needing to define them in the YAML.
 2. Supplement metadata from the YAML file with information from the file
-   content (ex. `resolution`).
+   content (ex. ``resolution``).
 3. Determine if a dataset is available by the file contents. This differs from
    the default behavior of a dataset being considered loadable if its
    "file_type" is loaded.
@@ -479,6 +495,9 @@ needs to implement a few methods:
    :meth:`xarray.DataArray.rename` method for more information and its use
    in the example below.
 
+   If the reader should be compatible with opening remote files see
+   :doc:`remote_file_support`.
+
  - the ``get_area_def`` method, that takes as single argument the
    :class:`~satpy.dataset.DataID` for which we want
    the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
@@ -500,6 +519,11 @@ needs to implement a few methods:
 
 On top of that, two attributes need to be defined: ``start_time`` and
 ``end_time``, that define the start and end times of the sensing.
+See the :ref:`time_metadata` section for a description of the different
+times that Satpy readers typically use and what times should be used
+for the ``start_time`` and ``end_time``. Note that these properties will
+be assigned to the ``start_time`` and ``end_time`` metadata of any DataArrays
+returned by ``get_dataset``, any existing values will be overwritten.
 
 If you are writing a file handler for more common formats like HDF4, HDF5, or
 NetCDF4 you may want to consider using the utility base classes for each:
@@ -511,7 +535,13 @@ the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
 
 .. note::
-   Be careful about the data types of the datasets your reader is returning.
+   Be careful about the data types of the DataArray attributes (`.attrs`) your reader is
+   returning. Satpy or other tools may attempt to serialize these attributes (ex. hashing for cache keys). For example, Numpy types don't serialize into JSON and
+   should therefore be cast to basic Python types (`float`, `int`, etc) before being
+   assigned to the attributes.
+
+.. note::
+   Be careful about the types of the data your reader is returning.
    It is easy to let the data be coerced into double precision floats (`np.float64`). At the
    moment, satellite instruments are rarely measuring in a resolution greater
    than what can be encoded in 16 bits. As such, to preserve processing power,
@@ -550,8 +580,8 @@ One way of implementing a file handler is shown below:
                 self.nc = xr.open_dataset(self.filename,
                                           decode_cf=True,
                                           mask_and_scale=True,
-                                          chunks={'num_columns_vis_ir': CHUNK_SIZE,
-                                                  'num_rows_vis_ir': CHUNK_SIZE})
+                                          chunks={'num_columns_vis_ir': "auto",
+                                                  'num_rows_vis_ir': "auto"})
                 self.nc = self.nc.rename({'num_columns_vir_ir': 'x', 'num_rows_vir_ir': 'y'})
             dataset = self.nc[dataset_info['nc_key']]
             dataset.attrs.update(dataset_info)

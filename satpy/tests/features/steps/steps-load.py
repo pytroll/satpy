@@ -118,4 +118,4 @@ def step_impl_dataset_retrieved_by_name(context):
 @then("the least modified version of the dataset is returned")
 def step_impl_least_modified_dataset_returned(context):
     """Check that the dataset should be one of the least modified datasets."""
-    assert(len(context.returned_dataset.attrs['modifiers']) == 0)
+    assert len(context.returned_dataset.attrs['modifiers']) == 0

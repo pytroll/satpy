@@ -40,11 +40,19 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
-.. versionchanged:: 0.20.0
-
-    Dropped Python 2 support.
-
 .. _project: http://github.com/pytroll/satpy
+
+
+Getting Help
+============
+
+Having trouble installing or using Satpy? Feel free to ask questions at
+any of the contact methods for the PyTroll group
+`here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on
+`Satpy's GitHub page <https://github.com/pytroll/satpy/issues>`_.
+
+Documentation
+=============
 
 .. toctree::
     :maxdepth: 2
@@ -56,6 +64,7 @@ the base Satpy installation.
     examples/index
     quickstart
     readers
+    remote_reading
     composites
     resample
     enhancements
@@ -73,222 +82,8 @@ the base Satpy installation.
 
 .. _reader_table:
 
-.. list-table:: Satpy Readers
-    :header-rows: 1
-    :widths: 45 25 30
+.. include:: reader_table.rst
 
-    * - Description
-      - Reader name
-      - Status
-    * - MSG (Meteosat 8 to 11) SEVIRI data in HRIT format
-      - `seviri_l1b_hrit`
-      - Nominal
-    * - MSG (Meteosat 8 to 11) SEVIRI data in native format
-      - `seviri_l1b_native`
-      - Nominal.
-    * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
-      - `seviri_l1b_nc`
-      - | HRV channel not supported, incomplete metadata
-        | in the files. EUMETSAT has been notified.
-    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
-      - `seviri_l2_bufr`
-      - AMV BUFR products not supported yet.
-    * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
-      - `seviri_l2_grib`
-      - In development, CLM, OCA and FIR products supported
-    * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
-      - `mviri_l1b_fiduceo_nc`
-      - Beta
-    * - Himawari 8 and 9 AHI data in HSD format
-      - `ahi_hsd`
-      - Nominal
-    * - Himawari 8 and 9 AHI data in HRIT format
-      - `ahi_hrit`
-      - Nominal
-    * - Himawari 8 and 9 AHI data in Gridded binary format,
-        from http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
-      - `ahi_l1b_gridded_bin`
-      - Nominal
-    * - MTSAT-1R JAMI data in JMA HRIT format
-      - `jami_hrit`
-      - Beta
-    * - MTSAT-2 Imager data in JMA HRIT format
-      - `mtsat2-imager_hrit`
-      - Beta
-    * - GOES-R imager data in netcdf format
-      - `abi_l1b`
-      - Nominal
-    * - NOAA GOES-R ABI L2+ products in netcdf format
-      - `abi_l2_nc`
-      - Beta
-    * - GOES 11 to 15 imager data in HRIT format
-      - `goes-imager_hrit`
-      - Nominal
-    * - GOES 8 to 15 imager data in netCDF format (from NOAA CLASS)
-      - `goes-imager_nc`
-      - Beta
-    * - Electro-L N2 MSU-GS data in HRIT format
-      - `electrol_hrit`
-      - Nominal
-    * - NOAA 15 to 19, Metop A to C AVHRR data in AAPP format
-      - `avhrr_l1b_aapp`
-      - Nominal
-    * - Metop A to C AVHRR in native level 1 format
-      - `avhrr_l1b_eps`
-      - Nominal
-    * - Tiros-N, NOAA 7 to 19 AVHRR data in GAC and LAC format
-      - `avhrr_l1b_gaclac`
-      - Nominal
-    * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `avhrr_l1b_hrpt`
-      - In development
-    * - GCOM-W1 AMSR2 data in HDF5 format
-      - `amsr2_l1b`
-      - Nominal
-    * - MTG FCI Level 1C data in NetCDF format
-      - `fci_l1c_nc`
-      - In development (beta for FDHSI files, HRFI not supported yet)
-    * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
-      - `caliop_l2_cloud`
-      - In development
-    * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
-      - `modis_l1b`
-      - Nominal
-    * - NWCSAF GEO 2016 products in netCDF4 format (limited to SEVIRI)
-      - `nwcsaf-geo`
-      - In development
-    * - NWCSAF PPS 2014, 2018 products in netCDF4 format
-      - `nwcsaf-pps_nc`
-      - | Not yet support for remapped netCDF products.
-        | Only the standard swath based output is supported.
-        | CPP products not supported yet
-    * - Sentinel-1 A and B SAR-C data in SAFE format
-      - `sar-c_safe`
-      - Nominal
-    * - Sentinel-2 A and B MSI data in SAFE format
-      - `msi_safe`
-      - Nominal
-    * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
-      - `olci_l1b`
-      - Nominal
-    * - Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
-      - `olci_l2`
-      - Nominal
-    * - Sentinel-3 A and B SLSTR data in netCDF4 format
-      - `slstr_l1b`
-      - In development
-    * - OSISAF SST data in GHRSST (netcdf) format
-      - `ghrsst_l3c_sst`
-      - In development
-    * - NUCAPS EDR Retrieval in NetCDF4 format
-      - `nucaps`
-      - Nominal
-    * - NOAA Level 2 ACSPO SST data in netCDF4 format
-      - `acspo`
-      - Nominal
-    * - GEOstationary Cloud Algorithm Test-bed (GEOCAT)
-      - `geocat`
-      - Nominal
-    * - The Clouds from AVHRR Extended (CLAVR-x)
-      - `clavrx`
-      - Nominal
-    * - SNPP VIIRS data in HDF5 SDR format
-      - `viirs_sdr`
-      - Nominal
-    * - SNPP VIIRS data in netCDF4 L1B format
-      - `viirs_l1b`
-      - Nominal
-    * - SNPP VIIRS SDR data in HDF5 Compact format
-      - `viirs_compact`
-      - Nominal
-    * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
-      - `maia`
-      - Nominal
-    * - VIIRS EDR Active Fires data in NetCDF4 & CSV .txt format
-      - `viirs_edr_active_fires`
-      - Beta
-    * - VIIRS EDR Flood data in hdf4 format
-      - `viirs_edr_flood`
-      - Beta
-    * - GRIB2 format
-      - `grib`
-      - Beta
-    * - SCMI ABI L1B format
-      - `abi_l1b_scmi`
-      - Beta
-    * - VIRR data in HDF5 format
-      - `virr_l1b`
-      - Beta
-    * - MERSI-2 L1B data in HDF5 format
-      - `mersi2_l1b`
-      - Beta
-    * - FY-4A AGRI L1 data in HDF5 format
-      - `agri_l1`
-      - Beta
-    * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
-      - `vaisala_gld360`
-      - Beta
-    * - TROPOMI L2 data in NetCDF4 format
-      - `tropomi_l2`
-      - Beta
-    * - Hydrology SAF products in GRIB format
-      - `hsaf_grib`
-      - | Beta
-        | Only the h03, h03b, h05 and h05B products are supported at-present
-    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
-      - `ami_l1b`
-      - Beta
-    * - GOES-R GLM Grided Level 2 in NetCDF4 format
-      - `glm_l2`
-      - Beta
-    * - Sentinel-3 SLSTR SST data in NetCDF4 format
-      - `slstr_l2`
-      - Beta
-    * - IASI level 2 SO2 in BUFR format
-      - `iasi_l2_so2_bufr`
-      - Beta
-    * - HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
-      - `hy2_scat_l2b_h5`
-      - Beta
-    * - OMPS EDR data in HDF5 format
-      - `omps_edr`
-      - Beta
-    * - VII Level 2 in NetCDF4 format
-      - `vii_l2_nc`
-      - Beta
-    * - VII Level 1b in NetCDF4 format
-      - `vii_l1b_nc`
-      - Beta
-    * - MTG FCI Level 2 in NetCDF4 format
-      - `fci_l2_nc`
-      - Beta
-    * - SMOS level 2 wind data in NetCDF4 format
-      - `smos_l2_wind`
-      - Beta
-    * - AMSR2 level 2 wind data in HDF5 format
-      - `amsr2_l2`
-      - Beta
-    * - GPM IMERG level 3 precipitation data in HDF5 format
-      - `gpm_imerg`
-      - Nominal
-    * - AMSR2 level 2 GAASP in NetCDF4 format
-      - `amsr2_l2_gaasp`
-      - Beta
-    * - MiRS level 2 Precipitation and Surface Products (IMG) in NetCDF4 format
-      - `mirs`
-      - Beta
-    * - MIMIC Total Precipitable Water Product Reader in NetCDF format
-      - mimicTPW2_comp
-      - Beta
-    * - SEADAS L2 Chlorphyll A product in HDF4 format
-      - seadas_l2
-      - Beta
-    * - AAPP L1C MHS format
-      - `aapp_mhs_l1c`
-      - Nominal
-    * - AAPP L1C AMSU-B format
-      - `aapp_amsub_l1c`
-      - Beta
 
 Indices and tables
 ==================

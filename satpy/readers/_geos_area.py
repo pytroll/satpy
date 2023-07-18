@@ -157,9 +157,8 @@ def sampling_to_lfac_cfac(sampling):
     Reference: `MSG Ground Segment LRIT HRIT Mission Specific Implementation`_,
     Appendix E.2.
 
-
     .. _MSG Ground Segment LRIT HRIT Mission Specific Implementation:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_05057_spe_msg_lrit_hri.pdf
+       https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_05057_spe_msg_lrit_hri.pdf
 
     Args:
         sampling: float
@@ -167,6 +166,7 @@ def sampling_to_lfac_cfac(sampling):
 
     Returns:
         Line/column scaling factor (deg-1)
+
     """
     return 2.0 ** 16 / np.rad2deg(sampling)
 

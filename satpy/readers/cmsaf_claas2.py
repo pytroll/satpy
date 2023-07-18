@@ -2,13 +2,34 @@
 
 import datetime
 
-import pyresample.geometry
+from satpy.resample import get_area_def
 
 from .netcdf_utils import NetCDF4FileHandler
 
 
+def _is_georef_offset_present(date):
+    # Reference: Product User Manual, section 3.
+    # https://doi.org/10.5676/EUM_SAF_CM/CLAAS/V002_01
+    return date < datetime.date(2017, 12, 6)
+
+
+def _adjust_area_to_match_shifted_data(area):
+    # Reference:
+    # https://github.com/pytroll/satpy/wiki/SEVIRI-georeferencing-offset-correction
+    offset = area.pixel_size_x / 2
+    llx, lly, urx, ury = area.area_extent
+    new_extent = [llx + offset, lly - offset, urx + offset, ury - offset]
+    return area.copy(area_extent=new_extent)
+
+
+FULL_DISK = get_area_def("msg_seviri_fes_3km")
+FULL_DISK_WITH_OFFSET = _adjust_area_to_match_shifted_data(FULL_DISK)
+
+
 class CLAAS2(NetCDF4FileHandler):
     """Handle CMSAF CLAAS-2 files."""
+
+    grid_size = 3636
 
     def __init__(self, *args, **kwargs):
         """Initialise class."""
@@ -74,11 +95,19 @@ class CLAAS2(NetCDF4FileHandler):
 
     def get_area_def(self, dataset_id):
         """Get the area definition."""
-        return pyresample.geometry.AreaDefinition(
-                "some_area_name",
-                "on-the-fly area",
-                "geos",
-                self["/attr/CMSAF_proj4_params"],
-                self["/dimension/x"],
-                self["/dimension/y"],
-                self["/attr/CMSAF_area_extent"])
+        return self._get_subset_of_full_disk()
+
+    def _get_subset_of_full_disk(self):
+        """Get subset of the full disk.
+
+        CLAAS products are provided on a grid that is slightly smaller
+        than the full disk (excludes most of the space pixels).
+        """
+        full_disk = self._get_full_disk()
+        offset = int((full_disk.width - self.grid_size) // 2)
+        return full_disk[offset:-offset, offset:-offset]
+
+    def _get_full_disk(self):
+        if _is_georef_offset_present(self.start_time.date()):
+            return FULL_DISK_WITH_OFFSET
+        return FULL_DISK

@@ -1,6 +1,10 @@
 reader:
-  description: Reader for IASI L2 files
   name: iasi_l2
+  short_name: IASI l2
+  long_name: IASI Level 2 data in HDF5 format
+  description: Reader for IASI L2 files
+  status: Alpha
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [iasi]
   default_datasets:

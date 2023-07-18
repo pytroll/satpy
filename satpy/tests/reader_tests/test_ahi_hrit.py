@@ -24,18 +24,25 @@ import dask.array as da
 import numpy as np
 from xarray import DataArray
 
+from satpy.tests.utils import make_dataid
+
 
 class TestHRITJMAFileHandler(unittest.TestCase):
     """Test the HRITJMAFileHandler."""
 
     @mock.patch('satpy.readers.hrit_jma.HRITFileHandler.__init__')
-    def _get_reader(self, mocked_init, mda, filename_info=None):
+    def _get_reader(self, mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
         from satpy.readers.hrit_jma import HRITJMAFileHandler
         if not filename_info:
             filename_info = {}
+        if not filetype_info:
+            filetype_info = {}
+        if not reader_kwargs:
+            reader_kwargs = {}
         HRITJMAFileHandler.filename = 'filename'
         HRITJMAFileHandler.mda = mda
-        return HRITJMAFileHandler('filename', filename_info, {})
+        HRITJMAFileHandler._start_time = filename_info.get('start_time')
+        return HRITJMAFileHandler('filename', filename_info, filetype_info, **reader_kwargs)
 
     def _get_acq_time(self, nlines):
         """Get sample header entry for scanline acquisition times.
@@ -266,9 +273,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
         reader = self._get_reader(mda=mda)
-
-        key = mock.MagicMock()
-        key.calibration = 'reflectance'
+        key = make_dataid(name="VIS", calibration="reflectance")
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
                                                           chunks=1024),
@@ -279,9 +284,6 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         self.assertEqual(res.attrs['units'], '%')
         self.assertEqual(res.attrs['sensor'], 'ahi')
         self.assertEqual(res.attrs['platform_name'], HIMAWARI8)
-        self.assertEqual(res.attrs['satellite_longitude'], 140.7)
-        self.assertEqual(res.attrs['satellite_latitude'], 0.)
-        self.assertEqual(res.attrs['satellite_altitude'], 35785831.0)
         self.assertDictEqual(res.attrs['orbital_parameters'], {'projection_longitude': 140.7,
                                                                'projection_latitude': 0.,
                                                                'projection_altitude': 35785831.0})
@@ -321,3 +323,26 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                        acq_time_exp.astype(np.int64),
                                        atol=45000)
+
+    def test_start_time_from_filename(self):
+        """Test that by default the datetime in the filename is returned."""
+        import datetime as dt
+        start_time = dt.datetime(2022, 1, 20, 12, 10)
+        for platform in ['Himawari-8', 'MTSAT-2']:
+            mda = self._get_mda(platform=platform)
+            reader = self._get_reader(
+                mda=mda,
+                filename_info={'start_time': start_time})
+            assert reader._start_time == start_time
+
+    def test_start_time_from_aqc_time(self):
+        """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
+        import datetime as dt
+        start_time = dt.datetime(2022, 1, 20, 12, 10)
+        for platform in ['Himawari-8', 'MTSAT-2']:
+            mda = self._get_mda(platform=platform)
+            reader = self._get_reader(
+                mda=mda,
+                filename_info={'start_time': start_time},
+                reader_kwargs={'use_acquisition_time_as_start_time': True})
+            assert reader.start_time == reader.acq_time[0].astype(dt.datetime)

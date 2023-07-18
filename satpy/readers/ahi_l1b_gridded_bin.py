@@ -40,9 +40,11 @@ import xarray as xr
 from appdirs import AppDirs
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 # Hardcoded address of the reflectance and BT look-up tables
 AHI_REMOTE_LUTS = 'http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/count2tbb_v102.tgz'
@@ -155,7 +157,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Uncompress downloaded LUTs, which are a tarball."""
         import tarfile
         tar = tarfile.open(tarred_file)
-        tar.extractall(outdir)
+        tar.extractall(outdir)  # nosec
         tar.close()
         os.remove(tarred_file)
 
@@ -163,14 +165,15 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Download the LUTs needed for count->Refl/BT conversion."""
         import pathlib
         import shutil
-        import tempfile
+
+        from satpy import config
 
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)
 
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
-        tempdir = tempfile.gettempdir()
+        tempdir = config["tmp_dir"]
         fname = os.path.join(tempdir, 'tmp.tgz')
         # Download the LUTs
         self._download_luts(fname)

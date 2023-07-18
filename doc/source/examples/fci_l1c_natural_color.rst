@@ -11,6 +11,22 @@ to generate a Natural Color RGB composite over the European area.
     not work with the currently released version of Satpy. Additional updates
     to this example will be coming soon.
 
+.. note::
+
+    For reading compressed data, a decompression library is
+    needed. Either install the FCIDECOMP library (see the `FCI L1 Product User
+    Guide <https://www.eumetsat.int/media/45923>`_, or the
+    ``hdf5plugin`` package with::
+
+        pip install hdf5plugin
+
+    or::
+
+        conda install hdf5plugin -c conda-forge
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
 .. code-block:: python
 
     from satpy.scene import Scene

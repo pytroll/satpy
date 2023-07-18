@@ -42,7 +42,7 @@ class TestGenericImage(unittest.TestCase):
 
         # Create area definition
         pcs_id = 'ETRS89 / LAEA Europe'
-        proj4_dict = {'init': 'epsg:3035'}
+        proj4_dict = "EPSG:3035"
         self.x_size = 100
         self.y_size = 100
         area_extent = (2426378.0132, 1528101.2618, 6293974.6215, 5446513.5222)
@@ -209,8 +209,7 @@ class TestGenericImage(unittest.TestCase):
 
         dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertIn('crs', dataset.attrs)
-        self.assertIn('transform', dataset.attrs)
+        self.assertIn('spatial_ref', dataset.coords)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
     def test_GenericImageFileHandler_masking_only_integer(self):

@@ -22,8 +22,7 @@
     // Customizable commands for building, installing, and
     // uninstalling the project. See asv.conf.json documentation.
     //
-    "install_command": ["in-dir={env_dir} python -mpip install {wheel_file} pyspectral pyorbital s3fs rasterio h5py netCDF4 pyhdf gcsfs shapely"],
-    // "install_command": ["in-dir={env_dir} conda install {wheel_file} s3fs rasterio"],
+    //"install_command": ["in-dir={env_dir} python -mpip install {wheel_file} s3fs rasterio h5py netCDF4 pyhdf gcsfs shapely"],
     // "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
     // "build_command": [
     //     "python setup.py build",
@@ -46,7 +45,8 @@
     // If missing or the empty string, the tool will be automatically
     // determined by looking for tools on the PATH environment
     // variable.
-    "environment_type": "virtualenv",
+    //"environment_type": "virtualenv",
+    "environment_type": "conda",
 
     // timeout in seconds for installing any dependencies in environment
     // defaults to 10 min
@@ -58,10 +58,11 @@
     // The Pythons you'd like to test against.  If not provided, defaults
     // to the current version of Python used to run `asv`.
     // "pythons": ["2.7", "3.6"],
+    "pythons": ["3.9", "3.10"],
 
     // The list of conda channel names to be searched for benchmark
     // dependency packages in the specified order
-    // "conda_channels": ["conda-forge", "defaults"],
+    "conda_channels": ["conda-forge"],
 
     // The matrix of dependencies to test.  Each key is the name of a
     // package (in PyPI) and the values are version numbers.  An empty
@@ -78,6 +79,23 @@
     //     "six": ["", null],        // test with and without six installed
     //     "pip+emcee": [""],   // emcee is only available for install with pip.
     // },
+    "matrix": {
+        "pyresample": ["1.22.3"],
+        "trollimage": ["1.17.0"],
+        "pyorbital": ["1.7.1"],
+        "pyspectral": ["0.10.6"],
+        "rasterio": ["1.2.10"],
+        "dask": ["2021.12.0"],
+        "xarray": ["0.20.2"],
+        "numpy": ["1.22.0"],
+        "s3fs": [],
+        "h5py": [],
+        "netCDF4": [],
+        "pyhdf": [],
+        "gcsfs": [],
+        "shapely": [],
+        "trollsift": []
+    },
 
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional

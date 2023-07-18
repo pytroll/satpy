@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -30,6 +30,10 @@ import satpy
 from satpy._config import get_config_path
 from satpy.readers import eps_l1b as eps
 from satpy.tests.utils import make_dataid
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
 
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
@@ -107,48 +111,49 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
     def test_read_all(self):
         """Test initialization."""
         self.fh._read_all()
-        assert(self.fh.scanlines == 1080)
-        assert(self.fh.pixels == 2048)
+        assert self.fh.scanlines == 1080
+        assert self.fh.pixels == 2048
 
     def test_dataset(self):
         """Test getting a dataset."""
         did = make_dataid(name='1', calibration='reflectance')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == '1')
-        assert(res.attrs['calibration'] == 'reflectance')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == '1'
+        assert res.attrs['calibration'] == 'reflectance'
+        assert res.attrs['units'] == '%'
 
         did = make_dataid(name='4', calibration='brightness_temperature')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == '4')
-        assert(res.attrs['calibration'] == 'brightness_temperature')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == '4'
+        assert res.attrs['calibration'] == 'brightness_temperature'
+        assert res.attrs['units'] == 'K'
 
     def test_navigation(self):
         """Test the navigation."""
         did = make_dataid(name='longitude')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == 'longitude')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == 'longitude'
 
     def test_angles(self):
         """Test the navigation."""
         did = make_dataid(name='solar_zenith_angle')
         res = self.fh.get_dataset(did, {})
-        assert(isinstance(res, xr.DataArray))
-        assert(res.attrs['platform_name'] == 'Metop-C')
-        assert(res.attrs['sensor'] == 'avhrr-3')
-        assert(res.attrs['name'] == 'solar_zenith_angle')
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs['platform_name'] == 'Metop-C'
+        assert res.attrs['sensor'] == 'avhrr-3'
+        assert res.attrs['name'] == 'solar_zenith_angle'
 
     @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__')
-    @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__init__')
-    def test_get_full_angles_twice(self, mock__init__, mock__getitem__):
+    def test_get_full_angles_twice(self, mock__getitem__):
         """Test get full angles twice."""
         geotiemock = mock.Mock()
         metop20kmto1km = geotiemock.metop20kmto1km
@@ -160,9 +165,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
                     "ANGULAR_RELATIONS_LAST": np.zeros((7, 4)),
                     "NAV_SAMPLE_RATE": 20}
             return data[key]
-        mock__init__.return_value = None
         mock__getitem__.side_effect = mock_getitem
-        avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile()
+
+        avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile(
+            filename="foo",
+            filename_info={"start_time": "foo", "end_time": "bar"},
+            filetype_info={"foo": "bar"}
+        )
         avhrr_reader.scanlines = 7
         avhrr_reader.pixels = 2048
 

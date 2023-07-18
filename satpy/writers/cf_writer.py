@@ -34,12 +34,17 @@ format:
 * You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
   :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
+  If the area has a projected CRS, units are assumed to be in metre.  If the
+  area has a geographic CRS, units are assumed to be in degrees.  The writer
+  does not verify that the CRS is supported by the CF conventions.  One
+  commonly used projected CRS not supported by the CF conventions is the
+  equirectangular projection, such as EPSG 4087.
 * By default non-dimensional coordinates (such as scanline timestamps) are prefixed with the corresponding
   dataset name. This is because they are likely to be different for each dataset. If a non-dimensional
   coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
-  with `CHANNEL_` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
+  with ``"CHANNEL_"`` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
   Setting it to `None` or `''` will skip the prefixing.
 
 Grouping
@@ -66,14 +71,15 @@ Dataset encoding can be specified in two ways:
 
     >>> my_encoding = {
     ...    'my_dataset_1': {
-    ...        'zlib': True,
+    ...        'compression': 'zlib',
     ...        'complevel': 9,
     ...        'scale_factor': 0.01,
     ...        'add_offset': 100,
     ...        'dtype': np.int16
     ...     },
     ...    'my_dataset_2': {
-    ...        'zlib': False
+    ...        'compression': None,
+    ...        'dtype': np.float64
     ...     }
     ... }
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
@@ -81,10 +87,25 @@ Dataset encoding can be specified in two ways:
 
 2) Via the ``encoding`` attribute of the datasets in a scene. For example
 
-    >>> scn['my_dataset'].encoding = {'zlib': False}
+    >>> scn['my_dataset'].encoding = {'compression': 'zlib'}
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
 
 See the `xarray encoding documentation`_ for all encoding options.
+
+.. note::
+
+    Chunk-based compression can be specified with the ``compression`` keyword
+    since
+
+        .. code::
+
+            netCDF4-1.6.0
+            libnetcdf-4.9.0
+            xarray-2022.12.0
+
+    The ``zlib`` keyword is deprecated. Make sure that the versions of
+    these modules are all above or all below that reference. Otherwise,
+    compression might fail or be ignored silently.
 
 
 Attribute Encoding
@@ -140,15 +161,16 @@ import logging
 import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
+from packaging.version import Version
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from xarray.coding.times import CFDatetimeCoder
 
 from satpy.writers import Writer
+from satpy.writers.cf.coords_attrs import add_xy_coords_attrs
 from satpy.writers.utils import flatten_dict
 
 logger = logging.getLogger(__name__)
@@ -181,6 +203,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.string_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
+# Note: Unsigned and int64 are CF 1.9 compatible
 CF_DTYPES = [np.dtype('int8'),
              np.dtype('int16'),
              np.dtype('int32'),
@@ -191,32 +214,26 @@ CF_DTYPES = [np.dtype('int8'),
 CF_VERSION = 'CF-1.7'
 
 
-def create_grid_mapping(area):
-    """Create the grid mapping instance for `area`."""
-    import pyproj
-    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
-        # technically 2.2, but important bug fixes in 2.4.1
-        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
-    # let pyproj do the heavily lifting
-    # pyproj 2.0+ required
-    grid_mapping = area.crs.to_cf()
-    return area.area_id, grid_mapping
-
-
-def get_extra_ds(dataset, keys=None):
-    """Get the extra datasets associated to *dataset*."""
+def get_extra_ds(dataarray, keys=None):
+    """Get the ancillary_variables DataArrays associated to a dataset."""
     ds_collection = {}
-    for ds in dataset.attrs.get('ancillary_variables', []):
-        if keys and ds.name not in keys:
-            keys.append(ds.name)
-            ds_collection.update(get_extra_ds(ds, keys))
-    ds_collection[dataset.attrs['name']] = dataset
-
+    # Retrieve ancillary variable datarrays
+    for ancillary_dataarray in dataarray.attrs.get('ancillary_variables', []):
+        ancillary_variable = ancillary_dataarray.name
+        if keys and ancillary_variable not in keys:
+            keys.append(ancillary_variable)
+            ds_collection.update(get_extra_ds(ancillary_dataarray, keys=keys))
+    # Add input dataarray
+    ds_collection[dataarray.attrs['name']] = dataarray
     return ds_collection
 
 
-def area2lonlat(dataarray):
-    """Convert an area to longitudes and latitudes."""
+# ###--------------------------------------------------------------------------.
+# ### CF-Area
+
+
+def add_lonlat_coords(dataarray):
+    """Add 'longitude' and 'latitude' coordinates to DataArray."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
     ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
@@ -235,36 +252,102 @@ def area2lonlat(dataarray):
     return dataarray
 
 
-def area2gridmapping(dataarray):
+def _create_grid_mapping(area):
+    """Create the grid mapping instance for `area`."""
+    import pyproj
+
+    if Version(pyproj.__version__) < Version('2.4.1'):
+        # technically 2.2, but important bug fixes in 2.4.1
+        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
+    # let pyproj do the heavily lifting (pyproj 2.0+ required)
+    grid_mapping = area.crs.to_cf()
+    return area.area_id, grid_mapping
+
+
+def _add_grid_mapping(dataarray):
     """Convert an area to at CF grid mapping."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
-    gmapping_var_name, attrs = create_grid_mapping(area)
+    gmapping_var_name, attrs = _create_grid_mapping(area)
     dataarray.attrs['grid_mapping'] = gmapping_var_name
     return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
-def area2cf(dataarray, strict=False, got_lonlats=False):
+def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or strict):
-        dataarray = area2lonlat(dataarray)
+    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or include_lonlats):
+        dataarray = add_lonlat_coords(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
-        dataarray, gmapping = area2gridmapping(dataarray)
+        dataarray, gmapping = _add_grid_mapping(dataarray)
         res.append(gmapping)
     res.append(dataarray)
     return res
 
 
-def make_time_bounds(start_times, end_times):
-    """Create time bounds for the current *dataarray*."""
-    start_time = min(start_time for start_time in start_times
-                     if start_time is not None)
-    end_time = min(end_time for end_time in end_times
-                   if end_time is not None)
-    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]],
-                        dims=['time', 'bnds_1d'])
-    return data
+def is_lon_or_lat_dataarray(dataarray):
+    """Check if the DataArray represents the latitude or longitude coordinate."""
+    if 'standard_name' in dataarray.attrs and dataarray.attrs['standard_name'] in ['longitude', 'latitude']:
+        return True
+    return False
+
+
+def has_projection_coords(ds_collection):
+    """Check if DataArray collection has a "longitude" or "latitude" DataArray."""
+    for dataarray in ds_collection.values():
+        if is_lon_or_lat_dataarray(dataarray):
+            return True
+    return False
+
+
+def make_alt_coords_unique(datas, pretty=False):
+    """Make non-dimensional coordinates unique among all datasets.
+
+    Non-dimensional (or alternative) coordinates, such as scanline timestamps,
+    may occur in multiple datasets with the same name and dimension
+    but different values.
+
+    In order to avoid conflicts, prepend the dataset name to the coordinate name.
+    If a non-dimensional coordinate is unique among all datasets and ``pretty=True``,
+    its name will not be modified.
+
+    Since all datasets must have the same projection coordinates,
+    this is not applied to latitude and longitude.
+
+    Args:
+        datas (dict):
+            Dictionary of (dataset name, dataset)
+        pretty (bool):
+            Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+
+    Returns:
+        Dictionary holding the updated datasets
+
+    """
+    # Determine which non-dimensional coordinates are unique
+    tokens = defaultdict(set)
+    for dataset in datas.values():
+        for coord_name in dataset.coords:
+            if not is_lon_or_lat_dataarray(dataset[coord_name]) and coord_name not in dataset.dims:
+                tokens[coord_name].add(tokenize(dataset[coord_name].data))
+    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
+
+    # Prepend dataset name, if not unique or no pretty-format desired
+    new_datas = datas.copy()
+    for coord_name, unique in coords_unique.items():
+        if not pretty or not unique:
+            if pretty:
+                warnings.warn(
+                    'Cannot pretty-format "{}" coordinates because they are '
+                    'not identical among the given datasets'.format(coord_name),
+                    stacklevel=2
+                )
+            for ds_name, dataset in datas.items():
+                if coord_name in dataset.coords:
+                    rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
+                    new_datas[ds_name] = new_datas[ds_name].rename(rename)
+
+    return new_datas
 
 
 def assert_xy_unique(datas):
@@ -302,70 +385,63 @@ def link_coords(datas):
                     dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
                     data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
-                                  .format(coord, da_name))
+                    warnings.warn(
+                        'Coordinate "{}" referenced by dataarray {} does not '
+                        'exist, dropping reference.'.format(coord, da_name),
+                        stacklevel=2
+                    )
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
         data.attrs.pop('coordinates', None)
 
 
-def dataset_is_projection_coords(dataset):
-    """Check if dataset is a projection coords."""
-    if 'standard_name' in dataset.attrs and dataset.attrs['standard_name'] in ['longitude', 'latitude']:
-        return True
-    return False
+# ###--------------------------------------------------------------------------.
+# ### CF-Time
+def add_time_bounds_dimension(ds, time="time"):
+    """Add time bound dimension to xr.Dataset."""
+    start_times = []
+    end_times = []
+    for _var_name, data_array in ds.items():
+        start_times.append(data_array.attrs.get("start_time", None))
+        end_times.append(data_array.attrs.get("end_time", None))
+
+    start_time = min(start_time for start_time in start_times
+                     if start_time is not None)
+    end_time = min(end_time for end_time in end_times
+                   if end_time is not None)
+    ds['time_bnds'] = xr.DataArray([[np.datetime64(start_time),
+                                     np.datetime64(end_time)]],
+                                   dims=['time', 'bnds_1d'])
+    ds[time].attrs['bounds'] = "time_bnds"
+    ds[time].attrs['standard_name'] = "time"
+    return ds
 
 
-def has_projection_coords(ds_collection):
-    """Check if collection has a projection coords among data arrays."""
-    for dataset in ds_collection.values():
-        if dataset_is_projection_coords(dataset):
-            return True
-    return False
+def _process_time_coord(dataarray, epoch):
+    """Process the 'time' coordinate, if existing.
 
+    If expand the DataArray with a time dimension if does not yet exists.
 
-def make_alt_coords_unique(datas, pretty=False):
-    """Make non-dimensional coordinates unique among all datasets.
+    The function assumes
 
-    Non-dimensional (or alternative) coordinates, such as scanline timestamps, may occur in multiple datasets with
-    the same name and dimension but different values. In order to avoid conflicts, prepend the dataset name to the
-    coordinate name. If a non-dimensional coordinate is unique among all datasets and ``pretty=True``, its name will not
-    be modified.
-
-    Since all datasets must have the same projection coordinates, this is not applied to latitude and longitude.
-
-    Args:
-        datas (dict):
-            Dictionary of (dataset name, dataset)
-        pretty (bool):
-            Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-
-    Returns:
-        Dictionary holding the updated datasets
+        - that x and y dimensions have at least shape > 1
+        - the time coordinate has size 1
 
     """
-    # Determine which non-dimensional coordinates are unique
-    tokens = defaultdict(set)
-    for dataset in datas.values():
-        for coord_name in dataset.coords:
-            if not dataset_is_projection_coords(dataset[coord_name]) and coord_name not in dataset.dims:
-                tokens[coord_name].add(tokenize(dataset[coord_name].data))
-    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
+    if 'time' in dataarray.coords:
+        dataarray['time'].encoding['units'] = epoch
+        dataarray['time'].attrs['standard_name'] = 'time'
+        dataarray['time'].attrs.pop('bounds', None)
 
-    # Prepend dataset name, if not unique or no pretty-format desired
-    new_datas = datas.copy()
-    for coord_name, unique in coords_unique.items():
-        if not pretty or not unique:
-            if pretty:
-                warnings.warn('Cannot pretty-format "{}" coordinates because they are not unique among the '
-                              'given datasets'.format(coord_name))
-            for ds_name, dataset in datas.items():
-                if coord_name in dataset.coords:
-                    rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
-                    new_datas[ds_name] = new_datas[ds_name].rename(rename)
+        if 'time' not in dataarray.dims and dataarray["time"].size not in dataarray.shape:
+            dataarray = dataarray.expand_dims('time')
 
-    return new_datas
+    return dataarray
+
+
+# --------------------------------------------------------------------------.
+# ### Attributes
 
 
 class AttributeEncoder(json.JSONEncoder):
@@ -474,6 +550,86 @@ def encode_attrs_nc(attrs):
     return OrderedDict(encoded_attrs)
 
 
+def _add_ancillary_variables_attrs(dataarray):
+    """Replace ancillary_variables DataArray with a list of their name."""
+    list_ancillary_variable_names = [da_ancillary.attrs['name']
+                                     for da_ancillary in dataarray.attrs.get('ancillary_variables', [])]
+    if list_ancillary_variable_names:
+        dataarray.attrs['ancillary_variables'] = ' '.join(list_ancillary_variable_names)
+    else:
+        dataarray.attrs.pop("ancillary_variables", None)
+    return dataarray
+
+
+def _drop_exclude_attrs(dataarray, exclude_attrs):
+    """Remove user-specified list of attributes."""
+    if exclude_attrs is None:
+        exclude_attrs = []
+    for key in exclude_attrs:
+        dataarray.attrs.pop(key, None)
+    return dataarray
+
+
+def _remove_satpy_attrs(new_data):
+    """Remove _satpy attribute."""
+    satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+    for satpy_attr in satpy_attrs:
+        new_data.attrs.pop(satpy_attr)
+    new_data.attrs.pop('_last_resampler', None)
+    return new_data
+
+
+def _format_prerequisites_attrs(dataarray):
+    """Reformat prerequisites attribute value to string."""
+    if 'prerequisites' in dataarray.attrs:
+        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+    return dataarray
+
+
+def _remove_none_attrs(dataarray):
+    """Remove attribute keys with None value."""
+    for key, val in dataarray.attrs.copy().items():
+        if val is None:
+            dataarray.attrs.pop(key)
+    return dataarray
+
+
+def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
+    """Preprocess DataArray attributes to be written into CF-compliant netCDF/Zarr."""
+    dataarray = _remove_satpy_attrs(dataarray)
+    dataarray = _add_ancillary_variables_attrs(dataarray)
+    dataarray = _drop_exclude_attrs(dataarray, exclude_attrs)
+    dataarray = _format_prerequisites_attrs(dataarray)
+    dataarray = _remove_none_attrs(dataarray)
+    _ = dataarray.attrs.pop("area", None)
+
+    if 'long_name' not in dataarray.attrs and 'standard_name' not in dataarray.attrs:
+        dataarray.attrs['long_name'] = dataarray.name
+
+    if flatten_attrs:
+        dataarray.attrs = flatten_dict(dataarray.attrs)
+
+    dataarray.attrs = encode_attrs_nc(dataarray.attrs)
+
+    return dataarray
+
+
+def preprocess_header_attrs(header_attrs, flatten_attrs=False):
+    """Prepare file header attributes."""
+    if header_attrs is not None:
+        if flatten_attrs:
+            header_attrs = flatten_dict(header_attrs)
+        header_attrs = encode_attrs_nc(header_attrs)  # OrderedDict
+    else:
+        header_attrs = {}
+    header_attrs = _add_history(header_attrs)
+    return header_attrs
+
+
+# ###--------------------------------------------------------------------------.
+# ### netCDF encodings
+
+
 def _set_default_chunks(encoding, dataset):
     """Update encoding to preserve current dask chunks.
 
@@ -487,6 +643,7 @@ def _set_default_chunks(encoding, dataset):
             )  # Chunksize may not exceed shape
             encoding.setdefault(var_name, {})
             encoding[var_name].setdefault('chunksizes', chunks)
+    return encoding
 
 
 def _set_default_fill_value(encoding, dataset):
@@ -501,13 +658,15 @@ def _set_default_fill_value(encoding, dataset):
     for coord_var in coord_vars:
         encoding.setdefault(coord_var, {})
         encoding[coord_var].update({'_FillValue': None})
+    return encoding
 
 
 def _set_default_time_encoding(encoding, dataset):
     """Set default time encoding.
 
-    Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
-    encoding, which can be overridden by user-defined encoding.
+    Make sure time coordinates and bounds have the same units.
+    Default is xarray's CF datetime encoding, which can be overridden
+    by user-defined encoding.
     """
     if 'time' in dataset:
         try:
@@ -523,21 +682,25 @@ def _set_default_time_encoding(encoding, dataset):
                       '_FillValue': None}
         encoding['time'] = time_enc
         encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
+    return encoding
 
 
-def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
-    """Set Netcdf variable names encoding according to numeric_name_prefix.
+def _update_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
+    """Ensure variable names of the encoding dictionary account for numeric_name_prefix.
 
-    A lot of channel names in satpy starts with a digit. When writing data with the satpy_cf_nc
-    these channels are prepended with numeric_name_prefix.
-    This ensures this is also done with any matching variables in encoding.
+    A lot of channel names in satpy starts with a digit.
+    When preparing CF-compliant datasets, these channels are prefixed with numeric_name_prefix.
+
+    If variables names in the encoding dictionary are numeric digits, their name is prefixed
+    with numeric_name_prefix
     """
-    for _var_name, _variable in dataset.variables.items():
-        if not numeric_name_prefix or not _var_name.startswith(numeric_name_prefix):
+    for var_name in list(dataset.variables):
+        if not numeric_name_prefix or not var_name.startswith(numeric_name_prefix):
             continue
-        _orig_var_name = _var_name.replace(numeric_name_prefix, '')
-        if _orig_var_name in encoding:
-            encoding[_var_name] = encoding.pop(_orig_var_name)
+        orig_var_name = var_name.replace(numeric_name_prefix, '')
+        if orig_var_name in encoding:
+            encoding[var_name] = encoding.pop(orig_var_name)
+    return encoding
 
 
 def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
@@ -548,69 +711,348 @@ def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
     """
     other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
     encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
-
-    _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix)
-    _set_default_chunks(encoding, dataset)
-    _set_default_fill_value(encoding, dataset)
-    _set_default_time_encoding(encoding, dataset)
-
+    encoding = _update_encoding_dataset_names(encoding, dataset, numeric_name_prefix)
+    encoding = _set_default_chunks(encoding, dataset)
+    encoding = _set_default_fill_value(encoding, dataset)
+    encoding = _set_default_time_encoding(encoding, dataset)
     return encoding, other_to_netcdf_kwargs
 
 
+# ###--------------------------------------------------------------------------.
+# ### CF-conversion
+
+
 def _handle_dataarray_name(original_name, numeric_name_prefix):
-    name = original_name
-    if name[0].isdigit():
+    if original_name[0].isdigit():
         if numeric_name_prefix:
-            name = numeric_name_prefix + original_name
+            new_name = numeric_name_prefix + original_name
         else:
-            warnings.warn('Invalid NetCDF dataset name: {} starts with a digit.'.format(name))
-    return original_name, name
-
-
-def _get_compression(compression):
-    warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
-                  FutureWarning)
-    if compression is None:
-        compression = {'zlib': True}
+            warnings.warn(
+                f'Invalid NetCDF dataset name: {original_name} starts with a digit.',
+                stacklevel=5
+            )
+            new_name = original_name  # occurs when numeric_name_prefix = '', None or False
     else:
-        warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
-                      "DataArrays to tune compression from now on.", FutureWarning)
-    return compression
+        new_name = original_name
+    return original_name, new_name
 
 
-def _set_history(root):
+def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name):
+    """Change the DataArray name by prepending numeric_name_prefix if the name is a digit."""
+    original_name = None
+    dataarray = dataarray.copy()
+    if 'name' in dataarray.attrs:
+        original_name = dataarray.attrs.pop('name')
+        original_name, new_name = _handle_dataarray_name(original_name, numeric_name_prefix)
+        dataarray = dataarray.rename(new_name)
+
+    if include_orig_name and numeric_name_prefix and original_name and original_name != new_name:
+        dataarray.attrs['original_name'] = original_name
+
+    return dataarray
+
+
+def _add_history(attrs):
+    """Add 'history' attribute to dictionary."""
     _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
-    if 'history' in root.attrs:
-        if isinstance(root.attrs['history'], list):
-            root.attrs['history'] = ''.join(root.attrs['history'])
-        root.attrs['history'] += '\n' + _history_create
+    if 'history' in attrs:
+        if isinstance(attrs['history'], list):
+            attrs['history'] = ''.join(attrs['history'])
+        attrs['history'] += '\n' + _history_create
     else:
-        root.attrs['history'] = _history_create
+        attrs['history'] = _history_create
+    return attrs
 
 
-def _get_groups(groups, datasets, root):
+def _get_groups(groups, list_datarrays):
+    """Return a dictionary with the list of xr.DataArray associated to each group.
+
+    If no groups (groups=None), return all DataArray attached to a single None key.
+    Else, collect the DataArrays associated to each group.
+    """
     if groups is None:
-        # Groups are not CF-1.7 compliant
-        if 'Conventions' not in root.attrs:
-            root.attrs['Conventions'] = CF_VERSION
-        # Write all datasets to the file root without creating a group
-        groups_ = {None: datasets}
+        grouped_dataarrays = {None: list_datarrays}
     else:
-        # User specified a group assignment using dataset names. Collect the corresponding datasets.
-        groups_ = defaultdict(list)
-        for dataset in datasets:
+        grouped_dataarrays = defaultdict(list)
+        for datarray in list_datarrays:
             for group_name, group_members in groups.items():
-                if dataset.attrs['name'] in group_members:
-                    groups_[group_name].append(dataset)
+                if datarray.attrs['name'] in group_members:
+                    grouped_dataarrays[group_name].append(datarray)
                     break
-    return groups_
+    return grouped_dataarrays
+
+
+def make_cf_dataarray(dataarray,
+                      epoch=EPOCH,
+                      flatten_attrs=False,
+                      exclude_attrs=None,
+                      include_orig_name=True,
+                      numeric_name_prefix='CHANNEL_'):
+    """Make the xr.DataArray CF-compliant.
+
+    Parameters
+    ----------
+    dataarray : xr.DataArray
+        The data array to be made CF-compliant.
+    epoch : str, optional
+        Reference time for encoding of time coordinates.
+    flatten_attrs : bool, optional
+        If True, flatten dict-type attributes.
+        The default is False.
+    exclude_attrs : list, optional
+        List of dataset attributes to be excluded.
+        The default is None.
+    include_orig_name : bool, optional
+        Include the original dataset name in the netcdf variable attributes.
+        The default is True.
+    numeric_name_prefix : TYPE, optional
+        Prepend dataset name with this if starting with a digit.
+        The default is ``"CHANNEL_"``.
+
+    Returns
+    -------
+    new_data : xr.DataArray
+        CF-compliant xr.DataArray.
+
+    """
+    dataarray = _preprocess_dataarray_name(dataarray=dataarray,
+                                           numeric_name_prefix=numeric_name_prefix,
+                                           include_orig_name=include_orig_name)
+    dataarray = preprocess_datarray_attrs(dataarray=dataarray,
+                                          flatten_attrs=flatten_attrs,
+                                          exclude_attrs=exclude_attrs)
+    dataarray = add_xy_coords_attrs(dataarray)
+    dataarray = _process_time_coord(dataarray, epoch=epoch)
+    return dataarray
+
+
+def _collect_cf_dataset(list_dataarrays,
+                        epoch=EPOCH,
+                        flatten_attrs=False,
+                        exclude_attrs=None,
+                        include_lonlats=True,
+                        pretty=False,
+                        include_orig_name=True,
+                        numeric_name_prefix='CHANNEL_'):
+    """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Dataset.
+
+    Parameters
+    ----------
+    list_dataarrays : list
+        List of DataArrays to make CF compliant and merge into a xr.Dataset.
+    epoch : str
+        Reference time for encoding the time coordinates (if available).
+        Example format: "seconds since 1970-01-01 00:00:00".
+        If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
+    flatten_attrs : bool, optional
+        If True, flatten dict-type attributes.
+    exclude_attrs : list, optional
+        List of xr.DataArray attribute names to be excluded.
+    include_lonlats : bool, optional
+        If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
+        If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
+    pretty : bool, optional
+        Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+    include_orig_name : bool, optional
+        Include the original dataset name as a variable attribute in the xr.Dataset.
+    numeric_name_prefix : str, optional
+        Prefix to add the each variable with name starting with a digit.
+        Use '' or None to leave this out.
+
+    Returns
+    -------
+    ds : xr.Dataset
+        A partially CF-compliant xr.Dataset
+    """
+    # Create dictionary of input datarrays
+    # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
+    ds_collection = {}
+    for dataarray in list_dataarrays:
+        ds_collection.update(get_extra_ds(dataarray))
+
+    # Check if one DataArray in the collection has 'longitude' or 'latitude'
+    got_lonlats = has_projection_coords(ds_collection)
+
+    # Sort dictionary by keys name
+    ds_collection = dict(sorted(ds_collection.items()))
+
+    dict_dataarrays = {}
+    for dataarray in ds_collection.values():
+        dataarray_type = dataarray.dtype
+        if dataarray_type not in CF_DTYPES:
+            warnings.warn(
+                f'dtype {dataarray_type} not compatible with {CF_VERSION}.',
+                stacklevel=3
+            )
+        # Deep copy the datarray since adding/modifying attributes and coordinates
+        dataarray = dataarray.copy(deep=True)
+
+        # Add CF-compliant area information from the pyresample area
+        # - If include_lonlats=True, add latitude and longitude coordinates
+        # - Add grid_mapping attribute to the DataArray
+        # - Return the CRS DataArray as first list element
+        # - Return the CF-compliant input DataArray as second list element
+        try:
+            list_new_dataarrays = area2cf(dataarray,
+                                          include_lonlats=include_lonlats,
+                                          got_lonlats=got_lonlats)
+        except KeyError:
+            list_new_dataarrays = [dataarray]
+
+        # Ensure each DataArray is CF-compliant
+        # --> NOTE: Here the CRS DataArray is repeatedly overwrited
+        # --> NOTE: If the input list_dataarrays have different pyresample areas with the same name
+        #           area information can be lost here !!!
+        for new_dataarray in list_new_dataarrays:
+            new_dataarray = make_cf_dataarray(new_dataarray,
+                                              epoch=epoch,
+                                              flatten_attrs=flatten_attrs,
+                                              exclude_attrs=exclude_attrs,
+                                              include_orig_name=include_orig_name,
+                                              numeric_name_prefix=numeric_name_prefix)
+            dict_dataarrays[new_dataarray.name] = new_dataarray
+
+    # Check all DataArray have same size
+    assert_xy_unique(dict_dataarrays)
+
+    # Deal with the 'coordinates' attributes indicating lat/lon coords
+    # NOTE: this currently is dropped by default !!!
+    link_coords(dict_dataarrays)
+
+    # Ensure non-dimensional coordinates to be unique across DataArrays
+    # --> If not unique, prepend the DataArray name to the coordinate
+    # --> If unique, does not prepend the DataArray name only if pretty=True
+    # --> 'longitude' and 'latitude' coordinates are not prepended
+    dict_dataarrays = make_alt_coords_unique(dict_dataarrays, pretty=pretty)
+
+    # Create a xr.Dataset
+    ds = xr.Dataset(dict_dataarrays)
+    return ds
+
+
+def collect_cf_datasets(list_dataarrays,
+                        header_attrs=None,
+                        exclude_attrs=None,
+                        flatten_attrs=False,
+                        pretty=True,
+                        include_lonlats=True,
+                        epoch=EPOCH,
+                        include_orig_name=True,
+                        numeric_name_prefix='CHANNEL_',
+                        groups=None):
+    """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Datasets.
+
+    If the xr.DataArrays does not share the same dimensions, it creates a collection
+    of xr.Datasets sharing the same dimensions.
+
+    Parameters
+    ----------
+    list_dataarrays (list):
+        List of DataArrays to make CF compliant and merge into groups of xr.Datasets.
+    header_attrs: (dict):
+        Global attributes of the output xr.Dataset.
+    epoch (str):
+        Reference time for encoding the time coordinates (if available).
+        Example format: "seconds since 1970-01-01 00:00:00".
+        If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
+    flatten_attrs (bool):
+        If True, flatten dict-type attributes.
+    exclude_attrs (list):
+        List of xr.DataArray attribute names to be excluded.
+    include_lonlats (bool):
+        If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
+        If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
+    pretty (bool):
+        Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+    include_orig_name (bool).
+        Include the original dataset name as a variable attribute in the xr.Dataset.
+    numeric_name_prefix (str):
+        Prefix to add the each variable with name starting with a digit.
+        Use '' or None to leave this out.
+    groups (dict):
+        Group datasets according to the given assignment:
+
+            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`
+
+        It is used to create grouped netCDFs using the CF_Writer.
+        If None (the default), no groups will be created.
+
+    Returns
+    -------
+    grouped_datasets : dict
+        A dictionary of CF-compliant xr.Dataset: {group_name: xr.Dataset}
+    header_attrs : dict
+        Global attributes to be attached to the xr.Dataset / netCDF4.
+    """
+    if not list_dataarrays:
+        raise RuntimeError("None of the requested datasets have been "
+                           "generated or could not be loaded. Requested "
+                           "composite inputs may need to have matching "
+                           "dimensions (eg. through resampling).")
+
+    header_attrs = preprocess_header_attrs(header_attrs=header_attrs,
+                                           flatten_attrs=flatten_attrs)
+
+    # Retrieve groups
+    # - If groups is None: {None: list_dataarrays}
+    # - if groups not None: {group_name: [xr.DataArray, xr.DataArray ,..], ...}
+    # Note: if all dataset names are wrong, behave like groups = None !
+    grouped_dataarrays = _get_groups(groups, list_dataarrays)
+    is_grouped = len(grouped_dataarrays) >= 2
+
+    # If not grouped, add CF conventions.
+    # - If 'Conventions' key already present, do not overwrite !
+    if "Conventions" not in header_attrs and not is_grouped:
+        header_attrs['Conventions'] = CF_VERSION
+
+    # Create dictionary of group xr.Datasets
+    # --> If no groups (groups=None) --> group_name=None
+    grouped_datasets = {}
+    for group_name, group_dataarrays in grouped_dataarrays.items():
+        ds = _collect_cf_dataset(
+            list_dataarrays=group_dataarrays,
+            epoch=epoch,
+            flatten_attrs=flatten_attrs,
+            exclude_attrs=exclude_attrs,
+            include_lonlats=include_lonlats,
+            pretty=pretty,
+            include_orig_name=include_orig_name,
+            numeric_name_prefix=numeric_name_prefix)
+
+        if not is_grouped:
+            ds.attrs = header_attrs
+
+        if 'time' in ds:
+            ds = add_time_bounds_dimension(ds, time="time")
+
+        grouped_datasets[group_name] = ds
+    return grouped_datasets, header_attrs
+
+
+def _sanitize_writer_kwargs(writer_kwargs):
+    """Remove satpy-specific kwargs."""
+    writer_kwargs = copy.deepcopy(writer_kwargs)
+    satpy_kwargs = ['overlay', 'decorate', 'config_files']
+    for kwarg in satpy_kwargs:
+        writer_kwargs.pop(kwarg, None)
+    return writer_kwargs
+
+
+def _initialize_root_netcdf(filename, engine, header_attrs, to_netcdf_kwargs):
+    """Initialize root empty netCDF."""
+    root = xr.Dataset({}, attrs=header_attrs)
+    init_nc_kwargs = to_netcdf_kwargs.copy()
+    init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+    init_nc_kwargs.pop('unlimited_dims', None)
+    written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+    return written
 
 
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None,
               include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
@@ -628,232 +1070,153 @@ class CFWriter(Writer):
             numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit
         """
-        if exclude_attrs is None:
-            exclude_attrs = []
-
-        original_name = None
-        new_data = dataarray.copy()
-        if 'name' in new_data.attrs:
-            name = new_data.attrs.pop('name')
-            original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
-            new_data = new_data.rename(name)
-
-        CFWriter._remove_satpy_attributes(new_data)
-
-        # Remove area as well as user-defined attributes
-        for key in ['area'] + exclude_attrs:
-            new_data.attrs.pop(key, None)
-
-        anc = [ds.attrs['name']
-               for ds in new_data.attrs.get('ancillary_variables', [])]
-        if anc:
-            new_data.attrs['ancillary_variables'] = ' '.join(anc)
-        # TODO: make this a grid mapping or lon/lats
-        # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-        CFWriter._cleanup_attrs(new_data)
-
-        if compression is not None:
-            new_data.encoding.update(compression)
-
-        new_data = CFWriter._encode_time(new_data, epoch)
-
-        new_data = CFWriter._encode_coords(new_data)
-
-        if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
-            new_data.attrs['long_name'] = new_data.name
-        if 'prerequisites' in new_data.attrs:
-            new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
-
-        if include_orig_name and numeric_name_prefix and original_name and original_name != name:
-            new_data.attrs['original_name'] = original_name
-
-        # Flatten dict-type attributes, if desired
-        if flatten_attrs:
-            new_data.attrs = flatten_dict(new_data.attrs)
-
-        # Encode attributes to netcdf-compatible datatype
-        new_data.attrs = encode_attrs_nc(new_data.attrs)
-
-        return new_data
-
-    @staticmethod
-    def _cleanup_attrs(new_data):
-        for key, val in new_data.attrs.copy().items():
-            if val is None:
-                new_data.attrs.pop(key)
-            if key == 'ancillary_variables' and val == []:
-                new_data.attrs.pop(key)
-
-    @staticmethod
-    def _encode_coords(new_data):
-        if 'x' in new_data.coords:
-            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
-            new_data['x'].attrs['units'] = 'm'
-        if 'y' in new_data.coords:
-            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
-            new_data['y'].attrs['units'] = 'm'
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
-        return new_data
-
-    @staticmethod
-    def _encode_time(new_data, epoch):
-        if 'time' in new_data.coords:
-            new_data['time'].encoding['units'] = epoch
-            new_data['time'].attrs['standard_name'] = 'time'
-            new_data['time'].attrs.pop('bounds', None)
-            if 'time' not in new_data.dims:
-                new_data = new_data.expand_dims('time')
-        return new_data
-
-    @staticmethod
-    def _remove_satpy_attributes(new_data):
-        # Remove _satpy* attributes
-        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
-        for satpy_attr in satpy_attrs:
-            new_data.attrs.pop(satpy_attr)
-        new_data.attrs.pop('_last_resampler', None)
+        warnings.warn('CFWriter.da2cf is deprecated.'
+                      'Use satpy.writers.cf_writer.make_cf_dataarray instead.',
+                      DeprecationWarning, stacklevel=3)
+        return make_cf_dataarray(dataarray=dataarray,
+                                 epoch=epoch,
+                                 flatten_attrs=flatten_attrs,
+                                 exclude_attrs=exclude_attrs,
+                                 include_orig_name=include_orig_name,
+                                 numeric_name_prefix=numeric_name_prefix)
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
         """Update encoding info (deprecated)."""
         warnings.warn('CFWriter.update_encoding is deprecated. '
                       'Use satpy.writers.cf_writer.update_encoding instead.',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=3)
         return update_encoding(dataset, to_netcdf_kwargs)
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
-        """Collect and prepare datasets to be written."""
-        ds_collection = {}
-        for ds in datasets:
-            ds_collection.update(get_extra_ds(ds))
-        got_lonlats = has_projection_coords(ds_collection)
-        datas = {}
-        start_times = []
-        end_times = []
-        # sort by name, but don't use the name
-        for _, ds in sorted(ds_collection.items()):
-            if ds.dtype not in CF_DTYPES:
-                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
-            # we may be adding attributes, coordinates, or modifying the
-            # structure of attributes
-            ds = ds.copy(deep=True)
-            try:
-                new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
-            except KeyError:
-                new_datasets = [ds]
-            for new_ds in new_datasets:
-                start_times.append(new_ds.attrs.get("start_time", None))
-                end_times.append(new_ds.attrs.get("end_time", None))
-                new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                     exclude_attrs=exclude_attrs, compression=compression,
-                                     include_orig_name=include_orig_name,
-                                     numeric_name_prefix=numeric_name_prefix)
-                datas[new_var.name] = new_var
-
-        # Check and prepare coordinates
-        assert_xy_unique(datas)
-        link_coords(datas)
-        datas = make_alt_coords_unique(datas, pretty=pretty)
-
-        return datas, start_times, end_times
-
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
 
         Args:
             datasets (list):
-                Datasets to be saved
+                List of xr.DataArray to be saved.
             filename (str):
                 Output file
             groups (dict):
                 Group datasets according to the given assignment: `{'group_name': ['dataset1', 'dataset2', ...]}`.
-                Group name `None` corresponds to the root of the file, i.e. no group will be created. Warning: The
-                results will not be fully CF compliant!
+                Group name `None` corresponds to the root of the file, i.e. no group will be created.
+                Warning: The results will not be fully CF compliant!
             header_attrs:
-                Global attributes to be included
+                Global attributes to be included.
             engine (str):
                 Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a
                 preference for 'netcdf4'.
             epoch (str):
-                Reference time for encoding of time coordinates
+                Reference time for encoding of time coordinates.
             flatten_attrs (bool):
-                If True, flatten dict-type attributes
+                If True, flatten dict-type attributes.
             exclude_attrs (list):
-                List of dataset attributes to be excluded
+                List of dataset attributes to be excluded.
             include_lonlats (bool):
-                Always include latitude and longitude coordinates, even for datasets with area definition
+                Always include latitude and longitude coordinates, even for datasets with area definition.
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-            compression (dict):
-                Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
-                This is in turn passed the xarray's `to_netcdf` method:
-                http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
-                (This parameter is now being deprecated, please use the DataArrays's `encoding` from now on.)
             include_orig_name (bool).
-                Include the original dataset name as an varaibel attribute in the final netcdf
+                Include the original dataset name as a variable attribute in the final netCDF.
             numeric_name_prefix (str):
                 Prefix to add the each variable with name starting with a digit. Use '' or None to leave this out.
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-        compression = _get_compression(compression)
+        _check_backend_versions()
 
-        # Write global attributes to file root (creates the file)
+        # Define netCDF filename if not provided
+        # - It infers the name from the first DataArray
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={})
-        if header_attrs is not None:
-            if flatten_attrs:
-                header_attrs = flatten_dict(header_attrs)
-            root.attrs = encode_attrs_nc(header_attrs)
-
-        _set_history(root)
-
+        # Collect xr.Dataset for each group
+        grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=datasets,  # list of xr.DataArray
+                                                             header_attrs=header_attrs,
+                                                             exclude_attrs=exclude_attrs,
+                                                             flatten_attrs=flatten_attrs,
+                                                             pretty=pretty,
+                                                             include_lonlats=include_lonlats,
+                                                             epoch=epoch,
+                                                             include_orig_name=include_orig_name,
+                                                             numeric_name_prefix=numeric_name_prefix,
+                                                             groups=groups,
+                                                             )
         # Remove satpy-specific kwargs
-        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
-        satpy_kwargs = ['overlay', 'decorate', 'config_files']
-        for kwarg in satpy_kwargs:
-            to_netcdf_kwargs.pop(kwarg, None)
+        # - This kwargs can contain encoding dictionary
+        to_netcdf_kwargs = _sanitize_writer_kwargs(to_netcdf_kwargs)
 
-        init_nc_kwargs = to_netcdf_kwargs.copy()
-        init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
-        init_nc_kwargs.pop('unlimited_dims', None)
+        # If writing grouped netCDF, create an empty "root" netCDF file
+        # - Add the global attributes
+        # - All groups will be appended in the for loop below
+        if groups is not None:
+            written = _initialize_root_netcdf(filename=filename,
+                                              engine=engine,
+                                              header_attrs=header_attrs,
+                                              to_netcdf_kwargs=to_netcdf_kwargs)
+            mode = "a"
+        else:
+            mode = "w"
+            written = []
 
-        groups_ = _get_groups(groups, datasets, root)
-
-        written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
-
-        # Write datasets to groups (appending to the file; group=None means no group)
-        for group_name, group_datasets in groups_.items():
-            # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
-                include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
-            dataset = xr.Dataset(datas)
-            if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
-                dataset['time'].attrs['standard_name'] = "time"
-            else:
-                grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
-                logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
-
-            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
-            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
-                                    **other_to_netcdf_kwargs)
+        # Write the netCDF
+        # - If grouped netCDF, it appends to the root file
+        # - If single netCDF, it write directly
+        for group_name, ds in grouped_datasets.items():
+            encoding, other_to_netcdf_kwargs = update_encoding(ds,
+                                                               to_netcdf_kwargs=to_netcdf_kwargs,
+                                                               numeric_name_prefix=numeric_name_prefix)
+            res = ds.to_netcdf(filename,
+                               engine=engine,
+                               group=group_name,
+                               mode=mode,
+                               encoding=encoding,
+                               **other_to_netcdf_kwargs)
             written.append(res)
-
         return written
+
+# --------------------------------------------------------------------------.
+# NetCDF version
+
+
+def _check_backend_versions():
+    """Issue warning if backend versions do not match."""
+    if not _backend_versions_match():
+        warnings.warn(
+            "Backend version mismatch. Compression might fail or be ignored "
+            "silently. Recommended: All versions below or above "
+            "netCDF4-1.6.0/libnetcdf-4.9.0/xarray-2022.12.0.",
+            stacklevel=3
+        )
+
+
+def _backend_versions_match():
+    versions = _get_backend_versions()
+    reference = {
+        "netCDF4": Version("1.6.0"),
+        "libnetcdf": Version("4.9.0"),
+        "xarray": Version("2022.12.0")
+    }
+    is_newer = [
+        versions[module] >= reference[module]
+        for module in versions
+    ]
+    all_newer = all(is_newer)
+    all_older = not any(is_newer)
+    return all_newer or all_older
+
+
+def _get_backend_versions():
+    import netCDF4
+    return {
+        "netCDF4": Version(netCDF4.__version__),
+        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "xarray": Version(xr.__version__)
+    }

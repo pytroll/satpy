@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -22,8 +22,10 @@ References:
 
 """
 
+import functools
 import logging
 import os
+from contextlib import suppress
 from datetime import datetime
 
 import dask.array as da
@@ -32,11 +34,13 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 SENSOR = {'NOAA-19': 'avhrr-3',
           'NOAA-18': 'avhrr-3',
@@ -48,7 +52,13 @@ SENSOR = {'NOAA-19': 'avhrr-3',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
           'NOAA-20': 'viirs',
+          'NOAA-21': 'viirs',
+          'NOAA-22': 'viirs',
+          'NOAA-23': 'viirs',
           'JPSS-1': 'viirs',
+          'Metop-SG-A1': 'metimage',
+          'Metop-SG-A2': 'metimage',
+          'Metop-SG-A3': 'metimage',
           'GOES-16': 'abi',
           'GOES-17': 'abi',
           'Himawari-8': 'ahi',
@@ -89,6 +99,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         self.platform_name = None
         self.sensor = None
+        self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
             # NWCSAF/Geo:
@@ -101,6 +112,10 @@ class NcNWCSAF(BaseFileHandler):
             kwrgs = {'platform_name': self.nc.attrs['platform']}
 
         self.set_platform_and_sensor(**kwrgs)
+
+        self.upsample_geolocation = functools.lru_cache(maxsize=1)(
+            self._upsample_geolocation_uncached
+        )
 
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
@@ -120,8 +135,16 @@ class NcNWCSAF(BaseFileHandler):
             data = var[0, :, :]
             data.attrs = var.attrs
             var = data
-
         return var
+
+    def drop_xycoords(self, variable):
+        """Drop x, y coords when y is scan line number."""
+        try:
+            if variable.coords['y'].attrs['long_name'] == "scan line number":
+                return variable.drop_vars(['y', 'x'])
+        except KeyError:
+            pass
+        return variable
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
@@ -130,22 +153,51 @@ class NcNWCSAF(BaseFileHandler):
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
         if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
-            dsid_name = dsid_name + '_reduced'
+            # Get full resolution lon,lat from the reduced (tie points) grid
+            lon, lat = self.upsample_geolocation()
+            if dsid_name == "lon":
+                return lon
+            else:
+                return lat
 
         logger.debug('Reading %s.', dsid_name)
-        variable = self.nc[dsid_name]
+        file_key = self._get_filekeys(dsid_name, info)
+        variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
-        variable = self.scale_dataset(dsid, variable, info)
+        variable = self.scale_dataset(variable, info)
+        variable = self.drop_xycoords(variable)
 
-        if dsid_name.endswith('_reduced'):
-            # Get full resolution lon,lat from the reduced (tie points) grid
-            self.upsample_geolocation(dsid, info)
-
-            return self.cache[dsid['name']]
+        self.get_orbital_parameters(variable)
+        variable.attrs["start_time"] = self.start_time
+        variable.attrs["end_time"] = self.end_time
 
         return variable
 
-    def scale_dataset(self, dsid, variable, info):
+    def get_orbital_parameters(self, variable):
+        """Get the orbital parameters from the file if possible (geo)."""
+        with suppress(KeyError):
+            gdal_params = dict(elt.strip("+").split("=") for elt in self.nc.attrs["gdal_projection"].split())
+            variable.attrs["orbital_parameters"] = dict(
+                satellite_nominal_altitude=float(gdal_params["h"]),
+                satellite_nominal_longitude=float(self.nc.attrs["sub-satellite_longitude"]),
+                satellite_nominal_latitude=0)
+
+    def _get_varname_in_file(self, info, info_type="file_key"):
+        if isinstance(info[info_type], list):
+            for key in info[info_type]:
+                file_key = self.file_key_prefix + key
+                if file_key in self.nc:
+                    return file_key
+        return self.file_key_prefix + info[info_type]
+
+    def _get_filekeys(self, dsid_name, info):
+        try:
+            file_key = self._get_varname_in_file(info, info_type="file_key")
+        except KeyError:
+            file_key = dsid_name
+        return file_key
+
+    def scale_dataset(self, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
 
         The scale and offset attributes will then be removed from the resulting variable.
@@ -154,6 +206,8 @@ class NcNWCSAF(BaseFileHandler):
 
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
+        if '_FillValue' in variable.attrs:
+            variable.attrs['scaled_FillValue'] = variable.attrs['_FillValue'] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
             variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
@@ -183,7 +237,7 @@ class NcNWCSAF(BaseFileHandler):
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-        variable = self._adjust_variable_for_legacy_software(variable, dsid)
+        variable = self._adjust_variable_for_legacy_software(variable)
 
         return variable
 
@@ -207,17 +261,21 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def _prepare_variable_for_palette(self, variable, info):
-        if 'scale_offset_dataset' in info:
-            so_dataset = self.nc[info['scale_offset_dataset']]
-            scale = so_dataset.attrs['scale_factor']
-            offset = so_dataset.attrs['add_offset']
-        else:
+        try:
+            so_dataset = self.nc[self._get_varname_in_file(info, info_type='scale_offset_dataset')]
+        except KeyError:
             scale = 1
             offset = 0
+            fill_value = 255
+        else:
+            scale = so_dataset.attrs['scale_factor']
+            offset = so_dataset.attrs['add_offset']
+            fill_value = so_dataset.attrs['_FillValue']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
-        if variable.attrs['palette_meanings'][0] == 1:
-            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+
+        if fill_value not in variable.attrs['palette_meanings'] and 'fill_value_color' in variable.attrs:
+            variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
         val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
@@ -225,29 +283,25 @@ class NcNWCSAF(BaseFileHandler):
         variable = variable[idx]
         return variable
 
-    def _adjust_variable_for_legacy_software(self, variable, data_id):
-        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti':
+    def _adjust_variable_for_legacy_software(self, variable):
+        if self.sw_version == 'NWC/PPS version v2014' and variable.attrs.get('standard_name') == 'cloud_top_altitude':
             # pps 2014 valid range and palette don't match
             variable.attrs['valid_range'] = (0., 9000.)
-        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti_pal':
+        if (self.sw_version == 'NWC/PPS version v2014' and
+                variable.attrs.get('long_name') == 'RGB Palette for ctth_alti'):
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
-        if self.sw_version == 'NWC/GEO version v2016' and data_id['name'] == 'ctth_alti':
-            # Geo 2016/18 valid range and palette don't match
-            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
-            # This now fixed by the scaling of the valid range above.
-            pass
         return variable
 
-    def upsample_geolocation(self, dsid, info):
+    def _upsample_geolocation_uncached(self):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
 
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
-        lat_reduced = self.scale_dataset(dsid, self.nc['lat_reduced'], info)
-        lon_reduced = self.scale_dataset(dsid, self.nc['lon_reduced'], info)
+        lat_reduced = self.scale_dataset(self.nc['lat_reduced'], {})
+        lon_reduced = self.scale_dataset(self.nc['lon_reduced'], {})
 
         shape = (self.nc['y'].shape[0], self.nc['x'].shape[0])
         cols_full = np.arange(shape[1])
@@ -259,10 +313,11 @@ class NcNWCSAF(BaseFileHandler):
                                        (rows_full, cols_full))
 
         lons, lats = satint.interpolate()
-        self.cache['lon'] = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
-        self.cache['lat'] = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
-
-        return
+        lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
+        lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        lat = self.drop_xycoords(lat)
+        lon = self.drop_xycoords(lon)
+        return lon, lat
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.
@@ -317,34 +372,12 @@ class NcNWCSAF(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_start'])
 
     @property
     def end_time(self):
         """Return the end time of the object."""
-        try:
-            # MSG:
-            try:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                         '%Y-%m-%dT%H:%M:%SZ')
-            except TypeError:
-                return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
-                                         '%Y-%m-%dT%H:%M:%SZ')
-        except ValueError:
-            # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                     '%Y%m%dT%H%M%S%fZ')
+        return read_nwcsaf_time(self.nc.attrs['time_coverage_end'])
 
     @property
     def sensor_names(self):
@@ -387,3 +420,16 @@ def remove_empties(variable):
             variable.attrs.pop(key)
 
     return variable
+
+
+def read_nwcsaf_time(time_value):
+    """Read the time, nwcsaf-style."""
+    try:
+        # MSG:
+        try:
+            return datetime.strptime(time_value, '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:  # Remove this in summer 2024 (this is not needed since h5netcdf 0.14)
+            return datetime.strptime(time_value.astype(str), '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        # PPS:
+        return datetime.strptime(time_value, '%Y%m%dT%H%M%S%fZ')

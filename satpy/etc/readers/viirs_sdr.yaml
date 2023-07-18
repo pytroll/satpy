@@ -1,6 +1,10 @@
 reader:
   name: viirs_sdr
+  short_name: VIIRS SDR
+  long_name: SNPP VIIRS data in HDF5 SDR format
   description: VIIRS SDR Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
   # file pattern keys to sort files by with 'satpy.utils.group_files'

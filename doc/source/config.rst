@@ -242,6 +242,52 @@ will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
 
+Sensor Angles Position Preference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SENSOR_ANGLES_POSITION_PREFERENCE``
+* **YAML/Config Key**: ``sensor_angles_position_preference``
+* **Default**: "actual"
+
+Control which satellite position should be preferred when generating sensor
+azimuth and sensor zenith angles. This value is passed directly to the
+:func:`~satpy.utils.get_satpos` function. See the documentation for that
+function for more information on how the value will be used. This is used
+as part of the :func:`~satpy.modifiers.angles.get_angles` and
+:func:`~satpy.modifiers.angles.get_satellite_zenith_angle` functions which is
+used by multiple modifiers and composites including the default rayleigh
+correction.
+
+Clipping Negative Infrared Radiances
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_READERS__CLIP_NEGATIVE_RADIANCES``
+* **YAML/Config Key**: ``readers.clip_negative_radiances``
+* **Default**: False
+
+Whether to clip negative infrared radiances to the minimum allowable value before
+computing the brightness temperature.
+If ``clip_negative_radiances=False``, pixels with negative radiances will have
+``np.nan`` brightness temperatures.
+
+Clipping of negative radiances is currently implemented for the following readers:
+
+* ``abi_l1b``
+
+
+Temporary Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_TMP_DIR``
+* **YAML/Config Key**: ``tmp_dir``
+* **Default**: `tempfile.gettempdir()`_
+
+Directory where Satpy creates temporary files, for example decompressed
+input files. Default depends on the operating system.
+
+.. _tempfile.gettempdir(): https://docs.python.org/3/library/tempfile.html?highlight=gettempdir#tempfile.gettempdir
+
+
 .. _component_configuration:
 
 Component Configuration

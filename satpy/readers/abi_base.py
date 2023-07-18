@@ -18,19 +18,21 @@
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',
@@ -76,7 +78,8 @@ class NC_ABI_BASE(BaseFileHandler):
         if 't' in nc.dims or 't' in nc.coords:
             nc = nc.rename({'t': 'time'})
         if 'goes_lat_lon_projection' in nc:
-            nc = nc.rename({'lon': 'x', 'lat': 'y'})
+            with suppress(ValueError):
+                nc = nc.rename({'lon': 'x', 'lat': 'y'})
         return nc
 
     @property

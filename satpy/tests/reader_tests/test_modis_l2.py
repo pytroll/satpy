@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import dask
+import dask.array as da
 import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
@@ -28,6 +29,16 @@ from satpy import Scene, available_readers
 
 from ..utils import CustomScheduler, make_dataid
 from ._modis_fixtures import _shape_for_resolution
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - modis_l2_imapp_mask_byte1_file
+# - modis_l2_imapp_mask_byte1_geo_files
+# - modis_l2_imapp_snowmask_file
+# - modis_l2_imapp_snowmask_geo_files
+# - modis_l2_nasa_mod06_file
+# - modis_l2_nasa_mod35_file
+# - modis_l2_nasa_mod35_mod03_files
 
 
 def _check_shared_metadata(data_arr, expect_area=False):
@@ -114,7 +125,10 @@ class TestModisL2:
             cat_id = make_dataid(name=ds_name, resolution=exp_resolution)
             assert cat_id in scene
             cat_data_arr = scene[cat_id]
+            assert isinstance(cat_data_arr.data, da.Array)
+            cat_data_arr = cat_data_arr.compute()
             assert cat_data_arr.shape == _shape_for_resolution(exp_resolution)
+            assert cat_data_arr.values[0, 0] == 0.0
             assert cat_data_arr.attrs.get('resolution') == exp_resolution
             # mask variables should be integers
             assert np.issubdtype(cat_data_arr.dtype, np.integer)
@@ -136,27 +150,34 @@ class TestModisL2:
         cloud_mask_id = make_dataid(name=dataset_name, resolution=250)
         assert cloud_mask_id in scene
         cloud_mask = scene[cloud_mask_id]
+        assert isinstance(cloud_mask.data, da.Array)
+        cloud_mask = cloud_mask.compute()
         assert cloud_mask.shape == _shape_for_resolution(250)
+        assert cloud_mask.values[0, 0] == 0.0
         # mask variables should be integers
         assert np.issubdtype(cloud_mask.dtype, np.integer)
         assert cloud_mask.attrs.get('_FillValue') is not None
         _check_shared_metadata(cloud_mask, expect_area=exp_area)
 
     @pytest.mark.parametrize(
-        ('input_files', 'loadables', 'exp_resolution', 'exp_area'),
+        ('input_files', 'loadables', 'exp_resolution', 'exp_area', 'exp_value'),
         [
-            [lazy_fixture('modis_l2_nasa_mod06_file'), ["surface_pressure"], 5000, True],
-            [lazy_fixture('modis_l2_imapp_snowmask_file'), ["snow_mask"], 1000, False],
-            [lazy_fixture('modis_l2_imapp_snowmask_geo_files'), ["snow_mask"], 1000, True],
+            [lazy_fixture('modis_l2_nasa_mod06_file'), ["surface_pressure"], 5000, True, 4.0],
+            # snow mask is considered a category product, factor/offset ignored
+            [lazy_fixture('modis_l2_imapp_snowmask_file'), ["snow_mask"], 1000, False, 1.0],
+            [lazy_fixture('modis_l2_imapp_snowmask_geo_files'), ["snow_mask"], 1000, True, 1.0],
         ]
     )
-    def test_load_l2_dataset(self, input_files, loadables, exp_resolution, exp_area):
+    def test_load_l2_dataset(self, input_files, loadables, exp_resolution, exp_area, exp_value):
         """Load and check an L2 variable."""
         scene = Scene(reader='modis_l2', filenames=input_files)
         scene.load(loadables)
         for ds_name in loadables:
             assert ds_name in scene
             data_arr = scene[ds_name]
+            assert isinstance(data_arr.data, da.Array)
+            data_arr = data_arr.compute()
+            assert data_arr.values[0, 0] == exp_value
             assert data_arr.shape == _shape_for_resolution(exp_resolution)
             assert data_arr.attrs.get('resolution') == exp_resolution
             _check_shared_metadata(data_arr, expect_area=exp_area)

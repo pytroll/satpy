@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2020 Satpy developers
+# Copyright (c) 2009-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -30,14 +30,16 @@ try:
 except ImportError:
     pass
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
+            'trollimage >=1.20', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
-            'pooch']
+            'packaging', 'pooch', 'pyorbital']
 
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
-                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml']
+                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
+                 's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
+                 'skyfield', 'ephem', 'pint-xarray', 'astropy', 'dask-image']
 
 extras_require = {
     # Readers:
@@ -60,18 +62,22 @@ extras_require = {
     'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
     'seviri_l1b_native': ['pyorbital >= 1.3.1'],
     'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
-    'seviri_l2_bufr': ['eccodes-python'],
-    'seviri_l2_grib': ['eccodes-python'],
+    'seviri_l2_bufr': ['eccodes'],
+    'seviri_l2_grib': ['eccodes'],
     'hsaf_grib': ['pygrib'],
+    'remote_reading': ['fsspec'],
+    'insat_3d': ['xarray-datatree'],
+    'gms5-vissr_l1b': ["numba"],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
-    'mitiff': ['pylibtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
+    "units": ["pint-xarray"],
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
     'angles': ['pyorbital >= 1.3.1'],
+    'filters': ['dask-image'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
@@ -79,6 +85,7 @@ extras_require = {
     # Other
     'geoviews': ['geoviews'],
     'overlays': ['pycoast', 'pydecorate'],
+    'satpos_from_tle': ['skyfield', 'astropy'],
     'tests': test_requires,
 }
 all_extras = []
@@ -134,6 +141,16 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
+      download_url="https://pypi.python.org/pypi/satpy",
+      project_urls={
+            "Bug Tracker": "https://github.com/pytroll/satpy/issues",
+            "Documentation": "https://satpy.readthedocs.io/en/stable/",
+            "Source Code": "https://github.com/pytroll/satpy",
+            "Organization": "https://pytroll.github.io/",
+            "Slack": "https://pytroll.slack.com/",
+            "Twitter": "https://twitter.com/hashtag/satpy?src=hashtag_click",
+            "Release Notes": "https://github.com/pytroll/satpy/blob/main/CHANGELOG.md",
+        },
       packages=find_packages(),
       # Always use forward '/', even on Windows
       # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support
@@ -153,7 +170,7 @@ setup(name=NAME,
                               ]},
       zip_safe=False,
       install_requires=requires,
-      python_requires='>=3.7',
+      python_requires='>=3.9',
       extras_require=extras_require,
       entry_points=entry_points,
       )

@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2020, 2021 Pytroll developers
-
-# Author(s):
-
-#   Adam Dybbroe <Firstname.Lastname@smhi.se>
+# Copyright (c) 2020, 2021, 2022 Pytroll developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,19 +23,17 @@ https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_F
 """
 
 import logging
-import numbers
-from contextlib import suppress
-from typing import NamedTuple
 
 import dask.array as da
 import numpy as np
 
-from satpy import CHUNK_SIZE
 from satpy.readers.aapp_l1b import AAPPL1BaseFileHandler, create_xarray
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
 
+CHUNK_SIZE = get_legacy_chunk_size()
 LINE_CHUNK = CHUNK_SIZE ** 2 // 90
 
 MHS_AMSUB_CHANNEL_NAMES = ['1', '2', '3', '4', '5']
@@ -59,253 +53,12 @@ MHS_AMSUB_PLATFORM_IDS2NAMES = {15: 'NOAA-15',
 MHS_AMSUB_PLATFORMS = ['Metop-A', 'Metop-B', 'Metop-C', 'NOAA-18', 'NOAA-19']
 
 
-class FrequencyDoubleSideBandBase(NamedTuple):
-    """Base class for a frequency double side band.
-
-    Frequency Double Side Band is supposed to describe the special type of bands
-    commonly used in humidty sounding from Passive Microwave Sensors. When the
-    absorption band being observed is symmetrical it is advantageous (giving
-    better NeDT) to sense in a band both right and left of the central
-    absorption frequency.
-
-    This is needed because of this bug: https://bugs.python.org/issue41629
-
-    """
-
-    central: float
-    side: float
-    bandwidth: float
-    unit: str = "GHz"
-
-
-class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
-    """The frequency double side band class.
-
-    The elements of the double-side-band type frequency band are the central
-    frquency, the relative side band frequency (relative to the center - left
-    and right) and their bandwidths, and optionally a unit (defaults to
-    GHz). No clever unit conversion is done here, it's just used for checking
-    that two ranges are comparable.
-
-    Frequency Double Side Band is supposed to describe the special type of bands
-    commonly used in humidty sounding from Passive Microwave Sensors. When the
-    absorption band being observed is symmetrical it is advantageous (giving
-    better NeDT) to sense in a band both right and left of the central
-    absorption frequency.
-
-    """
-
-    def __eq__(self, other):
-        """Return if two channel frequencies are equal.
-
-        Args:
-            other (tuple or scalar): (central frq, side band frq and band width frq) or scalar frq
-
-        Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
-
-        """
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            return other in self
-        if isinstance(other, (tuple, list)) and len(other) == 3:
-            return other in self
-        return super().__eq__(other)
-
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
-    def __lt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
-
-    def __str__(self):
-        """Format for print out."""
-        return "{0.central} {0.unit} ({0.side}_{0.bandwidth} {0.unit})".format(self)
-
-    def __contains__(self, other):
-        """Check if this double-side-band 'contains' *other*."""
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            if (self.central + self.side - self.bandwidth/2. <= other
-                    <= self.central + self.side + self.bandwidth/2.):
-                return True
-            if (self.central - self.side - self.bandwidth/2. <= other
-                    <= self.central - self.side + self.bandwidth/2.):
-                return True
-            return False
-
-        if isinstance(other, (tuple, list)) and len(other) == 3:
-            return ((self.central - self.side - self.bandwidth/2. <=
-                     other[0] - other[1] - other[2]/2. and
-                     self.central - self.side + self.bandwidth/2. >=
-                     other[0] - other[1] + other[2]/2.) or
-                    (self.central + self.side - self.bandwidth/2. <=
-                     other[0] + other[1] - other[2]/2. and
-                     self.central + self.side + self.bandwidth/2. >=
-                     other[0] + other[1] + other[2]/2.))
-
-        with suppress(AttributeError):
-            if self.unit != other.unit:
-                raise NotImplementedError("Can't compare frequency ranges with different units.")
-            return ((self.central - self.side - self.bandwidth/2. <=
-                     other.central - other.side - other.bandwidth/2. and
-                     self.central - self.side + self.bandwidth/2. >=
-                     other.central - other.side + other.bandwidth/2.) or
-                    (self.central + self.side - self.bandwidth/2. <=
-                     other.central + other.side - other.bandwidth/2. and
-                     self.central + self.side + self.bandwidth/2. >=
-                     other.central + other.side + other.bandwidth/2.))
-
-        return False
-
-    def distance(self, value):
-        """Get the distance from value."""
-        if self == value:
-            try:
-                left_side_dist = abs(value.central - value.side - (self.central - self.side))
-                right_side_dist = abs(value.central + value.side - (self.central + self.side))
-                return min(left_side_dist, right_side_dist)
-            except AttributeError:
-                if isinstance(value, (tuple, list)):
-                    return abs((value[0] - value[1]) - (self.central - self.side))
-
-                left_side_dist = abs(value - (self.central - self.side))
-                right_side_dist = abs(value - (self.central + self.side))
-                return min(left_side_dist, right_side_dist)
-        else:
-            return np.inf
-
-    @classmethod
-    def convert(cls, frq):
-        """Convert `frq` to this type if possible."""
-        if isinstance(frq, dict):
-            return cls(**frq)
-        return frq
-
-
-class FrequencyRangeBase(NamedTuple):
-    """Base class for frequency ranges.
-
-    This is needed because of this bug: https://bugs.python.org/issue41629
-    """
-
-    central: float
-    bandwidth: float
-    unit: str = "GHz"
-
-
-class FrequencyRange(FrequencyRangeBase):
-    """The Frequency range class.
-
-    The elements of the range are central and bandwidth values, and optionally
-    a unit (defaults to GHz). No clever unit conversion is done here, it's just
-    used for checking that two ranges are comparable.
-
-    This type is used for passive microwave sensors.
-
-    """
-
-    def __eq__(self, other):
-        """Return if two channel frequencies are equal.
-
-        Args:
-            other (tuple or scalar): (central frq, band width frq) or scalar frq
-
-        Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
-
-        """
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            return other in self
-        if isinstance(other, (tuple, list)) and len(other) == 2:
-            return self[:2] == other
-        return super().__eq__(other)
-
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
-    def __lt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
-
-    def __str__(self):
-        """Format for print out."""
-        return "{0.central} {0.unit} ({0.bandwidth} {0.unit})".format(self)
-
-    def __contains__(self, other):
-        """Check if this range contains *other*."""
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            return self.central - self.bandwidth/2. <= other <= self.central + self.bandwidth/2.
-
-        with suppress(AttributeError):
-            if self.unit != other.unit:
-                raise NotImplementedError("Can't compare frequency ranges with different units.")
-            return (self.central - self.bandwidth/2. <= other.central - other.bandwidth/2. and
-                    self.central + self.bandwidth/2. >= other.central + other.bandwidth/2.)
-        return False
-
-    def distance(self, value):
-        """Get the distance from value."""
-        if self == value:
-            try:
-                return abs(value.central - self.central)
-            except AttributeError:
-                if isinstance(value, (tuple, list)):
-                    return abs(value[0] - self.central)
-                return abs(value - self.central)
-        else:
-            return np.inf
-
-    @classmethod
-    def convert(cls, frq):
-        """Convert `frq` to this type if possible."""
-        if isinstance(frq, dict):
-            return cls(**frq)
-        return frq
-
-
 class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
     """Reader for AMSU-B/MHS L1C files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize object information by reading the input file."""
-        super(MHS_AMSUB_AAPPL1CFile, self).__init__(filename, filename_info,
-                                                    filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.channels = {i: None for i in MHS_AMSUB_CHANNEL_NAMES}
         self.units = {i: 'brightness_temperature' for i in MHS_AMSUB_CHANNEL_NAMES}
@@ -399,7 +152,7 @@ def _calibrate(data,
     if calib_type == 'counts':
         return channel
 
-    channel = channel.astype(np.float)
+    channel = channel.astype(np.float_)
 
     return da.where(mask, channel, np.nan)
 

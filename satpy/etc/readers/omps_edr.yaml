@@ -1,6 +1,10 @@
 reader:
-  description: Generic OMPS EDR reader
   name: omps_edr
+  short_name: OMPS EDR
+  long_name: OMPS EDR data in HDF5 format
+  description: Generic OMPS EDR reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [omps]
 

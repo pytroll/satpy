@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
+# Copyright (c) 2010-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from typing import Callable
 
 import numpy as np
 import xarray as xr
@@ -34,9 +35,29 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
+from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
+
+
+def _get_area_resolution(area):
+    """Attempt to retrieve resolution from AreaDefinition."""
+    try:
+        resolution = max(area.pixel_size_x, area.pixel_size_y)
+    except AttributeError:
+        resolution = max(area.lats.attrs["resolution"], area.lons.attrs["resolution"])
+    return resolution
+
+
+def _aggregate_data_array(data_array, func, **coarsen_kwargs):
+    """Aggregate xr.DataArray."""
+    res = data_array.coarsen(**coarsen_kwargs)
+    if callable(func):
+        out = res.reduce(func)
+    else:
+        out = getattr(res, func)()
+    return out
 
 
 class DelayedGeneration(KeyError):
@@ -71,13 +92,28 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
-        then the available readers will be searched for a Reader that can support the provided files. This can take
-        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
+        To load data `filenames` and preferably `reader` must be specified::
+
+            scn = Scene(filenames=glob('/path/to/viirs/sdr/files/*'), reader='viirs_sdr')
+
+
+        If ``filenames`` is provided without ``reader`` then the available readers
+        will be searched for a Reader that can support the provided files. This
+        can take a considerable amount of time so it is recommended that
+        ``reader`` always be provided. Note without ``filenames`` the Scene is
+        created with no Readers available requiring Datasets to be added
+        manually::
 
             scn = Scene()
             scn['my_dataset'] = Dataset(my_data_array, **my_info)
+
+        Further, notice that it is also possible to load a combination of files
+        or sets of files each requiring their specific reader. For that
+        ``filenames`` needs to be a `dict` (see parameters list below), e.g.::
+
+            scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
+                                   'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
+
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
@@ -91,21 +127,31 @@ class Scene:
                 sub-dictionaries to pass different arguments to different
                 reader instances.
 
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
+
         """
         self.attrs = dict()
+
+        storage_options, cleaned_reader_kwargs = get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)
@@ -154,8 +200,6 @@ class Scene:
                 sensor_names.add(data_arr.attrs["sensor"])
             elif isinstance(data_arr.attrs["sensor"], set):
                 sensor_names.update(data_arr.attrs["sensor"])
-            else:
-                raise TypeError("Unexpected type in sensor collection")
         return sensor_names
 
     @property
@@ -223,15 +267,34 @@ class Scene:
             if not all(ad.crs == first_crs for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
                                  "projections.")
+            return self._compare_area_defs(compare_func, areas)
+        return self._compare_swath_defs(compare_func, areas)
 
-            def key_func(ds):
-                return 1. / abs(ds.pixel_size_x)
-        else:
-            def key_func(ds):
-                return ds.shape
+    @staticmethod
+    def _compare_area_defs(compare_func: Callable, area_defs: list[AreaDefinition]) -> list[AreaDefinition]:
+        def _key_func(area_def: AreaDefinition) -> tuple:
+            """Get comparable version of area based on resolution.
 
-        # find the highest/lowest area among the provided
-        return compare_func(areas, key=key_func)
+            Pixel size x is the primary comparison parameter followed by
+            the y dimension pixel size. The extent of the area and the
+            name (area_id) of the area are also used to act as
+            "tiebreakers" between areas of the same resolution.
+
+            """
+            pixel_size_x_inverse = 1. / abs(area_def.pixel_size_x)
+            pixel_size_y_inverse = 1. / abs(area_def.pixel_size_y)
+            area_id = area_def.area_id
+            return pixel_size_x_inverse, pixel_size_y_inverse, area_def.area_extent, area_id
+        return compare_func(area_defs, key=_key_func)
+
+    @staticmethod
+    def _compare_swath_defs(compare_func: Callable, swath_defs: list[SwathDefinition]) -> list[SwathDefinition]:
+        def _key_func(swath_def: SwathDefinition) -> tuple:
+            attrs = getattr(swath_def.lons, "attrs", {})
+            lon_ds_name = attrs.get("name")
+            rev_shape = swath_def.shape[::-1]
+            return rev_shape + (lon_ds_name,)
+        return compare_func(swath_defs, key=_key_func)
 
     def _gather_all_areas(self, datasets):
         """Gather all areas from datasets.
@@ -271,6 +334,8 @@ class Scene:
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets. Deprecated.
 
+        Deprecated.  Use :meth:`finest_area` instead.
+
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
@@ -278,8 +343,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'max_area' is deprecated, use 'finest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'max_area' is deprecated, use 'finest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.finest_area(datasets=datasets)
 
     def coarsest_area(self, datasets=None):
@@ -297,6 +365,8 @@ class Scene:
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets. Deprecated.
 
+        Deprecated.  Use :meth:`coarsest_area` instead.
+
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
@@ -304,8 +374,11 @@ class Scene:
                                  current Scene. Defaults to all datasets.
 
         """
-        warnings.warn("'min_area' is deprecated, use 'coarsest_area' instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "'min_area' is deprecated, use 'coarsest_area' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self.coarsest_area(datasets=datasets)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
@@ -701,10 +774,10 @@ class Scene:
         Args:
             dataset_ids (iterable): DataIDs to include in the returned
                                     `Scene`. Defaults to all datasets.
-            func (string): Function to apply on each aggregation window. One of
+            func (string, callable): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
-                           'argmax', 'prod', 'std', 'var'.
-                           'mean' is the default.
+                           'argmax', 'prod', 'std', 'var' strings or a custom
+                           function. 'mean' is the default.
             boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
             side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
             dim_kwargs: the size of the windows to aggregate.
@@ -729,18 +802,16 @@ class Scene:
                 continue
 
             target_area = src_area.aggregate(boundary=boundary, **dim_kwargs)
-            try:
-                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
-            except AttributeError:
-                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
+            resolution = _get_area_resolution(target_area)
             for ds_id in ds_ids:
-                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
-
-                new_scn._datasets[ds_id] = getattr(res, func)()
+                new_scn._datasets[ds_id] = _aggregate_data_array(self[ds_id],
+                                                                 func=func,
+                                                                 boundary=boundary,
+                                                                 side=side,
+                                                                 **dim_kwargs)
                 new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
-
         return new_scn
 
     def get(self, key, default=None):
@@ -908,7 +979,8 @@ class Scene:
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        new_scn.generate_possible_composites(generate, unload)
+        if generate:
+            new_scn.generate_possible_composites(unload)
 
         return new_scn
 
@@ -951,10 +1023,15 @@ class Scene:
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims : list of str, optional
+            vdims (list of str, optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic : boolean, optional, default False
+            dynamic (bool, optional): Load and compute data on-the-fly during
+                visualization. Default is ``False``. See
+                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
+                for more information. Has no effect when data to be visualized
+                only has 2 dimensions (y/x or longitude/latitude) and doesn't
+                require grouping via the Holoviews ``groupby`` function.
 
         Returns: geoviews object
 
@@ -980,10 +1057,12 @@ class Scene:
         else:
             gvds = gv.Dataset(ds)
 
+        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
+        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
         if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
         else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
 
         return gview
 
@@ -997,7 +1076,9 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
 
         if len(dataarrays) == 0:
             return xr.Dataset()
@@ -1019,13 +1100,70 @@ class Scene:
         ds.attrs = mdata
         return ds
 
-    def _get_dataarrays_from_identifiers(self, identifiers):
-        if identifiers is not None:
-            dataarrays = [self[ds] for ds in identifiers]
-        else:
-            dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
-            dataarrays = [ds for ds in dataarrays if ds is not None]
-        return dataarrays
+    def to_xarray(self,
+                  datasets=None,  # DataID
+                  header_attrs=None,
+                  exclude_attrs=None,
+                  flatten_attrs=False,
+                  pretty=True,
+                  include_lonlats=True,
+                  epoch=None,
+                  include_orig_name=True,
+                  numeric_name_prefix='CHANNEL_'):
+        """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
+
+        If all Scene DataArrays are on the same area, it returns an xr.Dataset.
+        If Scene DataArrays are on different areas, currently it fails, although
+        in future we might return a DataTree object, grouped by area.
+
+        Parameters
+        ----------
+        datasets (iterable):
+            List of Satpy Scene datasets to include in the output xr.Dataset.
+            Elements can be string name, a wavelength as a number, a DataID,
+            or DataQuery object.
+            If None (the default), it include all loaded Scene datasets.
+        header_attrs:
+            Global attributes of the output xr.Dataset.
+        epoch (str):
+            Reference time for encoding the time coordinates (if available).
+            Example format: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is retrieved using "from satpy.cf_writer import EPOCH"
+        flatten_attrs (bool):
+            If True, flatten dict-type attributes.
+        exclude_attrs (list):
+            List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool):
+            If True, it includes 'latitude' and 'longitude' coordinates.
+            If the 'area' attribute is a SwathDefinition, it always includes
+            latitude and longitude coordinates.
+        pretty (bool):
+            Don't modify coordinate names, if possible. Makes the file prettier,
+            but possibly less consistent.
+        include_orig_name (bool).
+            Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str):
+            Prefix to add the each variable with name starting with a digit.
+            Use '' or None to leave this out.
+
+        Returns
+        -------
+        ds, xr.Dataset
+            A CF-compliant xr.Dataset
+
+        """
+        from satpy._scene_converters import to_xarray
+
+        return to_xarray(scn=self,
+                         datasets=datasets,  # DataID
+                         header_attrs=header_attrs,
+                         exclude_attrs=exclude_attrs,
+                         flatten_attrs=flatten_attrs,
+                         pretty=pretty,
+                         include_lonlats=include_lonlats,
+                         epoch=epoch,
+                         include_orig_name=include_orig_name,
+                         numeric_name_prefix=numeric_name_prefix)
 
     def images(self):
         """Generate images for all the datasets from the scene."""
@@ -1126,7 +1264,9 @@ class Scene:
             close any objects that have a "close" method.
 
         """
-        dataarrays = self._get_dataarrays_from_identifiers(datasets)
+        from satpy._scene_converters import _get_dataarrays_from_identifiers
+
+        dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:
             raise RuntimeError("None of the requested datasets have been "
                                "generated or could not be loaded. Requested "
@@ -1141,6 +1281,47 @@ class Scene:
                                           filename=filename,
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
+
+    def compute(self, **kwargs):
+        """Call `compute` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.compute` for more details.
+        Note that this will convert the contents of the DataArray to numpy arrays which
+        may not work with all parts of Satpy which may expect dask arrays.
+        """
+        from dask import compute
+        new_scn = self.copy()
+        datasets = compute(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def persist(self, **kwargs):
+        """Call `persist` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.persist` for more details.
+        """
+        from dask import persist
+        new_scn = self.copy()
+        datasets = persist(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def chunk(self, **kwargs):
+        """Call `chunk` on all Scene  data arrays.
+
+        See :meth:`xarray.DataArray.chunk` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn._datasets.keys():
+            new_scn[k] = new_scn[k].chunk(**kwargs)
+
+        return new_scn
 
     @staticmethod
     def _get_writer_by_ext(extension):
@@ -1204,7 +1385,7 @@ class Scene:
             del self._datasets[ds_id]
 
     def load(self, wishlist, calibration='*', resolution='*',
-             polarization='*', level='*', generate=True, unload=True,
+             polarization='*', level='*', modifiers='*', generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -1213,35 +1394,37 @@ class Scene:
         or they can not provide certain parameters and the "best" parameter
         will be chosen. For example, if a dataset is available in multiple
         resolutions and no resolution is specified in the wishlist's DataQuery
-        then the highest (smallest number) resolution will be chosen.
+        then the highest (the smallest number) resolution will be chosen.
 
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
             wishlist (iterable): List of names (str), wavelengths (float),
-                                 DataQuery objects or DataID of the requested
-                                 datasets to load. See `available_dataset_ids()`
-                                 for what datasets are available.
-            calibration (list, str): Calibration levels to limit available
-                                     datasets. This is a shortcut to
-                                     having to list each DataQuery/DataID in
-                                     `wishlist`.
+                DataQuery objects or DataID of the requested datasets to load.
+                See `available_dataset_ids()` for what datasets are available.
+            calibration (list | str): Calibration levels to limit available
+                datasets. This is a shortcut to having to list each
+                DataQuery/DataID in `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
-                                       This is a shortcut similar to
-                                       calibration.
+                This is a shortcut similar to calibration.
             polarization (list | str): Polarization ('V', 'H') to limit
-                                       available datasets. This is a shortcut
-                                       similar to calibration.
+                available datasets. This is a shortcut similar to calibration.
+            modifiers (tuple | str): Modifiers that should be applied to the
+                loaded datasets. This is a shortcut similar to calibration,
+                but only represents a single set of modifiers as a tuple.
+                For example, specifying
+                ``modifiers=('sunz_corrected', 'rayleigh_corrected')`` will
+                attempt to apply both of these modifiers to all loaded
+                datasets in the specified order ('sunz_corrected' first).
             level (list | str): Pressure level to limit available datasets.
-                                Pressure should be in hPa or mb. If an
-                                altitude is used it should be specified in
-                                inverse meters (1/m). The units of this
-                                parameter ultimately depend on the reader.
+                Pressure should be in hPa or mb. If an altitude is used it
+                should be specified in inverse meters (1/m). The units of this
+                parameter ultimately depend on the reader.
             generate (bool): Generate composites from the loaded datasets
-                             (default: True)
-            unload (bool): Unload datasets that were required to generate
-                           the requested datasets (composite dependencies)
-                           but are no longer needed.
+                (default: True)
+            unload (bool): Unload datasets that were required to generate the
+                requested datasets (composite dependencies) but are no longer
+                needed.
 
         """
         if isinstance(wishlist, str):
@@ -1251,13 +1434,15 @@ class Scene:
         query = DataQuery(calibration=calibration,
                           polarization=polarization,
                           resolution=resolution,
+                          modifiers=modifiers,
                           level=level)
         self._update_dependency_tree(needed_datasets, query)
 
         self._wishlist |= needed_datasets
 
         self._read_datasets_from_storage(**kwargs)
-        self.generate_possible_composites(generate, unload)
+        if generate:
+            self.generate_possible_composites(unload)
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
@@ -1313,13 +1498,15 @@ class Scene:
             loaded_datasets.update(new_datasets)
         return loaded_datasets
 
-    def generate_possible_composites(self, generate, unload):
-        """See what we can generate and do it."""
-        if generate:
-            keepables = self._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
+    def generate_possible_composites(self, unload):
+        """See which composites can be generated and generate them.
+
+        Args:
+            unload (bool): if the dependencies of the composites
+                           should be unloaded after successful generation.
+        """
+        keepables = self._generate_composites_from_loaded_datasets()
+
         if self.missing_datasets:
             self._remove_failed_datasets(keepables)
         if unload:

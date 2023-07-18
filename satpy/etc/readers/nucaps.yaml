@@ -1,6 +1,10 @@
 reader:
-  description: NUCAPS Retrieval Reader
   name: nucaps
+  short_name: NUCAPS EDR
+  long_name: NUCAPS EDR Retrieval data in NetCDF4 format
+  description: NUCAPS Retrieval Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
   sensors: [cris, atms, viirs]
   data_identification_keys:
