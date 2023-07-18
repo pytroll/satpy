@@ -20,17 +20,17 @@
 Note: This is adapted from the test_slstr_l2.py code.
 """
 
-import unittest
 from datetime import datetime
 from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
 import xarray as xr
 
 from satpy.readers.viirs_edr import VIIRSJRRFileHandler
 
 
-class TestVIIRSJRRReader(unittest.TestCase):
+class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
     @mock.patch('xarray.open_dataset')
@@ -62,7 +62,7 @@ class TestVIIRSJRRReader(unittest.TestCase):
         test.get_dataset('latitude', {'file_key': 'Latitude'})
         test.get_dataset('smoke_concentration', {'file_key': 'smoke_concentration'})
         test.get_dataset('fire_mask', {'file_key': 'fire_mask'})
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             test.get_dataset('erroneous dataset', {'file_key': 'erroneous dataset'})
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
@@ -78,8 +78,8 @@ class TestVIIRSJRRReader(unittest.TestCase):
         tmp.rename.return_value = tmp
         xr.open_dataset.return_value = tmp
         hdl = VIIRSJRRFileHandler('somedir/somefile.nc', filename_info, None)
-        self.assertEqual(hdl.start_time, datetime(2021, 4, 3, 12, 0, 10))
-        self.assertEqual(hdl.end_time, datetime(2021, 4, 3, 12, 4, 28))
+        assert hdl.start_time == datetime(2021, 4, 3, 12, 0, 10)
+        assert hdl.end_time == datetime(2021, 4, 3, 12, 4, 28)
 
     @mock.patch('xarray.open_dataset')
     def test_get_platformname(self, mocked_dataset):
@@ -88,8 +88,8 @@ class TestVIIRSJRRReader(unittest.TestCase):
         tmp.rename.return_value = tmp
         xr.open_dataset.return_value = tmp
         hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'npp'}, None)
-        self.assertEqual(hdl.platform_name, 'Suomi-NPP')
+        assert hdl.platform_name == 'Suomi-NPP'
         hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'JPSS-1'}, None)
-        self.assertEqual(hdl.platform_name, 'NOAA-20')
+        assert hdl.platform_name == 'NOAA-20'
         hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'J01'}, None)
-        self.assertEqual(hdl.platform_name, 'NOAA-20')
+        assert hdl.platform_name == 'NOAA-20'
