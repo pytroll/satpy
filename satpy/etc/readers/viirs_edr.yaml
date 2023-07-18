@@ -9,17 +9,17 @@ reader:
 
 file_types:
     jrr_cloudmask:
-        file_reader: !!python/name:satpy.readers.viirs_l2_jrr.VIIRSJRRFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         variable_prefix: ""
         file_patterns:
             - 'JRR-CloudMask_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_aerosol_product:
-        file_reader: !!python/name:satpy.readers.viirs_l2_jrr.VIIRSJRRFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         variable_prefix: ""
         file_patterns:
             - 'JRR-ADP_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_surfref_product:
-        file_reader: !!python/name:satpy.readers.viirs_l2_jrr.VIIRSJRRFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         variable_prefix: ""
         file_patterns:
             - 'SurfRefl_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
