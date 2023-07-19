@@ -22,7 +22,6 @@ Note: This is adapted from the test_slstr_l2.py code.
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock
 
