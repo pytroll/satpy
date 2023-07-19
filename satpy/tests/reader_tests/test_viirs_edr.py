@@ -41,16 +41,16 @@ START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
 END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
 
 
-@pytest.fixture(scope="module")
-def surface_reflectance_file(tmp_path_factory) -> Path:
-    """Generate fake surface reflectance EDR file."""
-    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
-    fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
-    file_path = tmp_path / fn
-    sr_vars = _create_surf_refl_variables()
-    ds = _create_fake_dataset(sr_vars)
-    ds.to_netcdf(file_path)
-    return file_path
+# @pytest.fixture(scope="module")
+# def surface_reflectance_file(tmp_path_factory) -> Path:
+#     """Generate fake surface reflectance EDR file."""
+#     tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
+#     fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
+#     file_path = tmp_path / fn
+#     sr_vars = _create_surf_refl_variables()
+#     ds = _create_fake_dataset(sr_vars)
+#     ds.to_netcdf(file_path)
+#     return file_path
 
 
 def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
