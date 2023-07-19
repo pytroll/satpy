@@ -84,6 +84,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
         ds = self.nc[info['file_key']]
+        if ds.attrs.get("units", None) == "unitless":
+            ds.attrs["units"] = "1"
 
         return ds
 
