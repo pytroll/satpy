@@ -47,7 +47,7 @@ import logging
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
 LOG = logging.getLogger(__name__)
 
@@ -59,12 +59,18 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
-        chunk_size = get_legacy_chunk_size()
+        chunk_size = get_chunk_size_limit() // 4  # 32-bit floats
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  chunks={'Columns': chunk_size,
-                                          'Rows': chunk_size})
+                                  chunks={
+                                      'Columns': chunk_size,
+                                      'Rows': chunk_size,
+                                      'Along_Scan_375m': chunk_size,
+                                      'Along_Track_375m': chunk_size,
+                                      'Along_Scan_750m': chunk_size,
+                                      'Along_Track_750m': chunk_size,
+                                  })
         if 'columns' in self.nc.dims:
             self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
         elif 'Along_Track_375m' in self.nc.dims:
