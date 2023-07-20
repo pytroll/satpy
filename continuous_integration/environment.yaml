@@ -24,7 +24,7 @@ dependencies:
   - coverage
   - codecov
   - behave
-  - libnetcdf=4.9.2=nompi_h5902ca5_107  # [win]
+  - libnetcdf=4.9.2=nompi_h5902ca5_107 # [win]
   - netcdf4
   - h5py
   - h5netcdf
