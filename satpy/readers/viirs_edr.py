@@ -94,6 +94,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         ds = self.nc[info['file_key']]
         if ds.attrs.get("units", None) == "unitless":
             ds.attrs["units"] = "1"
+        ds.attrs["platform_name"] = self.platform_name
 
         return ds
 

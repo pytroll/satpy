@@ -21,6 +21,7 @@ Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import shutil
 from datetime import datetime
 from pathlib import Path
 from unittest import mock
@@ -107,6 +108,23 @@ class TestVIIRSJRRReader:
         _check_surf_refl_data_arr(scn["surf_refl_I01"])
         _check_surf_refl_data_arr(scn["surf_refl_M01"])
 
+    @pytest.mark.parametrize(
+        ("filename_platform", "exp_shortname"),
+        [
+            ("npp", "Suomi-NPP"),
+            ("JPSS-1", "NOAA-20"),
+            ("J01", "NOAA-20")
+        ])
+    def test_get_platformname(self, surface_reflectance_file, filename_platform, exp_shortname):
+        """Test finding start and end times of granules."""
+        from satpy import Scene
+        new_name = str(surface_reflectance_file).replace("npp", filename_platform)
+        if new_name != str(surface_reflectance_file):
+            shutil.copy(surface_reflectance_file, new_name)
+        scn = Scene(reader="viirs_edr", filenames=[new_name])
+        scn.load(["surf_refl_I01"])
+        assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
+
     @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test retrieval of datasets."""
@@ -126,19 +144,6 @@ class TestVIIRSJRRReader:
         with pytest.raises(KeyError):
             test.get_dataset('erroneous dataset', {'file_key': 'erroneous dataset'})
         mocked_dataset.assert_called()
-
-    @mock.patch('xarray.open_dataset')
-    def test_get_platformname(self, mocked_dataset):
-        """Test finding start and end times of granules."""
-        tmp = MagicMock()
-        tmp.rename.return_value = tmp
-        xr.open_dataset.return_value = tmp
-        hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'npp'}, None)
-        assert hdl.platform_name == 'Suomi-NPP'
-        hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'JPSS-1'}, None)
-        assert hdl.platform_name == 'NOAA-20'
-        hdl = VIIRSJRRFileHandler('somedir/somefile.nc', {'platform_shortname': 'J01'}, None)
-        assert hdl.platform_name == 'NOAA-20'
 
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray) -> None:
