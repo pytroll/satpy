@@ -98,7 +98,8 @@ class TestVIIRSJRRReader:
     def test_get_dataset_surf_refl(self, surface_reflectance_file):
         """Test retrieval of datasets."""
         from satpy import Scene
-        with dask.config.set({"array.chunk-size": "16B"}):
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
             scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_file])
             scn.load(["surf_refl_I01", "surf_refl_M01"])
         assert scn.start_time == START_TIME
@@ -145,8 +146,10 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray) -> None:
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, np.float32)
-    assert all(c == 4 for c in data_arr.chunks[0])
-    assert all(c == 4 for c in data_arr.chunks[1])
-    assert data_arr.attrs["units"] == "1"
-    exp_shape = (M_ROWS, M_COLS) if "M" in data_arr.attrs["name"] else (I_ROWS, I_COLS)
+    is_m_band = "I" not in data_arr.attrs["name"]
+    exp_shape = (M_ROWS, M_COLS) if is_m_band else (I_ROWS, I_COLS)
     assert data_arr.shape == exp_shape
+    exp_row_chunks = 4 if is_m_band else 8
+    assert all(c == exp_row_chunks for c in data_arr.chunks[0])
+    assert data_arr.chunks[1] == (exp_shape[1],)
+    assert data_arr.attrs["units"] == "1"

@@ -59,17 +59,19 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
-        chunk_size = get_chunk_size_limit() // 4  # 32-bit floats
+        # use entire scans as chunks
+        row_chunks_m = max(get_chunk_size_limit() // 4 // 3200, 1)  # 32-bit floats
+        row_chunks_i = row_chunks_m * 2
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={
-                                      'Columns': chunk_size,
-                                      'Rows': chunk_size,
-                                      'Along_Scan_375m': chunk_size,
-                                      'Along_Track_375m': chunk_size,
-                                      'Along_Scan_750m': chunk_size,
-                                      'Along_Track_750m': chunk_size,
+                                      'Columns': -1,
+                                      'Rows': row_chunks_i,
+                                      'Along_Scan_375m': -1,
+                                      'Along_Track_375m': row_chunks_i,
+                                      'Along_Scan_750m': -1,
+                                      'Along_Track_750m': row_chunks_m,
                                   })
         if 'columns' in self.nc.dims:
             self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
