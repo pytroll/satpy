@@ -22,6 +22,7 @@ Note: This is adapted from the test_slstr_l2.py code.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -40,16 +41,16 @@ START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
 END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
 
 
-# @pytest.fixture(scope="module")
-# def surface_reflectance_file(tmp_path_factory) -> Path:
-#     """Generate fake surface reflectance EDR file."""
-#     tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
-#     fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
-#     file_path = tmp_path / fn
-#     sr_vars = _create_surf_refl_variables()
-#     ds = _create_fake_dataset(sr_vars)
-#     ds.to_netcdf(file_path)
-#     return file_path
+@pytest.fixture(scope="module")
+def surface_reflectance_file(tmp_path_factory) -> Path:
+    """Generate fake surface reflectance EDR file."""
+    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
+    fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
+    file_path = tmp_path / fn
+    sr_vars = _create_surf_refl_variables()
+    ds = _create_fake_dataset(sr_vars)
+    ds.to_netcdf(file_path)
+    return file_path
 
 
 def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
@@ -92,15 +93,15 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
-    # def test_get_dataset_surf_refl(self, surface_reflectance_file):
-    #     """Test retrieval of datasets."""
-    #     from satpy import Scene
-    #     scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_file])
-    #     assert scn.start_time == START_TIME
-    #     assert scn.end_time == END_TIME
-    #     scn.load(["surf_refl_I01", "surf_refl_M01"])
-    #     _check_surf_refl_data_arr(scn["surf_refl_I01"])
-    #     _check_surf_refl_data_arr(scn["surf_refl_M01"])
+    def test_get_dataset_surf_refl(self, surface_reflectance_file):
+        """Test retrieval of datasets."""
+        from satpy import Scene
+        scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_file])
+        assert scn.start_time == START_TIME
+        assert scn.end_time == END_TIME
+        scn.load(["surf_refl_I01", "surf_refl_M01"])
+        _check_surf_refl_data_arr(scn["surf_refl_I01"])
+        _check_surf_refl_data_arr(scn["surf_refl_M01"])
 
     @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
