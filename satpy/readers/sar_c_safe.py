@@ -593,18 +593,7 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
             data.attrs.update({'platform_name': self._mission_id})
 
-            data = self._change_quantity(data, key['quantity'])
-
-        return data
-
-    @staticmethod
-    def _change_quantity(data, quantity):
-        """Change quantity to dB if needed."""
-        if quantity == 'dB':
-            data.data = 10 * np.log10(data.data)
-            data.attrs['units'] = 'dB'
-        else:
-            data.attrs['units'] = '1'
+            data = change_quantity(data, key['quantity'])
 
         return data
 
@@ -704,3 +693,14 @@ class SAFEGRD(BaseFileHandler):
     def end_time(self):
         """Get the end time."""
         return self._end_time
+
+
+def change_quantity(data, quantity):
+    """Change quantity to dB if needed."""
+    if quantity == 'dB':
+        data.data = 10 * np.log10(data.data)
+        data.attrs['units'] = 'dB'
+    else:
+        data.attrs['units'] = '1'
+
+    return data
