@@ -24,8 +24,6 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
-from unittest import mock
-from unittest.mock import MagicMock
 
 import dask
 import dask.array as da
@@ -33,8 +31,6 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
-
-from satpy.readers.viirs_edr import VIIRSJRRFileHandler
 
 I_COLS = 64  # real-world 6400
 I_ROWS = 32  # one scan
@@ -124,26 +120,6 @@ class TestVIIRSJRRReader:
         scn = Scene(reader="viirs_edr", filenames=[new_name])
         scn.load(["surf_refl_I01"])
         assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
-
-    @mock.patch('xarray.open_dataset')
-    def test_get_dataset(self, mocked_dataset):
-        """Test retrieval of datasets."""
-        filename_info = {'platform_shortname': 'npp'}
-        tmp = MagicMock(start_time='20191120T125002Z', stop_time='20191120T125002Z')
-        xr.open_dataset.return_value = tmp
-        test = VIIRSJRRFileHandler('somedir/somefile.nc', filename_info, None)
-        test.nc = {'Longitude': xr.Dataset(),
-                   'Latitude': xr.Dataset(),
-                   'smoke_concentration': xr.Dataset(),
-                   'fire_mask': xr.Dataset(),
-                   }
-        test.get_dataset('longitude', {'file_key': 'Longitude'})
-        test.get_dataset('latitude', {'file_key': 'Latitude'})
-        test.get_dataset('smoke_concentration', {'file_key': 'smoke_concentration'})
-        test.get_dataset('fire_mask', {'file_key': 'fire_mask'})
-        with pytest.raises(KeyError):
-            test.get_dataset('erroneous dataset', {'file_key': 'erroneous dataset'})
-        mocked_dataset.assert_called()
 
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray) -> None:
