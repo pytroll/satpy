@@ -82,6 +82,9 @@ jobs:
       - name: Update environment
         run: mamba env update -n test-environment -f continuous_integration/environment.yaml
         if: steps.cache.outputs.cache-hit != 'true'
+      - name: Update environment - libnetcdf
+        run: mamba install -y -n test-environment libnetcdf=4.9.2=nompi_h5902ca5_107
+        if: runner.os == 'Windows'
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
