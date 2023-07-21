@@ -136,10 +136,11 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
     dim_x_375 = "Along_Scan_375m"
     i_dims = (dim_y_375, dim_x_375)
 
-    i_data = np.zeros((I_ROWS, I_COLS), dtype=np.float32)
+    vi_data = np.zeros((I_ROWS, I_COLS), dtype=np.float32)
+    vi_data[0, :7] = [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
     data_arrs = {
-        "NDVI": xr.DataArray(i_data, dims=i_dims, attrs={"units": "unitless"}),
-        "EVI": xr.DataArray(i_data, dims=i_dims, attrs={"units": "unitless"}),
+        "NDVI": xr.DataArray(vi_data, dims=i_dims, attrs={"units": "unitless"}),
+        "EVI": xr.DataArray(vi_data, dims=i_dims, attrs={"units": "unitless"}),
     }
     data_arrs["NDVI"].encoding["dtype"] = np.float32
     data_arrs["EVI"].encoding["dtype"] = np.float32
@@ -176,8 +177,8 @@ class TestVIIRSJRRReader:
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
             scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file])
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
-        _check_surf_refl_data_arr(scn["NDVI"])
-        _check_surf_refl_data_arr(scn["EVI"])
+        _check_vi_data_arr(scn["NDVI"])
+        _check_vi_data_arr(scn["EVI"])
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
         # TODO: Check NDVI/EVI quality flag clearing
 
@@ -218,6 +219,16 @@ class TestVIIRSJRRReader:
         assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
 
 
+def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
+    _check_surf_refl_data_arr(data_arr, dtype=np.uint8)
+
+
+def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
+    _check_surf_refl_data_arr(data_arr)
+    data = data_arr.data.compute()
+    np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
+
+
 def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:
     assert data_arr.dims == ("y", "x")
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
@@ -232,7 +243,3 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
 
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["sensor"] == "viirs"
-
-
-def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
-    _check_surf_refl_data_arr(data_arr, dtype=np.uint8)

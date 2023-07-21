@@ -360,7 +360,6 @@ datasets:
         file_key: "QF1 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf2:
         name: surf_refl_qf2
         resolution: 750
@@ -368,7 +367,6 @@ datasets:
         file_key: "QF2 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf3:
         name: surf_refl_qf3
         resolution: 750
@@ -376,7 +374,6 @@ datasets:
         file_key: "QF3 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf4:
         name: surf_refl_qf4
         resolution: 750
@@ -384,7 +381,6 @@ datasets:
         file_key: "QF4 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf5:
         name: surf_refl_qf5
         resolution: 750
@@ -392,7 +388,6 @@ datasets:
         file_key: "QF5 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf6:
         name: surf_refl_qf6
         resolution: 750
@@ -400,7 +395,6 @@ datasets:
         file_key: "QF6 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     surf_refl_qf7:
         name: surf_refl_qf7
         resolution: 750
@@ -408,7 +402,6 @@ datasets:
         file_key: "QF7 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
-        _FillValue: -9999
     # Swath-based vegetation indexes added to CSPP LEO output
     NDVI:
         name: NDVI
@@ -417,10 +410,12 @@ datasets:
         file_key: "NDVI"
         coordinates: [longitude_375, latitude_375]
         units: "1"
+        valid_range: [-1.0, 1.0]
     EVI:
         name: EVI
         resolution: 375
         file_type: [jrr_surfref_product]
-        file_key: "NDVI"
+        file_key: "EVI"
         coordinates: [longitude_375, latitude_375]
         units: "1"
+        valid_range: [-1.0, 1.0]

@@ -44,6 +44,7 @@ For clarity, the aerosol file cloudmask is named `cloud_mask_adp` in this reader
 
 import logging
 
+import numpy as np
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -92,12 +93,26 @@ class VIIRSJRRFileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
+        data_arr = self._mask_invalid(data_arr, info)
         units = data_arr.attrs.get("units", None)
         if units is None or units == "unitless":
             data_arr.attrs["units"] = "1"
         self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
         data_arr.attrs["sensor"] = self.sensor_name
+        return data_arr
+
+    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        fill_value = data_arr.encoding.get("_FillValue")
+        if fill_value is not None and not np.isnan(fill_value):
+            # xarray auto mask and scale handled this
+            return data_arr
+        yaml_fill = ds_info.get("_FillValue")
+        if yaml_fill is not None:
+            return data_arr.where(data_arr != yaml_fill)
+        valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
+        if valid_range is not None:
+            return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
         return data_arr
 
     @staticmethod
