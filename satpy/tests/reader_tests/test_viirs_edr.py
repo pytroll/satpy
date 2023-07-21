@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
+from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 64  # real-world 6400
 I_ROWS = 32  # one scan
@@ -38,15 +39,52 @@ M_COLS = 32  # real-world 3200
 M_ROWS = 16  # one scan
 START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
 END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
+QF1_FLAG_MEANINGS = """
+\tBits are listed from the MSB (bit 7) to the LSB (bit 0):
+\tBit    Description
+\t6-7    SUN GLINT;
+\t       00 -- none
+\t       01 -- geometry based
+\t       10 -- wind speed based
+\t       11 -- geometry & wind speed based
+\t5      low sun mask;
+\t       0 -- high
+\t       1 -- low
+\t4      day/night;
+\t       0 -- day
+\t       1 -- night
+\t2-3    cloud detection & confidence;
+\t       00 -- confident clear
+\t       01 -- probably clear
+\t       10 -- probably cloudy
+\t       11 -- confident cloudy
+\t0-1    cloud mask quality;
+\t       00 -- poor
+\t       01 -- low
+\t       10 -- medium
+\t       11 -- high
+"""
 
 
 @pytest.fixture(scope="module")
 def surface_reflectance_file(tmp_path_factory) -> Path:
     """Generate fake surface reflectance EDR file."""
+    return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=False)
+
+
+@pytest.fixture(scope="module")
+def surface_reflectance_with_veg_indices_file(tmp_path_factory) -> Path:
+    """Generate fake surface reflectance EDR file with vegetation indexes included."""
+    return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=True)
+
+
+def _create_surface_reflectance_file(tmp_path_factory, include_veg_indices: bool = False) -> Path:
     tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
     fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
     file_path = tmp_path / fn
     sr_vars = _create_surf_refl_variables()
+    if include_veg_indices:
+        sr_vars.update(_create_veg_index_variables())
     ds = _create_fake_dataset(sr_vars)
     ds.to_netcdf(file_path)
     return file_path
@@ -89,6 +127,32 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     return data_arrs
 
 
+def _create_veg_index_variables() -> dict[str, xr.DataArray]:
+    dim_y_750 = "Along_Track_750m"
+    dim_x_750 = "Along_Scan_750m"
+    m_dims = (dim_y_750, dim_x_750)
+    dim_y_375 = "Along_Track_375m"
+    dim_x_375 = "Along_Scan_375m"
+    i_dims = (dim_y_375, dim_x_375)
+
+    i_data = np.zeros((I_ROWS, I_COLS), dtype=np.float32)
+    data_arrs = {
+        "NDVI": xr.DataArray(i_data, dims=i_dims, attrs={"units": "unitless"}),
+        "EVI": xr.DataArray(i_data, dims=i_dims, attrs={"units": "unitless"}),
+    }
+    data_arrs["NDVI"].encoding["dtype"] = np.float32
+    data_arrs["EVI"].encoding["dtype"] = np.float32
+
+    # Quality Flags are from the Surface Reflectance data, but only used for VI products in the reader
+    qf_data = np.zeros((M_ROWS, M_COLS), dtype=np.uint8)
+    for qf_num in range(1, 8):
+        qf_name = f"QF{qf_num} Surface Reflectance"
+        data_arr = xr.DataArray(qf_data, dims=m_dims, attrs={"flag_meanings": QF1_FLAG_MEANINGS})
+        data_arr.encoding["dtype"] = np.uint8
+        data_arrs[qf_name] = data_arr
+    return data_arrs
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
@@ -103,6 +167,34 @@ class TestVIIRSJRRReader:
         assert scn.end_time == END_TIME
         _check_surf_refl_data_arr(scn["surf_refl_I01"])
         _check_surf_refl_data_arr(scn["surf_refl_M01"])
+
+    def test_get_dataset_surf_refl_with_veg_idx(self, surface_reflectance_with_veg_indices_file):
+        """Test retrieval of vegetation indices from surface reflectance files."""
+        from satpy import Scene
+        scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file])
+        scn.load(["NDVI", "EVI", "surf_refl_qf1"])
+        _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
+        # TODO: Check NDVI/EVI attributes/dims
+        # TODO: Check NDVI/EVI quality flag clearing
+
+    @pytest.mark.parametrize(
+        ("data_file", "exp_available"),
+        [
+            (lazy_fixture("surface_reflectance_file"), False),
+            (lazy_fixture("surface_reflectance_with_veg_indices_file"), True),
+        ]
+    )
+    def test_availability_veg_idx(self, data_file, exp_available):
+        """Test that vegetation indexes aren't available when they aren't present."""
+        from satpy import Scene
+        scn = Scene(reader="viirs_edr", filenames=[data_file])
+        avail = scn.available_dataset_names()
+        if exp_available:
+            assert "NDVI" in avail
+            assert "EVI" in avail
+        else:
+            assert "NDVI" not in avail
+            assert "EVI" not in avail
 
     @pytest.mark.parametrize(
         ("filename_platform", "exp_shortname"),
@@ -134,3 +226,10 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray) -> None:
     assert all(c == exp_row_chunks for c in data_arr.chunks[0])
     assert data_arr.chunks[1] == (exp_shape[1],)
     assert data_arr.attrs["units"] == "1"
+
+
+def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
+    assert data_arr.dims == ("y", "x")
+    assert isinstance(data_arr.attrs["area"], SwathDefinition)
+    assert isinstance(data_arr.data, da.Array)
+    assert np.issubdtype(data_arr.data.dtype, np.uint8)

@@ -409,3 +409,18 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+    # Swath-based vegetation indexes added to CSPP LEO output
+    NDVI:
+        name: NDVI
+        resolution: 375
+        file_type: [jrr_surfref_product]
+        file_key: "NDVI"
+        coordinates: [longitude_375, latitude_375]
+        units: "1"
+    EVI:
+        name: EVI
+        resolution: 375
+        file_type: [jrr_surfref_product]
+        file_key: "NDVI"
+        coordinates: [longitude_375, latitude_375]
+        units: "1"

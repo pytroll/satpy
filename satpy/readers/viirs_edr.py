@@ -91,12 +91,14 @@ class VIIRSJRRFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
-        ds = self.nc[info['file_key']]
-        if ds.attrs.get("units", None) == "unitless":
-            ds.attrs["units"] = "1"
-        ds.attrs["platform_name"] = self.platform_name
+        data_arr = self.nc[info['file_key']]
+        if data_arr.attrs.get("units", None) == "unitless":
+            data_arr.attrs["units"] = "1"
+        if isinstance(data_arr.attrs.get('flag_meanings'), str):
+            data_arr.attrs['flag_meanings'] = [flag.strip() for flag in data_arr.attrs['flag_meanings'].split(' ')]
+        data_arr.attrs["platform_name"] = self.platform_name
 
-        return ds
+        return data_arr
 
     @property
     def start_time(self):
@@ -118,3 +120,39 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                          'JPSS-2': 'NOAA-21',
                          'J02': 'NOAA-21'}
         return platform_dict[platform_path.upper()]
+
+    def available_datasets(self, configured_datasets=None):
+        """Get information of available datasets in this file.
+
+        Args:
+            configured_datasets (list): Series of (bool or None, dict) in the
+                same way as is returned by this method (see below). The bool
+                is whether the dataset is available from at least one
+                of the current file handlers. It can also be ``None`` if
+                no file handler before us knows how to handle it.
+                The dictionary is existing dataset metadata. The dictionaries
+                are typically provided from a YAML configuration file and may
+                be modified, updated, or used as a "template" for additional
+                available datasets. This argument could be the result of a
+                previous file handler's implementation of this method.
+
+        Returns:
+            Iterator of (bool or None, dict) pairs where dict is the
+            dataset's metadata. If the dataset is available in the current
+            file type then the boolean value should be ``True``, ``False``
+            if we **know** about the dataset but it is unavailable, or
+            ``None`` if this file object is not responsible for it.
+
+        """
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            if self.file_type_matches(ds_info['file_type']) is None:
+                # this is not the file type for this dataset
+                yield None, ds_info
+            file_key = ds_info.get("file_key", ds_info["name"])
+            yield file_key in self.nc, ds_info
