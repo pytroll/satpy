@@ -52,23 +52,22 @@ class EPSIASIL2FileHandler(BaseFileHandler):
     """
 
     # TODO:
-    # - make dask-friendly / lazy
-    # - only read variables that are requested
+    # - make it faster
 
     _nc = None
 
     def get_dataset(self, dataid, dataset_info):
         """Get dataset."""
         if self._nc is None:
-            self._nc = self._get_netcdf_dataset()
+            self._nc = self._get_xarray_dataset()
         data = self._nc[dataid["name"]]
         with xr.set_options(keep_attrs=True):
             data = xr.where(data != np.iinfo(data.dtype).max, data, np.nan)
             data = data * data.attrs.pop("scale_factor", 1)
         return data
 
-    def _get_netcdf_dataset(self):
-        """Get full NetCDF dataset."""
+    def _get_xarray_dataset(self):
+        """Get full xarray dataset."""
         input_product = self.filename
         descriptor = epsnative_reader.assemble_descriptor("IASISND02")
         ipr_sequence = epsnative_reader.read_ipr_sequence(input_product)
@@ -84,12 +83,10 @@ class EPSIASIL2FileHandler(BaseFileHandler):
 
     def available_datasets(self, configured_datasets):
         """Get available datasets."""
-        # FIXME: do this without converting/reading the file — maybe hardcode
-        # still?
         common = {"file_type": "iasi_l2_eps", "resolution": 12000,
                   "coordinates": ["lon", "lat"]}
         if self._nc is None:
-            self._nc = self._get_netcdf_dataset()
+            self._nc = self._get_xarray_dataset()
         for var in self._nc.data_vars:
             yield (True, {"name": var} | common | self._nc[var].attrs)
 
