@@ -61,9 +61,11 @@ class EPSIASIL2FileHandler(BaseFileHandler):
         """Get dataset."""
         if self._nc is None:
             self._nc = self._get_netcdf_dataset()
-        da = self._nc[dataid["name"]]
-        da = da * da.attrs.pop("scale_factor", 1)
-        return da
+        data = self._nc[dataid["name"]]
+        with xr.set_options(keep_attrs=True):
+            data = xr.where(data != np.iinfo(data.dtype).max, data, np.nan)
+            data = data * data.attrs.pop("scale_factor", 1)
+        return data
 
     def _get_netcdf_dataset(self):
         """Get full NetCDF dataset."""
@@ -84,7 +86,8 @@ class EPSIASIL2FileHandler(BaseFileHandler):
         """Get available datasets."""
         # FIXME: do this without converting/reading the file — maybe hardcode
         # still?
-        common = {"file_type": "iasi_l2_eps", "resolution": 12000}
+        common = {"file_type": "iasi_l2_eps", "resolution": 12000,
+                  "coordinates": ["lon", "lat"]}
         if self._nc is None:
             self._nc = self._get_netcdf_dataset()
         for var in self._nc.data_vars:

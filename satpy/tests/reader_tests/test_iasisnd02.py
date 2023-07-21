@@ -41,6 +41,7 @@ import datetime
 import dask
 import numpy as np
 import pandas as pd
+import pyresample
 import pytest
 
 from ..utils import CustomScheduler
@@ -201,7 +202,8 @@ def test_load(iasisndl2_file, tmp_path):
     from satpy import Scene
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
         sc = Scene(filenames=[iasisndl2_file], reader=["iasi_l2_eps"])
-        sc.load(["surface_temperature"])
+        sc.load(["surface_temperature", "atmospheric_temperature",
+                 "atmospheric_water_vapour"])
     assert sc["surface_temperature"].dims == ("y", "x")
     np.testing.assert_allclose(
             sc["surface_temperature"][0, 100:104],
@@ -212,5 +214,15 @@ def test_load(iasisndl2_file, tmp_path):
     np.testing.assert_allclose(
             sc["surface_temperature"][30, 60:66],
             np.array([282.27, 283.18, 285.67, 282.98, 282.81, 282.9]))
+    np.testing.assert_array_equal(
+            sc["surface_temperature"][30, :5],
+            [np.nan]*5)
+    np.testing.assert_array_equal(
+            sc["atmospheric_water_vapour"][0, 0, :5],
+            [np.nan]*5)
 
     assert isinstance(sc["surface_temperature"].data, dask.array.Array)
+    assert isinstance(sc["surface_temperature"].attrs["area"],
+                      pyresample.SwathDefinition)
+    assert sc["surface_temperature"].attrs["standard_name"] == "surface_temperature"
+    assert sc["surface_temperature"].attrs["units"] == "K"
