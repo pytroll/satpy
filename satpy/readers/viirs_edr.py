@@ -92,13 +92,19 @@ class VIIRSJRRFileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
-        if data_arr.attrs.get("units", None) == "unitless":
+        units = data_arr.attrs.get("units", None)
+        if units is None or units == "unitless":
             data_arr.attrs["units"] = "1"
-        if isinstance(data_arr.attrs.get('flag_meanings'), str):
-            data_arr.attrs['flag_meanings'] = [flag.strip() for flag in data_arr.attrs['flag_meanings'].split(' ')]
+        self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
-
         return data_arr
+
+    @staticmethod
+    def _decode_flag_meanings(data_arr: xr.DataArray):
+        flag_meanings = data_arr.attrs.get("flag_meanings", None)
+        if isinstance(flag_meanings, str) and "\n" not in flag_meanings:
+            # only handle CF-standard flag meanings
+            data_arr.attrs['flag_meanings'] = [flag for flag in data_arr.attrs['flag_meanings'].split(' ')]
 
     @property
     def start_time(self):

@@ -28,6 +28,7 @@ from pathlib import Path
 import dask
 import dask.array as da
 import numpy as np
+import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
@@ -171,10 +172,13 @@ class TestVIIRSJRRReader:
     def test_get_dataset_surf_refl_with_veg_idx(self, surface_reflectance_with_veg_indices_file):
         """Test retrieval of vegetation indices from surface reflectance files."""
         from satpy import Scene
-        scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file])
-        scn.load(["NDVI", "EVI", "surf_refl_qf1"])
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+            scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file])
+            scn.load(["NDVI", "EVI", "surf_refl_qf1"])
+        _check_surf_refl_data_arr(scn["NDVI"])
+        _check_surf_refl_data_arr(scn["EVI"])
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
-        # TODO: Check NDVI/EVI attributes/dims
         # TODO: Check NDVI/EVI quality flag clearing
 
     @pytest.mark.parametrize(
@@ -214,22 +218,19 @@ class TestVIIRSJRRReader:
         assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
 
 
-def _check_surf_refl_data_arr(data_arr: xr.DataArray) -> None:
+def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:
     assert data_arr.dims == ("y", "x")
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
     assert isinstance(data_arr.data, da.Array)
-    assert np.issubdtype(data_arr.data.dtype, np.float32)
-    is_m_band = "I" not in data_arr.attrs["name"]
-    exp_shape = (M_ROWS, M_COLS) if is_m_band else (I_ROWS, I_COLS)
+    assert np.issubdtype(data_arr.data.dtype, dtype)
+    is_mband_res = "I" not in data_arr.attrs["name"]  # includes NDVI and EVI
+    exp_shape = (M_ROWS, M_COLS) if is_mband_res else (I_ROWS, I_COLS)
     assert data_arr.shape == exp_shape
-    exp_row_chunks = 4 if is_m_band else 8
+    exp_row_chunks = 4 if is_mband_res else 8
     assert all(c == exp_row_chunks for c in data_arr.chunks[0])
     assert data_arr.chunks[1] == (exp_shape[1],)
     assert data_arr.attrs["units"] == "1"
 
 
 def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
-    assert data_arr.dims == ("y", "x")
-    assert isinstance(data_arr.attrs["area"], SwathDefinition)
-    assert isinstance(data_arr.data, da.Array)
-    assert np.issubdtype(data_arr.data.dtype, np.uint8)
+    _check_surf_refl_data_arr(data_arr, dtype=np.uint8)
