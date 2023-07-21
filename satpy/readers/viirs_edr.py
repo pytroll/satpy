@@ -97,6 +97,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             data_arr.attrs["units"] = "1"
         self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
+        data_arr.attrs["sensor"] = self.sensor_name
         return data_arr
 
     @staticmethod

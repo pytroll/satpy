@@ -229,7 +229,9 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
     exp_row_chunks = 4 if is_mband_res else 8
     assert all(c == exp_row_chunks for c in data_arr.chunks[0])
     assert data_arr.chunks[1] == (exp_shape[1],)
+
     assert data_arr.attrs["units"] == "1"
+    assert data_arr.attrs["sensor"] == "viirs"
 
 
 def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
