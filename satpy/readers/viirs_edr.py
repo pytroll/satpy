@@ -90,6 +90,10 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         self.algorithm_version = filename_info['platform_shortname']
         self.sensor_name = 'viirs'
 
+    def rows_per_scans(self, data_arr: xr.DataArray) -> int:
+        """Get number of array rows per instrument scan based on data resolution."""
+        return 32 if data_arr.shape[1] == 6400 else 16
+
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
@@ -100,6 +104,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
         data_arr.attrs["sensor"] = self.sensor_name
+        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:

@@ -34,9 +34,9 @@ import xarray as xr
 from pyresample import SwathDefinition
 from pytest_lazyfixture import lazy_fixture
 
-I_COLS = 64  # real-world 6400
+I_COLS = 6400
 I_ROWS = 32  # one scan
-M_COLS = 32  # real-world 3200
+M_COLS = 3200
 M_ROWS = 16  # one scan
 START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
 END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
@@ -259,3 +259,4 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
 
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["sensor"] == "viirs"
+    assert data_arr.attrs["rows_per_scan"] == 16 if is_mband_res else 32
