@@ -146,9 +146,24 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
     data_arrs["EVI"].encoding["dtype"] = np.float32
 
     # Quality Flags are from the Surface Reflectance data, but only used for VI products in the reader
-    qf_data = np.zeros((M_ROWS, M_COLS), dtype=np.uint8)
     for qf_num in range(1, 8):
         qf_name = f"QF{qf_num} Surface Reflectance"
+        qf_data = np.zeros((M_ROWS, M_COLS), dtype=np.uint8)
+        bad_qf_start = 4  # 0.5x the last test pixel set in "vi_data" above (I-band versus M-band index)
+        if qf_num == 1:
+            qf_data[:, :] |= 0b00000010  # medium cloud mask quality everywhere
+            qf_data[0, bad_qf_start] |= 0b11000000  # sun glint
+            qf_data[0, bad_qf_start + 1] |= 0b00001100  # cloudy
+            qf_data[0, bad_qf_start + 2] = 0b00000001  # low cloud mask quality
+        elif qf_num == 2:
+            qf_data[:, :] |= 0b00000011  # desert everywhere
+            qf_data[0, bad_qf_start + 3] |= 0b00100000  # snow or ice
+            qf_data[0, bad_qf_start + 4] |= 0b00001000  # cloud shadow
+            qf_data[0, bad_qf_start + 5] = 0b00000001  # deep ocean
+        elif qf_num == 7:
+            qf_data[0, bad_qf_start + 6] |= 0b00001100  # high aerosol
+            qf_data[0, bad_qf_start + 7] |= 0b00000010  # adjacent to cloud
+
         data_arr = xr.DataArray(qf_data, dims=m_dims, attrs={"flag_meanings": QF1_FLAG_MEANINGS})
         data_arr.encoding["dtype"] = np.uint8
         data_arrs[qf_name] = data_arr
@@ -180,7 +195,6 @@ class TestVIIRSJRRReader:
         _check_vi_data_arr(scn["NDVI"])
         _check_vi_data_arr(scn["EVI"])
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
-        # TODO: Check NDVI/EVI quality flag clearing
 
     @pytest.mark.parametrize(
         ("data_file", "exp_available"),
@@ -227,6 +241,8 @@ def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
     _check_surf_refl_data_arr(data_arr)
     data = data_arr.data.compute()
     np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
+    np.testing.assert_allclose(data[0, 8:8 + 16], np.nan)
+    np.testing.assert_allclose(data[0, 8 + 16:], 0.0)
 
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:

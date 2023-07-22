@@ -94,6 +94,9 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
         data_arr = self._mask_invalid(data_arr, info)
+        if info["file_key"] in ("NDVI", "EVI"):
+            good_mask = self._get_veg_index_good_mask()
+            data_arr = data_arr.where(good_mask)
         units = data_arr.attrs.get("units", None)
         if units is None or units == "unitless":
             data_arr.attrs["units"] = "1"
@@ -114,6 +117,38 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         if valid_range is not None:
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
         return data_arr
+
+    def _get_veg_index_good_mask(self) -> xr.DataArray:
+        # each mask array should be TRUE when pixels are UNACCEPTABLE
+        qf1 = self.nc['QF1 Surface Reflectance']
+        has_sun_glint = (qf1 & 0b11000000) > 0
+        is_cloudy = (qf1 & 0b00001100) > 0  # mask everything but "confident clear"
+        cloud_quality = (qf1 & 0b00000011) < 0b10
+
+        qf2 = self.nc['QF2 Surface Reflectance']
+        has_snow_or_ice = (qf2 & 0b00100000) > 0
+        has_cloud_shadow = (qf2 & 0b00001000) > 0
+        water_mask = (qf2 & 0b00000111)
+        has_water = (water_mask <= 0b010) | (water_mask == 0b101)  # shallow water, deep ocean, arctic
+
+        qf7 = self.nc['QF7 Surface Reflectance']
+        has_aerosols = (qf7 & 0b00001100) > 0b1000  # high aerosol quantity
+        adjacent_to_cloud = (qf7 & 0b00000010) > 0
+
+        bad_mask = (
+                has_sun_glint |
+                is_cloudy |
+                cloud_quality |
+                has_snow_or_ice |
+                has_cloud_shadow |
+                has_water |
+                has_aerosols |
+                adjacent_to_cloud
+        )
+        # upscale from M-band resolution to I-band resolution
+        bad_mask_iband_dask = bad_mask.data.repeat(2, axis=1).repeat(2, axis=0)
+        good_mask_iband = xr.DataArray(~bad_mask_iband_dask, dims=qf1.dims)
+        return good_mask_iband
 
     @staticmethod
     def _decode_flag_meanings(data_arr: xr.DataArray):
