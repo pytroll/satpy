@@ -98,9 +98,12 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
         data_arr = self._mask_invalid(data_arr, info)
-        units = data_arr.attrs.get("units", None)
+        units = info.get("units", data_arr.attrs.get("units", None))
         if units is None or units == "unitless":
             data_arr.attrs["units"] = "1"
+        data_arr.attrs["units"] = units
+        if "standard_name" in info:
+            data_arr.attrs["standard_name"] = info["standard_name"]
         self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
         data_arr.attrs["sensor"] = self.sensor_name

@@ -234,11 +234,16 @@ class TestVIIRSJRRReader:
 
 
 def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
-    _check_surf_refl_data_arr(data_arr, dtype=np.uint8)
+    _array_checks(data_arr, dtype=np.uint8)
+    _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["standard_name"] == "quality_flag"
 
 
 def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
-    _check_surf_refl_data_arr(data_arr)
+    _array_checks(data_arr)
+    _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["standard_name"] == "normalized_difference_vegetation_index"
+
     data = data_arr.data.compute()
     np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
     np.testing.assert_allclose(data[0, 8:8 + 16], np.nan)
@@ -246,17 +251,30 @@ def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
 
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:
+    _array_checks(data_arr, dtype)
+    _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["standard_name"] == "surface_bidirectional_reflectance"
+
+
+def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32) -> None:
     assert data_arr.dims == ("y", "x")
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
-    is_mband_res = "I" not in data_arr.attrs["name"]  # includes NDVI and EVI
+    is_mband_res = _is_mband_res(data_arr)
     exp_shape = (M_ROWS, M_COLS) if is_mband_res else (I_ROWS, I_COLS)
     assert data_arr.shape == exp_shape
     exp_row_chunks = 4 if is_mband_res else 8
     assert all(c == exp_row_chunks for c in data_arr.chunks[0])
     assert data_arr.chunks[1] == (exp_shape[1],)
 
+
+def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
+    is_mband_res = _is_mband_res(data_arr)
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["sensor"] == "viirs"
     assert data_arr.attrs["rows_per_scan"] == 16 if is_mband_res else 32
+
+
+def _is_mband_res(data_arr: xr.DataArray) -> bool:
+    return "I" not in data_arr.attrs["name"]  # includes NDVI and EVI

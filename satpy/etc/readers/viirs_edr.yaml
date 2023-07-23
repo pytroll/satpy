@@ -254,6 +254,7 @@ datasets:
         coordinates: [longitude_375, latitude_375]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_I02:
         name: surf_refl_I02
         resolution: 375
@@ -263,6 +264,7 @@ datasets:
         coordinates: [longitude_375, latitude_375]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_I03:
         name: surf_refl_I03
         resolution: 375
@@ -272,6 +274,7 @@ datasets:
         coordinates: [longitude_375, latitude_375]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M01:
         name: surf_refl_M01
         resolution: 750
@@ -281,6 +284,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M02:
         name: surf_refl_M02
         resolution: 750
@@ -290,6 +294,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M03:
         name: surf_refl_M03
         resolution: 750
@@ -299,6 +304,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M04:
         name: surf_refl_M04
         resolution: 750
@@ -308,6 +314,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M05:
         name: surf_refl_M05
         resolution: 750
@@ -317,6 +324,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M06:
         name: surf_refl_M06
         resolution: 750
@@ -326,6 +334,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M07:
         name: surf_refl_M07
         resolution: 750
@@ -335,6 +344,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M08:
         name: surf_refl_M08
         resolution: 750
@@ -344,6 +354,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M10:
         name: surf_refl_M10
         resolution: 750
@@ -353,6 +364,7 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
+        standard_name: "surface_bidirectional_reflectance"
     surf_refl_qf1:
         name: surf_refl_qf1
         resolution: 750
@@ -360,6 +372,7 @@ datasets:
         file_key: "QF1 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf2:
         name: surf_refl_qf2
         resolution: 750
@@ -367,6 +380,7 @@ datasets:
         file_key: "QF2 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf3:
         name: surf_refl_qf3
         resolution: 750
@@ -374,6 +388,7 @@ datasets:
         file_key: "QF3 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf4:
         name: surf_refl_qf4
         resolution: 750
@@ -381,6 +396,7 @@ datasets:
         file_key: "QF4 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf5:
         name: surf_refl_qf5
         resolution: 750
@@ -388,6 +404,7 @@ datasets:
         file_key: "QF5 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf6:
         name: surf_refl_qf6
         resolution: 750
@@ -395,6 +412,7 @@ datasets:
         file_key: "QF6 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
     surf_refl_qf7:
         name: surf_refl_qf7
         resolution: 750
@@ -402,6 +420,8 @@ datasets:
         file_key: "QF7 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
         units: '1'
+        standard_name: "quality_flag"
+
     # Swath-based vegetation indexes added to CSPP LEO output
     NDVI:
         name: NDVI
@@ -411,6 +431,7 @@ datasets:
         coordinates: [longitude_375, latitude_375]
         units: "1"
         valid_range: [-1.0, 1.0]
+        standard_name: "normalized_difference_vegetation_index"
     EVI:
         name: EVI
         resolution: 375
@@ -419,3 +440,4 @@ datasets:
         coordinates: [longitude_375, latitude_375]
         units: "1"
         valid_range: [-1.0, 1.0]
+        standard_name: "normalized_difference_vegetation_index"
