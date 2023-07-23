@@ -47,6 +47,7 @@ import logging
 import numpy as np
 import xarray as xr
 
+from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
@@ -94,13 +95,15 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get number of array rows per instrument scan based on data resolution."""
         return 32 if data_arr.shape[1] == 6400 else 16
 
-    def get_dataset(self, dataset_id, info):
+    def get_dataset(self, dataset_id: DataID, info: dict) -> xr.DataArray:
         """Get the dataset."""
         data_arr = self.nc[info['file_key']]
         data_arr = self._mask_invalid(data_arr, info)
-        units = info.get("units", data_arr.attrs.get("units", None))
+        units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
-            data_arr.attrs["units"] = "1"
+            units = "1"
+        if units == "%" and data_arr.attrs.get("units") in ("1", "unitless"):
+            data_arr *= 100.0  # turn into percentages
         data_arr.attrs["units"] = units
         if "standard_name" in info:
             data_arr.attrs["standard_name"] = info["standard_name"]

@@ -111,8 +111,8 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9}
     sr_attrs = {"units": "unitless", "_FillValue": -9999, "scale_factor": 0.0001, "add_offset": 0.0}
 
-    i_data = np.zeros((I_ROWS, I_COLS), dtype=np.float32)
-    m_data = np.zeros((M_ROWS, M_COLS), dtype=np.float32)
+    i_data = np.random.random_sample((I_ROWS, I_COLS)).astype(np.float32)
+    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
     data_arrs = {
         "Longitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lon_attrs),
         "Latitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lat_attrs),
@@ -125,6 +125,8 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
         if "scale_factor" not in data_arr.attrs:
             continue
         data_arr.encoding["dtype"] = np.int16
+        data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
+        data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
     return data_arrs
 
 
@@ -236,12 +238,14 @@ class TestVIIRSJRRReader:
 def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr, dtype=np.uint8)
     _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["standard_name"] == "quality_flag"
 
 
 def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr)
     _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["standard_name"] == "normalized_difference_vegetation_index"
 
     data = data_arr.data.compute()
@@ -252,7 +256,11 @@ def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:
     _array_checks(data_arr, dtype)
+    data = data_arr.data.compute()
+    assert data.max() > 1.0  # random 0-1 test data multiplied by 100
+
     _shared_metadata_checks(data_arr)
+    assert data_arr.attrs["units"] == "%"
     assert data_arr.attrs["standard_name"] == "surface_bidirectional_reflectance"
 
 
@@ -271,7 +279,6 @@ def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32) -> None
 
 def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     is_mband_res = _is_mband_res(data_arr)
-    assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["sensor"] == "viirs"
     assert data_arr.attrs["rows_per_scan"] == 16 if is_mband_res else 32
 
