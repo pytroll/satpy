@@ -24,6 +24,7 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Iterable
 
 import dask
 import dask.array as da
@@ -80,15 +81,11 @@ def surface_reflectance_with_veg_indices_file(tmp_path_factory) -> Path:
 
 
 def _create_surface_reflectance_file(tmp_path_factory, include_veg_indices: bool = False) -> Path:
-    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
     fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
-    file_path = tmp_path / fn
     sr_vars = _create_surf_refl_variables()
     if include_veg_indices:
         sr_vars.update(_create_veg_index_variables())
-    ds = _create_fake_dataset(sr_vars)
-    ds.to_netcdf(file_path)
-    return file_path
+    return _create_fake_file(tmp_path_factory, fn, sr_vars)
 
 
 def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
@@ -167,16 +164,24 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
 @pytest.fixture(scope="module")
 def cloud_height_file(tmp_path_factory) -> Path:
     """Generate fake CloudHeight VIIRS EDR file."""
-    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
     fn = f"JRR-CloudHeight_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
-    file_path = tmp_path / fn
-    ch_vars = _create_cloud_height_variables()
-    ds = _create_fake_dataset(ch_vars)
-    ds.to_netcdf(file_path)
-    return file_path
+    data_vars = _create_continuous_variables(
+        ("CldTopTemp", "CldTopHght", "CldTopPres")
+    )
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
-def _create_cloud_height_variables() -> dict[str, xr.DataArray]:
+@pytest.fixture(scope="module")
+def aod_file(tmp_path_factory) -> Path:
+    """Generate fake AOD VIIRs EDR file."""
+    fn = f"JRR-AOD_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+    data_vars = _create_continuous_variables(
+        ("AOD550",)
+    )
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
+def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataArray]:
     dims = ("Rows", "Columns")
 
     lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9}
@@ -188,7 +193,7 @@ def _create_cloud_height_variables() -> dict[str, xr.DataArray]:
         "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
         "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),
     }
-    for var_name in ("CldTopTemp", "CldTopHght", "CldTopPres"):
+    for var_name in var_names:
         data_arrs[var_name] = xr.DataArray(m_data, dims=dims, attrs=cont_attrs)
     for data_arr in data_arrs.values():
         if "_FillValue" in data_arr.attrs:
@@ -199,6 +204,14 @@ def _create_cloud_height_variables() -> dict[str, xr.DataArray]:
         data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
         data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
     return data_arrs
+
+
+def _create_fake_file(tmp_path_factory, filename: str, data_arrs: dict[str, xr.DataArray]) -> Path:
+    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
+    file_path = tmp_path / filename
+    ds = _create_fake_dataset(data_arrs)
+    ds.to_netcdf(file_path)
+    return file_path
 
 
 def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
@@ -235,16 +248,22 @@ class TestVIIRSJRRReader:
         _check_vi_data_arr(scn["EVI"])
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
 
-    def test_get_dataset_cloud_height(self, cloud_height_file):
+    @pytest.mark.parametrize(
+        ("var_names", "data_file"),
+        [
+            (("CldTopTemp", "CldTopHght", "CldTopPres"), lazy_fixture("cloud_height_file")),
+            (("AOD550",), lazy_fixture("aod_file")),
+        ]
+    )
+    def test_get_dataset_generic(self, var_names, data_file):
         """Test datasets from cloud height files."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=[cloud_height_file])
-            scn.load(["CldTopTemp", "CldTopHght", "CldTopPres"])
-        _check_cloud_height_data_arr(scn["CldTopTemp"])
-        _check_cloud_height_data_arr(scn["CldTopHght"])
-        _check_cloud_height_data_arr(scn["CldTopPres"])
+            scn = Scene(reader="viirs_edr", filenames=[data_file])
+            scn.load(var_names)
+        for var_name in var_names:
+            _check_continuous_data_arr(scn[var_name])
 
     @pytest.mark.parametrize(
         ("data_file", "exp_available"),
@@ -312,7 +331,7 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
     assert data_arr.attrs["standard_name"] == "surface_bidirectional_reflectance"
 
 
-def _check_cloud_height_data_arr(data_arr: xr.DataArray) -> None:
+def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr)
     _shared_metadata_checks(data_arr)
 
