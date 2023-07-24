@@ -197,7 +197,6 @@ datasets:
         file_key: "375m Surface Reflectance Band I1"
         coordinates: [longitude_375, latitude_375]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_I02:
         name: surf_refl_I02
@@ -207,7 +206,6 @@ datasets:
         file_key: "375m Surface Reflectance Band I2"
         coordinates: [longitude_375, latitude_375]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_I03:
         name: surf_refl_I03
@@ -217,7 +215,6 @@ datasets:
         file_key: "375m Surface Reflectance Band I3"
         coordinates: [longitude_375, latitude_375]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M01:
         name: surf_refl_M01
@@ -227,7 +224,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M1"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M02:
         name: surf_refl_M02
@@ -237,7 +233,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M2"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M03:
         name: surf_refl_M03
@@ -247,7 +242,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M3"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M04:
         name: surf_refl_M04
@@ -257,7 +251,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M4"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M05:
         name: surf_refl_M05
@@ -267,7 +260,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M5"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M06:
         name: surf_refl_M06
@@ -277,7 +269,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M6"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M07:
         name: surf_refl_M07
@@ -287,7 +278,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M7"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M08:
         name: surf_refl_M08
@@ -297,7 +287,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M8"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_M10:
         name: surf_refl_M10
@@ -307,7 +296,6 @@ datasets:
         file_key: "750m Surface Reflectance Band M10"
         coordinates: [longitude_750, latitude_750]
         units: '%'
-        _FillValue: -9999
         standard_name: "surface_bidirectional_reflectance"
     surf_refl_qf1:
         name: surf_refl_qf1
