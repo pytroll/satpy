@@ -231,10 +231,10 @@ composites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
-    - name: I01
+    - name: I02
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: false_color
-    high_resolution_band: blue
+    high_resolution_band: green
 
   fire_temperature:
     # CIRA: Original VIIRS
@@ -321,6 +321,18 @@ composites:
     - name: surf_refl_M07
     - name: surf_refl_M05
     standard_name: natural_color
+
+  false_color_surf:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: surf_refl_M11
+      - name: surf_refl_M07
+      - name: surf_refl_M05
+    optional_prerequisites:
+      - name: surf_refl_I02
+    standard_name: false_color
+    high_resolution_band: green
+
 
   true_color_lowres_surf:
     compositor: !!python/name:satpy.composites.RGBCompositor
