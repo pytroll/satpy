@@ -77,172 +77,116 @@ datasets:
         file_type: jrr_cloudmask
         file_key: "CloudMask"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Probably Clear', 'Probably Cloudy', 'Cloudy']
-        flag_values: [0, 1, 2, 3]
-        _FillValue: -128
     cloud_mask_binary:
         name: cloud_mask_binary
         resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "CloudMaskBinary"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Cloudy']
-        flag_values: [0, 1]
-        _FillValue: -128
     cloud_probability:
         name: cloud_probability
         resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "CloudProbability"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -999.
     dust_mask:
         name: dust_mask
         resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Dust_Mask"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Dusty']
-        flag_values: [0, 1]
-        _FillValue: -128
     fire_mask:
         name: fire_mask
         resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Fire_Mask"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['No fire', 'Fire']
-        flag_values: [0, 1]
-        _FillValue: -128
     smoke_mask:
         name: smoke_mask
         resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Smoke_Mask"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Smoky']
-        flag_values: [0, 1]
-        _FillValue: -128
 
-    # Aerosol optical depth product datasets
+    # Aerosol detection product datasets
     ash_mask:
         name: ash_mask
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Ash"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Ash']
-        flag_values: [0, 1]
-        _FillValue: -128
     cloud_mask_adp:
         name: cloud_mask_adp
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Cloud"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['Clear', 'Probably Clear', 'Probably Cloudy', 'Cloudy']
-        flag_values: [0, 1, 2, 3]
-        _FillValue: -128
     dust_smoke_discrimination_index:
         name: dust_smoke_discrimination_index
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "DSDI"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -999
     nuc:
         name: nuc
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "NUC"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['No', 'Yes']
-        flag_values: [0, 1]
-        _FillValue: -128
     pqi1:
         name: pqi1
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI1"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -128
     pqi2:
         name: pqi2
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI2"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -128
     pqi3:
         name: pqi3
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI3"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -128
     pqi4:
         name: pqi4
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI4"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -128
     qcflag:
         name: qcflag
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "QC_Flag"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -128
     saai:
         name: saai
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SAAI"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -999
     smoke:
         name: smoke
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Smoke"
         coordinates: [longitude, latitude]
-        units: '1'
-        _FillValue: -999
     smoke_concentration:
         name: smoke_concentration
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SmokeCon"
         coordinates: [longitude, latitude]
-        units: 'ug/m^3'
-        _FillValue: -999
     snow_ice:
         name: snow_ice
         resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SnowIce"
         coordinates: [longitude, latitude]
-        units: '1'
-        flag_meanings: ['No', 'Yes']
-        flag_values: [0, 1]
-        _FillValue: -128
 
     # Surface reflectance products
     surf_refl_I01:
@@ -422,7 +366,7 @@ datasets:
         units: '1'
         standard_name: "quality_flag"
 
-    # Swath-based vegetation indexes added to CSPP LEO output
+    # Swath-based vegetation indexes added to CSPP LEO surface reflectance files
     NDVI:
         name: NDVI
         resolution: 375
