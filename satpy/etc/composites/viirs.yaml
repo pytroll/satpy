@@ -352,14 +352,6 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: true_color
 
-  night_overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - DNB
-    - DNB
-    - M15
-    standard_name: night_overview
-
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
