@@ -314,7 +314,9 @@ def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
     is when all chunks are the same size (except for the last one).
 
     """
-    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
+    if any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple):
+        return True
+    return any(chunks[-1] > chunks[0] for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:

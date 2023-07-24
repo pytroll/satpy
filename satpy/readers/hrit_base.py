@@ -175,7 +175,6 @@ class HRITFileHandler(BaseFileHandler):
         self.mda = {}
         self.hdr_info = hdr_info
         self._get_hd(self.hdr_info)
-
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
 
@@ -221,6 +220,16 @@ class HRITFileHandler(BaseFileHandler):
                                              # FIXME: find a reasonable SSP
                                              'SSP_longitude': 0.0}
         self.mda['orbital_parameters'] = {}
+
+    @property
+    def observation_start_time(self):
+        """Get observation start time."""
+        return self._start_time
+
+    @property
+    def observation_end_time(self):
+        """Get observation end time."""
+        return self._end_time
 
     @property
     def start_time(self):

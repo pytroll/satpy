@@ -560,6 +560,17 @@ class TestSceneAggregation:
         expected_aggregated_shape = (y_size / 2, x_size / 2)
         self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
 
+    def test_custom_aggregate(self):
+        """Test the aggregate method with custom function."""
+        x_size = 3712
+        y_size = 3712
+
+        scene1 = self._create_test_data(x_size, y_size)
+
+        scene2 = scene1.aggregate(func=np.sum, x=2, y=2)
+        expected_aggregated_shape = (y_size / 2, x_size / 2)
+        self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
+
     @staticmethod
     def _create_test_data(x_size, y_size):
         from pyresample.geometry import AreaDefinition

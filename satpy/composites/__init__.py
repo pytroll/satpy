@@ -1039,15 +1039,36 @@ class RatioSharpenedRGB(GenericCompositor):
         new_G = G * ratio
         new_B = B * ratio
 
+    In some cases, there could be multiple high resolution bands::
+
+        R_lo -  1000m resolution - shape=(2000, 2000)
+        G_hi - 500m resolution - shape=(4000, 4000)
+        B - 1000m resolution - shape=(2000, 2000)
+        R_hi -  500m resolution - shape=(4000, 4000)
+
+    To avoid the green band getting involved in calculating ratio or sharpening,
+    add "neutral_resolution_band: green" in the YAML config file. This way
+    only the blue band will get sharpened::
+
+        ratio = R_hi / R_lo
+        new_R = R_hi
+        new_G = G_hi
+        new_B = B * ratio
+
     """
 
     def __init__(self, *args, **kwargs):
         """Instanciate the ration sharpener."""
         self.high_resolution_color = kwargs.pop("high_resolution_band", "red")
+        self.neutral_resolution_color = kwargs.pop("neutral_resolution_band", None)
         if self.high_resolution_color not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_color))
+        if self.neutral_resolution_color not in ['red', 'green', 'blue', None]:
+            raise ValueError("RatioSharpenedRGB.neutral_resolution_band must "
+                             "be one of ['red', 'green', 'blue', None]. Not "
+                             "'{}'".format(self.neutral_resolution_color))
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -1082,28 +1103,33 @@ class RatioSharpenedRGB(GenericCompositor):
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            low_res_colors = ['red', 'green', 'blue']
-            low_resolution_index = low_res_colors.index(self.high_resolution_color)
+
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
-            low_resolution_index = 0
 
+        bands = {'red': low_res_red, 'green': low_res_green, 'blue': low_res_blue}
         if high_res is not None:
-            low_res = (low_res_red, low_res_green, low_res_blue)[low_resolution_index]
-            ratio = da.map_blocks(
-                _get_sharpening_ratio,
-                high_res.data,
-                low_res.data,
-                meta=np.array((), dtype=high_res.dtype),
-                dtype=high_res.dtype,
-                chunks=high_res.chunks,
-            )
-            with xr.set_options(keep_attrs=True):
-                low_res_red = high_res if low_resolution_index == 0 else low_res_red * ratio
-                low_res_green = high_res if low_resolution_index == 1 else low_res_green * ratio
-                low_res_blue = high_res if low_resolution_index == 2 else low_res_blue * ratio
-        return low_res_red, low_res_green, low_res_blue, new_attrs
+            self._sharpen_bands_with_high_res(bands, high_res)
+
+        return bands['red'], bands['green'], bands['blue'], new_attrs
+
+    def _sharpen_bands_with_high_res(self, bands, high_res):
+        ratio = da.map_blocks(
+            _get_sharpening_ratio,
+            high_res.data,
+            bands[self.high_resolution_color].data,
+            meta=np.array((), dtype=high_res.dtype),
+            dtype=high_res.dtype,
+            chunks=high_res.chunks,
+        )
+
+        bands[self.high_resolution_color] = high_res
+
+        with xr.set_options(keep_attrs=True):
+            for color in bands.keys():
+                if color != self.neutral_resolution_color and color != self.high_resolution_color:
+                    bands[color] = bands[color] * ratio
 
     def _combined_sharpened_info(self, info, new_attrs):
         combined_info = {}

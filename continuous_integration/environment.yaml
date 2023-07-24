@@ -5,10 +5,12 @@ dependencies:
   - xarray!=2022.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
   - appdirs
   - toolz
   - Cython
+  - numba
   - sphinx
   - cartopy
   - panel>=0.12.7
@@ -54,6 +56,7 @@ dependencies:
   - xarray-datatree
   - pint-xarray
   - ephem
+  - bokeh<3
   - pip:
     - trollsift
     - trollimage>=1.20

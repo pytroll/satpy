@@ -36,7 +36,7 @@ class Test_FY4Base:
 
         self.file_type = {'file_type': 'agri_l1_0500m'}
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 

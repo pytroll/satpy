@@ -27,6 +27,7 @@ The following people have made contributions to this project:
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
+- [Gionata Ghiggi (ghiggi)](https://github.com/ghiggi)
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
@@ -35,6 +36,7 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Lloyd Hughes (system123)](https://github.com/system123)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
@@ -85,3 +87,4 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+- [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
