@@ -82,54 +82,58 @@ datasets:
     resolution: 2000
     file_type: nc_fci_clm
     file_key: cloud_state
-    long_name: cloud_mask_classification
+    standard_name: cloud_mask_classification
+    import_enum_information: True
 
   quality_illumination_clm:
     name: quality_illumination_clm
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_illumination
-    long_name: illumination_classification
+    standard_name: illumination_classification
+    import_enum_information: True
 
   quality_nwp_parameters_clm:
     name: quality_nwp_parameters_clm
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_nwp_parameters
-    long_name: quality_index
-
+    standard_name: forecast_availibility_classification
+    import_enum_information: True
+    
   quality_MTG_parameters_clm:
     name: quality_MTG_parameters_clm
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_MTG_parameters
-    long_name: quality_index
+    standard_name: platform_data_availibility_classification
     fill_value: -127
+    import_enum_information: True
 
   quality_overall_processing_clm:
     name: quality_overall_processing_clm
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_overall_processing
-    long_name: quality_index
+    standard_name: quality_flag
 
   product_quality_clm:
     name: product_quality_clm
     file_type: nc_fci_clm
     file_key: product_quality
-    long_name: product_quality_index
+    standard_name: quality_flag
 
   product_completeness_clm:
     name: product_completeness_clm
     file_type: nc_fci_clm
     file_key: product_completeness
-    long_name: product_completeness_index
+    standard_name: quality_flag
 
   product_timeliness_clm:
     name: product_timeliness_clm
     file_type: nc_fci_clm
     file_key: product_timeliness
-    long_name: product_timeliness_index
+    standard_name: quality_flag
 
 # FCI CT L2
   cloud_phase:
