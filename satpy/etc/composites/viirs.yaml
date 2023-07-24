@@ -322,7 +322,7 @@ composites:
     - name: surf_refl_M05
     standard_name: natural_color
 
-  true_color_mband_nocorr:
+  true_color_mband_surf_nocorr:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: surf_refl_M05
