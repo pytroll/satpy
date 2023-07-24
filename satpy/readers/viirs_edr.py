@@ -69,13 +69,13 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                   mask_and_scale=True,
                                   chunks={
                                       'Columns': -1,
-                                      'Rows': row_chunks_i,
+                                      'Rows': row_chunks_m,
                                       'Along_Scan_375m': -1,
                                       'Along_Track_375m': row_chunks_i,
                                       'Along_Scan_750m': -1,
                                       'Along_Track_750m': row_chunks_m,
                                   })
-        if 'columns' in self.nc.dims:
+        if 'Columns' in self.nc.dims:
             self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
         elif 'Along_Track_375m' in self.nc.dims:
             self.nc = self.nc.rename({'Along_Scan_375m': 'x', 'Along_Track_375m': 'y'})

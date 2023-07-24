@@ -91,14 +91,6 @@ def _create_surface_reflectance_file(tmp_path_factory, include_veg_indices: bool
     return file_path
 
 
-def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
-    ds = xr.Dataset(
-        vars_dict,
-        attrs={}
-    )
-    return ds
-
-
 def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     dim_y_750 = "Along_Track_750m"
     dim_x_750 = "Along_Scan_750m"
@@ -172,6 +164,51 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
     return data_arrs
 
 
+@pytest.fixture(scope="module")
+def cloud_height_file(tmp_path_factory) -> Path:
+    """Generate fake CloudHeight VIIRS EDR file."""
+    tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
+    fn = f"JRR-CloudHeight_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+    file_path = tmp_path / fn
+    ch_vars = _create_cloud_height_variables()
+    ds = _create_fake_dataset(ch_vars)
+    ds.to_netcdf(file_path)
+    return file_path
+
+
+def _create_cloud_height_variables() -> dict[str, xr.DataArray]:
+    dims = ("Rows", "Columns")
+
+    lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9}
+    lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9}
+    cont_attrs = {"units": "Kelvin", "_FillValue": -9999, "scale_factor": 0.0001, "add_offset": 0.0}
+
+    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    data_arrs = {
+        "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
+        "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),
+    }
+    for var_name in ("CldTopTemp", "CldTopHght", "CldTopPres"):
+        data_arrs[var_name] = xr.DataArray(m_data, dims=dims, attrs=cont_attrs)
+    for data_arr in data_arrs.values():
+        if "_FillValue" in data_arr.attrs:
+            data_arr.encoding["_FillValue"] = data_arr.attrs.pop("_FillValue")
+        if "scale_factor" not in data_arr.attrs:
+            continue
+        data_arr.encoding["dtype"] = np.int16
+        data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
+        data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
+    return data_arrs
+
+
+def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
+    ds = xr.Dataset(
+        vars_dict,
+        attrs={}
+    )
+    return ds
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
@@ -197,6 +234,17 @@ class TestVIIRSJRRReader:
         _check_vi_data_arr(scn["NDVI"])
         _check_vi_data_arr(scn["EVI"])
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
+
+    def test_get_dataset_cloud_height(self, cloud_height_file):
+        """Test datasets from cloud height files."""
+        from satpy import Scene
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+            scn = Scene(reader="viirs_edr", filenames=[cloud_height_file])
+            scn.load(["CldTopTemp", "CldTopHght", "CldTopPres"])
+        _check_cloud_height_data_arr(scn["CldTopTemp"])
+        _check_cloud_height_data_arr(scn["CldTopHght"])
+        _check_cloud_height_data_arr(scn["CldTopPres"])
 
     @pytest.mark.parametrize(
         ("data_file", "exp_available"),
@@ -262,6 +310,11 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
     _shared_metadata_checks(data_arr)
     assert data_arr.attrs["units"] == "%"
     assert data_arr.attrs["standard_name"] == "surface_bidirectional_reflectance"
+
+
+def _check_cloud_height_data_arr(data_arr: xr.DataArray) -> None:
+    _array_checks(data_arr)
+    _shared_metadata_checks(data_arr)
 
 
 def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32) -> None:

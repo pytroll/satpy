@@ -23,6 +23,11 @@ file_types:
         variable_prefix: ""
         file_patterns:
             - 'SurfRefl_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_cloudheight_product:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        variable_prefix: ""
+        file_patterns:
+            - 'JRR-CloudHeight_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
 
 
 datasets:
@@ -30,14 +35,14 @@ datasets:
     longitude:
         name: longitude
         standard_name: longitude
-        file_type: [jrr_cloudmask, jrr_aerosol_product]
+        file_type: [jrr_cloudmask, jrr_aerosol_product, jrr_cloudheight_product]
         file_key: "Longitude"
         units: 'degrees_east'
         resolution: 750
     latitude:
         name: latitude
         standard_name: latitude
-        file_type: [jrr_cloudmask, jrr_aerosol_product]
+        file_type: [jrr_cloudmask, jrr_aerosol_product, jrr_cloudheight_product]
         file_key: "Latitude"
         units: 'degrees_north'
         resolution: 750
@@ -382,3 +387,23 @@ datasets:
         units: "1"
         valid_range: [-1.0, 1.0]
         standard_name: "normalized_difference_vegetation_index"
+
+    # Cloud Height products
+    cloud_top_temp:
+        name: CldTopTemp
+        file_key: "CldTopTemp"
+        file_type: [jrr_cloudheight_product]
+        resolution: 750
+        coordinates: [longitude, latitude]
+    cloud_top_height:
+        name: CldTopHght
+        file_key: "CldTopHght"
+        file_type: [jrr_cloudheight_product]
+        resolution: 750
+        coordinates: [longitude, latitude]
+    cloud_top_pressure:
+        name: CldTopPres
+        file_key: "CldTopPres"
+        file_type: [jrr_cloudheight_product]
+        resolution: 750
+        coordinates: [longitude, latitude]
