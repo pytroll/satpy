@@ -28,6 +28,7 @@
 import collections
 import datetime
 import itertools
+import logging
 
 import dask.array as da
 import numpy as np
@@ -35,6 +36,8 @@ import xarray as xr
 
 from . import epsnative_reader
 from .file_handlers import BaseFileHandler
+
+logger = logging.getLogger(__name__)
 
 
 class EPSIASIL2FileHandler(BaseFileHandler):
@@ -68,6 +71,7 @@ class EPSIASIL2FileHandler(BaseFileHandler):
 
     def _get_xarray_dataset(self):
         """Get full xarray dataset."""
+        logger.debug(f"Pre-loading {self.filename!s}")
         input_product = self.filename
         descriptor = epsnative_reader.assemble_descriptor("IASISND02")
         ipr_sequence = epsnative_reader.read_ipr_sequence(input_product)
@@ -83,12 +87,16 @@ class EPSIASIL2FileHandler(BaseFileHandler):
 
     def available_datasets(self, configured_datasets):
         """Get available datasets."""
-        common = {"file_type": "iasi_l2_eps", "resolution": 12000,
-                  "coordinates": ["lon", "lat"]}
+        common = {"file_type": "iasi_l2_eps", "resolution": 12000}
+        coords = {"y": "lon", "x": "lat"}
         if self._nc is None:
             self._nc = self._get_xarray_dataset()
         for var in self._nc.data_vars:
-            yield (True, {"name": var} | common | self._nc[var].attrs)
+            extra = {}
+            coor = [coords[x] for x in self._nc[var].dims if x in coords]
+            if coor:
+                extra["coordinates"] = coor
+            yield (True, {"name": var} | common | extra | self._nc[var].attrs)
 
 
 missing_values = {

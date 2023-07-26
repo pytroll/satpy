@@ -203,7 +203,7 @@ def test_load(iasisndl2_file, tmp_path):
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
         sc = Scene(filenames=[iasisndl2_file], reader=["iasi_l2_eps"])
         sc.load(["surface_temperature", "atmospheric_temperature",
-                 "atmospheric_water_vapour"])
+                 "atmospheric_water_vapour", "pressure_levels_temp"])
     assert sc["surface_temperature"].dims == ("y", "x")
     np.testing.assert_allclose(
             sc["surface_temperature"][0, 100:104],
@@ -226,3 +226,4 @@ def test_load(iasisndl2_file, tmp_path):
                       pyresample.SwathDefinition)
     assert sc["surface_temperature"].attrs["standard_name"] == "surface_temperature"
     assert sc["surface_temperature"].attrs["units"] == "K"
+    assert "area" not in sc["pressure_levels_temp"].attrs
