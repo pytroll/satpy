@@ -37,70 +37,77 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
+def build_file_content(filename_info):
+    """Build file basic file content."""
+    file_content = {
+        '/attr/Platform_Name': filename_info['platform_shortname'],
+        '/attr/Element_Resolution': 2.,
+        '/attr/Line_Resolution': 2.,
+        '/attr/Subsatellite_Longitude': -70.2 if 'GOES' in filename_info['platform_shortname'] else 140.65,
+        'pixel_longitude': DEFAULT_LON_DATA,
+        'pixel_longitude/attr/scale_factor': 1.,
+        'pixel_longitude/attr/add_offset': 0.,
+        'pixel_longitude/shape': DEFAULT_FILE_SHAPE,
+        'pixel_longitude/attr/_FillValue': np.nan,
+        'pixel_latitude': DEFAULT_LAT_DATA,
+        'pixel_latitude/attr/scale_factor': 1.,
+        'pixel_latitude/attr/add_offset': 0.,
+        'pixel_latitude/shape': DEFAULT_FILE_SHAPE,
+        'pixel_latitude/attr/_FillValue': np.nan,
+    }
+    sensor = {
+        'HIMAWARI-8': 'himawari8',
+        'GOES-17': 'goesr',
+        'GOES-16': 'goesr',
+        'GOES-13': 'goes',
+        'GOES-14': 'goes',
+        'GOES-15': 'goes',
+    }[filename_info['platform_shortname']]
+    file_content['/attr/Sensor_Name'] = sensor
+
+    if filename_info['platform_shortname'] == 'HIMAWARI-8':
+        file_content['pixel_longitude'] = DEFAULT_LON_DATA + 130.
+
+    file_content['variable1'] = DEFAULT_FILE_DATA.astype(np.float32)
+    file_content['variable1/attr/_FillValue'] = -1
+    file_content['variable1/attr/scale_factor'] = 1.
+    file_content['variable1/attr/add_offset'] = 0.
+    file_content['variable1/attr/units'] = '1'
+    file_content['variable1/shape'] = DEFAULT_FILE_SHAPE
+
+    # data with fill values
+    file_content['variable2'] = np.ma.masked_array(
+        DEFAULT_FILE_DATA.astype(np.float32),
+        mask=np.zeros_like(DEFAULT_FILE_DATA))
+    file_content['variable2'].mask[::5, ::5] = True
+    file_content['variable2/attr/_FillValue'] = -1
+    file_content['variable2/attr/scale_factor'] = 1.
+    file_content['variable2/attr/add_offset'] = 0.
+    file_content['variable2/attr/units'] = '1'
+    file_content['variable2/shape'] = DEFAULT_FILE_SHAPE
+
+    # category
+    file_content['variable3'] = DEFAULT_FILE_DATA.astype(np.byte)
+    file_content['variable3/attr/_FillValue'] = -128
+    file_content['variable3/attr/flag_meanings'] = "clear water supercooled mixed ice unknown"
+    file_content['variable3/attr/flag_values'] = [0, 1, 2, 3, 4, 5]
+    file_content['variable3/attr/units'] = '1'
+    file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
+
+    attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
+    convert_file_content_to_data_array(
+        file_content, attrs=attrs,
+        dims=('z', 'lines', 'elements'))
+
+    return file_content
+
+
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        file_content = {
-            '/attr/Platform_Name': filename_info['platform_shortname'],
-            '/attr/Element_Resolution': 2.,
-            '/attr/Line_Resolution': 2.,
-            '/attr/Subsatellite_Longitude': -70.2 if 'GOES' in filename_info['platform_shortname'] else 140.65,
-            'pixel_longitude': DEFAULT_LON_DATA,
-            'pixel_longitude/attr/scale_factor': 1.,
-            'pixel_longitude/attr/add_offset': 0.,
-            'pixel_longitude/shape': DEFAULT_FILE_SHAPE,
-            'pixel_longitude/attr/_FillValue': np.nan,
-            'pixel_latitude': DEFAULT_LAT_DATA,
-            'pixel_latitude/attr/scale_factor': 1.,
-            'pixel_latitude/attr/add_offset': 0.,
-            'pixel_latitude/shape': DEFAULT_FILE_SHAPE,
-            'pixel_latitude/attr/_FillValue': np.nan,
-        }
-        sensor = {
-            'HIMAWARI-8': 'himawari8',
-            'GOES-17': 'goesr',
-            'GOES-16': 'goesr',
-            'GOES-13': 'goes',
-            'GOES-14': 'goes',
-            'GOES-15': 'goes',
-        }[filename_info['platform_shortname']]
-        file_content['/attr/Sensor_Name'] = sensor
-
-        if filename_info['platform_shortname'] == 'HIMAWARI-8':
-            file_content['pixel_longitude'] = DEFAULT_LON_DATA + 130.
-
-        file_content['variable1'] = DEFAULT_FILE_DATA.astype(np.float32)
-        file_content['variable1/attr/_FillValue'] = -1
-        file_content['variable1/attr/scale_factor'] = 1.
-        file_content['variable1/attr/add_offset'] = 0.
-        file_content['variable1/attr/units'] = '1'
-        file_content['variable1/shape'] = DEFAULT_FILE_SHAPE
-
-        # data with fill values
-        file_content['variable2'] = np.ma.masked_array(
-            DEFAULT_FILE_DATA.astype(np.float32),
-            mask=np.zeros_like(DEFAULT_FILE_DATA))
-        file_content['variable2'].mask[::5, ::5] = True
-        file_content['variable2/attr/_FillValue'] = -1
-        file_content['variable2/attr/scale_factor'] = 1.
-        file_content['variable2/attr/add_offset'] = 0.
-        file_content['variable2/attr/units'] = '1'
-        file_content['variable2/shape'] = DEFAULT_FILE_SHAPE
-
-        # category
-        file_content['variable3'] = DEFAULT_FILE_DATA.astype(np.byte)
-        file_content['variable3/attr/_FillValue'] = -128
-        file_content['variable3/attr/flag_meanings'] = "clear water supercooled mixed ice unknown"
-        file_content['variable3/attr/flag_values'] = [0, 1, 2, 3, 4, 5]
-        file_content['variable3/attr/units'] = '1'
-        file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
-
-        attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
-        convert_file_content_to_data_array(
-            file_content, attrs=attrs,
-            dims=('z', 'lines', 'elements'))
+        file_content = build_file_content(filename_info)
         return file_content
 
 
@@ -210,3 +217,69 @@ class TestGEOCATReader(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
         self.assertIsInstance(datasets['variable1'].attrs['area'], AreaDefinition)
+
+
+class FakeNetCDF4FileHandler_TC(FakeNetCDF4FileHandler):
+    """Swap-in NetCDF4 File Handler."""
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content."""
+        file_content = build_file_content(filename_info)
+        file_content.update({"/attr/Terrain_Corrected_Nav_Option": 2})
+
+        # Add terrain corrected pixel_latitude/longitude
+        file_content.update(
+            {'pixel_longitude_tc': DEFAULT_LON_DATA,
+             'pixel_longitude_tc/attr/scale_factor': 1.,
+             'pixel_longitude_tc/attr/add_offset': 0.,
+             'pixel_longitude_tc/shape': DEFAULT_FILE_SHAPE,
+             'pixel_longitude_tc/attr/_FillValue': np.nan,
+             'pixel_latitude_tc': DEFAULT_LAT_DATA,
+             'pixel_latitude_tc/attr/scale_factor': 1.,
+             'pixel_latitude_tc/attr/add_offset': 0.,
+             'pixel_latitude_tc/shape': DEFAULT_FILE_SHAPE,
+             'pixel_latitude_tc/attr/_FillValue': np.nan}
+        )
+        convert_file_content_to_data_array(file_content)
+
+        return file_content
+
+
+class TestGEOCATReader_TC(unittest.TestCase):
+    """Test GEOCAT Reader with Terrain Corrected Files."""
+
+    yaml_file = "geocat.yaml"
+
+    def setUp(self):
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
+        from satpy.readers.geocat import GEOCATFileHandler
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
+        self.p = mock.patch.object(GEOCATFileHandler, '__bases__', (FakeNetCDF4FileHandler_TC,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler."""
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters."""
+        import xarray as xr
+
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
+            loadables = r.select_files_from_pathnames([
+                'geocatL1.GOES-17.CONUS.2020041.163130.hdf',
+            ])
+            r.create_filehandlers(loadables)
+        datasets = r.load(['variable1',
+                           'variable2',
+                           'variable3'])
+        self.assertEqual(len(datasets), 3)
+
+        # make sure file is flagged as terrain corrected
+        assert r.file_handlers
+        assert r.file_handlers["level1"][0].terrain_corrected

@@ -72,6 +72,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  **kwargs):
         """Open and perform initial investigation of NetCDF file."""
+        self.area = None
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'engine', "netcdf4")
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
@@ -122,7 +123,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def _get_proj(self, platform, ref_lon):
         if platform == 'GOES-16' and -76. < ref_lon < -74.:
-            # geocat file holds the *actual* subsatellite point, not the
+            # geocat file holds the *actual* sub-satellite point, not the
             # projection (-75.2 actual versus -75 projection)
             ref_lon = -75.
         return GEO_PROJS[platform].format(lon_0=ref_lon)
@@ -147,6 +148,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         """Check platform."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
+
+    @property
+    def terrain_corrected(self):
+        """Check for terrain correction."""
+        terrain_correction = self.get("/attr/Terrain_Corrected_Nav_Option", 0)
+        is_corrected = True if terrain_correction > 0 else False
+        return is_corrected
 
     @property
     def resolution(self):
@@ -174,7 +182,9 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         """
         res = self.resolution
-        coordinates = ('pixel_longitude', 'pixel_latitude')
+        coord_options = {"polar": ('pixel_longitude', 'pixel_latitude'),
+                         "terrain_corrected": ('pixel_longitude_tc',
+                                               'pixel_latitude_tc')}
         handled_variables = set()
 
         # update previously configured datasets
@@ -194,13 +204,18 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 new_info = ds_info.copy()  # don't mess up the above yielded
                 new_info['resolution'] = res
                 if not self.is_geo and this_coords is None:
-                    new_info['coordinates'] = coordinates
+                    new_info['coordinates'] = coord_options["polar"]
+                elif self.terrain_corrected and this_coords is None:
+                    new_info['coordinates'] = coord_options["terrain_corrected"]
                 yield True, new_info
             elif is_avail is None:
                 # if we didn't know how to handle this dataset and no one else did
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
 
+        yield from self._get_new_datasets(handled_variables, coord_options)
+
+    def _get_new_datasets(self, handled_variables, coord_opt):
         # Provide new datasets
         for var_name, val in self.file_content.items():
             if var_name in handled_variables:
@@ -208,11 +223,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
-                    'resolution': res,
+                    'resolution': self.resolution,
                     'name': var_name,
                 }
                 if not self.is_geo:
-                    ds_info['coordinates'] = coordinates
+                    ds_info['coordinates'] = coord_opt["polar"]
+                if self.terrain_corrected:
+                    ds_info['coordinates'] = coord_opt["terrain_corrected"]
                 yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
@@ -255,14 +272,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         nav = np.ma.masked_array(nav * factor + offset, mask=mask)
         return nav[:]
 
-    def get_area_def(self, dsid):
-        """Get area definition."""
-        if not self.is_geo:
-            raise NotImplementedError("Don't know how to get the Area Definition for this file")
-
+    def build_geo_area_def(self, dsid):
+        """Build a geostationary area definition."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         res = self._calc_area_resolution(dsid['resolution'])
-        proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
+        ref_subpoint = self.get('/attr/Projection_Longitude',
+                                float(self['/attr/Subsatellite_Longitude']))
+        proj = self._get_proj(platform, ref_subpoint)
         area_name = '{} {} Area at {}m'.format(
             platform,
             self.metadata.get('sector_id', ''),
@@ -281,6 +297,14 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         )
         return area_def
 
+    def get_area_def(self, dsid):
+        """Get area definition."""
+        if not self.is_geo or self.terrain_corrected:
+            # return a SwathDefinition
+            raise NotImplementedError
+        else:
+            return self.build_geo_area_def(dsid)
+
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
         var_name = ds_info.get('file_key', dataset_id['name'])
@@ -296,9 +320,9 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
         info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
         info['resolution'] = dataset_id['resolution']
-        if var_name == 'pixel_longitude':
+        if var_name in ['pixel_longitude', 'pixel_longitude_tc']:
             info['standard_name'] = 'longitude'
-        elif var_name == 'pixel_latitude':
+        elif var_name in ['pixel_latitude', 'pixel_latitude_tc']:
             info['standard_name'] = 'latitude'
 
         return info
