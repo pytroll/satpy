@@ -33,6 +33,7 @@ import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
+from pytest import TempPathFactory
 from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 6400
@@ -69,18 +70,18 @@ QF1_FLAG_MEANINGS = """
 
 
 @pytest.fixture(scope="module")
-def surface_reflectance_file(tmp_path_factory) -> Path:
+def surface_reflectance_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file."""
     return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=False)
 
 
 @pytest.fixture(scope="module")
-def surface_reflectance_with_veg_indices_file(tmp_path_factory) -> Path:
+def surface_reflectance_with_veg_indices_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file with vegetation indexes included."""
     return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=True)
 
 
-def _create_surface_reflectance_file(tmp_path_factory, include_veg_indices: bool = False) -> Path:
+def _create_surface_reflectance_file(tmp_path_factory: TempPathFactory, include_veg_indices: bool = False) -> Path:
     fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
     sr_vars = _create_surf_refl_variables()
     if include_veg_indices:
@@ -162,7 +163,7 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
 
 
 @pytest.fixture(scope="module")
-def cloud_height_file(tmp_path_factory) -> Path:
+def cloud_height_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake CloudHeight VIIRS EDR file."""
     fn = f"JRR-CloudHeight_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
     data_vars = _create_continuous_variables(
@@ -172,13 +173,34 @@ def cloud_height_file(tmp_path_factory) -> Path:
 
 
 @pytest.fixture(scope="module")
-def aod_file(tmp_path_factory) -> Path:
+def aod_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake AOD VIIRs EDR file."""
     fn = f"JRR-AOD_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
     data_vars = _create_continuous_variables(
         ("AOD550",)
     )
     return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
+@pytest.fixture(scope="module")
+def lst_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake VLST EDR file."""
+    fn = f"LST_v2r0_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307241854058.nc"
+    data_vars = _create_lst_variables()
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
+def _create_lst_variables() -> dict[str, xr.DataArray]:
+    data_vars = _create_continuous_variables(("VLST",))
+
+    # VLST scale factors
+    data_vars["VLST"].data = (data_vars["VLST"].data / 0.0001).astype(np.int16)
+    data_vars["VLST"].encoding.pop("scale_factor")
+    data_vars["VLST"].encoding.pop("add_offset")
+    data_vars["LST_ScaleFact"] = xr.DataArray(np.float32(0.0001))
+    data_vars["LST_Offset"] = xr.DataArray(np.float32(0.0))
+
+    return data_vars
 
 
 def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataArray]:
@@ -206,7 +228,7 @@ def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataA
     return data_arrs
 
 
-def _create_fake_file(tmp_path_factory, filename: str, data_arrs: dict[str, xr.DataArray]) -> Path:
+def _create_fake_file(tmp_path_factory: TempPathFactory, filename: str, data_arrs: dict[str, xr.DataArray]) -> Path:
     tmp_path = tmp_path_factory.mktemp("viirs_edr_tmp")
     file_path = tmp_path / filename
     ds = _create_fake_dataset(data_arrs)
@@ -253,6 +275,7 @@ class TestVIIRSJRRReader:
         [
             (("CldTopTemp", "CldTopHght", "CldTopPres"), lazy_fixture("cloud_height_file")),
             (("AOD550",), lazy_fixture("aod_file")),
+            (("VLST",), lazy_fixture("lst_file")),
         ]
     )
     def test_get_dataset_generic(self, var_names, data_file):
@@ -333,6 +356,12 @@ def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.floa
 
 def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr)
+
+    # random sample should be between 0 and 1 only if factor/offset applied
+    data = data_arr.data.compute()
+    assert not (data < 0).any()
+    assert not (data > 1).any()
+
     _shared_metadata_checks(data_arr)
 
 

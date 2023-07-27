@@ -28,6 +28,7 @@ A wide variety of such products exist and, at present, only a subset are support
  - Aerosol detection: JRR-ADP_v2r3_j01_s202112250807275_e202112250808520_c202112250839550.nc
  - Aerosol optical depth: JRR-AOD_v2r3_j01_s202112250807275_e202112250808520_c202112250839550.nc
  - Surface reflectance: SurfRefl_v1r1_j01_s202112250807275_e202112250808520_c202112250845080.nc
+ - Land Surface Temperature: LST_v2r0_npp_s202307241724558_e202307241726200_c202307241854058.nc
 
 All products use the same base reader ``viirs_edr`` and can be read through satpy with::
 
@@ -237,3 +238,18 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         bad_mask_iband_dask = bad_mask.data.repeat(2, axis=1).repeat(2, axis=0)
         good_mask_iband = xr.DataArray(~bad_mask_iband_dask, dims=qf1.dims)
         return good_mask_iband
+
+
+class VIIRSLSTHandler(VIIRSJRRFileHandler):
+    """File handler to handle LST file scale factor and offset weirdness."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the file handler and unscale necessary variables."""
+        super().__init__(*args, **kwargs)
+
+        # Update variables with external scale factor and offset
+        lst_data_arr = self.nc["VLST"]
+        scale_factor = self.nc["LST_ScaleFact"]
+        add_offset = self.nc["LST_Offset"]
+        lst_data_arr.data = lst_data_arr.data * scale_factor.data + add_offset.data
+        self.nc["VLST"] = lst_data_arr
