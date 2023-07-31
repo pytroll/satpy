@@ -17,11 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reading and calibrating GAC and LAC AVHRR data.
 
+Uses Pygac under the hood. See the `Pygac Documentation`_ for supported data
+formats as well as calibration and navigation methods.
+
 .. todo::
 
     Fine grained calibration
     Radiance output
 
+.. _Pygac Documentation:
+    https://pygac.readthedocs.io/en/stable
 """
 
 import logging
