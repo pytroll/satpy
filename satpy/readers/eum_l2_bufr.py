@@ -52,7 +52,7 @@ data_center_dict = {55: {'ssp': 'E0415', 'name': 'MSG1'}, 56:  {'ssp': 'E0455', 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
-                 'fci_l2_bufr_asr': 16}
+                 'fci_l2_bufr_asr': 16, 'fci_l2_bufr_amv':0}
 
 
 class EumetsatL2BufrFileHandler(BaseFileHandler):

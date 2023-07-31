@@ -13,15 +13,20 @@ file_types:
   fci_l2_bufr_asr:
     file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
-      - '{pflag}_{location_indicator},{data_designator},{spacecraft_name}+ASR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-BUFR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+  fci_l2_bufr_amv:
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
+    file_patterns:   
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-AMV-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-BUFR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+
 
 datasets:
-
+  #----- COMMON ------------------
   latitude:
     name: latitude
     key: 'latitude'
     resolution: [32000]
-    file_type: [fci_l2_bufr_asr]
+    file_type: [fci_l2_bufr_asr, fci_l2_bufr_amv]
     standard_name: latitude
     units: degree_north
     fill_value: -1.e+100
@@ -30,21 +35,1270 @@ datasets:
     name: longitude
     key: 'longitude'
     resolution: [32000]
-    file_type: [fci_l2_bufr_asr]
+    file_type: [fci_l2_bufr_asr, fci_l2_bufr_amv]
     standard_name: longitude
     units: degree_east
     fill_value: -1.e+100
-
-  # ---- ASR products ------------
-  ir105all:
-    name: ir105all
-    key: '#49#brightnessTemperature'
+    
+  # ---- AMV products ------------
+  pressure:
+    name: pressure
     resolution: 32000
-    wavelength: [9.800, 10.500, 11.200]
-    standard_name: toa_brightness_temperature
-    units: K
-    file_type: fci_l2_bufr_asr
+    file_type: fci_l2_bufr_amv
+    key: 'pressure'
+    long_name: Pressure of AMV feature
+    standard_name: pressure_at_wind_level
+    units: hPa
+    fill_value: -1.0e+100
     coordinates:
-       - longitude
-       - latitude
-    fill_value: -1.e+100
+      - longitude
+      - latitude
+      
+  temperature:
+    name: temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'temperature'
+    long_name: Temperature of AMV feature
+    standard_name: temperature_at_wind_level
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  height:
+    name: height
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'heightOfTopOfCloud'
+    long_name: Height of AMV feature
+    standard_name: height_at_wind_level
+    units: m
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  direction:
+    name: direction
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'windDirection'
+    long_name: Direction of AMV
+    standard_name: wind_to_direction
+    units: degree_north
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  speed:
+    name: speed
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'windSpeed'
+    long_name: Speed of AMV
+    standard_name: wind_speed
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  u:
+    name: u
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'u'
+    long_name: Speed U component of AMV
+    standard_name: wind_speed_horizontal_component
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  v:
+    name: v
+    resolution: 32000
+    file_type: fci_l2_bufr_amv
+    key: 'v'
+    long_name: Speed V component of AMV
+    standard_name: wind_speed_vertival_component
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  # ---- ASR products ------------
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#1#amountSegmentCloudFree'
+    long_name: pixel_percentage_clear
+    standard_name: cloud_free_area_fraction
+    unit: %
+    category_id: 1
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+  
+  bt_mean_all_ir38:
+    name: bt_mean_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 0
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir38:
+    name: bt_mean_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 0
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir38:
+    name: bt_mean_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 0
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_wv63:
+    name: bt_mean_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 1
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_wv63:
+    name: bt_mean_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 1
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_wv63:
+    name: bt_mean_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 1
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_wv73:
+    name: bt_mean_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 2
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_wv73:
+    name: bt_mean_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 2
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_wv73:
+    name: bt_mean_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 2
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir87:
+    name: bt_mean_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 3
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir87:
+    name: bt_mean_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 3
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir87:
+    name: bt_mean_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 3
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir97:
+    name: bt_mean_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 4
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir97:
+    name: bt_mean_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 4
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir97:
+    name: bt_mean_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 4
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir105:
+    name: bt_mean_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 5
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir105:
+    name: bt_mean_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 5
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir105:
+    name: bt_mean_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 5
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir123:
+    name: bt_mean_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 6
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir123:
+    name: bt_mean_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 6
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir123:
+    name: bt_mean_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 6
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir133:
+    name: bt_mean_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature'
+    long_name: bt_mean_all
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 7
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir133:
+    name: bt_mean_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature'
+    long_name: bt_mean_clear
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 7
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir133:
+    name: bt_mean_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature'
+    long_name: bt_mean_cloudy
+    standard_name: toa_brightess_temperature
+    ir_channel_id: 7
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir38:
+    name: quality_bt_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 0
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir38:
+    name: quality_bt_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 0
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir38:
+    name: quality_bt_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 0
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_wv63:
+    name: quality_bt_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 1
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_wv63:
+    name: quality_bt_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 1
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_wv63:
+    name: quality_bt_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 1
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_wv73:
+    name: quality_bt_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 2
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_wv73:
+    name: quality_bt_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 2
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_wv73:
+    name: quality_bt_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 2
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir87:
+    name: quality_bt_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 3
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir87:
+    name: quality_bt_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 3
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir87:
+    name: quality_bt_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 3
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir97:
+    name: quality_bt_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 4
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir97:
+    name: quality_bt_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 4
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir97:
+    name: quality_bt_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 4
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir105:
+    name: quality_bt_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 5
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir105:
+    name: quality_bt_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 5
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir105:
+    name: quality_bt_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 5
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir123:
+    name: quality_bt_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 6
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir123:
+    name: quality_bt_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 6
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir123:
+    name: quality_bt_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 6
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir133:
+    name: quality_bt_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_all
+    standard_name: quality_flag
+    ir_channel_id: 7
+    category_id: 0
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir133:
+    name: quality_bt_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_clear
+    standard_name: quality_flag
+    ir_channel_id: 7
+    category_id: 1
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir133:
+    name: quality_bt_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature->percentConfidence'
+    long_name: quality_bt_cloudy
+    standard_name: quality_flag
+    ir_channel_id: 7
+    category_id: 2
+    unit: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir38:
+    name: std_bt_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 0
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir38:
+    name: std_bt_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 0
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir38:
+    name: std_bt_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 0
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_wv63:
+    name: std_bt_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 1
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_wv63:
+    name: std_bt_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 1
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_wv63:
+    name: std_bt_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 1
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_wv73:
+    name: std_bt_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 2
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_wv73:
+    name: std_bt_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 2
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_wv73:
+    name: std_bt_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 2
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir87:
+    name: std_bt_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 3
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir87:
+    name: std_bt_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 3
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir87:
+    name: std_bt_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 3
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir97:
+    name: std_bt_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 4
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir97:
+    name: std_bt_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 4
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir97:
+    name: std_bt_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 4
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir105:
+    name: std_bt_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 5
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir105:
+    name: std_bt_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 5
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir105:
+    name: std_bt_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 5
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir123:
+    name: std_bt_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 6
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir123:
+    name: std_bt_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 6
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir123:
+    name: std_bt_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 6
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir133:
+    name: std_bt_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_all
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 7
+    category_id: 0
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir133:
+    name: std_bt_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_clear
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 7
+    category_id: 1
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir133:
+    name: std_bt_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature->firstOrderStatisticalValue'
+    long_name: std_bt_cloudy
+    standard_name: toa_brightess_temperature standard_error
+    ir_channel_id: 7
+    category_id: 2
+    unit: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+
+
+
