@@ -108,6 +108,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         file_content = build_file_content(filename_info)
+
         return file_content
 
 
@@ -266,6 +267,8 @@ class TestGEOCATReader_TC(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
+    def test_load_an_alias_goes17_hdf4(self):
+        """Test loading an alias from GOES-17 hdf4 terrain corrected file.."""
         import xarray as xr
 
         from satpy.readers import load_reader
@@ -275,11 +278,10 @@ class TestGEOCATReader_TC(unittest.TestCase):
                 'geocatL1.GOES-17.CONUS.2020041.163130.hdf',
             ])
             r.create_filehandlers(loadables)
-        datasets = r.load(['variable1',
-                           'variable2',
-                           'variable3'])
-        self.assertEqual(len(datasets), 3)
+        datasets = r.load(['C15'])
+        self.assertEqual(len(datasets), 1)
 
         # make sure file is flagged as terrain corrected
         assert r.file_handlers
         assert r.file_handlers["level1"][0].terrain_corrected
+        self.assertEqual(datasets["C15"].file_key, 'channel_15_brightness_temperature')

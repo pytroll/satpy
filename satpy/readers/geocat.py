@@ -54,6 +54,25 @@ GEO_PROJS = {
     'HIMAWARI-8': '+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs',
 }
 
+CHANNEL_ALIASES = {
+    "abi": {"channel_1_reflectance": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+            "channel_2_reflectance": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+            "channel_3_reflectance": {"name": "C03", "wavelength": 0.86, "modifiers": ("sunz_corrected",)},
+            "channel_4_reflectance": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+            "channel_5_reflectance": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
+            "channel_6_reflectance": {"name": "C06", "wavelength": 2.26, "modifiers": ("sunz_corrected",)},
+            "channel_7_brightness_temperature": {"name": "C07", "wavelength": 3.9, "modifiers": ("sunz_corrected",)},
+            "channel_8_brightness_temperature": {"name": "C08", "wavelength": 6.15},
+            "channel_9_brightness_temperature": {"name": "C09", "wavelength": 7.},
+            "channel_10_brightness_temperature": {"name": "C10", "wavelength": 7.4},
+            "channel_11_brightness_temperature": {"name": "C11", "wavelength": 8.5},
+            "channel_12_brightness_temperature": {"name": "C12", "wavelength": 9.7},
+            "channel_13_brightness_temperature": {"name": "C13", "wavelength": 10.3},
+            "channel_14_brightness_temperature": {"name": "C14", "wavelength": 11.2},
+            "channel_15_brightness_temperature": {"name": "C15", "wavelength": 12.3},
+            },
+}
+
 
 class GEOCATFileHandler(NetCDF4FileHandler):
     """GEOCAT netCDF4 file handler.
@@ -185,6 +204,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         coord_options = {"polar": ('pixel_longitude', 'pixel_latitude'),
                          "terrain_corrected": ('pixel_longitude_tc',
                                                'pixel_latitude_tc')}
+
         handled_variables = set()
 
         # update previously configured datasets
@@ -212,11 +232,11 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 # if we didn't know how to handle this dataset and no one else did
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
+        # get data from file dynamically
+        yield from self._dynamic_datasets(coord_options, handled_variables)
 
-        yield from self._get_new_datasets(handled_variables, coord_options)
-
-    def _get_new_datasets(self, handled_variables, coord_opt):
-        # Provide new datasets
+    def _dynamic_datasets(self, coord_opt, handled_variables):
+        """Provide new datasets from the file."""
         for var_name, val in self.file_content.items():
             if var_name in handled_variables:
                 continue
@@ -231,6 +251,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 if self.terrain_corrected:
                     ds_info['coordinates'] = coord_opt["terrain_corrected"]
                 yield True, ds_info
+                if CHANNEL_ALIASES.get(self.sensor_names) is not None:
+                    # yield variable as it is
+                    # yield any associated aliases
+                    yield from self._available_aliases(self.sensor_names, ds_info, var_name)
 
     def get_shape(self, dataset_id, ds_info):
         """Get shape."""
@@ -326,6 +350,15 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             info['standard_name'] = 'latitude'
 
         return info
+
+    def _available_aliases(self, sensor, ds_info, current_var):
+        """Add alias if there is a match."""
+        new_info = ds_info.copy()
+        alias_info = CHANNEL_ALIASES.get(sensor).get(current_var, None)
+        if alias_info is not None:
+            alias_info.update({"file_key": current_var})
+            new_info.update(alias_info)
+            yield True, new_info
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
