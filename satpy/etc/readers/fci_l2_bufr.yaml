@@ -139,9 +139,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#1#amountSegmentCloudFree'
     long_name: pixel_percentage_clear
-    standard_name: cloud_free_area_fraction
-    unit: %
     category_id: 1
+    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -154,10 +153,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#19#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 0
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -170,10 +167,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#20#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 0
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -186,10 +181,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#21#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 0
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -202,10 +195,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#25#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 1
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -218,10 +209,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#26#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 1
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -234,10 +223,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#27#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 1
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -250,10 +237,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#31#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 2
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -266,10 +251,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#32#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 2
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -282,10 +265,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#33#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 2
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -298,10 +279,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#37#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 3
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -314,10 +293,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#38#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 3
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -330,10 +307,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#39#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 3
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -346,10 +321,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#43#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 4
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -362,10 +335,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#44#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 4
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -378,10 +349,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#45#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 4
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -394,10 +363,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#49#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 5
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -410,10 +377,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#50#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 5
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -426,10 +391,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#51#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 5
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -442,10 +405,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#55#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 6
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -458,10 +419,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#56#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 6
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -474,10 +433,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#57#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 6
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -490,10 +447,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#61#brightnessTemperature'
     long_name: bt_mean_all
-    standard_name: toa_brightess_temperature
     ir_channel_id: 7
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -506,10 +461,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#62#brightnessTemperature'
     long_name: bt_mean_clear
-    standard_name: toa_brightess_temperature
     ir_channel_id: 7
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -522,10 +475,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#63#brightnessTemperature'
     long_name: bt_mean_cloudy
-    standard_name: toa_brightess_temperature
     ir_channel_id: 7
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -538,10 +489,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#19#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 0
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -554,10 +503,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#20#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 0
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -570,10 +517,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#21#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 0
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -586,10 +531,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#25#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 1
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -602,10 +545,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#26#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 1
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -618,10 +559,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#27#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 1
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -634,10 +573,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#31#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 2
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -650,10 +587,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#32#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 2
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -666,10 +601,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#33#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 2
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -682,10 +615,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#37#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 3
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -698,10 +629,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#38#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 3
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -714,10 +643,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#39#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 3
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -730,10 +657,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#43#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 4
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -746,10 +671,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#44#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 4
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -762,10 +685,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#45#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 4
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -778,10 +699,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#49#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 5
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -794,10 +713,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#50#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 5
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -810,10 +727,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#51#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 5
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -826,10 +741,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#55#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 6
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -842,10 +755,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#56#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 6
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -858,10 +769,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#57#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 6
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -874,10 +783,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#61#brightnessTemperature->percentConfidence'
     long_name: quality_bt_all
-    standard_name: quality_flag
     ir_channel_id: 7
     category_id: 0
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -890,10 +797,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#62#brightnessTemperature->percentConfidence'
     long_name: quality_bt_clear
-    standard_name: quality_flag
     ir_channel_id: 7
     category_id: 1
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -906,10 +811,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#63#brightnessTemperature->percentConfidence'
     long_name: quality_bt_cloudy
-    standard_name: quality_flag
     ir_channel_id: 7
     category_id: 2
-    unit: '%'
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -922,10 +825,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#19#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 0
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -938,10 +839,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#20#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 0
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -954,10 +853,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#21#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 0
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -970,10 +867,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#25#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 1
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -986,10 +881,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#26#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 1
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1002,10 +895,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#27#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 1
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1018,10 +909,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#31#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 2
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1034,10 +923,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#32#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 2
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1050,10 +937,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#33#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 2
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1066,10 +951,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#37#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 3
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1082,10 +965,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#38#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 3
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1098,10 +979,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#39#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 3
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1114,10 +993,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#43#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 4
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1130,10 +1007,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#44#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 4
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1146,10 +1021,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#45#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 4
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1162,10 +1035,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#49#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 5
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1178,10 +1049,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#50#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 5
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1194,10 +1063,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#51#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 5
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1210,10 +1077,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#55#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 6
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1226,10 +1091,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#56#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 6
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1242,10 +1105,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#57#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 6
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1258,10 +1119,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#61#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_all
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 7
     category_id: 0
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1274,10 +1133,8 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#62#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_clear
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 7
     category_id: 1
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -1290,15 +1147,11 @@ datasets:
     file_type: fci_l2_bufr_asr
     key: '#63#brightnessTemperature->firstOrderStatisticalValue'
     long_name: std_bt_cloudy
-    standard_name: toa_brightess_temperature standard_error
     ir_channel_id: 7
     category_id: 2
-    unit: K
     fill_value: -1.0e+100
     coordinates:
       - longitude
       - latitude
-
-
 
 
