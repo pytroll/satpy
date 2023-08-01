@@ -501,7 +501,7 @@ class TestLoadingComposites:
         from satpy.tests.utils import FakeCompositor
         load_mock = spy_decorator(FileYAMLReader.load)
         comp_mock = spy_decorator(FakeCompositor.__call__)
-        with mock.patch.object(FileYAMLReader, 'load', load_mock),\
+        with mock.patch.object(FileYAMLReader, 'load', load_mock), \
                 mock.patch.object(FakeCompositor, '__call__', comp_mock):
             lmock = load_mock.mock
             scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
