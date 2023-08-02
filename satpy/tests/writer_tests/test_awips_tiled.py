@@ -236,7 +236,7 @@ class TestAWIPSTiledWriter:
         )
         should_error = tile_count is None and tile_size is None
         if should_error:
-            with dask.config.set(scheduler=CustomScheduler(0)),\
+            with dask.config.set(scheduler=CustomScheduler(0)), \
                  pytest.raises(ValueError, match=r'Either.*tile_count.*'):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:
