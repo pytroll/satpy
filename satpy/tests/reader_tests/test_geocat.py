@@ -94,6 +94,17 @@ def build_file_content(filename_info):
     file_content['variable3/attr/units'] = '1'
     file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 
+    # alias
+    file_content['channel_15_brightness_temperature'] = np.ma.masked_array(
+        DEFAULT_FILE_DATA.astype(np.float32),
+        mask=np.zeros_like(DEFAULT_FILE_DATA))
+    file_content['channel_15_brightness_temperature'].mask[::5, ::5] = True
+    file_content['channel_15_brightness_temperature/attr/_FillValue'] = -1
+    file_content['channel_15_brightness_temperature/attr/scale_factor'] = 1.
+    file_content['channel_15_brightness_temperature/attr/add_offset'] = 0.
+    file_content['channel_15_brightness_temperature/attr/units'] = '1'
+    file_content['channel_15_brightness_temperature/shape'] = DEFAULT_FILE_SHAPE
+
     attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
     convert_file_content_to_data_array(
         file_content, attrs=attrs,

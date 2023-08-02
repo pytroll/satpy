@@ -251,10 +251,14 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 if self.terrain_corrected:
                     ds_info['coordinates'] = coord_opt["terrain_corrected"]
                 yield True, ds_info
-                if CHANNEL_ALIASES.get(self.sensor_names) is not None:
-                    # yield variable as it is
-                    # yield any associated aliases
-                    yield from self._available_aliases(self.sensor_names, ds_info, var_name)
+
+                # only working on geo aliases for now.
+                if self.is_geo:
+                    sensor = self.sensor_names[0]
+                    if CHANNEL_ALIASES.get(sensor):
+                        # yield variable as it is
+                        # yield any associated aliases
+                        yield from self._available_aliases(sensor, ds_info, var_name)
 
     def get_shape(self, dataset_id, ds_info):
         """Get shape."""
