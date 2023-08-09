@@ -106,8 +106,8 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     data_arrs = {
         "Longitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lon_attrs),
         "Latitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lat_attrs),
-        "Longitude_at_750m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lon_attrs),
-        "Latitude_at_750m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lat_attrs),
+        "Longitude_at_750m_resolution": xr.DataArray(m_data, dims=m_dims, attrs=lon_attrs),
+        "Latitude_at_750m_resolution": xr.DataArray(m_data, dims=m_dims, attrs=lat_attrs),
         "375m Surface Reflectance Band I1": xr.DataArray(i_data, dims=i_dims, attrs=sr_attrs),
         "750m Surface Reflectance Band M1": xr.DataArray(m_data, dims=m_dims, attrs=sr_attrs),
     }
@@ -368,6 +368,7 @@ def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
 def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32) -> None:
     assert data_arr.dims == ("y", "x")
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
+    assert data_arr.attrs["area"].shape == data_arr.shape
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
     is_mband_res = _is_mband_res(data_arr)

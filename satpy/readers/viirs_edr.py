@@ -58,6 +58,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 LOG = logging.getLogger(__name__)
+M_COLS = 3200
 
 
 class VIIRSJRRFileHandler(BaseFileHandler):
@@ -68,7 +69,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
         # use entire scans as chunks
-        row_chunks_m = max(get_chunk_size_limit() // 4 // 3200, 1)  # 32-bit floats
+        row_chunks_m = max(get_chunk_size_limit() // 4 // M_COLS, 1)  # 32-bit floats
         row_chunks_i = row_chunks_m * 2
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
@@ -99,7 +100,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
 
     def rows_per_scans(self, data_arr: xr.DataArray) -> int:
         """Get number of array rows per instrument scan based on data resolution."""
-        return 32 if data_arr.shape[1] == 6400 else 16
+        return 16 if data_arr.shape[1] == M_COLS else 32
 
     def get_dataset(self, dataset_id: DataID, info: dict) -> xr.DataArray:
         """Get the dataset."""
@@ -183,6 +184,9 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             ``None`` if this file object is not responsible for it.
 
         """
+        # keep track of what variables the YAML has configured, so we don't
+        # duplicate entries for them in the dynamic portion
+        handled_var_names = set()
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
                 # some other file handler said it has this dataset
@@ -194,7 +198,43 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                 # this is not the file type for this dataset
                 yield None, ds_info
             file_key = ds_info.get("file_key", ds_info["name"])
+            handled_var_names.add(file_key)
             yield file_key in self.nc, ds_info
+
+        ftype = self.filetype_info["file_type"]
+        m_lon_name = f"longitude_{ftype}"
+        m_lat_name = f"latitude_{ftype}"
+        m_coords = (m_lon_name, m_lat_name)
+        i_lon_name = f"longitude_i_{ftype}"
+        i_lat_name = f"latitude_i_{ftype}"
+        i_coords = (i_lon_name, i_lat_name)
+        for var_name, data_arr in self.nc.items():
+            is_lon = "longitude" in var_name.lower()
+            is_lat = "latitude" in var_name.lower()
+            if var_name in handled_var_names and not (is_lon or is_lat):
+                # skip variables that YAML had configured, but allow lon/lats
+                # to be reprocessed due to our dynamic coordinate naming
+                continue
+            if data_arr.ndim != 2:
+                # only 2D arrays supported at this time
+                continue
+            res = 750 if data_arr.shape[1] == M_COLS else 375
+            ds_info = {
+                "file_key": var_name,
+                "file_type": ftype,
+                "name": var_name,
+                "resolution": res,
+                "coordinates": m_coords if res == 750 else i_coords,
+            }
+            if is_lon:
+                ds_info["standard_name"] = "longitude"
+                ds_info["units"] = "degrees_east"
+                ds_info["name"] = m_lon_name if res == 750 else i_lon_name
+            elif is_lat:
+                ds_info["standard_name"] = "latitude"
+                ds_info["units"] = "degrees_north"
+                ds_info["name"] = m_lat_name if res == 750 else i_lat_name
+            yield True, ds_info
 
 
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
