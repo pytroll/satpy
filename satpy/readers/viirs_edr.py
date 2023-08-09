@@ -243,13 +243,27 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
 class VIIRSLSTHandler(VIIRSJRRFileHandler):
     """File handler to handle LST file scale factor and offset weirdness."""
 
+    _manual_scalings = {
+        "VLST": ("LST_ScaleFact", "LST_Offset"),
+        "emis_m15": ("LSE_ScaleFact", "LSE_Offset"),
+        "emis_m16": ("LSE_ScaleFact", "LSE_Offset"),
+        "emis_bbe": ("LSE_ScaleFact", "LSE_Offset"),
+        "Satellite_Azimuth_Angle": ("AZI_ScaleFact", "AZI_Offset"),
+    }
+
     def __init__(self, *args, **kwargs):
         """Initialize the file handler and unscale necessary variables."""
         super().__init__(*args, **kwargs)
 
         # Update variables with external scale factor and offset
-        lst_data_arr = self.nc["VLST"]
-        scale_factor = self.nc["LST_ScaleFact"]
-        add_offset = self.nc["LST_Offset"]
-        lst_data_arr.data = lst_data_arr.data * scale_factor.data + add_offset.data
-        self.nc["VLST"] = lst_data_arr
+        self._scale_data()
+
+    def _scale_data(self):
+        for var_name in list(self.nc.variables.keys()):
+            if var_name not in self._manual_scalings:
+                continue
+            data_arr = self.nc[var_name]
+            scale_factor = self.nc[self._manual_scalings[var_name][0]]
+            add_offset = self.nc[self._manual_scalings[var_name][1]]
+            data_arr.data = data_arr.data * scale_factor.data + add_offset.data
+            self.nc[var_name] = data_arr
