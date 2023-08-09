@@ -283,12 +283,12 @@ class TestGEOCATReader_TC(unittest.TestCase):
         import xarray as xr
 
         from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
+        r = load_reader(self.reader_configs, use_tc=True)
         with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([
                 'geocatL1.GOES-17.CONUS.2020041.163130.hdf',
             ])
-            r.create_filehandlers(loadables)
+            r.create_filehandlers(loadables, {'use_tc': True})
         datasets = r.load(['C15'])
         self.assertEqual(len(datasets), 1)
 

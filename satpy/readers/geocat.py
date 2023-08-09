@@ -32,6 +32,7 @@ and projection information to calculate the area extents.
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
 from pyproj import Proj
@@ -79,19 +80,39 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     **Loading data with decode_times=True**
 
-    By default, this reader will use ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
+    By default, this reader uses ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
     to match behavior of xarray when the geocat reader was first written.  To use different options
     use reader_kwargs when loading the Scene::
 
         scene = satpy.Scene(filenames,
                             reader='geocat',
                             reader_kwargs={'xarray_kwargs': {'engine': 'netcdf4', 'decode_times': True}})
+
+    This reader also supports older non-terrain corrected files, and terrain corrected geocat files determined
+    by the global attribute Terrain_Corrected_Nav_Option > 0.  Terrain corrected files will contain both terrain
+    corrected lat/lon values and non-terrain corrected lat/lons.  By default, non-terrain corrected lat/lons are
+    used.  When available, use terrain corrected lat/lons by setting use_tc=True.
+
+        scene = satpy.Scene(filenames,
+                            reader='geocat',
+                            reader_kwargs={'use_tc': True})
+
     """
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 **kwargs):
-        """Open and perform initial investigation of NetCDF file."""
+    def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
+        """Open and perform initial investigation of NetCDF file.
+
+        Args:
+            engine: xarray engine used to read the input file, default is 'netcdf4'
+            decode_times: tell xarray to decode the times.  default=False (recommended time unit is not cf-compliant)
+            use_tc (boolean): If `True` use the terrain corrected
+                              files. If `False`, switch to non-TC files. If
+                              `None` (default), use TC if available, non-TC otherwise.
+
+
+        """
         self.area = None
+        self.use_tc = use_tc
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'engine', "netcdf4")
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
@@ -172,7 +193,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     def terrain_corrected(self):
         """Check for terrain correction."""
         terrain_correction = self.get("/attr/Terrain_Corrected_Nav_Option", 0)
-        is_corrected = True if terrain_correction > 0 else False
+        if terrain_correction > 0 and self.use_tc:
+            is_corrected = True
+        else:
+            is_corrected = False
+            if self.use_tc:
+                warnings.warn("WARNING:  This file does not have terrain correction",
+                              stacklevel=2)
         return is_corrected
 
     @property
