@@ -779,8 +779,8 @@ class TestOverlays(unittest.TestCase):
                     'extend': False,
                     'width': 1670, 'height': 110,
                     'tick_marks': 5, 'minor_tick_marks': 1,
-                    'cursor': [0, 0], 'bg':'white',
-                    'title':'TEST TITLE OF SCALE',
+                    'cursor': [0, 0], 'bg': 'white',
+                    'title': 'TEST TITLE OF SCALE',
                     'fontsize': 110, 'align': 'cc'
                 }}
             ]
