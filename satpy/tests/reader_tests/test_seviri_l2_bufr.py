@@ -51,13 +51,13 @@ DATASET_INFO = {
 
 DATASET_INFO_LAT = {
     'name': 'latitude',
-    'key': 'latitude',
+    'key': '#1#latitude',
     'fill_value': -1.e+100
 }
 
 DATASET_INFO_LON = {
     'name': 'longitude',
-    'key': 'longitude',
+    'key': '#1#longitude',
     'fill_value': -1.e+100
 }
 
@@ -128,10 +128,10 @@ class SeviriL2BufrData:
         # write the bufr test data twice as we want to read in and then concatenate the data in the reader
         # 55 id corresponds to METEOSAT 8`
         ec.codes_set(self.buf1, 'satelliteIdentifier', 56)
-        ec.codes_set_array(self.buf1, 'latitude', LAT)
-        ec.codes_set_array(self.buf1, 'latitude', LAT)
-        ec.codes_set_array(self.buf1, 'longitude', LON)
-        ec.codes_set_array(self.buf1, 'longitude', LON)
+        ec.codes_set_array(self.buf1, '#1#latitude', LAT)
+        ec.codes_set_array(self.buf1, '#1#latitude', LAT)
+        ec.codes_set_array(self.buf1, '#1#longitude', LON)
+        ec.codes_set_array(self.buf1, '#1#longitude', LON)
         ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
         ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
 
