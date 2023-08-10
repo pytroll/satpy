@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from datetime import datetime as datetime
 
 import numpy as np
 from pyproj import Proj
@@ -168,6 +169,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             ref_lon = -75.
         return GEO_PROJS[platform].format(lon_0=ref_lon)
 
+    def _parse_time(self, datestr):
+        """Parse a time string."""
+        return datetime.strptime(datestr, "%H%M%S")
+
     @property
     def sensor_names(self):
         """Get sensor names."""
@@ -182,6 +187,26 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     def end_time(self):
         """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
+
+    @property
+    def image_time(self):
+        """Get image time from global attributes if possible."""
+        image_time = self.get("/attr/Image_Time", None)
+        if image_time is not None:
+            image_time = self._parse_time(str(image_time))
+        else:
+            warnings.warn("WARNING: Image_Time not in global attributes", stacklevel=2)
+        return image_time
+
+    @property
+    def actual_image_time(self):
+        """Get image time from global attributes if possible."""
+        actual_image_time = self.get("/attr/Actual_Image_Time", None)
+        if actual_image_time is not None:
+            actual_image_time = self._parse_time(str(actual_image_time))
+        else:
+            warnings.warn("WARNING: Actual_Image_Time not in global attributes", stacklevel=2)
+        return actual_image_time
 
     @property
     def is_geo(self):
@@ -379,6 +404,11 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             info['standard_name'] = 'longitude'
         elif var_name in ['pixel_latitude', 'pixel_latitude_tc']:
             info['standard_name'] = 'latitude'
+
+        if self.image_time:
+            info["image_time"] = self.image_time
+        if self.actual_image_time:
+            info["actual_image_time"] = self.actual_image_time
 
         return info
 
