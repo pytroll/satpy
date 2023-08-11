@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from datetime import datetime as datetime
 
 import numpy as np
 from datetime import datetime as datetime
@@ -194,25 +195,22 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     @property
     def image_time(self):
         """Get image time from global attributes if possible."""
-        if self["/attr/Image_Time"] is not None:
-            image_time = self._parse_time(str(self["/attr/Image_Time"]))
+        image_time = self.get("/attr/Image_Time", None)
+        if image_time is not None:
+            image_time = self._parse_time(str(image_time))
         else:
-            warnings.warn("WARNING: Image_Time not in global attributes, replacing with start_time",
-                          stacklevel=2)
-            image_time = self.start_time
+            warnings.warn("WARNING: Image_Time not in global attributes", stacklevel=2)
         return image_time
 
     @property
     def actual_image_time(self):
         """Get image time from global attributes if possible."""
-        if self["/attr/Actual_Image_Time"] is not None:
-            actual_image_time = self._parse_time(str(self["/attr/Actual_Image_Time"]))
+        actual_image_time = self.get("/attr/Actual_Image_Time", None)
+        if actual_image_time is not None:
+            actual_image_time = self._parse_time(str(actual_image_time))
         else:
-            warnings.warn("WARNING: Actual_Image_Time not in global attributes, replacing with Image_Time",
-                          stacklevel=2)
-            actual_image_time = self.image_time
+            warnings.warn("WARNING: Actual_Image_Time not in global attributes", stacklevel=2)
         return actual_image_time
-
 
     @property
     def is_geo(self):
@@ -412,8 +410,15 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         elif var_name in ['pixel_latitude', 'pixel_latitude_tc']:
             info['standard_name'] = 'latitude'
 
+<<<<<<< HEAD
         info["image_time"] = self.image_time
         info["actual_image_time"] = self.actual_image_time
+=======
+        if self.image_time:
+            info["image_time"] = self.image_time
+        if self.actual_image_time:
+            info["actual_image_time"] = self.actual_image_time
+>>>>>>> origin/terrain_correctedL1
 
         return info
 
