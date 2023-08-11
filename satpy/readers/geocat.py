@@ -36,7 +36,6 @@ import warnings
 from datetime import datetime as datetime
 
 import numpy as np
-from datetime import datetime as datetime
 from pyproj import Proj
 from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
@@ -217,7 +216,6 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         """Check platform."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
-
 
     @property
     def terrain_corrected(self):
