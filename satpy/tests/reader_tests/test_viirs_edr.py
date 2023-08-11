@@ -259,15 +259,17 @@ class TestVIIRSJRRReader:
         _check_surf_refl_data_arr(scn["surf_refl_I01"])
         _check_surf_refl_data_arr(scn["surf_refl_M01"])
 
-    def test_get_dataset_surf_refl_with_veg_idx(self, surface_reflectance_with_veg_indices_file):
+    @pytest.mark.parametrize("filter_veg", [False, True])
+    def test_get_dataset_surf_refl_with_veg_idx(self, surface_reflectance_with_veg_indices_file, filter_veg):
         """Test retrieval of vegetation indices from surface reflectance files."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file])
+            scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file],
+                        reader_kwargs={"filter_veg": filter_veg})
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
-        _check_vi_data_arr(scn["NDVI"])
-        _check_vi_data_arr(scn["EVI"])
+        _check_vi_data_arr(scn["NDVI"], filter_veg)
+        _check_vi_data_arr(scn["EVI"], filter_veg)
         _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
 
     @pytest.mark.parametrize(
@@ -332,16 +334,20 @@ def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
     assert data_arr.attrs["standard_name"] == "quality_flag"
 
 
-def _check_vi_data_arr(data_arr: xr.DataArray) -> None:
+def _check_vi_data_arr(data_arr: xr.DataArray, is_filtered: bool) -> None:
     _array_checks(data_arr)
     _shared_metadata_checks(data_arr)
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["standard_name"] == "normalized_difference_vegetation_index"
 
     data = data_arr.data.compute()
-    np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
-    np.testing.assert_allclose(data[0, 8:8 + 16], np.nan)
-    np.testing.assert_allclose(data[0, 8 + 16:], 0.0)
+    if is_filtered:
+        np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
+        np.testing.assert_allclose(data[0, 8:8 + 16], np.nan)
+        np.testing.assert_allclose(data[0, 8 + 16:], 0.0)
+    else:
+        np.testing.assert_allclose(data[0, :7], [np.nan, -1.0, -0.5, 0.0, 0.5, 1.0, np.nan])
+        np.testing.assert_allclose(data[0, 8:], 0.0)
 
 
 def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:

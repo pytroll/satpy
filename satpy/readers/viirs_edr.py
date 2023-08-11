@@ -45,6 +45,17 @@ All products use the same base reader ``viirs_edr`` and can be read through satp
     and aerosol detection files contain a cloud mask, but these are not identical.
     For clarity, the aerosol file cloudmask is named `cloud_mask_adp` in this reader.
 
+Vegetation Indexes
+^^^^^^^^^^^^^^^^^^
+
+The NDVI and EVI products can be loaded from CSPP-produced Surface Reflectance
+files. By default, these products are filtered based on the Surface Reflectance
+Quality Flags. This is used to remove/mask pixels in certain cloud or water
+regions. This behavior can be disabled by providing the reader keyword argument
+``filter_veg`` and setting it to ``False``. For example::
+
+    scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"filter_veg": False})
+
 """
 
 
@@ -240,9 +251,14 @@ class VIIRSJRRFileHandler(BaseFileHandler):
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
     """File handler for surface reflectance files with optional vegetation indexes."""
 
+    def __init__(self, *args, filter_veg: bool = True, **kwargs) -> None:
+        """Initialize file handler and keep track of vegetation index filtering."""
+        super().__init__(*args, **kwargs)
+        self._filter_veg = filter_veg
+
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
         new_data_arr = super()._mask_invalid(data_arr, ds_info)
-        if ds_info["file_key"] in ("NDVI", "EVI"):
+        if ds_info["file_key"] in ("NDVI", "EVI") and self._filter_veg:
             good_mask = self._get_veg_index_good_mask()
             new_data_arr = new_data_arr.where(good_mask)
         return new_data_arr
