@@ -410,15 +410,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         elif var_name in ['pixel_latitude', 'pixel_latitude_tc']:
             info['standard_name'] = 'latitude'
 
-<<<<<<< HEAD
-        info["image_time"] = self.image_time
-        info["actual_image_time"] = self.actual_image_time
-=======
         if self.image_time:
             info["image_time"] = self.image_time
         if self.actual_image_time:
             info["actual_image_time"] = self.actual_image_time
->>>>>>> origin/terrain_correctedL1
 
         return info
 
