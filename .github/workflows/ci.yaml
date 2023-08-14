@@ -94,7 +94,6 @@ jobs:
           --trusted-host pypi.anaconda.org \
           --no-deps --pre --upgrade \
           matplotlib \
-          numpy \
           pandas \
           scipy; \
           python -m pip install \
