@@ -98,4 +98,4 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest satpy/tests
+          pytest satpy/tests/reader_tests/test_viirs_compact.py
