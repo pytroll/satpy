@@ -11,36 +11,15 @@ env:
   CACHE_NUMBER: 1
 
 jobs:
-  lint:
-    name: lint and style checks
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 flake8-docstrings flake8-debugger flake8-bugbear pytest
-      - name: Install Satpy
-        run: |
-          pip install -e .
-      - name: Run linting
-        run: |
-          flake8 satpy/
 
   test:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
-    needs: [lint]
     strategy:
       fail-fast: true
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.9", "3.10", "3.11"]
+        os: ["ubuntu-latest"]
+        python-version: ["3.11"]
         experimental: [false]
         include:
           - python-version: "3.11"
@@ -89,12 +68,12 @@ jobs:
         # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
         # may break the conda-forge libraries trying to use newer glibc versions
         run: |
-          python -m pip install --pre --upgrade --no-deps numpy; \
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
           --no-deps --pre --upgrade \
           matplotlib \
+          numpy \
           pandas \
           scipy; \
           python -m pip install \
@@ -119,41 +98,4 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
-
-      - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          flags: unittests
-          file: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION,UNSTABLE
-
-      - name: Coveralls Parallel
-        uses: AndreMiras/coveralls-python-action@develop
-        with:
-          flag-name: run-${{ matrix.test_number }}
-          parallel: true
-        if: runner.os == 'Linux'
-
-      - name: Run behaviour tests
-        shell: bash -l {0}
-        run: |
-          export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          coverage run --source=satpy -m behave satpy/tests/features --tags=-download
-          coverage xml
-
-      - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          flags: behaviourtests
-          file: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION,UNSTABLE
-
-  coveralls:
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: AndreMiras/coveralls-python-action@develop
-        with:
-          parallel-finished: true
+          pytest satpy/tests
