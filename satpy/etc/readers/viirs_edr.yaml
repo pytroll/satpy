@@ -144,15 +144,6 @@ datasets:
         coordinates: [longitude_750, latitude_750]
         units: '%'
         standard_name: "surface_bidirectional_reflectance"
-    surf_refl_M06:
-        name: surf_refl_M06
-        resolution: 750
-        wavelength: [0.739, 0.746, 0.754]
-        file_type: [jrr_surfref]
-        file_key: "750m Surface Reflectance Band M6"
-        coordinates: [longitude_750, latitude_750]
-        units: '%'
-        standard_name: "surface_bidirectional_reflectance"
     surf_refl_M07:
         name: surf_refl_M07
         resolution: 750
