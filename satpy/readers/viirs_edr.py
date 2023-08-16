@@ -200,6 +200,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         # duplicate entries for them in the dynamic portion
         handled_var_names = set()
         for is_avail, ds_info in (configured_datasets or []):
+            file_key = ds_info.get("file_key", ds_info["name"])
+            handled_var_names.add(file_key)
             if is_avail is not None:
                 # some other file handler said it has this dataset
                 # we don't know any more information than the previous
@@ -209,8 +211,6 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             if self.file_type_matches(ds_info['file_type']) is None:
                 # this is not the file type for this dataset
                 yield None, ds_info
-            file_key = ds_info.get("file_key", ds_info["name"])
-            handled_var_names.add(file_key)
             yield file_key in self.nc, ds_info
 
         yield from self._dynamic_variables_from_file(handled_var_names)

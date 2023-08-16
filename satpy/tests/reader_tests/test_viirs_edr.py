@@ -245,33 +245,57 @@ def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
     return ds
 
 
+def _copy_to_second_granule(first_granule_path: Path) -> Path:
+    # hack to make multiple time steps
+    second_fn = Path(str(first_granule_path).replace("0.nc", "1.nc"))
+    shutil.copy(first_granule_path, second_fn)
+    return second_fn
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
-    def test_get_dataset_surf_refl(self, surface_reflectance_file):
+    @pytest.mark.parametrize("multiple_files", [False, True])
+    def test_get_dataset_surf_refl(self, surface_reflectance_file, multiple_files):
         """Test retrieval of datasets."""
         from satpy import Scene
+
+        files = [surface_reflectance_file]
+        if multiple_files:
+            files.append(_copy_to_second_granule(surface_reflectance_file))
+
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_file])
+            scn = Scene(reader="viirs_edr", filenames=files)
             scn.load(["surf_refl_I01", "surf_refl_M01"])
         assert scn.start_time == START_TIME
         assert scn.end_time == END_TIME
-        _check_surf_refl_data_arr(scn["surf_refl_I01"])
-        _check_surf_refl_data_arr(scn["surf_refl_M01"])
+        _check_surf_refl_data_arr(scn["surf_refl_I01"], multiple_files=multiple_files)
+        _check_surf_refl_data_arr(scn["surf_refl_M01"], multiple_files=multiple_files)
 
     @pytest.mark.parametrize("filter_veg", [False, True])
-    def test_get_dataset_surf_refl_with_veg_idx(self, surface_reflectance_with_veg_indices_file, filter_veg):
+    @pytest.mark.parametrize("multiple_files", [False, True])
+    def test_get_dataset_surf_refl_with_veg_idx(
+            self,
+            surface_reflectance_with_veg_indices_file,
+            filter_veg,
+            multiple_files
+    ):
         """Test retrieval of vegetation indices from surface reflectance files."""
         from satpy import Scene
+
+        files = [surface_reflectance_with_veg_indices_file]
+        if multiple_files:
+            files.append(_copy_to_second_granule(surface_reflectance_with_veg_indices_file))
+
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=[surface_reflectance_with_veg_indices_file],
+            scn = Scene(reader="viirs_edr", filenames=files,
                         reader_kwargs={"filter_veg": filter_veg})
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
-        _check_vi_data_arr(scn["NDVI"], filter_veg)
-        _check_vi_data_arr(scn["EVI"], filter_veg)
-        _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"])
+        _check_vi_data_arr(scn["NDVI"], filter_veg, multiple_files)
+        _check_vi_data_arr(scn["EVI"], filter_veg, multiple_files)
+        _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"], multiple_files)
 
     @pytest.mark.parametrize(
         ("var_names", "data_file"),
@@ -328,15 +352,15 @@ class TestVIIRSJRRReader:
         assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
 
 
-def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray) -> None:
-    _array_checks(data_arr, dtype=np.uint8)
+def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray, multiple_files: bool) -> None:
+    _array_checks(data_arr, dtype=np.uint8, multiple_files=multiple_files)
     _shared_metadata_checks(data_arr)
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["standard_name"] == "quality_flag"
 
 
-def _check_vi_data_arr(data_arr: xr.DataArray, is_filtered: bool) -> None:
-    _array_checks(data_arr)
+def _check_vi_data_arr(data_arr: xr.DataArray, is_filtered: bool, multiple_files: bool) -> None:
+    _array_checks(data_arr, multiple_files=multiple_files)
     _shared_metadata_checks(data_arr)
     assert data_arr.attrs["units"] == "1"
     assert data_arr.attrs["standard_name"] == "normalized_difference_vegetation_index"
@@ -351,8 +375,12 @@ def _check_vi_data_arr(data_arr: xr.DataArray, is_filtered: bool) -> None:
         np.testing.assert_allclose(data[0, 8:], 0.0)
 
 
-def _check_surf_refl_data_arr(data_arr: xr.DataArray, dtype: npt.DType = np.float32) -> None:
-    _array_checks(data_arr, dtype)
+def _check_surf_refl_data_arr(
+        data_arr: xr.DataArray,
+        dtype: npt.DType = np.float32,
+        multiple_files: bool = False
+) -> None:
+    _array_checks(data_arr, dtype, multiple_files=multiple_files)
     data = data_arr.data.compute()
     assert data.max() > 1.0  # random 0-1 test data multiplied by 100
 
@@ -372,14 +400,15 @@ def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
     _shared_metadata_checks(data_arr)
 
 
-def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32) -> None:
+def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32, multiple_files: bool = False) -> None:
     assert data_arr.dims == ("y", "x")
     assert isinstance(data_arr.attrs["area"], SwathDefinition)
     assert data_arr.attrs["area"].shape == data_arr.shape
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
     is_mband_res = _is_mband_res(data_arr)
-    exp_shape = (M_ROWS, M_COLS) if is_mband_res else (I_ROWS, I_COLS)
+    shape_multiplier = 1 + int(multiple_files)
+    exp_shape = (M_ROWS * shape_multiplier, M_COLS) if is_mband_res else (I_ROWS * shape_multiplier, I_COLS)
     assert data_arr.shape == exp_shape
     exp_row_chunks = 4 if is_mband_res else 8
     assert all(c == exp_row_chunks for c in data_arr.chunks[0])
