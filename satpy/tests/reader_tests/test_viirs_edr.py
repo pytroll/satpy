@@ -22,7 +22,7 @@ Note: This is adapted from the test_slstr_l2.py code.
 from __future__ import annotations
 
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -72,17 +72,48 @@ QF1_FLAG_MEANINGS = """
 @pytest.fixture(scope="module")
 def surface_reflectance_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file."""
-    return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=False)
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME, include_veg_indices=False)
+
+
+@pytest.fixture(scope="module")
+def surface_reflectance_file2(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake surface reflectance EDR file."""
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+                                            include_veg_indices=False)
+
+
+@pytest.fixture(scope="module")
+def multiple_surface_reflectance_files(surface_reflectance_file, surface_reflectance_file2) -> list[Path]:
+    """Get two multiple surface reflectance files."""
+    return [surface_reflectance_file, surface_reflectance_file2]
 
 
 @pytest.fixture(scope="module")
 def surface_reflectance_with_veg_indices_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file with vegetation indexes included."""
-    return _create_surface_reflectance_file(tmp_path_factory, include_veg_indices=True)
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME, include_veg_indices=True)
 
 
-def _create_surface_reflectance_file(tmp_path_factory: TempPathFactory, include_veg_indices: bool = False) -> Path:
-    fn = f"SurfRefl_v1r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
+@pytest.fixture(scope="module")
+def surface_reflectance_with_veg_indices_file2(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake surface reflectance EDR file with vegetation indexes included."""
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+                                            include_veg_indices=True)
+
+
+@pytest.fixture(scope="module")
+def multiple_surface_reflectance_files_with_veg_indices(surface_reflectance_with_veg_indices_file,
+                                                        surface_reflectance_with_veg_indices_file2) -> list[Path]:
+    """Get two multiple surface reflectance files with vegetation indexes included."""
+    return [surface_reflectance_with_veg_indices_file, surface_reflectance_with_veg_indices_file2]
+
+
+def _create_surface_reflectance_file(
+        tmp_path_factory: TempPathFactory,
+        start_time: datetime,
+        include_veg_indices: bool = False,
+) -> Path:
+    fn = f"SurfRefl_v1r2_npp_s{start_time:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
     sr_vars = _create_surf_refl_variables()
     if include_veg_indices:
         sr_vars.update(_create_veg_index_variables())
@@ -245,57 +276,59 @@ def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
     return ds
 
 
-def _copy_to_second_granule(first_granule_path: Path) -> Path:
-    # hack to make multiple time steps
-    second_fn = Path(str(first_granule_path).replace("0.nc", "1.nc"))
-    shutil.copy(first_granule_path, second_fn)
-    return second_fn
-
-
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
-    @pytest.mark.parametrize("multiple_files", [False, True])
-    def test_get_dataset_surf_refl(self, surface_reflectance_file, multiple_files):
+    @pytest.mark.parametrize(
+        "data_files",
+        [
+            lazy_fixture("surface_reflectance_file"),
+            lazy_fixture("multiple_surface_reflectance_files"),
+        ],
+    )
+    def test_get_dataset_surf_refl(self, data_files):
         """Test retrieval of datasets."""
         from satpy import Scene
 
-        files = [surface_reflectance_file]
-        if multiple_files:
-            files.append(_copy_to_second_granule(surface_reflectance_file))
-
+        if not isinstance(data_files, list):
+            data_files = [data_files]
+        is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=files)
+            scn = Scene(reader="viirs_edr", filenames=data_files)
             scn.load(["surf_refl_I01", "surf_refl_M01"])
         assert scn.start_time == START_TIME
         assert scn.end_time == END_TIME
-        _check_surf_refl_data_arr(scn["surf_refl_I01"], multiple_files=multiple_files)
-        _check_surf_refl_data_arr(scn["surf_refl_M01"], multiple_files=multiple_files)
+        _check_surf_refl_data_arr(scn["surf_refl_I01"], multiple_files=is_multiple)
+        _check_surf_refl_data_arr(scn["surf_refl_M01"], multiple_files=is_multiple)
 
     @pytest.mark.parametrize("filter_veg", [False, True])
-    @pytest.mark.parametrize("multiple_files", [False, True])
+    @pytest.mark.parametrize(
+        "data_files",
+        [
+            lazy_fixture("surface_reflectance_with_veg_indices_file2"),
+            lazy_fixture("multiple_surface_reflectance_files_with_veg_indices"),
+        ],
+    )
     def test_get_dataset_surf_refl_with_veg_idx(
             self,
-            surface_reflectance_with_veg_indices_file,
+            data_files,
             filter_veg,
-            multiple_files
     ):
         """Test retrieval of vegetation indices from surface reflectance files."""
         from satpy import Scene
 
-        files = [surface_reflectance_with_veg_indices_file]
-        if multiple_files:
-            files.append(_copy_to_second_granule(surface_reflectance_with_veg_indices_file))
-
+        if not isinstance(data_files, list):
+            data_files = [data_files]
+        is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
         with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
-            scn = Scene(reader="viirs_edr", filenames=files,
+            scn = Scene(reader="viirs_edr", filenames=data_files,
                         reader_kwargs={"filter_veg": filter_veg})
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
-        _check_vi_data_arr(scn["NDVI"], filter_veg, multiple_files)
-        _check_vi_data_arr(scn["EVI"], filter_veg, multiple_files)
-        _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"], multiple_files)
+        _check_vi_data_arr(scn["NDVI"], filter_veg, is_multiple)
+        _check_vi_data_arr(scn["EVI"], filter_veg, is_multiple)
+        _check_surf_refl_qf_data_arr(scn["surf_refl_qf1"], is_multiple)
 
     @pytest.mark.parametrize(
         ("var_names", "data_file"),
