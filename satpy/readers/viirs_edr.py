@@ -57,9 +57,10 @@ regions. This behavior can be disabled by providing the reader keyword argument
     scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"filter_veg": False})
 
 """
-
+from __future__ import annotations
 
 import logging
+from typing import Iterable
 
 import numpy as np
 import xarray as xr
@@ -212,6 +213,9 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             handled_var_names.add(file_key)
             yield file_key in self.nc, ds_info
 
+        yield from self._dynamic_variables_from_file(handled_var_names)
+
+    def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
         ftype = self.filetype_info["file_type"]
         m_lon_name = f"longitude_{ftype}"
         m_lat_name = f"latitude_{ftype}"
