@@ -225,6 +225,7 @@ def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataA
         data_arr.encoding["dtype"] = np.int16
         data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
         data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
+        data_arr.encoding["coordinates"] = "Longitude Latitude"
     return data_arrs
 
 

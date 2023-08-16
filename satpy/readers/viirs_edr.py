@@ -223,7 +223,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         i_lon_name = f"longitude_i_{ftype}"
         i_lat_name = f"latitude_i_{ftype}"
         i_coords = (i_lon_name, i_lat_name)
-        for var_name, data_arr in self.nc.items():
+        for var_name in self.nc.variables.keys():
+            data_arr = self.nc[var_name]
             is_lon = "longitude" in var_name.lower()
             is_lat = "latitude" in var_name.lower()
             if var_name in handled_var_names and not (is_lon or is_lat):
