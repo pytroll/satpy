@@ -130,6 +130,11 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         data_arr.attrs["platform_name"] = self.platform_name
         data_arr.attrs["sensor"] = self.sensor_name
         data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
+        if data_arr.attrs.get("standard_name") in ("longitude", "latitude"):
+            # recursive swath definitions are a problem for the base reader right now
+            # delete the coordinates here so the base reader doesn't try to
+            # make a SwathDefinition
+            data_arr = data_arr.reset_coords(drop=True)
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
@@ -201,6 +206,10 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         handled_var_names = set()
         for is_avail, ds_info in (configured_datasets or []):
             file_key = ds_info.get("file_key", ds_info["name"])
+            # we must add all variables here even if another file handler has
+            # claimed the variable. It could be another instance of this file
+            # type and we don't want to add that variable dynamically if the
+            # other file handler defined it by the YAML definition.
             handled_var_names.add(file_key)
             if is_avail is not None:
                 # some other file handler said it has this dataset
@@ -246,10 +255,14 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                 ds_info["standard_name"] = "longitude"
                 ds_info["units"] = "degrees_east"
                 ds_info["name"] = m_lon_name if res == 750 else i_lon_name
+                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
+                del ds_info["coordinates"]
             elif is_lat:
                 ds_info["standard_name"] = "latitude"
                 ds_info["units"] = "degrees_north"
                 ds_info["name"] = m_lat_name if res == 750 else i_lat_name
+                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
+                del ds_info["coordinates"]
             yield True, ds_info
 
 

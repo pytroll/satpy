@@ -450,8 +450,14 @@ def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32, multipl
 
 def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     is_mband_res = _is_mband_res(data_arr)
+    exp_rps = 16 if is_mband_res else 32
     assert data_arr.attrs["sensor"] == "viirs"
-    assert data_arr.attrs["rows_per_scan"] == 16 if is_mband_res else 32
+    assert data_arr.attrs["rows_per_scan"] == exp_rps
+
+    lons = data_arr.attrs["area"].lons
+    lats = data_arr.attrs["area"].lats
+    assert lons.attrs["rows_per_scan"] == exp_rps
+    assert lats.attrs["rows_per_scan"] == exp_rps
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:
