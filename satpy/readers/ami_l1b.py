@@ -26,6 +26,7 @@ import pyproj
 import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
+from satpy.readers import open_file_or_filename
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import apply_rad_correction, get_user_calibration_factors
@@ -93,7 +94,8 @@ class AMIL1bNetCDF(BaseFileHandler):
                  user_calibration=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(AMIL1bNetCDF, self).__init__(filename, filename_info, filetype_info)
-        self.nc = xr.open_dataset(self.filename,
+        f_obj = open_file_or_filename(self.filename)
+        self.nc = xr.open_dataset(f_obj,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'dim_image_x': CHUNK_SIZE, 'dim_image_y': CHUNK_SIZE})
