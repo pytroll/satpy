@@ -114,8 +114,8 @@ class NDVIHybridGreen(SpectralBlender):
 
     This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
     factor `f` that depends on the pixel-level Normalized Differece Vegetation Index (NDVI). The higher the NDVI, the
-    smaller the contribution from the nir channel will be, following a liner relationship between the two ranges
-    `[ndvi_min, ndvi_max]` and `limits`.
+    smaller the contribution from the nir channel will be, following a liner (default) or non-linear relationship
+    between the two ranges `[ndvi_min, ndvi_max]` and `limits`.
 
     As an example, a new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
 
@@ -124,6 +124,7 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi_min: 0.0
         ndvi_max: 1.0
         limits: [0.15, 0.05]
+        strength: 1.0
         prerequisites:
           - name: vis_05
             modifiers: [sunz_corrected, rayleigh_corrected]
@@ -138,17 +139,29 @@ class NDVIHybridGreen(SpectralBlender):
     pixels with NDVI=1.0 will be a weighted average with 5% contribution from the near-infrared
     vis_08 channel and the remaining 95% from the native green vis_05 channel. For other values of
     NDVI a linear interpolation between these values will be performed.
+
+    A strength larger or smaller than 1.0 will introduce a non-linear relationship between the two ranges
+    `[ndvi_min, ndvi_max]` and `limits`. Hence, a higher strength (> 1.0) will result in a slower transition
+    to higher/lower fractions at the NDVI extremes. Similarly, a lower strength (< 1.0) will result in a
+    faster transition to higher/lower fractions at the NDVI extremes.
     """
 
-    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), **kwargs):
-        """Initialize class and set the NDVI limits and the corresponding blending fraction limits."""
+    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
+        """Initialize class and set the NDVI limits, blending fraction limits and strength."""
+        if strength <= 0.0:
+            raise ValueError(f"Expected stength greater than 0.0, got {strength}.")
+
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
         self.limits = limits
+        self.strength = strength
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the hybrid green channel weighted by NDVI."""
+        LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
+                 f"{self.limits[1]}] and strength {self.strength}.")
+
         ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
 
         ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
@@ -156,6 +169,12 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
         ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
 
+        # Apply non-linearity to the ndvi for a non-linear conversion from ndvi to fraction. This can be used for a
+        # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this
+        # operation has no effect on the ndvi.
+        ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
+
+        # Compute blending fraction from ndvi
         fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
             + self.limits[0]
         self.fractions = (1 - fraction, fraction)
