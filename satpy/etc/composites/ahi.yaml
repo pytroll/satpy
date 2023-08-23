@@ -14,22 +14,6 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
-  geo_color_rayleigh_corrected:
-    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
-    atmosphere: us-standard
-    aerosol_type: rayleigh_only
-    reduce_lim_low: 70
-    reduce_lim_high: 105
-    reduce_strength: 1.5
-    prerequisites:
-    - name: B03
-      modifiers: [sunz_corrected]
-    optional_prerequisites:
-    - satellite_azimuth_angle
-    - satellite_zenith_angle
-    - solar_azimuth_angle
-    - solar_zenith_angle
-
 composites:
   green:
     deprecation_warning: "'green' is a deprecated composite. Use the equivalent 'hybrid_green' instead."
@@ -488,30 +472,22 @@ composites:
 
   geo_color:
     compositor: !!python/name:satpy.composites.DayNightCompositor
-    lim_low: 80
-    lim_high: 88
-    standard_name: true_color_with_night_ir
+    lim_low: 73
+    lim_high: 82
+    standard_name: geo_color_day_night_blend
     prerequisites:
       - geo_color_true_color
       - geo_color_night
 
-  geo_color_without_background:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
-    lim_low: 80
-    lim_high: 88
-    standard_name: true_color_with_night_ir
-    prerequisites:
-      - geo_color_true_color
-      - geo_color_night_without_background
-
   # GeoColor Daytime
   geo_color_green:
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
     prerequisites:
       - name: B02
-        modifiers: [ sunz_corrected, geo_color_rayleigh_corrected ]
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
       - name: B03
-        modifiers: [ sunz_corrected, geo_color_rayleigh_corrected ]
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
       - name: B04
         modifiers: [ sunz_corrected ]
     standard_name: toa_bidirectional_reflectance
@@ -520,22 +496,22 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: B03
-        modifiers: [ sunz_corrected, geo_color_rayleigh_corrected ]
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
       - name: geo_color_green
       - name: B01
-        modifiers: [ sunz_corrected, geo_color_rayleigh_corrected ]
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
     high_resolution_band: red
     standard_name: true_color
 
   # GeoColor Night-time
   geo_color_high_clouds:
-    standard_name: ir_high_cloud
+    standard_name: geo_color_high_clouds
     compositor: !!python/name:satpy.composites.HighCloudCompositor
     prerequisites:
       - name: B13
 
   geo_color_low_clouds:
-    standard_name: ir_low_cloud
+    standard_name: geo_color_low_clouds
     compositor: !!python/name:satpy.composites.LowCloudCompositor
     values_sea: 0
     values_land: 100
@@ -548,7 +524,7 @@ composites:
       - compositor: !!python/name:satpy.composites.StaticImageCompositor
         standard_name: land_sea_mask
         # TODO Change filename
-        filename: "/tcenas/scratch/strandgren/GeoColor/gshhs_land_sea_mask_3km_i.tif"
+        filename: "/tcenas/proj/optcalimg/strandgren/GeoColor/static_data/gshhs_land_sea_mask_3km_i.tif"
 
   geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
@@ -563,10 +539,3 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
-
-  geo_color_night_without_background:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir
-    prerequisites:
-      - geo_color_low_clouds
-      - geo_color_high_clouds
