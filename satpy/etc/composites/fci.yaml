@@ -87,6 +87,8 @@ composites:
    compositor: !!python/name:satpy.composites.LowCloudCompositor
    values_sea: 0
    values_land: 100
+   range_land: [4.35, 6.75]
+   range_sea: [1.35, 5.0]
    prerequisites:
      - compositor: !!python/name:satpy.composites.DifferenceCompositor
        prerequisites:
