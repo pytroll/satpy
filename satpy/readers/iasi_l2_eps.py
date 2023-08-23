@@ -202,6 +202,9 @@ def set_values_in_mdr_descriptor(epsfile_mmap, mdr_descriptor, mdr_class_offset,
     row = row.squeeze()
     # read values
     epsfile_mmap_subset = epsfile_mmap[mdr_class_offset + int(row["OFFSET"]):]
+    if epsfile_mmap_subset.size == 0:
+        raise ValueError(f"Could not read MDR for {row['FIELD']:s}. Found none "
+                         "or with size zero. Corrupt file?")
     value = read_values(epsfile_mmap_subset, row).astype(int)[0]
     # set the read values in MDR-descriptor
     mdr_descriptor.loc[mdr_descriptor["DIM2"] == field_name.lower(), "DIM2"] = value
@@ -493,12 +496,19 @@ def read_nerr_values(epsfile_mmap, mdr_descriptor, mdr_class_offset):
     while True:
         grh = epsnative_reader.grh_reader(epsfile_mmap_subset)
         if grh:
+            recsize = grh[3]
             if grh[0:3] == ("mdr", 1, 4):
                 new_offset = mdr_class_offset + int(nerr_row["OFFSET"])
                 epsfile_mmap_subset = epsfile_mmap[new_offset:]
+                if epsfile_mmap_subset.size == 0:
+                    raise ValueError(f'Unable to read {nerr_row["FIELD"]:s}.  Corrupt file?')
                 nerr_values.append(read_values(
                     epsfile_mmap_subset, nerr_row, reshape=False)[0])
-                mdr_class_offset += grh[3]
+            else:
+                # happens for IASI_SND_02_M01_20230724181453Z_20230724195652Z_N_O_20230724191952Z
+                # at least, and could cause infinite loop if not careful
+                logger.debug(f"Found unexpected or invalid record, skipping {recsize:d} bytes")
+            mdr_class_offset += recsize
             epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
         else:
             break
@@ -527,6 +537,7 @@ def read_all_rows(epsfile_mmap, descriptor, mdr_class_offset, sensing_start, sen
     while True:
         grh = epsnative_reader.grh_reader(epsfile_mmap_subset)
         if grh:
+            recsize = grh[3]
             if grh[0:3] == ("mdr", 1, 4):
                 overlap = reckon_overlap(
                     sensing_start, sensing_stop, grh[-2], grh[-1]
@@ -550,11 +561,15 @@ def read_all_rows(epsfile_mmap, descriptor, mdr_class_offset, sensing_start, sen
                     )
                     algorithms_data.append(algorithm_data)
                     errors_data.append(errors)
-                    mdr_class_offset += grh[3]
-                else:
-                    mdr_class_offset += grh[3]
+                mdr_class_offset += recsize
             else:
-                algorithms_data.append("dummy_mdr")
+                logger.debug(f"Found something else of length {recsize:d}")
+                # this is probably salvageable, but there are too many places in
+                # the code where putting a dummy value has implications, so for
+                # now we skip the entire file
+                # happens for IASI_SND_02_M01_20230724181453Z_20230724195652Z_N_O_20230724191952Z
+                # at least, and could cause infinite loop if not careful
+                raise ValueError("Potential data corruption")
             epsfile_mmap_subset = epsfile_mmap[mdr_class_offset:]
         else:
             break
