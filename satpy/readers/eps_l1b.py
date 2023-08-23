@@ -1,4 +1,6 @@
-# Copyright (c) 2017-2023 Satpy developers
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -14,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for EPS level 1b data. Uses xml files as a format description."""
+"""Reader for eps level 1b data. Uses xml files as a format description."""
 
 import functools
 import logging
@@ -23,9 +25,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from dask.delayed import delayed
+from pyresample.geometry import SwathDefinition
 
 from satpy._compat import cached_property
-from satpy.readers.eps_base import EPSBaseFileHandler, XMLFormat, read_records, record_class  # noqa
+from satpy._config import get_config_path
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.xmlformat import XMLFormat
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -46,6 +51,82 @@ def radiance_to_refl(arr, solar_flux):
     return arr * np.pi * 100.0 / solar_flux
 
 
+record_class = ["Reserved", "mphr", "sphr",
+                "ipr", "geadr", "giadr",
+                "veadr", "viadr", "mdr"]
+
+
+def read_records(filename):
+    """Read *filename* without scaling it afterwards."""
+    format_fn = get_config_path("eps_avhrrl1b_6.5.xml")
+    form = XMLFormat(format_fn)
+
+    grh_dtype = np.dtype([("record_class", "|i1"),
+                          ("INSTRUMENT_GROUP", "|i1"),
+                          ("RECORD_SUBCLASS", "|i1"),
+                          ("RECORD_SUBCLASS_VERSION", "|i1"),
+                          ("RECORD_SIZE", ">u4"),
+                          ("RECORD_START_TIME", "S6"),
+                          ("RECORD_STOP_TIME", "S6")])
+
+    max_lines = np.floor((CHUNK_SIZE ** 2) / 2048)
+
+    dtypes = []
+    cnt = 0
+    counts = []
+    classes = []
+    prev = None
+    with open(filename, "rb") as fdes:
+        while True:
+            grh = np.fromfile(fdes, grh_dtype, 1)
+            if grh.size == 0:
+                break
+            rec_class = record_class[int(grh["record_class"])]
+            sub_class = grh["RECORD_SUBCLASS"][0]
+
+            expected_size = int(grh["RECORD_SIZE"])
+            bare_size = expected_size - grh_dtype.itemsize
+            try:
+                the_type = form.dtype((rec_class, sub_class))
+                # the_descr = grh_dtype.descr + the_type.descr
+            except KeyError:
+                the_type = np.dtype([('unknown', 'V%d' % bare_size)])
+            the_descr = grh_dtype.descr + the_type.descr
+            the_type = np.dtype(the_descr)
+            if the_type.itemsize < expected_size:
+                padding = [('unknown%d' % cnt, 'V%d' % (expected_size - the_type.itemsize))]
+                cnt += 1
+                the_descr += padding
+            new_dtype = np.dtype(the_descr)
+            key = (rec_class, sub_class)
+            if key == prev:
+                counts[-1] += 1
+            else:
+                dtypes.append(new_dtype)
+                counts.append(1)
+                classes.append(key)
+                prev = key
+            fdes.seek(expected_size - grh_dtype.itemsize, 1)
+
+        sections = {}
+        offset = 0
+        for dtype, count, rec_class in zip(dtypes, counts, classes):
+            fdes.seek(offset)
+            if rec_class == ('mdr', 2):
+                record = da.from_array(np.memmap(fdes, mode='r', dtype=dtype, shape=count, offset=offset),
+                                       chunks=(max_lines,))
+            else:
+                record = np.fromfile(fdes, dtype=dtype, count=count)
+            offset += dtype.itemsize * count
+            if rec_class in sections:
+                logger.debug('Multiple records for ', str(rec_class))
+                sections[rec_class] = np.hstack((sections[rec_class], record))
+            else:
+                sections[rec_class] = record
+
+    return sections, form
+
+
 def create_xarray(arr):
     """Create xarray with correct dimensions."""
     res = arr
@@ -53,32 +134,68 @@ def create_xarray(arr):
     return res
 
 
-class EPSAVHRRFile(EPSBaseFileHandler):
-    """EPS level 1b reader for AVHRR data."""
+class EPSAVHRRFile(BaseFileHandler):
+    """Eps level 1b reader for AVHRR data."""
+
+    spacecrafts = {"M01": "Metop-B",
+                   "M02": "Metop-A",
+                   "M03": "Metop-C", }
 
     sensors = {"AVHR": "avhrr-3"}
 
     units = {"reflectance": "%",
              "brightness_temperature": "K"}
 
-    xml_conf = "eps_avhrrl1b_6.5.xml"
-    mdr_subclass = 2
-
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
-        super().__init__(filename, filename_info, filetype_info)
+        super(EPSAVHRRFile, self).__init__(
+            filename, filename_info, filetype_info)
 
+        self.area = None
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
+        self.form = None
+        self.scanlines = None
+        self.pixels = None
+        self.sections = None
         self.get_full_angles = functools.lru_cache(maxsize=1)(
             self._get_full_angles_uncached
         )
         self.get_full_lonlats = functools.lru_cache(maxsize=1)(
             self._get_full_lonlats_uncached
         )
-        self.pixels = None
 
     def _read_all(self):
-        super()._read_all()
+        logger.debug("Reading %s", self.filename)
+        self.sections, self.form = read_records(self.filename)
+        self.scanlines = self['TOTAL_MDR']
+        if self.scanlines != len(self.sections[('mdr', 2)]):
+            logger.warning("Number of declared records doesn't match number of scanlines in the file.")
+            self.scanlines = len(self.sections[('mdr', 2)])
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
+
+    def __getitem__(self, key):
+        """Get value for given key."""
+        for altkey in self.form.scales:
+            try:
+                try:
+                    return self.sections[altkey][key] * self.form.scales[altkey][key]
+                except TypeError:
+                    val = self.sections[altkey][key].item().decode().split("=")[1]
+                    try:
+                        return float(val) * self.form.scales[altkey][key].item()
+                    except ValueError:
+                        return val.strip()
+            except (KeyError, ValueError):
+                continue
+        raise KeyError("No matching value for " + str(key))
+
+    def keys(self):
+        """List of reader's keys."""
+        keys = []
+        for val in self.form.scales.values():
+            keys += val.dtype.fields.keys()
+        return keys
 
     def _get_full_lonlats_uncached(self):
         """Get the interpolated longitudes and latitudes."""
@@ -165,19 +282,6 @@ class EPSAVHRRFile(EPSBaseFileHandler):
                           self["EARTH_LOCATION_FIRST"][-1, [1]]])
         return lons.ravel(), lats.ravel()
 
-    def _get_angle_dataarray(self, key):
-        """Get an angle dataarray."""
-        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-        if key['name'] == 'solar_zenith_angle':
-            return create_xarray(sun_zen)
-        if key['name'] == 'solar_azimuth_angle':
-            return create_xarray(sun_azi)
-        if key['name'] == 'satellite_zenith_angle':
-            return create_xarray(sat_zen)
-        if key['name'] == 'satellite_azimuth_angle':
-            return create_xarray(sat_azi)
-        raise ValueError(f"Unknown angle data-array: {key['name']:s}")
-
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
         if self.sections is None:
@@ -205,6 +309,19 @@ class EPSAVHRRFile(EPSBaseFileHandler):
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
+        return dataset
+
+    def _get_angle_dataarray(self, key):
+        """Get an angle dataarray."""
+        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
+        if key['name'] == 'solar_zenith_angle':
+            dataset = create_xarray(sun_zen)
+        elif key['name'] == 'solar_azimuth_angle':
+            dataset = create_xarray(sun_azi)
+        if key['name'] == 'satellite_zenith_angle':
+            dataset = create_xarray(sat_zen)
+        elif key['name'] == 'satellite_azimuth_angle':
+            dataset = create_xarray(sat_azi)
         return dataset
 
     @cached_property
@@ -250,3 +367,34 @@ class EPSAVHRRFile(EPSBaseFileHandler):
         if mask is not None:
             dataset = dataset.where(~mask)
         return dataset
+
+    def get_lonlats(self):
+        """Get lonlats."""
+        if self.area is None:
+            lons, lats = self.get_full_lonlats()
+            self.area = SwathDefinition(lons, lats)
+            self.area.name = '_'.join([self.platform_name, str(self.start_time),
+                                       str(self.end_time)])
+        return self.area
+
+    @property
+    def platform_name(self):
+        """Get platform name."""
+        return self.spacecrafts[self["SPACECRAFT_ID"]]
+
+    @property
+    def sensor_name(self):
+        """Get sensor name."""
+        return self.sensors[self["INSTRUMENT_ID"]]
+
+    @property
+    def start_time(self):
+        """Get start time."""
+        # return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """Get end time."""
+        # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
+        return self._end_time

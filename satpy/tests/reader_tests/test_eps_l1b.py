@@ -1,4 +1,6 @@
-# Copyright (c) 2019, 2022-2023 Satpy developers
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -13,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test the EPS l1b format reader."""
+"""Test the eps l1b format."""
 
 import os
 from contextlib import suppress
