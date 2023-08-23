@@ -7,10 +7,11 @@ composites:
       The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
       the signal comes from aerosols and ash rather than vegetation. An effect
       is that vegetation in a true colour RGB looks rather brown than green and barren rather red. Mixing in
-      some part of the NIR 0.8 channel reduced this effect.  Note that the fractions
+      some part of the NIR 0.8 channel reduced this effect.  Note that the fractions and non-linear strength
       currently implemented are experimental and may change in future versions of Satpy.
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
     limits: [0.15, 0.05]
+    strength: 3.0
     prerequisites:
       - name: vis_05
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -25,6 +26,7 @@ composites:
       Alternative to ndvi_hybrid_green, but without solar zenith or rayleigh correction.
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
     limits: [0.15, 0.05]
+    strength: 3.0
     prerequisites:
       - name: vis_05
       - name: vis_06
