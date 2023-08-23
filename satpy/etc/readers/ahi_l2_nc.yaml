@@ -1,0 +1,30 @@
+reader:
+    description: Himawari-8 AHI Level 2 NetCDF reader
+    name: ahi_l2_nc
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [ahi]
+
+file_types:
+    ahi_l2_arp:
+        # Ex: NC_H08_20190807_0600_L2ARP021_FLDK.02401_02401.nc
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.AHIL2FileHandler
+        file_patterns:
+            - 'NC_{platform_shortname:3s}_{start_time:%Y%m%d_%H%M}_L2ARP{version:s}_{observation_type:s}.{pixel_number:s}_{line_number:s}.nc'
+    ahi_l2_clp:
+        # Ex: NC_H08_20190807_0600_L2CLP010_FLDK.02401_02401.nc
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.AHIL2FileHandler
+        file_patterns:
+            - 'NC_{platform_shortname:3s}_{start_time:%Y%m%d_%H%M}_L2CLP{version:s}_{observation_type:s}.{pixel_number:s}_{line_number:s}.nc'
+    ahi_l2_rfl:
+        # Ex: H08_20190807_0600_rFL010_FLDK.02701_02601.nc
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.AHIL2FileHandler
+        file_patterns:
+            ['{platform_shortname:3s}_{start_time:%Y%m%d_%H%M}_rFL{version:s}_{observation_type:s}.{pixel_number:s}_{line_number:s}.nc',
+             '{platform_shortname:3s}_{start_time:%Y%m%d_%H%M}_RFL{version:s}_{observation_type:s}.{pixel_number:s}_{line_number:s}.nc']
+    ahi_l2_sst:
+        # Ex: 20190807060000-JAXA-L2P_GHRSST-SSTskin-H08_AHI-v1.2-v02.0-fv01.0.nc
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.AHIL2FileHandler
+        file_patterns:
+            - '{start_time:%Y%m%d%H%M%S}-JAXA-L2P_GHRSST-SSTskin-{platform_shortname:3s}_{sensor:s}-{version:s}-v02.0-{file_version:s}.nc'
+
+datasets: {}
