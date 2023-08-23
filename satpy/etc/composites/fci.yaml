@@ -64,3 +64,50 @@ composites:
       - name: ndvi_hybrid_green_raw
       - name: vis_04
     standard_name: true_color_raw
+
+  # GeoColor
+  geo_color:
+   compositor: !!python/name:satpy.composites.DayNightCompositor
+   lim_low: 73
+   lim_high: 82
+   standard_name: geo_color_day_night_blend
+   prerequisites:
+     - true_color
+     - geo_color_night
+
+  # GeoColor Night-time
+  geo_color_high_clouds:
+   standard_name: geo_color_high_clouds
+   compositor: !!python/name:satpy.composites.HighCloudCompositor
+   prerequisites:
+     - name: ir_105
+
+  geo_color_low_clouds:
+   standard_name: geo_color_low_clouds
+   compositor: !!python/name:satpy.composites.LowCloudCompositor
+   values_sea: 0
+   values_land: 100
+   prerequisites:
+     - compositor: !!python/name:satpy.composites.DifferenceCompositor
+       prerequisites:
+         - name: ir_105
+         - name: ir_38
+     - name: ir_105
+     - compositor: !!python/name:satpy.composites.StaticImageCompositor
+       standard_name: land_sea_mask
+       # TODO Change filename
+       filename: "/tcenas/proj/optcalimg/strandgren/GeoColor/static_data/gshhs_land_sea_mask_3km_i.tif"
+
+  geo_color_background_with_low_clouds:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_low_clouds
+     - _night_background_hires
+
+  geo_color_night:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_high_clouds
+     - geo_color_background_with_low_clouds
