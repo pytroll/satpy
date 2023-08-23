@@ -1,0 +1,26 @@
+FIELD,DESCRIPTION,SF,UNITS,DIM1,DIM2,DIM3,TYPE,TYPE SIZE,FIELD SIZE,OFFSET
+RECORD_HEADER,Generic record header,0,,1,1,1,REC_HEAD,20,20,0
+GIADR CONTENTS,,,,,,,,,,20
+NUM_PRESSURE_LEVELS_TEMP,Number of pressure levels for temperature profile retrieval (NLT),0,NA,1,1,1,u-byte,1,1,20
+PRESSURE_LEVELS_TEMP,Pressure levels on which retrieved temperature profiles are given,2,Pa,101,1,1,u-integer4,4,404,21
+NUM_PRESSURE_LEVELS_HUMIDITY,Number of pressure levels for humidity profile retrieval (NLQ),0,NA,1,1,1,u-byte,1,1,425
+PRESSURE_LEVELS_HUMIDITY,Pressure levels on which retrieved humidity  profiles are given,2,Pa,101,1,1,u-integer4,4,404,426
+NUM_PRESSURE_LEVELS_OZONE,Number of pressure levels for ozone profile retrieval (NLO),0,NA,1,1,1,u-byte,1,1,830
+PRESSURE_LEVELS_OZONE,Pressure levels on which retrieved ozone profiles are given,2,Pa,101,1,1,u-integer4,4,404,831
+NUM_SURFACE_EMISSIVITY_WAVELENGTHS,Number of wavelengths for surface emissivity retrieval (NEW),0,NA,1,1,1,u-byte,1,1,1235
+SURFACE_EMISSIVITY_WAVELENGTHS,Wavelengths for surface emissivity,4,μm,12,1,1,u-integer4,4,48,1236
+ERROR_DATA,,,,,,,,,,1284
+NUM_TEMPERATURE_PCS,Number of principal components for temperature in the ERROR_DATA (NPCT),0,NA,1,1,1,u-byte,1,1,1284
+NUM_WATER_VAPOUR_PCS,Number of principal components for water-vapour in the ERROR_DATA (NPCW),0,NA,1,1,1,u-byte,1,1,1285
+NUM_OZONE_PCS,Number of principal components for ozone in the ERROR_DATA (NPCO),0,NA,1,1,1,u-byte,1,1,1286
+FORLI,,,,,,,,,,1287
+FORLI_NUM_LAYERS_CO,Number of partial layers for CO (NL_CO),0,NA,1,1,1,u-byte,1,1,1287
+FORLI_LAYER_HEIGHTS_CO,CO partial layer heights ,0,m,19,1,1,u-integer2,2,38,1288
+FORLI_NUM_LAYERS_HNO3,Number of partial layers for HNO3 (NL_HNO3),0,NA,1,1,1,u-byte,1,1,1326
+FORLI_LAYER_HEIGHTS_HNO3,HNO3 partial layer heights ,0,m,19,1,1,u-integer2,2,38,1327
+FORLI_NUM_LAYERS_O3,Number of partial layers for O3 (NL_O3),0,NA,1,1,1,u-byte,1,1,1365
+FORLI_LAYER_HEIGHTS_O3,O3 partial layer heights ,0,m,40,1,1,u-integer2,2,80,1366
+BRESCIA,,,,,,,,,,1446
+BRESCIA_NUM_ALTITUDES_SO2,Number of estimated SO2 plume heights (NL_SO2),0,NA,1,1,1,u-byte,1,1,1446
+BRESCIA_ALTITUDES_SO2,Estimated SO2 plume heights,0,m,5,1,1,u-integer2,2,10,1447
+,,,,,,,,,,1457

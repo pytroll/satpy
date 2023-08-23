@@ -1,0 +1,75 @@
+FIELD,DESCRIPTION,SF,UNITS,DIM1,DIM2,DIM3,DIM4,TYPE,TYPE_SIZE,FIELD_SIZE,OFFSET
+PRODUCT_NAME ,Complete name of the product ,,,,,,,CHAR ,67,100,20
+PARENT_PRODUCT_NAME_1 ,"Name of the parent product from which this product has been produced. For Level 0 products, this field is filled with lower case x&apos;s. ",,,1,1,1,1,CHAR ,67,100,120
+PARENT_PRODUCT_NAME_2 ,"Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x&apos;s. ",,,1,1,1,1,CHAR ,67,100,220
+PARENT_PRODUCT_NAME_3 ,"Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x&apos;s. ",,,1,1,1,1,CHAR ,67,100,320
+PARENT_PRODUCT_NAME_4 ,"Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x&apos;s. ",,,1,1,1,1,CHAR ,67,100,420
+INSTRUMENT_ID ,Instrument identification ,,,1,1,1,1,E-CHAR ,4,37,520
+INSTRUMENT_MODEL ,Instrument Model identification ,,,1,1,1,1,ENUMERATED ,3,36,557
+PRODUCT_TYPE ,Product Type ,,,1,1,1,1,E-CHAR ,3,36,593
+PROCESSING_LEVEL ,Processing Level Identification ,,,1,1,1,1,E-CHAR ,2,35,629
+SPACECRAFT_ID ,Spacecraft identification ,,,1,1,1,1,E-CHAR ,3,36,664
+SENSING_START ,"UTC start time of sensing data in this object (PDU, ROI or Full Product) of original product as planned by the PROCESSING CENTRE ",,,1,1,1,1,GENERAL TIME ,15,48,700
+SENSING_END ,"UTC end time of sensing data in this object (PDU, ROI or Full Product) of original product as planned by the PROCESSING CENTRE ",,,1,1,1,1,GENERAL TIME ,15,48,748
+SENSING_START_THEORETICAL ,Theoretical UTC Time of start of sensing data in the dump from which this object is derived. This data is the predicted start time at the MPF level. ,,,1,1,1,1,GENERAL TIME ,15,48,796
+SENSING_END_THEORETICAL ,Theoretical UTC Time of end of sensing data in the dump from which this object is derived. This data is the predicted end time at the MPF level. ,,,1,1,1,1,GENERAL TIME ,15,48,844
+PROCESSING_CENTRE ,Processing Centre Identification ,,,1,1,1,1,E-CHAR ,4,37,892
+PROCESSOR_MAJOR_VERSION ,Processing chain major version number ,,,1,1,1,1,U-INTEGER ,5,38,929
+PROCESSOR_MINOR_VERSION ,Processing chain minor version number ,,,1,1,1,1,U-INTEGER ,5,38,967
+FORMAT_MAJOR_VERSION ,Dataset Format Major Version number ,,,1,1,1,1,U-INTEGER ,5,38,1005
+FORMAT_MINOR_VERSION ,Dataset Format Minor Version number ,,,1,1,1,1,U-INTEGER ,5,38,1043
+PROCESSING_TIME_START ,UTC time of the processing at start of processing for the product ,,,1,1,1,1,GENERAL TIME ,15,48,1081
+PROCESSING_TIME_END ,UTC time of the processing at end of processing for the product ,,,1,1,1,1,GENERAL TIME ,15,48,1129
+PROCESSING_MODE ,Identification of the mode of processing ,,,1,1,1,1,E-CHAR ,1,34,1177
+DISPOSITION_MODE ,Identification of the diposition mode ,,,1,1,1,1,E-CHAR ,1,34,1211
+RECEIVING_GROUND_STATION ,Acquisition Station Identification ,,,1,1,1,1,E-CHAR ,3,36,1245
+RECEIVE_TIME_START ,UTC time of the reception at CDA for first Data Item ,,,1,1,1,1,GENERAL TIME ,15,48,1281
+RECEIVE_TIME_END ,UTC time of the reception at CDA for last Data Item ,,,1,1,1,1,GENERAL TIME ,15,48,1329
+ORBIT_START ,"Start Orbit Number, counted incrementally since launch. Determined at time of SENSING START THEORETICAL ",,,1,1,1,1,U-INTEGER ,5,38,1377
+ORBIT_END ,Stop Orbit Number. Determined at time of SENSING_END_THEORETICAL ,,,1,1,1,1,U-INTEGER ,5,38,1415
+ACTUAL_PRODUCT_SIZE ,Size of the complete product ,,bytes ,1,1,1,1,U-INTEGER ,11,44,1453
+STATE_VECTOR_TIME ,Epoch time (in UTC) of the orbital elements and the orbit state vector. This corresponds to the time of crossing the ascending node for ORBIT START ,,UTC ,1,1,1,1,LONG GENERAL TIME ,18,51,1497
+SEMI_MAJOR_AXIS ,Semi major axis of orbit at time of the ascending node crossing [TRUE-OF-DATE] ,,mm ,1,1,1,1,INTEGER ,11,44,1548
+ECCENTRICITY ,Orbit eccentricity at time of the ascending node crossing [TRUE-OF-DATE] ,6,,1,1,1,1,INTEGER ,11,44,1592
+INCLINATION ,Orbit inclination at time of the ascending node crossing [TRUE-OF-DATE] ,3,deg ,1,1,1,1,INTEGER ,11,44,1636
+PERIGEE_ARGUMENT ,Argument of perigee at time of the ascending node crossing [TRUE-OF-DATE] ,3,deg ,1,1,1,1,INTEGER ,11,44,1680
+RIGHT_ASCENSION ,Right ascension at time of the ascending node crossing [TRUE-OF-DATE] ,3,deg ,1,1,1,1,INTEGER ,11,44,1724
+MEAN_ANOMALY ,Mean anomaly at time of the ascending node crossing [TRUE-OF-DATE] ,3,deg ,1,1,1,1,INTEGER ,11,44,1768
+X_POSITION ,X position of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m ,1,1,1,1,INTEGER ,11,44,1812
+Y_POSITION ,Y position of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m ,1,1,1,1,INTEGER ,11,44,1856
+Z_POSITION ,Z position of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m ,1,1,1,1,INTEGER ,11,44,1900
+X_VELOCITY ,X velocity of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m/s ,1,1,1,1,INTEGER ,11,44,1944
+Y_VELOCITY ,Y velocity of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m/s ,1,1,1,1,INTEGER ,11,44,1988
+Z_VELOCITY ,Z velocity of the orbit state vector in the orbit frame at ascending node [EARTH-FIXED] ,3,m/s ,1,1,1,1,INTEGER ,11,44,2032
+EARTH_SUN_DISTANCE_RATIO ,"Earth-Sun distance ratio - ratio of current Earth-Sun distance to the Mean Earth-Sun distance which is 1Astronomical Unit or AU.
+1 AU has a value of 1.495 978 706 91 x 10^11 m as defined by the ""International System of Units"", Bureau International des Poids et Mesures ",6,,1,1,1,1,INTEGER ,11,44,2076
+LOCATION_TOLERANCE_RADIAL ,Nadir Earth location tolerance radial ,,m ,1,1,1,1,INTEGER ,11,44,2120
+LOCATION_TOLERANCE_CROSSTRACK ,Nadir Earth location tolerance cross-track ,,m ,1,1,1,1,INTEGER ,11,44,2164
+LOCATION_TOLERANCE_ALONGTRACK ,Nadir Earth location tolerance along-track ,,m ,1,1,1,1,INTEGER ,11,44,2208
+YAW_ERROR ,Constant Yaw attitude error ,3,deg ,1,1,1,1,INTEGER ,11,44,2252
+ROLL_ERROR ,Constant Roll attitude error ,3,deg ,1,1,1,1,INTEGER ,11,44,2296
+PITCH_ERROR ,Constant Pitch attitude error ,3,deg ,1,1,1,1,INTEGER ,11,44,2340
+SUBSAT_LATITUDE_START ,Latitude of sub-satellite point at start of the data set ,3,deg ,1,1,1,1,INTEGER ,11,44,2384
+SUBSAT_LONGITUDE_START ,Longitude of sub-satellite point at start of the data set ,3,deg ,1,1,1,1,INTEGER ,11,44,2428
+SUBSAT_LATITUDE_END ,Latitude of sub-satellite point at end of the data set ,3,deg ,1,1,1,1,INTEGER ,11,44,2472
+SUBSAT_LONGITUDE_END ,Longitude of sub-satellite point at end of the data set ,3,deg ,1,1,1,1,INTEGER ,11,44,2516
+LEAP_SECOND ,"Occurence of Leap second within the product. Field is set to -1, 0 or +1 dependent upon occurrence of leap second and direction. ",,,1,1,1,1,INTEGER ,2,35,2560
+LEAP_SECOND_UTC ,"UTC time of occurrence of the Leap Second (If no leap second in the product, value is null) ",,,1,1,1,1,GENERAL TIME ,15,48,2595
+TOTAL_RECORDS ,Total count of all records in the product ,,,1,1,1,1,U-INTEGER ,6,39,2643
+TOTAL_MPHR ,Total count of all MPHRs in product (should always be 1!) ,,,1,1,1,1,U-INTEGER ,6,39,2682
+TOTAL_SPHR ,Total count of all SPHRs in product (should be 0 or 1 only) ,,,1,1,1,1,U-INTEGER ,6,39,2721
+TOTAL_IPR ,Total count of all IPRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2760
+TOTAL_GEADR ,Total count of all GEADRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2799
+TOTAL_GIADR ,Total count of all GIADRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2838
+TOTAL_VEADR ,Total count of all VEADRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2877
+TOTAL_VIADR ,Total count of all VIADRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2916
+TOTAL_MDR ,Total count of all MDRs in the product ,,,1,1,1,1,U-INTEGER ,6,39,2955
+COUNT_DEGRADED_INST_MDR ,Count of MDRs with degradation due to instrument problems ,,,1,1,1,1,U-INTEGER ,6,39,2994
+COUNT_DEGRADED_PROC_MDR ,Count of MDRs with degradation due to processing problems ,,,1,1,1,1,U-INTEGER ,6,39,3033
+COUNT_DEGRADED_INST_MDR_BLOCKS ,Count of the number of blocks of MDRs degraded due to degraded instrument ,,,1,1,1,1,U-INTEGER ,6,39,3072
+COUNT_DEGRADED_PROC_MDR_BLOCKS ,Count of the number of blocks of MDRs degraded due to degraded processing ,,,1,1,1,1,U-INTEGER ,6,39,3111
+DURATION_OF_PRODUCT ,The duration of the product in milliseconds ,,ms ,1,1,1,1,U-INTEGER ,8,41,3150
+MILLISECONDS_OF_DATA_PRESENT ,The total amount of data present in the product ,,ms ,1,1,1,1,U-INTEGER ,8,41,3191
+MILLISECONDS_OF_DATA_MISSING ,The total amount of data missing from the prodcut ,,ms ,1,1,1,1,U-INTEGER ,8,41,3232
+SUBSETTED_PRODUCT ,Set when product has been subsetted (e.g. geographically subsetted using a region of interest filter). Implies the presence of one or more UMARF GIADRs in GAD section for product retrieved from UMARF. ,,,1,1,1,1,BOOLEAN ,1,34,3273
+Size of the Record ,,,,,,,,,,,3307

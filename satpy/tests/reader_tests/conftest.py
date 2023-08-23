@@ -17,6 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup and configuration for all reader tests."""
 
+import pathlib
+import shutil
+
+import numpy as np
+import pytest
+import requests
+
 from ._modis_fixtures import (
     modis_l1b_imapp_1000m_file,
     modis_l1b_imapp_geo_file,
@@ -33,3 +40,24 @@ from ._modis_fixtures import (
     modis_l2_nasa_mod35_file,
     modis_l2_nasa_mod35_mod03_files,
 )
+
+_url_sample_file = (
+        "https://go.dwd-nextcloud.de/index.php/s/z87KfL72b9dM5xm/download/"
+        "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
+
+
+@pytest.fixture(scope="session")
+def iasisndl2_file(tmp_path_factory, request):
+    """Obtain sample file."""
+    fn = pathlib.Path("/media/nas/x21308/IASI/IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat")
+    if not fn.exists():
+        fn = tmp_path_factory.mktemp("data") / "IASI_SND_02_M01_20190605002352Z_20190605020856Z_N_O_20190605011702Z.nat"
+        data = requests.get(_url_sample_file, stream=True)
+        with fn.open(mode="wb") as fp:
+            shutil.copyfileobj(data.raw, fp)
+    if request.param == "string":
+        return fn
+    if request.param == "file":
+        return open(fn, mode="rb")
+    if request.param == "mmap":
+        return np.memmap(fn, mode="r", offset=0)

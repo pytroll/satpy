@@ -1,0 +1,790 @@
+atmospheric_ozone:
+  name: atmospheric_ozone
+  record_name: ATMOSPHERIC_OZONE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    standard_name: "mass_concentration_of_ozone_in_air"
+    # coordinates: "lat lon pressure_levels_ozone"
+    comment: "Ozone (for 120 IFOV with up to 101 vertical levels)"
+    units: "kg/kg"
+    scale_factor: 8
+atmospheric_temperature:
+  name: atmospheric_temperature
+  record_name: ATMOSPHERIC_TEMPERATURE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    standard_name: "air_temperature"
+    # coordinates: "lat lon pressure_levels_temp"
+    comment: "Temperature (for 120 IFOV with up to 101 vertical levels)"
+    units: "degree(K)"
+    scale_factor: 2
+atmospheric_water_vapour:
+  name: atmospheric_water_vapour
+  record_name: ATMOSPHERIC_WATER_VAPOUR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "water vapour"
+    # coordinates: "lat lon pressure_levels_humidity"
+    units: "kg/kg"
+    scale_factor: 7
+cloud_formation:
+  name: cloud_formation
+  record_name: NUMBER_CLOUD_FORMATIONS
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "number of cloud formations"
+    # coordinates: "lat lon pressure_levels_humidity"
+    positive: "down"
+    definition: "0: CLOUD_FORMATION_1, 1: CLOUD_FORMATION_2, 2: CLOUD_FORMATION_3,"
+cloud_phase:
+  name: cloud_phase
+  record_name: CLOUD_PHASE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "cloud phase"
+    # coordinates: "lat lon cloud_formation"
+    comment: "Cloud Phase (for 120 IFOV with up to 3 cloud formations) (0 = no cloud, 1 = liquid, 2 = ice, 3 = mixed, 255 = undefined)"
+    positive: "down"
+    definition: "0: CLOUD_FORMATION_1, 1: CLOUD_FORMATION_2, 2: CLOUD_FORMATION_3,"
+    units: "1"
+    flag_meaning: "no cloud, liquid, ice, mixed, undefined"
+    scale_factor: 0
+cloud_top_pressure:
+  name: cloud_top_pressure
+  record_name: CLOUD_TOP_PRESSURE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "cloud top pressure"
+    # coordinates: "lat lon cloud_formation"
+    comment: "Cloud top pressure (for 120 IFOV with up to 3 cloud formations)"
+    units: "Pa"
+    scale_factor: 0
+cloud_top_temperature:
+  name: cloud_top_temperature
+  record_name: CLOUD_TOP_TEMPERATURE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "cloud top temperature"
+    # coordinates: "lat lon cloud_formation"
+    comment: "Cloud top temperature (for 120 IFOV with up to 3 cloud formations)"
+    units: "K"
+    scale_factor: 2
+co_bdiv:
+  name: co_bdiv
+  record_name: CO_BDIV
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Retrieval flags "
+    comment: "Retrieval flags "
+    units: "1"
+co_cp_air:
+  name: co_cp_air
+  record_name: CO_CP_AIR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Air partial columns on each retrieved layer "
+    comment: "Air partial columns on each retrieved layer"
+    units: "molecules/cm2"
+    scale_factor: -20
+    missing_values: -2
+co_cp_co_a:
+  name: co_cp_co_a
+  record_name: CO_CP_CO_A
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "A-priori partial columns for CO en each retrieved layer "
+    comment: "A-priori partial columns for CO en each retrieved layer "
+    units: "molecules/cm2"
+    scale_factor: -13
+    missing_value: -2
+co_h_eigenvalues:
+  name: co_h_eigenvalues
+  record_name: CO_H_EIGENVALUES
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Main eigenvalues of the sensitivity matrix "
+    comment: "Main eigenvalues of the sensitivity matrix "
+    units: "1"
+    missing_value: 9.9999998E12
+co_h_eigenvectors:
+  name: co_h_eigenvectors
+  record_name: CO_H_EIGENVECTORS
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Main eigenvectors of the sensitivity matrix "
+    comment: "Main eigenvectors of the sensitivity matrix "
+    units: "1"
+    missing_value: 9.9999998E12
+co_nbr_values:
+  name: co_nbr_values
+  record_name: CO_NBR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Number of CO profiles retrieved in scanline "
+    units: "1"
+co_nfitlayers:
+  name: co_nfitlayers
+  record_name: CO_NFITLAYERS
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Number of CO profiles retrieved in scanline"
+    units: "1"
+    comment: "Number of CO profiles retrieved in scanline"
+co_npca:
+  name: co_npca
+  record_name: CO_NPCA
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Number of vectors describing the characterization matrices "
+    units: "1"
+    comment: "Number of vectors describing the characterization matrices "
+co_qflag:
+  name: co_qflag
+  record_name: CO_QFLAG
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Air partial columns on each retrieved layer "
+    units: "1"
+    comment: "General retrieval quality flag"
+co_x_co:
+  name: co_x_co
+  record_name: CO_QFLAG
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Scaling vector multiplying the a-priori CO vector in order to define the retrieved CO vector. "
+    units: "1"
+    comment: "Scaling vector multiplying the a-priori CO vector in order to define the retrieved CO vector. "
+    missing_value: 9.9999998E12
+degraded_inst_mdr:
+  name: degraded_ins_MDR
+  record_name: DEGRADED_INST_MDR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Quality of MDR has been degraded due to an instrument degradation "
+    units: "1"
+degraded_proc_mdr:
+  name: degraded_proc_MDR
+  record_name: DEGRADED_PROC_MDR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Quality of MDR has been degraded due to an instrument degradation "
+    units: "1"
+error_data_index:
+  name: error_data_index
+  record_name: ERROR_DATA_INDEX
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Index of the error data record corresponding to the IFOVs in the line "
+    comment: "Index of the error data record corresponding to the IFOVs in the line "
+    units: "1"
+fg_atmospheric_ozone:
+  name: fg_atmospheric_ozone
+  record_name: FG_QI_ATMOSPHERIC_OZONE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "apriori ozone"
+    units: "kg.m^-2"
+    # coordinates:  "lat lon pressure_levels_ozone"
+    comment: "A-priori ozone profile (for 30 EFOV with up to 101 vertical levels)"
+    scale_factor: 8
+fg_atmospheric_temperature:
+  name: fg_atmospheric_temperature
+  record_name: FG_ATMOSPHERIC_TEMPERATURE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "apriori ozone"
+    units: "kg.m^-2"
+    # coordinates:  "lat lon pressure_levels_ozone"
+    comment: "A-priori ozone profile (for 30 EFOV with up to 101 vertical levels)"
+    scale_factor: 2
+fg_atmospheric_water_vapour:
+  name: fg_atmospheric_water_vapour
+  record_name: FG_ATMOSPHERIC_WATER_VAPOUR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "apriori water vapour"
+    units: "kg/kg"
+    # coordinates: "lat lon pressure_levels_humidity"
+    scale_factor: 7
+fg_surface_temperature:
+  name: fg_surface_temperature
+  record_name: FG_ATMOSPHERIC_WATER_VAPOUR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "surface temperature"
+    units:  "K"
+    # coordinates:  "lat lon"
+    comment: "A-priori surface skin temperature"
+    scale_factor: 2
+flag_amsubad:
+  name: flag_amsubad
+  record_name: FLG_AMSUBAD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Availability and quality of AMSU measurements"
+    units:  "1"
+    flag_meaning: "enumerated flag"
+flag_avhrrbad:
+  name: flag_avhrrbad
+  record_name: FLG_AVHRRBAD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Availability and quality of AVHRR measurements"
+    units:  "1"
+    flag_meaning: "enumerated flag"
+flag_cldfrm:
+  name: flag_cldfrm
+  record_name: FLG_CLDFRM
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Origin of characterisation of the cloud formations"
+    units:  "1"
+    flag_meaning: "bit field flag"
+flag_cldtst:
+  name: flag_cldtst
+  record_name: FLG_CLDTST
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Details of cloud tests exectued and their results"
+    units:  "1"
+    flag_meaning: "bit field flag"
+flag_cldnes:
+  name: flag_cldnes
+  record_name: FLG_CLDNES
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Cloudiness assessment summary"
+    units:  "1"
+    flag_meaning: "enumerated flag"
+flag_daynit:
+  name: flag_daynit
+  record_name: FLG_DAYNIT
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_values: "0b, 1b, 2b"
+    flag_meaning: "0:day, 1:night, 2:twilight"
+    long_name: "Discrimination between day and night"
+    units:  "1"
+flag_dustcld:
+  name: flag_dustcld
+  record_name: FLG_DUSTCLD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Indicates presence of dust clouds in the IFOV"
+    units: "1"
+flag_fgcheck:
+  name: flag_fgcheck
+  record_name: FLG_FGCHECK
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_meaning: "bit field flag"
+    long_name: "Check that geophysical parameters from the first guess are within bounds"
+    units: "1"
+flag_iasibad:
+  name: flag_iasibad
+  record_name: FLG_IASIBAD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_meaning: "bit field flag"
+    long_name: "Validation flag for IASI Level 1 product"
+    units: "1"
+flag_initia:
+  name: flag_initia
+  record_name: FLG_INITIA
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_meaning: "bit field flag"
+    long_name: "Indicates the measurements used in the first guess retrieval"
+    units: "1"
+flag_itconv:
+  name: flag_itconv
+  record_name: FLG_ITCONV
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_meaning: "0:Iteration did not converge-sounding rejected, 1:Iteration did not converge-sounding accepted, 2:Iteration converged-sounding accepted"
+    long_name: "Convergence of the iterative retrieval"
+    units: "1"
+flag_lansea:
+  name: flag_lansea
+  record_name: FLG_LANSEA
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    flag_values: "0b, 1b, 2b, 3b, 4b"
+    flag_meaning: "0:water, 1:land low, 2:land high, 3:land water low, 4:land water high"
+    long_name: "Specifies surface type"
+    units: "1"
+flag_mhsbad:
+  name: flag_mhsbad
+  record_name: FLG_MHSBAD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Availability and quality of MHS measurements"
+    units: "1"
+flag_numit:
+  name: flag_numit
+  record_name: FLG_NUMIT
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Number of iterations in the OEM"
+    units: "1"
+flag_nwpbad:
+  name: flag_nwpbad
+  record_name: FLG_NWPBAD
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Availability and quality of NWP measurements"
+    units: "1"
+flag_physcheck:
+  name: flag_physcheck
+  record_name: FLG_PHYSCHECK
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Indicates potential corrections for superadiabatic and supersaturation conditions"
+    units: "1"
+flag_retcheck:
+  name: flag_retcheck
+  record_name: FLG_RETCHECK
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Check that geophysical parameters from the OEM are within bounds"
+    units: "1"
+flag_satman:
+  name: flag_satman
+  record_name: FLG_SATMAN
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Indication of satellite manouevre"
+    units: "1"
+flag_sunglnt:
+  name: flag_sunglnt
+  record_name: FLG_SUNGLNT
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Identification of sun glint"
+    units: "1"
+flag_thicir:
+  name: flag_thicir
+  record_name: FLG_THICIR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "Thin cirrus cloud test"
+    units: "1"
+fractional_cloud_cover:
+  name: fractional_cloud_cover
+  record_name: FRACTIONAL_CLOUD_COVER
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "fractional cloud cover"
+    units: "%"
+    # coordinates: "lat lon cloud_formation"
+    standard_name: "cloud_area_fraction"
+    comment: "Fractional cloud cover (for 120 IFOV with up to 3 cloud formations)"
+    scale_factor: 2
+instrument_mode:
+  name: instrument_mode
+  record_name: INSTRUMENT_MODE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "GEPSIasiMode Instrument Mode Not Used Flag"
+    units: "1"
+    flag_meaning: "false true"
+    comment: "Instrument mode. This is a copy of the MDR-1C flag GEPSIasiMode as defined in the IASI L1 PFS."
+integrated_ch4:
+  name: integrated_ch4
+  record_name: INTEGRATED_CH4
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated CH4"
+    standard_name: "atmosphere_mass_content_of_methane"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated CH4 (for 120 IFOV)"
+    scale_factor: 6
+integrated_co:
+  name: integrated_co
+  record_name: INTEGRATED_CO
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated CO"
+    standard_name: "atmosphere_mass_content_of_carbon_monoxide"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated CO (for 120 IFOV)"
+    scale_factor: 7
+integrated_co2:
+  name: integrated_co2
+  record_name: INTEGRATED_CO2
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated CO2"
+    standard_name: "atmosphere_mass_content_of_carbon_monoxide"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated CO2 (for 120 IFOV)"
+    scale_factor: 3
+integrated_n2o:
+  name: integrated_n2o
+  record_name: INTEGRATED_N2O
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated N2O"
+    standard_name: "atmosphere_mass_content_of_carbon_monoxide"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated N2O (for 120 IFOV)"
+    scale_factor: 6
+integrated_ozone:
+  name: integrated_ozone
+  record_name: INTEGRATED_OZONE
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated ozone"
+    standard_name: "atmosphere_mass_content_of_ozone"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated ozone (for 120 IFOV)"
+    scale_factor: 6
+integrated_water_vapour:
+  name: integrated_water_vapour
+  record_name: INTEGRATED_WATER_VAPOUR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIL
+  metadata:
+    long_name: "integrated water vapour"
+    standard_name: "atmosphere_mass_content_of_water_vapour"
+    units: "kg.m^-2"
+    # coordinates: "lat lon"
+    comment: "Integrated ozone (for 120 IFOV)"
+    scale_factor: 2
+nerr_values:
+  name: nerr_values
+  record_name: NERR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIP
+  metadata:
+    long_name: "Number of error data records for current scan line"
+    units: "1"
+number_cloud_formations:
+  name: number_cloud_formations
+  record_name: NUMBER_CLOUD_FORMATIONS
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIP
+  metadata:
+    long_name: "number of cloud formations"
+    units: "1"
+    comment: "Number of cloud formations in IFOV"
+ozone_error:
+  name: ozone_error
+  record_name: OZONE_ERROR
+  mdr_id: mdr_1
+  band_position: 0
+  convention: BIP
+  metadata:
+    long_name: "Retrieval error covariance matrix for ozone in principal component domain"
+    units: "1"
+    comment: "Retrieval error covariance matrix for ozone in principal component domain "
+pressure_levels_humidity:
+  name: pressure_levels_humidity
+  record_name: pressure_levels_humidity
+  mdr_id: giadr_1_4
+  band_position: 0
+  convention: BIP
+  metadata:
+    long_name: "pressure levels on which humidity profiles are retrieved"
+    units: "Pa"
+    comment: "Pressure levels on which retrieved humidity  profiles are given"
+    scale_factor: 2
+pressure_levels_ozone:
+  name: pressure_levels_ozone
+  record_name: PRESSURE_LEVELS_OZONE
+  mdr_id: giadr_1_4
+  band_position: 1
+  convention: BIP
+  metadata:
+    long_name: "pressure levels on which humidity profiles are retrieved"
+    units: "Pa"
+    comment: "Pressure levels on which retrieved humidity  profiles are given"
+    scale_factor: 2
+pressure_levels_temp:
+  name: pressure_levels_temp
+  record_name: ressure_levels_temp
+  mdr_id: giadr_1_4
+  band_position: 1
+  convention: BIP
+  metadata:
+    long_name: "pressure levels on which humidity profiles are retrieved"
+    units: "Pa"
+    comment: "Pressure levels on which retrieved humidity  profiles are given"
+    scale_factor: 2
+record_start_time:
+  metadata:
+    long_name: "Record start time from the Generic Record Header of the MDR"
+    units: "s"
+    scale_factor: 0
+record_stop_time:
+  metadata:
+    long_name: "Record stop time from the Generic Record Header of the MDR"
+    units: "s"
+    scale_factor: 0
+satellite_azimuth:
+  name: satellite_azimuth
+  record_name: ANGULAR_RELATION
+  mdr_id: mdr_1
+  band_position: 4
+  convention: BIL
+  metadata:
+    long_name: "angular relation for the earth view: satellite azimuth"
+    units: "degrees"
+    scale_factor: 2
+satellite_zenith:
+  name: satellite_zenith
+  record_name: ANGULAR_RELATION
+  mdr_id: mdr_1
+  band_position: 2
+  convention: BIL
+  metadata:
+    long_name: "angular relation for the earth view: satellite zenith"
+    units: "degrees"
+    scale_factor: 2
+solar_azimuth:
+  name: solar_azimuth
+  record_name: ANGULAR_RELATION
+  mdr_id: mdr_1
+  band_position: 3
+  convention: BIL
+  metadata:
+    long_name: "angular relation for the earth view: solar azimuth"
+    units: "degrees"
+    scale_factor: 2
+solar_zenith:
+  name: solar_zenith
+  record_name: ANGULAR_RELATION
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    long_name: "angular relation for the earth view: solar zenith"
+    units: "degrees"
+    scale_factor: 2
+spacecraft_altitude:
+  name: spacecraft_altitude
+  record_name: SPACECRAFT_ALTITUDE
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    comment: "Spacecraft Altitude Above Reference Geoid (MSL) "
+    long_name: "spacecraft altitude"
+    units: "km"
+    scale_factor: 1
+surface_emissivity:
+  name: surface_emissivity
+  record_name: SURFACE_EMISSIVITY
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    long_name: "surface emissivity"
+    units: "1"
+    standard_name: "surface_longwave_emissivity"
+    # coordinates: "lat lon surface_emissivity_wavelengths"
+    comment: "Surface emissivity (for 120 IFOV with up to 20 wavelengths)"
+    scale_factor: 4
+surface_emissivity_wavelengths:
+  name: surface_emissivity_wavelengths
+  record_name: SURFACE_EMISSIVITY_WAVELENGTHS
+  mdr_id: giadr_1_4
+  band_position: 1
+  convention: BIL
+  metadata:
+    long_name: "wavelengths for surface emissivity"
+    units:  "um"
+    standard_name: "surface_longwave_emissivity"
+    comment: "Wavelengths for surface emissivity"
+    scale_factor: 4
+surface_pressure:
+  name: surface_pressure
+  record_name: SURFACE_PRESSURE
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    long_name: "surface pressure"
+    units: "Pa"
+    # coordinates: "lat lon"
+    standard_name: "surface_air_pressure"
+    comment: "Surface pressure"
+    scale_factor: 0
+surface_temperature:
+  name: surface_temperature
+  record_name: SURFACE_TEMPERATURE
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    long_name: "surface temperature"
+    units: "K"
+    standard_name: "surface_temperature"
+    # coordinates: "lat lon"
+    comment: "Surface temperature (for 120 IFOV and up to 2 temperatures)"
+    scale_factor: 2
+surface_z:
+  name: surface_z
+  record_name: SURFACE_Z
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    missing_value: 32767S
+    long_name: "Altitude of surface "
+    units: "m"
+    comment: "Altitude of surface "
+temperature_error:
+  name: temperature_error
+  record_name: TEMPERATURE_ERROR
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    missing_value: -2147483646
+    long_name: "Retrieval error covariance matrix for temperature in principal component domain.  "
+    units: "1"
+    comment: "Retrieval error covariance matrix for temperature in principal component domain"
+water_vapour_error:
+  name: water_vapour_error
+  record_name: TEMPERATURE_ERROR
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIL
+  metadata:
+    missing_value: -2147483646
+    long_name: "Retrieval error covariance matrix for water-vapour in principal component domain "
+    units: "1"
+    comment: "Retrieval error covariance matrix for water-vapour in principal component domain"
+lat:
+  name: latitude
+  record_name: EARTH_LOCATION
+  mdr_id: mdr_1
+  band_position: 1
+  convention: BIP
+  metadata:
+    long_name: "grid_latitude"
+    standard_name: "latitude"
+    units: "degrees_north"
+    scale_factor: 4
+lon:
+  name: longitude
+  record_name: EARTH_LOCATION
+  mdr_id: mdr_1
+  band_position: 2
+  convention: BIP
+  metadata:
+    long_name: "grid_longitude"
+    standard_name: "longitude"
+    units: "degrees_east"
+    scale_factor: 4

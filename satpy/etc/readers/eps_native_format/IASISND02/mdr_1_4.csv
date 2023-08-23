@@ -1,0 +1,94 @@
+FIELD,DESCRIPTION,SF,UNITS,DIM1,DIM2,DIM3,TYPE,TYPE SIZE,FIELD SIZE,OFFSET
+RECORD_HEADER,Generic record header,,,1,1,1,REC_HEAD,20,20,0
+DEGRADED_INST_MDR,Quality of MDR has been degraded from nominal due to an instrument degradation,,,1,1,1,boolean,1,1,20
+DEGRADED_PROC_MDR,Quality of MDR has been degraded from nominal due to a processing degradation,,,1,1,1,boolean,1,1,21
+FG_ATMOSPHERIC_TEMPERATURE,A-priori temperature profile (for 120 FOV with up to 101 vertical levels),2,K,101,120,1,u-integer2,2,24240,22
+FG_ATMOSPHERIC_WATER_VAPOUR,A-priori water vapour profile (for 30 EFOV with up to 101 vertical levels),7,kg/kg,101,120,1,u-integer4,4,48480,24262
+FG_ATMOSPHERIC_OZONE,A-priori ozone profile (for 30 EFOV with up to 101 vertical levels),8,kg/kg,101,120,1,u-integer2,2,24240,72742
+FG_SURFACE_TEMPERATURE,A-priori surface skin temperature,2,K,120,1,1,u-integer2,2,240,96982
+FG_QI_ATMOSPHERIC_TEMPERATURE,Quality indicator for a-priori temperature profile,1,,120,1,1,u-byte,1,120,97222
+FG_QI_ATMOSPHERIC_WATER_VAPOUR,Quality indicator for a-priori water vapour profile,1,,120,1,1,u-byte,1,120,97342
+FG_QI_ATMOSPHERIC_OZONE,Quality indicator for a-priori ozone profile,1,,120,1,1,u-byte,1,120,97462
+FG_QI_SURFACE_TEMPERATURE,Quality indicator for a-priori surface skin temperature,1,,120,1,1,u-byte,1,120,97582
+ATMOSPHERIC_TEMPERATURE,Temperature (for 120 IFOV with up to 101 vertical levels),2,K,101,120,1,u-integer2,2,24240,97702
+ATMOSPHERIC_WATER_VAPOUR,Water vapour (for 120 IFOV with up to 101 vertical levels),7,kg/kg,101,120,1,u-integer4,4,48480,121942
+ATMOSPHERIC_OZONE,Ozone (for 120 IFOV with up to 101 vertical levels),8,kg/kg,101,120,1,u-integer2,2,24240,170422
+SURFACE_TEMPERATURE,Surface temperature (for 120 IFOV),2,K,120,1,1,u-integer2,2,240,194662
+INTEGRATED_WATER_VAPOUR,Integrated water vapour (for 120 IFOV),2,kg.m^-2,120,1,1,u-integer2,2,240,194902
+INTEGRATED_OZONE,Integrated ozone (for 120 IFOV),6,kg.m^-2,120,1,1,u-integer2,2,240,195142
+INTEGRATED_N2O,Integrated N20 (for 120 IFOV),6,kg.m^-2,120,1,1,u-integer2,2,240,195382
+INTEGRATED_CO,Integrated CO (for 120 IFOV),7,kg.m^-2,120,1,1,u-integer2,2,240,195622
+INTEGRATED_CH4,Integrated CH4 (for 120 IFOV),6,kg.m^-2,120,1,1,u-integer2,2,240,195862
+INTEGRATED_CO2,Integrated CO2 ( for 120 IFOV),3,kg.m^-2,120,1,1,u-integer2,2,240,196102
+SURFACE_EMISSIVITY,Surface emissivity (for 120 IFOV with up to 20 wavelengths),4,,12,120,1,u-integer2,2,2880,196342
+NUMBER_CLOUD_FORMATIONS,Number of cloud formations in IFOV,0,,120,1,1,u-byte,1,120,199222
+FRACTIONAL_CLOUD_COVER,Fractional cloud cover (for 120 IFOV with up to 3 cloud formations),2,%,3,120,1,u-integer2,2,720,199342
+CLOUD_TOP_TEMPERATURE,Cloud top temperature (for 120 IFOV with up to 3 cloud formations),2,K,3,120,1,u-integer2,2,720,200062
+CLOUD_TOP_PRESSURE,Cloud top pressure (for 120 IFOV with up to 3 cloud formations),0,Pa,3,120,1,u-integer4,4,1440,200782
+CLOUD_PHASE,"Cloud Phase (for 120 IFOV with up to 3 cloud formations) (0 = no cloud, 1 = liquid, 2 = ice, 3 = mixed, 255 = undefined)",0,,3,120,1,enumerated,1,360,202222
+SURFACE_PRESSURE,Surface pressure,0,Pa,120,1,1,u-integer4,4,480,202582
+INSTRUMENT_MODE,Instrument mode. This is a copy of the MDR-1C flag GEPSIasiMode as defined in the IASI L1 PFS.,0,,1,1,1,enumerated,1,1,203062
+SPACECRAFT_ALTITUDE,Spacecraft Altitude Above Reference Geoid (MSL) ,1,km,1,1,1,u-integer4,4,4,203063
+ANGULAR_RELATION,"Angular relationships: solar zenith angle, satellite zenith angle, solar azimuth angle, satellite azimuth angle for 120 IFOV ",2,deg,4,120,1,integer2,2,960,203067
+EARTH_LOCATION,"Earth Location: latitude, longitude of surface footprint (for 120 IFOV)",4,deg,2,120,1,integer4,4,960,204027
+FLG_AMSUBAD,Availability and quality of AMSU measurements,,,120,1,1,enumerated,1,120,204987
+FLG_AVHRRBAD,Availability and quality of AVHRR measurements,,,120,1,1,enumerated,1,120,205107
+FLG_CLDFRM,Origin of characterisation of the cloud formations,,,120,1,1,bitst(8),1,120,205227
+FLG_CLDNES,Cloudiness assessment summary,,,120,1,1,enumerated,1,120,205347
+FLG_CLDTST,Details of cloud tests exectued and their results,,,120,1,1,bitst(16),2,240,205467
+FLG_DAYNIT,Discrimination between day and night,,,120,1,1,enumerated,1,120,205707
+FLG_DUSTCLD,Indicates presence of dust clouds in the IFOV,,,120,1,1,enumerated,1,120,205827
+FLG_FGCHECK,Check that geophysical parameters from the first guess are within bounds,,,120,1,1,bitst(16),2,240,205947
+FLG_IASIBAD,Availability and quality of IASI L1 measurements,,,120,1,1,enumerated,1,120,206187
+FLG_INITIA,Indicates the measurements used in the first guess retrieval,,,120,1,1,bitst(8),1,120,206307
+FLG_ITCONV,Convergence and acceptance of the OEM result,,,120,1,1,enumerated,1,120,206427
+FLG_LANSEA,Specifies surface type,,,120,1,1,enumerated,1,120,206547
+FLG_MHSBAD,Availability and quality of MHS measurements,,,120,1,1,enumerated,1,120,206667
+FLG_NUMIT,Number of iterations in the OEM,0,,120,1,1,u-byte,1,120,206787
+FLG_NWPBAD,Availability and quality of NWP data,,,120,1,1,enumerated,1,120,206907
+FLG_PHYSCHECK,Indicates potential corrections for superadiabatic and supersaturation conditions,,,120,1,1,bitst(8),1,120,207027
+FLG_RETCHECK,Check that geophysical parameters from the OEM are within bounds,,,120,1,1,bitst(16),2,240,207147
+FLG_SATMAN,Indication of satellite manouevre,,,120,1,1,enumerated,1,120,207387
+FLG_SUNGLNT,Identification of sun glint,,,120,1,1,enumerated,1,120,207507
+FLG_THICIR,Thin cirrus cloud test,,,120,1,1,enumerated,1,120,207627
+NERR,Number of error data records for current scan line,0,,1,1,1,u-byte,1,1,207747
+ERROR_DATA_INDEX,Index of the error data record corresponding to the IFOVs in the line (=255 if N/A),,,120,1,1,u-byte,1,120,207748
+TEMPERATURE_ERROR,Retrieval error covariance matrix for temperature in principal component domain,,,406,nerr,1,bitst(32),4,,
+WATER_VAPOUR_ERROR,Retrieval error covariance matrix for water-vapour in principal component domain,,,171,nerr,1,bitst(32),4,,
+OZONE_ERROR,Retrieval error covariance matrix for ozone in principal component domain,,,55,nerr,1,bitst(32),4,,
+SURFACE_Z,Altitude of surface ,0,m,120,1,1,integer2,2,240,
+CO_QFLAG,General retrieval quality flag,,,120,1,1,enumerated,1,120,
+CO_BDIV,Retrieval flags,,,120,1,1,bitst(32),4,480,
+CO_NPCA,Number of vectors describing the characterization matrices,0,,120,1,1,u-byte,1,120,
+CO_NFITLAYERS,Number of layers actually retrieved,0,,120,1,1,u-byte,1,120,
+CO_NBR,Number of CO profiles retrieved in scanline,0,,1,1,1,u-byte,1,1,
+CO_CP_AIR,Air partial columns on each retrieved layer,-20,molecules/cm2,19,co_nbr,1,u-integer2,2,,
+CO_CP_CO_A,A-priori partial columns for CO en each retrieved layer,-13,molecules/cm2,19,co_nbr,1,u-integer2,2,,
+CO_X_CO,Scaling vector multiplying the a-priori CO vector in order to define the retrieved CO vector. ,,,19,co_nbr,1,v-uinteger2,3,,
+CO_H_EIGENVALUES,Main eigenvalues of the sensitivity matrix,,,10,co_nbr,1,v-integer4,5,,
+CO_H_EIGENVECTORS,Main eigenvectors of the sensitivity matrix,,,190,co_nbr,1,v-integer4,5,,
+HNO3_QFLAG,General retrieval quality flag,,,120,1,1,enumerated,1,120,
+HNO3_BDIV,Retrieval flags,,,120,1,1,bitst(32),4,480,
+HNO3_NPCA,Number of vectors describing the characterization matrices,0,,120,1,1,u-byte,1,120,
+HNO3_NFITLAYERS,Number of layers actually retrieved,0,,120,1,1,u-byte,1,120,
+HNO3_NBR,Number of HNO3 profiles retrieved in scanline,0,,1,1,1,u-byte,1,1,
+HNO3_CP_AIR,Air partial columns on each retrieved layer,-20,molecules/cm2,19,hno3_nbr,1,u-integer2,2,,
+HNO3_CP_HNO3_A,A-priori partial columns for HNO3 in each retrieved layer,-11,molecules/cm2,19,hno3_nbr,1,u-integer2,2,,
+HNO3_X_HNO3,Scaling vector multiplying the a-priori HNO3 vector in order to define the retrieved HNO3 vector. ,,,19,hno3_nbr,1,v-uinteger2,3,,
+HNO3_H_EIGENVALUES,Main eigenvalues of the sensitivity matrix,,,10,hno3_nbr,1,v-integer4,5,,
+HNO3_H_EIGENVECTORS,Main eigenvectors of the sensitivity matrix,,,190,hno3_nbr,1,v-integer4,5,,
+O3_QFLAG,General retrieval quality flag,,,120,1,1,enumerated,1,120,
+O3_BDIV,Retrieval flags,,,120,1,1,bitst(32),4,480,
+O3_NPCA,Number of vectors describing the characterization matrices,0,,120,1,1,u-byte,1,120,
+O3_NFITLAYERS,Number of layers actually retrieved,0,,120,1,1,u-byte,1,120,
+O3_NBR,Number of O3 profiles retrieved in scanline,0,,1,1,1,u-byte,1,1,
+O3_CP_AIR,Air partial columns on each retrieved layer,-20,molecules/cm2,40,o3_nbr,1,u-integer2,2,,
+O3_CP_O3_A,A-priori partial columns for O3 en each retrieved layer,-14,molecules/cm2,40,o3_nbr,1,u-integer2,2,,
+O3_X_O3,Scaling vector multiplying the a-priori O3 vector in order to define the retrieved O3 vector. ,,,40,o3_nbr,1,v-uinteger2,3,,
+O3_H_EIGENVALUES,Main eigenvalues of the sensitivity matrix,,,20,o3_nbr,1,v-integer4,5,,
+O3_H_EIGENVECTORS,Main eigenvectors of the sensitivity matrix,,,800,o3_nbr,1,v-integer4,5,,
+SO2_QFLAG,General retrieval quality flag,,,120,1,1,enumerated,1,120,
+SO2_COL_AT_ALTITUDES,SO2 column for a plume at different estimated altitudes,1,DU,5,120,1,u-integer2,2,1200,
+SO2_ALTITUDE,Retrieved plume altitude ,0,m,120,1,1,u-integer2,2,240,
+SO2_COL,SO2 column at the retrieved plume altitude from an OEM approach,1,DU,120,1,1,u-integer2,2,240,
+SO2_BT_DIFFERENCE,Indicative brightness temperature difference,2,K,120,1,1,integer2,2,240,

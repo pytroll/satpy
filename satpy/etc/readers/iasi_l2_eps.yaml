@@ -1,0 +1,22 @@
+reader:
+  name: iasi_l2_eps
+  short_name: IASI l2 EPS
+  long_name:   IASI Combined Sounding Products - Metop
+  description: >
+    Reader for IASI Combined Sounding Products - Metop files.
+    Data and documentation are available
+    from https://data.eumetsat.int/product/EO:EUM:DAT:METOP:IASSND02 and
+    from the EUMETSAT Data Store under ID EO:EUM:DAT:METOP:IASSND02.
+  status: Alpha
+  supports_fsspec: False
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [iasi]
+  default_datasets:
+
+file_types:
+  iasi_l2_eps:
+    file_reader: !!python/name:satpy.readers.iasi_l2_eps.EPSIASIL2FileHandler
+    # see https://www.eumetsat.int/media/40048 §7 for file pattern
+    file_patterns:
+        - IASI_SND_02_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}
+        - IASI_SND_02_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.nat
