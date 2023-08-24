@@ -103,6 +103,17 @@ composites:
     - wavelength: 0.85
     standard_name: toa_reflectance
 
+  ndvi_hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    prerequisites:
+      - name: B02
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: B03
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: B04
+        modifiers: [ sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
   airmass:
     # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
     # Under session 2 by Akihiro Shimizu (JMA)
@@ -257,6 +268,17 @@ composites:
     - name: hybrid_green
     - name: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+  true_color_ndvi_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: ndvi_hybrid_green
+      - name: B01
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
     high_resolution_band: red
     standard_name: true_color
 
@@ -476,32 +498,8 @@ composites:
     lim_high: 82
     standard_name: geo_color_day_night_blend
     prerequisites:
-      - geo_color_true_color
+      - true_color_ndvi_green
       - geo_color_night
-
-  # GeoColor Daytime
-  geo_color_green:
-    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
-    limits: [0.15, 0.05]
-    prerequisites:
-      - name: B02
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
-      - name: B03
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
-      - name: B04
-        modifiers: [ sunz_corrected ]
-    standard_name: toa_bidirectional_reflectance
-
-  geo_color_true_color:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
-    prerequisites:
-      - name: B03
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
-      - name: geo_color_green
-      - name: B01
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
-    high_resolution_band: red
-    standard_name: true_color
 
   # GeoColor Night-time
   geo_color_high_clouds:
