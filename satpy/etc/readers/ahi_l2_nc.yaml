@@ -1,0 +1,21 @@
+reader:
+  name: ahi_l2_nc
+  short_name: AHI L2 NetCDF4
+  long_name: Himawari-8/9 AHI Level 2 products in netCDF4 format from NOAA enterprise
+  status: Beta
+  supports_fsspec: true
+  sensors: ['ahi']
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+    ahi_l2_cloudmask:
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.HIML2NCFileHandler
+        file_patterns:
+         - '{sensor:3s}-{product:_4s}_{version:4s}_{platform:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+datasets:
+  cloudmask:
+    name: cloudmask
+    file_key: CloudMask
+    file_type: [ ahi_l2_cloudmask ]
