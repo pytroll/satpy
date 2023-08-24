@@ -177,17 +177,19 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=60., strength=2.0, **kwargs):
+    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            correction_limit (float): Maximum solar zenith angle to apply the correction in degrees. Default 60.
-            strength (float): The strength of the non-linear signal reduction. Default 2.0
+            correction_limit (float): Solar zenith angle in degrees where to start the signal reduction. Default 60.
+            max_sza (float): Maximum solar zenith angle in degrees where to apply the signal reduction. Beyond
+                             this solar zenith angle the signal will become zero. Default 90.
+            strength (float): The strength of the non-linear signal reduction. Default 1.5
 
         """
         self.correction_limit = correction_limit
         self.strength = strength
-        super(SunZenithReducer, self).__init__(**kwargs)
+        super(SunZenithReducer, self).__init__(max_sza=max_sza, **kwargs)
 
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply sun-zenith signal reduction")
