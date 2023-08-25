@@ -156,6 +156,35 @@ class TestSunZenithCorrector:
             comp((sunz_ds2, sunz_sza), test_attr='test')
 
 
+class TestSunZenithReducer:
+    """Test case for the sun zenith reducer."""
+
+    def test_basic_default_provided(self, sunz_ds1, sunz_sza):
+        """Test default settings with sza data available."""
+        from satpy.modifiers.geometry import SunZenithReducer
+        comp = SunZenithReducer(name='sza_reduction_test_default', modifiers=tuple())
+        res = comp((sunz_ds1, sunz_sza), test_attr='test')
+        np.testing.assert_allclose(res.values,
+                                   np.array([[0.00242814, 0.00235669], [0.00245885, 0.00238707]]),
+                                   rtol=1e-5)
+
+    def test_basic_lims_provided(self, sunz_ds1, sunz_sza):
+        """Test custom settings with sza data available."""
+        from satpy.modifiers.geometry import SunZenithReducer
+        comp = SunZenithReducer(name='sza_reduction_test_custom', modifiers=tuple(),
+                                correction_limit=70, max_sza=95, strength=3.0)
+        res = comp((sunz_ds1, sunz_sza), test_attr='test')
+        np.testing.assert_allclose(res.values,
+                                   np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]]),
+                                   rtol=1e-5)
+
+    def test_invalid_max_sza(self, sunz_ds1, sunz_sza):
+        """Test invalid max_sza with sza data available."""
+        from satpy.modifiers.geometry import SunZenithReducer
+        with pytest.raises(ValueError):
+            SunZenithReducer(name='sza_reduction_test_invalid', modifiers=tuple(), max_sza=None)
+
+
 class TestNIRReflectance(unittest.TestCase):
     """Test NIR reflectance compositor."""
 
