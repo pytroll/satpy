@@ -22,8 +22,11 @@ AHI-CMSK_v1r1_h09_s202308240540213_e202308240549407_c202308240557548.nc
 
 The second letter grouping (CMSK above) indicates the product type:
     CMSK - Cloud mask
+
     CHGT - Cloud height
+
     CPHS - Cloud type and phase
+
 These products are generated from the AHI sensor on Himawari-8 and Himawari-9, and are
 produced at the native instrument resolution for the IR channels (2km at nadir).
 
