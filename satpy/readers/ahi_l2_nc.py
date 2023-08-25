@@ -109,8 +109,8 @@ class HIML2NCFileHandler(BaseFileHandler):
         return self.area
 
     def _get_area_def(self):
-        logger.warning('This product misses metadata required to produce an appropriate area definition.'
-                       'Assuming standard Himawari-8/9 full disk projection.')
+        logger.warning('The AHI L2 cloud products do not have the metadata required to produce an area definition.'
+                       ' Assuming standard Himawari-8/9 full disk projection.')
 
         # Basic check to ensure we're processing a full disk (2km) scene.n
         if self.nlines != 5500 or self.ncols != 5500:
