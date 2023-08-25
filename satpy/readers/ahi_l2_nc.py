@@ -106,7 +106,7 @@ class HIML2NCFileHandler(BaseFileHandler):
         aex = get_area_extent(pdict)
 
         pdict['a_name'] = 'Himawari_Area'
-        pdict['a_desc'] = "AHI Full Disk  area"
+        pdict['a_desc'] = "AHI Full Disk area"
         pdict['p_id'] = f'geos{self.platform_shortname}'
 
         return get_area_definition(pdict, aex)
