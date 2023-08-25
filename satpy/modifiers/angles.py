@@ -548,9 +548,9 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
 
 def sunzen_reduction(data: da.Array,
                      sunz: da.Array,
-                     limit: float = 65.,
-                     max_sza: float = 95.,
-                     strength: float = 2.) -> da.Array:
+                     limit: float = 55.,
+                     max_sza: float = 90.,
+                     strength: float = 1.5) -> da.Array:
     """Reduced strength of signal at high sun zenith angles."""
     return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
                          meta=np.array((), dtype=data.dtype), chunks=data.chunks)
