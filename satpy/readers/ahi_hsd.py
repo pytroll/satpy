@@ -622,8 +622,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         chunks = da.core.normalize_chunks("auto",
                                           shape=(nlines, ncols),
                                           limit=get_chunk_size_limit(),
-                                          dtype='f8',
-                                          previous_chunks=(550, 550))
+                                          dtype='f8')
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
                              chunks=chunks)
