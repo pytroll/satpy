@@ -561,9 +561,6 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
                               limit: float,
                               max_sza: float,
                               strength: float) -> np.ndarray:
-    if max_sza is None:
-        raise ValueError("`max_sza` must be defined when using the SunZenithReducer.")
-
     # compute reduction factor (0.0 - 1.0) between limit and maz_sza
     reduction_factor = (sunz - limit) / (max_sza - limit)
     reduction_factor = reduction_factor.clip(0., 1.)
