@@ -74,7 +74,7 @@ def test_startend(himl2_filename):
 
 def test_ahi_l2_area_def(himl2_filename, caplog):
     """Test reader handles area definition correctly."""
-    warntxt = "This product misses metadata"
+    warntxt = "The AHI L2 cloud products do not have the metadata"
     ps = '+proj=geos +lon_0=140.7 +h=35785863 +x_0=0 +y_0=0 +a=6378137 +rf=298.257024882273 +units=m +no_defs +type=crs'
 
     # Check case where input data is correct size.
