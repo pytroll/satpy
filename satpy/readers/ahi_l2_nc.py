@@ -90,18 +90,13 @@ class HIML2NCFileHandler(BaseFileHandler):
     def _get_area_def(self):
         logger.warning('This product misses metadata required to produce an appropriate area definition.'
                        'Assuming standard Himawari-8/9 full disk projection.')
-        pdict = {}
-        pdict['cfac'] = 20466275
-        pdict['lfac'] = 20466275
-        pdict['coff'] = 2750.5
-        pdict['loff'] = 2750.5
-        pdict['a'] = 6378137.0
-        pdict['h'] = 35785863.0
-        pdict['b'] = 6356752.3
-        pdict['ssp_lon'] = 140.7
-        pdict['nlines'] = self.nlines
-        pdict['ncols'] = self.ncols
-        pdict['scandir'] = 'N2S'
+
+        # Basic check to ensure we're processing a full disk (2km) scene.
+        if self.nlines != 5500 or self.ncols != 5500:
+            raise ValueError("Input L2 file is not a full disk Himawari scene. Only full disk data is supported.")
+
+        pdict = {'cfac': 20466275, 'lfac': 20466275, 'coff': 2750.5, 'loff': 2750.5, 'a': 6378137.0, 'h': 35785863.0,
+                 'b': 6356752.3, 'ssp_lon': 140.7, 'nlines': self.nlines, 'ncols': self.ncols, 'scandir': 'N2S'}
 
         aex = get_area_extent(pdict)
 
