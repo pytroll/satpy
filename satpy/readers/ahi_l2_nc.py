@@ -37,7 +37,7 @@ EXPECTED_DATA_AREA = 'Full Disk'
 class HIML2NCFileHandler(BaseFileHandler):
     """File handler for Himawari L2 NOAA enterprise data in netCDF format."""
 
-    def __init__(self, filename, filename_info, filetype_info, geo_data=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
         super(HIML2NCFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info)
@@ -91,7 +91,7 @@ class HIML2NCFileHandler(BaseFileHandler):
         logger.warning('This product misses metadata required to produce an appropriate area definition.'
                        'Assuming standard Himawari-8/9 full disk projection.')
 
-        # Basic check to ensure we're processing a full disk (2km) scene.
+        # Basic check to ensure we're processing a full disk (2km) scene.n
         if self.nlines != 5500 or self.ncols != 5500:
             raise ValueError("Input L2 file is not a full disk Himawari scene. Only full disk data is supported.")
 
