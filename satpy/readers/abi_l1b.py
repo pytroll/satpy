@@ -22,11 +22,11 @@ The files read by this reader are described in the official PUG document:
     https://www.goes-r.gov/users/docs/PUG-L1b-vol3.pdf
 
 """
-
 import logging
 
 import numpy as np
 
+import satpy
 from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
@@ -35,9 +35,17 @@ logger = logging.getLogger(__name__)
 class NC_ABI_L1B(NC_ABI_BASE):
     """File reader for individual ABI L1B NetCDF4 files."""
 
+    def __init__(self, filename, filename_info, filetype_info, clip_negative_radiances=None):
+        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
+        super().__init__(filename, filename_info, filetype_info)
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("readers.clip_negative_radiances")
+        self.clip_negative_radiances = clip_negative_radiances
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key['name'])
+
         # For raw cal, don't apply scale and offset, return raw file counts
         if key['calibration'] == 'counts':
             radiances = self.nc['Rad'].copy()
@@ -139,12 +147,26 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs['standard_name'] = 'toa_bidirectional_reflectance'
         return res
 
+    def _get_minimum_radiance(self, data):
+        """Estimate minimum radiance from Rad DataArray."""
+        attrs = data.attrs
+        scale_factor = attrs["scale_factor"]
+        add_offset = attrs["add_offset"]
+        count_zero_rad = - add_offset / scale_factor
+        count_pos = np.ceil(count_zero_rad)
+        min_rad = count_pos * scale_factor + add_offset
+        return min_rad
+
     def _ir_calibrate(self, data):
         """Calibrate IR channels to BT."""
         fk1 = float(self["planck_fk1"])
         fk2 = float(self["planck_fk2"])
         bc1 = float(self["planck_bc1"])
         bc2 = float(self["planck_bc2"])
+
+        if self.clip_negative_radiances:
+            min_rad = self._get_minimum_radiance(data)
+            data = data.clip(min=min_rad)
 
         res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs

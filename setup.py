@@ -39,7 +39,7 @@ test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
                  's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
-                 'skyfield', 'ephem', 'pint-xarray', 'astropy']
+                 'skyfield', 'ephem', 'pint-xarray', 'astropy', 'dask-image']
 
 extras_require = {
     # Readers:
@@ -67,6 +67,7 @@ extras_require = {
     'hsaf_grib': ['pygrib'],
     'remote_reading': ['fsspec'],
     'insat_3d': ['xarray-datatree'],
+    'gms5-vissr_l1b': ["numba"],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
@@ -76,6 +77,7 @@ extras_require = {
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
     'angles': ['pyorbital >= 1.3.1'],
+    'filters': ['dask-image'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
