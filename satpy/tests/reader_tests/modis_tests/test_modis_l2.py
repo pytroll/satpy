@@ -26,8 +26,8 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from satpy import Scene, available_readers
+from satpy.tests.utils import CustomScheduler, make_dataid
 
-from ..utils import CustomScheduler, make_dataid
 from ._modis_fixtures import _shape_for_resolution
 
 # NOTE:
