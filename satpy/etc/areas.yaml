@@ -300,21 +300,21 @@ himawari_ahi_fes_1km:
     lower_left_xy: [-5500000.0355, -5500000.0355]
     upper_right_xy: [5500000.0355, 5500000.0355]
 
-  himawari_ahi_fes_2km:
-    description:
-      Himawari-8/9 full disk area definition at 2km resolution
-    projection:
-      proj: geos
-      lon_0: 140.7
-      a: 6378137.0
-      rf: 298.257024882273
-      h: 35785863.0
-    shape:
-      height: 5500
-      width: 5500
-    area_extent:
-      lower_left_xy: [ -5499999.9012, -5499999.9012 ]
-      upper_right_xy: [ 5499999.9012, 5499999.9012 ]
+himawari_ahi_fes_2km:
+  description:
+    Himawari-8/9 full disk area definition at 2km resolution
+  projection:
+    proj: geos
+    lon_0: 140.7
+    a: 6378137.0
+    rf: 298.257024882273
+    h: 35785863.0
+  shape:
+    height: 5500
+    width: 5500
+  area_extent:
+    lower_left_xy: [ -5499999.9012, -5499999.9012 ]
+    upper_right_xy: [ 5499999.9012, 5499999.9012 ]
 
 
 # Regional
