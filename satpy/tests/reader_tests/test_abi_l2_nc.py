@@ -125,7 +125,7 @@ class Test_NC_ABI_L2_get_dataset:
     def test_get_dataset_gfls(self):
         """Test that Low Cloud and Fog filenames work."""
         from satpy.tests.utils import make_dataid
-        filename_info = {'platform_shortname': 'GOES16', 'scene_abbr': 'FD'}
+        filename_info = {'platform_shortname': 'g16', 'scene_abbr': 'FD'}
         key = make_dataid(name='MVFR_Fog_Prob')
         with _create_reader_for_fake_data("GFLS", _create_cmip_dataset("MVFR_Fog_Prob"), filename_info) as reader:
             res = reader.get_dataset(key, {'file_key': 'MVFR_Fog_Prob'})
