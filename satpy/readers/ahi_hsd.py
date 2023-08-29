@@ -616,13 +616,14 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         return header
 
-    def _read_data(self, fp_, header):
+    def _read_data(self, fp_, header, resolution):
         """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
+        chunk_size = CHUNK_SIZE * (500 / resolution)
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
-                             chunks=CHUNK_SIZE)
+                             chunks=chunk_size)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data."""
@@ -638,7 +639,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Read the data."""
         with open(self.filename, "rb") as fp_:
             self._header = self._read_header(fp_)
-            res = self._read_data(fp_, self._header)
+            res = self._read_data(fp_, self._header, key["resolution"])
         res = self._mask_invalid(data=res, header=self._header)
         res = self.calibrate(res, key['calibration'])
 
@@ -667,7 +668,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             units=ds_info['units'],
             standard_name=ds_info['standard_name'],
             wavelength=ds_info['wavelength'],
-            resolution='resolution',
+            resolution=ds_info['resolution'],
             id=key,
             name=key['name'],
             platform_name=self.platform_name,

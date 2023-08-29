@@ -34,13 +34,13 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
-    'G16': 'GOES-16',
-    'G17': 'GOES-17',
-    'G18': 'GOES-18',
-    'G19': 'GOES-19',
-    'GOES16': 'GOES-16',
-    'GOES17': 'GOES-17',
-    'GOES18': 'GOES-18',
+    'g16': 'GOES-16',
+    'g17': 'GOES-17',
+    'g18': 'GOES-18',
+    'g19': 'GOES-19',
+    'goes16': 'GOES-16',
+    'goes17': 'GOES-17',
+    'goes18': 'GOES-18',
 }
 
 
@@ -52,7 +52,7 @@ class NC_ABI_BASE(BaseFileHandler):
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
 
         platform_shortname = filename_info['platform_shortname']
-        self.platform_name = PLATFORM_NAMES.get(platform_shortname)
+        self.platform_name = PLATFORM_NAMES.get(platform_shortname.lower())
 
         self.nlines = self.nc['y'].size
         self.ncols = self.nc['x'].size
