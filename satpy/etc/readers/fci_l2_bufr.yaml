@@ -58,7 +58,7 @@ datasets:
     name: temperature
     resolution: 32000
     file_type: fci_l2_bufr_amv
-    key: '#1#temperature'
+    key: '#1#airTemperature'
     long_name: Temperature of AMV feature
     standard_name: temperature_at_wind_level
     units: K
@@ -71,7 +71,7 @@ datasets:
     name: height
     resolution: 32000
     file_type: fci_l2_bufr_amv
-    key: 'heightOfTopOfCloud'
+    key: '#1#heightOfTopOfCloud'
     long_name: Height of AMV feature
     standard_name: height_at_wind_level
     units: m
@@ -154,8 +154,6 @@ datasets:
     key: '#19#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 3.8um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 0
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -170,8 +168,6 @@ datasets:
     key: '#20#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 3.8um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 0
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -186,8 +182,6 @@ datasets:
     key: '#21#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 3.8um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 0
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -202,8 +196,6 @@ datasets:
     key: '#25#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 6.3um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 1
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -218,8 +210,6 @@ datasets:
     key: '#26#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 6.3um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 1
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -234,8 +224,6 @@ datasets:
     key: '#27#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 6.3um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 1
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -250,8 +238,6 @@ datasets:
     key: '#31#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 7.3um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 2
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -266,8 +252,6 @@ datasets:
     key: '#32#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 7.3um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 2
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -282,8 +266,6 @@ datasets:
     key: '#33#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 7.3um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 2
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -298,8 +280,6 @@ datasets:
     key: '#37#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 8.7um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 3
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -314,8 +294,6 @@ datasets:
     key: '#38#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 8.7um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 3
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -330,8 +308,6 @@ datasets:
     key: '#39#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 8.7um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 3
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -346,8 +322,6 @@ datasets:
     key: '#43#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 9.7um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 4
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -362,8 +336,6 @@ datasets:
     key: '#44#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 9.7um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 4
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -378,8 +350,6 @@ datasets:
     key: '#45#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 9.7um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 4
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -394,8 +364,6 @@ datasets:
     key: '#49#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 10.5um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 5
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -410,8 +378,6 @@ datasets:
     key: '#50#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 10.5um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 5
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -426,8 +392,6 @@ datasets:
     key: '#51#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 10.5um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 5
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -442,8 +406,6 @@ datasets:
     key: '#55#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 12.3um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 6
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -458,8 +420,6 @@ datasets:
     key: '#56#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 12.3um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 6
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -474,8 +434,6 @@ datasets:
     key: '#57#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 12.3um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 6
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -490,8 +448,6 @@ datasets:
     key: '#61#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 13.3um (all pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 7
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -506,8 +462,6 @@ datasets:
     key: '#62#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 13.3um (clear pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 7
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -522,8 +476,6 @@ datasets:
     key: '#63#brightnessTemperature'
     long_name: TOA Brightness Temperature segment mean at 13.3um (cloudy pixels)
     standard_name: toa_brightess_temperature
-    ir_channel_id: 7
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -538,8 +490,6 @@ datasets:
     key: '#19#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 3.8um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 0
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -554,8 +504,6 @@ datasets:
     key: '#20#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 3.8um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 0
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -570,8 +518,6 @@ datasets:
     key: '#21#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 3.8um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 0
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -586,8 +532,6 @@ datasets:
     key: '#25#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 6.3um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 1
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -602,8 +546,6 @@ datasets:
     key: '#26#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 6.3um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 1
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -618,8 +560,6 @@ datasets:
     key: '#27#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 6.3um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 1
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -634,8 +574,6 @@ datasets:
     key: '#31#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 7.3um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 2
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -650,8 +588,6 @@ datasets:
     key: '#32#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 7.3um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 2
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -666,8 +602,6 @@ datasets:
     key: '#33#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 7.3um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 2
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -682,8 +616,6 @@ datasets:
     key: '#37#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 8.7um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 3
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -698,8 +630,6 @@ datasets:
     key: '#38#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 8.7um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 3
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -714,8 +644,6 @@ datasets:
     key: '#39#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 8.7um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 3
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -730,8 +658,6 @@ datasets:
     key: '#43#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 9.7um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 4
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -746,8 +672,6 @@ datasets:
     key: '#44#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 9.7um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 4
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -762,8 +686,6 @@ datasets:
     key: '#45#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 9.7um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 4
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -778,8 +700,6 @@ datasets:
     key: '#49#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 10.5um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 5
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -794,8 +714,6 @@ datasets:
     key: '#50#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 10.5um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 5
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -810,8 +728,6 @@ datasets:
     key: '#51#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 10.5um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 5
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -826,8 +742,6 @@ datasets:
     key: '#55#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 12.3um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 6
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -842,8 +756,6 @@ datasets:
     key: '#56#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 12.3um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 6
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -858,8 +770,6 @@ datasets:
     key: '#57#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 12.3um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 6
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -874,8 +784,6 @@ datasets:
     key: '#61#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 13.3um (all pixels)
     standard_name: quality_flag
-    ir_channel_id: 7
-    category_id: 0
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -890,8 +798,6 @@ datasets:
     key: '#62#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 13.3um (clear pixels)
     standard_name: quality_flag
-    ir_channel_id: 7
-    category_id: 1
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -906,8 +812,6 @@ datasets:
     key: '#63#brightnessTemperature->percentConfidence'
     long_name: TOA Brightness Temperature % confidence at 13.3um (cloudy pixels)
     standard_name: quality_flag
-    ir_channel_id: 7
-    category_id: 2
     unit: '%'
     fill_value: -1.0e+100
     coordinates:
@@ -922,8 +826,6 @@ datasets:
     key: '#19#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 3.8um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 0
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -938,8 +840,6 @@ datasets:
     key: '#20#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 3.8um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 0
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -954,8 +854,6 @@ datasets:
     key: '#21#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 3.8um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 0
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -970,8 +868,6 @@ datasets:
     key: '#25#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 6.3um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 1
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -986,8 +882,6 @@ datasets:
     key: '#26#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 6.3um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 1
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1002,8 +896,6 @@ datasets:
     key: '#27#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 6.3um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 1
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1018,8 +910,6 @@ datasets:
     key: '#31#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 7.3um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 2
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1034,8 +924,6 @@ datasets:
     key: '#32#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 7.3um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 2
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1050,8 +938,6 @@ datasets:
     key: '#33#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 7.3um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 2
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1066,8 +952,6 @@ datasets:
     key: '#37#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 8.7um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 3
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1082,8 +966,6 @@ datasets:
     key: '#38#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 8.7um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 3
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1098,8 +980,6 @@ datasets:
     key: '#39#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 8.7um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 3
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1114,8 +994,6 @@ datasets:
     key: '#43#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 9.7um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 4
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1130,8 +1008,6 @@ datasets:
     key: '#44#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 9.7um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 4
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1146,8 +1022,6 @@ datasets:
     key: '#45#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 9.7um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 4
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1162,8 +1036,6 @@ datasets:
     key: '#49#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 10.5um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 5
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1178,8 +1050,6 @@ datasets:
     key: '#50#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 10.5um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 5
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1194,8 +1064,6 @@ datasets:
     key: '#51#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 10.5um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 5
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1210,8 +1078,6 @@ datasets:
     key: '#55#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 12.3um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 6
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1226,8 +1092,6 @@ datasets:
     key: '#56#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 12.3um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 6
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1242,8 +1106,6 @@ datasets:
     key: '#57#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 12.3um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 6
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1258,8 +1120,6 @@ datasets:
     key: '#61#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 13.3um (all pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 7
-    category_id: 0
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1274,8 +1134,6 @@ datasets:
     key: '#62#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 13.3um (clear pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 7
-    category_id: 1
     unit: K
     fill_value: -1.0e+100
     coordinates:
@@ -1290,8 +1148,6 @@ datasets:
     key: '#63#brightnessTemperature->firstOrderStatisticalValue'
     long_name: TOA Brightness Temperature standard deviation at 13.3um (cloudy pixels)
     standard_name: toa_brightess_temperature standard_error
-    ir_channel_id: 7
-    category_id: 2
     unit: K
     fill_value: -1.0e+100
     coordinates:
