@@ -93,3 +93,16 @@ composites:
       calibration: gamma
       quantity: dB
     standard_name: sar-ice-log
+
+  green-sar:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: measurement
+      polarization: vh
+    - name: measurement
+      polarization: vv
+      quantity: dB
+    - name: measurement
+      polarization: vv
+      quantity: natural
+    standard_name: green-sar
