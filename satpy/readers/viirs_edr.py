@@ -137,10 +137,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
-        yaml_fill = ds_info.get("_FillValue")
         # xarray auto mask and scale handled any fills from the file
-        if yaml_fill is not None:
-            data_arr = data_arr.where(data_arr != yaml_fill)
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
