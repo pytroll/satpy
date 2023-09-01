@@ -19,10 +19,10 @@
 
 import datetime
 import logging
+from datetime import timedelta
 
 import numpy as np
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
@@ -37,9 +37,12 @@ from satpy.readers.seviri_base import (
     get_cds_time,
     get_satpos,
     mask_bad_quality,
+    round_nom_time,
 )
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('nc_msg')
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class NCSEVIRIFileHandler(BaseFileHandler):
@@ -68,14 +71,44 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.get_metadata()
 
     @property
-    def start_time(self):
-        """Get the start time."""
+    def _repeat_cycle_duration(self):
+        """Get repeat cycle duration from the metadata."""
+        if self.nc.attrs['nominal_image_scanning'] == 'T':
+            return 15
+        elif self.nc.attrs['reduced_scanning'] == 'T':
+            return 5
+
+    @property
+    def nominal_start_time(self):
+        """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
+        tm = self.deltaSt
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+
+    @property
+    def nominal_end_time(self):
+        """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
+        tm = self.deltaEnd
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+
+    @property
+    def observation_start_time(self):
+        """Get the repeat cycle observation start time from metadata."""
         return self.deltaSt
 
     @property
-    def end_time(self):
-        """Get the end time."""
+    def observation_end_time(self):
+        """Get the repeat cycle observation end time from metadata."""
         return self.deltaEnd
+
+    @property
+    def start_time(self):
+        """Get general start time for this file."""
+        return self.nominal_start_time
+
+    @property
+    def end_time(self):
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     @cached_property
     def nc(self):
@@ -158,7 +191,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             channel_name=channel,
             coefs=self._get_calib_coefs(dataset, channel),
             calib_mode='NOMINAL',
-            scan_time=self.start_time
+            scan_time=self.observation_start_time
         )
 
         return calib.calibrate(dataset, calibration)
@@ -202,6 +235,12 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                 self.nc.attrs['nominal_longitude']
             ),
             'satellite_nominal_latitude': 0.0,
+        }
+        dataset.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
         }
         try:
             actual_lon, actual_lat, actual_alt = self.satpos

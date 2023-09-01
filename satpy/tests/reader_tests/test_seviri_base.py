@@ -18,14 +18,13 @@
 """Test the MSG common (native and hrit format) functionionalities."""
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.seviri_base import (
     NoValidOrbitParams,
     OrbitPolynomial,
@@ -37,7 +36,11 @@ from satpy.readers.seviri_base import (
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
+    round_nom_time,
 )
+from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def chebyshev4(c, x, domain):
@@ -104,6 +107,29 @@ class SeviriBaseTest(unittest.TestCase):
         final_size = (20, 1)
         with self.assertRaises(IndexError):
             pad_data_vertically(data, final_size, south_bound, north_bound)
+
+    def observation_start_time(self):
+        """Get scan start timestamp for testing."""
+        return datetime(2023, 3, 20, 15, 0, 10, 691000)
+
+    def observation_end_time(self):
+        """Get scan end timestamp for testing."""
+        return datetime(2023, 3, 20, 15, 12, 43, 843000)
+
+    def test_round_nom_time(self):
+        """Test the rouding of start/end_time."""
+        self.assertEqual(round_nom_time(
+                                        dt=self.observation_start_time(),
+                                        time_delta=timedelta(minutes=15)
+                                        ),
+                         datetime(2023, 3, 20, 15, 0)
+                         )
+        self.assertEqual(round_nom_time(
+                                        dt=self.observation_end_time(),
+                                        time_delta=timedelta(minutes=15)
+                                        ),
+                         datetime(2023, 3, 20, 15, 15)
+                         )
 
     @staticmethod
     def test_pad_data_horizontally():

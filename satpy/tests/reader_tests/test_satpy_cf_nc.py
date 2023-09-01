@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF reader."""
-
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -371,12 +371,14 @@ class TestCFReader:
 
     def test_read_prefixed_channels_by_user_no_prefix(self, _cf_scene, _nc_filename):
         """Check channels starting with digit is not prefixed by user."""
-        _cf_scene.save_datasets(writer='cf',
-                                filename=_nc_filename,
-                                engine='netcdf4',
-                                flatten_attrs=True,
-                                pretty=True,
-                                numeric_name_prefix='')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, message=".*starts with a digit.*")
+            _cf_scene.save_datasets(writer='cf',
+                                    filename=_nc_filename,
+                                    engine='netcdf4',
+                                    flatten_attrs=True,
+                                    pretty=True,
+                                    numeric_name_prefix='')
         scn_ = Scene(reader='satpy_cf_nc',
                      filenames=[_nc_filename])
         scn_.load(['1'])

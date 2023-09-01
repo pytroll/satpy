@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import unittest
+import warnings
 from datetime import datetime
 from unittest import mock
 
@@ -29,8 +30,15 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.seviri_l1b_native import (
+    ASCII_STARTSWITH,
+    ImageBoundaries,
+    NativeMSGFileHandler,
+    Padder,
+    get_available_channels,
+    has_archive_header,
+)
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
@@ -494,13 +502,259 @@ TEST_PADDER_FES_HRV = {
 }
 
 
+def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
+    """Create test header for SEVIRI L1.5 product.
+
+    Header includes mandatory attributes for NativeMSGFileHandler.get_area_extent
+    """
+    if dataset_id['name'] == 'HRV':
+        reference_grid = 'ReferenceGridHRV'
+        column_dir_grid_step = 1.0001343488693237
+        line_dir_grid_step = 1.0001343488693237
+    else:
+        reference_grid = 'ReferenceGridVIS_IR'
+        column_dir_grid_step = 3.0004031658172607
+        line_dir_grid_step = 3.0004031658172607
+
+    if is_full_disk:
+        north = 3712
+        east = 1
+        west = 3712
+        south = 1
+        n_visir_cols = 3712
+        n_visir_lines = 3712
+        n_hrv_cols = 11136
+        n_hrv_lines = 11136
+        ssp_lon = 0
+    elif is_rapid_scan:
+        north = 3712
+        east = 1
+        west = 3712
+        south = 2321
+        n_visir_cols = 3712
+        n_visir_lines = 1392
+        n_hrv_cols = 11136
+        n_hrv_lines = 4176
+        ssp_lon = 9.5
+    else:
+        north = 3574
+        east = 78
+        west = 2591
+        south = 1746
+        n_visir_cols = 2516
+        n_visir_lines = north - south + 1
+        n_hrv_cols = n_visir_cols * 3
+        n_hrv_lines = n_visir_lines * 3
+        ssp_lon = 0
+    header = {
+        '15_MAIN_PRODUCT_HEADER': {
+            'QQOV': {'Name': 'QQOV',
+                     'Value': good_qual}
+        },
+        '15_DATA_HEADER': {
+            'ImageDescription': {
+                reference_grid: {
+                    'ColumnDirGridStep': column_dir_grid_step,
+                    'LineDirGridStep': line_dir_grid_step,
+                    'GridOrigin': 2,  # south-east corner
+                },
+                'ProjectionDescription': {
+                    'LongitudeOfSSP': ssp_lon
+                }
+            },
+            'GeometricProcessing': {
+                'EarthModel': {
+                    'TypeOfEarthModel': earth_model,
+                    'EquatorialRadius': 6378169.0,
+                    'NorthPolarRadius': 6356583.800000001,
+                    'SouthPolarRadius': 6356583.800000001,
+                }
+            },
+            'SatelliteStatus': {
+                'SatelliteDefinition': {
+                    'SatelliteId': 324
+                }
+            }
+        },
+        '15_SECONDARY_PRODUCT_HEADER': {
+            'NorthLineSelectedRectangle': {'Value': north},
+            'EastColumnSelectedRectangle': {'Value': east},
+            'WestColumnSelectedRectangle': {'Value': west},
+            'SouthLineSelectedRectangle': {'Value': south},
+            'SelectedBandIDs': {'Value': 'xxxxxxxxxxxx'},
+            'NumberColumnsVISIR': {'Value': n_visir_cols},
+            'NumberLinesVISIR': {'Value': n_visir_lines},
+            'NumberColumnsHRV': {'Value': n_hrv_cols},
+            'NumberLinesHRV': {'Value': n_hrv_lines},
+        }
+
+    }
+
+    return header
+
+
+def create_test_trailer(is_rapid_scan):
+    """Create test trailer for SEVIRI L1.5 product.
+
+    Trailer includes mandatory attributes for NativeMSGFileHandler.get_area_extent
+    """
+    trailer = {
+        '15TRAILER': {
+            'ImageProductionStats': {
+                'ActualL15CoverageHRV': {
+                    'UpperNorthLineActual': 11136,
+                    'UpperWestColumnActual': 7533,
+                    'UpperSouthLineActual': 8193,
+                    'UpperEastColumnActual': 1966,
+                    'LowerNorthLineActual': 8192,
+                    'LowerWestColumnActual': 5568,
+                    'LowerSouthLineActual': 1,
+                    'LowerEastColumnActual': 1
+                },
+                'ActualScanningSummary': {
+                    'ReducedScan': is_rapid_scan
+                }
+            }
+        }
+    }
+
+    return trailer
+
+
+def prepare_area_definitions(test_dict):
+    """Prepare calculated and expected area definitions for equal checking."""
+    earth_model = test_dict['earth_model']
+    dataset_id = test_dict['dataset_id']
+    is_full_disk = test_dict['is_full_disk']
+    is_rapid_scan = test_dict['is_rapid_scan']
+    fill_disk = test_dict['fill_disk']
+    header = create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
+    trailer = create_test_trailer(is_rapid_scan)
+    expected_area_def = test_dict['expected_area_def']
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch(
+                'satpy.readers.seviri_l1b_native.has_archive_header'
+            ) as has_archive_header:
+        has_archive_header.return_value = True
+        fromfile.return_value = header
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
+        fh.fill_disk = fill_disk
+        fh.header = header
+        fh.trailer = trailer
+        fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
+        actual_area_def = fh.get_area_def(dataset_id)
+
+    return actual_area_def, expected_area_def
+
+
+@pytest.mark.parametrize(
+    "actual, expected",
+    (
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL)),
+    )
+)
+def test_area_definitions(actual, expected):
+    """Test area definitions with only one area."""
+    np.testing.assert_allclose(np.array(actual.area_extent),
+                               np.array(expected['Area extent']))
+    assert actual.width == expected['Number of columns']
+    assert actual.height == expected['Number of rows']
+    assert actual.area_id == expected['Area ID']
+
+
+@pytest.mark.parametrize(
+    "actual, expected",
+    (
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK)),
+        (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK)),
+    )
+)
+def test_stacked_area_definitions(actual, expected):
+    """Test area definitions with stacked areas."""
+    np.testing.assert_allclose(np.array(actual.defs[0].area_extent),
+                               np.array(expected['Area extent 0']))
+    np.testing.assert_allclose(np.array(actual.defs[1].area_extent),
+                               np.array(expected['Area extent 1']))
+    assert actual.width == expected['Number of columns']
+    assert actual.height == expected['Number of rows']
+    assert actual.defs[0].area_id, expected['Area ID']
+    assert actual.defs[1].area_id, expected['Area ID']
+
+
+def prepare_is_roi(test_dict):
+    """Prepare calculated and expected check for region of interest data for equal checking."""
+    earth_model = 2
+    dataset_id = make_dataid(name='VIS006')
+    is_full_disk = test_dict['is_full_disk']
+    is_rapid_scan = test_dict['is_rapid_scan']
+    header = create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
+    trailer = create_test_trailer(is_rapid_scan)
+    expected = test_dict['is_roi']
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch(
+                'satpy.readers.seviri_l1b_native.has_archive_header'
+            ) as has_archive_header:
+        has_archive_header.return_value = True
+        fromfile.return_value = header
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
+        fh.header = header
+        fh.trailer = trailer
+        actual = fh.is_roi()
+
+    return actual, expected
+
+
+@pytest.mark.parametrize(
+    "actual, expected",
+    (
+        (prepare_is_roi(TEST_IS_ROI_FULLDISK)),
+        (prepare_is_roi(TEST_IS_ROI_RAPIDSCAN)),
+        (prepare_is_roi(TEST_IS_ROI_ROI)),
+    )
+)
+def test_is_roi(actual, expected):
+    """Test if given area is of area-of-interest."""
+    assert actual == expected
+
+
 class TestNativeMSGFileHandler(unittest.TestCase):
     """Test the NativeMSGFileHandler."""
 
     def test_get_available_channels(self):
         """Test the derivation of the available channel list."""
         available_chs = get_available_channels(TEST1_HEADER_CHNLIST)
-        trues = ['WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120']
+        trues = ('WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120')
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
@@ -508,7 +762,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
                 self.assertFalse(available_chs[bandname])
 
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
-        trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
+        trues = ('VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV')
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
@@ -518,473 +772,6 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
         for bandname in AVAILABLE_CHANNELS:
             self.assertTrue(available_chs[bandname])
-
-
-class TestNativeMSGArea(unittest.TestCase):
-    """Test NativeMSGFileHandler.get_area_extent.
-
-    The expected results have been verified by manually
-    inspecting the output of geoferenced imagery.
-    """
-
-    @staticmethod
-    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
-        """Create mocked NativeMSGFileHandler.
-
-        Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
-        """
-        if dataset_id['name'] == 'HRV':
-            reference_grid = 'ReferenceGridHRV'
-            column_dir_grid_step = 1.0001343488693237
-            line_dir_grid_step = 1.0001343488693237
-        else:
-            reference_grid = 'ReferenceGridVIS_IR'
-            column_dir_grid_step = 3.0004031658172607
-            line_dir_grid_step = 3.0004031658172607
-
-        if is_full_disk:
-            north = 3712
-            east = 1
-            west = 3712
-            south = 1
-            n_visir_cols = 3712
-            n_visir_lines = 3712
-            n_hrv_cols = 11136
-            n_hrv_lines = 11136
-            ssp_lon = 0
-        elif is_rapid_scan:
-            north = 3712
-            east = 1
-            west = 3712
-            south = 2321
-            n_visir_cols = 3712
-            n_visir_lines = 1392
-            n_hrv_cols = 11136
-            n_hrv_lines = 4176
-            ssp_lon = 9.5
-        else:
-            north = 3574
-            east = 78
-            west = 2591
-            south = 1746
-            n_visir_cols = 2516
-            n_visir_lines = north - south + 1
-            n_hrv_cols = n_visir_cols * 3
-            n_hrv_lines = n_visir_lines * 3
-            ssp_lon = 0
-        header = {
-            '15_MAIN_PRODUCT_HEADER': {
-                'QQOV': {'Name': 'QQOV',
-                         'Value': good_qual}
-            },
-            '15_DATA_HEADER': {
-                'ImageDescription': {
-                    reference_grid: {
-                        'ColumnDirGridStep': column_dir_grid_step,
-                        'LineDirGridStep': line_dir_grid_step,
-                        'GridOrigin': 2,  # south-east corner
-                    },
-                    'ProjectionDescription': {
-                        'LongitudeOfSSP': ssp_lon
-                    }
-                },
-                'GeometricProcessing': {
-                    'EarthModel': {
-                        'TypeOfEarthModel': earth_model,
-                        'EquatorialRadius': 6378169.0,
-                        'NorthPolarRadius': 6356583.800000001,
-                        'SouthPolarRadius': 6356583.800000001,
-                    }
-                },
-                'SatelliteStatus': {
-                    'SatelliteDefinition': {
-                        'SatelliteId': 324
-                    }
-                }
-            },
-            '15_SECONDARY_PRODUCT_HEADER': {
-                'NorthLineSelectedRectangle': {'Value': north},
-                'EastColumnSelectedRectangle': {'Value': east},
-                'WestColumnSelectedRectangle': {'Value': west},
-                'SouthLineSelectedRectangle': {'Value': south},
-                'SelectedBandIDs': {'Value': 'xxxxxxxxxxxx'},
-                'NumberColumnsVISIR': {'Value': n_visir_cols},
-                'NumberLinesVISIR': {'Value': n_visir_lines},
-                'NumberColumnsHRV': {'Value': n_hrv_cols},
-                'NumberLinesHRV': {'Value': n_hrv_lines},
-            }
-
-        }
-
-        return header
-
-    @staticmethod
-    def create_test_trailer(is_rapid_scan):
-        """Create Test Trailer.
-
-        Mocked Trailer with sufficient attributes for
-        NativeMSGFileHandler.get_area_extent to be able to execute.
-        """
-        trailer = {
-            '15TRAILER': {
-                'ImageProductionStats': {
-                    'ActualL15CoverageHRV': {
-                        'UpperNorthLineActual': 11136,
-                        'UpperWestColumnActual': 7533,
-                        'UpperSouthLineActual': 8193,
-                        'UpperEastColumnActual': 1966,
-                        'LowerNorthLineActual': 8192,
-                        'LowerWestColumnActual': 5568,
-                        'LowerSouthLineActual': 1,
-                        'LowerEastColumnActual': 1
-                    },
-                    'ActualScanningSummary': {
-                        'ReducedScan': is_rapid_scan
-                    }
-                }
-            }
-        }
-
-        return trailer
-
-    def prepare_area_defs(self, test_dict):
-        """Prepare calculated and expected area definitions for equal checking."""
-        earth_model = test_dict['earth_model']
-        dataset_id = test_dict['dataset_id']
-        is_full_disk = test_dict['is_full_disk']
-        is_rapid_scan = test_dict['is_rapid_scan']
-        fill_disk = test_dict['fill_disk']
-        header = self.create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
-        trailer = self.create_test_trailer(is_rapid_scan)
-        expected_area_def = test_dict['expected_area_def']
-
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
-                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
-                mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
-            fromfile.return_value = header
-            recarray2dict.side_effect = (lambda x: x)
-            _get_memmap.return_value = np.arange(3)
-            fh = NativeMSGFileHandler(None, {}, None)
-            fh.fill_disk = fill_disk
-            fh.header = header
-            fh.trailer = trailer
-            fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
-            calc_area_def = fh.get_area_def(dataset_id)
-
-        return (calc_area_def, expected_area_def)
-
-    # Earth model 1 tests
-    def test_earthmodel1_visir_fulldisk(self):
-        """Test the VISIR FES with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_fulldisk(self):
-        """Test the HRV FES with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK
-        )
-        np.testing.assert_allclose(np.array(calculated.defs[0].area_extent),
-                                   np.array(expected['Area extent 0']))
-        np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
-                                   np.array(expected['Area extent 1']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
-        self.assertEqual(calculated.defs[1].area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_fulldisk_fill(self):
-        """Test the HRV FES padded to fulldisk with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_visir_rapidscan(self):
-        """Test the VISIR RSS with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN
-        )
-
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_visir_rapidscan_fill(self):
-        """Test the VISIR RSS padded to fulldisk with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL
-        )
-
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_rapidscan(self):
-        """Test the HRV RSS with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
-        )
-
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_rapidscan_fill(self):
-        """Test the HRV RSS padded to fulldisk with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL
-        )
-
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_visir_roi(self):
-        """Test the VISIR ROI with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_visir_roi_fill(self):
-        """Test the VISIR ROI padded to fulldisk with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_roi(self):
-        """Test the HRV ROI with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel1_hrv_roi_fill(self):
-        """Test the HRV ROI padded to fulldisk with the EarthModel 1."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    # Earth model 2 tests
-    def test_earthmodel2_visir_fulldisk(self):
-        """Test the VISIR FES with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_fulldisk(self):
-        """Test the HRV FES with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK
-        )
-        np.testing.assert_allclose(np.array(calculated.defs[0].area_extent),
-                                   np.array(expected['Area extent 0']))
-        np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
-                                   np.array(expected['Area extent 1']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
-        self.assertEqual(calculated.defs[1].area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_fulldisk_fill(self):
-        """Test the HRV FES padded to fulldisk with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_visir_rapidscan(self):
-        """Test the VISIR RSS with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_visir_rapidscan_fill(self):
-        """Test the VISIR RSS padded to fulldisk with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_rapidscan(self):
-        """Test the HRV RSS with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_rapidscan_fill(self):
-        """Test the HRV RSS padded to fulldisk with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_visir_roi(self):
-        """Test the VISIR ROI with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_visir_roi_fill(self):
-        """Test the VISIR ROI padded to fulldisk with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_roi(self):
-        """Test the HRV ROI with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    def test_earthmodel2_hrv_roi_fill(self):
-        """Test the HRV ROI padded to fulldisk with the EarthModel 2."""
-        calculated, expected = self.prepare_area_defs(
-            TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL
-        )
-        np.testing.assert_allclose(np.array(calculated.area_extent),
-                                   np.array(expected['Area extent']))
-        self.assertEqual(calculated.width, expected['Number of columns'])
-        self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.area_id, expected['Area ID'])
-
-    # Test check for Region Of Interest (ROI) data
-    def prepare_is_roi(self, test_dict):
-        """Prepare calculated and expected check for region of interest data for equal checking."""
-        earth_model = 2
-        dataset_id = make_dataid(name='VIS006')
-        is_full_disk = test_dict['is_full_disk']
-        is_rapid_scan = test_dict['is_rapid_scan']
-        header = self.create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
-        trailer = self.create_test_trailer(is_rapid_scan)
-        expected_is_roi = test_dict['is_roi']
-
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
-                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
-                mock.patch(
-                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
-                ) as _has_archive_header:
-            _has_archive_header.return_value = True
-            fromfile.return_value = header
-            recarray2dict.side_effect = (lambda x: x)
-            _get_memmap.return_value = np.arange(3)
-            fh = NativeMSGFileHandler(None, {}, None)
-            fh.header = header
-            fh.trailer = trailer
-            calc_is_roi = fh.is_roi()
-
-        return (calc_is_roi, expected_is_roi)
-
-    def test_is_roi_fulldisk(self):
-        """Test check for region of interest with FES data."""
-        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_FULLDISK)
-        self.assertEqual(calculated, expected)
-
-    def test_is_roi_rapidscan(self):
-        """Test check for region of interest with RSS data."""
-        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_RAPIDSCAN)
-        self.assertEqual(calculated, expected)
-
-    def test_is_roi_roi(self):
-        """Test check for region of interest with ROI data."""
-        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_ROI)
-        self.assertEqual(calculated, expected)
 
 
 TEST_HEADER_CALIB = {
@@ -1034,7 +821,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.platform_id = self.platform_id
@@ -1042,7 +829,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 
     @pytest.mark.parametrize(
         ('channel', 'calibration', 'calib_mode', 'use_ext_coefs'),
-        [
+        (
             # VIS channel, internal coefficients
             ('VIS006', 'counts', 'NOMINAL', False),
             ('VIS006', 'radiance', 'NOMINAL', False),
@@ -1068,7 +855,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # HRV channel, external coefficients (mode should have no effect)
             ('HRV', 'radiance', 'GSICS', True),
             ('HRV', 'reflectance', 'NOMINAL', True),
-        ]
+        )
     )
     def test_calibrate(
             self, file_handler, counts, channel, calibration, calib_mode,
@@ -1103,7 +890,8 @@ class TestNativeMSGDataset:
                 'ImageProductionStats': {
                     'ActualScanningSummary': {
                         'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
+                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888),
+                        'ReducedScan': 0
                     }
                 }
             }
@@ -1126,7 +914,7 @@ class TestNativeMSGDataset:
         data = self._fake_data()
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
-            fh = NativeMSGFileHandler()
+            fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
@@ -1201,13 +989,30 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        dataset = file_handler.get_dataset(dataset_id, dataset_info)
+        xarr = file_handler.get_dataset(dataset_id, dataset_info)
         expected = self._exp_data_array()
-        xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' not in dataset.attrs
+        xr.testing.assert_equal(xarr, expected)
+        assert 'raw_metadata' not in xarr.attrs
         assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
         assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
-        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+        assert_attrs_equal(xarr.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_time(self, file_handler):
+        """Test start/end nominal/observation time handling."""
+        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
+        assert datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
+        assert file_handler.start_time == file_handler.nominal_start_time
+
+        assert datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
+        assert file_handler.end_time == file_handler.nominal_end_time
+        assert datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
+
+    def test_repeat_cycle_duration(self, file_handler):
+        """Test repeat cycle handling for FD or ReduscedScan."""
+        assert 15 == file_handler._repeat_cycle_duration
+        # Change the reducescan scenario to test the repeat cycle duration handling
+        file_handler.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] = 1
+        assert 5 == file_handler._repeat_cycle_duration
 
     @staticmethod
     def _exp_data_array():
@@ -1217,7 +1022,7 @@ class TestNativeMSGDataset:
                       [44., 192., 835., 527.],
                       [64., 273., 132., 788.]],
                      dtype=np.float32),
-            dims=('y', 'x'),
+            dims=['y', 'x'],
             attrs={
                 'orbital_parameters': {
                     'satellite_actual_longitude': -3.55117540817073,
@@ -1262,8 +1067,8 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        res = file_handler.get_dataset(dataset_id, dataset_info)
-        assert 'raw_metadata' in res.attrs
+        xarr = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'raw_metadata' in xarr.attrs
 
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""
@@ -1279,8 +1084,9 @@ class TestNativeMSGDataset:
             'wavelength': (1, 2, 3),
             'standard_name': 'counts'
         }
-        res = file_handler.get_dataset(dataset_id, dataset_info)
-        assert 'satellite_actual_longitude' not in res.attrs[
+        with pytest.warns(UserWarning, match="No orbit polynomial"):
+            xarr = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in xarr.attrs[
             'orbital_parameters']
 
 
@@ -1301,7 +1107,7 @@ class TestNativeMSGPadder(unittest.TestCase):
         padder._final_shape = final_shape
         calc_padded_data = padder.pad_data(dataset)
 
-        return (calc_padded_data, expected_padded_data)
+        return calc_padded_data, expected_padded_data
 
     def test_padder_rss_roi(self):
         """Test padder for RSS and ROI data (applies to both VISIR and HRV)."""
@@ -1345,14 +1151,14 @@ class TestNativeMSGFilenames:
 
 @pytest.mark.parametrize(
     'file_content,exp_header_size',
-    [
-        (b'FormatName                  : NATIVE', 450400),  # with ascii header
+    (
+        (ASCII_STARTSWITH, 450400),  # with ascii header
         (b'foobar', 445286),  # without ascii header
-    ]
+    )
 )
 def test_header_type(file_content, exp_header_size):
     """Test identification of the file header type."""
-    header = TestNativeMSGArea.create_test_header(
+    header = create_test_header(
         dataset_id=make_dataid(name='VIS006', resolution=3000),
         earth_model=1,
         is_full_disk=True,
@@ -1368,21 +1174,21 @@ def test_header_type(file_content, exp_header_size):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
-        fh = NativeMSGFileHandler('myfile', {}, None)
+        fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         assert fh.header_type.itemsize == exp_header_size
         assert '15_SECONDARY_PRODUCT_HEADER' in fh.header
 
 
 def test_header_warning():
     """Test warning is raised for NOK quality flag."""
-    header_good = TestNativeMSGArea.create_test_header(
+    header_good = create_test_header(
         dataset_id=make_dataid(name='VIS006', resolution=3000),
         earth_model=1,
         is_full_disk=True,
         is_rapid_scan=0,
         good_qual='OK'
     )
-    header_bad = TestNativeMSGArea.create_test_header(
+    header_bad = create_test_header(
         dataset_id=make_dataid(name='VIS006', resolution=3000),
         earth_model=1,
         is_full_disk=True,
@@ -1394,16 +1200,55 @@ def test_header_warning():
             mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
-            mock.patch("builtins.open", mock.mock_open(read_data=b'FormatName                  : NATIVE')):
+            mock.patch("builtins.open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
         _get_memmap.return_value = np.arange(3)
 
         exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
 
         fromfile.return_value = header_good
-        with pytest.warns(None):
-            NativeMSGFileHandler('myfile', {}, None)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
 
         fromfile.return_value = header_bad
         with pytest.warns(UserWarning, match=exp_warning):
+            NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
+
+        # check that without Main Header the code doesn't crash
+        header_missing = header_good.copy()
+        header_missing.pop('15_MAIN_PRODUCT_HEADER')
+        fromfile.return_value = header_missing
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             NativeMSGFileHandler('myfile', {}, None)
+
+
+@pytest.mark.parametrize(
+    "starts_with, expected",
+    [
+        (ASCII_STARTSWITH, True),
+        (b'this_shall_fail', False)
+    ]
+)
+def test_has_archive_header(starts_with, expected):
+    """Test if the file includes an ASCII archive header."""
+    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+        actual = has_archive_header('filename')
+    assert actual == expected
+
+
+def test_read_header():
+    """Test that reading header returns the header correctly converted to a dictionary."""
+    keys = ('SatelliteId', 'NominalLongitude', 'SatelliteStatus')
+    values = (324, 0.0, 1)
+    expected = dict(zip(keys, values))
+
+    types = (np.uint16, np.float32, np.uint8)
+    dtypes = np.dtype([(k, t) for k, t in zip(keys, types)])
+    hdr_data = np.array([values], dtype=dtypes)
+
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        fromfile.return_value = hdr_data
+        actual = recarray2dict(hdr_data)
+    assert actual == expected

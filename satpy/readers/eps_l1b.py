@@ -27,13 +27,15 @@ import xarray as xr
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
 C2 = 1.4387863  # K/cm-1

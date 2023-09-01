@@ -85,6 +85,24 @@ datasets:
     name: cma_extended_pal
     file_type: nc_nwcsaf_cma
 
+  cma_conditions:
+    name: cma_conditions
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_conditions
+
+  cma_quality:
+    name: cma_quality
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_quality
+
+  cma_status_flag:
+    name: cma_status_flag
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_status_flag
+
   cmaprob:
     name: cmaprob
     file_type: nc_nwcsaf_cmaprob
@@ -186,6 +204,7 @@ datasets:
 
   ctth_alti_pal:
     name: ctth_alti_pal
+    scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
   ctth_quality:
@@ -210,6 +229,7 @@ datasets:
 
   ctth_pres_pal:
     name: ctth_pres_pal
+    scale_offset_dataset: ctth_pres
     file_type: nc_nwcsaf_ctth
 
   ctth_tempe:
@@ -219,6 +239,7 @@ datasets:
 
   ctth_tempe_pal:
     name: ctth_tempe_pal
+    scale_offset_dataset: ctth_tempe
     file_type: nc_nwcsaf_ctth
 
 
@@ -310,5 +331,23 @@ datasets:
   cmic_quality:
     name: [cmic_quality, cpp_quality]
     file_key: quality
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcwp:
+    name: cmic_dcwp
+    file_key: dcwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcre:
+    name: cmic_dcre
+    file_key: dcre
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcot:
+    name: cmic_dcot
+    file_key: dcot
     file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]

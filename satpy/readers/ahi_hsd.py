@@ -67,7 +67,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
@@ -79,6 +78,7 @@ from satpy.readers.utils import (
     np2str,
     unzip_file,
 )
+from satpy.utils import get_chunk_size_limit
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -619,9 +619,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
+        chunks = da.core.normalize_chunks("auto",
+                                          shape=(nlines, ncols),
+                                          limit=get_chunk_size_limit(),
+                                          dtype='f8',
+                                          previous_chunks=(550, 550))
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
-                             chunks=CHUNK_SIZE)
+                             chunks=chunks)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data."""

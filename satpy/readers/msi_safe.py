@@ -35,20 +35,19 @@ L1B format description for the files read here:
 """
 
 import logging
-import xml.etree.ElementTree as ET
 
 import dask.array as da
+import defusedxml.ElementTree as ET
 import numpy as np
-import rioxarray
+import xarray as xr
 from pyresample import geometry
-from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
-
+CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORMS = {'S2A': "Sentinel-2A",
              'S2B': "Sentinel-2B",
@@ -84,7 +83,7 @@ class SAFEMSIL1C(BaseFileHandler):
         return proj
 
     def _read_from_file(self, key):
-        proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
+        proj = xr.open_dataset(self.filename, engine="rasterio", chunks=CHUNK_SIZE)["band_data"]
         proj = proj.squeeze("band")
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
@@ -215,7 +214,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
 def _fill_swath_edges(angles):
     """Fill gaps at edges of swath."""
-    darr = DataArray(angles, dims=['y', 'x'])
+    darr = xr.DataArray(angles, dims=['y', 'x'])
     darr = darr.bfill('x')
     darr = darr.ffill('x')
     darr = darr.bfill('y')
@@ -330,7 +329,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
 
         res = self.interpolate_angles(angles, key['resolution'])
 
-        proj = DataArray(res, dims=['y', 'x'])
+        proj = xr.DataArray(res, dims=['y', 'x'])
         proj.attrs = info.copy()
         proj.attrs['units'] = 'degrees'
         proj.attrs['platform_name'] = self.platform_name

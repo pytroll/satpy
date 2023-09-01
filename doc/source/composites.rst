@@ -173,7 +173,7 @@ In the case below, the image shows its day portion and day/night
 transition with night portion blacked-out instead of transparent::
 
     >>> from satpy.composites import DayNightCompositor
-    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", need_alpha=False)
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", include_alpha=False)
     >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
@@ -516,7 +516,6 @@ Enhancing the images
     - stretch
     - gamma
     - invert
-    - crefl_scaling
     - cira_stretch
     - lookup
     - colorize

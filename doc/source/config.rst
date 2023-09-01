@@ -258,6 +258,23 @@ as part of the :func:`~satpy.modifiers.angles.get_angles` and
 used by multiple modifiers and composites including the default rayleigh
 correction.
 
+Clipping Negative Infrared Radiances
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_READERS__CLIP_NEGATIVE_RADIANCES``
+* **YAML/Config Key**: ``readers.clip_negative_radiances``
+* **Default**: False
+
+Whether to clip negative infrared radiances to the minimum allowable value before
+computing the brightness temperature.
+If ``clip_negative_radiances=False``, pixels with negative radiances will have
+``np.nan`` brightness temperatures.
+
+Clipping of negative radiances is currently implemented for the following readers:
+
+* ``abi_l1b``
+
+
 Temporary Directory
 ^^^^^^^^^^^^^^^^^^^
 

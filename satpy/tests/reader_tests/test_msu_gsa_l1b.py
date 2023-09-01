@@ -142,7 +142,7 @@ class TestMSUGSABReader:
         files = self.reader.select_files_from_pathnames(filenames)
         self.reader.create_filehandlers(files)
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 

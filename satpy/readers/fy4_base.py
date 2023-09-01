@@ -212,8 +212,12 @@ class FY4Base(HDF5FileHandler):
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
         pdict = {}
-        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)]
-        pdict['loff'] = self._LOFF_list[RESOLUTION_LIST.index(res)]
+
+        begin_cols = float(self.file_content['/attr/Begin Pixel Number'])
+        end_lines = float(self.file_content['/attr/End Line Number'])
+        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)] - begin_cols + 1
+        pdict['loff'] = -self._LOFF_list[RESOLUTION_LIST.index(res)] + end_lines + 1
+
         pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
         try:
@@ -240,20 +244,11 @@ class FY4Base(HDF5FileHandler):
         pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}m'
         pdict['p_id'] = f'FY-4, {res}m'
 
-        pdict['nlines'] = pdict['nlines'] - 1
-        pdict['ncols'] = pdict['ncols'] - 1
-
-        pdict['coff'] = pdict['coff'] - 0.5
-        pdict['loff'] = pdict['loff'] + 1
-
         area_extent = get_area_extent(pdict)
         area_extent = (area_extent[0],
                        area_extent[1],
                        area_extent[2],
                        area_extent[3])
-
-        pdict['nlines'] = pdict['nlines'] + 1
-        pdict['ncols'] = pdict['ncols'] + 1
 
         area = get_area_definition(pdict, area_extent)
 

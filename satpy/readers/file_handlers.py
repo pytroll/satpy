@@ -228,9 +228,9 @@ class BaseFileHandler:
         Args:
             configured_datasets (list): Series of (bool or None, dict) in the
                 same way as is returned by this method (see below). The bool
-                is whether or not the dataset is available from at least one
+                is whether the dataset is available from at least one
                 of the current file handlers. It can also be ``None`` if
-                no file handler knows before us knows how to handle it.
+                no file handler before us knows how to handle it.
                 The dictionary is existing dataset metadata. The dictionaries
                 are typically provided from a YAML configuration file and may
                 be modified, updated, or used as a "template" for additional

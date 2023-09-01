@@ -25,8 +25,8 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from satpy import Scene, available_readers
+from satpy.tests.utils import CustomScheduler, make_dataid
 
-from ..utils import CustomScheduler, make_dataid
 from ._modis_fixtures import (
     AVAILABLE_1KM_PRODUCT_NAMES,
     AVAILABLE_HKM_PRODUCT_NAMES,

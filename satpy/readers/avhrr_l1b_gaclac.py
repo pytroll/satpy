@@ -17,11 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reading and calibrating GAC and LAC AVHRR data.
 
+Uses Pygac under the hood. See the `Pygac Documentation`_ for supported data
+formats as well as calibration and navigation methods.
+
 .. todo::
 
     Fine grained calibration
     Radiance output
 
+.. _Pygac Documentation:
+    https://pygac.readthedocs.io/en/stable
 """
 
 import logging
@@ -36,11 +41,12 @@ from pygac.gac_pod import GACPODReader
 from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 
 spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 

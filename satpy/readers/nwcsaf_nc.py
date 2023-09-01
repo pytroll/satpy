@@ -34,11 +34,13 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 SENSOR = {'NOAA-19': 'avhrr-3',
           'NOAA-18': 'avhrr-3',
@@ -50,7 +52,13 @@ SENSOR = {'NOAA-19': 'avhrr-3',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
           'NOAA-20': 'viirs',
+          'NOAA-21': 'viirs',
+          'NOAA-22': 'viirs',
+          'NOAA-23': 'viirs',
           'JPSS-1': 'viirs',
+          'Metop-SG-A1': 'metimage',
+          'Metop-SG-A2': 'metimage',
+          'Metop-SG-A3': 'metimage',
           'GOES-16': 'abi',
           'GOES-17': 'abi',
           'Himawari-8': 'ahi',
@@ -198,6 +206,8 @@ class NcNWCSAF(BaseFileHandler):
 
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
+        if '_FillValue' in variable.attrs:
+            variable.attrs['scaled_FillValue'] = variable.attrs['_FillValue'] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
             variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
@@ -256,13 +266,16 @@ class NcNWCSAF(BaseFileHandler):
         except KeyError:
             scale = 1
             offset = 0
+            fill_value = 255
         else:
             scale = so_dataset.attrs['scale_factor']
             offset = so_dataset.attrs['add_offset']
+            fill_value = so_dataset.attrs['_FillValue']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
-        if variable.attrs['palette_meanings'][0] == 1:
-            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+
+        if fill_value not in variable.attrs['palette_meanings'] and 'fill_value_color' in variable.attrs:
+            variable.attrs['palette_meanings'] = [fill_value] + variable.attrs['palette_meanings']
             variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                     coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
         val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)

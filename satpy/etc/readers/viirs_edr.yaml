@@ -1,0 +1,258 @@
+reader:
+    description: VIIRS NOAA Enterprise EDR product reader
+    name: viirs_edr
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+    group_keys: ['platform_shortname']
+    default_datasets:
+
+
+file_types:
+    jrr_cloudmask:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_patterns:
+            - 'JRR-CloudMask_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_aerosol:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_patterns:
+            - 'JRR-ADP_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_surfref:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSSurfaceReflectanceWithVIHandler
+        file_patterns:
+            - 'SurfRefl_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_cloudheight:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_patterns:
+            - 'JRR-CloudHeight_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_aod:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_patterns:
+            - 'JRR-AOD_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_lst:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSLSTHandler
+        file_patterns:
+            - 'LST_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+
+
+datasets:
+    # NOTE: All non-surface reflectance file variables are dynamically loaded
+    #     from the variable names inside the file. All 2D variables are
+    #     supported and use the exact name of the variable in the NetCDF file.
+    #     Files mentioned above in "file_types" are supported.
+    #     To see a full list of loadable variables, create a Scene object with
+    #     data files and run ``scn.available_dataset_names()``.
+
+    # Surface reflectance products
+    longitude_375:
+        name: longitude_375
+        standard_name: longitude
+        file_type: jrr_surfref
+        file_key: "Longitude_at_375m_resolution"
+        units: 'degrees_east'
+        resolution: 375
+    latitude_375:
+        name: latitude_375
+        standard_name: latitude
+        file_type: jrr_surfref
+        file_key: "Latitude_at_375m_resolution"
+        units: 'degrees_north'
+        resolution: 375
+    longitude_750:
+        name: longitude_750
+        standard_name: longitude
+        file_type: jrr_surfref
+        file_key: "Longitude_at_750m_resolution"
+        units: 'degrees_east'
+        resolution: 750
+    latitude_750:
+        name: latitude_750
+        standard_name: latitude
+        file_type: jrr_surfref
+        file_key: "Latitude_at_750m_resolution"
+        units: 'degrees_north'
+        resolution: 750
+
+    surf_refl_I01:
+        name: surf_refl_I01
+        resolution: 375
+        wavelength: [0.600, 0.640, 0.680]
+        file_type: [jrr_surfref]
+        file_key: "375m Surface Reflectance Band I1"
+        coordinates: [longitude_375, latitude_375]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_I02:
+        name: surf_refl_I02
+        resolution: 375
+        wavelength: [0.845, 0.865, 0.884]
+        file_type: [jrr_surfref]
+        file_key: "375m Surface Reflectance Band I2"
+        coordinates: [longitude_375, latitude_375]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_I03:
+        name: surf_refl_I03
+        resolution: 375
+        wavelength: [1.580, 1.610, 1.640]
+        file_type: [jrr_surfref]
+        file_key: "375m Surface Reflectance Band I3"
+        coordinates: [longitude_375, latitude_375]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M01:
+        name: surf_refl_M01
+        resolution: 750
+        wavelength: [0.402, 0.412, 0.422]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M1"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M02:
+        name: surf_refl_M02
+        resolution: 750
+        wavelength: [0.436, 0.445, 0.454]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M2"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M03:
+        name: surf_refl_M03
+        resolution: 750
+        wavelength: [0.478, 0.488, 0.498]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M3"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M04:
+        name: surf_refl_M04
+        resolution: 750
+        wavelength: [0.545, 0.555, 0.565]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M4"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M05:
+        name: surf_refl_M05
+        resolution: 750
+        wavelength: [0.662, 0.672, 0.682]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M5"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M07:
+        name: surf_refl_M07
+        resolution: 750
+        wavelength: [0.846, 0.865, 0.885]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M7"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M08:
+        name: surf_refl_M08
+        resolution: 750
+        wavelength: [1.230, 1.240, 1.250]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M8"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M10:
+        name: surf_refl_M10
+        resolution: 750
+        wavelength: [1.580, 1.610, 1.640]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M10"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_M11:
+        name: surf_refl_M11
+        resolution: 750
+        wavelength: [2.225, 2.250, 2.275]
+        file_type: [jrr_surfref]
+        file_key: "750m Surface Reflectance Band M11"
+        coordinates: [longitude_750, latitude_750]
+        units: '%'
+        standard_name: "surface_bidirectional_reflectance"
+    surf_refl_qf1:
+        name: surf_refl_qf1
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF1 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf2:
+        name: surf_refl_qf2
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF2 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf3:
+        name: surf_refl_qf3
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF3 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf4:
+        name: surf_refl_qf4
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF4 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf5:
+        name: surf_refl_qf5
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF5 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf6:
+        name: surf_refl_qf6
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF6 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+    surf_refl_qf7:
+        name: surf_refl_qf7
+        resolution: 750
+        file_type: [jrr_surfref]
+        file_key: "QF7 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        standard_name: "quality_flag"
+
+    # Swath-based vegetation indexes added to CSPP LEO surface reflectance files
+    NDVI:
+        name: NDVI
+        resolution: 375
+        file_type: [jrr_surfref]
+        file_key: "NDVI"
+        coordinates: [longitude_375, latitude_375]
+        units: "1"
+        valid_range: [-1.0, 1.0]
+        standard_name: "normalized_difference_vegetation_index"
+    EVI:
+        name: EVI
+        resolution: 375
+        file_type: [jrr_surfref]
+        file_key: "EVI"
+        coordinates: [longitude_375, latitude_375]
+        units: "1"
+        valid_range: [-1.0, 1.0]
+        standard_name: "normalized_difference_vegetation_index"
