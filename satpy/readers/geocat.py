@@ -32,6 +32,8 @@ and projection information to calculate the area extents.
 from __future__ import annotations
 
 import logging
+import warnings
+from datetime import datetime as datetime
 
 import numpy as np
 from pyproj import Proj
@@ -51,7 +53,27 @@ CF_UNITS = {
 GEO_PROJS = {
     'GOES-16': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
     'GOES-17': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
+    'GOES-18': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
     'HIMAWARI-8': '+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs',
+}
+
+CHANNEL_ALIASES = {
+    "abi": {"channel_1_reflectance": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+            "channel_2_reflectance": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+            "channel_3_reflectance": {"name": "C03", "wavelength": 0.86, "modifiers": ("sunz_corrected",)},
+            "channel_4_reflectance": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+            "channel_5_reflectance": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
+            "channel_6_reflectance": {"name": "C06", "wavelength": 2.26, "modifiers": ("sunz_corrected",)},
+            "channel_7_brightness_temperature": {"name": "C07", "wavelength": 3.9, "modifiers": ("sunz_corrected",)},
+            "channel_8_brightness_temperature": {"name": "C08", "wavelength": 6.15},
+            "channel_9_brightness_temperature": {"name": "C09", "wavelength": 7.},
+            "channel_10_brightness_temperature": {"name": "C10", "wavelength": 7.4},
+            "channel_11_brightness_temperature": {"name": "C11", "wavelength": 8.5},
+            "channel_12_brightness_temperature": {"name": "C12", "wavelength": 9.7},
+            "channel_13_brightness_temperature": {"name": "C13", "wavelength": 10.3},
+            "channel_14_brightness_temperature": {"name": "C14", "wavelength": 11.2},
+            "channel_15_brightness_temperature": {"name": "C15", "wavelength": 12.3},
+            },
 }
 
 
@@ -60,18 +82,39 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     **Loading data with decode_times=True**
 
-    By default, this reader will use ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
+    By default, this reader uses ``xarray_kwargs={"engine": "netcdf4", "decode_times": False}``.
     to match behavior of xarray when the geocat reader was first written.  To use different options
     use reader_kwargs when loading the Scene::
 
         scene = satpy.Scene(filenames,
                             reader='geocat',
                             reader_kwargs={'xarray_kwargs': {'engine': 'netcdf4', 'decode_times': True}})
+
+    This reader also supports older non-terrain corrected files, and terrain corrected geocat files determined
+    by the global attribute Terrain_Corrected_Nav_Option > 0.  Terrain corrected files will contain both terrain
+    corrected lat/lon values and non-terrain corrected lat/lons.  By default, non-terrain corrected lat/lons are
+    used.  When available, use terrain corrected lat/lons by setting use_tc=True.
+
+        scene = satpy.Scene(filenames,
+                            reader='geocat',
+                            reader_kwargs={'use_tc': True})
+
     """
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 **kwargs):
-        """Open and perform initial investigation of NetCDF file."""
+    def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
+        """Open and perform initial investigation of NetCDF file.
+
+        Args:
+            engine: xarray engine used to read the input file, default is 'netcdf4'
+            decode_times: tell xarray to decode the times.  default=False (recommended time unit is not cf-compliant)
+            use_tc (boolean): If `True` use the terrain corrected
+                              files. If `False`, switch to non-TC files. If
+                              `None` (default), use TC if available, non-TC otherwise.
+
+
+        """
+        self.area = None
+        self.use_tc = use_tc
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'engine', "netcdf4")
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
@@ -85,6 +128,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'goes': 'goes_imager',
         'himawari8': 'ahi',
         'goes16': 'abi',  # untested
+        'goes17': 'abi',  # untested
+        'goes18': 'abi',  # untested
         'goesr': 'abi',  # untested
     }
     platforms: dict[str, str] = {
@@ -122,10 +167,14 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def _get_proj(self, platform, ref_lon):
         if platform == 'GOES-16' and -76. < ref_lon < -74.:
-            # geocat file holds the *actual* subsatellite point, not the
+            # geocat file holds the *actual* sub-satellite point, not the
             # projection (-75.2 actual versus -75 projection)
             ref_lon = -75.
         return GEO_PROJS[platform].format(lon_0=ref_lon)
+
+    def _parse_time(self, datestr):
+        """Parse a time string."""
+        return datetime.strptime(datestr, "%H%M%S")
 
     @property
     def sensor_names(self):
@@ -143,10 +192,43 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return self.filename_info.get('end_time', self.start_time)
 
     @property
+    def image_time(self):
+        """Get image time from global attributes if possible."""
+        image_time = self.get("/attr/Image_Time", None)
+        if image_time is not None:
+            image_time = self._parse_time(str(image_time))
+        else:
+            warnings.warn("WARNING: Image_Time not in global attributes", stacklevel=2)
+        return image_time
+
+    @property
+    def actual_image_time(self):
+        """Get image time from global attributes if possible."""
+        actual_image_time = self.get("/attr/Actual_Image_Time", None)
+        if actual_image_time is not None:
+            actual_image_time = self._parse_time(str(actual_image_time))
+        else:
+            warnings.warn("WARNING: Actual_Image_Time not in global attributes", stacklevel=2)
+        return actual_image_time
+
+    @property
     def is_geo(self):
         """Check platform."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
+
+    @property
+    def terrain_corrected(self):
+        """Check for terrain correction."""
+        terrain_correction = self.get("/attr/Terrain_Corrected_Nav_Option", 0)
+        if terrain_correction > 0 and self.use_tc:
+            is_corrected = True
+        else:
+            is_corrected = False
+            if self.use_tc:
+                warnings.warn("WARNING:  This file does not have terrain correction",
+                              stacklevel=2)
+        return is_corrected
 
     @property
     def resolution(self):
@@ -174,7 +256,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         """
         res = self.resolution
-        coordinates = ('pixel_longitude', 'pixel_latitude')
+        coord_options = {"polar": ('pixel_longitude', 'pixel_latitude'),
+                         "terrain_corrected": ('pixel_longitude_tc',
+                                               'pixel_latitude_tc')}
+
         handled_variables = set()
 
         # update previously configured datasets
@@ -194,26 +279,41 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 new_info = ds_info.copy()  # don't mess up the above yielded
                 new_info['resolution'] = res
                 if not self.is_geo and this_coords is None:
-                    new_info['coordinates'] = coordinates
+                    new_info['coordinates'] = coord_options["polar"]
+                elif self.terrain_corrected and this_coords is None:
+                    new_info['coordinates'] = coord_options["terrain_corrected"]
                 yield True, new_info
             elif is_avail is None:
                 # if we didn't know how to handle this dataset and no one else did
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
+        # get data from file dynamically
+        yield from self._dynamic_datasets(coord_options, handled_variables)
 
-        # Provide new datasets
+    def _dynamic_datasets(self, coord_opt, handled_variables):
+        """Provide new datasets from the file."""
         for var_name, val in self.file_content.items():
             if var_name in handled_variables:
                 continue
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
-                    'resolution': res,
+                    'resolution': self.resolution,
                     'name': var_name,
                 }
                 if not self.is_geo:
-                    ds_info['coordinates'] = coordinates
+                    ds_info['coordinates'] = coord_opt["polar"]
+                if self.terrain_corrected:
+                    ds_info['coordinates'] = coord_opt["terrain_corrected"]
                 yield True, ds_info
+
+                # only working on geo aliases for now.
+                if self.is_geo:
+                    sensor = self.sensor_names[0]
+                    if CHANNEL_ALIASES.get(sensor):
+                        # yield variable as it is
+                        # yield any associated aliases
+                        yield from self._available_aliases(sensor, ds_info, var_name)
 
     def get_shape(self, dataset_id, ds_info):
         """Get shape."""
@@ -255,14 +355,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         nav = np.ma.masked_array(nav * factor + offset, mask=mask)
         return nav[:]
 
-    def get_area_def(self, dsid):
-        """Get area definition."""
-        if not self.is_geo:
-            raise NotImplementedError("Don't know how to get the Area Definition for this file")
-
+    def build_geo_area_def(self, dsid):
+        """Build a geostationary area definition."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         res = self._calc_area_resolution(dsid['resolution'])
-        proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
+        ref_subpoint = self.get('/attr/Projection_Longitude',
+                                float(self['/attr/Subsatellite_Longitude']))
+        proj = self._get_proj(platform, ref_subpoint)
         area_name = '{} {} Area at {}m'.format(
             platform,
             self.metadata.get('sector_id', ''),
@@ -281,6 +380,14 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         )
         return area_def
 
+    def get_area_def(self, dsid):
+        """Get area definition."""
+        if not self.is_geo or self.terrain_corrected:
+            # return a SwathDefinition
+            raise NotImplementedError
+        else:
+            return self.build_geo_area_def(dsid)
+
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
         var_name = ds_info.get('file_key', dataset_id['name'])
@@ -296,12 +403,26 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
         info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
         info['resolution'] = dataset_id['resolution']
-        if var_name == 'pixel_longitude':
+        if var_name in ['pixel_longitude', 'pixel_longitude_tc']:
             info['standard_name'] = 'longitude'
-        elif var_name == 'pixel_latitude':
+        elif var_name in ['pixel_latitude', 'pixel_latitude_tc']:
             info['standard_name'] = 'latitude'
 
+        if self.image_time:
+            info["image_time"] = self.image_time
+        if self.actual_image_time:
+            info["actual_image_time"] = self.actual_image_time
+
         return info
+
+    def _available_aliases(self, sensor, ds_info, current_var):
+        """Add alias if there is a match."""
+        new_info = ds_info.copy()
+        alias_info = CHANNEL_ALIASES.get(sensor).get(current_var, None)
+        if alias_info is not None:
+            alias_info.update({"file_key": current_var})
+            new_info.update(alias_info)
+            yield True, new_info
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""

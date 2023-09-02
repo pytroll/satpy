@@ -235,3 +235,12 @@ enhancements:
                 min_value: 0.0,
                 max_value: 1.0,
                }
+  ThermalFalseColor:
+    standard_name: ThermalFalseColor
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-1.0, -5.0, 243]
+          max_stretch: [ 5.0, 30, 253]
