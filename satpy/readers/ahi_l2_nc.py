@@ -98,6 +98,13 @@ class HIML2NCFileHandler(BaseFileHandler):
         var = info['file_key']
         logger.debug('Reading in get_dataset %s.', var)
         variable = self.nc[var]
+
+        # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
+        variable = variable.rename({'Rows': 'y', 'Columns': 'x'})
+
+        variable = variable.drop('Latitude')
+        variable = variable.drop('Longitude')
+
         variable.attrs.update(key.to_dict())
         return variable
 
