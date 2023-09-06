@@ -15,6 +15,7 @@ build:
     python: "mambaforge-4.10"
   jobs:
     pre_install:
+      - git status
       - git update-index --assume-unchanged doc/rtd_environment.yml doc/source/conf.py
 conda:
   environment: doc/rtd_environment.yml
