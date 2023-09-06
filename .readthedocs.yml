@@ -17,5 +17,8 @@ build:
     pre_install:
       - git status
       - git update-index --assume-unchanged doc/rtd_environment.yml doc/source/conf.py
+      - git status
+    post_install:
+      - python -m pip install --no-deps -e .
 conda:
   environment: doc/rtd_environment.yml
