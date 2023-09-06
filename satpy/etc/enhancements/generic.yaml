@@ -340,6 +340,19 @@ enhancements:
       args:
       - [true, true, true]
 
+  green-sar:
+    standard_name: green-sar
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        # R -- VH: 0.00109 to 0.0594
+        # G -- VV_db: -17.57 to -3.3
+        # B -- VV: 0.00332 to 0.3
+        min_stretch: [0.00109, -17.57, 0.00332]
+        max_stretch: [0.0594, -3.3, .3]
+
   sar-quick:
     standard_name: sar-quick
     operations:
