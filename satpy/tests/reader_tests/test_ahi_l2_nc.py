@@ -16,7 +16,7 @@ cprob_data = rng.uniform(0, 1, (5500, 5500))
 start_time = datetime(2023, 8, 24, 5, 40, 21)
 end_time = datetime(2023, 8, 24, 5, 49, 40)
 
-dimensions = {'Columns': 5500, 'Rows': 5500}
+dimensions = {'X': 5500, 'Y': 5500}
 
 exp_ext = (-5499999.9012, -5499999.9012, 5499999.9012, 5499999.9012)
 
@@ -46,7 +46,7 @@ def himl2_filename(tmp_path_factory):
     with h5netcdf.File(fname, mode="w") as h5f:
         h5f.dimensions = dimensions
         h5f.attrs.update(global_attrs)
-        var = h5f.create_variable("CloudMask", ("Rows", "Columns"), np.uint16, chunks=(200, 200))
+        var = h5f.create_variable("CloudMask", ("Y", "X"), np.uint16, chunks=(200, 200))
         var[:] = clmk_data
 
     return fname
@@ -59,7 +59,7 @@ def himl2_filename_bad(tmp_path_factory):
     with h5netcdf.File(fname, mode="w") as h5f:
         h5f.dimensions = dimensions
         h5f.attrs.update(badarea_attrs)
-        var = h5f.create_variable("CloudMask", ("Rows", "Columns"), np.uint16, chunks=(200, 200))
+        var = h5f.create_variable("CloudMask", ("Y", "X"), np.uint16, chunks=(200, 200))
         var[:] = clmk_data
 
     return fname
