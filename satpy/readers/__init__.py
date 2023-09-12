@@ -22,6 +22,7 @@ import logging
 import os
 import pickle  # nosec B403
 import warnings
+import pathlib
 from datetime import datetime, timedelta
 from functools import total_ordering
 
@@ -779,8 +780,11 @@ def _get_compression(file):
 
 def open_file_or_filename(unknown_file_thing):
     """Try to open the *unknown_file_thing*, otherwise return the filename."""
-    try:
-        f_obj = unknown_file_thing.open()
-    except AttributeError:
+    if isinstance(unknown_file_thing, (pathlib.WindowsPath, pathlib.PosixPath)):
         f_obj = unknown_file_thing
+    else:
+        try:
+            f_obj = unknown_file_thing.open()
+        except AttributeError:
+            f_obj = unknown_file_thing
     return f_obj
