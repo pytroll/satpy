@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""
+"""GERB L2 HR HDF5 reader.
+
 A reader for the Top of Atmosphere outgoing fluxes from the Geostationary Earth Radiation
 Budget instrument aboard the Meteosat Second Generation satellites.
 """
@@ -39,7 +40,7 @@ LOG = logging.getLogger(__name__)
 
 def gerb_get_dataset(hfile, name):
     """
-    Load a GERB dataset in memory from a HDF5 file
+    Load a GERB dataset in memory from a HDF5 file.
 
     The routine takes into account the quantisation factor and fill values.
     """
@@ -96,8 +97,7 @@ class GERB_HR_FileHandler(BaseFileHandler):
         return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
 
     def get_area_def(self, dsid):
-        """Area definition for the GERB product"""
-
+        """Area definition for the GERB product."""
         if abs(self.ssp_lon) < 1e-6:
             return get_area_def("msg_seviri_fes_9km")
         elif abs(self.ssp_lon - 9.5) < 1e-6:
