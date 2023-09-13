@@ -8,7 +8,7 @@ concurrency:
 on: [push, pull_request]
 
 env:
-  CACHE_NUMBER: 1
+  CACHE_NUMBER: 0
 
 jobs:
   lint:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
@@ -82,6 +82,9 @@ jobs:
       - name: Update environment
         run: mamba env update -n test-environment -f continuous_integration/environment.yaml
         if: steps.cache.outputs.cache-hit != 'true'
+      - name: Update environment - libnetcdf
+        run: mamba install -y -n test-environment libnetcdf=4.9.2=nompi_h5902ca5_107
+        if: runner.os == 'Windows'
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
