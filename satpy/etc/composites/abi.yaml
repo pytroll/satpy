@@ -537,7 +537,7 @@ composites:
           - name: C13
     standard_name: snow
 
-  night_microphysics_abi:
+  night_microphysics:
     description: >
       Nighttime Microphysics RGB, for GOESR: NASA, NOAA
     references:
