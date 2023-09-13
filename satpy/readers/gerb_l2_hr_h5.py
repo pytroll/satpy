@@ -17,8 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""A reader for the Top of Atmosphere outgoing fluxes from the Geostationary Earth Radiation
-Budget instrument aboard the Meteosat Second Generation satellites."""
+"""
+A reader for the Top of Atmosphere outgoing fluxes from the Geostationary Earth Radiation
+Budget instrument aboard the Meteosat Second Generation satellites.
+"""
 
 
 import logging
@@ -33,6 +35,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
+
 
 def gerb_get_dataset(hfile, name):
     """
@@ -68,12 +71,10 @@ class GERB_HR_FileHandler(BaseFileHandler):
         """Get end time."""
         return self.start_time + timedelta(minutes=14, seconds=59)
 
-
     @property
     def start_time(self):
         """Get start time."""
         return self.filename_info['sensing_time']
-
 
     def _get_dataset(self, ds_name):
         """Access the GERB dataset from the HDF5 file."""
@@ -81,7 +82,6 @@ class GERB_HR_FileHandler(BaseFileHandler):
             return gerb_get_dataset(self._h5fh, f'Radiometry/{ds_name}')
         else:
             raise ValueError
-
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
@@ -95,7 +95,6 @@ class GERB_HR_FileHandler(BaseFileHandler):
         data = da.from_array(ds)
         return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
 
-
     def get_area_def(self, dsid):
         """Area definition for the GERB product"""
 
@@ -107,4 +106,3 @@ class GERB_HR_FileHandler(BaseFileHandler):
             return get_area_def("msg_seviri_iodc_9km")
         else:
             raise ValueError
-
