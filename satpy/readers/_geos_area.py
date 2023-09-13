@@ -54,10 +54,15 @@ def make_ext(ll_x, ur_x, ll_y, ur_y, h):
         aex: An area extent for the scene
 
     """
-    aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-           np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
-
-    return aex
+    ll_x = np.deg2rad(ll_x)
+    ll_y = np.deg2rad(ll_y)
+    ur_x = np.deg2rad(ur_x)
+    ur_y = np.deg2rad(ur_y)
+    ll_x = np.round(ll_x, 7)
+    ur_x = np.round(ur_x, 7)
+    ll_y = np.round(ll_y, 7)
+    ur_y = np.round(ur_y, 7)
+    return ll_x * h, ll_y * h, ur_x * h, ur_y * h
 
 
 def get_area_extent(pdict):
