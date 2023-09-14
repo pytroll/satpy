@@ -70,7 +70,7 @@ class GERB_HR_FileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get end time."""
-        return self.start_time + timedelta(minutes=14, seconds=59)
+        return self.start_time + timedelta(minutes=15)
 
     @property
     def start_time(self):
