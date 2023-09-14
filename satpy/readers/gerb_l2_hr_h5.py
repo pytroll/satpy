@@ -38,22 +38,22 @@ from satpy.resample import get_area_def
 LOG = logging.getLogger(__name__)
 
 
-def gerb_get_dataset(hfile, name):
+def gerb_get_dataset(hfile, name, ds_info):
     """
     Load a GERB dataset in memory from a HDF5 file.
 
     The routine takes into account the quantisation factor and fill values.
     """
-    ds = hfile[name]
-    if 'Quantisation Factor' in ds.attrs and 'Unit' in ds.attrs:
-        ds_real = ds[...]*ds.attrs['Quantisation Factor']
+    ds = hfile[name][...]
+    ds_attrs = hfile[name].attrs
+    ds_fill = ds_info['fill_value']
+    fill_mask = ds == ds_fill
+    if 'Quantisation Factor' in ds_attrs and 'Unit' in ds_attrs:
+        ds = ds*ds_attrs['Quantisation Factor']
     else:
-        ds_real = ds[...]*1.
-    ds_min = ds[...].min()
-    if ds_min < 0:
-        mask = ds == ds_min
-        ds_real[mask] = np.nan
-    return ds_real
+        ds = ds*1.
+    ds[fill_mask] = np.nan
+    return ds
 
 
 class GERB_HR_FileHandler(BaseFileHandler):
@@ -77,16 +77,16 @@ class GERB_HR_FileHandler(BaseFileHandler):
         """Get start time."""
         return self.filename_info['sensing_time']
 
-    def _get_dataset(self, ds_name):
+    def _get_dataset(self, ds_name, ds_info):
         """Access the GERB dataset from the HDF5 file."""
         if ds_name in ['Solar Flux', 'Thermal Flux', 'Solar Radiance', 'Thermal Radiance']:
-            return gerb_get_dataset(self._h5fh, f'Radiometry/{ds_name}')
+            return gerb_get_dataset(self._h5fh, f'Radiometry/{ds_name}', ds_info)
         else:
-            raise ValueError
+            raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-        ds = self._get_dataset(ds_id['name'])
+        ds = self._get_dataset(ds_id['name'], ds_info)
         ds_info = {}
 
         ds_info['start_time'] = self.start_time
