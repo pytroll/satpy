@@ -44,15 +44,15 @@ def gerb_get_dataset(hfile, name, ds_info):
 
     The routine takes into account the quantisation factor and fill values.
     """
-    ds = hfile[name][...]
+    ds = xr.DataArray(hfile[name][...])
     ds_attrs = hfile[name].attrs
     ds_fill = ds_info['fill_value']
-    fill_mask = ds == ds_fill
+    fill_mask = ds != ds_fill
     if 'Quantisation Factor' in ds_attrs and 'Unit' in ds_attrs:
         ds = ds*ds_attrs['Quantisation Factor']
     else:
         ds = ds*1.
-    ds[fill_mask] = np.nan
+    ds = ds.where(fill_mask)
     return ds
 
 
