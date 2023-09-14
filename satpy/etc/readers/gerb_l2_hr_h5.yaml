@@ -17,7 +17,6 @@ datasets:
   Solar_Flux:
     name: Solar Flux
     sensor: gerb
-    wavelength: [0.3, 3., 4.]
     units: W m-2
     standard_name: toa_outgoing_shortwave_flux
     file_type: gerb_l2_hr_h5
@@ -25,7 +24,6 @@ datasets:
   Thermal_Flux:
     name: Thermal Flux
     sensor: gerb
-    wavelength: [4., 22., 40.]
     units: W m-2
     standard_name: toa_outgoing_longwave_flux
     file_type: gerb_l2_hr_h5
