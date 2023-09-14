@@ -105,4 +105,4 @@ class GERB_HR_FileHandler(BaseFileHandler):
         elif abs(self.ssp_lon - 45.5) < 1e-6:
             return get_area_def("msg_seviri_iodc_9km")
         else:
-            raise ValueError
+            raise ValueError(f"There is no matching grid for SSP longitude {self.ssp_lon}")
