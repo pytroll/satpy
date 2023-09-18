@@ -29,7 +29,6 @@ from datetime import timedelta
 
 import dask.array as da
 import h5py
-import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -78,7 +77,6 @@ class GERB_HR_FileHandler(HDF5FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-
         ds_name = ds_id['name']
         if ds_name not in ['Solar Flux', 'Thermal Flux', 'Solar Radiance', 'Thermal Radiance']:
             raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
