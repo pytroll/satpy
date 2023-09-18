@@ -169,17 +169,39 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
         ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
 
-        # Apply non-linearity to the ndvi for a non-linear conversion from ndvi to fraction. This can be used for a
-        # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this
-        # operation has no effect on the ndvi.
-        ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
+        # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
+        if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
+            ndvi = self._apply_strength(ndvi)
 
-        # Compute blending fraction from ndvi
-        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
-            + self.limits[0]
+        # Compute pixel-level NIR blend fractions from ndvi
+        fraction = self._compute_blend_fraction(ndvi)
+
+        # Prepare input as required by parent class (SpectralBlender)
         self.fractions = (1 - fraction, fraction)
 
         return super().__call__([projectables[0], projectables[2]], **attrs)
+
+    def _apply_strength(self, ndvi):
+        """Introduce non-linearity by applying strength factor.
+
+        The method introduces non-linearity to the ndvi for a non-linear scaling from ndvi to blend fraction in
+        `_compute_blend_fraction`. This can be used for a slower or faster transision to higher/lower fractions
+        at the ndvi extremes. If strength equals 1.0, this operation has no effect on the ndvi.
+        """
+        ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
+
+        return ndvi
+
+    def _compute_blend_fraction(self, ndvi):
+        """Compute pixel-level fraction of NIR signal to blend with native green signal.
+
+        This method linearly scales the input ndvi values to pixel-level blend fractions within the range
+        `[limits[0], limits[1]]` following this implementation <https://stats.stackexchange.com/a/281164>.
+        """
+        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
+            + self.limits[0]
+
+        return fraction
 
 
 class GreenCorrector(SpectralBlender):
