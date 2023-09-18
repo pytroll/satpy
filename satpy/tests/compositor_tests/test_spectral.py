@@ -65,8 +65,24 @@ class TestSpectralComposites:
         data = res.compute()
         np.testing.assert_allclose(data, 0.23)
 
-    def test_ndvi_hybrid_green(self):
-        """Test NDVI-scaled hybrid green correction of 'green' band."""
+    def test_green_corrector(self):
+        """Test the deprecated class for green corrections."""
+        comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
+                              standard_name='toa_bidirectional_reflectance')
+        res = comp((self.c01, self.c03))
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'blended_channel'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
+        data = res.compute()
+        np.testing.assert_allclose(data, 0.23)
+
+
+class TestNdviHybridGreenCompositor:
+    """Test NDVI-weighted hybrid green correction of green band."""
+
+    def setup_method(self):
+        """Initialize channels."""
         self.c01 = xr.DataArray(da.from_array([[0.25, 0.30], [0.20, 0.30]], chunks=25),
                                 dims=('y', 'x'), attrs={'name': 'C02'})
         self.c02 = xr.DataArray(da.from_array([[0.25, 0.30], [0.25, 0.35]], chunks=25),
@@ -74,6 +90,8 @@ class TestSpectralComposites:
         self.c03 = xr.DataArray(da.from_array([[0.35, 0.35], [0.28, 0.65]], chunks=25),
                                 dims=('y', 'x'), attrs={'name': 'C04'})
 
+    def test_ndvi_hybrid_green(self):
+        """Test General functionality with linear scaling from ndvi to blend fraction."""
         comp = NDVIHybridGreen('ndvi_hybrid_green', limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
                                standard_name='toa_bidirectional_reflectance')
 
@@ -86,26 +104,16 @@ class TestSpectralComposites:
         data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
 
-        # Test invalid strength
-        with pytest.raises(ValueError):
-            _ = NDVIHybridGreen('ndvi_hybrid_green', strength=0.0, prerequisites=(0.51, 0.65, 0.85),
-                                standard_name='toa_bidirectional_reflectance')
-
-        # Test non-linear strength
+    def test_nonliniear_scaling(self):
+        """Test non-linear scaling using `strength` term."""
         comp = NDVIHybridGreen('ndvi_hybrid_green', limits=(0.15, 0.05), strength=2.0, prerequisites=(0.51, 0.65, 0.85),
                                standard_name='toa_bidirectional_reflectance')
 
         res = comp((self.c01, self.c02, self.c03))
         np.testing.assert_array_almost_equal(res.values, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
 
-    def test_green_corrector(self):
-        """Test the deprecated class for green corrections."""
-        comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
-                              standard_name='toa_bidirectional_reflectance')
-        res = comp((self.c01, self.c03))
-        assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array)
-        assert res.attrs['name'] == 'blended_channel'
-        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
-        data = res.compute()
-        np.testing.assert_allclose(data, 0.23)
+    def test_invalid_strength(self):
+        """Test using invalid `strength` term for non-linear scaling."""
+        with pytest.raises(ValueError):
+            _ = NDVIHybridGreen('ndvi_hybrid_green', strength=0.0, prerequisites=(0.51, 0.65, 0.85),
+                                standard_name='toa_bidirectional_reflectance')
