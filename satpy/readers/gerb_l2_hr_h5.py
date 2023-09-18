@@ -32,7 +32,7 @@ import h5py
 import numpy as np
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.resample import get_area_def
 
 LOG = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ LOG = logging.getLogger(__name__)
 
 def gerb_get_dataset(hfile, name, ds_info):
     """
-    Load a GERB dataset in memory from a HDF5 file.
+    Load a GERB dataset in memory from a HDF5 file or HDF5FileHandler.
 
     The routine takes into account the quantisation factor and fill values.
     """
@@ -56,7 +56,7 @@ def gerb_get_dataset(hfile, name, ds_info):
     return ds
 
 
-class GERB_HR_FileHandler(BaseFileHandler):
+class GERB_HR_FileHandler(HDF5FileHandler):
     """File handler for GERB L2 High Resolution H5 files."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -65,7 +65,6 @@ class GERB_HR_FileHandler(BaseFileHandler):
                                                   filename_info,
                                                   filetype_info)
         self._h5fh = h5py.File(self.filename, 'r')
-        self.ssp_lon = self._h5fh["Geolocation"].attrs["Nominal Satellite Longitude (degrees)"][()]
 
     @property
     def end_time(self):
@@ -77,16 +76,14 @@ class GERB_HR_FileHandler(BaseFileHandler):
         """Get start time."""
         return self.filename_info['sensing_time']
 
-    def _get_dataset(self, ds_name, ds_info):
-        """Access the GERB dataset from the HDF5 file."""
-        if ds_name in ['Solar Flux', 'Thermal Flux', 'Solar Radiance', 'Thermal Radiance']:
-            return gerb_get_dataset(self._h5fh, f'Radiometry/{ds_name}', ds_info)
-        else:
-            raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
-
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-        ds = self._get_dataset(ds_id['name'], ds_info)
+
+        ds_name = ds_id['name']
+        if ds_name not in ['Solar Flux', 'Thermal Flux', 'Solar Radiance', 'Thermal Radiance']:
+            raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
+
+        ds = gerb_get_dataset(self, f'Radiometry/{ds_name}', ds_info)
         ds_info = {}
 
         ds_info['start_time'] = self.start_time
@@ -98,11 +95,13 @@ class GERB_HR_FileHandler(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Area definition for the GERB product."""
-        if abs(self.ssp_lon) < 1e-6:
+        ssp_lon = self.file_content["Geolocation/attr/Nominal Satellite Longitude (degrees)"]
+
+        if abs(ssp_lon) < 1e-6:
             return get_area_def("msg_seviri_fes_9km")
-        elif abs(self.ssp_lon - 9.5) < 1e-6:
+        elif abs(ssp_lon - 9.5) < 1e-6:
             return get_area_def("msg_seviri_fes_9km")
-        elif abs(self.ssp_lon - 45.5) < 1e-6:
+        elif abs(ssp_lon - 45.5) < 1e-6:
             return get_area_def("msg_seviri_iodc_9km")
         else:
             raise ValueError(f"There is no matching grid for SSP longitude {self.ssp_lon}")
