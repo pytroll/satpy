@@ -7,5 +7,10 @@ include LICENSE.txt
 include README.rst
 include AUTHORS.md
 include CHANGELOG.md
+include SECURITY.md
+include CITATION
 include satpy/version.py
+include pyproject.toml
+include setup.py
+include setup.cfg
 global-exclude *.py[cod]
