@@ -1,6 +1,11 @@
-include doc/Makefile
-include doc/source/*
-include doc/examples/*.py
+prune *
+exclude *
+graft doc
+recursive-exclude doc/build *
+graft satpy
 include LICENSE.txt
 include README.rst
+include AUTHORS.md
+include CHANGELOG.md
 include satpy/version.py
+global-exclude *.py[cod]
