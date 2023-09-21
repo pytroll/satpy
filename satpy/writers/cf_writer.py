@@ -192,7 +192,7 @@ except ImportError:
 if netCDF4 is None and h5netcdf is None:
     raise ImportError('Ensure that the netCDF4 or h5netcdf package is installed.')
 
-# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# Numpy datatypes compatible with all netCDF4 backends. ``np.str_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
 NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
