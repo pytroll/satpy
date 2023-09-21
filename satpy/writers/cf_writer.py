@@ -200,7 +200,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int32'), np.dtype('uint32'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
-              np.string_]
+              np.bytes_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
 # Note: Unsigned and int64 are CF 1.9 compatible
@@ -209,7 +209,7 @@ CF_DTYPES = [np.dtype('int8'),
              np.dtype('int32'),
              np.dtype('float32'),
              np.dtype('float64'),
-             np.string_]
+             np.bytes_]
 
 CF_VERSION = 'CF-1.7'
 
@@ -582,7 +582,7 @@ def _remove_satpy_attrs(new_data):
 def _format_prerequisites_attrs(dataarray):
     """Reformat prerequisites attribute value to string."""
     if 'prerequisites' in dataarray.attrs:
-        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+        dataarray.attrs['prerequisites'] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
     return dataarray
 
 
