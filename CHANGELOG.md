@@ -1,3 +1,7 @@
+## Version 0.43.0.post0 (2023/09/20)
+
+* Build changes to fix issues with setuptools_scm_git_archive
+
 ## Version 0.43.0 (2023/07/03)
 
 ### Issues Closed
