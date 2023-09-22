@@ -27,93 +27,105 @@ import xarray as xr
 from satpy.tests.utils import make_dataid
 
 
+def _create_fake_rad_dataarray(rad=None):
+    x_image = xr.DataArray(0.)
+    y_image = xr.DataArray(0.)
+    time = xr.DataArray(0.)
+    if rad is None:
+        rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
+        rad_data = (rad_data + 1.) / 0.5
+        rad_data = rad_data.astype(np.int16)
+        rad = xr.DataArray(
+            rad_data,
+            dims=('y', 'x'),
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': 1002,
+                'units': 'W m-2 um-1 sr-1',
+                'valid_range': (0, 4095),
+            }
+        )
+    rad.coords['t'] = time
+    rad.coords['x_image'] = x_image
+    rad.coords['y_image'] = y_image
+    return rad
+
+
+def _create_fake_rad_dataset(rad=None):
+    rad = _create_fake_rad_dataarray(rad=rad)
+
+    x__ = xr.DataArray(
+        range(5),
+        attrs={'scale_factor': 2., 'add_offset': -1.},
+        dims=('x',)
+    )
+    y__ = xr.DataArray(
+        range(2),
+        attrs={'scale_factor': -2., 'add_offset': 1.},
+        dims=('y',)
+    )
+    proj = xr.DataArray(
+        [],
+        attrs={
+            'semi_major_axis': 1.,
+            'semi_minor_axis': 1.,
+            'perspective_point_height': 1.,
+            'longitude_of_projection_origin': -90.,
+            'latitude_of_projection_origin': 0.,
+            'sweep_angle_axis': u'x'
+        }
+    )
+
+    fake_dataset = xr.Dataset(
+        data_vars={
+            'Rad': rad,
+            'band_id': np.array(8),
+            # 'x': x__,
+            # 'y': y__,
+            'x_image': xr.DataArray(0.),
+            'y_image': xr.DataArray(0.),
+            'goes_imager_projection': proj,
+            'yaw_flip_flag': np.array([1]),
+            "planck_fk1": np.array(13432.1),
+            "planck_fk2": np.array(1497.61),
+            "planck_bc1": np.array(0.09102),
+            "planck_bc2": np.array(0.99971),
+            "esun": np.array(2017),
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786.02),
+            "earth_sun_distance_anomaly_in_AU": np.array(0.99)
+        },
+        coords={
+            't': rad.coords['t'],
+            'x': x__,
+            'y': y__,
+
+        },
+        attrs={
+            "time_coverage_start": "2017-09-20T17:30:40.8Z",
+            "time_coverage_end": "2017-09-20T17:41:17.5Z",
+        },
+    )
+    return fake_dataset
+
+
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_, rad=None):
+    def setUp(self, xr_, rad=None, clip_negative_radiances=False):
         """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
-        x_image = xr.DataArray(0.)
-        y_image = xr.DataArray(0.)
-        time = xr.DataArray(0.)
-        if rad is None:
-            rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
-            rad_data = (rad_data + 1.) / 0.5
-            rad_data = rad_data.astype(np.int16)
-            rad = xr.DataArray(
-                rad_data,
-                dims=('y', 'x'),
-                attrs={
-                    'scale_factor': 0.5,
-                    'add_offset': -1.,
-                    '_FillValue': 1002,
-                    'units': 'W m-2 um-1 sr-1',
-                    'valid_range': (0, 4095),
-                }
-            )
-        rad.coords['t'] = time
-        rad.coords['x_image'] = x_image
-        rad.coords['y_image'] = y_image
-        x__ = xr.DataArray(
-            range(5),
-            attrs={'scale_factor': 2., 'add_offset': -1.},
-            dims=('x',)
-        )
-        y__ = xr.DataArray(
-            range(2),
-            attrs={'scale_factor': -2., 'add_offset': 1.},
-            dims=('y',)
-        )
-        proj = xr.DataArray(
-            [],
-            attrs={
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'perspective_point_height': 1.,
-                'longitude_of_projection_origin': -90.,
-                'latitude_of_projection_origin': 0.,
-                'sweep_angle_axis': u'x'
-            }
-        )
-        fake_dataset = xr.Dataset(
-            data_vars={
-                'Rad': rad,
-                'band_id': np.array(8),
-                # 'x': x__,
-                # 'y': y__,
-                'x_image': x_image,
-                'y_image': y_image,
-                'goes_imager_projection': proj,
-                'yaw_flip_flag': np.array([1]),
-                "planck_fk1": np.array(13432.1),
-                "planck_fk2": np.array(1497.61),
-                "planck_bc1": np.array(0.09102),
-                "planck_bc2": np.array(0.99971),
-                "esun": np.array(2017),
-                "nominal_satellite_subpoint_lat": np.array(0.0),
-                "nominal_satellite_subpoint_lon": np.array(-89.5),
-                "nominal_satellite_height": np.array(35786.02),
-                "earth_sun_distance_anomaly_in_AU": np.array(0.99)
-            },
-            coords={
-                't': rad.coords['t'],
-                'x': x__,
-                'y': y__,
-
-            },
-            attrs={
-                "time_coverage_start": "2017-09-20T17:30:40.8Z",
-                "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            },
-        )
-        xr_.open_dataset.return_value = fake_dataset
+        xr_.open_dataset.return_value = _create_fake_rad_dataset(rad=rad)
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
                                   'suffix': 'custom',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                 {'filetype': 'info'})
+                                 {'filetype': 'info'},
+                                 clip_negative_radiances=clip_negative_radiances)
 
 
 class TestABIYAML:
@@ -200,7 +212,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
 
 
 class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
-    """Test the NC_ABI_L1B reader's IR calibration."""
+    """Test the NC_ABI_L1B reader's default IR calibration."""
 
     def setUp(self):
         """Create fake data for the tests."""
@@ -213,10 +225,26 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
             attrs={
                 'scale_factor': 0.5,
                 'add_offset': -1.,
-                '_FillValue': 1002,
+                '_FillValue': 1002,  # last rad_data value
             }
         )
         super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad)
+
+    def test_ir_calibration_attrs(self):
+        """Test IR calibrated DataArray attributes."""
+        res = self.reader.get_dataset(
+            make_dataid(name='C05', calibration='brightness_temperature'), {})
+
+        # make sure the attributes from the file are in the data array
+        self.assertNotIn('scale_factor', res.attrs)
+        self.assertNotIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_brightness_temperature')
+        self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
+
+    def test_clip_negative_radiances_attribute(self):
+        """Assert that clip_negative_radiances is set to False."""
+        assert not self.reader.clip_negative_radiances
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
@@ -225,13 +253,56 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
-        # make sure the attributes from the file are in the data array
-        self.assertNotIn('scale_factor', res.attrs)
-        self.assertNotIn('_FillValue', res.attrs)
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_brightness_temperature')
-        self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
+        assert np.allclose(res.data, expected, equal_nan=True)
+
+
+class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader's IR calibration (clipping negative radiance)."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        values = np.arange(10.)
+        values[0] = -0.0001  # introduce below minimum expected radiance
+        rad_data = (values.reshape((2, 5)) + 1.) * 50.
+        rad_data = (rad_data + 1.) / 0.5
+        rad_data = rad_data.astype(np.int16)
+        rad = xr.DataArray(
+            rad_data,
+            dims=('y', 'x'),
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': 1002,
+            }
+        )
+
+        super().setUp(rad=rad, clip_negative_radiances=True)
+
+    def test_clip_negative_radiances_attribute(self):
+        """Assert that clip_negative_radiances has been set to True."""
+        assert self.reader.clip_negative_radiances
+
+    def test_ir_calibrate(self):
+        """Test IR calibration."""
+        res = self.reader.get_dataset(
+            make_dataid(name='C07', calibration='brightness_temperature'), {})
+
+        clipped_ir = 267.07775531
+        expected = np.array([[clipped_ir, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
+                             [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
+        assert np.allclose(res.data, expected, equal_nan=True)
+
+    def test_get_minimum_radiance(self):
+        """Test get_minimum_radiance from Rad DataArray."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
+        data = xr.DataArray(
+               attrs={
+                   'scale_factor': 0.5,
+                   'add_offset': -1.,
+                   '_FillValue': 1002,
+               }
+        )
+        np.testing.assert_allclose(NC_ABI_L1B._get_minimum_radiance(NC_ABI_L1B, data), 0.0)
 
 
 class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):

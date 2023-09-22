@@ -231,10 +231,10 @@ composites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
-    - name: I01
+    - name: I02
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: false_color
-    high_resolution_band: blue
+    high_resolution_band: green
 
   fire_temperature:
     # CIRA: Original VIIRS
@@ -306,6 +306,53 @@ composites:
       modifiers: [sunz_corrected_iband]
     standard_name: natural_color
 
+  natural_color_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_I03
+    - name: surf_refl_I02
+    - name: surf_refl_I01
+    standard_name: natural_color
+
+  natural_color_lowres_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_M10
+    - name: surf_refl_M07
+    - name: surf_refl_M05
+    standard_name: natural_color
+
+  false_color_surf:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: surf_refl_M11
+      - name: surf_refl_M07
+      - name: surf_refl_M05
+    optional_prerequisites:
+      - name: surf_refl_I02
+    standard_name: false_color
+    high_resolution_band: green
+
+
+  true_color_lowres_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_M05
+    - name: surf_refl_M04
+    - name: surf_refl_M03
+    standard_name: true_color
+
+  true_color_surf:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: surf_refl_M05
+      - name: surf_refl_M04
+      - name: surf_refl_M03
+    optional_prerequisites:
+      - name: surf_refl_I01
+    standard_name: true_color
+    high_resolution_band: red
+
   natural_color_sun_lowres:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -327,14 +374,6 @@ composites:
     - name: M03
       modifiers: [sunz_corrected]
     standard_name: true_color
-
-  night_overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - DNB
-    - DNB
-    - M15
-    standard_name: night_overview
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -359,6 +398,26 @@ composites:
     - M12
     - M15
     standard_name: night_microphysics
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M12
+      modifiers: [nir_reflectance]
+    - M15
+    standard_name: day_microphysics
+
+  day_microphysics_hires:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: I02
+      modifiers: [sunz_corrected_iband]
+    - name: I04
+      modifiers: [nir_reflectance_hires]
+    - I05
+    standard_name: day_microphysics
 
   fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -547,3 +606,82 @@ composites:
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: ocean_color
     high_resolution_band: red
+
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M15
+      - name: I01
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M15
+      - name: I01
+      - name: I03
+    standard_name: cloud_phase_distinction
+
+  cloud_phase:
+    description: >
+      EUMETSAT Cloud Phase RGB product
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+      - name: M11
+        modifiers: [sunz_corrected]
+      - name: M05
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: cloud_phase
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase RGB product, without modifiers
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I03
+      - name: M11
+      - name: M05
+    standard_name: cloud_phase
+
+  cimss_cloud_type:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M09
+        modifiers: [sunz_corrected]
+      - name: I01
+        modifiers: [sunz_corrected_iband]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+    standard_name: cimss_cloud_type
+
+  cimss_cloud_type_raw:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: M09
+      - name: I01
+      - name: I03
+    standard_name: cimss_cloud_type

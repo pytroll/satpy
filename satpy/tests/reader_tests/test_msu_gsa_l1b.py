@@ -126,7 +126,7 @@ class TestMSUGSABReader:
 
     yaml_file = "msu_gsa_l1b.yaml"
 
-    def setup(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers import load_reader
@@ -142,7 +142,7 @@ class TestMSUGSABReader:
         files = self.reader.select_files_from_pathnames(filenames)
         self.reader.create_filehandlers(files)
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
@@ -152,7 +152,7 @@ class TestMSUGSABReader:
         res = self.reader.load(ds_ids)
         assert 'C09' in res
         assert res['C09'].attrs['calibration'] == 'brightness_temperature'
-        assert res['C09'].attrs['platform_name'] == 'Arctica-M N1'
+        assert res['C09'].attrs['platform_name'] == 'Arctica-M-N1'
         assert res['C09'].attrs['sat_latitude'] == 71.25
         assert res['C09'].attrs['sat_longitude'] == 21.44
         assert res['C09'].attrs['sat_altitude'] == 38500.

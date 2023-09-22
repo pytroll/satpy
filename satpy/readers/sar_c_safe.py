@@ -34,23 +34,23 @@ References:
 
 """
 
+import functools
 import logging
-from functools import lru_cache
 from threading import Lock
 
 import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
-import rioxarray
 import xarray as xr
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def dictify(r):
@@ -126,6 +126,14 @@ class SAFEXML(BaseFileHandler):
 class SAFEXMLAnnotation(SAFEXML):
     """XML file reader for the SAFE format, Annotation file."""
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML annotation reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_incidence_angle = functools.lru_cache(maxsize=10)(
+            self._get_incidence_angle_uncached
+        )
+
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
@@ -134,8 +142,7 @@ class SAFEXMLAnnotation(SAFEXML):
         if key["name"] == "incidence_angle":
             return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self, chunks):
+    def _get_incidence_angle_uncached(self, chunks):
         """Get the incidence angle array."""
         incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
         return incidence_angle.expand(self._image_shape, chunks=chunks)
@@ -143,6 +150,14 @@ class SAFEXMLAnnotation(SAFEXML):
 
 class SAFEXMLCalibration(SAFEXML):
     """XML file reader for the SAFE format, Calibration file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML calibration reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_calibration = functools.lru_cache(maxsize=10)(
+            self._get_calibration_uncached
+        )
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -156,8 +171,7 @@ class SAFEXMLCalibration(SAFEXML):
         """Load the calibration constant."""
         return float(self.root.find('.//absoluteCalibrationConstant').text)
 
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
+    def _get_calibration_uncached(self, calibration, chunks=None):
         """Get the calibration array."""
         calibration_name = _get_calibration_name(calibration)
         calibration_vector = self._get_calibration_vector(calibration_name, chunks)
@@ -178,6 +192,9 @@ class SAFEXMLNoise(SAFEXML):
         super().__init__(filename, filename_info, filetype_info, header_file)
 
         self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
+        self.get_noise_correction = functools.lru_cache(maxsize=10)(
+            self._get_noise_correction_uncached
+        )
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -186,8 +203,7 @@ class SAFEXMLNoise(SAFEXML):
         if key["name"] == "noise":
             return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
 
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, chunks=None):
+    def _get_noise_correction_uncached(self, chunks=None):
         """Get the noise correction array."""
         try:
             noise = self.read_legacy_noise(chunks)
@@ -463,17 +479,22 @@ class XMLArray:
         return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
-def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
+def interpolate_xarray(xpoints, ypoints, values, shape,
                        blocksize=CHUNK_SIZE):
     """Interpolate, generating a dask array."""
+    from scipy.interpolate import RectBivariateSpline
+
     vchunks = range(0, shape[0], blocksize)
     hchunks = range(0, shape[1], blocksize)
 
-    token = tokenize(blocksize, xpoints, ypoints, values, kind, shape)
+    token = tokenize(blocksize, xpoints, ypoints, values, shape)
     name = 'interpolate-' + token
 
-    from scipy.interpolate import interp2d
-    interpolator = interp2d(xpoints, ypoints, values, kind=kind)
+    spline = RectBivariateSpline(xpoints, ypoints, values.T)
+
+    def interpolator(xnew, ynew):
+        """Interpolator function."""
+        return spline(xnew, ynew).T
 
     dskx = {(name, i, j): (interpolate_slice,
                            slice(vcs, min(vcs + blocksize, shape[0])),
@@ -544,6 +565,9 @@ class SAFEGRD(BaseFileHandler):
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
+        self.get_lonlatalts = functools.lru_cache(maxsize=2)(
+            self._get_lonlatalts_uncached
+        )
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -561,7 +585,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = xr.open_dataset(self.filename, engine="rasterio",
+                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords['x'])),
                                       y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)
@@ -616,8 +641,7 @@ class SAFEGRD(BaseFileHandler):
         data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
         return data
 
-    @lru_cache(maxsize=2)
-    def get_lonlatalts(self):
+    def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
         Args:

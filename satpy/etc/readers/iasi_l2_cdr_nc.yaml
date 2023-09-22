@@ -1,0 +1,20 @@
+reader:
+  name: iasi_l2_cdr_nc
+  short_name: IASI l2 CDR
+  long_name:  IASI All Sky Temperature and Humidity Profiles - Climate Data Record Release 1.1 - Metop-A and -B
+  description: >
+    Reader for IASI All Sky Temperature and Humidity Profiles - Climate Data
+    Record Release 1.1 - Metop-A and -B. Data and documentation are available
+    from http://doi.org/10.15770/EUM_SEC_CLM_0063. Data are also available
+    from the EUMETSAT Data Store under ID EO:EUM:DAT:0576.
+  status: Alpha
+  supports_fsspec: True
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [iasi]
+  default_datasets:
+
+file_types:
+  iasi_l2_cdr_nc:
+    file_reader: !!python/name:satpy.readers.iasi_l2.IASIL2CDRNC
+    # see https://www.eumetsat.int/media/49059 §4.8 for file pattern
+    file_patterns: ["W_XX-EUMETSAT-Darmstadt,{sounding_method},{satellite}+{product}+{instrument}_C_{originator}_{start_time:%Y%m%d%H%M%S}Z_{end_time:%Y%m%d%H%M%S}Z_eps_r_l2_{version}.nc"]

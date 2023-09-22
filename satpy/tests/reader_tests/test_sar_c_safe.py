@@ -54,27 +54,31 @@ class TestSAFEGRD(unittest.TestCase):
 
     def test_instantiate(self):
         """Test initialization of file handlers."""
-        assert(self.test_fh._polarization == 'vv')
-        assert(self.test_fh.calibration == self.calfh)
-        assert(self.test_fh.noise == self.noisefh)
+        assert self.test_fh._polarization == 'vv'
+        assert self.test_fh.calibration == self.calfh
+        assert self.test_fh.noise == self.noisefh
         self.mocked_rio_open.assert_called()
 
-    @mock.patch('rioxarray.open_rasterio')
-    def test_read_calibrated_natural(self, mocked_rioxarray_open):
+    @mock.patch('xarray.open_dataset')
+    def test_read_calibrated_natural(self, mocked_xarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])), dims=['y', 'x'])
+        mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
+                                                                                                        [2, 3]])),
+                                                                                dims=['y', 'x'])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                   calibration=calibration, quantity='natural'), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
 
-    @mock.patch('rioxarray.open_rasterio')
-    def test_read_calibrated_dB(self, mocked_rioxarray_open):
+    @mock.patch('xarray.open_dataset')
+    def test_read_calibrated_dB(self, mocked_xarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])), dims=['y', 'x'])
+        mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
+                                                                                                        [2, 3]])),
+                                                                                dims=['y', 'x'])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                   calibration=calibration, quantity='dB'), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])

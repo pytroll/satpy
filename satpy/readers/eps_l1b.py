@@ -18,8 +18,8 @@
 
 """Reader for eps level 1b data. Uses xml files as a format description."""
 
+import functools
 import logging
-from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -27,13 +27,15 @@ import xarray as xr
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
 C2 = 1.4387863  # K/cm-1
@@ -156,6 +158,12 @@ class EPSAVHRRFile(BaseFileHandler):
         self.scanlines = None
         self.pixels = None
         self.sections = None
+        self.get_full_angles = functools.lru_cache(maxsize=1)(
+            self._get_full_angles_uncached
+        )
+        self.get_full_lonlats = functools.lru_cache(maxsize=1)(
+            self._get_full_lonlats_uncached
+        )
 
     def _read_all(self):
         logger.debug("Reading %s", self.filename)
@@ -189,8 +197,7 @@ class EPSAVHRRFile(BaseFileHandler):
             keys += val.dtype.fields.keys()
         return keys
 
-    @lru_cache(maxsize=1)
-    def get_full_lonlats(self):
+    def _get_full_lonlats_uncached(self):
         """Get the interpolated longitudes and latitudes."""
         raw_lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                               self["EARTH_LOCATIONS"][:, :, 0],
@@ -239,8 +246,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       " and earth views = " +
                                       str(self.pixels))
 
-    @lru_cache(maxsize=1)
-    def get_full_angles(self):
+    def _get_full_angles_uncached(self):
         """Get the interpolated angles."""
         solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
                                   self["ANGULAR_RELATIONS"][:, :, 0],

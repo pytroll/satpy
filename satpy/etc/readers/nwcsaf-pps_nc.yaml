@@ -1,6 +1,10 @@
 reader:
-  description: NetCDF4 reader for the NWCSAF/PPS 2014 format
   name: nwcsaf-pps_nc
+  short_name: NWCSAF PPS
+  long_name: NWCSAF PPS 2014, 2018 products in netCDF4 format
+  description: NetCDF4 reader for the NWCSAF/PPS 2014 format
+  status: Alpha, only standard swath based ouput supported (remapped netCDF and CPP products not supported yet)
+  supports_fsspec: false
   sensors: ['avhrr-3', 'viirs', 'modis']
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -81,6 +85,24 @@ datasets:
     name: cma_extended_pal
     file_type: nc_nwcsaf_cma
 
+  cma_conditions:
+    name: cma_conditions
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_conditions
+
+  cma_quality:
+    name: cma_quality
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_quality
+
+  cma_status_flag:
+    name: cma_status_flag
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+    standard_name: cma_status_flag
+
   cmaprob:
     name: cmaprob
     file_type: nc_nwcsaf_cmaprob
@@ -122,19 +144,19 @@ datasets:
     name: ct_conditions
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_conditions
+    standard_name: ct_conditions
 
   ct_quality:
     name: ct_quality
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_quality
+    standard_name: ct_quality
 
   ct_status_flag:
     name: ct_status_flag
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
-    standard_name: cloudtype_status_flag
+    standard_name: ct_status_flag
 
   ct_pal:
     name: ct_pal
@@ -182,6 +204,7 @@ datasets:
 
   ctth_alti_pal:
     name: ctth_alti_pal
+    scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
   ctth_quality:
@@ -206,6 +229,7 @@ datasets:
 
   ctth_pres_pal:
     name: ctth_pres_pal
+    scale_offset_dataset: ctth_pres
     file_type: nc_nwcsaf_ctth
 
   ctth_tempe:
@@ -215,6 +239,7 @@ datasets:
 
   ctth_tempe_pal:
     name: ctth_tempe_pal
+    scale_offset_dataset: ctth_tempe
     file_type: nc_nwcsaf_ctth
 
 
@@ -233,15 +258,15 @@ datasets:
 
   cmic_reff:
     name: cmic_reff
-    file_key: reff
-    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    file_key: [cre, reff]
+    file_type: [nc_nwcsaf_cmic, nc_nwcsaf_cpp]
     coordinates: [lon, lat]
 
   cmic_reff_pal:
-    name: [cmic_reff_pal, cpp_reff_pal]
-    file_key: reff_pal
-    scale_offset_dataset: reff
-    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    name: [cmic_reff_pal, cmic_cre_pal, cpp_reff_pal]
+    file_key: [cre_pal, reff_pal]
+    scale_offset_dataset: [reff, cre]
+    file_type: [nc_nwcsaf_cmic, nc_nwcsaf_cpp]
 
   cmic_cot:
     name: cmic_cot
@@ -306,5 +331,23 @@ datasets:
   cmic_quality:
     name: [cmic_quality, cpp_quality]
     file_key: quality
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcwp:
+    name: cmic_dcwp
+    file_key: dcwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcre:
+    name: cmic_dcre
+    file_key: dcre
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_dcot:
+    name: cmic_dcot
+    file_key: dcot
     file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]

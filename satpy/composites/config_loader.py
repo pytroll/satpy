@@ -25,11 +25,7 @@ from functools import lru_cache, update_wrapper
 from typing import Callable, Iterable
 
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
+from yaml import UnsafeLoader
 
 import satpy
 from satpy import DataID, DataQuery
@@ -135,9 +131,12 @@ class _ModifierConfigHelper:
             loader = modifier_info.pop('modifier', None)
             if loader is None:
                 loader = modifier_info.pop('compositor')
-                warnings.warn("Modifier '{}' uses deprecated 'compositor' "
-                              "key to point to Python class, replace "
-                              "with 'modifier'.".format(modifier_name))
+                warnings.warn(
+                    "Modifier '{}' uses deprecated 'compositor' "
+                    "key to point to Python class, replace "
+                    "with 'modifier'.".format(modifier_name),
+                    stacklevel=5
+                )
         except KeyError:
             raise ValueError("'modifier' key missing or empty for '{}'. Option keys = {}".format(
                 modifier_name, str(modifier_info.keys())))
@@ -187,9 +186,9 @@ def _load_config(composite_configs):
     except KeyError:
         logger.debug('No "sensor_name" tag found in %s, skipping.',
                      composite_configs)
-        return
+        return {}, {}, {}
 
-    sensor_compositors = {}  # DatasetDict()
+    sensor_compositors = {}
     sensor_modifiers = {}
 
     dep_id_keys = None

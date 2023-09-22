@@ -1,9 +1,11 @@
 reader:
   name: vii_l1b_nc
   short_name: VII L1B RAD NetCDF4
-  long_name: EPS-SG VII L1B Radiance (NetCDF4)
+  long_name: EPS-SG Visual Infrafred Imager (VII) Level 1B Radiance data in netCDF4 format
   description: >
     Reader for EUMETSAT EPS-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format per FS V4A.
+  status: Beta
+  supports_fsspec: false
   sensors: [vii]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 

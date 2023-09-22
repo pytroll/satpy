@@ -15,9 +15,10 @@ requested, or added to a Scene object.
 Available Readers
 =================
 
-To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information
-use `available_readers(as_dict=True)`::
+For readers currently available in Satpy see :ref:`reader_table`.
+Additionally to get a list of available readers you can use the `available_readers`
+function. By default, it returns the names of available readers.
+To return additional reader information use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
     >>> available_readers()
@@ -108,8 +109,37 @@ names of Datasets::
 
     >>> scn.available_dataset_names()
 
-Search for local files
-======================
+Load remote data
+================
+
+Starting with Satpy version 0.25.1 with supported readers it is possible to
+load data from remote file systems like ``s3fs`` or ``fsspec``.
+For example:
+
+::
+
+    >>> from satpy import Scene
+    >>> from satpy.readers import FSFile
+    >>> import fsspec
+
+    >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+    >>> the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+    >>> fs_files = [FSFile(open_file) for open_file in the_files]
+
+    >>> scn = Scene(filenames=fs_files, reader='abi_l1b')
+    >>> scn.load(['true_color_raw'])
+
+Check the list of :ref:`reader_table` to see which reader supports remote
+files. For the usage of ``fsspec`` and advanced features like caching files
+locally see the `fsspec Documentation <https://filesystem-spec.readthedocs.io/en/latest>`_ .
+
+
+.. _search_for_files:
+
+Search for local/remote files
+=============================
 
 Satpy provides a utility
 :func:`~satpy.readers.find_files_and_readers` for searching for files in
@@ -129,7 +159,8 @@ the :class:`~satpy.scene.Scene` initialization.
     >>> scn = Scene(filenames=my_files)
 
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
-more information on the possible parameters.
+more information on the possible parameters as well as for searching on
+remote file systems.
 
 .. _dataset_metadata:
 
@@ -207,18 +238,23 @@ For *geostationary* satellites it is described using the following scalar attrib
 
   * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
     time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
-    surface of the ellipsoid).
+    surface of the ellipsoid). The longitude and latitude are given in degrees, the altitude in meters.
   * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
     confined area in which the satellite is actively maintained in using maneuvers). Inbetween
     major maneuvers, when the satellite is permanently moved, the nominal position is constant.
+    The longitude and latitude are given in degrees, the altitude in meters.
   * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
     earth. May differ from the actual satellite position, if the instrument is pointing slightly
     off the axis (satellite, earth-center). If available, this should be used to compute viewing
-    angles etc. Otherwise, use the actual satellite position.
+    angles etc. Otherwise, use the actual satellite position. The values are given in degrees.
   * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
     should be used to compute lat/lon coordinates. Note that the projection center can differ
     considerably from the actual satellite position. For example MSG-1 was at times positioned
     at 3.4 degrees west, while the image data was re-projected to 0 degrees.
+    The longitude and latitude are given in degrees, the altitude in meters.
+
+    .. note:: For use in pyorbital, the altitude has to be converted to kilometers, see for example
+              :func:`pyorbital.orbital.get_observer_look`.
 
 For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
@@ -326,6 +362,12 @@ satpy cf nc readers
 
 hdf5 based readers
 ------------------
+
+.. automodule:: satpy.readers.agri_l1
+    :noindex:
+
+.. automodule:: satpy.readers.ghi_l1
+    :noindex:
 
 Arctica-M N1 HDF5 format reader
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

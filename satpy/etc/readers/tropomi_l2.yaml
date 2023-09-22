@@ -1,6 +1,10 @@
 reader:
-    description: TROPOMI Level 2 NetCDF reader
     name: tropomi_l2
+    short_name: TROPOMI l2
+    long_name: TROPOMI Level 2 data in NetCDF4 format
+    description: TROPOMI Level 2 NetCDF reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [tropomi]
 
@@ -42,16 +46,16 @@ datasets:
         file_type: tropomi_l2
         file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
         standard_name: assembled_longitude_bounds
-    offset_time:
-        name: 'offset_time'
+    delta_time:
+        name: 'delta_time'
         file_type: tropomi_l2
         file_key: 'PRODUCT/delta_time'
-        standard_name: offset_time
-    ref_time:
-        name: 'ref_time'
+        standard_name: delta_time
+    time:
+        name: 'time'
         file_type: tropomi_l2
         file_key: 'PRODUCT/time'
-        standard_name: ref_time
+        standard_name: time
     tm5_constant_a:
         name: 'tm5_constant_a'
         file_type: tropomi_l2

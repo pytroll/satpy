@@ -17,15 +17,34 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface for BaseFileHandlers."""
 
-from abc import ABCMeta
-
 import numpy as np
+import xarray as xr
 from pyresample.geometry import SwathDefinition
 
 from satpy.dataset import combine_metadata
+from satpy.readers import open_file_or_filename
 
 
-class BaseFileHandler(metaclass=ABCMeta):
+def open_dataset(filename, *args, **kwargs):
+    """Open a file with xarray.
+
+    Args:
+       filename (Union[str, FSFile]):
+           The path to the file to open. Can be a `string` or
+           :class:`~satpy.readers.FSFile` object which allows using
+           `fsspec` or `s3fs` like files.
+
+    Returns:
+       xarray.Dataset:
+
+    Notes:
+       This can be used to enable readers to open remote files.
+    """
+    f_obj = open_file_or_filename(filename)
+    return xr.open_dataset(f_obj, *args, **kwargs)
+
+
+class BaseFileHandler:
     """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -209,9 +228,9 @@ class BaseFileHandler(metaclass=ABCMeta):
         Args:
             configured_datasets (list): Series of (bool or None, dict) in the
                 same way as is returned by this method (see below). The bool
-                is whether or not the dataset is available from at least one
+                is whether the dataset is available from at least one
                 of the current file handlers. It can also be ``None`` if
-                no file handler knows before us knows how to handle it.
+                no file handler before us knows how to handle it.
                 The dictionary is existing dataset metadata. The dictionaries
                 are typically provided from a YAML configuration file and may
                 be modified, updated, or used as a "template" for additional

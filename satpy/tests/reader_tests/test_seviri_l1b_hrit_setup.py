@@ -46,17 +46,18 @@ def get_new_read_prologue(prologue):
     return new_read_prologue
 
 
-def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
+def get_fake_file_handler(observation_start_time, nlines, ncols, projection_longitude=0,
                           orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
     prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
-    mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=start_time)
-    filename_info = get_fake_filename_info(start_time)
+    mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=observation_start_time)
+    filename_info = get_fake_filename_info(observation_start_time)
     epilogue = get_fake_epilogue()
 
     m = mock.mock_open()
     with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile, \
             mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
+            mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
             mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'), \
             mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd), \
             mock.patch.object(HRITMSGPrologueFileHandler, 'read_prologue',
@@ -68,6 +69,10 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
                    ('hdr_id', int)]
         )
         newopen.return_value.__enter__.return_value.tell.return_value = 1
+        # The size of the return value hereafter was chosen arbitrarily with the expectation
+        # that it would return sufficiently many bytes for testing the fake-opening of HRIT
+        # files.
+        utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
         prologue = HRITMSGPrologueFileHandler(
             filename='dummy_prologue_filename',
             filename_info=filename_info,
@@ -116,7 +121,8 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
          },
          'ImageAcquisition': {
             'PlannedAcquisitionTime': {
-                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888)
+                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
             }
          }
     }
@@ -135,6 +141,11 @@ def get_fake_epilogue():
                     'UpperNorthLineActual': 11136,
                     'UpperEastColumnActual': 1805,
                     'UpperWestColumnActual': 7372
+                },
+                'ActualScanningSummary': {
+                    'ReducedScan': 0,
+                    'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 39, 0)
                 }
             }
         }
@@ -154,7 +165,10 @@ def get_fake_mda(nlines, ncols, start_time):
         'coff': 10,
         'loff': 10,
         'image_segment_line_quality': {
-            'line_mean_acquisition': tline
+            'line_mean_acquisition': tline,
+            'line_validity': np.full(nlines, 3),
+            'line_radiometric_quality': np.full(nlines, 4),
+            'line_geometric_quality': np.full(nlines, 4)
         }
     }
 
@@ -185,7 +199,8 @@ def get_acq_time_cds(start_time, nlines):
         dtype=[('days', '>u2'), ('milliseconds', '>u4')]
     )
     tline['days'][1:-1] = days_since_1958 * np.ones(nlines - 2)
-    tline['milliseconds'][1:-1] = np.arange(nlines - 2)
+    offset_second = (start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()*1000
+    tline['milliseconds'][1:-1] = np.arange(nlines - 2)+offset_second
     return tline
 
 
@@ -215,5 +230,13 @@ def get_attrs_exp(projection_longitude=0.0):
                                'satellite_actual_longitude': -3.55117540817073,
                                'satellite_actual_latitude': -0.5711243456528018,
                                'satellite_actual_altitude': 35783296.150123544},
-        'georef_offset_corrected': True
+        'georef_offset_corrected': True,
+        'nominal_start_time': (datetime(2006, 1, 1, 12, 15),),
+        'nominal_end_time': (datetime(2006, 1, 1, 12, 30),),
+        'time_parameters': {
+            'nominal_start_time': datetime(2006, 1, 1, 12, 15),
+            'nominal_end_time': datetime(2006, 1, 1, 12, 30),
+            'observation_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+            'observation_end_time': datetime(2006, 1, 1, 12, 27, 39, 0)
+            }
     }

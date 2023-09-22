@@ -20,6 +20,7 @@ import os
 import unittest
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 
 from satpy.readers import load_reader
@@ -64,7 +65,7 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
         file_content['Brightness_Temperature/attr/add_offset'] = 0.
         file_content['Brightness_Temperature/shape'] = DEFAULT_FILE_SHAPE
 
-        # convert tp xarrays
+        # convert to xarrays
         from xarray import DataArray
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
@@ -72,10 +73,7 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
                 for a in ['_FillValue', 'scale_factor', 'add_offset']:
                     if key + '/attr/' + a in file_content:
                         attrs[a] = file_content[key + '/attr/' + a]
-                file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-        if 'y' not in file_content['Normalized_Radiance'].dims:
-            file_content['Normalized_Radiance'] = file_content['Normalized_Radiance'].rename({'fakeDim0': 'x',
-                                                                                              'fakeDim1': 'y'})
+                file_content[key] = DataArray(da.from_array(val), dims=('x', 'y'), attrs=attrs)
         return file_content
 
 
@@ -184,7 +182,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                        'Meteosat-11': 'MSG4/SEVIRI'}
         with mock.patch('satpy.tests.reader_tests.test_seviri_l1b_icare.'
                         'FakeHDF4FileHandler2.get_test_content') as patched_func:
-
             def _run_target():
                 patched_func.return_value = file_data
                 return self.p.target(mock.MagicMock(),
@@ -206,3 +203,16 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             self.p.target(mock.MagicMock(),
                           mock.MagicMock(),
                           mock.MagicMock())._get_dsname({'name': 'badband'})
+
+    def test_nocompute(self):
+        """Test that dask does not compute anything in the reader itself."""
+        import dask
+
+        from satpy.tests.utils import CustomScheduler
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf'
+            ])
+            r.create_filehandlers(loadables)
+            r.load(['VIS008'])

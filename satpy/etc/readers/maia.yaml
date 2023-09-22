@@ -1,6 +1,10 @@
 reader:
-  description: MAIA Reader
   name: maia
+  short_name: MAIA
+  long_name: AAPP MAIA VIIRS and AVHRR products in HDF5 format
+  description: MAIA Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs, avhrr]
 

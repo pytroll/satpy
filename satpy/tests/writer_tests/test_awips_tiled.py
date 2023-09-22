@@ -35,6 +35,11 @@ from satpy.resample import update_resampled_coords
 START_TIME = datetime(2018, 1, 1, 12, 0, 0)
 END_TIME = START_TIME + timedelta(minutes=20)
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - caplog
+
 
 def _check_production_location(ds):
     if 'production_site' in ds.attrs:
@@ -73,6 +78,9 @@ def _check_required_common_attributes(ds):
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
         assert 'units' in data_arr.attrs
+        if data_arr.name != "DQF":
+            assert data_arr.dtype == np.int16
+            assert data_arr.attrs["_Unsigned"] == "true"
 
 
 def _check_scaled_x_coordinate_variable(ds, masked_ds):
@@ -228,7 +236,7 @@ class TestAWIPSTiledWriter:
         )
         should_error = tile_count is None and tile_size is None
         if should_error:
-            with dask.config.set(scheduler=CustomScheduler(0)),\
+            with dask.config.set(scheduler=CustomScheduler(0)), \
                  pytest.raises(ValueError, match=r'Either.*tile_count.*'):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:

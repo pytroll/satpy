@@ -1,8 +1,12 @@
 reader:
-  default_datasets: []
-  description: CALIOP Level 2 Cloud Layer Version 3 HDF4 reader
   name: caliop_l2_cloud
+  short_name: CALIOP l2
+  long_name: Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
+  description: CALIOP Level 2 Cloud Layer Version 3 HDF4 reader
+  status: Alpha
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  default_datasets: []
   sensors: [caliop]
 
 datasets:

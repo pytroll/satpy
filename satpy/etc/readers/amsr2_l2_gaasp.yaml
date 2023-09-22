@@ -6,6 +6,8 @@ reader:
     NetCDF4 reader for GCOM-W1 AMSR2 Level 2 files processed using the GAASP
     software distributed by NOAA. See
     https://www.star.nesdis.noaa.gov/jpss/gcom.php for more information.
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [amsr2]
 

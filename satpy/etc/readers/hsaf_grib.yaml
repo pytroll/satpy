@@ -1,6 +1,10 @@
 reader:
-  description: Reader for Hydrology SAF products
   name: hsaf_grib
+  short_name: Hydrology SAF
+  long_name: Hydrology SAF products in GRIB format
+  description: Reader for Hydrology SAF products
+  status: Beta, only h03, h03b, h05 and h05b currently supported
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [hsaf]
 

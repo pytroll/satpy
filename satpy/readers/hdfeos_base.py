@@ -33,8 +33,10 @@ from pyhdf.SD import SD
 
 from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
@@ -92,7 +94,7 @@ def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_res
 class HDFEOSBaseFileReader(BaseFileHandler):
     """Base file handler for HDF EOS data for both L1b and L2 products."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the base reader."""
         BaseFileHandler.__init__(self, filename, filename_info, filetype_info)
         try:
@@ -187,10 +189,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             return self._start_time_from_filename()
 
     def _start_time_from_filename(self):
-        for fn_key in ("start_time", "acquisition_time"):
-            if fn_key in self.filename_info:
-                return self.filename_info[fn_key]
-        raise RuntimeError("Could not determine file start time")
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
@@ -260,15 +259,26 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return 1
 
     def _scale_and_mask_data_array(self, data, is_category=False):
+        """Unscale byte data and mask invalid/fill values.
+
+        MODIS requires unscaling the in-file bytes in an unexpected way::
+
+            data = (byte_value - add_offset) * scale_factor
+
+        See the below L1B User's Guide Appendix C for more information:
+
+        https://mcst.gsfc.nasa.gov/sites/default/files/file_attachments/M1054E_PUG_2017_0901_V6.2.2_Terra_V6.2.1_Aqua.pdf
+
+        """
         good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
         scale_factor = data.attrs.pop('scale_factor', None)
         add_offset = data.attrs.pop('add_offset', None)
         # don't scale category products, even though scale_factor may equal 1
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
-            data = data * np.float32(scale_factor)
             if add_offset is not None and add_offset != 0:
-                data = data + add_offset
+                data = data - np.float32(add_offset)
+            data = data * np.float32(scale_factor)
 
         if good_mask is not None:
             data = data.where(good_mask, new_fill)
@@ -326,9 +336,9 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         'solar_zenith_angle': ('SolarZenith', 'Solar_Zenith'),
     }
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geographical reader."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
         self.cache = {}
 
     @staticmethod

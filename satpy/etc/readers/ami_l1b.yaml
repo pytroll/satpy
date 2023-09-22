@@ -7,6 +7,8 @@ reader:
     instrument are described on KMA's website
     `here <https://nmsc.kma.go.kr/enhome/html/base/cmm/selectPage.do?page=satellite.gk2a.intro>`_.
   sensors: [ami]
+  status: Beta
+  supports_fsspec: true
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'

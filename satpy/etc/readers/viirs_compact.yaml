@@ -1,6 +1,10 @@
 reader:
-  description: Generic Eumetsat Compact VIIRS Reader
   name: viirs_compact
+  short_name: VIIRS Compact
+  long_name: SNPP VIIRS SDR data in HDF5 Compact format
+  description: Generic Eumetsat Compact VIIRS Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs]
   default_datasets:

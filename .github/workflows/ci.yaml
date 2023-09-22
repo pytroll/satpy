@@ -7,15 +7,18 @@ concurrency:
 
 on: [push, pull_request]
 
+env:
+  CACHE_NUMBER: 0
+
 jobs:
   lint:
     name: lint and style checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install dependencies
@@ -29,37 +32,6 @@ jobs:
         run: |
           flake8 satpy/
 
-  website:
-    name: build website
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          use-mamba: true
-          python-version: "3.9"
-          environment-file: continuous_integration/environment.yaml
-          activate-environment: test-environment
-
-      - name: Install Satpy
-        shell: bash -l {0}
-        run: |
-          pip install sphinx sphinx_rtd_theme sphinxcontrib-apidoc; \
-          pip install --no-deps -e .
-
-      - name: Run Sphinx Build
-        shell: bash -l {0}
-        run: |
-          cd doc; \
-          make html SPHINXOPTS="-W"
-
   test:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
@@ -68,10 +40,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         experimental: [false]
         include:
-          - python-version: "3.9"
+          - python-version: "3.11"
             os: "ubuntu-latest"
             experimental: true
 
@@ -83,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
@@ -92,15 +64,36 @@ jobs:
           miniforge-version: latest
           use-mamba: true
           python-version: ${{ matrix.python-version }}
-          environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
+
+      - name: Set cache environment variables
+        shell: bash -l {0}
+        run: |
+          echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          CONDA_PREFIX=$(python -c "import sys; print(sys.prefix)")
+          echo "CONDA_PREFIX=$CONDA_PREFIX" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA_PREFIX }}
+          key: ${{ matrix.os }}-${{matrix.python-version}}-conda-${{ hashFiles('continuous_integration/environment.yaml') }}-${{ env.DATE }}-${{matrix.experimental}}-${{ env.CACHE_NUMBER }}
+        id: cache
+
+      - name: Update environment
+        run: mamba env update -n test-environment -f continuous_integration/environment.yaml
+        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Update environment - libnetcdf
+        run: mamba install -y -n test-environment libnetcdf=4.9.2=nompi_h5902ca5_107
+        if: runner.os == 'Windows'
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
         shell: bash -l {0}
+        # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
+        # may break the conda-forge libraries trying to use newer glibc versions
         run: |
           python -m pip install \
-          --index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple/ \
+          --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
           --no-deps --pre --upgrade \
           matplotlib \
@@ -113,9 +106,12 @@ jobs:
           git+https://github.com/dask/distributed \
           git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
-          git+https://github.com/mapbox/rasterio \
+          git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
-          git+https://github.com/pydata/xarray;
+          git+https://github.com/pydata/xarray \
+          git+https://github.com/astropy/astropy;
+          LD_PRELOAD=$(python -c "import sys; print(sys.prefix)")/lib/libstdc++.so
+          echo "LD_PRELOAD=${LD_PRELOAD}" >> $GITHUB_ENV
 
       - name: Install satpy
         shell: bash -l {0}
@@ -125,10 +121,11 @@ jobs:
       - name: Run unit tests
         shell: bash -l {0}
         run: |
+          export LD_PRELOAD=${{ env.LD_PRELOAD }};
           pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           flags: unittests
           file: ./coverage.xml
@@ -144,11 +141,12 @@ jobs:
       - name: Run behaviour tests
         shell: bash -l {0}
         run: |
+          export LD_PRELOAD=${{ env.LD_PRELOAD }};
           coverage run --source=satpy -m behave satpy/tests/features --tags=-download
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           flags: behaviourtests
           file: ./coverage.xml

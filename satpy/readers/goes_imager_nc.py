@@ -15,41 +15,64 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS.
+"""Reader for GOES 8-15 imager data in netCDF format.
 
-Also handles GOES 15 data in netCDF format reformated by Eumetsat
+Supports netCDF files from both NOAA-CLASS and EUMETSAT.
 
-GOES Imager netCDF files contain geolocated detector counts. If ordering via
-NOAA CLASS, select 16 bits/pixel. The instrument oversamples the viewed scene
-in E-W direction by a factor of 1.75: IR/VIS pixels are 112/28 urad on a side,
-but the instrument samples every 64/16 urad in E-W direction (see [BOOK-I] and
-[BOOK-N]).
 
-Important note: Some essential information are missing in the netCDF files,
-which might render them inappropriate for certain applications. The unknowns
-are:
 
-    1. Subsatellite point
-    2. Calibration coefficients
-    3. Detector-scanline assignment, i.e. information about which scanline
-       was recorded by which detector
+NOAA-CLASS
+==========
 
-Items 1. and 2. are not critical because the images are geo-located and NOAA
-provides static calibration coefficients ([VIS], [IR]). The detector-scanline
-assignment however cannot be reconstructed properly. This is where an
-approximation has to be applied (see below).
+GOES-Imager netCDF files from NOAA-CLASS contain detector counts alongside
+latitude and longitude coordinates.
+
+.. note ::
+   If ordering files via NOAA CLASS, select 16 bits/pixel.
+
+
+.. note ::
+   Some essential information are missing in the netCDF files:
+
+      1. Subsatellite point
+      2. Calibration coefficients
+      3. Detector-scanline assignment, i.e. information about which scanline
+         was recorded by which detector
+
+   Items 1. and 2. are not critical because the images are geo-located and NOAA
+   provides static calibration coefficients (`[VIS]`_, `[IR]`_). The
+   detector-scanline assignment however cannot be reconstructed properly. This
+   is where an approximation has to be applied (see below).
+
+
+
+Oversampling
+------------
+
+GOES-Imager oversamples the viewed scene in E-W direction by a factor of
+1.75: IR/VIS pixels are 112/28 urad on a side, but the instrument samples
+every 64/16 urad in E-W direction (see `[BOOK-I]`_ and `[BOOK-N]`_). That means
+pixels are actually overlapping on the ground. This cannot be represented
+by a pyresample area definition.
+
+For full disk images it is possible to estimate an area definition with uniform
+sampling where pixels don't overlap. This can be used for resampling and is
+available via ``scene[dataset].attrs["area_def_uni"]``. The pixel size is derived
+from altitude and N-S sampling angle. The area extent is based on the maximum
+scanning angles at the earth's limb.
+
 
 Calibration
-===========
+-----------
 
-Calibration is performed according to [VIS] and [IR], but with an average
+Calibration is performed according to `[VIS]`_ and `[IR]`_, but with an average
 calibration coefficient applied to all detectors in a certain channel. The
 reason for and impact of this approximation is described below.
 
 The GOES imager simultaneously records multiple scanlines per sweep using
 multiple detectors per channel. The VIS channel has 8 detectors, the IR
 channels have 1-2 detectors (see e.g. Figures 3-5a/b, 3-6a/b and 3-7/a-b in
-[BOOK-N]). Each detector has its own calibration coefficients, so in order to
+`[BOOK-N]`_). Each detector has its own calibration coefficients, so in order to
 perform an accurate calibration, the detector-scanline assignment is needed.
 
 In theory it is known which scanline was recorded by which detector
@@ -57,7 +80,7 @@ In theory it is known which scanline was recorded by which detector
 mounted flexes due to thermal gradients in the instrument which leads to a N-S
 shift of +/- 8 visible or +/- 2 IR pixels. This shift is compensated in the
 GVAR scan formation process, but in a way which is hard to reconstruct
-properly afterwards. See [GVAR], section 3.2.1. for details.
+properly afterwards. See `[GVAR]`_, section 3.2.1. for details.
 
 Since the calibration coefficients of the detectors in a certain channel only
 differ slightly, a workaround is to calibrate each scanline with the average
@@ -162,19 +185,12 @@ Channel Diff  Unit
 13_3    0.008 K
 ======= ===== ====
 
-References:
-- [GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
-- [BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
-- [BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
-- [IR] https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
-- [VIS] https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
-- [FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
-- [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
-- [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 
-Eumetsat formatted netCDF data:
+EUMETSAT
+========
 
-The main differences are:
+During tandem operations of GOES-15 and GOES-17, EUMETSAT distributed a
+variant of this dataset with the following differences:
 
 1. The geolocation is in a separate file, used for all bands
 2. VIS data is calibrated to Albedo (or reflectance)
@@ -183,24 +199,47 @@ The main differences are:
 5. File name differs also slightly
 6. Data is received via EumetCast
 
+
+References
+==========
+
+- `[GVAR]`_  GVAR transmission format
+- `[BOOK-N]`_ GOES-N databook
+- `[BOOK-I]`_ GOES-I databook (broken)
+- `[IR]`_ Conversion of GVAR Infrared Data to Scene Radiance or Temperature
+- `[VIS]`_ Calibration of the Visible Channels of the GOES Imagers and Sounders
+- `[GLOSSARY]`_ GVAR_IMG Glossary
+- `[SCHED-W]`_ GOES-15 Routine Imager Schedule
+- `[SCHED-E]`_ Optimized GOES-East Routine Imager Schedule
+
+
+.. _[GVAR]: https://noaasis.noaa.gov/NOAASIS/pubs/nesdis82.PDF
+.. _[BOOK-N]: https://www.nasa.gov/pdf/148080main_GOES-N%20Databook%20with%20Copyright.pdf
+.. _[BOOK-I]: https://goes.gsfc.nasa.gov/text/databook/databook.pdf
+.. _[IR]: https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
+.. _[VIS]: https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
+.. _[GLOSSARY]: https://www.avl.class.noaa.gov/release/glossary/GVAR_IMG.htm
+.. _[SCHED-W]: https://www.ospo.noaa.gov/Operations/GOES/15/imager-routine.html
+.. _[SCHED-E]: http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 """
 
 import logging
 import re
 from abc import abstractmethod
-from collections import namedtuple
 from datetime import datetime, timedelta
 
 import numpy as np
 import pyresample.geometry
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.utils import bbox, get_geostationary_angle_extent
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 # Radiation constants. Source: [VIS]
 C1 = 1.191066E-5  # [mW/(m2-sr-cm-4)]
@@ -565,6 +604,8 @@ SCAN_DURATION = {
 class GOESNCBaseFileHandler(BaseFileHandler):
     """File handler for GOES Imager data in netCDF format."""
 
+    yaw_flip_sampling_distance = 10
+
     def __init__(self, filename, filename_info, filetype_info, geo_data=None):
         """Initialize the reader."""
         super(GOESNCBaseFileHandler, self).__init__(filename, filename_info,
@@ -619,7 +660,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     def _get_sector(self, channel, nlines, ncols):
         """Determine which sector was scanned."""
-        if self._is_vis(channel):
+        if is_vis_channel(channel):
             margin = 100
             sectors_ref = self.vis_sectors
         else:
@@ -632,15 +673,6 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 return sector
 
         return UNKNOWN_SECTOR
-
-    @staticmethod
-    def _is_vis(channel):
-        """Determine whether the given channel is a visible channel."""
-        if isinstance(channel, str):
-            return channel == '00_7'
-        if isinstance(channel, int):
-            return channel == 1
-        raise ValueError('Invalid channel')
 
     @staticmethod
     def _get_earth_mask(lat):
@@ -677,56 +709,22 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
         return None, None
 
-    @staticmethod
-    def _is_yaw_flip(lat, delta=10):
+    def _is_yaw_flip(self, lat):
         """Determine whether the satellite is yaw-flipped ('upside down')."""
         logger.debug('Computing yaw flip flag')
         # In case of yaw-flip the data and coordinates in the netCDF files are
         # also flipped. Just check whether the latitude increases or decrases
         # with the line number.
+        delta = self.yaw_flip_sampling_distance
         crow, ccol = np.array(lat.shape) // 2
         return (lat[crow+delta, ccol] - lat[crow, ccol]).values > 0
 
     def _get_area_def_uniform_sampling(self, lon0, channel):
         """Get area definition with uniform sampling."""
         logger.debug('Computing area definition')
-
         if lon0 is not None:
-            # Define proj4 projection parameters
-            proj_dict = {'a': EQUATOR_RADIUS,
-                         'b': POLE_RADIUS,
-                         'lon_0': lon0,
-                         'h': ALTITUDE,
-                         'proj': 'geos',
-                         'units': 'm'}
-
-            # Calculate maximum scanning angles
-            xmax, ymax = get_geostationary_angle_extent(
-                namedtuple('area', ['proj_dict'])(proj_dict))
-
-            # Derive area extent using small angle approximation (maximum
-            # scanning angle is ~8.6 degrees)
-            llx, lly, urx, ury = ALTITUDE * np.array([-xmax, -ymax, xmax, ymax])
-            area_extent = [llx, lly, urx, ury]
-
-            # Original image is oversampled. Create pyresample area definition
-            # with uniform sampling in N-S and E-W direction
-            if self._is_vis(channel):
-                sampling = SAMPLING_NS_VIS
-            else:
-                sampling = SAMPLING_NS_IR
-            pix_size = ALTITUDE * sampling
-            area_def = pyresample.geometry.AreaDefinition(
-                'goes_geos_uniform',
-                '{} geostationary projection (uniform sampling)'.format(self.platform_name),
-                'goes_geos_uniform',
-                proj_dict,
-                np.rint((urx - llx) / pix_size).astype(int),
-                np.rint((ury - lly) / pix_size).astype(int),
-                area_extent)
-
-            return area_def
-
+            est = AreaDefEstimator(self.platform_name, channel)
+            return est.get_area_def_with_uniform_sampling(lon0)
         return None
 
     @property
@@ -801,7 +799,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         """Convert raw detector counts to radiance."""
         logger.debug('Converting counts to radiance')
 
-        if self._is_vis(channel):
+        if is_vis_channel(channel):
             # Since the scanline-detector assignment is unknown, use the average
             # coefficients for all scanlines.
             slope = np.array(coefs['slope']).mean()
@@ -814,7 +812,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     def _calibrate(self, radiance, coefs, channel, calibration):
         """Convert radiance to reflectance or brightness temperature."""
-        if self._is_vis(channel):
+        if is_vis_channel(channel):
             if not calibration == 'reflectance':
                 raise ValueError('Cannot calibrate VIS channel to '
                                  '{}'.format(calibration))
@@ -988,6 +986,15 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 yield is_avail, ds_info
 
 
+def is_vis_channel(channel):
+    """Determine whether the given channel is a visible channel."""
+    if isinstance(channel, str):
+        return channel == '00_7'
+    if isinstance(channel, int):
+        return channel == 1
+    raise ValueError('Invalid channel')
+
+
 class GOESNCFileHandler(GOESNCBaseFileHandler):
     """File handler for GOES Imager data in netCDF format."""
 
@@ -1029,7 +1036,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
     def calibrate(self, counts, calibration, channel):
         """Perform calibration."""
         # Convert 16bit counts from netCDF4 file to the original 10bit
-        # GVAR counts by dividing by 32. See [FAQ].
+        # GVAR counts by dividing by 32. See [GLOSSARY].
         counts = counts / 32.
 
         coefs = CALIB_COEFS[self.platform_name][channel]
@@ -1088,7 +1095,7 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
     def calibrate(self, data, calibration, channel):
         """Perform calibration."""
         coefs = CALIB_COEFS[self.platform_name][channel]
-        is_vis = self._is_vis(channel)
+        is_vis = is_vis_channel(channel)
 
         # IR files provide radiances, VIS file provides reflectances
         if is_vis and calibration == 'reflectance':
@@ -1203,7 +1210,7 @@ class GOESCoefficientReader(object):
         from requests.exceptions import MissingSchema
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
             if response.ok:
                 return response.text
             raise requests.HTTPError
@@ -1353,3 +1360,83 @@ def test_coefs(ir_url, vis_url):
 
     logger.info('Coefficients OK')
     return True
+
+
+class AreaDefEstimator:
+    """Estimate area definition for GOES-Imager."""
+
+    def __init__(self, platform_name, channel):
+        """Create the instance."""
+        self.platform_name = platform_name
+        self.channel = channel
+
+    def get_area_def_with_uniform_sampling(self, projection_longitude):
+        """Get area definition with uniform sampling.
+
+        The area definition is based on geometry and instrument properties:
+        Pixel size is derived from altitude and N-S sampling angle. Area extent
+        is based on the maximum scanning angles at the limb of the earth.
+        """
+        projection = self._get_projection(projection_longitude)
+        area_extent = self._get_area_extent_at_max_scan_angle(projection)
+        shape = self._get_shape_with_uniform_pixel_size(area_extent)
+        return self._create_area_def(projection, area_extent, shape)
+
+    def _get_projection(self, projection_longitude):
+        return {
+            'a': EQUATOR_RADIUS,
+            'b': POLE_RADIUS,
+            'lon_0': projection_longitude,
+            'h': ALTITUDE,
+            'proj': 'geos',
+            'units': 'm'
+        }
+
+    def _get_area_extent_at_max_scan_angle(self, proj_dict):
+        xmax, ymax = self._get_max_scan_angle(proj_dict)
+        return ALTITUDE * np.array([-xmax, -ymax, xmax, ymax])
+
+    def _get_max_scan_angle(self, proj_dict):
+        dummy_area = pyresample.geometry.AreaDefinition(
+            area_id='dummy',
+            proj_id='dummy',
+            description='dummy',
+            projection=proj_dict,
+            width=2,
+            height=2,
+            area_extent=[-1, -1, 1, 1]
+        )  # only projection is relevant here
+        xmax, ymax = get_geostationary_angle_extent(dummy_area)
+        return xmax, ymax
+
+    def _get_shape_with_uniform_pixel_size(self, area_extent):
+        llx, lly, urx, ury = area_extent
+        pix_size = self._get_uniform_pixel_size()
+        width = np.rint((urx - llx) / pix_size).astype(int)
+        height = np.rint((ury - lly) / pix_size).astype(int)
+        return width, height
+
+    def _get_uniform_pixel_size(self):
+        if is_vis_channel(self.channel):
+            sampling = SAMPLING_NS_VIS
+        else:
+            sampling = SAMPLING_NS_IR
+        pix_size = ALTITUDE * sampling
+        return pix_size
+
+    def _create_area_def(self, projection, area_extent, shape):
+        width, height = shape
+        return pyresample.geometry.AreaDefinition(
+            area_id='goes_geos_uniform',
+            proj_id='goes_geos_uniform',
+            description=self._get_area_description(),
+            projection=projection,
+            width=width,
+            height=height,
+            area_extent=area_extent
+        )
+
+    def _get_area_description(self):
+        return '{} geostationary projection (uniform sampling)'.format(
+            self.platform_name
+        )

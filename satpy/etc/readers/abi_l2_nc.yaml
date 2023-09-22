@@ -1,12 +1,14 @@
 reader:
   name: abi_l2_nc
   short_name: ABI L2 NetCDF4
-  long_name: GOES-R ABI Level 2 NetCDF4
+  long_name: GOES-R ABI Level 2 products in netCDF4 format
   description: >
     GOES-R ABI Level 2+ data reader in the NetCDF4 format. The file format is
     described in the GOES-R Product Definition and Users' Guide (PUG) Volume
     5. This document can be found
     `here <https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf>`_.
+  status: Beta
+  supports_fsspec: true
   sensors: ['abi']
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
@@ -329,6 +331,27 @@ datasets:
     file_type: abi_l2_nav
     file_key: Latitude
 
+# ---Low Cloud and Fog (GFLS) Products ---
+  mvfr_prob:
+    name: MVFR_Fog_Prob
+    file_type: abi_l2_gfls
+    file_key: MVFR_Fog_Prob
+
+  ifr_prob:
+    name: IFR_Fog_Prob
+    file_type: abi_l2_gfls
+    file_key: IFR_Fog_Prob
+
+  lifr_prob:
+    name: LIFR_Fog_Prob
+    file_type: abi_l2_gfls
+    file_key: LIFR_Fog_Prob
+
+  fog_depth:
+    name: Fog_Depth
+    file_type: abi_l2_gfls
+    file_key: Fog_Depth
+
 
 # ----
 file_types:
@@ -548,3 +571,11 @@ file_types:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-NAV{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
     observation_type: "NAV"
+
+  # Low Cloud and Fog
+  abi_l2_gfls:
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+    file_patterns:
+     # NDE scheme: ABI-L2-GFLSC-M6_v3r1_g16_s202306071931181_e202306071933554_c202306071934440.nc
+     - '{mission_id:3s}-L2-GFLS{scene_abbr:s}-{scan_mode:2s}_v{sw_version:d}r{sw_revision:d}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    observation_type: "GFLS"

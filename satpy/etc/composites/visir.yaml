@@ -96,6 +96,11 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
+  median5x5:
+    modifier: !!python/name:satpy.modifiers.filters.Median
+    median_filter_params:
+      size: 5
+
 composites:
 
   airmass:
@@ -211,9 +216,9 @@ composites:
   natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 1.63
-    - 0.85
-    - 0.635
+    - wavelength: 1.63
+    - wavelength: 0.85
+    - wavelength: 0.635
     standard_name: natural_color
 
   natural_color:
@@ -285,75 +290,137 @@ composites:
     standard_name: precipitation_probability
 
   cloudmask:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cma
-    - cma_pal
     standard_name: cloudmask
 
-  cloudmask_extended:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+  pps_cma:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
     prerequisites:
-    - cma_extended
-    - cma_extended_pal
-    standard_name: cloudmask
+    - cma
+    - cma
+    standard_name: pps_cma
 
-  cloudmask_probability:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+  pps_ct:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - ct
+    - cma
+    standard_name: pps_ct
+
+  pps_phase:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_phase
+    - cma
+    standard_name: pps_phase
+
+  pps_ctth:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - ctth_alti
+    - cma
+    standard_name: pps_ctth
+
+  pps_cmaprob:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
     prerequisites:
     - cmaprob
-    - cmaprob_pal
+    - cma
+    standard_name: pps_cmaprob
+
+  pps_cot:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_cot
+    - cma
+    standard_name: pps_cot
+
+  pps_cwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_cwp
+    - cma
+    standard_name: pps_cwp
+
+  pps_iwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_iwp
+    - cma
+    standard_name: pps_iwp
+
+  pps_lwp:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_lwp
+    - cma
+    standard_name: pps_lwp
+
+  pps_cre:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cmic_reff
+    - cma
+    standard_name: pps_cre
+
+  cloudmask_extended:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - cma_extended
+    standard_name: cloudmask_extended
+
+  cloudmask_probability:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - cmaprob
     standard_name: cloudmask_probability
 
   cloudtype:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ct
-    - ct_pal
     standard_name: cloudtype
 
   cloud_top_height:
-    compositor: !!python/name:satpy.composites.cloud_products.CloudTopHeightCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - ctth_alti
-    - ctth_alti_pal
     - ctth_status_flag
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_pps
 
   cloud_top_pressure:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_pres
-    - ctth_pres_pal
     standard_name: cloud_top_pressure
 
   cloud_top_temperature:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - ctth_tempe
-    - ctth_tempe_pal
     standard_name: cloud_top_temperature
 
   cloud_top_phase:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - cmic_phase
-    - cmic_phase_pal
+    - cmic_status_flag
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorWithoutCloudfree
     prerequisites:
     - cmic_reff
-    - cmic_reff_pal
-    standard_name: cloud_drop_effective_radius
+    - cmic_status_flag
+    standard_name: cloud_drop_effective_radius_pps
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
     - cmic_cot
-    - cmic_cot_pal
-    standard_name: cloud_optical_thickness
+    standard_name: cloud_optical_thickness_pps
 
   cloud_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
@@ -419,11 +486,164 @@ composites:
   _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background
-    url: "https://neo.sci.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_01deg_geo.tif"
+    url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_01deg_geo.tif"
     known_hash: "sha256:146c116962677ae113d9233374715686737ff97141a77cc5da69a9451315a685"  # optional
 
   _night_background_hires:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
-    standard_name: night_background_hires
-    url: "https://neo.sci.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_3km_geo.tif"
+    standard_name: night_background
+    url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_3km_geo.tif"
     known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
+
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.3
+      - wavelength: 0.64
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - wavelength: 1.6
+        modifiers: [sunz_corrected]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.3
+      - wavelength: 0.64
+      - wavelength: 1.6
+    standard_name: cloud_phase_distinction
+
+  cloud_phase:
+    description: >
+      EUMETSAT Cloud Phase RGB product
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.6
+        modifiers: [sunz_corrected]
+      - wavelength: 2.25
+        modifiers: [sunz_corrected]
+      - wavelength: 0.67
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: cloud_phase
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase RGB product, without modifiers
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.6
+      - wavelength: 2.25
+      - wavelength: 0.67
+    standard_name: cloud_phase
+
+  cimss_cloud_type:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.38
+        modifiers: [sunz_corrected]
+      - wavelength: 0.64
+        modifiers: [sunz_corrected]
+      - wavelength: 1.61
+        modifiers: [sunz_corrected]
+    standard_name: cimss_cloud_type
+
+  cimss_cloud_type_raw:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.38
+      - wavelength: 0.64
+      - wavelength: 1.61
+    standard_name: cimss_cloud_type
+
+  essl_low_level_moisture:
+    description: >
+      Greyscale low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  For a color version,
+      see essl_colorized_low_level_moisture.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.905
+    - wavelength: 0.86
+    standard_name: essl_low_level_moisture
+
+  day_essl_low_level_moisture:
+    description: >
+      Daytime only version of essl_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_low_level_moisture
+    standard_name: day_essl_low_level_moisture
+
+  essl_colorized_low_level_moisture:
+    description: >
+      Colorized low level moisture using the ratio between the
+      0.91 µm and the 0.86 µm channels.  Developed by the
+      European Severe Storms Laboratory (ESSL).  The colorization
+      is still under development and may be subject to change.
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - wavelength: 0.86
+    - wavelength: 0.905
+    standard_name: essl_colorized_low_level_moisture
+
+  day_essl_colorized_low_level_moisture:
+    description: >
+      Daytime only version of essl_colorized_low_level_moisture.
+      Nighttime part of the scene will be masked out.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: essl_colorized_low_level_moisture
+    standard_name: day_essl_colorized_low_level_moisture
+
+  rocket_plume_day:
+    description: >
+      An RGB to highlight the plume from rocket launches, typically
+      used with GOES Meso sectors over the cape but can work for
+      other satellites / sensors too.
+      Day version uses 0.6 micron channel for reflective plume.
+      More details:
+      http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/QuickGuide_GOESR_RocketPlumeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: rocket_plume
+    prerequisites:
+      - wavelength: 3.9
+      - wavelength: 6.2
+      - wavelength: 0.6
+
+  rocket_plume_night:
+    description: >
+      An RGB to highlight the plume from rocket launches, typically
+      used with GOES Meso sectors over the cape but can work for
+      other satellites / sensors too.
+      Night version used 1.6 micron channel for hotspot.
+      More details:
+      http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/QuickGuide_GOESR_RocketPlumeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: rocket_plume
+    prerequisites:
+      - wavelength: 3.9
+      - wavelength: 6.2
+      - wavelength: 1.6

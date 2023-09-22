@@ -84,7 +84,7 @@ def step_impl_file_exists_and_remove(context):
 
     """
     import os
-    assert(os.path.exists(context.filename))
+    assert os.path.exists(context.filename)
     os.remove(context.filename)
 
 
@@ -126,5 +126,5 @@ def step_impl_check_two_pngs_exist(context):
     """
     import os
     for filename in ["MyDataset.png", "MyDataset2.png"]:
-        assert(os.path.exists(filename))
+        assert os.path.exists(filename)
         os.remove(filename)

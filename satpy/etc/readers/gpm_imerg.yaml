@@ -1,6 +1,10 @@
 reader:
-  description: HDF5 reader for the GPM/IMERG data
   name: gpm_imerg
+  short_name: GPM/IMERG l3
+  long_name: GPM IMERG level 3 precipitation data in HDF5 format
+  description: HDF5 reader for the GPM/IMERG data
+  status: Nominal
+  supports_fsspec: false
   sensors: [multiple]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

@@ -4,6 +4,8 @@ reader:
   long_name: METOP ASCAT Level 2 SOILMOISTURE BUFR
   description: >
     Reader for ASCAT L2 SOIL MOISUTRE FILES
+  status: Defunct
+  supports_fsspec: false
   sensors: [scatterometer]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   default_datasets:
