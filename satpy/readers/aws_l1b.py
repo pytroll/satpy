@@ -36,14 +36,16 @@ DUMMY_ENDTIME = datetime(2023, 7, 7, 12, 10)
 
 AUX_DATA = {
     'scantime_utc': 'data/navigation/aws_scantime_utc',
-    'solar_azimuth': 'data/navigation/aws_solar_azimuth_angle',
-    'solar_zenith': 'data/navigation/aws_solar_zenith_angle',
-    'satellite_azimuth': 'data/navigation/aws_satellite_azimuth_angle',
-    'satellite_zenith': 'data/navigation/aws_satellite_zenith_angle',
+    'solar_azimuth_angle': 'data/navigation/aws_solar_azimuth_angle',
+    'solar_zenith_angle': 'data/navigation/aws_solar_zenith_angle',
+    'satellite_azimuth_angle': 'data/navigation/aws_satellite_azimuth_angle',
+    'satellite_zenith_angle': 'data/navigation/aws_satellite_zenith_angle',
     'surface_type': 'data/navigation/aws_surface_type',
     'terrain_elevation': 'data/navigation/aws_terrain_elevation',
     'aws_lat': 'data/navigation/aws_lat',
     'aws_lon': 'data/navigation/aws_lon',
+    'latitude': 'data/navigation/aws_lat',
+    'longitude': 'data/navigation/aws_lon',
 }
 
 AWS_CHANNEL_NAMES_TO_NUMBER = {'1': 1, '2': 2, '3': 3, '4': 4,
@@ -156,7 +158,10 @@ class AWSL1BFile(NetCDF4FileHandler):
         # if _get_aux_data_name_from_dsname(dataset_id['name']) is not None:
         if _get_aux_data_name_from_dsname(var_key) is not None:
             nhorn = dataset_info['n_horns']
-            variable = self._get_dataset_aux_data(var_key, nhorn)  # (dataset_id['name'])
+            standard_name = dataset_info['standard_name']
+
+            # variable = self._get_dataset_aux_data(var_key, nhorn)  # (dataset_id['name'])
+            variable = self._get_dataset_aux_data(standard_name, nhorn)  # (dataset_id['name'])
         elif dataset_id['name'] in AWS_CHANNELS:
             logger.debug(f'Reading in file to get dataset with key {var_key}.')
             variable = self._get_dataset_channel(dataset_id, dataset_info)
@@ -169,14 +174,21 @@ class AWSL1BFile(NetCDF4FileHandler):
         variable = self._standardize_dims(variable)
 
         if dataset_info['standard_name'] in ['longitude', 'latitude']:
+            data = variable.data[:, :]
+            if dataset_info['standard_name'] in ['longitude']:
+                data = self._scale_lons(data)
             lon_or_lat = xr.DataArray(
-                variable.data[:, :],
+                data,
                 attrs=variable.attrs,
                 dims=(variable.dims[0], variable.dims[1])
             )
             variable = lon_or_lat
 
         return variable
+
+    @staticmethod
+    def _scale_lons(lons):
+        return xr.where(lons > 180, lons - 360, lons)
 
     @staticmethod
     def _standardize_dims(variable):
@@ -259,9 +271,9 @@ class AWSL1BFile(NetCDF4FileHandler):
     def _get_dataset_aux_data(self, dsname, nhorn):
         """Get the auxiliary data arrays using the index map."""
         # Geolocation and navigation data:
-        if dsname in ['aws_lat', 'aws_lon',
-                      'solar_azimuth', 'solar_zenith',
-                      'satellite_azimuth', 'satellite_zenith',
+        if dsname in ['latitude', 'longitude',
+                      'solar_azimuth_angle', 'solar_zenith_angle',
+                      'satellite_azimuth_angle', 'satellite_zenith_angle',
                       'surface_type', 'terrain_elevation']:
             var_key = AUX_DATA.get(dsname)
         else:

@@ -322,7 +322,7 @@ datasets:
     lon_horn_2:
         name: lon_horn_2
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lon
+        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 1
@@ -330,7 +330,7 @@ datasets:
     lat_horn_2:
         name: lat_horn_2
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lat
+        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 1
@@ -338,7 +338,7 @@ datasets:
     lon_horn_3:
         name: lon_horn_3
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lon
+        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 2
@@ -346,7 +346,7 @@ datasets:
     lat_horn_3:
         name: lat_horn_3
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lat
+        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 2
@@ -354,7 +354,7 @@ datasets:
     lon_horn_4:
         name: lon_horn_4
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lon
+        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 3
@@ -362,64 +362,109 @@ datasets:
     lat_horn_4:
         name: lat_horn_4
         file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lat
+        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 3
 
-    aws_lat:
-        name: aws_lat
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lat
-        standard_name: latitude
-        units: degrees_north
+    # aws_lat:
+    #     name: aws_lat
+    #     file_type: aws_l1b_nc
+    #     file_key: data/navigation/aws_lat
+    #     standard_name: latitude
+    #     units: degrees_north
 
-    aws_lon:
-        name: aws_lon
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_lon
-        standard_name: longitude
-        units: degrees_east
+    # aws_lon:
+    #     name: aws_lon
+    #     file_type: aws_l1b_nc
+    #     file_key: data/navigation/aws_lon
+    #     standard_name: longitude
+    #     units: degrees_east
 
 # --- Navigation data ---
 
-    solar_azimuth:
-        name: solar_azimuth
-        standard_name: solar_azimuth_angle
+    solar_azimuth_horn_1:
+        name: solar_azimuth_horn_1
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        n_horns: 0
         coordinates:
-            - aws_lon
-            - aws_lat
-    solar_zenith:
-        name: solar_zenith
-        standard_name: solar_zenith_angle
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_zenith_angle
-        coordinates:
-            - aws_lon
-            - aws_lat
-    satellite_azimuth:
-        name: satellite_azimuth
-        standard_name: satellite_azimuth_angle
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_azimuth_angle
-        coordinates:
-            - aws_lon
-            - aws_lat
-    satellite_zenith:
-        name: satellite_zenith
-        standard_name: satellite_zenith_angle
+            - lon_horn_1
+            - lat_horn_1
+
+    # solar_zenith:
+    #     name: solar_zenith
+    #     standard_name: solar_zenith_angle
+    #     file_type: aws_l1b_nc
+    #     file_key: data/navigation/aws_solar_zenith_angle
+    #     coordinates:
+    #         - aws_lon
+    #         - aws_lat
+    # satellite_azimuth:
+    #     name: satellite_azimuth
+    #     standard_name: satellite_azimuth_angle
+    #     file_type: aws_l1b_nc
+    #     file_key: data/navigation/aws_satellite_azimuth_angle
+    #     coordinates:
+    #         - aws_lon
+    #         - aws_lat
+    # satellite_zenith:
+    #     name: satellite_zenith
+    #     standard_name: satellite_zenith_angle
+    #     file_type: aws_l1b_nc
+    #     file_key: data/navigation/aws_satellite_zenith_angle
+    #     coordinates:
+    #         - aws_lon
+    #         - aws_lat
+
+    satellite_zenith_horn_1:
+        name: satellite_zenith_horn_1
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        n_horns: 0
         coordinates:
-            - aws_lon
-            - aws_lat
+            - lon_horn_1
+            - lat_horn_1
+
+    satellite_zenith_horn_2:
+        name: satellite_zenith_horn_2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        n_horns: 1
+        coordinates:
+            - lon_horn_2
+            - lat_horn_2
+
+    satellite_zenith_horn_3:
+        name: satellite_zenith_horn_3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        n_horns: 2
+        coordinates:
+            - lon_horn_3
+            - lat_horn_3
+
+    satellite_zenith_horn_4:
+        name: satellite_zenith_horn_4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        n_horns: 3
+        coordinates:
+            - lon_horn_4
+            - lat_horn_4
 
 
 file_types:
     aws_l1b_nc:
         # W_XX-OHB-Unknown,SAT,1-AWS-1B-RAD_C_OHB_20230707124607_G_D_20220621090100_20220621090618_T_B____.nc
         # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230823161321_G_D_20240115111111_20240115125434_T_B____.nc
+        # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230816120142_G_D_20240115111111_20240115125434_T_B____radsim.nc
         file_reader: !!python/name:satpy.readers.aws_l1b.AWSL1BFile
-        file_patterns: ['W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc']
+        file_patterns: [
+        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',
+        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____radsim.nc']
