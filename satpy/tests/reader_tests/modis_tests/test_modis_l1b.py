@@ -195,7 +195,8 @@ class TestModisL1b:
         scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file,
                       reader_kwargs={"mask_saturated": mask_saturated})
         dataset_name = '2'
-        scene.load([dataset_name])
+        with dask.config.set({'array.chunk-size': '1 MiB'}):
+            scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
