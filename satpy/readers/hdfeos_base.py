@@ -25,7 +25,6 @@ from ast import literal_eval
 from contextlib import suppress
 from datetime import datetime
 
-import dask.array.core
 import numpy as np
 import xarray as xr
 from pyhdf.error import HDF4Error
@@ -33,6 +32,7 @@ from pyhdf.SD import SD
 
 from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import chunks_by_resolution
 
 logger = logging.getLogger(__name__)
 
@@ -227,21 +227,13 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         scan_length_250m = 40
         var_shape = hdf_dataset.info()[2]
         res_multiplier = self._get_res_multiplier(var_shape)
-        non_yx_chunks = tuple()
-        if len(var_shape) == 3:
-            # assume (band, y, x)
-            non_yx_chunks = ((1,) * var_shape[0],)
-            var_shape = var_shape[-2:]
-        elif len(var_shape) != 2:
-            # don't guess
-            return dask.array.core.normalize_chunks("auto", shape=var_shape, dtype=np.float32)
-        shape_for_250m = tuple(dim_size * res_multiplier for dim_size in var_shape)
-        chunks_for_250m = dask.array.core.normalize_chunks(("auto", -1), shape=shape_for_250m, dtype=np.float32)
-        row_chunks_for_250m = chunks_for_250m[0][0]
-        scanbased_row_chunks_for_250m = np.round(row_chunks_for_250m / scan_length_250m) * scan_length_250m
-        var_row_chunks = scanbased_row_chunks_for_250m / res_multiplier
-        var_row_chunks = max(var_row_chunks, scan_length_250m / res_multiplier)  # avoid getting 0 chunk size
-        return non_yx_chunks + (var_row_chunks, -1)
+        return chunks_by_resolution(
+            var_shape,
+            np.float32,
+            scan_length_250m,
+            res_multiplier,
+            whole_scan_width=True
+        )
 
     @staticmethod
     def _get_res_multiplier(var_shape):
