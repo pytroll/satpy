@@ -142,6 +142,7 @@ setup(name=NAME,
             "Slack": "https://pytroll.slack.com/",
             "Twitter": "https://twitter.com/hashtag/satpy?src=hashtag_click",
             "Release Notes": "https://github.com/pytroll/satpy/blob/main/CHANGELOG.md",
+            "Mastodon": "https://fosstodon.org/tags/satpy",
         },
       packages=find_packages(),
       # Always use forward '/', even on Windows
