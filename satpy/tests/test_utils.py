@@ -21,6 +21,7 @@ import logging
 import typing
 import unittest
 import warnings
+from math import sqrt
 from unittest import mock
 
 import dask.array as da
@@ -44,182 +45,100 @@ from satpy.utils import (
 # - caplog
 
 
-class TestUtils(unittest.TestCase):
-    """Testing utils."""
+class TestGeoUtils:
+    """Testing geo-related utility functions."""
 
-    def test_lonlat2xyz(self):
+    @pytest.mark.parametrize(
+        ("lonlat", "xyz"),
+        [
+            ((0, 0), (1, 0, 0)),
+            ((90, 0), (0, 1, 0)),
+            ((0, 90), (0, 0, 1)),
+            ((180, 0), (-1, 0, 0)),
+            ((-90, 0), (0, -1, 0)),
+            ((0, -90), (0, 0, -1)),
+            ((0, 45), (sqrt(2) / 2, 0, sqrt(2) / 2)),
+            ((0, 60), (sqrt(1) / 2, 0, sqrt(3) / 2)),
+        ],
+    )
+    def test_lonlat2xyz(self, lonlat, xyz):
         """Test the lonlat2xyz function."""
-        x__, y__, z__ = lonlat2xyz(0, 0)
-        self.assertAlmostEqual(x__, 1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
+        x__, y__, z__ = lonlat2xyz(*lonlat)
+        assert x__ == pytest.approx(xyz[0])
+        assert y__ == pytest.approx(xyz[1])
+        assert z__ == pytest.approx(xyz[2])
 
-        x__, y__, z__ = lonlat2xyz(90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 1)
-        self.assertAlmostEqual(z__, 0)
+    @pytest.mark.parametrize(
+        ("azizen", "xyz"),
+        [
+            ((0, 0), (0, 0, 1)),
+            ((90, 0), (0, 0, 1)),
+            ((0, 90), (0, 1, 0)),
+            ((180, 0), (0, 0, 1)),
+            ((-90, 0), (0, 0, 1)),
+            ((0, -90), (0, -1, 0)),
+            ((90, 90), (1, 0, 0)),
+            ((-90, 90), (-1, 0, 0)),
+            ((180, 90), (0, -1, 0)),
+            ((0, -90), (0, -1, 0)),
+            ((0, 45), (0, sqrt(2) / 2, sqrt(2) / 2)),
+            ((0, 60), (0, sqrt(3) / 2, sqrt(1) / 2)),
+        ],
+    )
+    def test_angle2xyz(self, azizen, xyz):
+        """Test the angle2xyz function."""
+        x__, y__, z__ = angle2xyz(*azizen)
+        assert x__ == pytest.approx(xyz[0])
+        assert y__ == pytest.approx(xyz[1])
+        assert z__ == pytest.approx(xyz[2])
 
-        x__, y__, z__ = lonlat2xyz(0, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
-
-        x__, y__, z__ = lonlat2xyz(180, 0)
-        self.assertAlmostEqual(x__, -1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = lonlat2xyz(-90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = lonlat2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, -1)
-
-        x__, y__, z__ = lonlat2xyz(0, 45)
-        self.assertAlmostEqual(x__, np.sqrt(2) / 2)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
-
-        x__, y__, z__ = lonlat2xyz(0, 60)
-        self.assertAlmostEqual(x__, np.sqrt(1) / 2)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, np.sqrt(3) / 2)
-
-    def test_angle2xyz(self):
-        """Test the lonlat2xyz function."""
-        x__, y__, z__ = angle2xyz(0, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
-
-        x__, y__, z__ = angle2xyz(90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
-
-        x__, y__, z__ = angle2xyz(0, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 1)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(180, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
-
-        x__, y__, z__ = angle2xyz(-90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
-
-        x__, y__, z__ = angle2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(90, 90)
-        self.assertAlmostEqual(x__, 1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(-90, 90)
-        self.assertAlmostEqual(x__, -1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(180, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
-
-        x__, y__, z__ = angle2xyz(0, 45)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, np.sqrt(2) / 2)
-        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
-
-        x__, y__, z__ = angle2xyz(0, 60)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, np.sqrt(3) / 2)
-        self.assertAlmostEqual(z__, np.sqrt(1) / 2)
-
-    def test_xyz2lonlat(self):
+    @pytest.mark.parametrize(
+        ("xyz", "asin", "lonlat"),
+        [
+            ((1, 0, 0), False, (0, 0)),
+            ((0, 1, 0), False, (90, 0)),
+            ((0, 0, 1), True, (0, 90)),
+            ((0, 0, 1), False, (0, 90)),
+            ((sqrt(2) / 2, sqrt(2) / 2, 0), False, (45, 0)),
+        ],
+    )
+    def test_xyz2lonlat(self, xyz, asin, lonlat):
         """Test xyz2lonlat."""
-        lon, lat = xyz2lonlat(1, 0, 0)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 0)
+        lon, lat = xyz2lonlat(*xyz, asin=asin)
+        assert lon == pytest.approx(lonlat[0])
+        assert lat == pytest.approx(lonlat[1])
 
-        lon, lat = xyz2lonlat(0, 1, 0)
-        self.assertAlmostEqual(lon, 90)
-        self.assertAlmostEqual(lat, 0)
-
-        lon, lat = xyz2lonlat(0, 0, 1, asin=True)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 90)
-
-        lon, lat = xyz2lonlat(0, 0, 1)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 90)
-
-        lon, lat = xyz2lonlat(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
-        self.assertAlmostEqual(lon, 45)
-        self.assertAlmostEqual(lat, 0)
-
-    def test_xyz2angle(self):
+    @pytest.mark.parametrize(
+        ("xyz", "acos", "azizen"),
+        [
+            ((1, 0, 0), False, (90, 90)),
+            ((0, 1, 0), False, (0, 90)),
+            ((0, 0, 1), False, (0, 0)),
+            ((0, 0, 1), True, (0, 0)),
+            ((sqrt(2) / 2, sqrt(2) / 2, 0), False, (45, 90)),
+            ((-1, 0, 0), False, (-90, 90)),
+            ((0, -1, 0), False, (180, 90)),
+        ],
+    )
+    def test_xyz2angle(self, xyz, acos, azizen):
         """Test xyz2angle."""
-        azi, zen = xyz2angle(1, 0, 0)
-        self.assertAlmostEqual(azi, 90)
-        self.assertAlmostEqual(zen, 90)
+        azi, zen = xyz2angle(*xyz, acos=acos)
+        assert azi == pytest.approx(azi)
+        assert zen == pytest.approx(zen)
 
-        azi, zen = xyz2angle(0, 1, 0)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 90)
-
-        azi, zen = xyz2angle(0, 0, 1)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 0)
-
-        azi, zen = xyz2angle(0, 0, 1, acos=True)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 0)
-
-        azi, zen = xyz2angle(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
-        self.assertAlmostEqual(azi, 45)
-        self.assertAlmostEqual(zen, 90)
-
-        azi, zen = xyz2angle(-1, 0, 0)
-        self.assertAlmostEqual(azi, -90)
-        self.assertAlmostEqual(zen, 90)
-
-        azi, zen = xyz2angle(0, -1, 0)
-        self.assertAlmostEqual(azi, 180)
-        self.assertAlmostEqual(zen, 90)
-
-    def test_proj_units_to_meters(self):
+    @pytest.mark.parametrize(
+        ("prj", "exp_prj"),
+        [
+            ("+asd=123123123123", "+asd=123123123123"),
+            ("+a=6378.137", "+a=6378137.000"),
+            ("+a=6378.137 +units=km", "+a=6378137.000"),
+            ("+a=6378.137 +b=6378.137", "+a=6378137.000 +b=6378137.000"),
+            ("+a=6378.137 +b=6378.137 +h=35785.863", "+a=6378137.000 +b=6378137.000 +h=35785863.000"),
+        ],
+    )
+    def test_proj_units_to_meters(self, prj, exp_prj):
         """Test proj units to meters conversion."""
-        prj = '+asd=123123123123'
-        res = proj_units_to_meters(prj)
-        self.assertEqual(res, prj)
-        prj = '+a=6378.137'
-        res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000')
-        prj = '+a=6378.137 +units=km'
-        res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000')
-        prj = '+a=6378.137 +b=6378.137'
-        res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000 +b=6378137.000')
-        prj = '+a=6378.137 +b=6378.137 +h=35785.863'
-        res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
+        assert proj_units_to_meters(prj) == exp_prj
 
 
 class TestGetSatPos:
