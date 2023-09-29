@@ -639,7 +639,7 @@ def chunks_by_resolution(
         num_high_res_elements: int,
         low_res_multiplier: int,
         whole_scan_width: bool = False,
-) -> tuple[int, ...]:
+) -> tuple[int | tuple[int, ...], ...]:
     """Compute dask chunk sizes based on data resolution.
 
     First, chunks are computed for the highest resolution version of the data.
@@ -668,7 +668,9 @@ def chunks_by_resolution(
             for non-category data. If this doesn't represent the final data
             type of the data then the final size of chunks in memory will not
             match the user's request via dask's ``array.chunk-size``
-            configuration.
+            configuration. Sometimes it is useful to keep this as a single
+            dtype for all reading functionality (ex. ``np.float32``) in order
+            to keep all read variable chunks the same size regardless of dtype.
         num_high_res_elements: Smallest number of high (fine) resolution
             elements that make up a single "unit" or chunk of data. This could
             be a multiple or factor of the scan size for some instruments and/or
@@ -734,7 +736,7 @@ def _low_res_chunks_from_high_res(
     aligned_chunk_size = np.round(chunk_size_for_high_res / num_high_res_elements) * num_high_res_elements
     low_res_chunk_size = aligned_chunk_size / low_res_multiplier
     # avoid getting 0 chunk size
-    return max(low_res_chunk_size, num_high_res_elements / low_res_multiplier)
+    return int(max(low_res_chunk_size, num_high_res_elements / low_res_multiplier))
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):

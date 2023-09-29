@@ -416,6 +416,42 @@ def test_get_legacy_chunk_size():
         assert get_legacy_chunk_size() == 2048
 
 
+@pytest.mark.parametrize(
+    ("shape", "chunk_dtype", "num_hr", "lr_mult", "scan_width", "exp_result"),
+    [
+        ((1000, 3200), np.float32, 40, 4, True, (160, -1)),  # 1km swath
+        ((1000 // 5, 3200 // 5), np.float32, 40, 20, True, (160 // 5, -1)),  # 5km swath
+        ((1000 * 4, 3200 * 4), np.float32, 40, 1, True, (160 * 4, -1)),  # 250m swath
+        ((21696 // 2, 21696 // 2), np.float32, 226, 2, False, (1469, 1469)),  # 1km area (ABI chunk 226)
+        ((21696 // 2, 21696 // 2), np.float64, 226, 2, False, (1017, 1017)),  # 1km area (64-bit)
+        ((21696 // 3, 21696 // 3), np.float32, 226, 6, False, (1469 // 3, 1469 // 3)),  # 3km area
+        ((21696, 21696), np.float32, 226, 1, False, (1469 * 2, 1469 * 2)),  # 500m area
+        ((7, 1000 * 4, 3200 * 4), np.float32, 40, 1, True, (1, 160 * 4, -1)),  # 250m swath with bands
+        ((1, 7, 1000, 3200), np.float32, 40, 1, True, ((1,), (7,), (1000,), (1198, 1198, 804))),  # lots of dimensions
+    ],
+)
+def test_resolution_chunking(shape, chunk_dtype, num_hr, lr_mult, scan_width, exp_result):
+    """Test chunks_by_resolution helper function."""
+    import dask.config
+
+    from satpy.utils import chunks_by_resolution
+
+    with dask.config.set({"array.chunk-size": "32MiB"}):
+        chunk_results = chunks_by_resolution(
+            shape,
+            chunk_dtype,
+            num_hr,
+            lr_mult,
+            whole_scan_width=scan_width,
+        )
+    assert chunk_results == exp_result
+    for chunk_size in chunk_results:
+        assert isinstance(chunk_size[0], int) if isinstance(chunk_size, tuple) else isinstance(chunk_size, int)
+
+    # make sure the chunks are understandable by dask
+    da.zeros(shape, dtype=chunk_dtype, chunks=chunk_results)
+
+
 def test_convert_remote_files_to_fsspec_local_files():
     """Test convertion of remote files to fsspec objects.
 
