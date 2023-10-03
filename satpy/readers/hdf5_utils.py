@@ -24,10 +24,10 @@ import h5py
 import numpy as np
 import xarray as xr
 
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
 from satpy.utils import get_legacy_chunk_size
-from satpy.readers import open_file_or_filename
 
 LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
