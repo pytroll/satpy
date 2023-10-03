@@ -293,11 +293,12 @@ class TestAHIHSDFileHandler:
     def test_actual_satellite_position(self, round_actual_position, expected_result):
         """Test that rounding of the actual satellite position can be controlled."""
         with _fake_hsd_handler(fh_kwargs={"round_actual_position": round_actual_position}) as fh:
-            ds_id = make_dataid(name="B01")
+            ds_id = make_dataid(name="B01", resolution=1000)
             ds_info = {
                 "units": "%",
                 "standard_name": "some_name",
                 "wavelength": (0.1, 0.2, 0.3),
+                "resolution": 1000,
             }
             metadata = fh._get_metadata(ds_id, ds_info)
             orb_params = metadata["orbital_parameters"]
@@ -365,10 +366,17 @@ class TestAHIHSDFileHandler:
         filename_info = {"segment": 1, "total_segments": 1}
         filetype_info = {"file_type": "blahB01"}
         fh = AHIHSDFileHandler(hsd_file_jp01, filename_info, filetype_info)
-        key = {"name": "B01", "calibration": "counts"}
+        key = {"name": "B01", "calibration": "counts", "resolution": 1000}
         import dask
         with dask.config.set({"array.chunk-size": "16MiB"}):
-            data = fh.read_band(key, {"units": "%", "standard_name": "toa_bidirectional_reflectance", "wavelength": 2})
+            data = fh.read_band(
+                key,
+                {
+                    "units": "%",
+                    "standard_name": "toa_bidirectional_reflectance",
+                    "wavelength": 2,
+                    "resolution": 1000,
+                })
             assert data.chunks == ((1100,) * 10, (1100,) * 10)
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
