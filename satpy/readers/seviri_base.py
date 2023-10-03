@@ -166,7 +166,7 @@ References:
 """
 
 import warnings
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -352,6 +352,62 @@ CALIB[324] = {'HRV': {'F': 79.0035},
               'IR_134': {'VC': 748.585,
                          'ALPHA': 0.9981,
                          'BETA': 0.5635}}
+
+# Calibration coefficients from Meirink, J.F., R.A. Roebeling and P. Stammes, 2013:
+# Inter-calibration of polar imager solar channels using SEVIRI, Atm. Meas. Tech., 6,
+# 2495-2508, doi:10.5194/amt-6-2495-2013
+
+# To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
+
+# Epoch for the MEIRINK re-calibration
+DATE_2000 = datetime(2000, 1, 1)
+
+MEIRINK_COEFS = {}
+
+# Meteosat-8
+
+MEIRINK_COEFS[321] = {'VIS006': (24.346, 0.3739),
+                      'VIS008': (30.989, 0.3111),
+                      'IR_016': (22.869, 0.0065)
+                      }
+
+# Meteosat-9
+
+MEIRINK_COEFS[322] = {'VIS006': (21.026, 0.3739),
+                      'VIS008': (26.875, 0.3111),
+                      'IR_016': (21.394, 0.0065)
+                      }
+
+# Meteosat-10
+
+MEIRINK_COEFS[323] = {'VIS006': (19.829, 0.5856),
+                      'VIS008': (25.284, 0.6787),
+                      'IR_016': (23.066, -0.0286)
+                      }
+
+# Meteosat-11
+
+MEIRINK_COEFS[324] = {'VIS006': (20.515, 0.3600),
+                      'VIS008': (25.803, 0.4844),
+                      'IR_016': (22.354, -0.0187)
+                      }
+
+
+def get_meirink_slope(meirink_coefs, acquisition_time):
+    """Compute the slope for the visible channel calibration according to Meirink 2013.
+
+    S = A + B * 1.e-3* Day
+
+    S is here in µW m-2 sr-1 (cm-1)-1
+
+    EUMETSAT calibration is given in mW m-2 sr-1 (cm-1)-1, so an extra factor of 1/1000 must
+    be applied.
+    """
+    A = meirink_coefs[0]
+    B = meirink_coefs[1]
+    delta_t = (acquisition_time - DATE_2000).total_seconds()
+    S = A + B * delta_t / (3600*24) / 1000.
+    return S/1000
 
 
 def get_cds_time(days, msecs):
@@ -559,6 +615,11 @@ class SEVIRICalibrationHandler:
         self._platform_id = platform_id
         self._channel_name = channel_name
         self._coefs = coefs
+        if channel_name in ['VIS006', 'VIS008', 'IR_016']:
+            self._coefs['coefs']['MEIRINK'] = MEIRINK_COEFS[platform_id][channel_name]
+        else:
+            self._coefs['coefs']['MEIRINK'] = None
+
         self._calib_mode = calib_mode.upper()
         self._scan_time = scan_time
         self._algo = SEVIRICalibrationAlgorithm(
@@ -566,7 +627,7 @@ class SEVIRICalibrationHandler:
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS')
+        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK')
         if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(
@@ -621,6 +682,10 @@ class SEVIRICalibrationHandler:
                 # they are set to zero in the file.
                 internal_gain = gsics_gain
                 internal_offset = gsics_offset
+
+        if self._calib_mode == 'MEIRINK':
+            if coefs['MEIRINK'] is not None:
+                internal_gain = get_meirink_slope(coefs['MEIRINK'], self._scan_time)
 
         # Override with external coefficients, if any.
         gain = coefs['EXTERNAL'].get('gain', internal_gain)

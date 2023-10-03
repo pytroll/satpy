@@ -247,6 +247,7 @@ from satpy.readers.seviri_base import (
     mask_bad_quality,
     pad_data_horizontally,
     round_nom_time,
+    MEIRINK_CALIB,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 from satpy.utils import get_legacy_chunk_size
