@@ -646,7 +646,7 @@ def chunks_by_resolution(
     This is done by multiplying the input array shape by the
     ``low_res_multiplier`` and then using Dask's utility functions and
     configuration to produce a chunk size to fit into a specific number of
-    bytes. See :ref:`dask:automatic-chunking` for more information.
+    bytes. See :doc:`dask:array-chunks` for more information.
     Next, the same multiplier is used to reduce the high resolution chunk sizes
     to the lower resolution of the input data. The end result of reading
     multiple resolutions of data is that each dask chunk covers the same
