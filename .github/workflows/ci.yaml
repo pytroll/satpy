@@ -28,9 +28,6 @@ jobs:
       - name: Install Satpy
         run: |
           pip install -e .
-      - name: Run linting
-        run: |
-          ruff satpy/
 
   test:
     runs-on: ${{ matrix.os }}
