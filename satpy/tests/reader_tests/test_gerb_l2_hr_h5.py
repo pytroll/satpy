@@ -89,7 +89,8 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
         fid['/Geolocation/Rectified Grid'].attrs['dy'] = np.array(1203.3201568249945, dtype='float64')
         fid.create_group('/Geolocation/Rectified Grid/Resolution Flags')
         fid['/Geolocation/Rectified Grid/Resolution Flags'].attrs['East West'] = np.array(0.014411607, dtype='float64')
-        fid['/Geolocation/Rectified Grid/Resolution Flags'].attrs['North South'] = np.array(0.014411607, dtype='float64')
+        fid['/Geolocation/Rectified Grid/Resolution Flags'].attrs['North South'] = \
+            np.array(0.014411607, dtype='float64')
         fid.create_group('/Imager')
         fid['/Imager'].attrs['Instrument Identifier'] = np.array(4, dtype='int32')
         dt = h5py.h5t.TypeID.copy(h5py.h5t.C_S1)
@@ -146,19 +147,24 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
         dt = h5py.h5t.TypeID.copy(h5py.h5t.C_S1)
         dt.set_size(13)
         dt.set_strpad(h5py.h5t.STR_NULLTERM)
-        at = h5py.h5a.create(fid['/Scene Identification'].id, b'Solar Angular Dependency Models Set Version', dt, h5py.h5s.create(h5py.h5s.SCALAR))
+        at = h5py.h5a.create(fid['/Scene Identification'].id, b'Solar Angular Dependency Models Set Version', dt,
+                             h5py.h5s.create(h5py.h5s.SCALAR))
         at.write(np.array(b'CERES_TRMM.1', dtype='|S13'))
         dt = h5py.h5t.TypeID.copy(h5py.h5t.C_S1)
         dt.set_size(7)
         dt.set_strpad(h5py.h5t.STR_NULLTERM)
-        at = h5py.h5a.create(fid['/Scene Identification'].id, b'Thermal Angular Dependency Models Set Version', dt, h5py.h5s.create(h5py.h5s.SCALAR))
+        at = h5py.h5a.create(fid['/Scene Identification'].id, b'Thermal Angular Dependency Models Set Version', dt,
+                             h5py.h5s.create(h5py.h5s.SCALAR))
         at.write(np.array(b'RMIB.3', dtype='|S7'))
         fid['/Scene Identification/Aerosol Optical Depth IR 1.6'] = np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
-        fid['/Scene Identification/Aerosol Optical Depth IR 1.6'].attrs['Quantisation Factor'] = np.array(0.001, dtype='float64')
+        fid['/Scene Identification/Aerosol Optical Depth IR 1.6'].attrs['Quantisation Factor'] = \
+            np.array(0.001, dtype='float64')
         fid['/Scene Identification/Aerosol Optical Depth VIS 0.6'] = np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
-        fid['/Scene Identification/Aerosol Optical Depth VIS 0.6'].attrs['Quantisation Factor'] = np.array(0.001, dtype='float64')
+        fid['/Scene Identification/Aerosol Optical Depth VIS 0.6'].attrs['Quantisation Factor'] = \
+            np.array(0.001, dtype='float64')
         fid['/Scene Identification/Aerosol Optical Depth VIS 0.8'] = np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
-        fid['/Scene Identification/Aerosol Optical Depth VIS 0.8'].attrs['Quantisation Factor'] = np.array(0.001, dtype='float64')
+        fid['/Scene Identification/Aerosol Optical Depth VIS 0.8'].attrs['Quantisation Factor'] = \
+            np.array(0.001, dtype='float64')
         fid['/Scene Identification/Cloud Cover'] = np.ones(shape=(1237, 1237), dtype=np.dtype('uint8'))
         fid['/Scene Identification/Cloud Cover'].attrs['Quantisation Factor'] = np.array(0.01, dtype='float64')
         dt = h5py.h5t.TypeID.copy(h5py.h5t.C_S1)
@@ -166,8 +172,10 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
         dt.set_strpad(h5py.h5t.STR_NULLTERM)
         at = h5py.h5a.create(fid['/Scene Identification/Cloud Cover'].id, b'Unit', dt, h5py.h5s.create(h5py.h5s.SCALAR))
         at.write(np.array(b'Percent', dtype='|S8'))
-        fid['/Scene Identification/Cloud Optical Depth (logarithm)'] = np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
-        fid['/Scene Identification/Cloud Optical Depth (logarithm)'].attrs['Quantisation Factor'] = np.array(0.00025, dtype='float64')
+        fid['/Scene Identification/Cloud Optical Depth (logarithm)'] = \
+            np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
+        fid['/Scene Identification/Cloud Optical Depth (logarithm)'].attrs['Quantisation Factor'] = \
+            np.array(0.00025, dtype='float64')
         fid['/Scene Identification/Cloud Phase'] = np.ones(shape=(1237, 1237), dtype=np.dtype('uint8'))
         fid['/Scene Identification/Cloud Phase'].attrs['Quantisation Factor'] = np.array(0.01, dtype='float64')
         dt = h5py.h5t.TypeID.copy(h5py.h5t.C_S1)
@@ -179,7 +187,8 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
         fid['/Scene Identification/Dust Detection'].attrs['Quantisation Factor'] = np.array(0.01, dtype='float64')
         fid['/Scene Identification/Solar Angular Dependency Model'] = np.ones(shape=(1237, 1237), dtype=np.dtype('>i2'))
         fid['/Scene Identification/Surface Type'] = np.ones(shape=(1237, 1237), dtype=np.dtype('uint8'))
-        fid['/Scene Identification/Thermal Angular Dependency Model'] = np.ones(shape=(1237, 1237), dtype=np.dtype('uint8'))
+        fid['/Scene Identification/Thermal Angular Dependency Model'] = \
+            np.ones(shape=(1237, 1237), dtype=np.dtype('uint8'))
         fid.create_group('/Times')
         fid['/Times/Time (per row)'] = np.ones(shape=(1237,), dtype=np.dtype('|S22'))
 
