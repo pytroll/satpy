@@ -33,13 +33,13 @@ datasets:
   Solar_Radiance:
     name: Solar Radiance
     sensor: gerb
-    units: W m-2
+    units: W m-2 sr-1
     fill_value: -32767
     file_type: gerb_l2_hr_h5
 
   Thermal_Radiance:
     name: Thermal Radiance
     sensor: gerb
-    units: W m-2
+    units: W m-2 sr-1
     fill_value: -32767
     file_type: gerb_l2_hr_h5
