@@ -119,7 +119,7 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     return filename
 
 
-@pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux"])
+@pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"])
 def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
     """Test loading the solar flux component."""
     scene = Scene(reader='gerb_l2_hr_h5', filenames=[gerb_l2_hr_h5_dummy_file])
