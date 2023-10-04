@@ -14,7 +14,7 @@ known_first_party = "satpy"
 line_length = 120
 
 [tool.ruff]
-select = ["E", "W", "F", "I", "D", "S", "B", "A", "PT", "Q", "TID", "C90", "T10"]
+select = ["E", "W", "F", "I", "D", "S", "B", "A", "PT", "Q", "TID", "C90", "T10", "N"]
 ignore = ["B905"]  # only available from python 3.10
 line-length = 120
 
