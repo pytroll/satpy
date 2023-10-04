@@ -322,6 +322,18 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func((5, 5), ((5,), (5,)))
 
+    def test_caching_with_array_in_args_fails(self, tmp_path):
+        """Test that trying to cache with non-dask arrays fails."""
+        from satpy.modifiers.angles import cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats")
+        def _fake_func(array):
+            return array + 1
+
+        with pytest.raises(TypeError), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func(da.zeros(100))
+
     def test_no_cache_dir_fails(self, tmp_path):
         """Test that 'cache_dir' not being set fails."""
         from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, get_angles
