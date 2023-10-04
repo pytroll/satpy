@@ -12,3 +12,18 @@ skip_gitignore = true
 default_section = "THIRDPARTY"
 known_first_party = "satpy"
 line_length = 120
+
+[tool.ruff]
+select = ["E", "W", "F", "I", "D", "S", "B", "A", "PT", "Q", "TID", "C90", "T10"]
+ignore = ["B905"]  # only available from python 3.10
+line-length = 120
+
+[tool.ruff.per-file-ignores]
+"satpy/tests/*" = ["S101"]  # assert allowed in tests
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
