@@ -194,24 +194,10 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
 
     return filename
 
-
-def test_gerb_solar_flux_dataset(gerb_l2_hr_h5_dummy_file):
-    """Test the GERB L2 HR HDF5 file.
-
-    Load the solar flux component.
-    """
+@pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux"])
+def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
+    """Test loading the solar flux component."""
     scene = Scene(reader='gerb_l2_hr_h5', filenames=[gerb_l2_hr_h5_dummy_file])
-    scene.load(['Solar Flux'])
-    assert scene['Solar Flux'].shape == (1237, 1237)
-    assert np.nanmax((scene['Solar Flux'].to_numpy().flatten() - 0.25)) < 1e-6
-
-
-def test_gerb_thermal_flux_dataset(gerb_l2_hr_h5_dummy_file):
-    """Test the GERB L2 HR HDF5 file.
-
-    Load the thermal flux component.
-    """
-    scene = Scene(reader='gerb_l2_hr_h5', filenames=[gerb_l2_hr_h5_dummy_file])
-    scene.load(['Thermal Flux'])
-    assert scene['Thermal Flux'].shape == (1237, 1237)
-    assert np.nanmax((scene['Thermal Flux'].to_numpy().flatten() - 0.25)) < 1e-6
+    scene.load([name])
+    assert scene[name].shape == (1237, 1237)
+    assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6
