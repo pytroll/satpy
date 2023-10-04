@@ -163,8 +163,6 @@ class ZarrCacheHelper:
 
     def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
         should_cache: bool = satpy.config.get(self._cache_config_key, False)
-        can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
-        should_cache = should_cache and can_cache
         cache_dir = self._get_cache_dir_from_config(cache_dir)
         return should_cache, cache_dir
 
