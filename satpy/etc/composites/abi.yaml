@@ -555,6 +555,22 @@ composites:
       - name: C13
     standard_name: night_microphysics
 
+  night_microphysics_eum:
+    description: >
+      Nighttime Microphysics RGB following the EUMETSAT recipe
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C15
+          - name: C14
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C14
+          - name: C07
+      - name: C14
+    standard_name: night_microphysics
+
   fire_temperature_awips:
     description: >
       Fire Temperature RGB, for GOESR: NASA, NOAA
