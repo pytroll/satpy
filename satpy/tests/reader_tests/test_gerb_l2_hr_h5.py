@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for GERB L2 HR HDF5 reader."""
 
+import h5py
 import numpy as np
 import pytest
-import h5py
+
 from satpy import Scene
 
 FNAME = "G4_SEV4_L20_HR_SOL_TH_20190606_130000_V000.hdf"
