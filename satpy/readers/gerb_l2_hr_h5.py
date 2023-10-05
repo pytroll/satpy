@@ -43,7 +43,7 @@ def gerb_get_dataset(hfile, name, ds_info):
 
     The routine takes into account the quantisation factor and fill values.
     """
-    ds = xr.DataArray(hfile[name][...])
+    ds = hfile[name]
     ds_attrs = hfile[name].attrs
     ds_fill = ds_info['fill_value']
     fill_mask = ds != ds_fill
@@ -82,14 +82,10 @@ class GERB_HR_FileHandler(HDF5FileHandler):
             raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
 
         ds = gerb_get_dataset(self, f'Radiometry/{ds_name}', ds_info)
-        ds_info = {}
 
-        ds_info['start_time'] = self.start_time
-        ds_info['data_time'] = self.start_time
-        ds_info['end_time'] = self.end_time
+        ds.attrs.update({'start_time': self.start_time, 'data_time': self.start_time, 'end_time': self.end_time})
 
-        data = da.from_array(ds)
-        return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
+        return ds
 
     def get_area_def(self, dsid):
         """Area definition for the GERB product."""
