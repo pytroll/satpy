@@ -37,6 +37,9 @@ from satpy.readers.seviri_base import (
     pad_data_horizontally,
     pad_data_vertically,
     round_nom_time,
+    SEVIRICalibrationHandler,
+    MEIRINK_COEFS,
+    DATE_2000,
 )
 from satpy.utils import get_legacy_chunk_size
 
@@ -358,3 +361,32 @@ class TestOrbitPolynomialFinder:
         finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
             finder.get_orbit_polynomial(time=time)
+
+
+class TestMeirinkSlope:
+    """Unit tests for the slope of Meirink calibration."""
+
+    @pytest.mark.parametrize('platform_id', [321, 322, 323, 324])
+    @pytest.mark.parametrize('channel_name', ['VIS006', 'VIS008', 'IR_016'])
+    def test_get_meirink_slope_epoch(self, platform_id, channel_name):
+        """Test the value of the slope of the Meirink calibration on 2000-01-01."""
+        coefs = {'coefs': {}}
+        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
+        coefs['coefs']['EXTERNAL'] = {}
+        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK', DATE_2000)
+        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS[platform_id][channel_name][0]/1000.
+
+    @pytest.mark.parametrize('platform_id', [321, 322, 323, 324])
+    @pytest.mark.parametrize('channel_name', ['VIS006', 'VIS008', 'IR_016'])
+    def test_get_meirink_slope_2020(self, platform_id, channel_name):
+        """Test the value of the slope of the Meirink calibration on 2020-01-01."""
+        DATE_2020 = datetime(2020, 1, 1)
+        coefs = {'coefs': {}}
+        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
+        coefs['coefs']['EXTERNAL'] = {}
+        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK', DATE_2020)
+        A, B = MEIRINK_COEFS[platform_id][channel_name]
+        delta_t = (DATE_2020 - DATE_2000).total_seconds()
+        S = A + B * delta_t / (3600*24) / 1000.
+        S = S/1000
+        assert calibration_handler.get_gain_offset()[0] == S
