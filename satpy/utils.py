@@ -689,6 +689,7 @@ def normalize_low_res_chunks(
         chunks,
         shape=high_res_shape,
         dtype=input_dtype,
+        previous_chunks=previous_chunks,
     )
     low_res_chunks: list[int] = []
     for req_chunks, hr_chunks, prev_chunks, lr_mult in zip(
@@ -699,11 +700,7 @@ def normalize_low_res_chunks(
         if req_chunks != "auto":
             low_res_chunks.append(req_chunks)
             continue
-        low_res_chunks.append(_low_res_chunks_from_high_res(
-            hr_chunks[0],
-            prev_chunks,
-            lr_mult,
-        ))
+        low_res_chunks.append(int(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
     return tuple(low_res_chunks)
 
 
@@ -717,17 +714,6 @@ def _split_non_yx_chunks(
         # assume (band, y, x)
         pre_non_yx_chunks = (1,)
     return pre_non_yx_chunks, yx_shape, post_non_yx_chunks
-
-
-def _low_res_chunks_from_high_res(
-        chunk_size_for_high_res: int,
-        num_high_res_elements: int,
-        low_res_multiplier: int
-) -> int:
-    aligned_chunk_size = np.round(chunk_size_for_high_res / num_high_res_elements) * num_high_res_elements
-    low_res_chunk_size = aligned_chunk_size / low_res_multiplier
-    # avoid getting 0 chunk size
-    return int(max(low_res_chunk_size, num_high_res_elements / low_res_multiplier))
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
