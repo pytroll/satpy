@@ -700,7 +700,7 @@ def normalize_low_res_chunks(
         if req_chunks != "auto":
             low_res_chunks.append(req_chunks)
             continue
-        low_res_chunks.append(int(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
+        low_res_chunks.append(int(max(hr_chunks[0] / lr_mult, prev_chunks)))
     return tuple(low_res_chunks)
 
 

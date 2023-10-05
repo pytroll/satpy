@@ -426,8 +426,8 @@ def test_get_legacy_chunk_size():
     [
         # 1km swath
         (("auto", -1), (1000, 3200), (40, 40), (4, 4), np.float32, (160, -1)),
-        # 5km swath
-        (("auto", -1), (1000 // 5, 3200 // 5), (40, 40), (20, 20), np.float32, (160 // 5, -1)),
+        # 5km swath - 160 / 5 == 32 which is smaller than our on-disk chunk size of 40
+        (("auto", -1), (1000 // 5, 3200 // 5), (40, 40), (20, 20), np.float32, (40, -1)),
         # 250m swath
         (("auto", -1), (1000 * 4, 3200 * 4), (40, 40), (1, 1), np.float32, (160 * 4, -1)),
         # 1km area (ABI chunk 226):
