@@ -192,7 +192,7 @@ class TestGetSatPos:
         "attrs",
         (
                 {},
-                {'orbital_parameters':  {'projection_longitude': 1}},
+                {'orbital_parameters': {'projection_longitude': 1}},
                 {'satellite_altitude': 1}
         )
     )
@@ -207,16 +207,17 @@ class TestGetSatPos:
         import pyorbital.tlefile
 
         data_arr = xr.DataArray(
-                (),
-                attrs={
-                    "platform_name": "Meteosat-42",
-                    "sensor": "irives",
-                    "start_time": datetime.datetime(2031, 11, 20, 19, 18, 17)})
+            (),
+            attrs={
+                "platform_name": "Meteosat-42",
+                "sensor": "irives",
+                "start_time": datetime.datetime(2031, 11, 20, 19, 18, 17)
+            })
         with mock.patch("pyorbital.tlefile.read") as plr:
             plr.return_value = pyorbital.tlefile.Tle(
-                    "Meteosat-42",
-                    line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
-                    line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+                "Meteosat-42",
+                line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
+                line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
             with caplog.at_level(logging.WARNING):
                 (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
             assert "Orbital parameters missing from metadata" in caplog.text
@@ -238,13 +239,15 @@ def test_make_fake_scene():
 
     assert make_fake_scene({}).keys() == []
     sc = make_fake_scene({
-        "six": np.arange(25).reshape(5, 5)})
+        "six": np.arange(25).reshape(5, 5)
+    })
     assert len(sc.keys()) == 1
     assert sc.keys().pop()['name'] == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
     sc = make_fake_scene({
-        "seven": np.arange(3*7).reshape(3, 7),
-        "eight": np.arange(3*8).reshape(3, 8)},
+        "seven": np.arange(3 * 7).reshape(3, 7),
+        "eight": np.arange(3 * 8).reshape(3, 8)
+    },
         daskify=True,
         area=False,
         common_attrs={"repetency": "fourteen hundred per centimetre"})
@@ -254,9 +257,10 @@ def test_make_fake_scene():
     assert isinstance(sc["seven"].data, da.Array)
     sc = make_fake_scene({
         "nine": xr.DataArray(
-            np.arange(2*9).reshape(2, 9),
+            np.arange(2 * 9).reshape(2, 9),
             dims=("y", "x"),
-            attrs={"please": "preserve", "answer": 42})},
+            attrs={"please": "preserve", "answer": 42})
+    },
         common_attrs={"bad words": "semprini bahnhof veerooster winterbanden"})
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
 
@@ -295,6 +299,7 @@ def test_debug_on(caplog):
             DeprecationWarning,
             stacklevel=2
         )
+
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
@@ -417,32 +422,41 @@ def test_get_legacy_chunk_size():
 
 
 @pytest.mark.parametrize(
-    ("shape", "chunk_dtype", "num_hr", "lr_mult", "scan_width", "exp_result"),
+    ("chunks", "shape", "previous_chunks", "lr_mult", "chunk_dtype", "exp_result"),
     [
-        ((1000, 3200), np.float32, 40, 4, True, (160, -1)),  # 1km swath
-        ((1000 // 5, 3200 // 5), np.float32, 40, 20, True, (160 // 5, -1)),  # 5km swath
-        ((1000 * 4, 3200 * 4), np.float32, 40, 1, True, (160 * 4, -1)),  # 250m swath
-        ((21696 // 2, 21696 // 2), np.float32, 226, 2, False, (1469, 1469)),  # 1km area (ABI chunk 226)
-        ((21696 // 2, 21696 // 2), np.float64, 226, 2, False, (1017, 1017)),  # 1km area (64-bit)
-        ((21696 // 3, 21696 // 3), np.float32, 226, 6, False, (1469 // 3, 1469 // 3)),  # 3km area
-        ((21696, 21696), np.float32, 226, 1, False, (1469 * 2, 1469 * 2)),  # 500m area
-        ((7, 1000 * 4, 3200 * 4), np.float32, 40, 1, True, (1, 160 * 4, -1)),  # 250m swath with bands
-        ((1, 7, 1000, 3200), np.float32, 40, 1, True, ((1,), (7,), (1000,), (1198, 1198, 804))),  # lots of dimensions
+        # 1km swath
+        (("auto", -1), (1000, 3200), (40, 40), (4, 4), np.float32, (160, -1)),
+        # 5km swath
+        (("auto", -1), (1000 // 5, 3200 // 5), (40, 40), (20, 20), np.float32, (160 // 5, -1)),
+        # 250m swath
+        (("auto", -1), (1000 * 4, 3200 * 4), (40, 40), (1, 1), np.float32, (160 * 4, -1)),
+        # 1km area (ABI chunk 226):
+        (("auto", "auto"), (21696 // 2, 21696 // 2), (226, 226), (2, 2), np.float32, (1469, 1469)),
+        # 1km area (64-bit)
+        (("auto", "auto"), (21696 // 2, 21696 // 2), (226, 226), (2, 2), np.float64, (1017, 1017)),
+        # 3km area
+        (("auto", "auto"), (21696 // 3, 21696 // 3), (226, 226), (6, 6), np.float32, (1469 // 3, 1469 // 3)),
+        # 500m area
+        (("auto", "auto"), (21696, 21696), (226, 226), (1, 1), np.float32, (1469 * 2, 1469 * 2)),
+        # 250m swath with bands:
+        ((1, "auto", -1), (7, 1000 * 4, 3200 * 4), (1, 40, 40), (1, 1, 1), np.float32, (1, 160 * 4, -1)),
+        # lots of dimensions:
+        ((1, 1, "auto", -1), (1, 7, 1000, 3200), (1, 1, 40, 40), (1, 1, 1, 1), np.float32, (1, 1, 1000, -1)),
     ],
 )
-def test_resolution_chunking(shape, chunk_dtype, num_hr, lr_mult, scan_width, exp_result):
-    """Test chunks_by_resolution helper function."""
+def test_resolution_chunking(chunks, shape, previous_chunks, lr_mult, chunk_dtype, exp_result):
+    """Test normalize_low_res_chunks helper function."""
     import dask.config
 
-    from satpy.utils import chunks_by_resolution
+    from satpy.utils import normalize_low_res_chunks
 
     with dask.config.set({"array.chunk-size": "32MiB"}):
-        chunk_results = chunks_by_resolution(
+        chunk_results = normalize_low_res_chunks(
+            chunks,
             shape,
-            chunk_dtype,
-            num_hr,
+            previous_chunks,
             lr_mult,
-            whole_scan_width=scan_width,
+            chunk_dtype,
         )
     assert chunk_results == exp_result
     for chunk_size in chunk_results:
@@ -570,19 +584,21 @@ def test_find_in_ancillary():
     """Test finding a dataset in ancillary variables."""
     from satpy.utils import find_in_ancillary
     index_finger = xr.DataArray(
-            data=np.arange(25).reshape(5, 5),
-            dims=("y", "x"),
-            attrs={"name": "index-finger"})
+        data=np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"name": "index-finger"})
     ring_finger = xr.DataArray(
-            data=np.arange(25).reshape(5, 5),
-            dims=("y", "x"),
-            attrs={"name": "ring-finger"})
+        data=np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={"name": "ring-finger"})
 
     hand = xr.DataArray(
-            data=np.arange(25).reshape(5, 5),
-            dims=("y", "x"),
-            attrs={"name": "hand",
-                   "ancillary_variables": [index_finger, index_finger, ring_finger]})
+        data=np.arange(25).reshape(5, 5),
+        dims=("y", "x"),
+        attrs={
+            "name": "hand",
+            "ancillary_variables": [index_finger, index_finger, ring_finger]
+        })
 
     assert find_in_ancillary(hand, "ring-finger") is ring_finger
     with pytest.raises(

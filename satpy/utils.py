@@ -26,7 +26,7 @@ import pathlib
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Mapping, Optional
+from typing import Literal, Mapping, Optional
 from urllib.parse import urlparse
 
 import dask.utils
@@ -633,13 +633,13 @@ def _get_pytroll_chunk_size():
         return None
 
 
-def chunks_by_resolution(
+def normalize_low_res_chunks(
+        chunks: tuple[int | Literal["auto"], ...],
         input_shape: tuple[int, ...],
+        previous_chunks: tuple[int, ...],
+        low_res_multipliers: tuple[int, ...],
         input_dtype: DTypeLike,
-        num_high_res_elements: int,
-        low_res_multiplier: int,
-        whole_scan_width: bool = False,
-) -> tuple[int | tuple[int, ...], ...]:
+) -> tuple[int, ...]:
     """Compute dask chunk sizes based on data resolution.
 
     First, chunks are computed for the highest resolution version of the data.
@@ -653,16 +653,22 @@ def chunks_by_resolution(
     geographic region. This also means replicating or aggregating one
     resolution and then combining arrays should not require any rechunking.
 
-    .. note::
-
-        Only 2 or 3-dimensional shapes are supported. In the case of 3D arrays
-        the first dimension is assumed to be "bands" and is given a chunk
-        size of 1. For shapes with other numbers of dimensions, the chunk size
-        for the entire array is determined by dask's "auto" chunking and
-        resolution is ignored.
-
     Args:
+        chunks: Requested chunk size for each dimension. This is passed
+            directly to dask. Use ``"auto"`` for dimensions that should have
+            chunks determined for them, ``-1`` for dimensions that should be
+            whole (not chunked), and ``1`` or any other positive integer for
+            dimensions that have a known chunk size beforehand.
         input_shape: Shape of the array to compute dask chunk size for.
+        previous_chunks: Any previous chunking or structure of the data. This
+            can also be thought of as the smallest number of high (fine) resolution
+            elements that make up a single "unit" or chunk of data. This could
+            be a multiple or factor of the scan size for some instruments and/or
+            could be based on the on-disk chunk size. This value ensures that
+            chunks are aligned to the underlying data structure for best
+            performance.
+        low_res_multipliers: Number of high (fine) resolution pixels that fit
+            in a single low (coarse) resolution pixel.
         input_dtype: Dtype for the final unscaled array. This is usually
             32-bit float (``np.float32``) or 64-bit float (``np.float64``)
             for non-category data. If this doesn't represent the final data
@@ -671,49 +677,34 @@ def chunks_by_resolution(
             configuration. Sometimes it is useful to keep this as a single
             dtype for all reading functionality (ex. ``np.float32``) in order
             to keep all read variable chunks the same size regardless of dtype.
-        num_high_res_elements: Smallest number of high (fine) resolution
-            elements that make up a single "unit" or chunk of data. This could
-            be a multiple or factor of the scan size for some instruments and/or
-            could be based on the on-disk chunk size. This value ensures that
-            chunks are aligned to the underlying data structure for best
-            performance.
-        low_res_multiplier: Number of high (fine) resolution pixels that fit
-            in a single low (coarse) resolution pixel.
-        whole_scan_width: To create the entire width (x dimension) of the
-            array as a single chunk. This is useful in cases when future
-            operations will operate on entire instrument scans of data at
-            a time. For example, polar-orbiter scan geolocation being
-            interpolated from low resolution to high resolution.
 
     Returns:
         A tuple where each element is the chunk size for that axis/dimension.
 
     """
-    if len(input_shape) not in (2, 3):
-        # we're not sure about this shape so don't guess
-        return dask.array.core.normalize_chunks("auto", shape=input_shape, dtype=input_dtype)
-
-    pre_non_yx_chunks, yx_shape, post_non_yx_chunks = _split_non_yx_chunks(input_shape)
-    high_res_shape = tuple(dim_size * low_res_multiplier for dim_size in yx_shape)
-    col_chunks = -1 if whole_scan_width else "auto"
+    if any(len(input_shape) != len(param) for param in (low_res_multipliers, chunks, previous_chunks)):
+        raise ValueError("Input shape, low res multipliers, chunks, and previous chunks must all be the same size")
+    high_res_shape = tuple(dim_size * lr_mult for dim_size, lr_mult in zip(input_shape, low_res_multipliers))
     chunks_for_high_res = dask.array.core.normalize_chunks(
-        ("auto", col_chunks),
+        chunks,
         shape=high_res_shape,
-        dtype=input_dtype
+        dtype=input_dtype,
     )
-    var_row_chunks = _low_res_chunks_from_high_res(
-        chunks_for_high_res[0][0],
-        num_high_res_elements,
-        low_res_multiplier
-    )
-    var_col_chunks = -1
-    if not whole_scan_width:
-        var_col_chunks = _low_res_chunks_from_high_res(
-            chunks_for_high_res[1][0],
-            num_high_res_elements,
-            low_res_multiplier
-        )
-    return pre_non_yx_chunks + (var_row_chunks, var_col_chunks) + post_non_yx_chunks
+    low_res_chunks: list[int] = []
+    for req_chunks, hr_chunks, prev_chunks, lr_mult in zip(
+            chunks,
+            chunks_for_high_res,
+            previous_chunks, low_res_multipliers
+    ):
+        if req_chunks != "auto":
+            low_res_chunks.append(req_chunks)
+            continue
+        low_res_chunks.append(_low_res_chunks_from_high_res(
+            hr_chunks[0],
+            prev_chunks,
+            lr_mult,
+        ))
+    return tuple(low_res_chunks)
 
 
 def _split_non_yx_chunks(

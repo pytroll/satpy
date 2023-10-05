@@ -32,7 +32,7 @@ from pyhdf.SD import SD
 
 from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import chunks_by_resolution
+from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -227,12 +227,13 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         scan_length_250m = 40
         var_shape = hdf_dataset.info()[2]
         res_multiplier = self._get_res_multiplier(var_shape)
-        return chunks_by_resolution(
+        num_nonyx_dims = len(var_shape) - 2
+        return normalize_low_res_chunks(
+            (1,) * num_nonyx_dims + ("auto", -1),
             var_shape,
+            (1,) * num_nonyx_dims + (scan_length_250m, -1),
+            (1,) * num_nonyx_dims + (res_multiplier, res_multiplier),
             np.float32,
-            scan_length_250m,
-            res_multiplier,
-            whole_scan_width=True
         )
 
     @staticmethod
