@@ -42,6 +42,11 @@ MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
                               'isneginf', 'isposinf']
 
 
+def merge_tuples(*t):
+    """Merge tuples and tuples of tuples into one tuple."""
+    return tuple(j for i in (t) for j in (i if isinstance(i, tuple) else (i,)))
+
+
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
 
@@ -144,12 +149,14 @@ class CompositeBase:
             dataset_keys = ['name', 'modifiers']
         for k in dataset_keys:
             if k == 'modifiers' and k in self.attrs:
-                d[k] = self.attrs[k]
+                d[k] = merge_tuples(d[k], self.attrs[k])
             elif d.get(k) is None:
                 if self.attrs.get(k) is not None:
                     d[k] = self.attrs[k]
                 elif o.get(k) is not None:
                     d[k] = o[k]
+
+        d["_satpy_id"] = d["_satpy_id"]._replace(**d)
 
     def match_data_arrays(self, data_arrays):
         """Match data arrays so that they can be used together in a composite.
