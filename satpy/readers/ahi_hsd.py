@@ -67,7 +67,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
@@ -79,6 +78,7 @@ from satpy.readers.utils import (
     np2str,
     unzip_file,
 )
+from satpy.utils import get_chunk_size_limit
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -458,7 +458,10 @@ class AHIHSDFileHandler(BaseFileHandler):
         """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
         if not self._is_valid_timeline(timeline):
-            warnings.warn("Observation timeline is fill value, not rounding observation time.")
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=3
+            )
             return observation_time
 
         if self.observation_area == 'FLDK':
@@ -505,14 +508,17 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         pdict['a_name'] = self.observation_area
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
-        pdict['p_id'] = 'geosh8'
+        pdict['p_id'] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
 
         return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
         if fp_.tell() + offset != fpos:
-            warnings.warn(f"Actual {block} header size does not match expected")
+            warnings.warn(
+                f"Actual {block} header size does not match expected",
+                stacklevel=3
+            )
         return
 
     def _read_header(self, fp_):
@@ -613,9 +619,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
+        chunks = da.core.normalize_chunks("auto",
+                                          shape=(nlines, ncols),
+                                          limit=get_chunk_size_limit(),
+                                          dtype='f8',
+                                          previous_chunks=(550, 550))
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
-                             chunks=CHUNK_SIZE)
+                             chunks=chunks)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data."""

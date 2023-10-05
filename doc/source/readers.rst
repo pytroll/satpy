@@ -363,6 +363,12 @@ satpy cf nc readers
 hdf5 based readers
 ------------------
 
+.. automodule:: satpy.readers.agri_l1
+    :noindex:
+
+.. automodule:: satpy.readers.ghi_l1
+    :noindex:
+
 Arctica-M N1 HDF5 format reader
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

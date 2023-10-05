@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -30,7 +28,20 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.utils import angle2xyz, get_satpos, lonlat2xyz, proj_units_to_meters, xyz2angle, xyz2lonlat
+from satpy.utils import (
+    angle2xyz,
+    get_legacy_chunk_size,
+    get_satpos,
+    import_error_helper,
+    lonlat2xyz,
+    proj_units_to_meters,
+    xyz2angle,
+    xyz2lonlat,
+)
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
 
 
 class TestUtils(unittest.TestCase):
@@ -291,8 +302,10 @@ class TestGetSatPos:
                 (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
-                    (lon, lat, alt),
-                    (119.39533705010592, -1.1491628298731498, 35803.19986408156))
+                (lon, lat, alt),
+                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                rtol=1e-4,
+            )
 
 
 def test_make_fake_scene():
@@ -358,7 +371,11 @@ def test_debug_on(caplog):
     def depwarn():
         logger = logging.getLogger("satpy.silly")
         logger.debug("But now it's just got SILLY.")
-        warnings.warn("Stop that! It's SILLY.", DeprecationWarning)
+        warnings.warn(
+            "Stop that! It's SILLY.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
@@ -452,30 +469,32 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
         assert data_arr.chunks == orig_arr.chunks
 
 
-def test_chunk_pixel_size():
-    """Check the chunk pixel size computations."""
-    from unittest.mock import patch
-
-    from satpy.utils import get_chunk_pixel_size
-    with patch("satpy.utils.CHUNK_SIZE", None):
-        assert get_chunk_pixel_size() is None
-    with patch("satpy.utils.CHUNK_SIZE", 10):
-        assert get_chunk_pixel_size() == 100
-    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
-        assert get_chunk_pixel_size() == 200
-
-
 def test_chunk_size_limit():
     """Check the chunk size limit computations."""
     from unittest.mock import patch
 
     from satpy.utils import get_chunk_size_limit
-    with patch("satpy.utils.CHUNK_SIZE", None):
-        assert get_chunk_size_limit(np.uint8) is None
-    with patch("satpy.utils.CHUNK_SIZE", 10):
-        assert get_chunk_size_limit(np.float64) == 800
-    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
-        assert get_chunk_size_limit(np.int32) == 800
+    with patch("satpy.utils._get_pytroll_chunk_size") as ptc:
+        ptc.return_value = 10
+        assert get_chunk_size_limit(np.int32) == 400
+        assert get_chunk_size_limit() == 800
+
+
+def test_chunk_size_limit_from_dask_config():
+    """Check the chunk size limit computations."""
+    import dask.config
+
+    from satpy.utils import get_chunk_size_limit
+    with dask.config.set({"array.chunk-size": "1KiB"}):
+        assert get_chunk_size_limit(np.uint8) == 1024
+
+
+def test_get_legacy_chunk_size():
+    """Test getting the legacy chunk size."""
+    import dask.config
+    assert get_legacy_chunk_size() == 4096
+    with dask.config.set({"array.chunk-size": "32MiB"}):
+        assert get_legacy_chunk_size() == 2048
 
 
 def test_convert_remote_files_to_fsspec_local_files():
@@ -486,6 +505,20 @@ def test_convert_remote_files_to_fsspec_local_files():
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "file:///tmp/file2.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+    assert res == filenames
+
+
+def test_convert_remote_files_to_fsspec_local_pathlib_files():
+    """Test convertion of remote files to fsspec objects.
+
+    Case using pathlib objects as filenames.
+    """
+    import pathlib
+
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = [pathlib.Path("/tmp/file1.nc"), pathlib.Path("c:\tmp\file2.nc")]
     res = convert_remote_files_to_fsspec(filenames)
     assert res == filenames
 
@@ -567,3 +600,43 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
     _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
 
     open_files.assert_called_once_with(filenames, **storage_options)
+
+
+def test_import_error_helper():
+    """Test the import error helper."""
+    module = "some_crazy_name_for_unknow_dependency_module"
+    with pytest.raises(ImportError) as err:
+        with import_error_helper(module):
+            import unknow_dependency_module  # noqa
+    assert module in str(err)
+
+
+def test_find_in_ancillary():
+    """Test finding a dataset in ancillary variables."""
+    from satpy.utils import find_in_ancillary
+    index_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "index-finger"})
+    ring_finger = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "ring-finger"})
+
+    hand = xr.DataArray(
+            data=np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"name": "hand",
+                   "ancillary_variables": [index_finger, index_finger, ring_finger]})
+
+    assert find_in_ancillary(hand, "ring-finger") is ring_finger
+    with pytest.raises(
+            ValueError,
+            match=("Expected exactly one dataset named index-finger in "
+                   "ancillary variables for dataset 'hand', found 2")):
+        find_in_ancillary(hand, "index-finger")
+    with pytest.raises(
+            ValueError,
+            match=("Could not find dataset named thumb in "
+                   "ancillary variables for dataset 'hand'")):
+        find_in_ancillary(hand, "thumb")

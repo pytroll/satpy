@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -29,23 +27,18 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
 from trollimage.xrimage import XRImage
 from trollsift import parser
+from yaml import UnsafeLoader
 
-from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-from satpy.utils import recursive_dict_update
+from satpy.utils import get_legacy_chunk_size, recursive_dict_update
 
 LOG = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def read_writer_config(config_files, loader=UnsafeLoader):
@@ -232,8 +225,12 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
 
     old_args = [color, width, resolution, grid, level_coast, level_borders]
     if any(arg is not None for arg in old_args):
-        warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
-                      " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
+        warnings.warn(
+            "'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
+            " arguments will be deprecated soon. Please use 'overlays' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
         res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
@@ -408,7 +405,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
         enhance (bool or Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
-            format being saved to. By default this will default to using
+            format being saved to. By default, this will default to using
             the enhancement configuration files found using the default
             :class:`~satpy.writers.Enhancer` class. This can be set to
             `False` so that no enhancments are performed. This can also
@@ -425,13 +422,6 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
             it is up to the caller to "finalize" the image before using it
             except if calling ``img.show()`` or providing the image to
             a writer as these will finalize the image.
-
-    .. versionchanged:: 0.10
-
-        Deprecated `enhancement_config_file` and 'enhancer' in favor of
-        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
-        instead.
-
     """
     if enhance is False:
         # no enhancement
@@ -521,6 +511,69 @@ def split_results(results):
     return sources, targets, delayeds
 
 
+def group_results_by_output_file(sources, targets):
+    """Group results by output file.
+
+    For writers that return sources and targets for ``compute=False``, split
+    the results by output file.
+
+    When not only the data but also GeoTIFF tags are dask arrays, then
+    ``save_datasets(..., compute=False)``` returns a tuple of flat lists,
+    where the second list consists of a mixture of ``RIOTag`` and ``RIODataset``
+    objects (from trollimage).  In some cases, we may want to get a seperate
+    delayed object for each file; for example, if we want to add a wrapper to do
+    something with the file as soon as it's finished.  This function unflattens
+    the flat lists into a list of (src, target) tuples.
+
+    For example, to close files as soon as computation is completed::
+
+        >>> @dask.delayed
+        >>> def closer(obj, targs):
+        ...     for targ in targs:
+        ...         targ.close()
+        ...     return obj
+        >>> (srcs, targs) = sc.save_datasets(writer="ninjogeotiff", compute=False, **ninjo_tags)
+        >>> for (src, targ) in group_results_by_output_file(srcs, targs):
+        ...     delayed_store = da.store(src, targ, compute=False)
+        ...     wrapped_store = closer(delayed_store, targ)
+        ...     wrapped.append(wrapped_store)
+        >>> compute_writer_results(wrapped)
+
+    In the wrapper you can do other useful tasks, such as writing a log message
+    or moving files to a different directory.
+
+    .. warning::
+
+        Adding a callback may impact runtime and RAM.  The pattern or cause is
+        unclear.  Tests with FCI data show that for resampling with high RAM
+        use (from around 15 GB), runtime increases when a callback is added.
+        Tests with ABI or low RAM consumption rather show a decrease in runtime.
+        More information, see `these GitHub comments
+        <https://github.com/pytroll/satpy/pull/2281#issuecomment-1324910253>`_
+        Users who find out more are encouraged to contact the Satpy developers
+        with clues.
+
+    Args:
+        sources: List of sources (typically dask.array) as returned by
+            :meth:`Scene.save_datasets`.
+        targets: List of targets (should be ``RIODataset`` or ``RIOTag``) as
+            returned by :meth:`Scene.save_datasets`.
+
+    Returns:
+        List of ``Tuple(List[sources], List[targets])`` with a length equal to
+        the number of output files planned to be written by
+        :meth:`Scene.save_datasets`.
+    """
+    ofs = {}
+    for (src, targ) in zip(sources, targets):
+        fn = targ.rfile.path
+        if fn not in ofs:
+            ofs[fn] = ([], [])
+        ofs[fn][0].append(src)
+        ofs[fn][1].append(targ)
+    return list(ofs.values())
+
+
 def compute_writer_results(results):
     """Compute all the given dask graphs `results` so that the files are saved.
 
@@ -582,12 +635,19 @@ class Writer(Plugin, DataDownloadMixin):
         self.info = self.config.get('writer', {})
 
         if 'file_pattern' in self.info:
-            warnings.warn("Writer YAML config is using 'file_pattern' which "
-                          "has been deprecated, use 'filename' instead.")
+            warnings.warn(
+                "Writer YAML config is using 'file_pattern' which "
+                "has been deprecated, use 'filename' instead.",
+                stacklevel=2
+            )
             self.info['filename'] = self.info.pop('file_pattern')
 
         if 'file_pattern' in kwargs:
-            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            warnings.warn(
+                "'file_pattern' has been deprecated, use 'filename' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             filename = kwargs.pop('file_pattern')
 
         # Use options from the config file if they weren't passed as arguments
@@ -654,7 +714,7 @@ class Writer(Plugin, DataDownloadMixin):
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
             LOG.info("Creating output directory: {}".format(dirname))
-            os.makedirs(dirname)
+            os.makedirs(dirname, exist_ok=True)
         return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):
@@ -667,7 +727,7 @@ class Writer(Plugin, DataDownloadMixin):
         Args:
             datasets (iterable): Iterable of `xarray.DataArray` objects to
                                  save using this writer.
-            compute (bool): If `True` (default), compute all of the saves to
+            compute (bool): If `True` (default), compute all the saves to
                             disk. If `False` then the return value is either
                             a :doc:`dask:delayed` object or two lists to
                             be passed to a :func:`dask.array.store` call.
@@ -677,7 +737,7 @@ class Writer(Plugin, DataDownloadMixin):
 
         Returns:
             Value returned depends on `compute` keyword argument. If
-            `compute` is `True` the value is the result of a either a
+            `compute` is `True` the value is the result of either a
             :func:`dask.array.store` operation or a :doc:`dask:delayed`
             compute, typically this is `None`. If `compute` is `False` then
             the result is either a :doc:`dask:delayed` object that can be
@@ -703,7 +763,7 @@ class Writer(Plugin, DataDownloadMixin):
             return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, **kwargs):
+                     compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
@@ -721,6 +781,10 @@ class Writer(Plugin, DataDownloadMixin):
                             If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
+            units (str or None): If not None, will convert the dataset to
+                                    the given unit using pint-xarray before
+                                    saving. Default is not to do any
+                                    conversion.
             **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
@@ -730,7 +794,7 @@ class Writer(Plugin, DataDownloadMixin):
             If `compute` is `False` then the returned value is either a
             :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to :func:`dask.array.store`. If target is provided the the
+            passed to :func:`dask.array.store`. If target is provided the
             caller is responsible for calling `target.close()` if the target
             has this method.
 
@@ -765,7 +829,7 @@ class ImageWriter(Writer):
                 Base destination directories for all created files.
             enhance (bool or Enhancer): Whether to automatically enhance
                 data to be more visually useful and to fit inside the file
-                format being saved to. By default this will default to using
+                format being saved to. By default, this will default to using
                 the enhancement configuration files found using the default
                 :class:`~satpy.writers.Enhancer` class. This can be set to
                 `False` so that no enhancments are performed. This can also
@@ -782,7 +846,7 @@ class ImageWriter(Writer):
             instead.
 
         """
-        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
+        super().__init__(name, filename, base_dir, **kwargs)
         if enhance is False:
             # No enhancement
             self.enhancer = False
@@ -805,7 +869,7 @@ class ImageWriter(Writer):
         return init_kwargs, kwargs
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     overlay=None, decorate=None, compute=True, **kwargs):
+                     overlay=None, decorate=None, compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
         This method creates an enhanced image using :func:`get_enhanced_image`.
@@ -813,6 +877,9 @@ class ImageWriter(Writer):
         functions for more details on the arguments passed to this method.
 
         """
+        if units is not None:
+            import pint_xarray  # noqa
+            dataset = dataset.pint.quantify().pint.to(units).pint.dequantify()
         img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
@@ -908,7 +975,7 @@ class DecisionTree(object):
             decision_dicts (dict): Dictionary of dictionaries. Each
                 sub-dictionary contains key/value pairs that can be
                 matched from the `find_match` method. Sub-dictionaries
-                can include additional keys outside of the ``match_keys``
+                can include additional keys outside the ``match_keys``
                 provided to act as the "result" of a query. The keys of
                 the root dict are arbitrary.
             match_keys (list): Keys of the provided dictionary to use for
@@ -1028,9 +1095,10 @@ class DecisionTree(object):
         """
         try:
             match = self._find_match(self._tree, self._match_keys, query_dict)
-        except (KeyError, IndexError, ValueError):
+        except (KeyError, IndexError, ValueError, TypeError):
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching decision section")
+            match = None
 
         if match is None:
             # only possible if no default section was provided
@@ -1072,6 +1140,7 @@ class EnhancementDecisionTree(DecisionTree):
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
+                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
                     conf = recursive_dict_update(conf, enhancement_section)
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
@@ -1155,11 +1224,11 @@ class Enhancer(object):
         """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
-        LOG.debug("Enhancement configuration options: %s" %
-                  (str(enh_kwargs['operations']), ))
+        backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
+        data_id = info.get("_satpy_id", backup_id)
+        LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
         for operation in enh_kwargs['operations']:
             fun = operation['method']
             args = operation.get('args', [])
             kwargs = operation.get('kwargs', {})
             fun(img, *args, **kwargs)
-        # img.enhance(**enh_kwargs)

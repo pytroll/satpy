@@ -1,0 +1,9 @@
+---
+sensor_name: visir/li
+
+composites:
+  flash_area:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    standard_name: flash_area
+    prerequisites:
+    - accumulated_flash_area

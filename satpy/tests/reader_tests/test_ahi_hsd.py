@@ -200,6 +200,80 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                               5500000.035542117, -2200000.0142168473))
 
 
+@pytest.fixture
+def hsd_file_jp01(tmp_path):
+    """Create a jp01 hsd file."""
+    from satpy.readers.ahi_hsd import (  # _IRCAL_INFO_TYPE,
+        _BASIC_INFO_TYPE,
+        _CAL_INFO_TYPE,
+        _DATA_INFO_TYPE,
+        _ERROR_INFO_TYPE,
+        _ERROR_LINE_INFO_TYPE,
+        _INTER_CALIBRATION_INFO_TYPE,
+        _NAV_INFO_TYPE,
+        _NAVIGATION_CORRECTION_INFO_TYPE,
+        _NAVIGATION_CORRECTION_SUBINFO_TYPE,
+        _OBSERVATION_LINE_TIME_INFO_TYPE,
+        _OBSERVATION_TIME_INFO_TYPE,
+        _PROJ_INFO_TYPE,
+        _SEGMENT_INFO_TYPE,
+        _SPARE_TYPE,
+        _VISCAL_INFO_TYPE,
+    )
+    nrows = 11000
+    ncols = 11000
+    filename = tmp_path / "somedata.DAT"
+    error_lines = 0
+    number_nav_corrections = 0
+    number_observation_times = 6
+    dat_type = np.dtype([("block1", _BASIC_INFO_TYPE),
+                         ("block2", _DATA_INFO_TYPE),
+                         ("block3", _PROJ_INFO_TYPE),
+                         ("block4", _NAV_INFO_TYPE),
+                         ("block5", _CAL_INFO_TYPE),
+                         ("calibration", _VISCAL_INFO_TYPE),
+                         ("block6", _INTER_CALIBRATION_INFO_TYPE),
+                         ("block7", _SEGMENT_INFO_TYPE),
+                         ("block8", _NAVIGATION_CORRECTION_INFO_TYPE),
+                         ("navigation_corrections", _NAVIGATION_CORRECTION_SUBINFO_TYPE,
+                          (number_nav_corrections,)),
+                         ("block9", _OBSERVATION_TIME_INFO_TYPE),
+                         ("observation_time_information", _OBSERVATION_LINE_TIME_INFO_TYPE,
+                          (number_observation_times,)),
+                         ("block10", _ERROR_INFO_TYPE),
+                         ("error_info", _ERROR_LINE_INFO_TYPE, (error_lines,)),
+                         ("block11", _SPARE_TYPE),
+                         ("image", "<u2", (nrows, ncols))])
+    dat = np.zeros(1, dat_type)
+    dat["block1"]["blocklength"] = _BASIC_INFO_TYPE.itemsize
+    dat["block1"]["observation_area"] = "JP01"
+    dat["block1"]["satellite"] = b'Himawari-8'
+    dat["block2"]["blocklength"] = _DATA_INFO_TYPE.itemsize
+    dat["block2"]["number_of_lines"] = nrows
+    dat["block2"]["number_of_columns"] = ncols
+    dat["block3"]["blocklength"] = _PROJ_INFO_TYPE.itemsize
+    dat["block3"]["sub_lon"] = 140.7
+    dat["block3"]["CFAC"] = 81865099
+    dat["block3"]["LFAC"] = 81865099
+    dat["block3"]["COFF"] = 5500.5
+    dat["block3"]["LOFF"] = 5500.5
+    dat["block3"]["distance_from_earth_center"] = 42164.
+    dat["block3"]["earth_equatorial_radius"] = 6378.137
+    dat["block3"]["earth_polar_radius"] = 6356.7523
+    dat["block4"]["blocklength"] = _NAV_INFO_TYPE.itemsize
+    dat["block5"]["blocklength"] = _CAL_INFO_TYPE.itemsize + _VISCAL_INFO_TYPE.itemsize
+    dat["block6"]["blocklength"] = _INTER_CALIBRATION_INFO_TYPE.itemsize
+    dat["block7"]["blocklength"] = _SEGMENT_INFO_TYPE.itemsize
+    dat["block8"]["blocklength"] = (_NAVIGATION_CORRECTION_INFO_TYPE.itemsize +
+                                    number_nav_corrections * _NAVIGATION_CORRECTION_SUBINFO_TYPE.itemsize)
+    dat["block9"]["blocklength"] = (_OBSERVATION_TIME_INFO_TYPE.itemsize +
+                                    number_observation_times * _OBSERVATION_LINE_TIME_INFO_TYPE.itemsize)
+    dat["block10"]["blocklength"] = _ERROR_INFO_TYPE.itemsize + error_lines * _ERROR_LINE_INFO_TYPE.itemsize
+    dat["block11"]["blocklength"] = _SPARE_TYPE.itemsize
+    dat.tofile(filename)
+    return filename
+
+
 class TestAHIHSDFileHandler:
     """Tests for the AHI HSD file handler."""
 
@@ -286,6 +360,17 @@ class TestAHIHSDFileHandler:
                 fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
+    def test_read_band_from_actual_file(self, hsd_file_jp01):
+        """Test read_bands on real data."""
+        filename_info = {"segment": 1, "total_segments": 1}
+        filetype_info = {"file_type": "blahB01"}
+        fh = AHIHSDFileHandler(hsd_file_jp01, filename_info, filetype_info)
+        key = {"name": "B01", "calibration": "counts"}
+        import dask
+        with dask.config.set({"array.chunk-size": "16MiB"}):
+            data = fh.read_band(key, {"units": "%", "standard_name": "toa_bidirectional_reflectance", "wavelength": 2})
+            assert data.chunks == ((1100,) * 10, (1100,) * 10)
+
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -310,6 +395,9 @@ class TestAHIHSDFileHandler:
                 mask = im.to_masked_array().mask
                 ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
                 np.testing.assert_equal(mask, ref_mask)
+
+                # Make sure proj_id is correct
+                assert fh.area.proj_id == f'geosh{FAKE_BASIC_INFO["satellite"][-1]}'
 
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""

@@ -16,8 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the VIIRS instrument."""
+from __future__ import annotations
 
 import logging
+import math
+from datetime import datetime
 
 import dask
 import dask.array as da
@@ -55,53 +58,6 @@ class HistogramDNB(CompositeBase):
             "mixed_degree_step")) if "mixed_degree_step" in kwargs else None
         super(HistogramDNB, self).__init__(*args, **kwargs)
 
-    def _run_dnb_normalization(self, dnb_data, sza_data):
-        """Scale the DNB data using a histogram equalization method.
-
-        Args:
-            dnb_data (ndarray): Day/Night Band data array
-            sza_data (ndarray): Solar Zenith Angle data array
-
-        """
-        # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
-        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
-
-        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
-        output_dataset = dnb_data.where(good_mask)
-        # we only need the numpy array
-        output_dataset = output_dataset.values.copy()
-        dnb_data = dnb_data.values
-        sza_data = sza_data.values
-
-        day_mask, mixed_mask, night_mask = make_day_night_masks(
-            sza_data,
-            good_mask.values,
-            self.high_angle_cutoff,
-            self.low_angle_cutoff,
-            stepsDegrees=self.mixed_degree_step)
-
-        did_equalize = False
-        if day_mask.any():
-            LOG.debug("Histogram equalizing DNB day data...")
-            histogram_equalization(dnb_data, day_mask, out=output_dataset)
-            did_equalize = True
-        if mixed_mask:
-            for mask in mixed_mask:
-                if mask.any():
-                    LOG.debug("Histogram equalizing DNB mixed data...")
-                    histogram_equalization(dnb_data, mask, out=output_dataset)
-                    did_equalize = True
-        if night_mask.any():
-            LOG.debug("Histogram equalizing DNB night data...")
-            histogram_equalization(dnb_data, night_mask, out=output_dataset)
-            did_equalize = True
-
-        if not did_equalize:
-            raise RuntimeError("No valid data found to histogram equalize")
-
-        return output_dataset
-
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
 
@@ -124,6 +80,42 @@ class HistogramDNB(CompositeBase):
         info["mode"] = "L"
         output_dataset.attrs = info
         return output_dataset
+
+    def _run_dnb_normalization(self, dnb_data, sza_data):
+        """Scale the DNB data using a histogram equalization method.
+
+        Args:
+            dnb_data (ndarray): Day/Night Band data array
+            sza_data (ndarray): Solar Zenith Angle data array
+
+        """
+        # convert dask arrays to DataArray objects
+        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
+        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+
+        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
+        output_dataset = dnb_data.where(good_mask)
+        # we only need the numpy array
+        output_dataset = output_dataset.values.copy()
+        dnb_data = dnb_data.values
+        sza_data = sza_data.values
+        self._normalize_dnb_for_mask(dnb_data, sza_data, good_mask, output_dataset)
+        return output_dataset
+
+    def _normalize_dnb_for_mask(self, dnb_data, sza_data, good_mask, output_dataset):
+        day_mask, mixed_mask, night_mask = make_day_night_masks(
+            sza_data,
+            good_mask.values,
+            self.high_angle_cutoff,
+            self.low_angle_cutoff,
+            stepsDegrees=self.mixed_degree_step)
+        self._normalize_dnb_with_day_night_masks(dnb_data, day_mask, mixed_mask, night_mask, output_dataset)
+
+    def _normalize_dnb_with_day_night_masks(self, dnb_data, day_mask, mixed_mask, night_mask, output_dataset):
+        histogram_equalization(dnb_data, day_mask, out=output_dataset)
+        for mask in mixed_mask:
+            histogram_equalization(dnb_data, mask, out=output_dataset)
+        histogram_equalization(dnb_data, night_mask, out=output_dataset)
 
 
 class AdaptiveDNB(HistogramDNB):
@@ -159,26 +151,7 @@ class AdaptiveDNB(HistogramDNB):
 
         super(AdaptiveDNB, self).__init__(*args, **kwargs)
 
-    def _run_dnb_normalization(self, dnb_data, sza_data):
-        """Scale the DNB data using a adaptive histogram equalization method.
-
-        Args:
-            dnb_data (ndarray): Day/Night Band data array
-            sza_data (ndarray): Solar Zenith Angle data array
-
-        """
-        # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
-        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
-
-        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
-        # good_mask = ~(dnb_data.mask | sza_data.mask)
-        output_dataset = dnb_data.where(good_mask)
-        # we only need the numpy array
-        output_dataset = output_dataset.values.copy()
-        dnb_data = dnb_data.values
-        sza_data = sza_data.values
-
+    def _normalize_dnb_for_mask(self, dnb_data, sza_data, good_mask, output_dataset):
         day_mask, mixed_mask, night_mask = make_day_night_masks(
             sza_data,
             good_mask.values,
@@ -186,65 +159,52 @@ class AdaptiveDNB(HistogramDNB):
             self.low_angle_cutoff,
             stepsDegrees=self.mixed_degree_step)
 
-        did_equalize = False
         has_multi_times = len(mixed_mask) > 0
-        if day_mask.any():
-            did_equalize = True
-            if self.adaptive_day == "always" or (
-                    has_multi_times and self.adaptive_day == "multiple"):
-                LOG.debug("Adaptive histogram equalizing DNB day data...")
+        if self.adaptive_day == "always" or (
+                has_multi_times and self.adaptive_day == "multiple"):
+            LOG.debug("Adaptive histogram equalizing DNB day data...")
+            local_histogram_equalization(
+                dnb_data,
+                day_mask,
+                valid_data_mask=good_mask.values,
+                local_radius_px=self.day_radius_pixels,
+                out=output_dataset)
+        else:
+            LOG.debug("Histogram equalizing DNB day data...")
+            histogram_equalization(dnb_data,
+                                   day_mask,
+                                   out=output_dataset)
+        for mask in mixed_mask:
+            if self.adaptive_mixed == "always" or (
+                    has_multi_times and
+                    self.adaptive_mixed == "multiple"):
+                LOG.debug(
+                    "Adaptive histogram equalizing DNB mixed data...")
                 local_histogram_equalization(
                     dnb_data,
-                    day_mask,
+                    mask,
                     valid_data_mask=good_mask.values,
-                    local_radius_px=self.day_radius_pixels,
+                    local_radius_px=self.mixed_radius_pixels,
                     out=output_dataset)
             else:
-                LOG.debug("Histogram equalizing DNB day data...")
+                LOG.debug("Histogram equalizing DNB mixed data...")
                 histogram_equalization(dnb_data,
                                        day_mask,
                                        out=output_dataset)
-        if mixed_mask:
-            for mask in mixed_mask:
-                if mask.any():
-                    did_equalize = True
-                    if self.adaptive_mixed == "always" or (
-                            has_multi_times and
-                            self.adaptive_mixed == "multiple"):
-                        LOG.debug(
-                            "Adaptive histogram equalizing DNB mixed data...")
-                        local_histogram_equalization(
-                            dnb_data,
-                            mask,
-                            valid_data_mask=good_mask.values,
-                            local_radius_px=self.mixed_radius_pixels,
-                            out=output_dataset)
-                    else:
-                        LOG.debug("Histogram equalizing DNB mixed data...")
-                        histogram_equalization(dnb_data,
-                                               day_mask,
-                                               out=output_dataset)
-        if night_mask.any():
-            did_equalize = True
-            if self.adaptive_night == "always" or (
-                    has_multi_times and self.adaptive_night == "multiple"):
-                LOG.debug("Adaptive histogram equalizing DNB night data...")
-                local_histogram_equalization(
-                    dnb_data,
-                    night_mask,
-                    valid_data_mask=good_mask.values,
-                    local_radius_px=self.night_radius_pixels,
-                    out=output_dataset)
-            else:
-                LOG.debug("Histogram equalizing DNB night data...")
-                histogram_equalization(dnb_data,
-                                       night_mask,
-                                       out=output_dataset)
-
-        if not did_equalize:
-            raise RuntimeError("No valid data found to histogram equalize")
-
-        return output_dataset
+        if self.adaptive_night == "always" or (
+                has_multi_times and self.adaptive_night == "multiple"):
+            LOG.debug("Adaptive histogram equalizing DNB night data...")
+            local_histogram_equalization(
+                dnb_data,
+                night_mask,
+                valid_data_mask=good_mask.values,
+                local_radius_px=self.night_radius_pixels,
+                out=output_dataset)
+        else:
+            LOG.debug("Histogram equalizing DNB night data...")
+            histogram_equalization(dnb_data,
+                                   night_mask,
+                                   out=output_dataset)
 
 
 class ERFDNB(CompositeBase):
@@ -396,18 +356,6 @@ def histogram_equalization(
         number_of_bins=1000,
         std_mult_cutoff=4.0,
         do_zerotoone_normalization=True,
-        valid_data_mask=None,
-
-        # these are theoretically hooked up, but not useful with only one
-        # equalization
-        clip_limit=None,
-        slope_limit=None,
-
-        # these parameters don't do anything, they're just here to mirror those
-        # in the other call
-        do_log_scale=False,
-        log_offset=None,
-        local_radius_px=None,
         out=None):
     """Perform a histogram equalization on the data.
 
@@ -422,22 +370,24 @@ def histogram_equalization(
     Note: the data will be changed in place.
     """
     out = out if out is not None else data.copy()
-    mask_to_use = mask_to_equalize if valid_data_mask is None else valid_data_mask
 
     LOG.debug("determining DNB data range for histogram equalization")
-    avg = np.mean(data[mask_to_use])
-    std = np.std(data[mask_to_use])
+    sub_arr = data[mask_to_equalize]
+    if sub_arr.size == 0:
+        # no good data
+        return out
+
+    avg = np.mean(sub_arr)
+    std = np.std(sub_arr)
     # limit our range to +/- std_mult_cutoff*std; e.g. the default
     # std_mult_cutoff is 4.0 so about 99.8% of the data
     concervative_mask = (data < (avg + std * std_mult_cutoff)) & (
-        data > (avg - std * std_mult_cutoff)) & mask_to_use
+        data > (avg - std * std_mult_cutoff)) & mask_to_equalize
 
     LOG.debug("running histogram equalization")
     cumulative_dist_function, temp_bins = _histogram_equalization_helper(
         data[concervative_mask],
-        number_of_bins,
-        clip_limit=clip_limit,
-        slope_limit=slope_limit)
+        number_of_bins)
 
     # linearly interpolate using the distribution function to get the new
     # values
@@ -455,9 +405,9 @@ def histogram_equalization(
 def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, number_of_bins=1000,
                                  std_mult_cutoff=3.0,
                                  do_zerotoone_normalization=True,
-                                 local_radius_px=300,
-                                 clip_limit=60.0,  # 20.0,
-                                 slope_limit=3.0,  # 0.5,
+                                 local_radius_px: int = 300,
+                                 clip_limit=60.0,
+                                 slope_limit=3.0,
                                  do_log_scale=True,
                                  # can't take the log of zero, so the offset
                                  # may be needed; pass 0.0 if your data doesn't
@@ -487,27 +437,23 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     # calculate some useful numbers for our tile math
     total_rows = data.shape[0]
     total_cols = data.shape[1]
-    tile_size = int((local_radius_px * 2.0) + 1.0)
-    row_tiles = int(total_rows / tile_size) if (
-        (total_rows % tile_size) == 0) else int(total_rows / tile_size) + 1
-    col_tiles = int(total_cols / tile_size) if (
-        (total_cols % tile_size) == 0) else int(total_cols / tile_size) + 1
+    tile_size = int(local_radius_px * 2 + 1)
+    row_tiles = math.ceil(total_rows / tile_size)
+    col_tiles = math.ceil(total_cols / tile_size)
 
-    # an array of our distribution functions for equalization
-    all_cumulative_dist_functions = [[] for _ in range(row_tiles)]
-    # an array of our bin information for equalization
-    all_bin_information = [[] for _ in range(row_tiles)]
-
-    # loop through our tiles and create the histogram equalizations for each one
-    for num_row_tile in range(row_tiles):
-        for num_col_tile in range(col_tiles):
-            tile_dist_func, tile_bin_info = _histogram_equalize_one_tile(
-                data, valid_data_mask, std_mult_cutoff, do_log_scale, log_offset,
-                clip_limit, slope_limit, number_of_bins, num_row_tile, num_col_tile,
-                tile_size
-            )
-            all_cumulative_dist_functions[num_row_tile].append(tile_dist_func)
-            all_bin_information[num_row_tile].append(tile_bin_info)
+    all_cumulative_dist_functions, all_bin_information = _compute_tile_dist_and_bin_info(
+        data,
+        valid_data_mask,
+        std_mult_cutoff,
+        do_log_scale,
+        log_offset,
+        clip_limit,
+        slope_limit,
+        number_of_bins,
+        row_tiles,
+        col_tiles,
+        tile_size,
+    )
 
     # get the tile weight array so we can use it to interpolate our data
     tile_weights = _calculate_weights(tile_size)
@@ -519,7 +465,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
             _interpolate_local_equalized_tiles(
                 data, out, mask_to_equalize, valid_data_mask, do_log_scale, log_offset,
                 tile_weights, all_bin_information, all_cumulative_dist_functions,
-                num_row_tile, num_col_tile, row_tiles, col_tiles, tile_size,
+                num_row_tile, num_col_tile, tile_size,
             )
 
     # if we were asked to, normalize our data to be between zero and one,
@@ -528,6 +474,42 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
         _linear_normalization_from_0to1(out, mask_to_equalize, number_of_bins)
 
     return out
+
+
+def _compute_tile_dist_and_bin_info(
+        data: np.ndarray,
+        valid_data_mask: np.ndarray,
+        std_mult_cutoff: float,
+        do_log_scale: bool,
+        log_offset: float,
+        clip_limit: float,
+        slope_limit: float,
+        number_of_bins: int,
+        row_tiles: int,
+        col_tiles: int,
+        tile_size: int,
+):
+    # an array of our distribution functions for equalization
+    all_cumulative_dist_functions = []
+    # an array of our bin information for equalization
+    all_bin_information = []
+
+    # loop through our tiles and create the histogram equalizations for each one
+    for num_row_tile in range(row_tiles):
+        row_dist_functions = []
+        row_bin_info = []
+        for num_col_tile in range(col_tiles):
+            tile_dist_func, tile_bin_info = _histogram_equalize_one_tile(
+                data, valid_data_mask, std_mult_cutoff, do_log_scale, log_offset,
+                clip_limit, slope_limit, number_of_bins, num_row_tile, num_col_tile,
+                tile_size
+            )
+            row_dist_functions.append(tile_dist_func)
+            row_bin_info.append(tile_bin_info)
+        all_cumulative_dist_functions.append(row_dist_functions)
+        all_bin_information.append(row_bin_info)
+
+    return all_cumulative_dist_functions, all_bin_information
 
 
 def _histogram_equalize_one_tile(
@@ -546,7 +528,7 @@ def _histogram_equalize_one_tile(
     mask_valid_data_in_tile = valid_data_mask[min_row:max_row, min_col:max_col]
 
     # if we have any valid data in this tile, calculate a histogram equalization for this tile
-    # (note: even if this tile does no fall in the mask_to_equalize, it's histogram may be used by other tiles)
+    # (note: even if this tile does not fall in the mask_to_equalize, it's histogram may be used by other tiles)
     if not mask_valid_data_in_tile.any():
         return None, None
 
@@ -589,9 +571,8 @@ def _histogram_equalize_one_tile(
 def _interpolate_local_equalized_tiles(
         data, out, mask_to_equalize, valid_data_mask, do_log_scale, log_offset,
         tile_weights, all_bin_information, all_cumulative_dist_functions,
-        row_idx, col_idx, row_tiles, col_tiles, tile_size):
-    # calculate the range for this tile (min is inclusive, max is
-    # exclusive)
+        row_idx, col_idx, tile_size):
+    # calculate the range for this tile (min is inclusive, max is exclusive)
     num_row_tile = row_idx
     num_col_tile = col_idx
     min_row = num_row_tile * tile_size
@@ -626,57 +607,53 @@ def _interpolate_local_equalized_tiles(
     # contributions to this tile
     for weight_row in range(3):
         for weight_col in range(3):
-            # figure out which adjacent tile we're processing (in
-            # overall tile coordinates instead of relative to our
-            # current tile)
-            calculated_row = num_row_tile - 1 + weight_row
-            calculated_col = num_col_tile - 1 + weight_col
-            tmp_tile_weights = tile_weights[
-                weight_row, weight_col][np.where(temp_mask_to_equalize)]
-
-            # if we're inside the tile array and the tile we're
-            # processing has a histogram equalization for us to
-            # use, process it
-            if ((calculated_row >= 0) and
-                    (calculated_row < row_tiles) and
-                    (calculated_col >= 0) and
-                    (calculated_col < col_tiles) and (
-                            all_bin_information[calculated_row][
-                                calculated_col] is not None) and
-                    (all_cumulative_dist_functions[calculated_row][
-                         calculated_col] is not None)):
-
-                # equalize our current tile using the histogram
-                # equalization from the tile we're processing
-                temp_equalized_data = np.interp(
-                    temp_all_valid_data, all_bin_information[calculated_row][calculated_col][:-1],
-                    all_cumulative_dist_functions[calculated_row][
-                        calculated_col])
-                temp_equalized_data = temp_equalized_data[np.where(
-                    temp_mask_to_equalize[temp_all_valid_data_mask])]
-
-                # add the contribution for the tile we're
-                # processing to our weighted sum
-                temp_sum += temp_equalized_data * tmp_tile_weights
-
-            # if the tile we're processing doesn't exist, hang onto the weight we
-            # would have used for it so we can correct that later
-            else:
+            tmp_tile_weights = tile_weights[weight_row, weight_col][np.where(temp_mask_to_equalize)]
+            cumul_func, bin_info = _get_cumul_bin_info_for_tile(
+                num_row_tile, weight_row,
+                num_col_tile, weight_col,
+                all_cumulative_dist_functions, all_bin_information,
+            )
+            if bin_info is None or cumul_func is None:
                 unused_weight -= tmp_tile_weights
+                continue
+
+            # equalize our current tile using the histogram
+            # equalization from the tile we're processing
+            temp_equalized_data = np.interp(temp_all_valid_data, bin_info[:-1], cumul_func)
+            temp_equalized_data = temp_equalized_data[np.where(
+                temp_mask_to_equalize[temp_all_valid_data_mask])]
+
+            # add the contribution for the tile we're
+            # processing to our weighted sum
+            temp_sum += temp_equalized_data * tmp_tile_weights
 
     # if we have unused weights, scale our values to correct for that
     if unused_weight.any():
         # TODO: if the mask masks everything out this will be a zero!
         temp_sum /= unused_weight + 1
 
-    # now that we've calculated the weighted sum for this tile, set
-    # it in our data array
-    out[min_row:max_row, min_col:max_col][
-        temp_mask_to_equalize] = temp_sum
-    # TEMP, test without using weights
-    # data[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = \
-    #     np.interp(temp_data_to_equalize, all_bin_information[num_row_tile][num_col_tile][:-1],
-    #               all_cumulative_dist_functions[num_row_tile][num_col_tile])
+    out[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = temp_sum
+
+
+def _get_cumul_bin_info_for_tile(
+        num_row_tile, weight_row,
+        num_col_tile, weight_col,
+        all_cumulative_dist_functions, all_bin_information):
+    # figure out which adjacent tile we're processing (in
+    # overall tile coordinates instead of relative to our
+    # current tile)
+    calculated_row = num_row_tile - 1 + weight_row
+    calculated_col = num_col_tile - 1 + weight_col
+    if calculated_row < 0 or calculated_col < 0:
+        # don't allow negative indexes (out of bounds)
+        return None, None
+
+    try:
+        bin_info = all_bin_information[calculated_row][calculated_col]
+        cumul_func = all_cumulative_dist_functions[calculated_row][calculated_col]
+        return cumul_func, bin_info  # can be None
+    except IndexError:
+        return None, None
 
 
 def _histogram_equalization_helper(valid_data, number_of_bins, clip_limit=None, slope_limit=None):
@@ -865,6 +842,20 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
+def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: datetime) -> float:
+    """Check if we have Moon phase as an input dataset and, if not, calculate it."""
+    if moon_datasets:
+        # convert to decimal instead of %
+        return da.mean(moon_datasets[0].data) * 0.01
+
+    LOG.debug("Moon illumination fraction not present. Calculating from start time.")
+    try:
+        import ephem
+    except ImportError:
+        raise ImportError("The 'ephem' library is required to calculate moon illumination fraction")
+    return ephem.Moon(start_time).moon_phase
+
+
 class NCCZinke(CompositeBase):
     """Equalized DNB composite using the Zinke algorithm [#ncc1]_.
 
@@ -879,12 +870,13 @@ class NCCZinke(CompositeBase):
 
     def __call__(self, datasets, **info):
         """Create HNCC DNB composite."""
-        if len(datasets) != 4:
-            raise ValueError("Expected 4 datasets, got %d" % (len(datasets),))
-
+        if len(datasets) < 3 or len(datasets) > 4:
+            raise ValueError("Expected either 3 or 4 datasets, got %d" % (len(datasets),))
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
+        moon_illum_fraction = _check_moon_phase(datasets[3:4], dnb_data.attrs["start_time"])
+
         # this algorithm assumes units of "W cm-2 sr-1" so if there are other
         # units we need to adjust for that
         if dnb_data.attrs.get("units", "W m-2 sr-1") == "W m-2 sr-1":
@@ -894,9 +886,6 @@ class NCCZinke(CompositeBase):
 
         mda = dnb_data.attrs.copy()
         dnb_data = dnb_data.copy() / unit_factor
-
-        # convert to decimal instead of %
-        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         phi = da.rad2deg(da.arccos(2. * moon_illum_fraction - 1))
 

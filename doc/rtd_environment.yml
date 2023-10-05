@@ -6,11 +6,13 @@ dependencies:
   - pip
   - appdirs
   - dask
+  - dask-image
   - defusedxml
   - donfig
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
   - graphviz
+  - numba
   - numpy
   - pillow
   - pooch
@@ -30,6 +32,7 @@ dependencies:
   - trollsift
   - xarray
   - zarr
+  - xarray-datatree
   - pip:
     - graphviz
     - ..  # relative path to the satpy project

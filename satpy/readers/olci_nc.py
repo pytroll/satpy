@@ -40,44 +40,47 @@ References:
 
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import angle2xyz, xyz2angle
+from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
+
+DEFAULT_MASK_ITEMS = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
 logger = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
+
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
-                  'S3B': 'Sentinel-3B'}
+                  'S3B': 'Sentinel-3B',
+                  'ENV': 'Environmental Satellite'}
 
 
-class BitFlags(object):
+class BitFlags:
     """Manipulate flags stored bitwise."""
 
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
-
-    meaning = {f: i for i, f in enumerate(flag_list)}
-
-    def __init__(self, value):
+    def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
+        flag_list = flag_list or ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+                                  'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
+                                  'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
+                                  'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
+                                  'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
+                                  'Extra_1',
+                                  'KDM_FAIL',
+                                  'Extra_2',
+                                  'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
+                                  'LOWRW', 'HIGHRW']
+        self.meaning = {f: i for i, f in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""
@@ -101,7 +104,7 @@ class NCOLCIBase(BaseFileHandler):
     cols_name = "columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the olci reader base."""
         super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
@@ -110,7 +113,6 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.open_file = None
 
     @cached_property
     def nc(self):
@@ -141,11 +143,6 @@ class NCOLCIBase(BaseFileHandler):
 
         return variable
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError, TypeError):
-            self.nc.close()
-
 
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
@@ -162,13 +159,14 @@ class NCOLCIChannelBase(NCOLCIBase):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.channel = filename_info.get('dataset_name')
+        self.reflectance_prefix = 'Oa'
+        self.reflectance_suffix = '_reflectance'
 
 
 class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, cal, engine=None):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.cal = cal.nc
@@ -209,32 +207,47 @@ class NCOLCI1B(NCOLCIChannelBase):
 class NCOLCI2(NCOLCIChannelBase):
     """File handler for OLCI l2."""
 
+    def __init__(self, filename, filename_info, filetype_info, engine=None, unlog=False, mask_items=None):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, engine)
+        self.unlog = unlog
+        self.mask_items = mask_items
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel is not None and self.channel != key['name']:
             return
         logger.debug('Reading %s.', key['name'])
-        if self.channel is not None and self.channel.startswith('Oa'):
-            dataset = self.nc[self.channel + '_reflectance']
+        if self.channel is not None and self.channel.startswith(self.reflectance_prefix):
+            dataset = self.nc[self.channel + self.reflectance_suffix]
         else:
             dataset = self.nc[info['nc_key']]
 
         if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
         elif key['name'] == 'mask':
-            dataset = self.getbitmask(dataset)
-
+            dataset = self.getbitmask(dataset, self.mask_items)
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
+        if self.unlog:
+            dataset = self.delog(dataset)
+
         return dataset
+
+    def delog(self, data_array):
+        """Remove log10 from the units and values."""
+        units = data_array.attrs["units"]
+
+        if units.startswith("lg("):
+            data_array = 10 ** data_array
+            data_array.attrs["units"] = units.split("lg(re ")[1].strip(")")
+        return data_array
 
     def getbitmask(self, wqsf, items=None):
         """Get the bitmask."""
         if items is None:
-            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+            items = DEFAULT_MASK_ITEMS
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
@@ -246,7 +259,7 @@ class NCOLCILowResData(NCOLCIBase):
     cols_name = "tie_columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
         self.l_step = self.nc.attrs['al_subsampling_factor']

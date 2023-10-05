@@ -15,25 +15,97 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI native format reader.
+r"""SEVIRI Level 1.5 native format reader.
+
+Introduction
+____________
+The ``seviri_l1b_native`` reader reads and calibrates MSG-SEVIRI L1.5 image data in binary format. The format is
+explained in the `MSG Level 1.5 Native Format File Definition`_. The files are usually named as
+follows:
+
+.. code-block:: none
+
+    MSG4-SEVI-MSG15-0100-NA-20210302124244.185000000Z-NA.nat
+
+Reader Arguments
+----------------
+Some arguments can be provided to the reader to change its behaviour. These are
+provided through the `Scene` instantiation, eg::
+
+  scn = Scene(filenames=filenames, reader="seviri_l1b_native", reader_kwargs={'fill_disk': True})
+
+To see the full list of arguments that can be provided, look into the documentation
+of :class:`NativeMSGFileHandler`.
+
+Example
+-------
+Here is an example how to read the data in satpy.
+
+NOTE: When loading the data, the orientation
+of the image can be set with ``upper_right_corner``-keyword.
+Possible options are ``NW``, ``NE``, ``SW``, ``SE``, or ``native``.
+
+.. code-block:: python
+
+    from satpy import Scene
+
+    filenames = ['MSG4-SEVI-MSG15-0100-NA-20210302124244.185000000Z-NA.nat']
+    scn = Scene(filenames=filenames, reader='seviri_l1b_native')
+    scn.load(['VIS006', 'IR_108'], upper_right_corner='NE')
+    print(scn['IR_108'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray 'reshape-969ef97d34b7b0c70ca19f53c6abcb68' (y: 3712, x: 3712)>
+    dask.array<truediv, shape=(3712, 3712), dtype=float32, chunksize=(928, 3712), chunktype=numpy.ndarray>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+        crs       object PROJCRS["unknown",BASEGEOGCRS["unknown",DATUM["unknown",...
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+    Attributes:
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
+        time_parameters:          {'nominal_start_time': datetime.datetime(2021, ...
+        units:                    K
+        wavelength:               10.8 µm (9.8-11.8 µm)
+        standard_name:            toa_brightness_temperature
+        platform_name:            Meteosat-11
+        sensor:                   seviri
+        georef_offset_corrected:  True
+        start_time:               2021-03-02 12:30:11.584603
+        end_time:                 2021-03-02 12:45:09.949762
+        reader:                   seviri_l1b_native
+        area:                     Area ID: msg_seviri_fes_3km\\nDescription: MSG S...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        modifiers:                ()
+        _satpy_id:                DataID(name='IR_108', wavelength=WavelengthRang...
+        ancillary_variables:      []
+
 
 References:
+    - `EUMETSAT Product Navigator`_
     - `MSG Level 1.5 Native Format File Definition`_
 
+.. _EUMETSAT Product Navigator:
+    https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Native Format File Definition:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
-
 """
 
 import logging
-from datetime import datetime
+import warnings
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
@@ -42,6 +114,7 @@ from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     HRV_NUM_LINES,
+    REPEAT_CYCLE_DURATION,
     SATNUM,
     VISIR_NUM_COLUMNS,
     VISIR_NUM_LINES,
@@ -56,6 +129,7 @@ from satpy.readers.seviri_base import (
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
+    round_nom_time,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
@@ -64,8 +138,11 @@ from satpy.readers.seviri_l1b_native_hdr import (
     native_trailer,
 )
 from satpy.readers.utils import reduce_mda
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger('native_msg')
+CHUNK_SIZE = get_legacy_chunk_size()
+ASCII_STARTSWITH = b'FormatName                  : NATIVE'
 
 
 class NativeMSGFileHandler(BaseFileHandler):
@@ -79,7 +156,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     By providing the `fill_disk` as True in the `reader_kwargs`, the channel is loaded
     as full disk, padded with no-data where necessary. This is especially useful for the
-    HRV channel, but can also be used for RSS and ROI data. By default the original,
+    HRV channel, but can also be used for RSS and ROI data. By default, the original,
     unpadded, data are loaded::
 
         scene = satpy.Scene(filenames,
@@ -113,29 +190,52 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
-        self.header_type = get_native_header(self._has_archive_header())
+        self.header_type = get_native_header(has_archive_header(self.filename))
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
-    def _has_archive_header(self):
-        """Check whether the file includes an ASCII archive header."""
-        ascii_startswith = b'FormatName                  : NATIVE'
-        with open(self.filename, mode='rb') as istream:
-            return istream.read(36) == ascii_startswith
+    @property
+    def _repeat_cycle_duration(self):
+        """Get repeat cycle duration from the trailer."""
+        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+            return 5
+        return REPEAT_CYCLE_DURATION
+
+    @property
+    def nominal_start_time(self):
+        """Get the repeat cycle nominal start time from file header and round it to expected nominal time slot."""
+        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+
+    @property
+    def nominal_end_time(self):
+        """Get the repeat cycle nominal end time from file header and round it to expected nominal time slot."""
+        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+
+    @property
+    def observation_start_time(self):
+        """Get observation start time from trailer."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanStart']
+
+    @property
+    def observation_end_time(self):
+        """Get observation end time from trailer."""
+        return self.trailer['15TRAILER']['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanEnd']
 
     @property
     def start_time(self):
-        """Read the repeat cycle start time from metadata."""
-        return self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        """Get general start time for this file."""
+        return self.nominal_start_time
 
     @property
     def end_time(self):
-        """Read the repeat cycle end time from metadata."""
-        return self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        """Get the general end time for this file."""
+        return self.nominal_end_time
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
@@ -187,10 +287,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _read_header(self):
         """Read the header info."""
-        data = np.fromfile(self.filename,
-                           dtype=self.header_type, count=1)
-
-        self.header.update(recarray2dict(data))
+        self.header.update(read_header(self.filename))
 
         if '15_SECONDARY_PRODUCT_HEADER' not in self.header:
             # No archive header, that means we have a complete file
@@ -209,7 +306,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
         self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['offset_corrected'] = data15hd['GeometricProcessing'][
-            'EarthModel']['TypeOfEarthModel'] == 2
+                                           'EarthModel']['TypeOfEarthModel'] == 2
 
         equator_radius = data15hd['GeometricProcessing'][
                              'EarthModel']['EquatorialRadius'] * 1000.
@@ -273,6 +370,16 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
         self.mda['hrv_number_of_columns'] = cols_hrv
 
+        if '15_MAIN_PRODUCT_HEADER' not in self.header:
+            logger.info("Quality flag check was not possible due to missing 15_MAIN_PRODUCT_HEADER.")
+        elif self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
+            warnings.warn(
+                "The quality flag for this file indicates not OK. "
+                "Use this data with caution!",
+                UserWarning,
+                stacklevel=2
+            )
+
     def _read_trailer(self):
 
         hdr_size = self.header_type.itemsize
@@ -309,7 +416,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         definitions defined in the `areas.yaml` file correspond to the HRIT ones.
 
         """
-        pdict = {}
+        pdict = dict()
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
         pdict['h'] = self.mda['projection_parameters']['h']
@@ -432,13 +539,13 @@ class NativeMSGFileHandler(BaseFileHandler):
     def is_roi(self):
         """Check if data covers a selected region of interest (ROI).
 
-        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segements
+        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segments
         of the SEVIRI disk. Hence, if the data does not cover the full disk, nor the standard RSS region
         in RSS mode, it's assumed to be ROI data.
         """
         is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
 
-        # Standard RSS data is assumed to cover the three northmost segements, thus consisting of all 3712 columns and
+        # Standard RSS data is assumed to cover the three northmost segments, thus consisting of all 3712 columns and
         # the 1392 northmost lines
         nlines = int(self.mda['number_of_lines'])
         ncolumns = int(self.mda['number_of_columns'])
@@ -477,7 +584,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _get_visir_channel(self, dataset_id):
         shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
         # Check if there is only 1 channel in the list as a change
-        # is needed in the arrray assignment ie channl id is not present
+        # is needed in the array assignment ie channel id is not present
         if len(self.mda['channel_list']) == 1:
             raw = self.dask_array['visir']['line_data']
         else:
@@ -509,7 +616,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             channel_name=channel_name,
             coefs=self._get_calib_coefs(channel_name),
             calib_mode=self.calib_mode,
-            scan_time=self.start_time
+            scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, dataset_id['calibration'])
         logger.debug("Calibration time " + str(datetime.now() - tic))
@@ -527,7 +634,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         coefs_gsics = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['MPEFCalFeedback']
         radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing']
+            'Level15ImageProduction']['PlannedChanProcessing']
         return create_coef_dict(
             coefs_nominal=(
                 coefs_nominal['CalSlope'][band_idx],
@@ -562,7 +669,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _get_acq_time_visir(self, dataset_id):
         """Get raw acquisition time for VIS/IR channels."""
         # Check if there is only 1 channel in the list as a change
-        # is needed in the arrray assignment ie channl id is not present
+        # is needed in the array assignment, i.e. channel id is not present
         if len(self.mda['channel_list']) == 1:
             return self.dask_array['visir']['acq_time'].compute()
         i = self.mda['channel_list'].index(dataset_id['name'])
@@ -577,6 +684,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs['sensor'] = 'seviri'
         dataset.attrs['georef_offset_corrected'] = self.mda[
             'offset_corrected']
+        dataset.attrs['time_parameters'] = {
+            'nominal_start_time': self.nominal_start_time,
+            'nominal_end_time': self.nominal_end_time,
+            'observation_start_time': self.observation_start_time,
+            'observation_end_time': self.observation_end_time,
+        }
+        dataset.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        if self.include_raw_metadata:
+            dataset.attrs['raw_metadata'] = reduce_mda(
+                self.header, max_size=self.mda_max_array_size
+            )
+
+    def _get_orbital_parameters(self):
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -596,11 +716,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             })
         except NoValidOrbitParams as err:
             logger.warning(err)
-        dataset.attrs['orbital_parameters'] = orbital_parameters
-        if self.include_raw_metadata:
-            dataset.attrs['raw_metadata'] = reduce_mda(
-                self.header, max_size=self.mda_max_array_size
-            )
+        return orbital_parameters
 
     @cached_property
     def satpos(self):
@@ -611,11 +727,11 @@ class NativeMSGFileHandler(BaseFileHandler):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         poly_finder = OrbitPolynomialFinder(self.header['15_DATA_HEADER'][
-            'SatelliteStatus']['Orbit']['OrbitPolynomial'])
+                                                'SatelliteStatus']['Orbit']['OrbitPolynomial'])
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=self.start_time,
+            time=self.observation_start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
             semi_minor_axis=self.mda['projection_parameters']['b']
         )
@@ -746,7 +862,7 @@ class Padder:
     def _extract_data_to_pad(self, dataset, south_bound, north_bound):
         """Extract the data that shall be padded.
 
-        In case of FES (HRV) data, 'dataset' contains data from twoseparate windows that
+        In case of FES (HRV) data, 'dataset' contains data from two separate windows that
         are padded separately. Hence, we extract a subset of data.
         """
         if self._is_full_disk:
@@ -759,11 +875,24 @@ class Padder:
 
 def get_available_channels(header):
     """Get the available channels from the header information."""
-    chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+    channels_str = header['15_SECONDARY_PRODUCT_HEADER'][
         'SelectedBandIDs']['Value']
-    retv = {}
+    available_channels = {}
 
-    for idx, char in zip(range(12), chlist_str):
-        retv[CHANNEL_NAMES[idx + 1]] = (char == 'X')
+    for idx, char in zip(range(12), channels_str):
+        available_channels[CHANNEL_NAMES[idx + 1]] = (char == 'X')
 
-    return retv
+    return available_channels
+
+
+def has_archive_header(filename):
+    """Check whether the file includes an ASCII archive header."""
+    with open(filename, mode='rb') as istream:
+        return istream.read(36) == ASCII_STARTSWITH
+
+
+def read_header(filename):
+    """Read SEVIRI L1.5 native header."""
+    dtype = get_native_header(has_archive_header(filename))
+    hdr = np.fromfile(filename, dtype=dtype, count=1)
+    return recarray2dict(hdr)

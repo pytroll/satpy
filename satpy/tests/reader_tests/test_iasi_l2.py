@@ -17,10 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for IASI L2 reader."""
 
+import math
 import os
 import unittest
 
 import numpy as np
+import pytest
+import xarray as xr
 
 SCAN_WIDTH = 120
 NUM_LEVELS = 138
@@ -311,3 +314,87 @@ class TestIasiL2(unittest.TestCase):
         msecs = TEST_DATA['L1C']['SensingTime_msec']['data']
         times = _form_datetimes(days, msecs)
         self.check_sensing_times(times)
+
+
+@pytest.fixture
+def fake_iasi_l2_cdr_nc_dataset():
+    """Create minimally fake IASI L2 CDR NC dataset."""
+    shp = (3, 4, 5)
+    fv = -999
+    dims = ("scan_lines", "pixels", "vertical_levels")
+    coords2 = "latitude longitude"
+    coords3 = "latitude longitude pressure_levels"
+    lons = xr.DataArray(
+            np.array([[0, 0, 0, 0], [1, 1, 1, 1],
+                      [2, 2, 2, 2]], dtype="float32"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "longitude"})
+    lats = xr.DataArray(
+            np.array([[3, 3, 3, 3], [2, 2, 2, 2],
+                      [1, 1, 1, 1]], dtype="float32"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "latitude"})
+    pres = xr.DataArray(
+            np.linspace(0, 1050, math.prod(shp), dtype="float32").reshape(shp),
+            dims=dims,
+            attrs={"coordinates": coords3})
+
+    temps = np.linspace(100, 400, math.prod(shp), dtype="float32").reshape(shp)
+    temps[0, 0, 0] = fv
+    temp = xr.DataArray(
+            temps, dims=dims,
+            attrs={"coordinates": coords3, "_FillValue": fv, "units": "K"})
+
+    iasibad = xr.DataArray(
+            np.zeros(shp[:2], dtype="uint8"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "flag_information_IASI_L1c"})
+    iasibad[0, 0] = 1
+
+    cf = xr.DataArray(
+            np.zeros(shp[:2], dtype="uint8"),
+            dims=dims[:2],
+            attrs={"coordinates": coords2,
+                   "standard_name": "cloud_area_fraction",
+                   "_FillValue": 255,
+                   "valid_min": 0,
+                   "valid_max": 100})
+
+    return xr.Dataset(
+            {"T": temp, "FLG_IASIBAD": iasibad, "CloudFraction": cf},
+            coords={
+                "longitude": lons,
+                "latitude": lats,
+                "pressure_levels": pres})
+
+
+@pytest.fixture
+def fake_iasi_l2_cdr_nc_file(fake_iasi_l2_cdr_nc_dataset, tmp_path):
+    """Write a NetCDF file with minimal fake IASI L2 CDR NC data."""
+    fn = ("W_XX-EUMETSAT-Darmstadt,HYPERSPECT+SOUNDING,METOPA+PW3+"
+          "IASI_C_EUMP_19210624090000Z_19210623090100Z_eps_r_l2_0101.nc")
+    of = tmp_path / fn
+    fake_iasi_l2_cdr_nc_dataset.to_netcdf(of)
+    return os.fspath(of)
+
+
+def test_iasi_l2_cdr_nc(fake_iasi_l2_cdr_nc_file):
+    """Test the IASI L2 CDR NC reader."""
+    from satpy import Scene
+    sc = Scene(filenames=[fake_iasi_l2_cdr_nc_file], reader=["iasi_l2_cdr_nc"])
+    sc.load(["T", "FLG_IASIBAD", "CloudFraction"])
+    assert sc["T"].dims == ("y", "x", "vertical_levels")
+    assert sc["T"].shape == (3, 4, 5)
+    assert sc["T"].attrs["area"].shape == (3, 4)
+    (lons, lats) = sc["T"].attrs["area"].get_lonlats()
+    np.testing.assert_array_equal(
+            lons,
+            np.array([[0, 0, 0, 0], [1, 1, 1, 1],
+                      [2, 2, 2, 2]]))
+    assert np.isnan(sc["T"][0, 0, 0])
+    assert sc["FLG_IASIBAD"][0, 0] == 1
+    assert sc["CloudFraction"].dtype == np.dtype("uint8")
+    assert sc["T"].attrs["units"] == "K"

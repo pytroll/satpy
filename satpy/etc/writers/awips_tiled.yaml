@@ -129,6 +129,12 @@ templates:
           physical_element:
             raw_value: CLAVR-x Cloud Type
           units: {}
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
@@ -153,6 +159,12 @@ templates:
           units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Phase
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+          scale_factor: 0.5
+          add_offset: 0.0
+          _FillValue: -128
       clavrx_cld_opd_dcomp:
         reader: clavrx
         name: cld_opd_dcomp
@@ -209,45 +221,54 @@ templates:
           units: {}
           physical_element:
             raw_value: CLAVR-x Rain Rate
+      clavrx_insolation_dcomp:
+        reader: clavrx
+        name: insolation_dcomp
+        var_name: data
+        attributes:
+          units:
+            value: "W/m^2"
+          physical_element:
+            raw_value: CLAVR-x Insolation (dcomp)
 
       # AVHRR L1B products
       avhrr_band1_vis:
-        name: band1_vis
+        name: "1"
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.63 um
           units: {}
       avhrr_band2_vis:
-        name: band2_vis
+        name: "2"
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
           units: {}
       avhrr_band3a_vis:
-        name: band3a_vis
+        name: "3a"
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
           units: {}
       avhrr_band3b_bt:
-        name: band3b_bt
+        name: "3b"
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.74 um
           units: {}
       avhrr_band4_bt:
-        name: band4_bt
+        name: "4"
         var_name: data
         attributes:
           physical_element:
             raw_value: 10.8 um
           units: {}
       avhrr_band5_bt:
-        name: band5_bt
+        name: "5"
         var_name: data
         attributes:
           physical_element:

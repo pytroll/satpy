@@ -30,10 +30,12 @@ import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy import CHUNK_SIZE, DataID
+from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
@@ -186,10 +188,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             return self._start_time_from_filename()
 
     def _start_time_from_filename(self):
-        for fn_key in ("start_time", "acquisition_time"):
-            if fn_key in self.filename_info:
-                return self.filename_info[fn_key]
-        raise RuntimeError("Could not determine file start time")
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
@@ -243,7 +242,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
             if add_offset is not None and add_offset != 0:
-                data = data - add_offset
+                data = data - np.float32(add_offset)
             data = data * np.float32(scale_factor)
 
         if good_mask is not None:

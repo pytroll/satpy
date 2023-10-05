@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install dependencies
@@ -40,10 +40,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         experimental: [false]
         include:
-          - python-version: "3.9"
+          - python-version: "3.11"
             os: "ubuntu-latest"
             experimental: true
 
@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
@@ -86,9 +86,11 @@ jobs:
       - name: Install unstable dependencies
         if: matrix.experimental == true
         shell: bash -l {0}
+        # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
+        # may break the conda-forge libraries trying to use newer glibc versions
         run: |
           python -m pip install \
-          --index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple/ \
+          --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
           --no-deps --pre --upgrade \
           matplotlib \
@@ -101,10 +103,12 @@ jobs:
           git+https://github.com/dask/distributed \
           git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
-          git+https://github.com/mapbox/rasterio \
+          git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
           git+https://github.com/pydata/xarray \
           git+https://github.com/astropy/astropy;
+          LD_PRELOAD=$(python -c "import sys; print(sys.prefix)")/lib/libstdc++.so
+          echo "LD_PRELOAD=${LD_PRELOAD}" >> $GITHUB_ENV
 
       - name: Install satpy
         shell: bash -l {0}
@@ -114,10 +118,11 @@ jobs:
       - name: Run unit tests
         shell: bash -l {0}
         run: |
+          export LD_PRELOAD=${{ env.LD_PRELOAD }};
           pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           flags: unittests
           file: ./coverage.xml
@@ -133,11 +138,12 @@ jobs:
       - name: Run behaviour tests
         shell: bash -l {0}
         run: |
+          export LD_PRELOAD=${{ env.LD_PRELOAD }};
           coverage run --source=satpy -m behave satpy/tests/features --tags=-download
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           flags: behaviourtests
           file: ./coverage.xml
