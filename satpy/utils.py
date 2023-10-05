@@ -666,7 +666,13 @@ def normalize_low_res_chunks(
             be a multiple or factor of the scan size for some instruments and/or
             could be based on the on-disk chunk size. This value ensures that
             chunks are aligned to the underlying data structure for best
-            performance.
+            performance. On-disk chunk sizes should be multiplied by the
+            largest low resolution multiplier if it is the same between all
+            files (ex. 500m file has 226 chunk size, 1km file has 226 chunk
+            size, etc).. Otherwise, the resulting low resolution chunks may
+            not be aligned to the on-disk chunks. For example, if dask decides
+            on a chunk size of 226 * 3 for 500m data, that becomes 226 * 3 / 2
+            for 1km data which is not aligned to the on-disk chunk size of 226.
         low_res_multipliers: Number of high (fine) resolution pixels that fit
             in a single low (coarse) resolution pixel.
         input_dtype: Dtype for the final unscaled array. This is usually
@@ -700,20 +706,8 @@ def normalize_low_res_chunks(
         if req_chunks != "auto":
             low_res_chunks.append(req_chunks)
             continue
-        low_res_chunks.append(int(max(hr_chunks[0] / lr_mult, prev_chunks)))
+        low_res_chunks.append(round(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
     return tuple(low_res_chunks)
-
-
-def _split_non_yx_chunks(
-        input_shape: tuple[int, ...],
-) -> tuple[tuple[int, ...] | tuple[()], tuple[int, int], tuple[int, ...] | tuple[()]]:
-    pre_non_yx_chunks: tuple[int, ...] = tuple()
-    post_non_yx_chunks: tuple[int, ...] = tuple()
-    yx_shape = (input_shape[-2], input_shape[-1])
-    if len(input_shape) == 3:
-        # assume (band, y, x)
-        pre_non_yx_chunks = (1,)
-    return pre_non_yx_chunks, yx_shape, post_non_yx_chunks
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
