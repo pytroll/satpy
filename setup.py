@@ -60,6 +60,7 @@ extras_require = {
     'remote_reading': ['fsspec'],
     'insat_3d': ['xarray-datatree'],
     'gms5-vissr_l1b': ["numba"],
+    'hsi_l1b': ["enpt"],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
