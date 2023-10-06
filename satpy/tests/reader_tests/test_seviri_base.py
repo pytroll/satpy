@@ -376,17 +376,21 @@ class TestMeirinkSlope:
         calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK', DATE_2000)
         assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS[platform_id][channel_name][0]/1000.
 
-    @pytest.mark.parametrize('platform_id', [321, 322, 323, 324])
-    @pytest.mark.parametrize('channel_name', ['VIS006', 'VIS008', 'IR_016'])
-    def test_get_meirink_slope_2020(self, platform_id, channel_name):
-        """Test the value of the slope of the Meirink calibration on 2020-01-01."""
-        DATE_2020 = datetime(2020, 1, 1)
+    @pytest.mark.parametrize('platform_id,time,expected', (
+        (321,  datetime(2005, 1, 18, 0, 0),  [0.0250354716, 0.0315626684, 0.022880986]),
+        (321,  datetime(2010, 12, 31, 0, 0),  [0.0258479563, 0.0322386887, 0.022895110500000003]),
+        (322,  datetime(2010, 1, 18, 0, 0),  [0.021964051999999998, 0.027548445, 0.021576766]),
+        (322,  datetime(2015, 6, 1, 0, 0),  [0.022465028, 0.027908105, 0.021674373999999996]),
+        (323,  datetime(2005, 1, 18, 0, 0),  [0.0209088464, 0.0265355228, 0.0230132616]),
+        (323,  datetime(2010, 12, 31, 0, 0),  [0.022181355200000002, 0.0280103379, 0.0229511138]),
+        (324,  datetime(2010, 1, 18, 0, 0),  [0.0218362, 0.027580748, 0.022285370999999998]),
+        (324,  datetime(2015, 6, 1, 0, 0),  [0.0225418, 0.028530172, 0.022248718999999997]),
+    ))
+    def test_get_meirink_slope_2020(self, platform_id, time, expected):
+        """Test the value of the slope of the Meirink calibration."""
         coefs = {'coefs': {}}
         coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
         coefs['coefs']['EXTERNAL'] = {}
-        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK', DATE_2020)
-        A, B = MEIRINK_COEFS[platform_id][channel_name]
-        delta_t = (DATE_2020 - DATE_2000).total_seconds()
-        S = A + B * delta_t / (3600*24) / 1000.
-        S = S/1000
-        assert calibration_handler.get_gain_offset()[0] == S
+        for i, channel_name in enumerate(['VIS006', 'VIS008', 'IR_016']):
+            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK', time)
+            assert abs(calibration_handler.get_gain_offset()[0] - expected[i]) < 1e-6
