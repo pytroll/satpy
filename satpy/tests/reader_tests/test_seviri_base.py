@@ -26,9 +26,12 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_base import (
+    DATE_2000,
+    MEIRINK_COEFS,
     NoValidOrbitParams,
     OrbitPolynomial,
     OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
     chebyshev,
     dec10216,
     get_cds_time,
@@ -37,9 +40,6 @@ from satpy.readers.seviri_base import (
     pad_data_horizontally,
     pad_data_vertically,
     round_nom_time,
-    SEVIRICalibrationHandler,
-    MEIRINK_COEFS,
-    DATE_2000,
 )
 from satpy.utils import get_legacy_chunk_size
 
