@@ -16,9 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The Environmental Mapping and Analysis Program (EnMAP) Hyperspectral Imager (HSI)
-reader base class for the Level 1b reader.
-"""
+"""Reader for the EnMAP L1B ZIP data."""
 
 import logging
 import math
@@ -41,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 class HSIBaseFileHandler(BaseFileHandler):
     """File handler for EnMAP L1B ZIP files."""
+
     def __init__(self, filename, filename_info, filetype_info,):
         """Prepare the class for dataset reading."""
         super(HSIBaseFileHandler, self).__init__(filename, filename_info, filetype_info)
