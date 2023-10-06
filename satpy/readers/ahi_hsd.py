@@ -78,7 +78,7 @@ from satpy.readers.utils import (
     np2str,
     unzip_file,
 )
-from satpy.utils import chunks_by_resolution
+from satpy.utils import normalize_low_res_chunks
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -619,11 +619,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
-        chunks = chunks_by_resolution(
+        chunks = normalize_low_res_chunks(
+            ("auto", "auto"),
             (nlines, ncols),
+            # 1100 minimum chunk size for 500m, 550 for 1km, 225 for 2km
+            (1100, 1100),
+            (int(resolution / 500), int(resolution / 500)),
             np.float32,
-            550,
-            int(resolution / 500),
         )
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),

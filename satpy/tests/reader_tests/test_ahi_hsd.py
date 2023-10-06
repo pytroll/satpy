@@ -368,7 +368,7 @@ class TestAHIHSDFileHandler:
         fh = AHIHSDFileHandler(hsd_file_jp01, filename_info, filetype_info)
         key = {"name": "B01", "calibration": "counts", "resolution": 1000}
         import dask
-        with dask.config.set({"array.chunk-size": "16MiB"}):
+        with dask.config.set({"array.chunk-size": "32MiB"}):
             data = fh.read_band(
                 key,
                 {
