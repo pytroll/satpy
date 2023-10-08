@@ -1,0 +1,78 @@
+reader:
+  name: emit_l1b
+  short_name: EMIT L1B NetCDF4
+  long_name: Earth Surface Mineral Dust Source Investigation (EMIT) Level 1B data in netCDF4 format
+  description: >
+    Reader for EMIT Level 1B files in NetCDF4 format.
+  status: Beta
+  supports_fsspec: false
+  sensors: [emit]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  emit_l1b_rad:
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL2FileHandler
+    file_patterns: ['{sensor:4s}_{level:3s}_RAD_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
+  emit_l1b_obs:
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL2FileHandler
+    file_patterns: ['{sensor:4s}_{level:3s}_OBS_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
+
+datasets:
+  lon:
+    name: lon
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: longitude
+    units: degrees_east
+    nc_group: location
+    _FillValue: -9999.0
+
+  lat:
+    name: lat
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: latitude
+    units: degrees_north
+    nc_group: location
+    _FillValue: -9999.0
+
+  elev:
+    name: elev
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: elev
+    long_name: surface elevation
+    units: m
+    nc_group: location
+    _FillValue: -9999.0
+
+  glt_x:
+    name: glt_x
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: glt_x
+    long_name: GLT sample Lookup
+    units: pixel location
+    nc_group: location
+    _FillValue: -9999
+
+  glt_y:
+    name: glt_y
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: glt_y
+    long_name: GLT sample Lookup
+    units: pixel location
+    nc_group: location
+    _FillValue: -9999
+
+  radiance:
+    name: radiance
+    file_type: [emit_l1b_rad]
+    standard_name: radiance
+    units: uW cm-2 sr-1 nm-1
+    nc_group:
+    _FillValue: -9999.0
+
+  obs:
+    name: obs
+    file_type: [emit_l1b_obs]
+    standard_name: obs
+    units: uW cm-2 sr-1 nm-1
+    nc_group:
+    _FillValue: -9999.0
