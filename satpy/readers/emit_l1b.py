@@ -42,7 +42,7 @@ class EMITL2FileHandler(NetCDF4FileHandler):
         self._load_bands()
 
     def _load_bands(self):
-        """Load bands data and attributes"""
+        """Load bands data and attributes."""
         if self.filetype_info["file_type"] == "emit_l1b_rad":
             bands_name = "wavelengths"
         elif self.filetype_info["file_type"] == "emit_l1b_obs":
