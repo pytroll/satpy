@@ -1,0 +1,44 @@
+reader:
+  name: lsasaf-geo
+  short_name: LSASAF GEO
+  long_name: LSASAF GEO products in hdf5 format (limited to SEVIRI)
+  description: HDF5 reader for the LSASAF GEO format
+  status: Alpha
+  supports_fsspec: false
+  sensors: [seviri]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    h5_nwcsaf_lst:
+        file_reader: !!python/name:satpy.readers.lsasaf_h5.H5LSASAF
+        file_patterns: ['HDF5_LSASAF_MSG_LST_{region_id}_{start_time:%Y%m%d%H%M}',
+                        'S-LSA_HDF5_LSASAF_MSG_LST_{region_id}_{start_time:%Y%m%d%H%M}',]
+
+datasets:
+
+# ---- LST products ------------
+
+  lst:
+    name: lst
+    resolution: 3000
+    file_type: h5_nwcsaf_lst
+    file_key: LST
+
+  qa_data:
+    name: qa_data
+    resolution: 3000
+    file_type: h5_nwcsaf_lst
+    file_key: Q_FLAGS
+
+  lst_uncertainty:
+    name: lst_uncertainty
+    resolution: 3000
+    file_type: h5_nwcsaf_lst
+    file_key: errorbar_LST
+
+  lst_delta_khs:
+    name: lst_delta_khs
+    resolution: 3000
+    file_type: h5_nwcsaf_lst
+    file_key: delta_LST0_KHS

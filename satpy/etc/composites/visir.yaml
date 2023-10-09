@@ -647,3 +647,9 @@ composites:
       - wavelength: 3.9
       - wavelength: 6.2
       - wavelength: 1.6
+
+  land_surface_temperature:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: 'lst'
+    standard_name: land_surface_temperature
