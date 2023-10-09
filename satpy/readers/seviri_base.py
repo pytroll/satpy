@@ -356,7 +356,10 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 # Calibration coefficients from Meirink, J.F., R.A. Roebeling and P. Stammes, 2013:
 # Inter-calibration of polar imager solar channels using SEVIRI, Atm. Meas. Tech., 6,
 # 2495-2508, doi:10.5194/amt-6-2495-2013
-
+#
+# The coefficients are stored in pairs of A, B (see function `get_meirink_slope`) where the
+# units of A are µW m-2 sr-1 (cm-1)-1 and those of B are µW m-2 sr-1 (cm-1)-1 (86400 s)-1
+#
 # To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
 
 # Epoch for the MEIRINK re-calibration
