@@ -252,3 +252,8 @@ datasets:
     resolution: 5000
     file_type:  vgac_nc
     nc_key: time
+
+  proj_time0:
+    name: proj_time0
+    file_type: vgac_nc
+    nc_key: proj_time0
