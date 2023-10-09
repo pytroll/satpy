@@ -26,7 +26,7 @@ import pathlib
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Mapping, Optional
+from typing import Literal, Mapping, Optional
 from urllib.parse import urlparse
 
 import dask.utils
@@ -34,6 +34,8 @@ import numpy as np
 import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
+
+from satpy._compat import DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -629,6 +631,83 @@ def _get_pytroll_chunk_size():
         return chunk_size
     except KeyError:
         return None
+
+
+def normalize_low_res_chunks(
+        chunks: tuple[int | Literal["auto"], ...],
+        input_shape: tuple[int, ...],
+        previous_chunks: tuple[int, ...],
+        low_res_multipliers: tuple[int, ...],
+        input_dtype: DTypeLike,
+) -> tuple[int, ...]:
+    """Compute dask chunk sizes based on data resolution.
+
+    First, chunks are computed for the highest resolution version of the data.
+    This is done by multiplying the input array shape by the
+    ``low_res_multiplier`` and then using Dask's utility functions and
+    configuration to produce a chunk size to fit into a specific number of
+    bytes. See :doc:`dask:array-chunks` for more information.
+    Next, the same multiplier is used to reduce the high resolution chunk sizes
+    to the lower resolution of the input data. The end result of reading
+    multiple resolutions of data is that each dask chunk covers the same
+    geographic region. This also means replicating or aggregating one
+    resolution and then combining arrays should not require any rechunking.
+
+    Args:
+        chunks: Requested chunk size for each dimension. This is passed
+            directly to dask. Use ``"auto"`` for dimensions that should have
+            chunks determined for them, ``-1`` for dimensions that should be
+            whole (not chunked), and ``1`` or any other positive integer for
+            dimensions that have a known chunk size beforehand.
+        input_shape: Shape of the array to compute dask chunk size for.
+        previous_chunks: Any previous chunking or structure of the data. This
+            can also be thought of as the smallest number of high (fine) resolution
+            elements that make up a single "unit" or chunk of data. This could
+            be a multiple or factor of the scan size for some instruments and/or
+            could be based on the on-disk chunk size. This value ensures that
+            chunks are aligned to the underlying data structure for best
+            performance. On-disk chunk sizes should be multiplied by the
+            largest low resolution multiplier if it is the same between all
+            files (ex. 500m file has 226 chunk size, 1km file has 226 chunk
+            size, etc).. Otherwise, the resulting low resolution chunks may
+            not be aligned to the on-disk chunks. For example, if dask decides
+            on a chunk size of 226 * 3 for 500m data, that becomes 226 * 3 / 2
+            for 1km data which is not aligned to the on-disk chunk size of 226.
+        low_res_multipliers: Number of high (fine) resolution pixels that fit
+            in a single low (coarse) resolution pixel.
+        input_dtype: Dtype for the final unscaled array. This is usually
+            32-bit float (``np.float32``) or 64-bit float (``np.float64``)
+            for non-category data. If this doesn't represent the final data
+            type of the data then the final size of chunks in memory will not
+            match the user's request via dask's ``array.chunk-size``
+            configuration. Sometimes it is useful to keep this as a single
+            dtype for all reading functionality (ex. ``np.float32``) in order
+            to keep all read variable chunks the same size regardless of dtype.
+
+    Returns:
+        A tuple where each element is the chunk size for that axis/dimension.
+
+    """
+    if any(len(input_shape) != len(param) for param in (low_res_multipliers, chunks, previous_chunks)):
+        raise ValueError("Input shape, low res multipliers, chunks, and previous chunks must all be the same size")
+    high_res_shape = tuple(dim_size * lr_mult for dim_size, lr_mult in zip(input_shape, low_res_multipliers))
+    chunks_for_high_res = dask.array.core.normalize_chunks(
+        chunks,
+        shape=high_res_shape,
+        dtype=input_dtype,
+        previous_chunks=previous_chunks,
+    )
+    low_res_chunks: list[int] = []
+    for req_chunks, hr_chunks, prev_chunks, lr_mult in zip(
+            chunks,
+            chunks_for_high_res,
+            previous_chunks, low_res_multipliers
+    ):
+        if req_chunks != "auto":
+            low_res_chunks.append(req_chunks)
+            continue
+        low_res_chunks.append(round(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
+    return tuple(low_res_chunks)
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):

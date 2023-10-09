@@ -110,9 +110,13 @@ def sunz_sza():
 class TestSunZenithCorrector:
     """Test case for the zenith corrector."""
 
-    def test_basic_default_not_provided(self, sunz_ds1):
+    @pytest.mark.parametrize("as_32bit", [False, True])
+    def test_basic_default_not_provided(self, sunz_ds1, as_32bit):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
+
+        if as_32bit:
+            sunz_ds1 = sunz_ds1.astype(np.float32)
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
@@ -120,7 +124,9 @@ class TestSunZenithCorrector:
         assert 'x' in res.coords
         ds1 = sunz_ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
-        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        res_np = res.compute()
+        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        assert res.dtype == res_np.dtype
         assert 'y' not in res.coords
         assert 'x' not in res.coords
 

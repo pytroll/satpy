@@ -28,7 +28,7 @@ repos:
           - types-pkg-resources
           - types-PyYAML
           - types-requests
-        args: ["--python-version", "3.8", "--ignore-missing-imports"]
+        args: ["--python-version", "3.9", "--ignore-missing-imports"]
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:

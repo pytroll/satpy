@@ -399,6 +399,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
 def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
+        # NOTE: This defaults to 64-bit floats due to needed precision for X/Y coordinates
         lons, lats = area.get_lonlats(chunks=chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)
         lats = da.where(lats >= 1e30, np.nan, lats)
@@ -526,7 +527,7 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
 
     # Cosine correction
-    corr = 1. / cos_zen
+    corr = (1. / cos_zen).astype(data.dtype, copy=False)
     if max_sza is not None:
         # gradually fall off for larger zenith angle
         grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
@@ -538,7 +539,11 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     else:
         # Use constant value (the limit) for larger zenith angles
         grad_factor = 1.
-    corr = np.where(cos_zen > limit_cos, corr, grad_factor / limit_cos)
+    corr = np.where(
+        cos_zen > limit_cos,
+        corr,
+        (grad_factor / limit_cos).astype(data.dtype, copy=False)
+    )
     # Force "night" pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
     return data * corr
