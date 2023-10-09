@@ -414,8 +414,14 @@ def get_meirink_slope(meirink_coefs, acquisition_time):
     return S/1000
 
 
+def should_apply_meirink(calib_mode, channel_name):
+    """Decide whether to use the Meirink calibration coefficients."""
+
+    return "MEIRINK" in calib_mode and channel_name in ['VIS006', 'VIS008', 'IR_016']
+
+
 class MeirinkCalibrationHandler:
-    """Re-calibration of the SEVIRI visible channels slop (see Meirink 2013)."""
+    """Re-calibration of the SEVIRI visible channels slope (see Meirink 2013)."""
 
     def __init__(self, coefs=MEIRINK_COEFS, calib_mode=None):
         """Initialize the calibration handler."""
@@ -697,7 +703,7 @@ class SEVIRICalibrationHandler:
                 internal_gain = gsics_gain
                 internal_offset = gsics_offset
 
-        if "MEIRINK" in self._calib_mode and self._channel_name in ['VIS006', 'VIS008', 'IR_016']:
+        if should_apply_meirink(self._calib_mode, self._channel_name):
             meirink = MeirinkCalibrationHandler(calib_mode=self._calib_mode)
             internal_gain = meirink.get_slope(self._platform_id, self._channel_name, self._scan_time)
 
