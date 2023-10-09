@@ -2,9 +2,9 @@
 
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
 import pytest
+import xarray as xr
 
 from satpy.readers.ahi_l2_nc import HIML2NCFileHandler
 from satpy.tests.utils import make_dataid
@@ -12,11 +12,13 @@ from satpy.tests.utils import make_dataid
 rng = np.random.default_rng()
 clmk_data = rng.integers(0, 3, (5500, 5500), dtype=np.uint16)
 cprob_data = rng.uniform(0, 1, (5500, 5500))
+lat_data = rng.uniform(-90, 90, (5500, 5500))
+lon_data = rng.uniform(-180, 180, (5500, 5500))
 
 start_time = datetime(2023, 8, 24, 5, 40, 21)
 end_time = datetime(2023, 8, 24, 5, 49, 40)
 
-dimensions = {'X': 5500, 'Y': 5500}
+dimensions = {'Columns': 5500, 'Rows': 5500}
 
 exp_ext = (-5499999.9012, -5499999.9012, 5499999.9012, 5499999.9012)
 
@@ -43,12 +45,11 @@ def ahil2_filehandler(fname, platform='h09'):
 def himl2_filename(tmp_path_factory):
     """Create a fake himawari l2 file."""
     fname = f'{tmp_path_factory.mktemp("data")}/AHI-CMSK_v1r1_h09_s202308240540213_e202308240549407_c202308240557548.nc'
-    with h5netcdf.File(fname, mode="w") as h5f:
-        h5f.dimensions = dimensions
-        h5f.attrs.update(global_attrs)
-        var = h5f.create_variable("CloudMask", ("Y", "X"), np.uint16, chunks=(200, 200))
-        var[:] = clmk_data
-
+    ds = xr.Dataset({'CloudMask': (['Rows', 'Columns'], clmk_data)},
+                    coords={'Latitude': (['Rows', 'Columns'], lat_data),
+                            'Longitude': (['Rows', 'Columns'], lon_data)},
+                    attrs=global_attrs)
+    ds.to_netcdf(fname)
     return fname
 
 
@@ -56,11 +57,11 @@ def himl2_filename(tmp_path_factory):
 def himl2_filename_bad(tmp_path_factory):
     """Create a fake himawari l2 file."""
     fname = f'{tmp_path_factory.mktemp("data")}/AHI-CMSK_v1r1_h09_s202308240540213_e202308240549407_c202308240557548.nc'
-    with h5netcdf.File(fname, mode="w") as h5f:
-        h5f.dimensions = dimensions
-        h5f.attrs.update(badarea_attrs)
-        var = h5f.create_variable("CloudMask", ("Y", "X"), np.uint16, chunks=(200, 200))
-        var[:] = clmk_data
+    ds = xr.Dataset({'CloudMask': (['Rows', 'Columns'], clmk_data)},
+                    coords={'Latitude': (['Rows', 'Columns'], lat_data),
+                            'Longitude': (['Rows', 'Columns'], lon_data)},
+                    attrs=badarea_attrs)
+    ds.to_netcdf(fname)
 
     return fname
 
