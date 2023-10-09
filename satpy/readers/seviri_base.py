@@ -366,34 +366,35 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 DATE_2000 = datetime(2000, 1, 1)
 
 MEIRINK_COEFS = {}
+MEIRINK_COEFS['2013'] = {}
 
 # Meteosat-8
 
-MEIRINK_COEFS[321] = {'VIS006': (24.346, 0.3739),
-                      'VIS008': (30.989, 0.3111),
-                      'IR_016': (22.869, 0.0065)
-                      }
+MEIRINK_COEFS['2013'][321] = {'VIS006': (24.346, 0.3739),
+                              'VIS008': (30.989, 0.3111),
+                              'IR_016': (22.869, 0.0065)
+                              }
 
 # Meteosat-9
 
-MEIRINK_COEFS[322] = {'VIS006': (21.026, 0.2556),
-                      'VIS008': (26.875, 0.1835),
-                      'IR_016': (21.394, 0.0498)
-                      }
+MEIRINK_COEFS['2013'][322] = {'VIS006': (21.026, 0.2556),
+                              'VIS008': (26.875, 0.1835),
+                              'IR_016': (21.394, 0.0498)
+                              }
 
 # Meteosat-10
 
-MEIRINK_COEFS[323] = {'VIS006': (19.829, 0.5856),
-                      'VIS008': (25.284, 0.6787),
-                      'IR_016': (23.066, -0.0286)
-                      }
+MEIRINK_COEFS['2013'][323] = {'VIS006': (19.829, 0.5856),
+                              'VIS008': (25.284, 0.6787),
+                              'IR_016': (23.066, -0.0286)
+                              }
 
 # Meteosat-11
 
-MEIRINK_COEFS[324] = {'VIS006': (20.515, 0.3600),
-                      'VIS008': (25.803, 0.4844),
-                      'IR_016': (22.354, -0.0187)
-                      }
+MEIRINK_COEFS['2013'][324] = {'VIS006': (20.515, 0.3600),
+                              'VIS008': (25.803, 0.4844),
+                              'IR_016': (22.354, -0.0187)
+                              }
 
 
 def get_meirink_slope(meirink_coefs, acquisition_time):
@@ -411,6 +412,21 @@ def get_meirink_slope(meirink_coefs, acquisition_time):
     delta_t = (acquisition_time - DATE_2000).total_seconds()
     S = A + B * delta_t / (3600*24) / 1000.
     return S/1000
+
+
+class MeirinkCalibrationHandler:
+    """Re-calibration of the SEVIRI visible channels slop (see Meirink 2013)."""
+
+    def __init__(self, coefs=MEIRINK_COEFS, calib_mode=None):
+        """Initialize the calibration handler."""
+        if calib_mode is None:
+            raise ValueError("Missing calib_mode")
+        self.coefs = coefs[calib_mode.split('-')[1]]
+
+    def get_slope(self, platform, channel, time):
+        """Return the slope using the provided calibration coefficients."""
+        coefs = self.coefs[platform][channel]
+        return get_meirink_slope(coefs, time)
 
 
 def get_cds_time(days, msecs):
@@ -618,11 +634,6 @@ class SEVIRICalibrationHandler:
         self._platform_id = platform_id
         self._channel_name = channel_name
         self._coefs = coefs
-        if channel_name in ['VIS006', 'VIS008', 'IR_016']:
-            self._coefs['coefs']['MEIRINK'] = MEIRINK_COEFS[platform_id][channel_name]
-        else:
-            self._coefs['coefs']['MEIRINK'] = None
-
         self._calib_mode = calib_mode.upper()
         self._scan_time = scan_time
         self._algo = SEVIRICalibrationAlgorithm(
@@ -630,7 +641,7 @@ class SEVIRICalibrationHandler:
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK')
+        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK-2013')
         if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(
@@ -686,9 +697,9 @@ class SEVIRICalibrationHandler:
                 internal_gain = gsics_gain
                 internal_offset = gsics_offset
 
-        if self._calib_mode == 'MEIRINK':
-            if coefs['MEIRINK'] is not None:
-                internal_gain = get_meirink_slope(coefs['MEIRINK'], self._scan_time)
+        if "MEIRINK" in self._calib_mode and self._channel_name in ['VIS006', 'VIS008', 'IR_016']:
+            meirink = MeirinkCalibrationHandler(calib_mode=self._calib_mode)
+            internal_gain = meirink.get_slope(self._platform_id, self._channel_name, self._scan_time)
 
         # Override with external coefficients, if any.
         gain = coefs['EXTERNAL'].get('gain', internal_gain)
