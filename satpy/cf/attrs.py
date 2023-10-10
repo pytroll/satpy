@@ -71,7 +71,7 @@ def __encode_nc(obj):
     Raises:
         ValueError if no such datatype could be found
     """
-    from satpy.writers.cf_writer import NC4_DTYPES
+    from satpy.cf_writer import NC4_DTYPES
 
     if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
         return obj

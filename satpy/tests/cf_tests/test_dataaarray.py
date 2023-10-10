@@ -29,7 +29,7 @@ from satpy.tests.utils import make_dsq
 def test_preprocess_dataarray_name():
     """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
     from satpy import Scene
-    from satpy.writers.cf.dataarray import _preprocess_dataarray_name
+    from satpy.cf.dataarray import _preprocess_dataarray_name
 
     scn = Scene()
     scn['1'] = xr.DataArray([1, 2, 3])
@@ -53,8 +53,8 @@ def test_make_cf_dataarray_lonlat():
     """Test correct CF encoding for area with lon/lat units."""
     from pyresample import create_area_def
 
+    from satpy.cf.dataarray import make_cf_dataarray
     from satpy.resample import add_crs_xy_coords
-    from satpy.writers.cf.dataarray import make_cf_dataarray
 
     area = create_area_def("mavas", 4326, shape=(5, 5),
                            center=(0, 0), resolution=(1, 1))
@@ -156,8 +156,8 @@ class TestCfDataArray:
 
     def test_make_cf_dataarray(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
+        from satpy.cf.dataarray import make_cf_dataarray
         from satpy.tests.utils import assert_dict_array_equality
-        from satpy.writers.cf.dataarray import make_cf_dataarray
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
@@ -195,7 +195,7 @@ class TestCfDataArray:
 
     def test_make_cf_dataarray_one_dimensional_array(self):
         """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
-        from satpy.writers.cf.dataarray import make_cf_dataarray
+        from satpy.cf.dataarray import make_cf_dataarray
 
         arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
                            coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})

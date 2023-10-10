@@ -162,8 +162,8 @@ import numpy as np
 import xarray as xr
 from packaging.version import Version
 
+from satpy.cf import EPOCH
 from satpy.writers import Writer
-from satpy.writers.cf import EPOCH
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +270,8 @@ class CFWriter(Writer):
                 Prefix to add the each variable with name starting with a digit. Use '' or None to leave this out.
 
         """
-        from satpy.writers.cf.datasets import collect_cf_datasets
-        from satpy.writers.cf.encoding import update_encoding
+        from satpy.cf.datasets import collect_cf_datasets
+        from satpy.cf.encoding import update_encoding
 
         logger.info('Saving datasets to NetCDF4/CF.')
         _check_backend_versions()
@@ -344,9 +344,9 @@ class CFWriter(Writer):
             numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit
         """
-        from satpy.writers.cf.dataarray import make_cf_dataarray
+        from satpy.cf.dataarray import make_cf_dataarray
         warnings.warn('CFWriter.da2cf is deprecated.'
-                      'Use satpy.writers.cf.dataarray.make_cf_dataarray instead.',
+                      'Use satpy.cf.dataarray.make_cf_dataarray instead.',
                       DeprecationWarning, stacklevel=3)
         return make_cf_dataarray(dataarray=dataarray,
                                  epoch=epoch,
@@ -358,10 +358,10 @@ class CFWriter(Writer):
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
         """Update encoding info (deprecated)."""
-        from satpy.writers.cf.encoding import update_encoding
+        from satpy.cf.encoding import update_encoding
 
         warnings.warn('CFWriter.update_encoding is deprecated. '
-                      'Use satpy.writers.cf.encoding.update_encoding instead.',
+                      'Use satpy.cf.encoding.update_encoding instead.',
                       DeprecationWarning, stacklevel=3)
         return update_encoding(dataset, to_netcdf_kwargs)
 

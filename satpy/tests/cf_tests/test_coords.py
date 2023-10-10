@@ -31,7 +31,7 @@ class TestCFtime:
 
     def test_add_time_bounds_dimension(self):
         """Test addition of CF-compliant time attributes."""
-        from satpy.writers.cf.coords import add_time_bounds_dimension
+        from satpy.cf.coords import add_time_bounds_dimension
 
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
         times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
@@ -55,7 +55,7 @@ class TestCFcoords:
 
     def test_is_projected(self, caplog):
         """Tests for private _is_projected function."""
-        from satpy.writers.cf.coords import _is_projected
+        from satpy.cf.coords import _is_projected
 
         # test case with units but no area
         da = xr.DataArray(

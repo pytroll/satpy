@@ -29,7 +29,7 @@ class TestCollectCfDataset:
 
     def test_collect_cf_dataset(self):
         """Test collecting CF datasets from a DataArray objects."""
-        from satpy.writers.cf.datasets import _collect_cf_dataset
+        from satpy.cf.datasets import _collect_cf_dataset
 
         geos = AreaDefinition(
             area_id='geos',
@@ -69,7 +69,7 @@ class TestCollectCfDataset:
 
     def test_collect_cf_dataset_with_latitude_named_lat(self):
         """Test collecting CF datasets with latitude named lat."""
-        from satpy.writers.cf.datasets import _collect_cf_dataset
+        from satpy.cf.datasets import _collect_cf_dataset
 
         data = [[75, 2], [3, 4]]
         y = [1, 2]
@@ -123,8 +123,8 @@ class TestCollectCfDataset:
 
     def test_geographic_area_coords_attrs(self):
         """Test correct storage for area with lon/lat units."""
+        from satpy.cf.datasets import _collect_cf_dataset
         from satpy.tests.utils import make_fake_scene
-        from satpy.writers.cf.datasets import _collect_cf_dataset
 
         scn = make_fake_scene(
             {"ketolysis": np.arange(25).reshape(5, 5)},
@@ -147,7 +147,7 @@ class TestCollectCfDatasets:
 
     def test_empty_collect_cf_datasets(self):
         """Test that if no DataArrays, collect_cf_datasets raise error."""
-        from satpy.writers.cf.datasets import collect_cf_datasets
+        from satpy.cf.datasets import collect_cf_datasets
 
         with pytest.raises(RuntimeError):
             collect_cf_datasets(list_dataarrays=[])

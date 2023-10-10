@@ -111,8 +111,8 @@ class TestCFAttributeEncoding:
 
     def test__encode_attrs_nc(self):
         """Test attributes encoding."""
+        from satpy.cf.attrs import _encode_attrs_nc
         from satpy.tests.utils import assert_dict_array_equality
-        from satpy.writers.cf.attrs import _encode_attrs_nc
 
         attrs, expected, _ = self.get_test_attrs()
 

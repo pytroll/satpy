@@ -22,8 +22,8 @@ from collections import defaultdict
 
 import xarray as xr
 
-from satpy.writers.cf import EPOCH
-from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
+from satpy.cf import EPOCH
+from satpy.cf_writer import CF_DTYPES, CF_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ def _collect_cf_dataset(list_dataarrays,
     epoch : str
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.writers.cf import EPOCH`
+        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
     flatten_attrs : bool, optional
         If True, flatten dict-type attributes.
     exclude_attrs : list, optional
@@ -98,14 +98,8 @@ def _collect_cf_dataset(list_dataarrays,
     ds : xr.Dataset
         A partially CF-compliant xr.Dataset
     """
-    from satpy.writers.cf.area import (
-        area2cf,
-        assert_xy_unique,
-        has_projection_coords,
-        link_coords,
-        make_alt_coords_unique,
-    )
-    from satpy.writers.cf.dataarray import make_cf_dataarray
+    from satpy.cf.area import area2cf, assert_xy_unique, has_projection_coords, link_coords, make_alt_coords_unique
+    from satpy.cf.dataarray import make_cf_dataarray
 
     # Create dictionary of input datarrays
     # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
@@ -197,7 +191,7 @@ def collect_cf_datasets(list_dataarrays,
     epoch (str):
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.writers.cf import EPOCH`
+        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
     flatten_attrs (bool):
         If True, flatten dict-type attributes.
     exclude_attrs (list):
@@ -227,8 +221,8 @@ def collect_cf_datasets(list_dataarrays,
     header_attrs : dict
         Global attributes to be attached to the xr.Dataset / netCDF4.
     """
-    from satpy.writers.cf.attrs import preprocess_header_attrs
-    from satpy.writers.cf.coords import add_time_bounds_dimension
+    from satpy.cf.attrs import preprocess_header_attrs
+    from satpy.cf.coords import add_time_bounds_dimension
 
     if not list_dataarrays:
         raise RuntimeError("None of the requested datasets have been "

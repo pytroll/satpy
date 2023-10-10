@@ -44,9 +44,9 @@ One common parameter across almost all Writers is ``filename`` and
       - Deprecated from NinJo 7 (use ninjogeotiff)
       -
     * - NetCDF (Standard CF)
-      - :class:`cf <satpy.writers.cf_writer.CFWriter>`
+      - :class:`cf <satpy.cf_writer.CFWriter>`
       - Beta
-      - :mod:`Usage example <satpy.writers.cf_writer>`
+      - :mod:`Usage example <satpy.cf_writer>`
     * - AWIPS II Tiled NetCDF4
       - :class:`awips_tiled <satpy.writers.awips_tiled.AWIPSTiledWriter>`
       - Beta

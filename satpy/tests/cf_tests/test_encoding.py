@@ -47,7 +47,7 @@ class TestUpdateEncoding:
 
     def test_dataset_name_digit(self, fake_ds_digit):
         """Test data with dataset name staring with a digit."""
-        from satpy.writers.cf.encoding import update_encoding
+        from satpy.cf.encoding import update_encoding
 
         # Dataset with name staring with digit
         ds_digit = fake_ds_digit
@@ -66,7 +66,7 @@ class TestUpdateEncoding:
 
     def test_without_time(self, fake_ds):
         """Test data with no time dimension."""
-        from satpy.writers.cf.encoding import update_encoding
+        from satpy.cf.encoding import update_encoding
 
         # Without time dimension
         ds = fake_ds.chunk(2)
@@ -98,7 +98,7 @@ class TestUpdateEncoding:
 
     def test_with_time(self, fake_ds):
         """Test data with a time dimension."""
-        from satpy.writers.cf.encoding import update_encoding
+        from satpy.cf.encoding import update_encoding
 
         # With time dimension
         ds = fake_ds.chunk(8).expand_dims({'time': [datetime.datetime(2009, 7, 1, 12, 15)]})

@@ -28,7 +28,7 @@ class TestCFArea:
 
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
-        from satpy.writers.cf.area import assert_xy_unique
+        from satpy.cf.area import assert_xy_unique
 
         dummy = [[1, 2], [3, 4]]
         datas = {'a': xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]}),
@@ -42,7 +42,7 @@ class TestCFArea:
 
     def test_link_coords(self):
         """Check that coordinates link has been established correctly."""
-        from satpy.writers.cf.area import link_coords
+        from satpy.cf.area import link_coords
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
@@ -77,7 +77,7 @@ class TestCFArea:
 
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
-        from satpy.writers.cf.area import make_alt_coords_unique
+        from satpy.cf.area import make_alt_coords_unique
 
         data = [[1, 2], [3, 4]]
         y = [1, 2]
@@ -122,7 +122,7 @@ class TestCFArea:
 
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
-        from satpy.writers.cf.area import area2cf
+        from satpy.cf.area import area2cf
 
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
                                attrs={'name': 'var1'})
@@ -168,7 +168,7 @@ class TestCFArea:
 
     def test__add_grid_mapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
-        from satpy.writers.cf.area import _add_grid_mapping
+        from satpy.cf.area import _add_grid_mapping
 
         def _gm_matches(gmapping, expected):
             """Assert that all keys in ``expected`` match the values in ``gmapping``."""
@@ -352,7 +352,7 @@ class TestCFArea:
 
     def test__add_lonlat_coords(self):
         """Test the conversion from areas to lon/lat."""
-        from satpy.writers.cf.area import _add_lonlat_coords
+        from satpy.cf.area import _add_lonlat_coords
 
         area = AreaDefinition(
             'seviri',
@@ -439,14 +439,14 @@ class TestCFArea:
 
     def test__is_lon_or_lat_dataarray(self, datasets):
         """Test the _is_lon_or_lat_dataarray function."""
-        from satpy.writers.cf.area import _is_lon_or_lat_dataarray
+        from satpy.cf.area import _is_lon_or_lat_dataarray
 
         assert _is_lon_or_lat_dataarray(datasets['lat'])
         assert not _is_lon_or_lat_dataarray(datasets['var1'])
 
     def test_has_projection_coords(self, datasets):
         """Test the has_projection_coords function."""
-        from satpy.writers.cf.area import has_projection_coords
+        from satpy.cf.area import has_projection_coords
 
         assert has_projection_coords(datasets)
         datasets['lat'].attrs['standard_name'] = 'dummy'
