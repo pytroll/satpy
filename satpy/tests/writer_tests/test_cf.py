@@ -403,11 +403,11 @@ class TestCFWriter:
         old_version = sys.modules['pyproj'].__version__
         sys.modules['pyproj'].__version__ = "1.9.6"
         try:
-            importlib.reload(sys.modules['satpy.cf_writer'])
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
         finally:
             # Tear down
             sys.modules['pyproj'].__version__ = old_version
-            importlib.reload(sys.modules['satpy.cf_writer'])
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
 
     def test_global_attr_default_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
