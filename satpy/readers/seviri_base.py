@@ -422,11 +422,9 @@ def should_apply_meirink(calib_mode, channel_name):
 class MeirinkCalibrationHandler:
     """Re-calibration of the SEVIRI visible channels slope (see Meirink 2013)."""
 
-    def __init__(self, coefs=MEIRINK_COEFS, calib_mode=None):
+    def __init__(self, calib_mode):
         """Initialize the calibration handler."""
-        if calib_mode is None:
-            raise ValueError("Missing calib_mode")
-        self.coefs = coefs[calib_mode.split('-')[1]]
+        self.coefs = MEIRINK_COEFS[calib_mode.split('-')[1]]
 
     def get_slope(self, platform, channel, time):
         """Return the slope using the provided calibration coefficients."""
