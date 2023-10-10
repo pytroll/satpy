@@ -416,7 +416,6 @@ def get_meirink_slope(meirink_coefs, acquisition_time):
 
 def should_apply_meirink(calib_mode, channel_name):
     """Decide whether to use the Meirink calibration coefficients."""
-
     return "MEIRINK" in calib_mode and channel_name in ['VIS006', 'VIS008', 'IR_016']
 
 
