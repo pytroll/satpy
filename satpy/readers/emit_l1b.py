@@ -31,14 +31,13 @@ CHUNK_SIZE = get_legacy_chunk_size()
 DATE_FMT = "%Y-%m-%dT%H:%M:%S%z"
 
 
-class EMITL2FileHandler(NetCDF4FileHandler):
+class EMITL1BFileHandler(NetCDF4FileHandler):
     """File handler for EMIT L1B netCDF files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, *req_fhs):
         """Prepare the class for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
 
-        # self.coords = self._load_coords()
         self._load_bands()
 
     def _load_bands(self):

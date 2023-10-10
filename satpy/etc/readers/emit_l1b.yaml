@@ -11,10 +11,11 @@ reader:
 
 file_types:
   emit_l1b_rad:
-    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL2FileHandler
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL1BFileHandler
     file_patterns: ['{sensor:4s}_{level:3s}_RAD_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
+    requires: [emit_l1b_obs]
   emit_l1b_obs:
-    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL2FileHandler
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL1BFileHandler
     file_patterns: ['{sensor:4s}_{level:3s}_OBS_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
 
 datasets:
