@@ -105,6 +105,8 @@ composites:
 
   ndvi_hybrid_green:
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
     prerequisites:
     - name: B02
       modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
