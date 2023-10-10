@@ -143,6 +143,7 @@ import json
 import os
 import warnings
 from logging import getLogger
+from math import lcm  # type: ignore
 from weakref import WeakValueDictionary
 
 import dask
@@ -156,14 +157,6 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 
 from satpy.utils import PerformanceWarning, get_legacy_chunk_size
-
-try:
-    from math import lcm  # type: ignore
-except ImportError:
-    def lcm(a, b):
-        """Get 'Least Common Multiple' with Python 3.8 compatibility."""
-        from math import gcd
-        return abs(a * b) // gcd(a, b)
 
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler

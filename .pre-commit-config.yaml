@@ -8,7 +8,7 @@ repos:
         additional_dependencies: [flake8-docstrings, flake8-debugger, flake8-bugbear, mccabe]
         args: [--max-complexity, "10"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -28,7 +28,7 @@ repos:
           - types-pkg-resources
           - types-PyYAML
           - types-requests
-        args: ["--python-version", "3.8", "--ignore-missing-imports"]
+        args: ["--python-version", "3.9", "--ignore-missing-imports"]
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:

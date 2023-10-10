@@ -51,6 +51,18 @@ def _check_shared_metadata(data_arr):
     assert "rows_per_scan" in data_arr.attrs
     assert isinstance(data_arr.attrs["rows_per_scan"], int)
     assert data_arr.attrs['reader'] == 'modis_l1b'
+    assert "resolution" in data_arr.attrs
+    res = data_arr.attrs["resolution"]
+    if res == 5000:
+        assert data_arr.chunks == ((2, 2, 2), (data_arr.shape[1],))
+    elif res == 1000:
+        assert data_arr.chunks == ((10, 10, 10), (data_arr.shape[1],))
+    elif res == 500:
+        assert data_arr.chunks == ((20, 20, 20), (data_arr.shape[1],))
+    elif res == 250:
+        assert data_arr.chunks == ((40, 40, 40), (data_arr.shape[1],))
+    else:
+        raise ValueError(f"Unexpected resolution: {res}")
 
 
 def _load_and_check_geolocation(scene, resolution, exp_res, exp_shape, has_res,
@@ -147,7 +159,8 @@ class TestModisL1b:
         shape_500m = _shape_for_resolution(500)
         shape_250m = _shape_for_resolution(250)
         default_shape = _shape_for_resolution(default_res)
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
+        scheduler = CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)
+        with dask.config.set({'scheduler': scheduler, 'array.chunk-size': '1 MiB'}):
             _load_and_check_geolocation(scene, "*", default_res, default_shape, True)
             _load_and_check_geolocation(scene, 5000, 5000, shape_5km, has_5km)
             _load_and_check_geolocation(scene, 500, 500, shape_500m, has_500)
@@ -157,7 +170,8 @@ class TestModisL1b:
         """Test loading satellite zenith angle band."""
         scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file)
         dataset_name = 'satellite_zenith_angle'
-        scene.load([dataset_name])
+        with dask.config.set({'array.chunk-size': '1 MiB'}):
+            scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
@@ -167,7 +181,8 @@ class TestModisL1b:
         """Test loading visible band."""
         scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file)
         dataset_name = '1'
-        scene.load([dataset_name])
+        with dask.config.set({'array.chunk-size': '1 MiB'}):
+            scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset[0, 0] == 300.0
         assert dataset.shape == _shape_for_resolution(1000)
@@ -180,7 +195,8 @@ class TestModisL1b:
         scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file,
                       reader_kwargs={"mask_saturated": mask_saturated})
         dataset_name = '2'
-        scene.load([dataset_name])
+        with dask.config.set({'array.chunk-size': '1 MiB'}):
+            scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000

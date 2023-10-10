@@ -22,14 +22,6 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-try:
-    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
-    # Stop setuptools_scm from including all repository files
-    import setuptools_scm.integration
-    setuptools_scm.integration.find_files = lambda _: []
-except ImportError:
-    pass
-
 requires = ['numpy >1.20', 'pillow', 'pyresample >=1.24.0', 'trollsift',
             'trollimage >=1.20', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
@@ -150,6 +142,7 @@ setup(name=NAME,
             "Slack": "https://pytroll.slack.com/",
             "Twitter": "https://twitter.com/hashtag/satpy?src=hashtag_click",
             "Release Notes": "https://github.com/pytroll/satpy/blob/main/CHANGELOG.md",
+            "Mastodon": "https://fosstodon.org/tags/satpy",
         },
       packages=find_packages(),
       # Always use forward '/', even on Windows
