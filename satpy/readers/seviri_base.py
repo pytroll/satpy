@@ -61,14 +61,22 @@ argument upon Scene creation::
                         reader_kwargs={'calib_mode': 'GSICS'})
     scene.load(['VIS006', 'IR_108'])
 
-Furthermore, it is possible to specify external calibration coefficients
-for the conversion from counts to radiances. External coefficients take
-precedence over internal coefficients, but you can also mix internal and
-external coefficients: If external calibration coefficients are specified
-for only a subset of channels, the remaining channels will be calibrated
-using the chosen file-internal coefficients (nominal or GSICS).
+In addition, two other calibration methods are available:
 
-Calibration coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+1. It is possible to specify external calibration coefficients for the
+   conversion from counts to radiances. External coefficients take
+   precedence over internal coefficients and over the Meirink
+   coefficients, but you can also mix internal and external coefficients:
+   If external calibration coefficients are specified for only a subset
+   of channels, the remaining channels will be calibrated using the
+   chosen file-internal coefficients (nominal or GSICS).  Calibration
+   coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+
+2. The calibration mode ``meirink-2013`` uses coefficients based on an
+   intercalibration with Aqua-MODIS for the visible channels, as found in
+   `Inter-calibration of polar imager solar channels using SEVIRI`_
+   (2013) by J. F. Meirink, R. A. Roebeling, and P. Stammes.
+
 
 In the following example we use external calibration coefficients for the
 ``VIS006`` & ``IR_108`` channels, and nominal coefficients for the
@@ -92,6 +100,15 @@ In the next example we use external calibration coefficients for the
                         reader_kwargs={'calib_mode': 'GSICS',
                                        'ext_calib_coefs': coefs})
     scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+In the next example we use the mode ``meirink-2013`` calibration
+coefficients for all visible channels and nominal coefficients for the
+rest::
+
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'meirink-2013'})
+    scene.load(['VIS006', 'VIS008', 'IR_016'])
 
 
 Calibration to reflectance
@@ -162,6 +179,9 @@ References:
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
+
+.. _Inter-calibration of polar imager solar channels using SEVIRI:
+   http://dx.doi.org/10.5194/amt-6-2495-2013
 
 """
 
