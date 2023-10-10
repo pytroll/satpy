@@ -160,7 +160,7 @@ to be added.
 Where `my_text` is the text you wish to add and `<path_to_font>` is the
 location of the font file you wish to use, often in `/usr/share/fonts/`
 
-This dictionary can then be passed to the `save_dataset` or `save_datasets` command.
+This dictionary can then be passed to the :meth:`~satpy.scene.Scene.save_dataset` or :meth:`~satpy.scene.Scene.save_datasets` command.
 
 .. code-block:: python
 
