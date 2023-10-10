@@ -248,7 +248,8 @@ def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
     hashable_args = []
     for arg in args:
         if isinstance(arg, unhashable_types):
-            raise TypeError(f"Unhashable type in function signature ({type(arg)}), cannot be cached.")
+            warnings.warn(f"Unhashable type in function signature ({type(arg)}), cannot be cached.", stacklevel=2)
+            continue
         if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
         elif isinstance(arg, datetime):

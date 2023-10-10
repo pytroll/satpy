@@ -330,7 +330,7 @@ class TestAngleGeneration:
         def _fake_func(array):
             return array + 1
 
-        with pytest.raises(TypeError), \
+        with pytest.warns(UserWarning), \
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func(da.zeros(100))
 
