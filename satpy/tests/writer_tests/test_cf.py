@@ -28,8 +28,8 @@ import xarray as xr
 from packaging.version import Version
 
 from satpy import Scene
-from satpy.cf_writer import _get_backend_versions
 from satpy.tests.utils import make_dsq
+from satpy.writers.cf_writer import _get_backend_versions
 
 try:
     from pyproj import CRS
@@ -66,8 +66,8 @@ class TestCFWriter:
 
     def test_init(self):
         """Test initializing the CFWriter class."""
-        from satpy.cf_writer import CFWriter
         from satpy.writers import configs_for_writer
+        from satpy.writers.cf_writer import CFWriter
 
         CFWriter(config_files=list(configs_for_writer('cf'))[0])
 

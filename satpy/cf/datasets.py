@@ -23,7 +23,7 @@ from collections import defaultdict
 import xarray as xr
 
 from satpy.cf import EPOCH
-from satpy.cf_writer import CF_DTYPES, CF_VERSION
+from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
 
 logger = logging.getLogger(__name__)
 
