@@ -73,6 +73,32 @@ class VGACFileHandler(BaseFileHandler):
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
 
+    def dt64_to_datetime(self, dt64):
+        """Conversion of numpy.datetime64 to datetime objects."""
+        # https://stackoverflow.com/questions/13703720/converting-between-datetime-timestamp-and-datetime64/46921593#46921593
+        if type(dt64) == np.datetime64:
+            unix_epoch = np.datetime64(0, 's')
+            one_second = np.timedelta64(1, 's')
+            seconds_since_epoch = (dt64 - unix_epoch) / one_second
+            dt = datetime.utcfromtimestamp(seconds_since_epoch)
+            return dt
+        return dt64
+
+    def decode_time_variable(self, data, nc):
+        """Decode time variable."""
+        if data.units == "hours since proj_time0":
+            reference_time = np.datetime64(datetime.strptime(nc['proj_time0'].attrs["units"],
+                                                             'days since %d/%m/%YT%H:%M:%S'))
+            delta_days = float(nc['proj_time0'].values) * np.timedelta64(1, 'D').astype('timedelta64[ms]')
+            delta_hours = data.values * np.timedelta64(1, 'h').astype('timedelta64[ms]')
+            time_data = xr.DataArray(reference_time + delta_days + delta_hours,
+                                     coords=data.coords, attrs={"long_name": "Scanline time"})
+            self._start_time = self.dt64_to_datetime(time_data[0].values)
+            self._end_time = self.dt64_to_datetime(time_data[-1].values)
+            return time_data
+        else:
+            return data
+
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", yaml_info['name'])
@@ -82,6 +108,7 @@ class VGACFileHandler(BaseFileHandler):
         file_key = yaml_info.get('nc_key', name)
         data = nc[file_key]
         data = self.calibrate(data, yaml_info, file_key, nc)
+        data = self.decode_time_variable(data, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
         self.set_time_attrs(data)

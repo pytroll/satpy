@@ -247,8 +247,8 @@ datasets:
         units: degrees_east
         nc_key: lon
 
-  time:
-    name: time
+  scanline_timestamps:
+    name: scanline_timestamps
     resolution: 5000
     file_type:  vgac_nc
     nc_key: time
