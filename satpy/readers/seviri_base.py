@@ -363,7 +363,7 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 # To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
 
 # Epoch for the MEIRINK re-calibration
-DATE_2000 = datetime(2000, 1, 1)
+MEIRINK_EPOCH = datetime(2000, 1, 1)
 
 MEIRINK_COEFS = {}
 MEIRINK_COEFS['2013'] = {}
@@ -409,7 +409,7 @@ def get_meirink_slope(meirink_coefs, acquisition_time):
     """
     A = meirink_coefs[0]
     B = meirink_coefs[1]
-    delta_t = (acquisition_time - DATE_2000).total_seconds()
+    delta_t = (acquisition_time - MEIRINK_EPOCH).total_seconds()
     S = A + B * delta_t / (3600*24) / 1000.
     return S/1000
 
