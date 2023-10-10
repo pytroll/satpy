@@ -13,11 +13,11 @@ composites:
     limits: [0.15, 0.05]
     prerequisites:
       - name: vis_05
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
       - name: vis_08
-        modifiers: [sunz_corrected ]
+        modifiers: [sunz_corrected, sunz_reduced ]
     standard_name: toa_bidirectional_reflectance
 
   ndvi_hybrid_green_raw:
@@ -48,10 +48,10 @@ composites:
       of the ndvi_hybrid_green composites for details.
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
       - name: ndvi_hybrid_green
       - name: vis_04
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: true_color
 
   true_color_raw_with_corrected_green:

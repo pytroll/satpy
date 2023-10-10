@@ -235,6 +235,7 @@ def cache_to_zarr_if(
     out old entries. It is up to the user to manage the size of the cache.
 
     """
+
     def _decorator(func: Callable) -> Callable:
         zarr_cacher = ZarrCacheHelper(func,
                                       cache_config_key,
@@ -242,6 +243,7 @@ def cache_to_zarr_if(
                                       sanitize_args_func)
         wrapper = update_wrapper(zarr_cacher, func)
         return wrapper
+
     return _decorator
 
 
@@ -547,3 +549,44 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     # Force "night" pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
     return data * corr
+
+
+def sunzen_reduction(data: da.Array,
+                     sunz: da.Array,
+                     limit: float = 55.,
+                     max_sza: float = 90.,
+                     strength: float = 1.5) -> da.Array:
+    """Reduced strength of signal at high sun zenith angles."""
+    return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
+                         meta=np.array((), dtype=data.dtype), chunks=data.chunks)
+
+
+def _sunzen_reduction_ndarray(data: np.ndarray,
+                              sunz: np.ndarray,
+                              limit: float,
+                              max_sza: float,
+                              strength: float) -> np.ndarray:
+    # compute reduction factor (0.0 - 1.0) between limit and maz_sza
+    reduction_factor = (sunz - limit) / (max_sza - limit)
+    reduction_factor = reduction_factor.clip(0., 1.)
+
+    # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
+    with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+        reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
+
+    # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a
+    # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this
+    # operation has no effect on the reduction_factor.
+    reduction_factor = reduction_factor ** strength / (
+                reduction_factor ** strength + (1 - reduction_factor) ** strength)
+
+    # compute final correction term, with no reduction for angles < limit
+    corr = np.where(sunz < limit, 1.0, reduction_factor)
+
+    # force "night" pixels to 0 (where SZA is invalid)
+    corr[np.isnan(sunz)] = 0
+
+    # reduce data signal with correction term
+    res = data * corr
+
+    return res
