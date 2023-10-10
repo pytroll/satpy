@@ -16,8 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of time information (coordinates and dimensions)."""
+import logging
+
 import numpy as np
 import xarray as xr
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - caplog
 
 
 class TestCFtime:
@@ -25,7 +31,7 @@ class TestCFtime:
 
     def test_add_time_bounds_dimension(self):
         """Test addition of CF-compliant time attributes."""
-        from satpy.writers.cf.time import add_time_bounds_dimension
+        from satpy.writers.cf.coords import add_time_bounds_dimension
 
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
         times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
@@ -42,3 +48,36 @@ class TestCFtime:
         assert "time_bnds" in list(ds.data_vars)
         assert "bounds" in ds["time"].attrs
         assert "standard_name" in ds["time"].attrs
+
+
+class TestCFcoords:
+    """Test cases for CF spatial dimension and coordinates."""
+
+    def test_is_projected(self, caplog):
+        """Tests for private _is_projected function."""
+        from satpy.writers.cf.coords import _is_projected
+
+        # test case with units but no area
+        da = xr.DataArray(
+            np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
+                    "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
+        assert _is_projected(da)
+
+        da = xr.DataArray(
+            np.arange(25).reshape(5, 5),
+            dims=("y", "x"),
+            coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
+                    "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
+        assert not _is_projected(da)
+
+        da = xr.DataArray(
+            np.arange(25).reshape(5, 5),
+            dims=("y", "x"))
+        with caplog.at_level(logging.WARNING):
+            assert _is_projected(da)
+        assert "Failed to tell if data are projected." in caplog.text
+
+    # add_xy_coords_attrs
+    # process_time_coord

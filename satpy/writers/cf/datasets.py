@@ -22,7 +22,7 @@ from collections import defaultdict
 
 import xarray as xr
 
-from satpy.writers.cf.time import EPOCH
+from satpy.writers.cf import EPOCH
 from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def _collect_cf_dataset(list_dataarrays,
     epoch : str
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
+        If None, the default reference time is retrieved using `from satpy.writers.cf import EPOCH`
     flatten_attrs : bool, optional
         If True, flatten dict-type attributes.
     exclude_attrs : list, optional
@@ -197,7 +197,7 @@ def collect_cf_datasets(list_dataarrays,
     epoch (str):
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.cf_writer import EPOCH`
+        If None, the default reference time is retrieved using `from satpy.writers.cf import EPOCH`
     flatten_attrs (bool):
         If True, flatten dict-type attributes.
     exclude_attrs (list):
@@ -228,7 +228,7 @@ def collect_cf_datasets(list_dataarrays,
         Global attributes to be attached to the xr.Dataset / netCDF4.
     """
     from satpy.writers.cf.attrs import preprocess_header_attrs
-    from satpy.writers.cf.time import add_time_bounds_dimension
+    from satpy.writers.cf.coords import add_time_bounds_dimension
 
     if not list_dataarrays:
         raise RuntimeError("None of the requested datasets have been "

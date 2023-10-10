@@ -407,3 +407,18 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
                 )
             except TypeError:
                 assert attrs[key] == attrs_exp[key], err_msg
+
+
+def assert_dict_array_equality(d1, d2):
+    """Check that dicts containing arrays are equal."""
+    assert set(d1.keys()) == set(d2.keys())
+    for key, val1 in d1.items():
+        val2 = d2[key]
+        if isinstance(val1, np.ndarray):
+            np.testing.assert_array_equal(val1, val2)
+            assert val1.dtype == val2.dtype
+        else:
+            assert val1 == val2
+            if isinstance(val1, (np.floating, np.integer, np.bool_)):
+                assert isinstance(val2, np.generic)
+                assert val1.dtype == val2.dtype

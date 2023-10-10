@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests CF-compliant DataArray creation."""
+"""Tests CF-compliant Dataset(s) creation."""
 import datetime
 
 import numpy as np
@@ -24,18 +24,10 @@ import xarray as xr
 from pyresample import AreaDefinition, create_area_def
 
 
-def test_empty_collect_cf_datasets():
-    """Test that if no DataArrays, collect_cf_datasets raise error."""
-    from satpy.writers.cf.datasets import collect_cf_datasets
-
-    with pytest.raises(RuntimeError):
-        collect_cf_datasets(list_dataarrays=[])
-
-
-class TestCollectCfDatasets:
+class TestCollectCfDataset:
     """Test case for collect_cf_dataset."""
 
-    def test_collect_cf_dataarrays(self):
+    def test_collect_cf_dataset(self):
         """Test collecting CF datasets from a DataArray objects."""
         from satpy.writers.cf.datasets import _collect_cf_dataset
 
@@ -75,7 +67,7 @@ class TestCollectCfDatasets:
         assert 'grid_mapping' not in da_var2.attrs
         assert da_var2.attrs['long_name'] == 'variable 2'
 
-    def test_collect_cf_dataarrays_with_latitude_named_lat(self):
+    def test_collect_cf_dataset_with_latitude_named_lat(self):
         """Test collecting CF datasets with latitude named lat."""
         from satpy.writers.cf.datasets import _collect_cf_dataset
 
@@ -148,3 +140,14 @@ class TestCollectCfDatasets:
         assert ds["mavas"].attrs["longitude_of_prime_meridian"] == 0.0
         np.testing.assert_allclose(ds["mavas"].attrs["semi_major_axis"], 6378137.0)
         np.testing.assert_allclose(ds["mavas"].attrs["inverse_flattening"], 298.257223563)
+
+
+class TestCollectCfDatasets:
+    """Test case for collect_cf_datasets."""
+
+    def test_empty_collect_cf_datasets(self):
+        """Test that if no DataArrays, collect_cf_datasets raise error."""
+        from satpy.writers.cf.datasets import collect_cf_datasets
+
+        with pytest.raises(RuntimeError):
+            collect_cf_datasets(list_dataarrays=[])

@@ -19,9 +19,9 @@
 import logging
 import warnings
 
+from satpy.writers.cf import EPOCH
 from satpy.writers.cf.attrs import preprocess_datarray_attrs
-from satpy.writers.cf.coords_attrs import add_xy_coords_attrs
-from satpy.writers.cf.time import EPOCH, process_time_coord
+from satpy.writers.cf.coords import add_xy_coords_attrs, process_time_coord
 
 logger = logging.getLogger(__name__)
 

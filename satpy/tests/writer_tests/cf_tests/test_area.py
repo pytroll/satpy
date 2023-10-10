@@ -16,17 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF Area."""
-import logging
-
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
-
-# NOTE:
-# The following fixtures are not defined in this file, but are used and injected by Pytest:
-# - caplog
 
 
 class TestCFArea:
@@ -405,32 +399,6 @@ class TestCFArea:
         np.testing.assert_array_equal(lon.data, lons_ref)
         assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
         assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
-
-    def test_is_projected(self, caplog):
-        """Tests for private _is_projected function."""
-        from satpy.writers.cf.crs import _is_projected
-
-        # test case with units but no area
-        da = xr.DataArray(
-            np.arange(25).reshape(5, 5),
-            dims=("y", "x"),
-            coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "m"}),
-                    "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "m"})})
-        assert _is_projected(da)
-
-        da = xr.DataArray(
-            np.arange(25).reshape(5, 5),
-            dims=("y", "x"),
-            coords={"x": xr.DataArray(np.arange(5), dims=("x",), attrs={"units": "degrees_east"}),
-                    "y": xr.DataArray(np.arange(5), dims=("y",), attrs={"units": "degrees_north"})})
-        assert not _is_projected(da)
-
-        da = xr.DataArray(
-            np.arange(25).reshape(5, 5),
-            dims=("y", "x"))
-        with caplog.at_level(logging.WARNING):
-            assert _is_projected(da)
-        assert "Failed to tell if data are projected." in caplog.text
 
     @pytest.fixture
     def datasets(self):

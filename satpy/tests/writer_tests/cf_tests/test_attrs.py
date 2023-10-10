@@ -109,30 +109,16 @@ class TestCFAttributeEncoding:
                         'raw_metadata_dict_b': np.array([1, 2, 3], dtype='uint8')}
         return attrs, encoded, encoded_flat
 
-    def assertDictWithArraysEqual(self, d1, d2):
-        """Check that dicts containing arrays are equal."""
-        # TODO: this is also used by test_da2cf
-        assert set(d1.keys()) == set(d2.keys())
-        for key, val1 in d1.items():
-            val2 = d2[key]
-            if isinstance(val1, np.ndarray):
-                np.testing.assert_array_equal(val1, val2)
-                assert val1.dtype == val2.dtype
-            else:
-                assert val1 == val2
-                if isinstance(val1, (np.floating, np.integer, np.bool_)):
-                    assert isinstance(val2, np.generic)
-                    assert val1.dtype == val2.dtype
-
     def test__encode_attrs_nc(self):
         """Test attributes encoding."""
+        from satpy.tests.utils import assert_dict_array_equality
         from satpy.writers.cf.attrs import _encode_attrs_nc
 
         attrs, expected, _ = self.get_test_attrs()
 
         # Test encoding
         encoded = _encode_attrs_nc(attrs)
-        self.assertDictWithArraysEqual(expected, encoded)
+        assert_dict_array_equality(expected, encoded)
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],

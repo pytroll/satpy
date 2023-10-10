@@ -66,7 +66,7 @@ def to_xarray(scn,
     epoch (str):
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using "from satpy.cf_writer import EPOCH"
+        If None, the default reference time is retrieved using "from satpy.writers.cf import EPOCH"
     flatten_attrs (bool):
         If True, flatten dict-type attributes.
     exclude_attrs (list):
@@ -90,8 +90,8 @@ def to_xarray(scn,
         A CF-compliant xr.Dataset
 
     """
+    from satpy.writers.cf import EPOCH
     from satpy.writers.cf.datasets import collect_cf_datasets
-    from satpy.writers.cf.time import EPOCH
 
     if epoch is None:
         epoch = EPOCH

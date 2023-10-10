@@ -22,8 +22,8 @@ import pytest
 import xarray as xr
 
 
-class TestUpdateDatasetEncodings:
-    """Test update of Dataset encodings."""
+class TestUpdateEncoding:
+    """Test update of dataset encodings."""
 
     @pytest.fixture
     def fake_ds(self):

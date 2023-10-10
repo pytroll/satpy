@@ -163,7 +163,7 @@ import xarray as xr
 from packaging.version import Version
 
 from satpy.writers import Writer
-from satpy.writers.cf.time import EPOCH
+from satpy.writers.cf import EPOCH
 
 logger = logging.getLogger(__name__)
 

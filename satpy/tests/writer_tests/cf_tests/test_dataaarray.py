@@ -154,23 +154,9 @@ class TestCfDataArray:
                         'raw_metadata_dict_b': np.array([1, 2, 3], dtype='uint8')}
         return attrs, encoded, encoded_flat
 
-    def assertDictWithArraysEqual(self, d1, d2):
-        """Check that dicts containing arrays are equal."""
-        # TODO: also used by cf/test_attrs.py
-        assert set(d1.keys()) == set(d2.keys())
-        for key, val1 in d1.items():
-            val2 = d2[key]
-            if isinstance(val1, np.ndarray):
-                np.testing.assert_array_equal(val1, val2)
-                assert val1.dtype == val2.dtype
-            else:
-                assert val1 == val2
-                if isinstance(val1, (np.floating, np.integer, np.bool_)):
-                    assert isinstance(val2, np.generic)
-                    assert val1.dtype == val2.dtype
-
     def test_make_cf_dataarray(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
+        from satpy.tests.utils import assert_dict_array_equality
         from satpy.writers.cf.dataarray import make_cf_dataarray
 
         # Create set of test attributes
@@ -200,12 +186,12 @@ class TestCfDataArray:
         np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
         assert res['x'].attrs == {'units': 'm', 'standard_name': 'projection_x_coordinate'}
         assert res['y'].attrs == {'units': 'm', 'standard_name': 'projection_y_coordinate'}
-        self.assertDictWithArraysEqual(res.attrs, attrs_expected)
+        assert_dict_array_equality(res.attrs, attrs_expected)
 
         # Test attribute kwargs
         res_flat = make_cf_dataarray(arr, flatten_attrs=True, exclude_attrs=['int'])
         attrs_expected_flat.pop('int')
-        self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
+        assert_dict_array_equality(res_flat.attrs, attrs_expected_flat)
 
     def test_make_cf_dataarray_one_dimensional_array(self):
         """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
@@ -214,3 +200,5 @@ class TestCfDataArray:
         arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
                            coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
         _ = make_cf_dataarray(arr)
+
+    # _handle_dataarray_name
