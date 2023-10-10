@@ -98,16 +98,16 @@ def _update_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
     return encoding
 
 
-def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
+def update_encoding(dataset, to_engine_kwargs, numeric_name_prefix='CHANNEL_'):
     """Update encoding.
 
     Preserve dask chunks, avoid fill values in coordinate variables and make sure that
     time & time bounds have the same units.
     """
-    other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
-    encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+    other_to_engine_kwargs = to_engine_kwargs.copy()
+    encoding = other_to_engine_kwargs.pop('encoding', {}).copy()
     encoding = _update_encoding_dataset_names(encoding, dataset, numeric_name_prefix)
     encoding = _set_default_chunks(encoding, dataset)
     encoding = _set_default_fill_value(encoding, dataset)
     encoding = _set_default_time_encoding(encoding, dataset)
-    return encoding, other_to_netcdf_kwargs
+    return encoding, other_to_engine_kwargs

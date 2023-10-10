@@ -166,7 +166,7 @@ def _remove_satpy_attrs(new_data):
 def _format_prerequisites_attrs(dataarray):
     """Reformat prerequisites attribute value to string."""
     if 'prerequisites' in dataarray.attrs:
-        dataarray.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+        dataarray.attrs['prerequisites'] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
     return dataarray
 
 

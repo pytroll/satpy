@@ -45,7 +45,7 @@ class TestCFAttributeEncoding:
                  'numpy_bool': True,
                  'numpy_void': np.void(0),
                  'numpy_bytes': np.bytes_('test'),
-                 'numpy_string': np.string_('test'),
+                 'numpy_string': np.str_('test'),
                  'list': [1, 2, np.float64(3)],
                  'nested_list': ["1", ["2", [3]]],
                  'bool': True,

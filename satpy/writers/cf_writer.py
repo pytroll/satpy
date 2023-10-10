@@ -186,7 +186,7 @@ if netCDF4 is None and h5netcdf is None:
 CF_VERSION = 'CF-1.7'
 
 
-# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# Numpy datatypes compatible with all netCDF4 backends. ``np.str_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
 NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
@@ -194,7 +194,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int32'), np.dtype('uint32'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
-              np.string_]
+              np.bytes_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
 # Note: Unsigned and int64 are CF 1.9 compatible
@@ -203,7 +203,7 @@ CF_DTYPES = [np.dtype('int8'),
              np.dtype('int32'),
              np.dtype('float32'),
              np.dtype('float64'),
-             np.string_]
+             np.bytes_]
 
 
 def _sanitize_writer_kwargs(writer_kwargs):
@@ -314,7 +314,7 @@ class CFWriter(Writer):
         # - If single netCDF, it write directly
         for group_name, ds in grouped_datasets.items():
             encoding, other_to_netcdf_kwargs = update_encoding(ds,
-                                                               to_netcdf_kwargs=to_netcdf_kwargs,
+                                                               to_engine_kwargs=to_netcdf_kwargs,
                                                                numeric_name_prefix=numeric_name_prefix)
             res = ds.to_netcdf(filename,
                                engine=engine,
@@ -346,7 +346,7 @@ class CFWriter(Writer):
         """
         from satpy.writers.cf.dataarray import make_cf_dataarray
         warnings.warn('CFWriter.da2cf is deprecated.'
-                      'Use satpy.writers.cf_writer.make_cf_dataarray instead.',
+                      'Use satpy.writers.cf.dataarray.make_cf_dataarray instead.',
                       DeprecationWarning, stacklevel=3)
         return make_cf_dataarray(dataarray=dataarray,
                                  epoch=epoch,
