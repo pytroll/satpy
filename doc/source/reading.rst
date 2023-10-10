@@ -1,5 +1,5 @@
 =======
-Readers
+Reading
 =======
 
 .. todo::
@@ -7,10 +7,10 @@ Readers
     How to read cloud products from NWCSAF software. (separate document?)
 
 Satpy supports reading and loading data from many input file formats and
-schemes. The :class:`~satpy.scene.Scene` object provides a simple interface
-around all the complexity of these various formats through its ``load``
-method. The following sections describe the different way data can be loaded,
-requested, or added to a Scene object.
+schemes through the concept of *readers*. Each reader supports a specific type of input data.
+The :class:`~satpy.scene.Scene` object provides a simple interface around all the complexity of
+these various formats through its ``load``method.
+The following sections describe the different way data can be loaded, requested, or added to a Scene object.
 
 Available Readers
 =================

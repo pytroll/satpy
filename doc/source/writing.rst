@@ -1,10 +1,10 @@
 =======
-Writers
+Writing
 =======
 
-Satpy makes it possible to save datasets in multiple formats. For details
-on additional arguments and features available for a specific Writer see
-the table below. Most use cases will want to save datasets using the
+Satpy makes it possible to save datasets in multiple formats, with *writers* designed to save in a given format.
+For details on additional arguments and features available for a specific Writer see the table below.
+Most use cases will want to save datasets using the
 :meth:`~satpy.scene.Scene.save_datasets` method::
 
     >>> scn.save_datasets(writer='simple_image')
