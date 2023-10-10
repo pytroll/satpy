@@ -3,8 +3,14 @@
 import numpy as np
 import pytest
 
-import satpy.readers.gms.gms5_vissr_navigation as nav
-from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.reader_tests.utils import get_jit_methods, skip_numba_unstable_if_missing
+
+try:
+    import satpy.readers.gms.gms5_vissr_navigation as nav
+except ImportError as err:
+    if skip_numba_unstable_if_missing():
+        pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
+    raise
 
 # Navigation references computed with JMA's Msial library (files
 # VISSR_19960217_2331_IR1.A.IMG and VISSR_19960217_2331_VIS.A.IMG). The VIS

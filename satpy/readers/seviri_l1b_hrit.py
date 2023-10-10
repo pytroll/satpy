@@ -214,7 +214,7 @@ from __future__ import division
 
 import copy
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -721,7 +721,6 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
         calib = SEVIRICalibrationHandler(
             platform_id=self.platform_id,
             channel_name=self.channel_name,
@@ -730,7 +729,6 @@ class HRITMSGFileHandler(HRITFileHandler):
             scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, calibration)
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
     def _mask_bad_quality(self, data):

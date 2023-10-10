@@ -5,6 +5,7 @@ dependencies:
   - xarray!=2022.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
   - appdirs
   - toolz
@@ -54,7 +55,7 @@ dependencies:
   - xarray-datatree
   - pint-xarray
   - ephem
-  - bokeh<3
+  - bokeh
   - pip:
     - trollsift
     - trollimage>=1.20
