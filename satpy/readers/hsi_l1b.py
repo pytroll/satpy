@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
+# Copyright (c) 2022-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -97,8 +97,7 @@ class HSIBaseFileHandler(BaseFileHandler):
                           'saa': self.meta.geom_sun_azimuth,
                           'earthSunDist': self.meta.earthSunDist,
                           'aot': self.meta.aot,
-                          'filename_metaxml': self.meta.filename_metaxml,
-                          'scene_basename': self.meta.vnir.scene_basename,
+                          'granule_id': self.meta.vnir.scene_basename,
                           }
 
         return self._meta
