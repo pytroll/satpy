@@ -21,7 +21,7 @@ import warnings
 
 from satpy.cf import EPOCH
 from satpy.cf.attrs import preprocess_datarray_attrs
-from satpy.cf.coords import add_xy_coords_attrs, process_time_coord
+from satpy.cf.coords import add_xy_coords_attrs, set_cf_time_info
 
 logger = logging.getLogger(__name__)
 
@@ -96,5 +96,6 @@ def make_cf_dataarray(dataarray,
                                           flatten_attrs=flatten_attrs,
                                           exclude_attrs=exclude_attrs)
     dataarray = add_xy_coords_attrs(dataarray)
-    dataarray = process_time_coord(dataarray, epoch=epoch)
+    if 'time' in dataarray.coords:
+        dataarray = set_cf_time_info(dataarray, epoch=epoch)
     return dataarray

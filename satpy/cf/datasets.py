@@ -30,16 +30,16 @@ logger = logging.getLogger(__name__)
 
 def _get_extra_ds(dataarray, keys=None):
     """Get the ancillary_variables DataArrays associated to a dataset."""
-    ds_collection = {}
+    dict_datarrays = {}
     # Retrieve ancillary variable datarrays
     for ancillary_dataarray in dataarray.attrs.get('ancillary_variables', []):
         ancillary_variable = ancillary_dataarray.name
         if keys and ancillary_variable not in keys:
             keys.append(ancillary_variable)
-            ds_collection.update(_get_extra_ds(ancillary_dataarray, keys=keys))
+            dict_datarrays.update(_get_extra_ds(ancillary_dataarray, keys=keys))
     # Add input dataarray
-    ds_collection[dataarray.attrs['name']] = dataarray
-    return ds_collection
+    dict_datarrays[dataarray.attrs['name']] = dataarray
+    return dict_datarrays
 
 
 def _get_groups(groups, list_datarrays):
@@ -98,23 +98,29 @@ def _collect_cf_dataset(list_dataarrays,
     ds : xr.Dataset
         A partially CF-compliant xr.Dataset
     """
-    from satpy.cf.area import area2cf, assert_xy_unique, has_projection_coords, link_coords, make_alt_coords_unique
+    from satpy.cf.area import area2cf
+    from satpy.cf.coords import (
+        add_coordinates_attrs_coords,
+        check_unique_projection_coords,
+        ensure_unique_nondimensional_coords,
+        has_projection_coords,
+    )
     from satpy.cf.dataarray import make_cf_dataarray
 
     # Create dictionary of input datarrays
     # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
-    ds_collection = {}
+    dict_dataarrays = {}
     for dataarray in list_dataarrays:
-        ds_collection.update(_get_extra_ds(dataarray))
+        dict_dataarrays.update(_get_extra_ds(dataarray))
 
     # Check if one DataArray in the collection has 'longitude' or 'latitude'
-    got_lonlats = has_projection_coords(ds_collection)
+    got_lonlats = has_projection_coords(dict_dataarrays)
 
     # Sort dictionary by keys name
-    ds_collection = dict(sorted(ds_collection.items()))
+    dict_dataarrays = dict(sorted(dict_dataarrays.items()))
 
-    dict_dataarrays = {}
-    for dataarray in ds_collection.values():
+    dict_cf_dataarrays = {}
+    for dataarray in dict_dataarrays.values():
         dataarray_type = dataarray.dtype
         if dataarray_type not in CF_DTYPES:
             warnings.warn(
@@ -147,23 +153,24 @@ def _collect_cf_dataset(list_dataarrays,
                                               exclude_attrs=exclude_attrs,
                                               include_orig_name=include_orig_name,
                                               numeric_name_prefix=numeric_name_prefix)
-            dict_dataarrays[new_dataarray.name] = new_dataarray
+            dict_cf_dataarrays[new_dataarray.name] = new_dataarray
 
-    # Check all DataArray have same size
-    assert_xy_unique(dict_dataarrays)
+    # Check all DataArrays have same projection coordinates
+    check_unique_projection_coords(dict_cf_dataarrays)
 
-    # Deal with the 'coordinates' attributes indicating lat/lon coords
-    # NOTE: this currently is dropped by default !!!
-    link_coords(dict_dataarrays)
+    # Add to DataArrays the coordinates specified in the 'coordinates' attribute
+    # - Deal with the 'coordinates' attributes indicating lat/lon coords
+    # - The 'coordinates' attribute is dropped from each DataArray
+    dict_cf_dataarrays = add_coordinates_attrs_coords(dict_cf_dataarrays)
 
     # Ensure non-dimensional coordinates to be unique across DataArrays
     # --> If not unique, prepend the DataArray name to the coordinate
     # --> If unique, does not prepend the DataArray name only if pretty=True
     # --> 'longitude' and 'latitude' coordinates are not prepended
-    dict_dataarrays = make_alt_coords_unique(dict_dataarrays, pretty=pretty)
+    dict_cf_dataarrays = ensure_unique_nondimensional_coords(dict_cf_dataarrays, pretty=pretty)
 
     # Create a xr.Dataset
-    ds = xr.Dataset(dict_dataarrays)
+    ds = xr.Dataset(dict_cf_dataarrays)
     return ds
 
 

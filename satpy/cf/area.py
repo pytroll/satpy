@@ -17,11 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of pyresample area information."""
 import logging
-import warnings
-from collections import defaultdict
 
 import xarray as xr
-from dask.base import tokenize
 from packaging.version import Version
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
@@ -79,114 +76,3 @@ def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
         res.append(gmapping)
     res.append(dataarray)
     return res
-
-
-def _is_lon_or_lat_dataarray(dataarray):
-    """Check if the DataArray represents the latitude or longitude coordinate."""
-    if 'standard_name' in dataarray.attrs and dataarray.attrs['standard_name'] in ['longitude', 'latitude']:
-        return True
-    return False
-
-
-def has_projection_coords(ds_collection):
-    """Check if DataArray collection has a "longitude" or "latitude" DataArray."""
-    for dataarray in ds_collection.values():
-        if _is_lon_or_lat_dataarray(dataarray):
-            return True
-    return False
-
-
-def make_alt_coords_unique(datas, pretty=False):
-    """Make non-dimensional coordinates unique among all datasets.
-
-    Non-dimensional (or alternative) coordinates, such as scanline timestamps,
-    may occur in multiple datasets with the same name and dimension
-    but different values.
-
-    In order to avoid conflicts, prepend the dataset name to the coordinate name.
-    If a non-dimensional coordinate is unique among all datasets and ``pretty=True``,
-    its name will not be modified.
-
-    Since all datasets must have the same projection coordinates,
-    this is not applied to latitude and longitude.
-
-    Args:
-        datas (dict):
-            Dictionary of (dataset name, dataset)
-        pretty (bool):
-            Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-
-    Returns:
-        Dictionary holding the updated datasets
-
-    """
-    # Determine which non-dimensional coordinates are unique
-    tokens = defaultdict(set)
-    for dataset in datas.values():
-        for coord_name in dataset.coords:
-            if not _is_lon_or_lat_dataarray(dataset[coord_name]) and coord_name not in dataset.dims:
-                tokens[coord_name].add(tokenize(dataset[coord_name].data))
-    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
-
-    # Prepend dataset name, if not unique or no pretty-format desired
-    new_datas = datas.copy()
-    for coord_name, unique in coords_unique.items():
-        if not pretty or not unique:
-            if pretty:
-                warnings.warn(
-                    'Cannot pretty-format "{}" coordinates because they are '
-                    'not identical among the given datasets'.format(coord_name),
-                    stacklevel=2
-                )
-            for ds_name, dataset in datas.items():
-                if coord_name in dataset.coords:
-                    rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
-                    new_datas[ds_name] = new_datas[ds_name].rename(rename)
-
-    return new_datas
-
-
-def assert_xy_unique(datas):
-    """Check that all datasets share the same projection coordinates x/y."""
-    unique_x = set()
-    unique_y = set()
-    for dataset in datas.values():
-        if 'y' in dataset.dims:
-            token_y = tokenize(dataset['y'].data)
-            unique_y.add(token_y)
-        if 'x' in dataset.dims:
-            token_x = tokenize(dataset['x'].data)
-            unique_x.add(token_x)
-    if len(unique_x) > 1 or len(unique_y) > 1:
-        raise ValueError('Datasets to be saved in one file (or one group) must have identical projection coordinates. '
-                         'Please group them by area or save them in separate files.')
-
-
-def link_coords(datas):
-    """Link dataarrays and coordinates.
-
-    If the `coordinates` attribute of a data array links to other dataarrays in the scene, for example
-    `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
-    `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
-    automatically.
-
-    """
-    for da_name, data in datas.items():
-        declared_coordinates = data.attrs.get('coordinates', [])
-        if isinstance(declared_coordinates, str):
-            declared_coordinates = declared_coordinates.split(' ')
-        for coord in declared_coordinates:
-            if coord not in data.coords:
-                try:
-                    dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
-                    data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
-                except KeyError:
-                    warnings.warn(
-                        'Coordinate "{}" referenced by dataarray {} does not '
-                        'exist, dropping reference.'.format(coord, da_name),
-                        stacklevel=2
-                    )
-                    continue
-
-        # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        data.attrs.pop('coordinates', None)

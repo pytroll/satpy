@@ -18,107 +18,12 @@
 """Tests for the CF Area."""
 import dask.array as da
 import numpy as np
-import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
 
 class TestCFArea:
     """Test case for CF Area."""
-
-    def test_assert_xy_unique(self):
-        """Test that the x and y coordinates are unique."""
-        from satpy.cf.area import assert_xy_unique
-
-        dummy = [[1, 2], [3, 4]]
-        datas = {'a': xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]}),
-                 'b': xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]}),
-                 'n': xr.DataArray(data=dummy, dims=('v', 'w'), coords={'v': [1, 2], 'w': [3, 4]})}
-        assert_xy_unique(datas)
-
-        datas['c'] = xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 3], 'x': [3, 4]})
-        with pytest.raises(ValueError):
-            assert_xy_unique(datas)
-
-    def test_link_coords(self):
-        """Check that coordinates link has been established correctly."""
-        from satpy.cf.area import link_coords
-
-        data = [[1, 2], [3, 4]]
-        lon = np.zeros((2, 2))
-        lon2 = np.zeros((1, 2, 2))
-        lat = np.ones((2, 2))
-        datasets = {
-            'var1': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon lat'}),
-            'var2': xr.DataArray(data=data, dims=('y', 'x')),
-            'var3': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon2 lat'}),
-            'var4': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'not_exist lon lat'}),
-            'lon': xr.DataArray(data=lon, dims=('y', 'x')),
-            'lon2': xr.DataArray(data=lon2, dims=('time', 'y', 'x')),
-            'lat': xr.DataArray(data=lat, dims=('y', 'x'))
-        }
-
-        link_coords(datasets)
-
-        # Check that link has been established correctly and 'coordinate' atrribute has been dropped
-        assert 'lon' in datasets['var1'].coords
-        assert 'lat' in datasets['var1'].coords
-        np.testing.assert_array_equal(datasets['var1']['lon'].data, lon)
-        np.testing.assert_array_equal(datasets['var1']['lat'].data, lat)
-        assert 'coordinates' not in datasets['var1'].attrs
-
-        # There should be no link if there was no 'coordinate' attribute
-        assert 'lon' not in datasets['var2'].coords
-        assert 'lat' not in datasets['var2'].coords
-
-        # The non-existent dimension or coordinate should be dropped
-        assert 'time' not in datasets['var3'].coords
-        assert 'not_exist' not in datasets['var4'].coords
-
-    def test_make_alt_coords_unique(self):
-        """Test that created coordinate variables are unique."""
-        from satpy.cf.area import make_alt_coords_unique
-
-        data = [[1, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        time1 = [1, 2]
-        time2 = [3, 4]
-        datasets = {'var1': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x, 'acq_time': ('y', time1)}),
-                    'var2': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x, 'acq_time': ('y', time2)})}
-
-        # Test that dataset names are prepended to alternative coordinates
-        res = make_alt_coords_unique(datasets)
-        np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
-        np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
-        assert 'acq_time' not in res['var1'].coords
-        assert 'acq_time' not in res['var2'].coords
-
-        # Make sure nothing else is modified
-        np.testing.assert_array_equal(res['var1']['x'], x)
-        np.testing.assert_array_equal(res['var1']['y'], y)
-        np.testing.assert_array_equal(res['var2']['x'], x)
-        np.testing.assert_array_equal(res['var2']['y'], y)
-
-        # Coords not unique -> Dataset names must be prepended, even if pretty=True
-        with pytest.warns(UserWarning, match='Cannot pretty-format "acq_time"'):
-            res = make_alt_coords_unique(datasets, pretty=True)
-        np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
-        np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
-        assert 'acq_time' not in res['var1'].coords
-        assert 'acq_time' not in res['var2'].coords
-
-        # Coords unique and pretty=True -> Don't modify coordinate names
-        datasets['var2']['acq_time'] = ('y', time1)
-        res = make_alt_coords_unique(datasets, pretty=True)
-        np.testing.assert_array_equal(res['var1']['acq_time'], time1)
-        np.testing.assert_array_equal(res['var2']['acq_time'], time1)
-        assert 'var1_acq_time' not in res['var1'].coords
-        assert 'var2_acq_time' not in res['var2'].coords
 
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
@@ -399,55 +304,3 @@ class TestCFArea:
         np.testing.assert_array_equal(lon.data, lons_ref)
         assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
         assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
-
-    @pytest.fixture
-    def datasets(self):
-        """Create test dataset."""
-        data = [[75, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        geos = AreaDefinition(
-            area_id='geos',
-            description='geos',
-            proj_id='geos',
-            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
-            width=2, height=2,
-            area_extent=[-1, -1, 1, 1])
-        datasets = {
-            'var1': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'var2': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'lat': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x}),
-            'lon': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x})}
-        datasets['lat'].attrs['standard_name'] = 'latitude'
-        datasets['var1'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['area'] = geos
-        datasets['var1'].attrs['area'] = geos
-        datasets['lat'].attrs['name'] = 'lat'
-        datasets['var1'].attrs['name'] = 'var1'
-        datasets['var2'].attrs['name'] = 'var2'
-        datasets['lon'].attrs['name'] = 'lon'
-        return datasets
-
-    def test__is_lon_or_lat_dataarray(self, datasets):
-        """Test the _is_lon_or_lat_dataarray function."""
-        from satpy.cf.area import _is_lon_or_lat_dataarray
-
-        assert _is_lon_or_lat_dataarray(datasets['lat'])
-        assert not _is_lon_or_lat_dataarray(datasets['var1'])
-
-    def test_has_projection_coords(self, datasets):
-        """Test the has_projection_coords function."""
-        from satpy.cf.area import has_projection_coords
-
-        assert has_projection_coords(datasets)
-        datasets['lat'].attrs['standard_name'] = 'dummy'
-        assert not has_projection_coords(datasets)
