@@ -59,11 +59,8 @@ class HSIBaseFileHandler(BaseFileHandler):
         self.meta.read_metadata()
         self.meta.earthSunDist = self.meta.get_earth_sun_distance(self.meta.observation_datetime)
 
-        # read wavelength which is the dim for other variables
-        self.bands_vnir = xr.DataArray(self.meta.vnir.wvl_center, dims='bands_vnir').rename('bands_vnir')
-        self.bands_swir = xr.DataArray(self.meta.swir.wvl_center, dims='bands_swir').rename('bands_swir')
-        self.bands_vnir.attrs['units'] = 'nm'
-        self.bands_swir.attrs['units'] = 'nm'
+        # load bands info for dims
+        self._load_bands()
 
     def _unzip_file(self, filename):
         """Unzip L1B file."""
@@ -79,6 +76,25 @@ class HSIBaseFileHandler(BaseFileHandler):
         if len(content) == 1 and os.path.isdir(content[0]):
             for fp in glob(os.path.join(self.root_dir, '**', '*')):
                 shutil.move(fp, self.root_dir)
+
+    def _load_bands(self):
+        # read wavelength which is the dim for other variables
+        self.bands_vnir = xr.DataArray(self.meta.vnir.wvl_center, dims='bands_vnir').rename('bands_vnir')
+        self.bands_swir = xr.DataArray(self.meta.swir.wvl_center, dims='bands_swir').rename('bands_swir')
+        self.bands_vnir.attrs['units'] = 'nm'
+        self.bands_swir.attrs['units'] = 'nm'
+
+        # read fwhm which is the anciilary variable of bands
+        self.fwhm_vnir = xr.DataArray(self.meta.vnir.fwhm, dims='bands_vnir').rename(f'fwhm_vnir')
+        self.fwhm_swir = xr.DataArray(self.meta.swir.fwhm, dims='bands_swir').rename(f'fwhm_swir')
+        self.fwhm_vnir.attrs['units'] = 'nm'
+        self.fwhm_swir.attrs['units'] = 'nm'
+        self.fwhm_vnir.attrs['standard_name'] = 'full width at half maximum'
+        self.fwhm_swir.attrs['standard_name'] = 'full width at half maximum'
+
+        # assign fwhm as bands coords
+        self.bands_vnir.coords['fwhm_vnir'] = self.fwhm_vnir
+        self.bands_swir.coords['fwhm_swir'] = self.fwhm_swir
 
     def __del__(self):
         """Delete the object."""
@@ -142,12 +158,6 @@ class HSIBaseFileHandler(BaseFileHandler):
         band_dimname = 'bands'+'_'+detector
 
         logger.debug('Reading in file to get dataset with name %s.', self.name)
-
-        # load fwhm from meta
-        if 'fwhm' in self.name:
-            data = xr.DataArray(getattr(self.meta, detector).fwhm, dims=band_dimname).rename(f'fwhm_{detector}')
-            data.attrs['units'] = 'nm'
-            data.attrs['standrad_name'] = yaml_info['standrad_name']
 
         # load VNIR or SWIR data
         if self.name in ['vnir', 'swir']:

@@ -18,20 +18,6 @@ file_types:
         file_patterns: ['{mission:5s}{satelliteID:2s}-____{product_type:s}-DT{datatakeID:s}_{start_time:%Y%m%dT%H%M%SZ}_{tile_id:3s}_{product_version:7s}_{processing_time:%Y%m%dT%H%M%SZ}.ZIP']
 
 datasets:
-  fwhm_vnir:
-    name: fwhm_vnir
-    standrad_name: full width at half maximum 
-    file_type: hsi_l1b
-    units: 'nm'
-    detector: vnir
-
-  fwhm_swir:
-    name: fwhm_swir
-    standrad_name: full width at half maximum 
-    file_type: hsi_l1b
-    units: 'nm'
-    detector: swir
-
   smile_coef_swir:
     name: smile_coef_swir
     file_type: hsi_l1b
