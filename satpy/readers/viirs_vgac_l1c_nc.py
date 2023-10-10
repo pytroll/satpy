@@ -63,7 +63,7 @@ class VGACFileHandler(BaseFileHandler):
 
     def fix_radiances_not_in_percent(self, data):
         """Scale radiances to percent. This was not done in first version of data."""
-        return 100*data
+        return 100 * data
 
     def set_time_attrs(self, data):
         """Set time from attributes."""
@@ -86,7 +86,7 @@ class VGACFileHandler(BaseFileHandler):
 
     def decode_time_variable(self, data, nc):
         """Decode time variable."""
-        if data.units == "hours since proj_time0":
+        if data.attrs["units"] == "hours since proj_time0":
             reference_time = np.datetime64(datetime.strptime(nc['proj_time0'].attrs["units"],
                                                              'days since %d/%m/%YT%H:%M:%S'))
             delta_days = float(nc['proj_time0'].values) * np.timedelta64(1, 'D').astype('timedelta64[ms]')
@@ -108,7 +108,8 @@ class VGACFileHandler(BaseFileHandler):
         file_key = yaml_info.get('nc_key', name)
         data = nc[file_key]
         data = self.calibrate(data, yaml_info, file_key, nc)
-        data = self.decode_time_variable(data, nc)
+        if file_key == "time":
+            data = self.decode_time_variable(data, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
         self.set_time_attrs(data)
