@@ -65,7 +65,7 @@ class AttributeEncoder(json.JSONEncoder):
         return str(obj)
 
 
-def _encode_nc(obj):
+def __encode_nc(obj):
     """Try to encode `obj` as a netCDF/Zarr compatible datatype which most closely resembles the object's nature.
 
     Raises:
@@ -90,7 +90,7 @@ def _encode_nc(obj):
     raise ValueError('Unable to encode')
 
 
-def encode_nc(obj):
+def _encode_nc(obj):
     """Encode the given object as a netcdf compatible datatype."""
     try:
         return obj.to_cf()
@@ -104,9 +104,9 @@ def _encode_python_objects(obj):
     If on failure, encode as a string. Plain lists are encoded recursively.
     """
     if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
-        return [encode_nc(item) for item in obj]
+        return [_encode_nc(item) for item in obj]
     try:
-        dump = _encode_nc(obj)
+        dump = __encode_nc(obj)
     except ValueError:
         try:
             # Decode byte-strings
@@ -117,7 +117,7 @@ def _encode_python_objects(obj):
     return dump
 
 
-def encode_attrs_nc(attrs):
+def _encode_attrs_nc(attrs):
     """Encode dataset attributes in a netcdf compatible datatype.
 
     Args:
@@ -130,7 +130,7 @@ def encode_attrs_nc(attrs):
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
         if val is not None:
-            encoded_attrs.append((key, encode_nc(val)))
+            encoded_attrs.append((key, _encode_nc(val)))
     return OrderedDict(encoded_attrs)
 
 
@@ -193,7 +193,7 @@ def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
     if flatten_attrs:
         dataarray.attrs = flatten_dict(dataarray.attrs)
 
-    dataarray.attrs = encode_attrs_nc(dataarray.attrs)
+    dataarray.attrs = _encode_attrs_nc(dataarray.attrs)
 
     return dataarray
 
@@ -215,7 +215,7 @@ def preprocess_header_attrs(header_attrs, flatten_attrs=False):
     if header_attrs is not None:
         if flatten_attrs:
             header_attrs = flatten_dict(header_attrs)
-        header_attrs = encode_attrs_nc(header_attrs)  # OrderedDict
+        header_attrs = _encode_attrs_nc(header_attrs)  # OrderedDict
     else:
         header_attrs = {}
     header_attrs = _add_history(header_attrs)

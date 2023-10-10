@@ -47,7 +47,7 @@ def add_time_bounds_dimension(ds, time="time"):
     return ds
 
 
-def _process_time_coord(dataarray, epoch):
+def process_time_coord(dataarray, epoch):
     """Process the 'time' coordinate, if existing.
 
     It expand the DataArray with a time dimension if does not yet exists.

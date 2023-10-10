@@ -356,9 +356,9 @@ class TestCFArea:
         assert new_ds.attrs['grid_mapping'] == 'geos'
         _gm_matches(grid_mapping, geos_expected)
 
-    def test_add_lonlat_coords(self):
+    def test__add_lonlat_coords(self):
         """Test the conversion from areas to lon/lat."""
-        from satpy.writers.cf.area import add_lonlat_coords
+        from satpy.writers.cf.area import _add_lonlat_coords
 
         area = AreaDefinition(
             'seviri',
@@ -371,7 +371,7 @@ class TestCFArea:
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), attrs={'area': area})
 
-        res = add_lonlat_coords(dataarray)
+        res = _add_lonlat_coords(dataarray)
 
         # original should be unmodified
         assert 'longitude' not in dataarray.coords
@@ -394,7 +394,7 @@ class TestCFArea:
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=da.from_array(np.arange(3 * 10 * 10).reshape(3, 10, 10), chunks=(1, 5, 5)),
                                  dims=('bands', 'y', 'x'), attrs={'area': area})
-        res = add_lonlat_coords(dataarray)
+        res = _add_lonlat_coords(dataarray)
 
         # original should be unmodified
         assert 'longitude' not in dataarray.coords
@@ -469,12 +469,12 @@ class TestCFArea:
         datasets['lon'].attrs['name'] = 'lon'
         return datasets
 
-    def test_is_lon_or_lat_dataarray(self, datasets):
-        """Test the is_lon_or_lat_dataarray function."""
-        from satpy.writers.cf.area import is_lon_or_lat_dataarray
+    def test__is_lon_or_lat_dataarray(self, datasets):
+        """Test the _is_lon_or_lat_dataarray function."""
+        from satpy.writers.cf.area import _is_lon_or_lat_dataarray
 
-        assert is_lon_or_lat_dataarray(datasets['lat'])
-        assert not is_lon_or_lat_dataarray(datasets['var1'])
+        assert _is_lon_or_lat_dataarray(datasets['lat'])
+        assert not _is_lon_or_lat_dataarray(datasets['var1'])
 
     def test_has_projection_coords(self, datasets):
         """Test the has_projection_coords function."""

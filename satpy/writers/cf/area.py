@@ -28,7 +28,7 @@ from pyresample.geometry import AreaDefinition, SwathDefinition
 logger = logging.getLogger(__name__)
 
 
-def add_lonlat_coords(dataarray):
+def _add_lonlat_coords(dataarray):
     """Add 'longitude' and 'latitude' coordinates to DataArray."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
@@ -73,7 +73,7 @@ def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
     if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or include_lonlats):
-        dataarray = add_lonlat_coords(dataarray)
+        dataarray = _add_lonlat_coords(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
         dataarray, gmapping = _add_grid_mapping(dataarray)
         res.append(gmapping)
@@ -81,7 +81,7 @@ def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     return res
 
 
-def is_lon_or_lat_dataarray(dataarray):
+def _is_lon_or_lat_dataarray(dataarray):
     """Check if the DataArray represents the latitude or longitude coordinate."""
     if 'standard_name' in dataarray.attrs and dataarray.attrs['standard_name'] in ['longitude', 'latitude']:
         return True
@@ -91,7 +91,7 @@ def is_lon_or_lat_dataarray(dataarray):
 def has_projection_coords(ds_collection):
     """Check if DataArray collection has a "longitude" or "latitude" DataArray."""
     for dataarray in ds_collection.values():
-        if is_lon_or_lat_dataarray(dataarray):
+        if _is_lon_or_lat_dataarray(dataarray):
             return True
     return False
 
@@ -124,7 +124,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if not is_lon_or_lat_dataarray(dataset[coord_name]) and coord_name not in dataset.dims:
+            if not _is_lon_or_lat_dataarray(dataset[coord_name]) and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 

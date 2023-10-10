@@ -21,7 +21,7 @@ import warnings
 
 from satpy.writers.cf.attrs import preprocess_datarray_attrs
 from satpy.writers.cf.coords_attrs import add_xy_coords_attrs
-from satpy.writers.cf.time import EPOCH, _process_time_coord
+from satpy.writers.cf.time import EPOCH, process_time_coord
 
 logger = logging.getLogger(__name__)
 
@@ -96,5 +96,5 @@ def make_cf_dataarray(dataarray,
                                           flatten_attrs=flatten_attrs,
                                           exclude_attrs=exclude_attrs)
     dataarray = add_xy_coords_attrs(dataarray)
-    dataarray = _process_time_coord(dataarray, epoch=epoch)
+    dataarray = process_time_coord(dataarray, epoch=epoch)
     return dataarray

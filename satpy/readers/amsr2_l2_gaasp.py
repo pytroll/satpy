@@ -189,7 +189,7 @@ class GAASPFileHandler(BaseFileHandler):
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
 
-    def _add_lonlat_coords(self, data_arr, ds_info):
+    def __add_lonlat_coords(self, data_arr, ds_info):
         lat_coord = None
         lon_coord = None
         for coord_name in data_arr.coords:
@@ -209,7 +209,7 @@ class GAASPFileHandler(BaseFileHandler):
         if x_dim_name in self.dim_resolutions:
             ds_info['resolution'] = self.dim_resolutions[x_dim_name]
         if not self.is_gridded and data_arr.coords:
-            self._add_lonlat_coords(data_arr, ds_info)
+            self.__add_lonlat_coords(data_arr, ds_info)
         return ds_info
 
     def _is_2d_yx_data_array(self, data_arr):

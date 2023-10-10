@@ -28,7 +28,7 @@ from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
 logger = logging.getLogger(__name__)
 
 
-def get_extra_ds(dataarray, keys=None):
+def _get_extra_ds(dataarray, keys=None):
     """Get the ancillary_variables DataArrays associated to a dataset."""
     ds_collection = {}
     # Retrieve ancillary variable datarrays
@@ -36,7 +36,7 @@ def get_extra_ds(dataarray, keys=None):
         ancillary_variable = ancillary_dataarray.name
         if keys and ancillary_variable not in keys:
             keys.append(ancillary_variable)
-            ds_collection.update(get_extra_ds(ancillary_dataarray, keys=keys))
+            ds_collection.update(_get_extra_ds(ancillary_dataarray, keys=keys))
     # Add input dataarray
     ds_collection[dataarray.attrs['name']] = dataarray
     return ds_collection
@@ -111,7 +111,7 @@ def _collect_cf_dataset(list_dataarrays,
     # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
     ds_collection = {}
     for dataarray in list_dataarrays:
-        ds_collection.update(get_extra_ds(dataarray))
+        ds_collection.update(_get_extra_ds(dataarray))
 
     # Check if one DataArray in the collection has 'longitude' or 'latitude'
     got_lonlats = has_projection_coords(ds_collection)

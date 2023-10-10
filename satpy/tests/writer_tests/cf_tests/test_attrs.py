@@ -124,14 +124,14 @@ class TestCFAttributeEncoding:
                     assert isinstance(val2, np.generic)
                     assert val1.dtype == val2.dtype
 
-    def test_encode_attrs_nc(self):
+    def test__encode_attrs_nc(self):
         """Test attributes encoding."""
-        from satpy.writers.cf.attrs import encode_attrs_nc
+        from satpy.writers.cf.attrs import _encode_attrs_nc
 
         attrs, expected, _ = self.get_test_attrs()
 
         # Test encoding
-        encoded = encode_attrs_nc(attrs)
+        encoded = _encode_attrs_nc(attrs)
         self.assertDictWithArraysEqual(expected, encoded)
 
         # Test decoding of json-encoded attributes
