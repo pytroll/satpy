@@ -75,13 +75,8 @@ class VGACFileHandler(BaseFileHandler):
 
     def dt64_to_datetime(self, dt64):
         """Conversion of numpy.datetime64 to datetime objects."""
-        # https://stackoverflow.com/questions/13703720/converting-between-datetime-timestamp-and-datetime64/46921593#46921593
-        if type(dt64) == np.datetime64:
-            unix_epoch = np.datetime64(0, 's')
-            one_second = np.timedelta64(1, 's')
-            seconds_since_epoch = (dt64 - unix_epoch) / one_second
-            dt = datetime.utcfromtimestamp(seconds_since_epoch)
-            return dt
+        if isinstance(dt64, np.datetime64):
+            return dt64.astype(datetime)
         return dt64
 
     def decode_time_variable(self, data, nc):
