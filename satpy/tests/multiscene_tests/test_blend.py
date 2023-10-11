@@ -234,7 +234,6 @@ class TestBlendFuncs:
 
         simple_groups = {DataQuery(name='CloudType'): groups[DataQuery(name='CloudType')]}
         multi_scene.group(simple_groups)
-
         weights = [weights[0][0], weights[1][0]]
         stack_func = partial(stack, weights=weights, blend_type="i_dont_exist")
         with pytest.raises(ValueError):
@@ -390,3 +389,46 @@ def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
     assert 'sensor' not in data_arr.attrs
     assert 'platform_name' not in data_arr.attrs
     assert 'long_name' not in data_arr.attrs
+
+
+class TestTemporalRGB:
+    """Test the temporal RGB blending method."""
+
+    @pytest.fixture
+    def nominal_data(self):
+        """Return the input arrays for the nominal use case."""
+        da1 = xr.DataArray([1, 0, 0], attrs={'start_time': datetime(2023, 5, 22, 9, 0, 0)})
+        da2 = xr.DataArray([0, 1, 0], attrs={'start_time': datetime(2023, 5, 22, 10, 0, 0)})
+        da3 = xr.DataArray([0, 0, 1], attrs={'start_time': datetime(2023, 5, 22, 11, 0, 0)})
+
+        return [da1, da2, da3]
+
+    @pytest.fixture
+    def expected_result(self):
+        """Return the expected result arrays."""
+        return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+    @staticmethod
+    def _assert_results(res, expected_start_time, expected_result):
+        assert res.attrs['start_time'] == expected_start_time
+        np.testing.assert_equal(res.data[0, :], expected_result[0])
+        np.testing.assert_equal(res.data[1, :], expected_result[1])
+        np.testing.assert_equal(res.data[2, :], expected_result[2])
+
+    def test_nominal(self, nominal_data, expected_result):
+        """Test that nominal usage with 3 datasets works."""
+        from satpy.multiscene import temporal_rgb
+
+        res = temporal_rgb(nominal_data)
+
+        self._assert_results(res, nominal_data[-1].attrs['start_time'], expected_result)
+
+    def test_extra_datasets(self, nominal_data, expected_result):
+        """Test that only the first three arrays affect the usage."""
+        from satpy.multiscene import temporal_rgb
+
+        da4 = xr.DataArray([0, 0, 1], attrs={'start_time': datetime(2023, 5, 22, 12, 0, 0)})
+
+        res = temporal_rgb(nominal_data + [da4,])
+
+        self._assert_results(res, nominal_data[-1].attrs['start_time'], expected_result)
