@@ -161,7 +161,7 @@ class ZarrCacheHelper:
             self._warn_if_irregular_input_chunks(args, args_to_use)
             self._cache_results(res, zarr_format)
 
-        # if we did any caching, let's load from the zarr files
+        # if we did any caching, let's load from the zarr files, so that future calls have the same name
         # re-calculate the cached paths
         zarr_paths = sorted(glob(zarr_format.format("*")))
         if not zarr_paths:
