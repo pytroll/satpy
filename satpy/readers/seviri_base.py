@@ -72,7 +72,7 @@ In addition, two other calibration methods are available:
    chosen file-internal coefficients (nominal or GSICS).  Calibration
    coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
 
-2. The calibration mode ``meirink-2013`` uses coefficients based on an
+2. The calibration mode ``meirink-2023`` uses coefficients based on an
    intercalibration with Aqua-MODIS for the visible channels, as found in
    `Inter-calibration of polar imager solar channels using SEVIRI`_
    (2013) by J. F. Meirink, R. A. Roebeling, and P. Stammes.
@@ -101,13 +101,13 @@ In the next example we use external calibration coefficients for the
                                        'ext_calib_coefs': coefs})
     scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
 
-In the next example we use the mode ``meirink-2013`` calibration
+In the next example we use the mode ``meirink-2023`` calibration
 coefficients for all visible channels and nominal coefficients for the
 rest::
 
     scene = satpy.Scene(filenames,
                         reader='seviri_l1b_...',
-                        reader_kwargs={'calib_mode': 'meirink-2013'})
+                        reader_kwargs={'calib_mode': 'meirink-2023'})
     scene.load(['VIS006', 'VIS008', 'IR_016'])
 
 
@@ -377,6 +377,9 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 # Inter-calibration of polar imager solar channels using SEVIRI, Atm. Meas. Tech., 6,
 # 2495-2508, doi:10.5194/amt-6-2495-2013
 #
+# The coeffients in the 2023 entry have been obtained from the webpage
+# https://msgcpp.knmi.nl/solar-channel-calibration.html on 2023-10-11.
+#
 # The coefficients are stored in pairs of A, B (see function `get_meirink_slope`) where the
 # units of A are µW m-2 sr-1 (cm-1)-1 and those of B are µW m-2 sr-1 (cm-1)-1 (86400 s)-1
 #
@@ -386,32 +389,32 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 MEIRINK_EPOCH = datetime(2000, 1, 1)
 
 MEIRINK_COEFS = {}
-MEIRINK_COEFS['2013'] = {}
+MEIRINK_COEFS['2023'] = {}
 
 # Meteosat-8
 
-MEIRINK_COEFS['2013'][321] = {'VIS006': (24.346, 0.3739),
+MEIRINK_COEFS['2023'][321] = {'VIS006': (24.346, 0.3739),
                               'VIS008': (30.989, 0.3111),
                               'IR_016': (22.869, 0.0065)
                               }
 
 # Meteosat-9
 
-MEIRINK_COEFS['2013'][322] = {'VIS006': (21.026, 0.2556),
+MEIRINK_COEFS['2023'][322] = {'VIS006': (21.026, 0.2556),
                               'VIS008': (26.875, 0.1835),
                               'IR_016': (21.394, 0.0498)
                               }
 
 # Meteosat-10
 
-MEIRINK_COEFS['2013'][323] = {'VIS006': (19.829, 0.5856),
+MEIRINK_COEFS['2023'][323] = {'VIS006': (19.829, 0.5856),
                               'VIS008': (25.284, 0.6787),
                               'IR_016': (23.066, -0.0286)
                               }
 
 # Meteosat-11
 
-MEIRINK_COEFS['2013'][324] = {'VIS006': (20.515, 0.3600),
+MEIRINK_COEFS['2023'][324] = {'VIS006': (20.515, 0.3600),
                               'VIS008': (25.803, 0.4844),
                               'IR_016': (22.354, -0.0187)
                               }
@@ -664,7 +667,7 @@ class SEVIRICalibrationHandler:
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK-2013')
+        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK-2023')
         if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(

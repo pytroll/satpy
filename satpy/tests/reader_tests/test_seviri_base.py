@@ -373,8 +373,8 @@ class TestMeirinkSlope:
         coefs = {'coefs': {}}
         coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
         coefs['coefs']['EXTERNAL'] = {}
-        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2013', MEIRINK_EPOCH)
-        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS['2013'][platform_id][channel_name][0]/1000.
+        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', MEIRINK_EPOCH)
+        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS['2023'][platform_id][channel_name][0]/1000.
 
     @pytest.mark.parametrize('platform_id,time,expected', (
         (321, datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
@@ -392,5 +392,5 @@ class TestMeirinkSlope:
         coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
         coefs['coefs']['EXTERNAL'] = {}
         for i, channel_name in enumerate(['VIS006', 'VIS008', 'IR_016']):
-            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2013', time)
+            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', time)
             assert abs(calibration_handler.get_gain_offset()[0] - expected[i]) < 1e-6
