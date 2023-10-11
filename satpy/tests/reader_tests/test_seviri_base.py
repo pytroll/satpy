@@ -26,8 +26,8 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_base import (
-    MEIRINK_EPOCH,
     MEIRINK_COEFS,
+    MEIRINK_EPOCH,
     NoValidOrbitParams,
     OrbitPolynomial,
     OrbitPolynomialFinder,
