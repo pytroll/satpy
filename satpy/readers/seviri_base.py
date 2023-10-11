@@ -184,6 +184,7 @@ References:
    http://dx.doi.org/10.5194/amt-6-2495-2013
 
 """
+from __future__ import annotations
 
 import warnings
 from datetime import datetime, timedelta
@@ -388,7 +389,7 @@ CALIB[324] = {'HRV': {'F': 79.0035},
 # Epoch for the MEIRINK re-calibration
 MEIRINK_EPOCH = datetime(2000, 1, 1)
 
-MEIRINK_COEFS = {}
+MEIRINK_COEFS: dict[str, dict[int, dict[str, tuple[float, float]]]] = {}
 MEIRINK_COEFS['2023'] = {}
 
 # Meteosat-8
