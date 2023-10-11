@@ -26,9 +26,12 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_base import (
+    MEIRINK_COEFS,
+    MEIRINK_EPOCH,
     NoValidOrbitParams,
     OrbitPolynomial,
     OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
     chebyshev,
     dec10216,
     get_cds_time,
@@ -358,3 +361,36 @@ class TestOrbitPolynomialFinder:
         finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
             finder.get_orbit_polynomial(time=time)
+
+
+class TestMeirinkSlope:
+    """Unit tests for the slope of Meirink calibration."""
+
+    @pytest.mark.parametrize('platform_id', [321, 322, 323, 324])
+    @pytest.mark.parametrize('channel_name', ['VIS006', 'VIS008', 'IR_016'])
+    def test_get_meirink_slope_epoch(self, platform_id, channel_name):
+        """Test the value of the slope of the Meirink calibration on 2000-01-01."""
+        coefs = {'coefs': {}}
+        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
+        coefs['coefs']['EXTERNAL'] = {}
+        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', MEIRINK_EPOCH)
+        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS['2023'][platform_id][channel_name][0]/1000.
+
+    @pytest.mark.parametrize('platform_id,time,expected', (
+        (321, datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
+        (321, datetime(2010, 12, 31, 0, 0), [0.0258479563, 0.0322386887, 0.022895110500000003]),
+        (322, datetime(2010, 1, 18, 0, 0), [0.021964051999999998, 0.027548445, 0.021576766]),
+        (322, datetime(2015, 6, 1, 0, 0), [0.022465028, 0.027908105, 0.021674373999999996]),
+        (323, datetime(2005, 1, 18, 0, 0), [0.0209088464, 0.0265355228, 0.0230132616]),
+        (323, datetime(2010, 12, 31, 0, 0), [0.022181355200000002, 0.0280103379, 0.0229511138]),
+        (324, datetime(2010, 1, 18, 0, 0), [0.0218362, 0.027580748, 0.022285370999999998]),
+        (324, datetime(2015, 6, 1, 0, 0), [0.0225418, 0.028530172, 0.022248718999999997]),
+    ))
+    def test_get_meirink_slope_2020(self, platform_id, time, expected):
+        """Test the value of the slope of the Meirink calibration."""
+        coefs = {'coefs': {}}
+        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
+        coefs['coefs']['EXTERNAL'] = {}
+        for i, channel_name in enumerate(['VIS006', 'VIS008', 'IR_016']):
+            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', time)
+            assert abs(calibration_handler.get_gain_offset()[0] - expected[i]) < 1e-6
