@@ -84,15 +84,17 @@ class VGACFileHandler(BaseFileHandler):
         if data.attrs["units"] == "hours since proj_time0":
             reference_time = np.datetime64(datetime.strptime(nc['proj_time0'].attrs["units"],
                                                              'days since %d/%m/%YT%H:%M:%S'))
-            delta_days = float(nc['proj_time0'].values) * np.timedelta64(1, 'D').astype('timedelta64[ms]')
-            delta_hours = data.values * np.timedelta64(1, 'h').astype('timedelta64[ms]')
-            time_data = xr.DataArray(reference_time + delta_days + delta_hours,
-                                     coords=data.coords, attrs={"long_name": "Scanline time"})
+            delta_part_of_day, delta_full_days = np.modf(nc['proj_time0'].values)
+            delta_full_days = np.timedelta64(int(delta_full_days), 'D')
+            delta_part_of_day = delta_part_of_day * np.timedelta64(1, 'D').astype('timedelta64[us]')
+            delta_hours = data.values * np.timedelta64(1, 'h').astype('timedelta64[us]')
+            time_data = xr.DataArray(reference_time + delta_full_days + delta_part_of_day + delta_hours,
+                                     coords=data.coords, attrs={'long_name': 'Scanline time'})
             self._start_time = self.dt64_to_datetime(time_data[0].values)
             self._end_time = self.dt64_to_datetime(time_data[-1].values)
             return time_data
         else:
-            return data
+            raise AttributeError('Unit of time variable in VGAC nc file is not "hours since proj_time0"')
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
