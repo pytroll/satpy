@@ -7,20 +7,20 @@ For details on additional arguments and features available for a specific Writer
 Most use cases will want to save datasets using the
 :meth:`~satpy.scene.Scene.save_datasets` method::
 
-    >>> scn.save_datasets(writer='simple_image')
+    >>> scn.save_datasets(writer="simple_image")
 
 The ``writer`` parameter defaults to using the ``geotiff`` writer.
 One common parameter across almost all Writers is ``filename`` and
 ``base_dir`` to help automate saving files with custom filenames::
 
     >>> scn.save_datasets(
-    ...     filename='{name}_{start_time:%Y%m%d_%H%M%S}.tif',
-    ...     base_dir='/tmp/my_ouput_dir')
+    ...     filename="{name}_{start_time:%Y%m%d_%H%M%S}.tif",
+    ...     base_dir="/tmp/my_ouput_dir")
 
 .. versionchanged:: 0.10
 
     The `file_pattern` keyword argument was renamed to `filename` to match
-    the `save_dataset` method's keyword argument.
+    the `save_dataset` method"s keyword argument.
 
 .. _writer_table:
 
@@ -129,10 +129,10 @@ and save them all at once.
 
     >>> from satpy.writers import compute_writer_results
     >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
-    ...                          writer='simple_image',
+    ...                          writer="simple_image",
     ...                          compute=False)
     >>> res2 = scn.save_datasets(filename="/tmp/{name}.tif",
-    ...                          writer='geotiff',
+    ...                          writer="geotiff",
     ...                          compute=False)
     >>> results = [res1, res2]
     >>> compute_writer_results(results)
@@ -147,14 +147,14 @@ to be added.
 
 .. code-block:: python
 
-    >>> decodict = {'decorate': [{'text': {'txt': f'  {my_text}',
-    ...                                    'align': {'top_bottom': 'top', 'left_right': 'left'},
-    ...                                    'font': <path_to_font>,
-    ...                                    'font_size': 48,
-    ...                                    'line': 'white',
-    ...                                    'bg_opacity': 255,
-    ...                                    'bg': 'black',
-    ...                                    'height': 30,
+    >>> decodict = {"decorate": [{"text": {"txt": "my_text",
+    ...                                    "align": {"top_bottom": "top", "left_right": "left"},
+    ...                                    "font": <path_to_font>,
+    ...                                    "font_size": 48,
+    ...                                    "line": "white",
+    ...                                    "bg_opacity": 255,
+    ...                                    "bg": "black",
+    ...                                    "height": 30,
     ...                                     }}]}
 
 Where `my_text` is the text you wish to add and `<path_to_font>` is the
@@ -164,5 +164,5 @@ This dictionary can then be passed to the :meth:`~satpy.scene.Scene.save_dataset
 
 .. code-block:: python
 
-    >>> scene.save_dataset(my_dataset, writer='simple_image', fill_value=False,
+    >>> scene.save_dataset(my_dataset, writer="simple_image", fill_value=False,
     ...                    decorate=decodict)
