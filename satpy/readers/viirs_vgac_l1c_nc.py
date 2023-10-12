@@ -79,20 +79,26 @@ class VGACFileHandler(BaseFileHandler):
             return dt64.astype(datetime)
         return dt64
 
-    def decode_time_variable(self, data, nc):
-        """Decode time variable."""
+    def extract_time_data(self, data, nc):
+        """Decode time data."""
+        reference_time = np.datetime64(datetime.strptime(nc['proj_time0'].attrs["units"],
+                                                         'days since %d/%m/%YT%H:%M:%S'))
+        delta_part_of_day, delta_full_days = np.modf(nc['proj_time0'].values)
+        delta_full_days = np.timedelta64(int(delta_full_days), 'D')
+        delta_part_of_day = delta_part_of_day * np.timedelta64(1, 'D').astype('timedelta64[us]')
+        delta_hours = data.values * np.timedelta64(1, 'h').astype('timedelta64[us]')
+        time_data = xr.DataArray(reference_time + delta_full_days + delta_part_of_day + delta_hours,
+                                 coords=data.coords, attrs={'long_name': 'Scanline time'})
+        self._start_time = self.dt64_to_datetime(time_data[0].values)
+        self._end_time = self.dt64_to_datetime(time_data[-1].values)
+        return time_data
+
+    def decode_time_variable(self, data, file_key, nc):
+        """Decide if time data should be decoded."""
+        if file_key != "time":
+            return data
         if data.attrs["units"] == "hours since proj_time0":
-            reference_time = np.datetime64(datetime.strptime(nc['proj_time0'].attrs["units"],
-                                                             'days since %d/%m/%YT%H:%M:%S'))
-            delta_part_of_day, delta_full_days = np.modf(nc['proj_time0'].values)
-            delta_full_days = np.timedelta64(int(delta_full_days), 'D')
-            delta_part_of_day = delta_part_of_day * np.timedelta64(1, 'D').astype('timedelta64[us]')
-            delta_hours = data.values * np.timedelta64(1, 'h').astype('timedelta64[us]')
-            time_data = xr.DataArray(reference_time + delta_full_days + delta_part_of_day + delta_hours,
-                                     coords=data.coords, attrs={'long_name': 'Scanline time'})
-            self._start_time = self.dt64_to_datetime(time_data[0].values)
-            self._end_time = self.dt64_to_datetime(time_data[-1].values)
-            return time_data
+            return self.extract_time_data(data, nc)
         else:
             raise AttributeError('Unit of time variable in VGAC nc file is not "hours since proj_time0"')
 
@@ -105,8 +111,7 @@ class VGACFileHandler(BaseFileHandler):
         file_key = yaml_info.get('nc_key', name)
         data = nc[file_key]
         data = self.calibrate(data, yaml_info, file_key, nc)
-        if file_key == "time":
-            data = self.decode_time_variable(data, nc)
+        data = self.decode_time_variable(data, file_key, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         data.attrs.update(yaml_info)
         self.set_time_attrs(data)

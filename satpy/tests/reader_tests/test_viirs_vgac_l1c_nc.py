@@ -61,7 +61,7 @@ def _nc_filename(tmp_path):
                 setattr(tb_b, attr, attrs[attr])
             tb_lut = nc.createVariable(ch_name + "_LUT", np.float32, dimensions=('n_lut'))
             tb_lut[:] = np.array(range(0, n_lut)) * 0.5
-            setattr(tb_lut, 'units', "Kelvin")
+            tb_lut.units = "Kelvin"
         reference_time = np.datetime64("2010-01-01T00:00:00")
         start_time = np.datetime64("2023-03-28T09:08:07") + np.timedelta64(123, "ms")
         delta_days = start_time - reference_time
