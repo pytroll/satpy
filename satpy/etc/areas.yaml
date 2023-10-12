@@ -2054,6 +2054,17 @@ EPSG_4326_7200x3600:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
+EPSG_4326_3600x1800:
+  description: Global equal latitude/longitude grid at 0.1 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 1800
+    width: 3600
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
 EPSG_4326_1440x720:
   description: Global equal latitude/longitude grid at 0.25 degree resolution
   projection:
@@ -2072,17 +2083,6 @@ EPSG_4326_720x360:
   shape:
     height: 360
     width: 720
-  area_extent:
-    lower_left_xy: [-180.0, -90.0]
-    upper_right_xy: [180.0, 90.0]
-
-EPSG_4326_3600x1800:
-  description: Global equal latitude/longitude grid at 0.1 degree resolution
-  projection:
-    EPSG:4326
-  shape:
-    height: 1800
-    width: 3600
   area_extent:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
