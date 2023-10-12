@@ -122,7 +122,7 @@ The SEVIRI L1.5 readers provide the following metadata:
 
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite
   position, as well as the projection centre. See the `Metadata` section in
-  the :doc:`../readers` chapter for more information.
+  the :doc:`../reading` chapter for more information.
 
 * The ``acq_time`` coordinate provides the mean acquisition time for each
   scanline. Use a ``MultiIndex`` to enable selection by acquisition time:

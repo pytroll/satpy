@@ -28,7 +28,7 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../readers`.
+To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../reading`.
 
 
 Geolocation files
