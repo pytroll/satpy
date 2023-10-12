@@ -116,7 +116,7 @@ Starting with Satpy version 0.25.1 with supported readers it is possible to
 load data from remote file systems like ``s3fs`` or ``fsspec``.
 For example:
 
-::
+.. code-block:: python
 
     >>> from satpy import Scene
     >>> from satpy.readers import FSFile
