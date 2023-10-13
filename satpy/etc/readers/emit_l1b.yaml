@@ -70,10 +70,101 @@ datasets:
     nc_group:
     _FillValue: -9999.0
 
-  obs:
-    name: obs
+  sza:
+    name: sza
     file_type: [emit_l1b_obs]
-    standard_name: obs
-    units: uW cm-2 sr-1 nm-1
+    standard_name: solar_zenith_angle
+    long_name: To-sun zenith (0 to 90 degrees from zenith)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  saa:
+    name: saa
+    file_type: [emit_l1b_obs]
+    standard_name: solar_azimuth_angle
+    long_name: To-sun azimuth (0 to 360 degrees CW from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  vza:
+    name: vza
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_zenith_angle
+    long_name: To-sensor zenith (0 to 90 degrees from zenith)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  vaa:
+    name: vaa
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_azimuth_angle
+    long_name: To-sensor azimuth (0 to 360 degrees CW from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  path_length:
+    name: path_length
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_height
+    long_name: Path length (sensor-to-ground in meters)
+    units: m
+    nc_group:
+    _FillValue: -9999.0
+
+  solar_phase:
+    name: solar_phase
+    file_type: [emit_l1b_obs]
+    standard_name: solar_phase
+    long_name: Solar phase (degrees between to-sensor and to-sun vectors in principal plane)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  surface_slope:
+    name: surface_slope
+    file_type: [emit_l1b_obs]
+    standard_name: surface_slope
+    long_name: Slope (local surface slope as derived from DEM in degrees)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  surface_aspect:
+    name: surface_aspect
+    file_type: [emit_l1b_obs]
+    standard_name: surface_aspect
+    long_name: Aspect (local surface aspect 0 to 360 degrees clockwise from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  cosine_i:
+    name: cosine_i
+    file_type: [emit_l1b_obs]
+    standard_name: cosine_i
+    long_name: Cosine(i) (apparent local illumination factor based on DEM slope and aspect and to sun vector)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  time:
+    name: time
+    file_type: [emit_l1b_obs]
+    standard_name: time
+    long_name: UTC Time (decimal hours for mid-line pixels)
+    units:
+    nc_group:
+    _FillValue: -9999.0
+
+  earth_sun_distance:
+    name: earth_sun_distance
+    file_type: [emit_l1b_obs]
+    standard_name: earth_sun_distance
+    long_name: Earth-sun distance (AU)
+    units: AU
     nc_group:
     _FillValue: -9999.0

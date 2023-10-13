@@ -110,10 +110,17 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
         name = dataset_id["name"]
+        file_type = self.filetype_info["file_type"]
+
         if ds_info["nc_group"] is None:
             var_path = name
         else:
             var_path = ds_info["nc_group"] + "/" + name
+
+        if file_type == "emit_l1b_obs":
+            # because the "obs" DataArray includes the varname as the "bands" dim
+            #   we need to reset the var_path to "obs"
+            var_path = 'obs'
 
         logger.debug(f"Reading in file to get dataset with path {var_path}.")
         dataset = self[var_path]
@@ -132,4 +139,11 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
         good_mask = dataset != fill_value
         dataset = dataset.where(good_mask, new_fill)
 
-        return self._standardize_dims(dataset)
+        # standardize dims
+        dataset = self._standardize_dims(dataset)
+
+        # only load the variable by selecting bands dim
+        if file_type == "emit_l1b_obs":
+            dataset = dataset.sel(bands=ds_info['long_name']).rename(name)
+
+        return dataset
