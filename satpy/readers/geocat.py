@@ -174,7 +174,16 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def _parse_time(self, datestr):
         """Parse a time string."""
-        return datetime.strptime(datestr, "%H%M%S")
+        return datetime.strptime(datestr, "%Y-%m-%dT%H%M%S")
+
+    def _return_coordinates(self, coord_opt):
+        """Return coordinate names for polar and terrain corrected scenes."""
+        coordinates = None
+        if not self.is_geo:
+            coordinates = coord_opt["polar"]
+        if self.terrain_corrected:
+            coordinates = coord_opt["terrain_corrected"]
+        return coordinates
 
     @property
     def sensor_names(self):
@@ -196,7 +205,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         """Get image time from global attributes if possible."""
         image_time = self.get("/attr/Image_Time", None)
         if image_time is not None:
-            image_time = self._parse_time(str(image_time))
+            image_time = "{}T{}".format(self.start_time.strftime("%Y-%m-%d"), image_time)
+            image_time = self._parse_time(image_time)
         else:
             warnings.warn("WARNING: Image_Time not in global attributes", stacklevel=2)
         return image_time
@@ -206,7 +216,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         """Get image time from global attributes if possible."""
         actual_image_time = self.get("/attr/Actual_Image_Time", None)
         if actual_image_time is not None:
-            actual_image_time = self._parse_time(str(actual_image_time))
+            actual_image_time = "{}T{}".format(self.start_time.strftime("%Y-%m-%d"), actual_image_time)
+            actual_image_time = self._parse_time(actual_image_time)
         else:
             warnings.warn("WARNING: Actual_Image_Time not in global attributes", stacklevel=2)
         return actual_image_time
@@ -301,10 +312,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                     'resolution': self.resolution,
                     'name': var_name,
                 }
-                if not self.is_geo:
-                    ds_info['coordinates'] = coord_opt["polar"]
-                if self.terrain_corrected:
-                    ds_info['coordinates'] = coord_opt["terrain_corrected"]
+                if self._return_coordinates(coord_opt):
+                    ds_info.update({"coordinates": self._return_coordinates(coord_opt)})
                 yield True, ds_info
 
                 # only working on geo aliases for now.
