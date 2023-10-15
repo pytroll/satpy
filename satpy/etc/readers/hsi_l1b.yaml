@@ -61,7 +61,7 @@ datasets:
     calibration:
       radiance:
         standrad_name: radiance
-        units: 'mW m^-2 sr^-1 nm^-1'
+        units: 'mW m-2 sr-1 nm-1'
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: '%'
@@ -76,7 +76,7 @@ datasets:
     calibration:
       radiance:
         standrad_name: radiance
-        units: 'mW m^-2 sr^-1 nm^-1'
+        units: 'mW m-2 sr-1 nm-1'
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: '%'
