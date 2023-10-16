@@ -19,22 +19,6 @@ file_types:
     file_patterns: ['{sensor:4s}_{level:3s}_OBS_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
 
 datasets:
-  lon:
-    name: lon
-    file_type: [emit_l1b_rad, emit_l1b_obs]
-    standard_name: longitude
-    units: degrees_east
-    nc_group: location
-    _FillValue: -9999.0
-
-  lat:
-    name: lat
-    file_type: [emit_l1b_rad, emit_l1b_obs]
-    standard_name: latitude
-    units: degrees_north
-    nc_group: location
-    _FillValue: -9999.0
-
   elev:
     name: elev
     file_type: [emit_l1b_rad, emit_l1b_obs]

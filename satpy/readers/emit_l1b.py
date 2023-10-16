@@ -22,6 +22,7 @@ import logging
 from datetime import datetime
 
 import numpy as np
+from pyresample.geometry import SwathDefinition
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -37,6 +38,7 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info, *req_fhs):
         """Prepare the class for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.area = None
 
         self._load_bands()
 
@@ -146,4 +148,16 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
         if file_type == "emit_l1b_obs":
             dataset = dataset.sel(bands=ds_info['long_name']).rename(name)
 
+        # add area
+        self.get_lonlats()
+        dataset.attrs['area'] = self.area
+
         return dataset
+
+    def get_lonlats(self):
+        """Get lonlats."""
+        if self.area is None:
+            lons = self['location/lon']
+            lats = self['location/lat']
+            self.area = SwathDefinition(lons, lats)
+            self.area.name = '_'.join([self.sensor, str(self.start_time)])
