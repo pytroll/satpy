@@ -198,7 +198,6 @@ class HSIBaseFileHandler(BaseFileHandler):
 
             # set name and coords
             data = data.rename(self.name)
-            data.coords[band_dimname] = getattr(self, band_dimname)
 
         # load longitude/latitude data
         if self.name in ['longitude_vnir', 'latitude_vnir', 'longitude_swir', 'latitude_swir']:
@@ -231,7 +230,9 @@ class HSIBaseFileHandler(BaseFileHandler):
             data = xr.DataArray(self._convert_rpc(getattr(self.meta, detector).rpc_coeffs),
                                 dims=[band_dimname]).rename(self.name)
 
-        # add metadata
+        # add metadata and bands coords
         data.attrs.update(self.get_metadata)
+        if band_dimname in data.dims:
+            data.coords[band_dimname] = getattr(self, band_dimname)
 
         return data
