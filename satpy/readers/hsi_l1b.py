@@ -27,6 +27,7 @@ import zipfile
 from glob import glob
 
 import numpy as np
+import rasterio
 import xarray as xr
 from enpt.model.images.images_sensorgeo import EnMAP_SWIR_SensorGeo, EnMAP_VNIR_SensorGeo
 from enpt.model.metadata import EnMAP_Metadata_L1B_SensorGeo
@@ -85,8 +86,8 @@ class HSIBaseFileHandler(BaseFileHandler):
         self.bands_swir.attrs['units'] = 'nm'
 
         # read fwhm which is the anciilary variable of bands
-        self.fwhm_vnir = xr.DataArray(self.meta.vnir.fwhm, dims='bands_vnir').rename(f'fwhm_vnir')
-        self.fwhm_swir = xr.DataArray(self.meta.swir.fwhm, dims='bands_swir').rename(f'fwhm_swir')
+        self.fwhm_vnir = xr.DataArray(self.meta.vnir.fwhm, dims='bands_vnir').rename('fwhm_vnir')
+        self.fwhm_swir = xr.DataArray(self.meta.swir.fwhm, dims='bands_swir').rename('fwhm_swir')
         self.fwhm_vnir.attrs['units'] = 'nm'
         self.fwhm_swir.attrs['units'] = 'nm'
         self.fwhm_vnir.attrs['standard_name'] = 'full width at half maximum'
@@ -95,6 +96,26 @@ class HSIBaseFileHandler(BaseFileHandler):
         # assign fwhm as bands coords
         self.bands_vnir.coords['fwhm_vnir'] = self.fwhm_vnir
         self.bands_swir.coords['fwhm_swir'] = self.fwhm_swir
+
+    def _convert_rpc(self, rpc_coeffs):
+        """Convert RPC dicts into a list of rasterio object"""
+        rpc_list = []
+
+        for key, value in rpc_coeffs.items():
+            value['line_off'] = value.pop('row_off')
+            value['samp_off'] = value.pop('col_off')
+
+            value['line_scale'] = value.pop('row_scale')
+            value['samp_scale'] = value.pop('col_scale')
+
+            value['line_den_coeff'] = value.pop('row_den_coeffs')
+            value['line_num_coeff'] = value.pop('row_num_coeffs')
+            value['samp_den_coeff'] = value.pop('col_den_coeffs')
+            value['samp_num_coeff'] = value.pop('col_num_coeffs')
+
+            rpc_list.append(rasterio.rpc.RPC(**value))
+
+        return rpc_list
 
     def __del__(self):
         """Delete the object."""
@@ -204,6 +225,11 @@ class HSIBaseFileHandler(BaseFileHandler):
         if 'smile_coef' in self.name:
             # the smile_coef should be corrected: https://github.com/GFZ/enpt/pull/6
             data = xr.DataArray(getattr(self.meta, detector).smile, dims=['x', band_dimname]).rename(self.name)
+
+        # load rpc_coef
+        if 'rpc_coef' in self.name:
+            data = xr.DataArray(self._convert_rpc(getattr(self.meta, detector).rpc_coeffs),
+                                dims=[band_dimname]).rename(self.name)
 
         # add metadata
         data.attrs.update(self.get_metadata)

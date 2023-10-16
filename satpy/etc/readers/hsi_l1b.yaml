@@ -28,6 +28,16 @@ datasets:
     file_type: hsi_l1b
     detector: vnir
 
+  rpc_coef_vnir:
+    name: rpc_coef_vnir
+    file_type: hsi_l1b
+    detector: vnir
+
+  rpc_coef_swir:
+    name: rpc_coef_swir
+    file_type: hsi_l1b
+    detector: swir
+
   longitude_vnir:
     name: longitude_vnir
     standrad_name: longitude
