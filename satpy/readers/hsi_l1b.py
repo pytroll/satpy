@@ -188,7 +188,7 @@ class HSIBaseFileHandler(BaseFileHandler):
                 data = lats
 
             # save to DataArray
-            data = xr.DataArray(data, dims=['y', 'x', band_dimname]).rename(self.name)
+            data = xr.DataArray(data, dims=['y', 'x', band_dimname]).rename(self.name).transpose(band_dimname, ...)
             data.attrs['units'] = yaml_info['units']
             data.attrs['standrad_name'] = yaml_info['standrad_name']
 
