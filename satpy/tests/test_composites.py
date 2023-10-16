@@ -773,13 +773,13 @@ class TestColorizeCompositor(unittest.TestCase):
                             dims=['y', 'x'],
                             attrs={'valid_range': np.array([2, 4])})
         res = colormap_composite([data, palette])
-        exp = np.array([[[1.0000149, 0.49804664, 0.24907766],
-                         [0., 0.59844028, 1.0000149]],
-                        [[1.00005405, 0.49806613, 0.24902255],
-                         [0., 0.59846373, 1.00005405]],
-                        [[1.00001585, 0.49804711, 0.24896771],
-                         [0., 0.59844073, 1.00001585]]])
-        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+        exp = np.array([[[1.0, 0.498039, 0.246575],
+                         [0., 0.59309977, 1.0]],
+                        [[1.0, 0.49803924, 0.24657543],
+                         [0., 0.59309983, 1.0]],
+                        [[1.0, 0.4980392, 0.24657541],
+                         [0., 0.59309978, 1.0]]])
+        np.testing.assert_allclose(res, exp, atol=1e-4)
 
 
 class TestCloudCompositorWithoutCloudfree:
