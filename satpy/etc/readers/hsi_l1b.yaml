@@ -13,9 +13,9 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    hsi_l1b:
-        file_reader: !!python/name:satpy.readers.hsi_l1b.HSIBaseFileHandler
-        file_patterns: ['{mission:5s}{satelliteID:2s}-____{product_type:s}-DT{datatakeID:s}_{start_time:%Y%m%dT%H%M%SZ}_{tile_id:3s}_{product_version:7s}_{processing_time:%Y%m%dT%H%M%SZ}.ZIP']
+  hsi_l1b:
+    file_reader: !!python/name:satpy.readers.hsi_l1b.HSIBaseFileHandler
+    file_patterns: ['{mission:5s}{satelliteID:2s}-____{product_type:s}-DT{datatakeID:s}_{start_time:%Y%m%dT%H%M%SZ}_{tile_id:3s}_{product_version:7s}_{processing_time:%Y%m%dT%H%M%SZ}.ZIP']
 
 datasets:
   smile_coef_swir:

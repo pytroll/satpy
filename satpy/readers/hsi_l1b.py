@@ -29,6 +29,7 @@ from glob import glob
 import numpy as np
 import rasterio
 import xarray as xr
+from pyresample.geometry import SwathDefinition
 from enpt.model.images.images_sensorgeo import EnMAP_SWIR_SensorGeo, EnMAP_VNIR_SensorGeo
 from enpt.model.metadata import EnMAP_Metadata_L1B_SensorGeo
 from enpt.options.config import EnPTConfig
@@ -44,6 +45,7 @@ class HSIBaseFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,):
         """Prepare the class for dataset reading."""
         super(HSIBaseFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.area = None
 
         # set config for enpt
         config_minimal = dict(path_l1b_enmap_image=filename, drop_bad_bands=False)
@@ -162,7 +164,8 @@ class HSIBaseFileHandler(BaseFileHandler):
                 (math.cos(math.radians(self.meta.geom_sun_zenith)))
             solIrr = detector_meta.solar_irrad.reshape(1, 1, data.sizes[band_dimname])
             calibrated_data = (constant * radiance / solIrr).astype(np.int16)
-            calibrated_data.attrs['scale_factor'] = self.cfg.scale_factor_toa_ref
+            calibrated_data.attrs['scale_factor'] = 1 / self.cfg.scale_factor_toa_ref
+            calibrated_data.attrs['add_offset'] = 0
         else:
             raise ValueError("Unknown calibration %s for dataset %s" % (calibration, self.name))
 
@@ -235,4 +238,18 @@ class HSIBaseFileHandler(BaseFileHandler):
         if band_dimname in data.dims:
             data.coords[band_dimname] = getattr(self, band_dimname)
 
+        # add area and delete center lon/lat
+        if 'yc' in data.coords:
+            self.get_lonlats(data)
+            data.attrs['area'] = self.area
+            data = data.drop_vars(['yc', 'xc'])
+
         return data
+
+    def get_lonlats(self, data):
+        """Get lonlats."""
+        if self.area is None:
+            lons = data['xc']
+            lats = data['yc']
+            self.area = SwathDefinition(lons, lats)
+            self.area.name = str(self.start_time)
