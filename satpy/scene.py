@@ -1119,7 +1119,7 @@ class Scene:
                 :doc:`dask:delayed` object or two lists to be passed to
                 a `dask.array.store` call. See return values below for more
                 details.
-            kwargs: Additional writer arguments. See :doc:`../writers` for more
+            kwargs: Additional writer arguments. See :doc:`../writing` for more
                 information.
 
         Returns:
@@ -1173,7 +1173,7 @@ class Scene:
                 :doc:`dask:delayed` object or two lists to be passed to
                 a `dask.array.store` call. See return values below for more
                 details.
-            kwargs: Additional writer arguments. See :doc:`../writers` for more
+            kwargs: Additional writer arguments. See :doc:`../writing` for more
                 information.
 
         Returns:

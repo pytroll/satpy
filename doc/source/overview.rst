@@ -127,7 +127,7 @@ Reading
 
 One of the biggest advantages of using Satpy is the large number of input
 file formats that it can read. It encapsulates this functionality into
-individual :doc:`readers`. Satpy Readers handle all of the complexity of
+individual :doc:`reading`. Satpy Readers handle all of the complexity of
 reading whatever format they represent. Meteorological Satellite file formats
 can be extremely complex and formats are rarely reused across satellites
 or instruments. No matter the format, Satpy's Reader interface is meant to
@@ -174,7 +174,7 @@ should look. Satpy tries to hide the complexity of all the possible
 enhancement methods from the user and just provide the best looking image
 by default. Satpy still makes it possible to customize these procedures, but
 in most cases it shouldn't be necessary. See the documentation on
-:doc:`writers` for more information on what's possible for output formats
+:doc:`writing` for more information on what's possible for output formats
 and enhancing images.
 
 Writing
@@ -187,4 +187,4 @@ users to save data in image formats like PNG or GeoTIFF as well as data file
 formats like NetCDF. Each format's complexity is hidden behind the interface
 of individual Writer objects and includes keyword arguments for accessing
 specific format features like compression and output data type. See the
-:doc:`writers` documentation for the available writers and how to use them.
+:doc:`writing` documentation for the available writers and how to use them.
