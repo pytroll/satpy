@@ -138,42 +138,44 @@ class ZarrCacheHelper:
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
-        sanitized_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
-        should_cache, cache_dir = self._get_should_cache_and_cache_dir(sanitized_args, cache_dir)
-        if should_cache:
-            try:
-                arg_hash = _hash_args(*sanitized_args, unhashable_types=self._uncacheable_arg_types)
-            except TypeError as err:
-                warnings.warn("Cannot cache function because of unhashable argument: " + str(err), stacklevel=2)
-                should_cache = False
-
+        should_cache: bool = satpy.config.get(self._cache_config_key, False)
         if not should_cache:
             return self._func(*args)
 
-        zarr_fn = self._zarr_pattern(arg_hash)
-        zarr_format = os.path.join(cache_dir, zarr_fn)
+        try:
+            return self._cache_and_read(args, cache_dir)
+        except TypeError as err:
+            warnings.warn("Cannot cache function because of unhashable argument: " + str(err), stacklevel=2)
+            return self._func(*args)
+
+    def _cache_and_read(self, args, cache_dir):
+        sanitized_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
+
+        zarr_format = self._get_zarr_format(sanitized_args, cache_dir)
         zarr_paths = glob(zarr_format.format("*"))
 
         if not zarr_paths:
             # use sanitized arguments
-            args_to_use = sanitized_args
-            res = self._func(*args_to_use)
-            self._warn_if_irregular_input_chunks(args, args_to_use)
-            self._cache_results(res, zarr_format)
+            self._warn_if_irregular_input_chunks(args, sanitized_args)
+            res_to_cache = self._func(*(sanitized_args))
+            self._cache_results(res_to_cache, zarr_format)
 
         # if we did any caching, let's load from the zarr files, so that future calls have the same name
         # re-calculate the cached paths
         zarr_paths = sorted(glob(zarr_format.format("*")))
         if not zarr_paths:
             raise RuntimeError("Data was cached to disk but no files were found")
+
         new_chunks = _get_output_chunks_from_func_arguments(args)
         res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
-    def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
-        should_cache: bool = satpy.config.get(self._cache_config_key, False)
+    def _get_zarr_format(self, sanitized_args, cache_dir):
+        arg_hash = _hash_args(*sanitized_args, unhashable_types=self._uncacheable_arg_types)
+        zarr_filename = self._zarr_pattern(arg_hash)
         cache_dir = self._get_cache_dir_from_config(cache_dir)
-        return should_cache, cache_dir
+        zarr_format = os.path.join(cache_dir, zarr_filename)
+        return zarr_format
 
     @staticmethod
     def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
