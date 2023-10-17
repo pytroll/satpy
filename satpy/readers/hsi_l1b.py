@@ -125,9 +125,12 @@ class HSIBaseFileHandler(BaseFileHandler):
             shutil.rmtree(self.root_dir)
 
     @property
-    def get_metadata(self,):
+    def platform_name(self):
+        """Get platform name."""
+        return self.filename_info['mission']
+
+    def get_metadata(self):
         """Derive metadata."""
-        # Use buffered data if available
         if self._meta is None:
             self._meta = {'time': self.meta.observation_datetime,
                           'vza': self.meta.geom_view_zenith,
@@ -137,6 +140,8 @@ class HSIBaseFileHandler(BaseFileHandler):
                           'earthSunDist': self.meta.earthSunDist,
                           'aot': self.meta.aot,
                           'granule_id': self.meta.vnir.scene_basename,
+                          'filename': self.filename,
+                          'platform_name': self.platform_name,
                           }
 
         return self._meta
@@ -234,7 +239,7 @@ class HSIBaseFileHandler(BaseFileHandler):
                                 dims=[band_dimname]).rename(self.name)
 
         # add metadata and bands coords
-        data.attrs.update(self.get_metadata)
+        data.attrs.update(self.get_metadata())
         if band_dimname in data.dims:
             data.coords[band_dimname] = getattr(self, band_dimname)
 
@@ -252,4 +257,4 @@ class HSIBaseFileHandler(BaseFileHandler):
             lons = data['xc']
             lats = data['yc']
             self.area = SwathDefinition(lons, lats)
-            self.area.name = str(self.start_time)
+            self.area.name = '_'.join([self.platform_name, str(self.start_time)])
