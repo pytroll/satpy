@@ -97,6 +97,7 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
             dataset = dataset.transpose("y", "x")
         if "bands" in dataset.dims:
             dataset.coords["bands"] = self.bands
+            dataset = dataset.transpose("bands", ...)
 
         return dataset
 
