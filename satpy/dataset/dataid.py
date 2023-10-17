@@ -253,6 +253,7 @@ default_id_keys_config = {'name': {
                                   'reflectance',
                                   'brightness_temperature',
                                   'radiance',
+                                  'radiance_wavenumber',
                                   'counts'
                                   ],
                               'transitive': True,
