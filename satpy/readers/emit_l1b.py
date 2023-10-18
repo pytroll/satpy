@@ -22,8 +22,6 @@ import logging
 from datetime import datetime
 
 import numpy as np
-from pyproj import CRS
-from affine import Affine
 from pyresample.geometry import SwathDefinition
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -97,6 +95,8 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
             "end_time": self.end_time,
             "platform_name": self.platform_name,
             "sensor": self.sensor,
+            "geotransform": self.geotransform,
+            "spatial_ref": self.spatial_ref,
         }
 
     def _standardize_dims(self, dataset):
@@ -164,10 +164,6 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
         # add area
         self.get_lonlats()
         dataset.attrs['area'] = self.area
-
-        # write crs and geotransform
-        dataset.rio.write_transform(Affine.from_gdal(*self.geotransform), inplace=True)
-        dataset.rio.write_crs(CRS.from_wkt(self.spatial_ref), inplace=True)
 
         return dataset
 
