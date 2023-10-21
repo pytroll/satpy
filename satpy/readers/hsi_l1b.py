@@ -129,6 +129,12 @@ class HSIBaseFileHandler(BaseFileHandler):
         """Get platform name."""
         return self.filename_info['mission']
 
+    @property
+    def sensor(self):
+        """Get sensor name."""
+        # hard code here
+        return 'hsi'
+
     def get_metadata(self):
         """Derive metadata."""
         if self._meta is None:
@@ -142,6 +148,7 @@ class HSIBaseFileHandler(BaseFileHandler):
                           'granule_id': self.meta.vnir.scene_basename,
                           'filename': self.filename,
                           'platform_name': self.platform_name,
+                          'sensor': self.sensor,
                           }
 
         return self._meta
