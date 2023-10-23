@@ -41,6 +41,12 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.update(key.to_dict())
         self._update_data_arr_with_filename_attrs(variable)
         self._remove_problem_attrs(variable)
+
+        # convert to satpy standard units
+        if variable.attrs['units'] == '1' and key['calibration'] != 'counts':
+            variable *= 100.0
+            variable.attrs['units'] = '%'
+
         return variable
 
     def _update_data_arr_with_filename_attrs(self, variable):
