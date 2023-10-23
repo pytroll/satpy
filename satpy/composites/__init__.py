@@ -22,6 +22,7 @@ import warnings
 
 import dask.array as da
 import numpy as np
+import pandas as pd
 import xarray as xr
 from trollimage.colormap import Colormap
 
@@ -245,6 +246,16 @@ class CompositeBase:
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
+    def _concat_datasets(self, projectables, mode):
+        try:
+            data = xr.concat(projectables, 'bands', coords='minimal')
+            data['bands'] = list(mode)
+        except ValueError as e:
+            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
+            raise IncompatibleAreas
+
+        return data
+
 
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
@@ -396,16 +407,6 @@ class GenericCompositor(CompositeBase):
         if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0].item(), str):
             return ''.join(data_arr.coords['bands'].values)
         return cls.modes[data_arr.sizes['bands']]
-
-    def _concat_datasets(self, projectables, mode):
-        try:
-            data = xr.concat(projectables, 'bands', coords='minimal')
-            data['bands'] = list(mode)
-        except ValueError as e:
-            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
-            raise IncompatibleAreas
-
-        return data
 
     def _get_sensors(self, projectables):
         sensor = set()
@@ -1727,3 +1728,85 @@ class LongitudeMaskingCompositor(SingleBandCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super().__call__([masked_projectable], **info)
+
+
+class MissingTime(Exception):
+    """Raised when temporal composite building lacks time dimension."""
+
+
+class BaseTemporalCompositor(CompositeBase):
+    """Compositors combining multiple time steps.
+
+    Base class for compositors that combine inputs from two or more time steps.
+
+    To use this, the user must start with a :class:`MultiScene` and load the
+    temporal composite from there.  Composite generation will fail due to missing
+    temporal information in the containing scenes, but it will add the temporal
+    composite to the scene wishlists.  Now we run ``MultiScene.blend(timeseries)``,
+    which will create DataArrays with a time dimension.  After blending, the
+    blend method tries again to generate the composites, and on this second run
+    the generation should work.
+    """
+
+    def __init__(self, name, prerequisites, optional_prerequisites=None, **kwargs):
+        """Initialise a temporal compositor."""
+        self._ensure_prerequisites_have_times(prerequisites)
+        super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
+
+    def _check_time_dimension(self, projectables):
+        """Make sure all projectables have a time dimension."""
+        for projectable in projectables:
+            if "time" not in projectable.dims:
+                raise MissingTime(
+                    "Creating temporal composite needs time dimensions. "
+                    "Typically, this comes from starting with a MultiScene "
+                    "and then performing timeseries blending.")
+
+    def _ensure_prerequisites_have_times(self, prerequisites):
+        """Make sure all prerequisites have times defined."""
+        for preq in prerequisites:
+            if "time" not in preq.to_dict():
+                raise KeyError(
+                    "In a temporal composite, all prerequisites should have "
+                    "time information defined.  Time information is missing for "
+                    f"{preq!s}")
+
+    def _apply_temporal_prerequisites(self, projectables):
+        """Apply temporal prerequisites.
+
+        The generic Satpy composite loading logic does not understand time
+        dependencies.  When :meth:`MultiScene.blend` reruns the composite
+        loading for a composite combining the same channel for three time
+        steps, we will be passed the same 3-D data array three times.
+
+        This method matches the temporal prerequisites as defined in the
+        compositor with the time dimension associated with the dataarrays.
+        """
+        # reference time is the newest time
+        ref_time = projectables[0]["time"][-1]
+        new_projectables = []
+        for (dq, proj) in zip(self.attrs["prerequisites"], projectables):
+            new_da = proj.sel(time=ref_time+pd.Timedelta(dq["time"]), method='nearest')
+            new_projectables.append(new_da)
+        return new_projectables
+
+
+class TemporalRGB(BaseTemporalCompositor):
+    """Make an RGB where different timesteps of the same channel go in different bands.
+
+    See the note in the parent class :class:`BaseTemporalCompositor` for
+    usage instructions.
+    """
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Build the composite."""
+        projectables = self.match_data_arrays(projectables)
+        self._check_time_dimension(projectables)
+        new_projectables = self._apply_temporal_prerequisites(projectables)
+        # need to drop the time coordinate, otherwise we can't concatenate
+        # the bands
+        dataset = self._concat_datasets(
+            [proj.drop_vars("time") for proj in new_projectables], "RGB")
+        dataset.attrs.update(self.attrs)
+        dataset.attrs.update(info)
+        return dataset
