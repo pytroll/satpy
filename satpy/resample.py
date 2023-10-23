@@ -146,32 +146,19 @@ from logging import getLogger
 from math import lcm  # type: ignore
 from weakref import WeakValueDictionary
 
-import dask
 import dask.array as da
 import numpy as np
 import pyresample
 import xarray as xr
 import zarr
 from packaging import version
-from pyresample.ewa import fornav, ll2cr
+from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
 from pyresample.geometry import SwathDefinition
-
-from satpy.utils import PerformanceWarning, get_legacy_chunk_size
-
-try:
-    from pyresample.resampler import BaseResampler as PRBaseResampler
-except ImportError:
-    PRBaseResampler = None
-try:
-    from pyresample.gradient import GradientSearchResampler
-except ImportError:
-    GradientSearchResampler = None
-try:
-    from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
-except ImportError:
-    DaskEWAResampler = LegacyDaskEWAResampler = None
+from pyresample.gradient import GradientSearchResampler
+from pyresample.resampler import BaseResampler as PRBaseResampler
 
 from satpy._config import config_search_paths, get_config_path
+from satpy.utils import PerformanceWarning, get_legacy_chunk_size
 
 LOG = getLogger(__name__)
 
@@ -355,100 +342,7 @@ def update_resampled_coords(old_data, new_data, new_area):
     return new_data
 
 
-class BaseResampler(object):
-    """Base abstract resampler class."""
-
-    def __init__(self, source_geo_def, target_geo_def):
-        """Initialize resampler with geolocation information.
-
-        Args:
-            source_geo_def (SwathDefinition, AreaDefinition):
-                Geolocation definition for the data to be resampled
-            target_geo_def (CoordinateDefinition, AreaDefinition):
-                Geolocation definition for the area to resample data to.
-
-        """
-        self.source_geo_def = source_geo_def
-        self.target_geo_def = target_geo_def
-
-    def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
-        """Get hash for the current resample with the given *kwargs*."""
-        if source_geo_def is None:
-            source_geo_def = self.source_geo_def
-        if target_geo_def is None:
-            target_geo_def = self.target_geo_def
-        the_hash = source_geo_def.update_hash()
-        target_geo_def.update_hash(the_hash)
-        hash_dict(kwargs, the_hash)
-        return the_hash.hexdigest()
-
-    def precompute(self, **kwargs):
-        """Do the precomputation.
-
-        This is an optional step if the subclass wants to implement more
-        complex features like caching or can share some calculations
-        between multiple datasets to be processed.
-
-        """
-        return None
-
-    def compute(self, data, **kwargs):
-        """Do the actual resampling.
-
-        This must be implemented by subclasses.
-
-        """
-        raise NotImplementedError
-
-    def resample(self, data, cache_dir=None, mask_area=None, **kwargs):
-        """Resample `data` by calling `precompute` and `compute` methods.
-
-        Only certain resampling classes may use `cache_dir` and the `mask`
-        provided when `mask_area` is True. The return value of calling the
-        `precompute` method is passed as the `cache_id` keyword argument
-        of the `compute` method, but may not be used directly for caching. It
-        is up to the individual resampler subclasses to determine how this
-        is used.
-
-        Args:
-            data (xarray.DataArray): Data to be resampled
-            cache_dir (str): directory to cache precomputed results
-                             (default False, optional)
-            mask_area (bool): Mask geolocation data where data values are
-                              invalid. This should be used when data values
-                              may affect what neighbors are considered valid.
-
-        Returns (xarray.DataArray): Data resampled to the target area
-
-        """
-        # default is to mask areas for SwathDefinitions
-        if mask_area is None and isinstance(
-                self.source_geo_def, SwathDefinition):
-            mask_area = True
-
-        if mask_area:
-            if isinstance(self.source_geo_def, SwathDefinition):
-                geo_dims = self.source_geo_def.lons.dims
-            else:
-                geo_dims = ('y', 'x')
-            flat_dims = [dim for dim in data.dims if dim not in geo_dims]
-            if np.issubdtype(data.dtype, np.integer):
-                kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
-            else:
-                kwargs['mask'] = data.isnull()
-            kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
-
-        cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
-        return self.compute(data, cache_id=cache_id, **kwargs)
-
-    def _create_cache_filename(self, cache_dir, prefix='',
-                               fmt='.zarr', **kwargs):
-        """Create filename for the cached resampling parameters."""
-        hash_str = self.get_hash(**kwargs)
-        return os.path.join(cache_dir, prefix + hash_str + fmt)
-
-
-class KDTreeResampler(BaseResampler):
+class KDTreeResampler(PRBaseResampler):
     """Resample using a KDTree-based nearest neighbor algorithm.
 
     This resampler implements on-disk caching when the `cache_dir` argument
@@ -542,41 +436,10 @@ class KDTreeResampler(BaseResampler):
         setattr(self.resampler, idx_name, val)
         return val
 
-    def _check_numpy_cache(self, cache_dir, mask=None,
-                           **kwargs):
-        """Check if there's Numpy cache file and convert it to zarr."""
-        if cache_dir is None:
-            return
-        fname_np = self._create_cache_filename(cache_dir,
-                                               prefix='resample_lut-',
-                                               mask=mask, fmt='.npz',
-                                               **kwargs)
-        fname_zarr = self._create_cache_filename(cache_dir, prefix='nn_lut-',
-                                                 mask=mask, fmt='.zarr',
-                                                 **kwargs)
-        LOG.debug("Check if %s exists", fname_np)
-        if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
-            import warnings
-            warnings.warn(
-                "Using Numpy files as resampling cache is deprecated.",
-                stacklevel=3
-            )
-            LOG.warning("Converting resampling LUT from .npz to .zarr")
-            zarr_out = xr.Dataset()
-            with np.load(fname_np, 'r') as fid:
-                for idx_name, coord in NN_COORDINATES.items():
-                    zarr_out[idx_name] = (coord, fid[idx_name])
-
-            # Write indices to Zarr file
-            zarr_out.to_zarr(fname_zarr)
-            LOG.debug("Resampling LUT saved to %s", fname_zarr)
-
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
         cached = {}
-        self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
-
         for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
@@ -636,209 +499,7 @@ class KDTreeResampler(BaseResampler):
         return update_resampled_coords(data, res, self.target_geo_def)
 
 
-class _LegacySatpyEWAResampler(BaseResampler):
-    """Resample using an elliptical weighted averaging algorithm.
-
-    This algorithm does **not** use caching or any externally provided data
-    mask (unlike the 'nearest' resampler).
-
-    This algorithm works under the assumption that the data is observed
-    one scan line at a time. However, good results can still be achieved
-    for non-scan based data provided `rows_per_scan` is set to the
-    number of rows in the entire swath or by setting it to `None`.
-
-    Args:
-        rows_per_scan (int, None):
-            Number of data rows for every observed scanline. If None then the
-            entire swath is treated as one large scanline.
-        weight_count (int):
-            number of elements to create in the gaussian weight table.
-            Default is 10000. Must be at least 2
-        weight_min (float):
-            the minimum value to store in the last position of the
-            weight table. Default is 0.01, which, with a
-            `weight_distance_max` of 1.0 produces a weight of 0.01
-            at a grid cell distance of 1.0. Must be greater than 0.
-        weight_distance_max (float):
-            distance in grid cell units at which to
-            apply a weight of `weight_min`. Default is
-            1.0. Must be greater than 0.
-        weight_delta_max (float):
-            maximum distance in grid cells in each grid
-            dimension over which to distribute a single swath cell.
-            Default is 10.0.
-        weight_sum_min (float):
-            minimum weight sum value. Cells whose weight sums
-            are less than `weight_sum_min` are set to the grid fill value.
-            Default is EPSILON.
-        maximum_weight_mode (bool):
-            If False (default), a weighted average of
-            all swath cells that map to a particular grid cell is used.
-            If True, the swath cell having the maximum weight of all
-            swath cells that map to a particular grid cell is used. This
-            option should be used for coded/category data, i.e. snow cover.
-
-    """
-
-    def __init__(self, source_geo_def, target_geo_def):
-        """Init _LegacySatpyEWAResampler."""
-        warnings.warn(
-            "A new version of pyresample is available. Please "
-            "upgrade to get access to a newer 'ewa' and "
-            "'ewa_legacy' resampler.",
-            stacklevel=2
-        )
-        super(_LegacySatpyEWAResampler, self).__init__(source_geo_def, target_geo_def)
-        self.cache = {}
-
-    def resample(self, *args, **kwargs):
-        """Run precompute and compute methods.
-
-        .. note::
-
-            This sets the default of 'mask_area' to False since it is
-            not needed in EWA resampling currently.
-
-        """
-        kwargs.setdefault('mask_area', False)
-        return super(_LegacySatpyEWAResampler, self).resample(*args, **kwargs)
-
-    def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
-        """Wrap ll2cr() for handling dask delayed calls better."""
-        new_src = SwathDefinition(lons, lats)
-
-        swath_points_in_grid, cols, rows = ll2cr(new_src, target_geo_def)
-        # FIXME: How do we check swath usage/coverage if we only do this
-        #        per-block
-        # # Determine if enough of the input swath was used
-        # grid_name = getattr(self.target_geo_def, "name", "N/A")
-        # fraction_in = swath_points_in_grid / float(lons.size)
-        # swath_used = fraction_in > swath_usage
-        # if not swath_used:
-        #     LOG.info("Data does not fit in grid %s because it only %f%% of "
-        #              "the swath is used" %
-        #              (grid_name, fraction_in * 100))
-        #     raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
-        # else:
-        #     LOG.debug("Data fits in grid %s and uses %f%% of the swath",
-        #               grid_name, fraction_in * 100)
-
-        return np.stack([cols, rows], axis=0)
-
-    def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
-        """Generate row and column arrays and store it for later use."""
-        if self.cache:
-            # this resampler should be used for one SwathDefinition
-            # no need to recompute ll2cr output again
-            return None
-
-        if kwargs.get('mask') is not None:
-            LOG.warning("'mask' parameter has no affect during EWA "
-                        "resampling")
-
-        del kwargs
-        source_geo_def = self.source_geo_def
-        target_geo_def = self.target_geo_def
-
-        if cache_dir:
-            LOG.warning("'cache_dir' is not used by EWA resampling")
-
-        # Satpy/PyResample don't support dynamic grids out of the box yet
-        lons, lats = source_geo_def.get_lonlats()
-        if isinstance(lons, xr.DataArray):
-            # get dask arrays
-            lons = lons.data
-            lats = lats.data
-        # we are remapping to a static unchanging grid/area with all of
-        # its parameters specified
-        chunks = (2,) + lons.chunks
-        res = da.map_blocks(self._call_ll2cr, lons, lats,
-                            target_geo_def, swath_usage,
-                            dtype=lons.dtype, chunks=chunks, new_axis=[0])
-        cols = res[0]
-        rows = res[1]
-
-        # save the dask arrays in the class instance cache
-        # the on-disk cache will store the numpy arrays
-        self.cache = {
-            "rows": rows,
-            "cols": cols,
-        }
-
-        return None
-
-    def _call_fornav(self, cols, rows, target_geo_def, data,
-                     grid_coverage=0, **kwargs):
-        """Wrap fornav() to run as a dask delayed."""
-        num_valid_points, res = fornav(cols, rows, target_geo_def,
-                                       data, **kwargs)
-
-        if isinstance(data, tuple):
-            # convert 'res' from tuple of arrays to one array
-            res = np.stack(res)
-            num_valid_points = sum(num_valid_points)
-
-        grid_covered_ratio = num_valid_points / float(res.size)
-        grid_covered = grid_covered_ratio > grid_coverage
-        if not grid_covered:
-            msg = "EWA resampling only found %f%% of the grid covered " \
-                  "(need %f%%)" % (grid_covered_ratio * 100,
-                                   grid_coverage * 100)
-            raise RuntimeError(msg)
-        LOG.debug("EWA resampling found %f%% of the grid covered" %
-                  (grid_covered_ratio * 100))
-
-        return res
-
-    def compute(self, data, cache_id=None, fill_value=0, weight_count=10000,
-                weight_min=0.01, weight_distance_max=1.0,
-                weight_delta_max=1.0, weight_sum_min=-1.0,
-                maximum_weight_mode=False, grid_coverage=0, **kwargs):
-        """Resample the data according to the precomputed X/Y coordinates."""
-        rows = self.cache["rows"]
-        cols = self.cache["cols"]
-
-        # if the data is scan based then check its metadata or the passed
-        # kwargs otherwise assume the entire input swath is one large
-        # "scanline"
-        rows_per_scan = kwargs.get('rows_per_scan',
-                                   data.attrs.get("rows_per_scan",
-                                                  data.shape[0]))
-
-        if data.ndim == 3 and 'bands' in data.dims:
-            data_in = tuple(data.sel(bands=band).data
-                            for band in data['bands'])
-        elif data.ndim == 2:
-            data_in = data.data
-        else:
-            raise ValueError("Unsupported data shape for EWA resampling.")
-
-        res = dask.delayed(self._call_fornav)(
-            cols, rows, self.target_geo_def, data_in,
-            grid_coverage=grid_coverage,
-            rows_per_scan=rows_per_scan, weight_count=weight_count,
-            weight_min=weight_min, weight_distance_max=weight_distance_max,
-            weight_delta_max=weight_delta_max, weight_sum_min=weight_sum_min,
-            maximum_weight_mode=maximum_weight_mode)
-        if isinstance(data_in, tuple):
-            new_shape = (len(data_in),) + self.target_geo_def.shape
-        else:
-            new_shape = self.target_geo_def.shape
-        data_arr = da.from_delayed(res, new_shape, data.dtype)
-        # from delayed creates one large chunk, break it up a bit if we can
-        data_arr = data_arr.rechunk([CHUNK_SIZE] * data_arr.ndim)
-        if data.ndim == 3 and data.dims[0] == 'bands':
-            dims = ('bands', 'y', 'x')
-        elif data.ndim == 2:
-            dims = ('y', 'x')
-        else:
-            dims = data.dims
-
-        res = xr.DataArray(data_arr, dims=dims, attrs=data.attrs.copy())
-        return update_resampled_coords(data, res, self.target_geo_def)
-
-
-class BilinearResampler(BaseResampler):
+class BilinearResampler(PRBaseResampler):
     """Resample using bilinear interpolation.
 
     This resampler implements on-disk caching when the `cache_dir` argument
@@ -978,7 +639,7 @@ def _repeat_by_factor(data, block_info=None):
     return out_data
 
 
-class NativeResampler(BaseResampler):
+class NativeResampler(PRBaseResampler):
     """Expand or reduce input datasets to be the same shape.
 
     If data is higher resolution (more pixels) than the destination area
@@ -1139,7 +800,7 @@ def _get_arg_to_pass_for_skipna_handling(**kwargs):
     return kwargs
 
 
-class BucketResamplerBase(BaseResampler):
+class BucketResamplerBase(PRBaseResampler):
     """Base class for bucket resampling which implements averaging."""
 
     def __init__(self, source_geo_def, target_geo_def):
@@ -1353,17 +1014,9 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
               "bucket_fraction": BucketFraction,
+              "ewa": DaskEWAResampler,
+              "ewa_legacy": LegacyDaskEWAResampler,
               }
-if DaskEWAResampler is not None:
-    RESAMPLERS['ewa'] = DaskEWAResampler
-    RESAMPLERS['ewa_legacy'] = LegacyDaskEWAResampler
-else:
-    RESAMPLERS['ewa'] = _LegacySatpyEWAResampler
-
-
-# deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors
-if PRBaseResampler is None:
-    PRBaseResampler = BaseResampler
 
 
 # TODO: move this to pyresample
@@ -1373,7 +1026,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, (BaseResampler, PRBaseResampler)):
+    if isinstance(resampler, PRBaseResampler):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
     if isinstance(resampler, str):
@@ -1403,7 +1056,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if not isinstance(resampler, (BaseResampler, PRBaseResampler)):
+    if not isinstance(resampler, PRBaseResampler):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,
