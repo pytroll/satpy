@@ -28,11 +28,6 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 
-try:
-    from pyresample.ewa import LegacyDaskEWAResampler
-except ImportError:
-    LegacyDaskEWAResampler = None
-
 from satpy.resample import NativeResampler
 
 
@@ -213,115 +208,6 @@ class TestKDTreeResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
-
-
-@unittest.skipIf(LegacyDaskEWAResampler is not None,
-                 "Deprecated EWA resampler is now in pyresample. "
-                 "No need to test in Satpy.")
-class TestEWAResampler(unittest.TestCase):
-    """Test EWA resampler class."""
-
-    @mock.patch('satpy.resample.fornav')
-    @mock.patch('satpy.resample.ll2cr')
-    @mock.patch('satpy.resample.SwathDefinition.get_lonlats')
-    def test_2d_ewa(self, get_lonlats, ll2cr, fornav):
-        """Test EWA with a 2D dataset."""
-        import numpy as np
-        import xarray as xr
-
-        from satpy.resample import resample_dataset
-        ll2cr.return_value = (100,
-                              np.zeros((10, 10), dtype=np.float32),
-                              np.zeros((10, 10), dtype=np.float32))
-        fornav.return_value = (100 * 200,
-                               np.zeros((200, 100), dtype=np.float32))
-        _, _, swath_data, source_swath, target_area = get_test_data()
-        get_lonlats.return_value = (source_swath.lons, source_swath.lats)
-        swath_data.data = swath_data.data.astype(np.float32)
-        num_chunks = len(source_swath.lons.chunks[0]) * len(source_swath.lons.chunks[1])
-
-        new_data = resample_dataset(swath_data, target_area, resampler='ewa')
-        self.assertTupleEqual(new_data.shape, (200, 100))
-        self.assertEqual(new_data.dtype, np.float32)
-        self.assertEqual(new_data.attrs['test'], 'test')
-        self.assertIs(new_data.attrs['area'], target_area)
-        # make sure we can actually compute everything
-        new_data.compute()
-        lonlat_calls = get_lonlats.call_count
-        ll2cr_calls = ll2cr.call_count
-
-        # resample a different dataset and make sure cache is used
-        data = xr.DataArray(
-            swath_data.data,
-            dims=('y', 'x'), attrs={'area': source_swath, 'test': 'test2',
-                                    'name': 'test2'})
-        new_data = resample_dataset(data, target_area, resampler='ewa')
-        new_data.compute()
-        # ll2cr will be called once more because of the computation
-        self.assertEqual(ll2cr.call_count, ll2cr_calls + num_chunks)
-        # but we should already have taken the lonlats from the SwathDefinition
-        self.assertEqual(get_lonlats.call_count, lonlat_calls)
-        self.assertIn('y', new_data.coords)
-        self.assertIn('x', new_data.coords)
-        self.assertIn('crs', new_data.coords)
-        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
-
-    @mock.patch('satpy.resample.fornav')
-    @mock.patch('satpy.resample.ll2cr')
-    @mock.patch('satpy.resample.SwathDefinition.get_lonlats')
-    def test_3d_ewa(self, get_lonlats, ll2cr, fornav):
-        """Test EWA with a 3D dataset."""
-        import numpy as np
-        import xarray as xr
-
-        from satpy.resample import resample_dataset
-        _, _, swath_data, source_swath, target_area = get_test_data(
-            input_shape=(3, 200, 100), input_dims=('bands', 'y', 'x'))
-        swath_data.data = swath_data.data.astype(np.float32)
-        ll2cr.return_value = (100,
-                              np.zeros((10, 10), dtype=np.float32),
-                              np.zeros((10, 10), dtype=np.float32))
-        fornav.return_value = ([100 * 200] * 3,
-                               [np.zeros((200, 100), dtype=np.float32)] * 3)
-        get_lonlats.return_value = (source_swath.lons, source_swath.lats)
-        num_chunks = len(source_swath.lons.chunks[0]) * len(source_swath.lons.chunks[1])
-
-        new_data = resample_dataset(swath_data, target_area, resampler='ewa')
-        self.assertTupleEqual(new_data.shape, (3, 200, 100))
-        self.assertEqual(new_data.dtype, np.float32)
-        self.assertEqual(new_data.attrs['test'], 'test')
-        self.assertIs(new_data.attrs['area'], target_area)
-        # make sure we can actually compute everything
-        new_data.compute()
-        lonlat_calls = get_lonlats.call_count
-        ll2cr_calls = ll2cr.call_count
-
-        # resample a different dataset and make sure cache is used
-        swath_data = xr.DataArray(
-            swath_data.data,
-            dims=('bands', 'y', 'x'), coords={'bands': ['R', 'G', 'B']},
-            attrs={'area': source_swath, 'test': 'test'})
-        new_data = resample_dataset(swath_data, target_area, resampler='ewa')
-        new_data.compute()
-        # ll2cr will be called once more because of the computation
-        self.assertEqual(ll2cr.call_count, ll2cr_calls + num_chunks)
-        # but we should already have taken the lonlats from the SwathDefinition
-        self.assertEqual(get_lonlats.call_count, lonlat_calls)
-        self.assertIn('y', new_data.coords)
-        self.assertIn('x', new_data.coords)
-        self.assertIn('bands', new_data.coords)
-        self.assertIn('crs', new_data.coords)
-        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-        np.testing.assert_equal(new_data.coords['bands'].values,
-                                ['R', 'G', 'B'])
-        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
 
 class TestNativeResampler:
