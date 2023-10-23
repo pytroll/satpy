@@ -20,6 +20,7 @@ from typing import Optional
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -87,7 +88,12 @@ def _assert_orbital_parameters(orb_params):
 
 
 def _create_mcmip_dataset():
-    return _create_cmip_dataset("CMI_C14")
+    ds1 = _create_cmip_dataset("CMI_C01")
+    ds2 = _create_cmip_dataset("CMI_C14")
+    ds1["CMI_C01"].attrs["units"] = "1"
+    ds2["CMI_C14"].attrs["units"] = "K"
+    ds1["CMI_C14"] = ds2["CMI_C14"]
+    return ds1
 
 
 class Test_NC_ABI_L2_get_dataset:
@@ -135,46 +141,55 @@ class Test_NC_ABI_L2_get_dataset:
 class TestMCMIPReading:
     """Test cases of the MCMIP file format."""
 
+    @pytest.mark.parametrize(
+        ("product", "exp_metadata"),
+        [
+            ("C14", {"calibration": "brightness_temperature", "wavelength": (10.8, 11.2, 11.6), "units": "K"}),
+            ("C01", {"calibration": "reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
+        ]
+    )
     @mock.patch('satpy.readers.abi_base.xr')
-    def test_mcmip_get_dataset(self, xr_):
+    def test_mcmip_get_dataset(self, xr_, product, exp_metadata):
         """Test getting channel from MCMIP file."""
         from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
         from satpy import Scene
-        from satpy.dataset.dataid import WavelengthRange
-        xr_.open_dataset.return_value = _create_mcmip_dataset()
+        fake_ds = _create_mcmip_dataset()
+        xr_.open_dataset.return_value = fake_ds
 
         fn = "OR_ABI-L2-MCMIPF-M6_G16_s20192600241149_e20192600243534_c20192600245360.nc"
         scn = Scene(reader='abi_l2_nc', filenames=[fn])
-        scn.load(['C14'])
+        scn.load([product])
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
+        if "C01" in product:
+            exp_data *= 100
 
-        exp_attrs = {'instrument_ID': None,
-                     'modifiers': (),
-                     'name': 'C14',
-                     'observation_type': 'MCMIP',
-                     'orbital_slot': None,
-                     'reader': 'abi_l2_nc',
-                     'platform_name': 'GOES-16',
-                     'platform_shortname': 'G16',
-                     'production_site': None,
-                     'scan_mode': 'M6',
-                     'scene_abbr': 'F',
-                     'scene_id': None,
-                     'sensor': 'abi',
-                     'timeline_ID': None,
-                     'start_time': datetime(2017, 9, 20, 17, 30, 40, 800000),
-                     'end_time': datetime(2017, 9, 20, 17, 41, 17, 500000),
-                     'calibration': 'brightness_temperature',
-                     'ancillary_variables': [],
-                     'wavelength': WavelengthRange(10.8, 11.2, 11.6, unit='µm'),
-                     'units': 'm'}
+        exp_attrs = {
+            'instrument_ID': None,
+            'modifiers': (),
+            'name': product,
+            'observation_type': 'MCMIP',
+            'orbital_slot': None,
+            'reader': 'abi_l2_nc',
+            'platform_name': 'GOES-16',
+            'platform_shortname': 'G16',
+            'production_site': None,
+            'scan_mode': 'M6',
+            'scene_abbr': 'F',
+            'scene_id': None,
+            'sensor': 'abi',
+            'timeline_ID': None,
+            'start_time': datetime(2017, 9, 20, 17, 30, 40, 800000),
+            'end_time': datetime(2017, 9, 20, 17, 41, 17, 500000),
+            'ancillary_variables': [],
+        }
+        exp_attrs.update(exp_metadata)
 
-        res = scn['C14']
+        res = scn[product]
         np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
         assert isinstance(res.attrs['area'], AreaDefinition)
         _compare_subdict(res.attrs, exp_attrs)
