@@ -137,13 +137,12 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    @mock.patch('satpy.resample.KDTreeResampler._check_numpy_cache')
     @mock.patch('satpy.resample.xr.Dataset')
     @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
     @mock.patch('pyresample.kd_tree.XArrayResamplerNN')
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
-                           xr_dset, cnc):
+                           xr_dset):
         """Test the kd resampler."""
         from satpy.resample import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
@@ -157,7 +156,6 @@ class TestKDTreeResampler(unittest.TestCase):
         # swath definitions should not be cached
         self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
         resampler.resampler.reset_mock()
-        cnc.assert_called_once()
 
         resampler = KDTreeResampler(source_area, target_area)
         resampler.precompute()
@@ -215,42 +213,6 @@ class TestKDTreeResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
-
-    @mock.patch('satpy.resample.np.load')
-    @mock.patch('satpy.resample.xr.Dataset')
-    def test_check_numpy_cache(self, xr_Dataset, np_load):
-        """Test that cache stored in .npz is converted to zarr."""
-        from satpy.resample import KDTreeResampler
-
-        data, source_area, swath_data, source_swath, target_area = get_test_data()
-        resampler = KDTreeResampler(source_area, target_area)
-
-        zarr_out = mock.MagicMock()
-        xr_Dataset.return_value = zarr_out
-
-        try:
-            the_dir = tempfile.mkdtemp()
-            kwargs = {}
-            np_path = resampler._create_cache_filename(the_dir,
-                                                       prefix='resample_lut-',
-                                                       fmt='.npz',
-                                                       mask=None,
-                                                       **kwargs)
-            zarr_path = resampler._create_cache_filename(the_dir,
-                                                         prefix='nn_lut-',
-                                                         fmt='.zarr',
-                                                         mask=None,
-                                                         **kwargs)
-            resampler._check_numpy_cache(the_dir)
-            np_load.assert_not_called()
-            zarr_out.to_zarr.assert_not_called()
-            with open(np_path, 'w') as fid:
-                fid.write("42")
-            resampler._check_numpy_cache(the_dir)
-            np_load.assert_called_once_with(np_path, 'r')
-            zarr_out.to_zarr.assert_called_once_with(zarr_path)
-        finally:
-            shutil.rmtree(the_dir)
 
 
 @unittest.skipIf(LegacyDaskEWAResampler is not None,
