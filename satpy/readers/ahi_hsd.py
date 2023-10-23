@@ -504,7 +504,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         pdict['loff'] = pdict['loff'] + (self.segment_number * pdict['nlines'])
 
-        aex = get_area_extent(pdict)
+        aex = get_area_extent(pdict, round=True)
 
         pdict['a_name'] = self.observation_area
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)

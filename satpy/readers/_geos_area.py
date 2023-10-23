@@ -41,7 +41,7 @@ def get_xy_from_linecol(line, col, offsets, factors):
     return x__, y__
 
 
-def make_ext(ll_x, ur_x, ll_y, ur_y, h):
+def make_ext(ll_x, ur_x, ll_y, ur_y, h, round=False):
     """Create the area extent from computed ll and ur.
 
     Args:
@@ -50,17 +50,25 @@ def make_ext(ll_x, ur_x, ll_y, ur_y, h):
         ll_y: The lower left y coordinate (m)
         ur_y: The upper right y coordinate (m)
         h: The satellite altitude above the Earth's surface
+        round: Round values by 7 decimal places to avoid inconsistencies
+            with floating point calculations.
     Returns:
         aex: An area extent for the scene
 
     """
-    aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-           np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+    ll_x = np.deg2rad(ll_x)
+    ll_y = np.deg2rad(ll_y)
+    ur_x = np.deg2rad(ur_x)
+    ur_y = np.deg2rad(ur_y)
+    if round:
+        ll_x = np.round(ll_x, 7)
+        ur_x = np.round(ur_x, 7)
+        ll_y = np.round(ll_y, 7)
+        ur_y = np.round(ur_y, 7)
+    return ll_x * h, ll_y * h, ur_x * h, ur_y * h
 
-    return aex
 
-
-def get_area_extent(pdict):
+def get_area_extent(pdict, round=False):
     """Get the area extent seen by a geostationary satellite.
 
     Args:
@@ -72,6 +80,8 @@ def get_area_extent(pdict):
             coff: Column offset factor
             loff: Line offset factor
             scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+        round: Round values by 7 decimal places to avoid inconsistencies
+            with floating point calculations.
     Returns:
         aex: An area extent for the scene
 
@@ -103,7 +113,7 @@ def get_area_extent(pdict):
         ur_y *= -1
 
     # Convert degrees to radians and create area extent
-    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict['h'])
+    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict['h'], round=round)
 
     return aex
 
