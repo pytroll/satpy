@@ -62,17 +62,25 @@ class NC_ABI_BASE(BaseFileHandler):
     @cached_property
     def nc(self):
         """Get the xarray dataset for this file."""
+        import math
+
+        from satpy.utils import get_dask_chunk_size_in_bytes
+        chunk_size_for_high_res = math.sqrt(get_dask_chunk_size_in_bytes() / 4)  # 32-bit floats
+        chunk_size_for_high_res = np.round(chunk_size_for_high_res / 226) * 226
+        ft = self.filetype_info["file_type"]
+        low_res_factor = 1 if ft == "c02" else (2 if ft in ("c01", "c03", "c05") else 4)
+        chunk_size = int(chunk_size_for_high_res / low_res_factor)
         f_obj = open_file_or_filename(self.filename)
         try:
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={"x": CHUNK_SIZE, "y": CHUNK_SIZE}, )
+                                 chunks={'x': chunk_size, 'y': chunk_size}, )
         except ValueError:
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={"lon": CHUNK_SIZE, "lat": CHUNK_SIZE}, )
+                                 chunks={'lon': chunk_size, 'lat': chunk_size}, )
         nc = self._rename_dims(nc)
         return nc
 
@@ -137,7 +145,7 @@ class NC_ABI_BASE(BaseFileHandler):
                 new_fill = fill
             else:
                 new_fill = np.nan
-            data = data.where(data != fill, new_fill)
+            data = data.where(data != fill, np.float32(new_fill))
         if factor != 1 and item in ("x", "y"):
             # be more precise with x/y coordinates
             # see get_area_def for more information
@@ -147,8 +155,8 @@ class NC_ABI_BASE(BaseFileHandler):
             # can't do this in place since data is most likely uint16
             # and we are making it a 64-bit float
             if not is_int(factor):
-                factor = float(factor)
-            data = data * factor + offset
+                factor = np.float32(factor)
+            data = data * np.float32(factor) + np.float32(offset)
         return data
 
     def _adjust_coords(self, data, item):

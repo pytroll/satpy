@@ -136,11 +136,11 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
         solar_irradiance = self["esun"]
-        esd = self["earth_sun_distance_anomaly_in_AU"].astype(float)
+        esd = self["earth_sun_distance_anomaly_in_AU"].astype(np.float32)
 
         factor = np.pi * esd * esd / solar_irradiance
 
-        res = data * factor
+        res = data * np.float32(factor)
         res.attrs = data.attrs
         res.attrs["units"] = "1"
         res.attrs["long_name"] = "Bidirectional Reflectance"
