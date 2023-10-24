@@ -68,8 +68,8 @@ geolocation calculations.
 
 
 The reading routine supports channel data in counts, radiances, and (depending
-on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on the formulas indicated in
-`PUG`_.
+on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on
+the formulas indicated in `PUG`_.
 Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 sr-1 (cm-1)-1). Radiances can be
 converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
 `radiance_unit_conversion_coefficient` dataset attribute.
