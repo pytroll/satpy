@@ -1,0 +1,145 @@
+# References:
+#  - L1B Data of EnMAP Hyperspectral Imager (HSI)
+#  - https://www.enmap.org/data_access/
+#  - https://www.enmap.org/data/doc/EN-PCV-ICD-2009-2_HSI_Product_Specification_Level1_Level2.pdf
+#  - https://www.enmap.org/data/doc/EN-PCV-TN-4006_Level_1B_Processor_Systematic_and_Radiometric_Correction.pdf
+
+reader:
+  name: hsi_l1b
+  short_name: HSI EnMAP L1B
+  long_name: EnMAP HSI L1B data in zip format
+  description: EnMAP HSI instrument zip reader
+  sensors: [hsi]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  hsi_l1b:
+    file_reader: !!python/name:satpy.readers.hsi_l1b.HSIBaseFileHandler
+    file_patterns: ['{mission:5s}{satelliteID:2s}-____{product_type:s}-DT{datatakeID:s}_{start_time:%Y%m%dT%H%M%SZ}_{tile_id:3s}_{product_version:7s}_{processing_time:%Y%m%dT%H%M%SZ}.ZIP']
+
+datasets:
+  smile_coef_swir:
+    name: smile_coef_swir
+    file_type: hsi_l1b
+    detector: swir
+
+  smile_coef_vnir:
+    name: smile_coef_vnir
+    file_type: hsi_l1b
+    detector: vnir
+
+  rpc_coef_vnir:
+    name: rpc_coef_vnir
+    file_type: hsi_l1b
+    detector: vnir
+
+  rpc_coef_swir:
+    name: rpc_coef_swir
+    file_type: hsi_l1b
+    detector: swir
+
+  longitude_vnir:
+    name: longitude_vnir
+    standrad_name: longitude
+    file_type: hsi_l1b
+    units: 'degree_east'
+    detector: vnir
+
+  latitude_vnir:
+    name: latitude_vnir
+    standrad_name: latitude
+    file_type: hsi_l1b
+    units: 'degree_north'
+    detector: vnir
+
+  longitude_swir:
+    name: longitude_swir
+    standrad_name: longitude
+    file_type: hsi_l1b
+    units: 'degree_east'
+    detector: swir
+
+  latitude_swir:
+    name: latitude_swir
+    standrad_name: latitude
+    file_type: hsi_l1b
+    units: 'degree_north'
+    detector: swir
+
+  vnir:
+    name: vnir
+    calibration:
+      radiance:
+        standrad_name: radiance
+        units: 'mW m-2 sr-1 nm-1'
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: '%'
+      counts:
+        standard_name: counts
+        units: '1'
+    file_type: hsi_l1b
+    detector: vnir
+
+  swir:
+    name: swir
+    calibration:
+      radiance:
+        standrad_name: radiance
+        units: 'mW m-2 sr-1 nm-1'
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: '%'
+      counts:
+        standard_name: counts
+        units: '1'
+    file_type: hsi_l1b
+    detector: swir
+
+  deadpixelmap:
+    name: deadpixelmap
+    file_type:  hsi_l1b
+    file_key: filename_deadpixelmap
+    description:
+
+  quicklook:
+    name: quicklook
+    file_type:  hsi_l1b
+    file_key: filename_quicklook
+    description:
+
+  mask_landwater:
+    name: mask_landwater
+    file_type:  hsi_l1b
+    file_key: filename_mask_landwater
+    description: "1: land; 2: water; 3: background"
+
+  mask_snow:
+    name: mask_snow
+    file_type:  hsi_l1b
+    file_key: filename_mask_snow
+    description: "1: Snow"
+
+  mask_cloudshadow:
+    name: mask_cloudshadow
+    file_type:  hsi_l1b
+    file_key: filename_mask_cloudshadow
+    description: "1: cloud shadow"
+
+  mask_clouds:
+    name: mask_clouds
+    file_type:  hsi_l1b
+    file_key: filename_mask_clouds
+    description: "1: cloud"
+
+  mask_haze:
+    name: mask_haze
+    file_type:  hsi_l1b
+    file_key: filename_mask_haze
+    description: "1: haze"
+
+  mask_cirrus:
+    name: mask_cirrus
+    file_type:  hsi_l1b
+    file_key: filename_mask_cirrus
+    description: "1: thin; 2: medium; 3: thick"
