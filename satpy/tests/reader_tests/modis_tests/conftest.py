@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup and configuration for all reader tests."""
 
-from ._modis_fixtures import (
+from ._modis_fixtures import (  # noqa: F401
     modis_l1b_imapp_1000m_file,
     modis_l1b_imapp_geo_file,
     modis_l1b_nasa_1km_mod03_files,
