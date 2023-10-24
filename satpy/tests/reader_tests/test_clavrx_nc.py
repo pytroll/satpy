@@ -36,75 +36,75 @@ DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FIL
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-AHI_FILE = 'clavrx_H08_20210603_1500_B01_FLDK_R.level2.nc'
+AHI_FILE = "clavrx_H08_20210603_1500_B01_FLDK_R.level2.nc"
 
 
 def fake_test_content(filename, **kwargs):
     """Mimic reader input file content."""
     attrs = {
-        'platform': 'HIM8',
-        'sensor': 'AHI',
+        "platform": "HIM8",
+        "sensor": "AHI",
         # this is a Level 2 file that came from a L1B file
-        'L1B': 'clavrx_H08_20210603_1500_B01_FLDK_R',
+        "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
     }
 
     longitude = xr.DataArray(DEFAULT_LON_DATA,
-                             dims=('scan_lines_along_track_direction',
-                                   'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
-                                    'scale_factor': 1.,
-                                    'add_offset': 0.,
-                                    'standard_name': 'longitude',
-                                    'units': 'degrees_east'
+                             dims=("scan_lines_along_track_direction",
+                                   "pixel_elements_along_scan_direction"),
+                             attrs={"_FillValue": np.nan,
+                                    "scale_factor": 1.,
+                                    "add_offset": 0.,
+                                    "standard_name": "longitude",
+                                    "units": "degrees_east"
                                     })
 
     latitude = xr.DataArray(DEFAULT_LAT_DATA,
-                            dims=('scan_lines_along_track_direction',
-                                  'pixel_elements_along_scan_direction'),
-                            attrs={'_FillValue': np.nan,
-                                   'scale_factor': 1.,
-                                   'add_offset': 0.,
-                                   'standard_name': 'latitude',
-                                   'units': 'degrees_south'
+                            dims=("scan_lines_along_track_direction",
+                                  "pixel_elements_along_scan_direction"),
+                            attrs={"_FillValue": np.nan,
+                                   "scale_factor": 1.,
+                                   "add_offset": 0.,
+                                   "standard_name": "latitude",
+                                   "units": "degrees_south"
                                    })
 
     variable1 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.float32),
-                             dims=('scan_lines_along_track_direction',
-                                   'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
-                                    'scale_factor': 1.,
-                                    'add_offset': 0.,
-                                    'units': '1',
-                                    'valid_range': [-32767, 32767],
+                             dims=("scan_lines_along_track_direction",
+                                   "pixel_elements_along_scan_direction"),
+                             attrs={"_FillValue": np.nan,
+                                    "scale_factor": 1.,
+                                    "add_offset": 0.,
+                                    "units": "1",
+                                    "valid_range": [-32767, 32767],
                                     })
 
     # data with fill values
     variable2 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.float32),
-                             dims=('scan_lines_along_track_direction',
-                                   'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': np.nan,
-                                    'scale_factor': 1.,
-                                    'add_offset': 0.,
-                                    'units': '1',
-                                    'valid_range': [-32767, 32767],
+                             dims=("scan_lines_along_track_direction",
+                                   "pixel_elements_along_scan_direction"),
+                             attrs={"_FillValue": np.nan,
+                                    "scale_factor": 1.,
+                                    "add_offset": 0.,
+                                    "units": "1",
+                                    "valid_range": [-32767, 32767],
                                     })
     variable2 = variable2.where(variable2 % 2 != 0)
 
     # category
     variable3 = xr.DataArray(DEFAULT_FILE_FLAGS,
-                             dims=('scan_lines_along_track_direction',
-                                   'pixel_elements_along_scan_direction'),
-                             attrs={'SCALED': 0,
-                                    '_FillValue': -127,
-                                    'units': '1',
-                                    'flag_values': [0, 1, 2, 3]})
+                             dims=("scan_lines_along_track_direction",
+                                   "pixel_elements_along_scan_direction"),
+                             attrs={"SCALED": 0,
+                                    "_FillValue": -127,
+                                    "units": "1",
+                                    "flag_values": [0, 1, 2, 3]})
 
     ds_vars = {
-        'longitude': longitude,
-        'latitude': latitude,
-        'variable1': variable1,
-        'variable2': variable2,
-        'variable3': variable3
+        "longitude": longitude,
+        "latitude": latitude,
+        "variable1": variable1,
+        "variable2": variable2,
+        "variable3": variable3
     }
 
     ds = xr.Dataset(ds_vars, attrs=attrs)
@@ -121,7 +121,7 @@ class TestCLAVRXReaderGeo:
     def setup_method(self):
         """Read fake data."""
         from satpy._config import config_search_paths
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
@@ -130,7 +130,7 @@ class TestCLAVRXReaderGeo:
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
             od.side_effect = fake_test_content
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -141,12 +141,12 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
-        [([AHI_FILE], ['variable1', 'variable2', 'variable3']), ]
+        [([AHI_FILE], ["variable1", "variable2", "variable3"]), ]
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
             od.side_effect = fake_test_content
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -157,19 +157,19 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [([AHI_FILE], ['variable1', 'variable2', 'variable3']), ]
+        [([AHI_FILE], ["variable1", "variable2", "variable3"]), ]
     )
     def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
             od.side_effect = fake_test_content
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
-            with mock.patch('satpy.readers.clavrx.glob') as g, \
-                 mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
-                g.return_value = ['fake_donor.nc']
+            with mock.patch("satpy.readers.clavrx.glob") as g, \
+                 mock.patch("satpy.readers.clavrx.netCDF4.Dataset") as d:
+                g.return_value = ["fake_donor.nc"]
                 x = np.linspace(-0.1518, 0.1518, 300)
                 y = np.linspace(0.1518, -0.1518, 10)
                 proj = mock.Mock(
@@ -177,26 +177,26 @@ class TestCLAVRXReaderGeo:
                     semi_minor_axis=6356752.3142,
                     perspective_point_height=35791000,
                     longitude_of_projection_origin=140.7,
-                    sweep_angle_axis='y',
+                    sweep_angle_axis="y",
                 )
                 d.return_value = fake_donor = mock.MagicMock(
-                    variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+                    variables={"goes_imager_projection": proj, "x": x, "y": y},
                 )
                 fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
                 datasets = r.load(loadable_ids)
                 assert len(datasets) == 3
                 for v in datasets.values():
-                    assert 'calibration' not in v.attrs
-                    assert v.attrs['units'] == '1'
-                    assert isinstance(v.attrs['area'], AreaDefinition)
-                    assert v.attrs['platform_name'] == 'himawari8'
-                    assert v.attrs['sensor'] == 'ahi'
-                    assert 'rows_per_scan' not in v.coords.get('longitude').attrs
+                    assert "calibration" not in v.attrs
+                    assert v.attrs["units"] == "1"
+                    assert isinstance(v.attrs["area"], AreaDefinition)
+                    assert v.attrs["platform_name"] == "himawari8"
+                    assert v.attrs["sensor"] == "ahi"
+                    assert "rows_per_scan" not in v.coords.get("longitude").attrs
                     if v.attrs["name"] in ["variable1", "variable2"]:
                         assert isinstance(v.attrs["valid_range"], list)
                         assert v.dtype == np.float32
                         assert "_FillValue" not in v.attrs.keys()
                     else:
-                        assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
-                        assert (datasets['variable3'].attrs.get('flag_meanings') == '<flag_meanings_unknown>')
+                        assert (datasets["variable3"].attrs.get("flag_meanings")) is not None
+                        assert (datasets["variable3"].attrs.get("flag_meanings") == "<flag_meanings_unknown>")
                         assert np.issubdtype(v.dtype, np.integer)

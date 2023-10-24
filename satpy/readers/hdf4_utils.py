@@ -47,9 +47,9 @@ HTYPE_TO_DTYPE = {
 
 def from_sds(var, *args, **kwargs):
     """Create a dask array from a SD dataset."""
-    var.__dict__['dtype'] = np.dtype(HTYPE_TO_DTYPE[var.info()[3]])
+    var.__dict__["dtype"] = np.dtype(HTYPE_TO_DTYPE[var.info()[3]])
     shape = var.info()[2]
-    var.__dict__['shape'] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
+    var.__dict__["shape"] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
     return da.from_array(var, *args, **kwargs)
 
 
@@ -61,7 +61,7 @@ class HDF4FileHandler(BaseFileHandler):
         super(HDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         file_handle = SD(self.filename, SDC.READ)
-        self._collect_attrs('', file_handle.attributes())
+        self._collect_attrs("", file_handle.attributes())
         for k in file_handle.datasets().keys():
             self.collect_metadata(k, file_handle.select(k))
         del file_handle
@@ -94,7 +94,7 @@ class HDF4FileHandler(BaseFileHandler):
         """Read the band in blocks."""
         dask_arr = from_sds(val, chunks=chunks)
         attrs = val.attributes()
-        return xr.DataArray(dask_arr, dims=('y', 'x'),
+        return xr.DataArray(dask_arr, dims=("y", "x"),
                             attrs=attrs)
 
     def __getitem__(self, key):

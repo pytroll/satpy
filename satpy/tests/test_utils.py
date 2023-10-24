@@ -205,21 +205,21 @@ class TestUtils(unittest.TestCase):
 
     def test_proj_units_to_meters(self):
         """Test proj units to meters conversion."""
-        prj = '+asd=123123123123'
+        prj = "+asd=123123123123"
         res = proj_units_to_meters(prj)
         self.assertEqual(res, prj)
-        prj = '+a=6378.137'
+        prj = "+a=6378.137"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000')
-        prj = '+a=6378.137 +units=km'
+        self.assertEqual(res, "+a=6378137.000")
+        prj = "+a=6378.137 +units=km"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000')
-        prj = '+a=6378.137 +b=6378.137'
+        self.assertEqual(res, "+a=6378137.000")
+        prj = "+a=6378.137 +b=6378.137"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000 +b=6378137.000')
-        prj = '+a=6378.137 +b=6378.137 +h=35785.863'
+        self.assertEqual(res, "+a=6378137.000 +b=6378137.000")
+        prj = "+a=6378.137 +b=6378.137 +h=35785.863"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
+        self.assertEqual(res, "+a=6378137.000 +b=6378137.000 +h=35785863.000")
 
 
 class TestGetSatPos:
@@ -243,21 +243,21 @@ class TestGetSatPos:
     def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
         all_orb_params = {
-            'nadir_longitude': 1,
-            'satellite_actual_longitude': 1.1,
-            'satellite_nominal_longitude': 1.2,
-            'projection_longitude': 1.3,
-            'nadir_latitude': 2,
-            'satellite_actual_latitude': 2.1,
-            'satellite_nominal_latitude': 2.2,
-            'projection_latitude': 2.3,
-            'satellite_actual_altitude': 3,
-            'satellite_nominal_altitude': 3.1,
-            'projection_altitude': 3.2
+            "nadir_longitude": 1,
+            "satellite_actual_longitude": 1.1,
+            "satellite_nominal_longitude": 1.2,
+            "projection_longitude": 1.3,
+            "nadir_latitude": 2,
+            "satellite_actual_latitude": 2.1,
+            "satellite_nominal_latitude": 2.2,
+            "projection_latitude": 2.3,
+            "satellite_actual_altitude": 3,
+            "satellite_nominal_altitude": 3.1,
+            "projection_altitude": 3.2
         }
         orb_params = {key: value for key, value in all_orb_params.items() if
                       any(in_prefix in key for in_prefix in included_prefixes)}
-        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
+        data_arr = xr.DataArray((), attrs={"orbital_parameters": orb_params})
 
         with warnings.catch_warnings(record=True) as caught_warnings:
             lon, lat, alt = get_satpos(data_arr, preference=preference)
@@ -273,8 +273,8 @@ class TestGetSatPos:
         "attrs",
         (
                 {},
-                {'orbital_parameters':  {'projection_longitude': 1}},
-                {'satellite_altitude': 1}
+                {"orbital_parameters":  {"projection_longitude": 1}},
+                {"satellite_altitude": 1}
         )
     )
     def test_get_satpos_fails_with_informative_error(self, attrs):
@@ -321,7 +321,7 @@ def test_make_fake_scene():
     sc = make_fake_scene({
         "six": np.arange(25).reshape(5, 5)})
     assert len(sc.keys()) == 1
-    assert sc.keys().pop()['name'] == "six"
+    assert sc.keys().pop()["name"] == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
     sc = make_fake_scene({
         "seven": np.arange(3*7).reshape(3, 7),
@@ -353,12 +353,12 @@ class TestCheckSatpy(unittest.TestCase):
     def test_specific_check_satpy(self):
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
-        with mock.patch('satpy.utils.print') as print_mock:
-            check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
+        with mock.patch("satpy.utils.print") as print_mock:
+            check_satpy(readers=["viirs_sdr"], extras=("cartopy", "__fake"))
             checked_fake = False
             for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and '__fake' in call[1][0]:
-                    self.assertNotIn('ok', call[1][1])
+                if len(call[1]) > 0 and "__fake" in call[1][0]:
+                    self.assertNotIn("ok", call[1][1])
                     checked_fake = True
             self.assertTrue(checked_fake, "Did not find __fake module "
                                           "mentioned in checks")
@@ -586,7 +586,7 @@ def test_convert_remote_files_to_fsspec_windows_paths():
     assert res == filenames
 
 
-@mock.patch('fsspec.open_files')
+@mock.patch("fsspec.open_files")
 def test_convert_remote_files_to_fsspec_storage_options(open_files):
     """Test convertion of remote files to fsspec objects.
 
@@ -595,7 +595,7 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["s3://tmp/file1.nc"]
-    storage_options = {'anon': True}
+    storage_options = {"anon": True}
 
     _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
 

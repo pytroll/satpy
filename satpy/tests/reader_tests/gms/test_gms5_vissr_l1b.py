@@ -227,7 +227,7 @@ class TestFileHandler:
         cpix["IR1"] = 0.5  # instead of 1672.5
         cpix["VIS"] = 0.5  # instead of 6688.5
 
-        conv['scheduled_observation_time'] = 50130.979089568464
+        conv["scheduled_observation_time"] = 50130.979089568464
 
         nsensors = conv["number_of_sensor_elements"]
         nsensors["IR1"] = 1

@@ -48,11 +48,11 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         """Initialize VaisalaGLD360TextFileHandler."""
         super(VaisalaGLD360TextFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        names = ['gld360_date', 'gld360_time', 'latitude', 'longitude', 'power', 'unit']
-        types = ['str', 'str', 'float', 'float', 'float', 'str']
+        names = ["gld360_date", "gld360_time", "latitude", "longitude", "power", "unit"]
+        types = ["str", "str", "float", "float", "float", "str"]
         dtypes = dict(zip(names, types))
         # Combine 'date' and 'time' into a datetime object
-        parse_dates = {'time': ['gld360_date', 'gld360_time']}
+        parse_dates = {"time": ["gld360_date", "gld360_time"]}
 
         self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
                                 names=names, dtype=dtypes, parse_dates=parse_dates)
@@ -60,28 +60,28 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.data['time'].iloc[0]
+        return self.data["time"].iloc[0]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.data['time'].iloc[-1]
+        return self.data["time"].iloc[-1]
 
     def get_dataset(self, dataset_id, dataset_info):
         """Load a dataset."""
-        xarr = xr.DataArray(da.from_array(self.data[dataset_id['name']],
+        xarr = xr.DataArray(da.from_array(self.data[dataset_id["name"]],
                                           chunks=CHUNK_SIZE), dims=["y"])
 
         # Add time, longitude, and latitude as non-dimensional y-coordinates
-        xarr['time'] = ('y', self.data['time'])
-        xarr['longitude'] = ('y', self.data['longitude'])
-        xarr['latitude'] = ('y', self.data['latitude'])
+        xarr["time"] = ("y", self.data["time"])
+        xarr["longitude"] = ("y", self.data["longitude"])
+        xarr["latitude"] = ("y", self.data["latitude"])
 
-        if dataset_id['name'] == 'power':
+        if dataset_id["name"] == "power":
             # Check that units in the file match the unit specified in the
             # reader yaml-file
-            if not (self.data.unit == dataset_info['units']).all():
-                raise ValueError('Inconsistent units found in file!')
+            if not (self.data.unit == dataset_info["units"]).all():
+                raise ValueError("Inconsistent units found in file!")
         xarr.attrs.update(dataset_info)
 
         return xarr

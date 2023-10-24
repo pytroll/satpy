@@ -179,14 +179,14 @@ from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_DICT = {
-    'MET08': 'Meteosat-8',
-    'MET09': 'Meteosat-9',
-    'MET10': 'Meteosat-10',
-    'MET11': 'Meteosat-11',
-    'MSG1': 'Meteosat-8',
-    'MSG2': 'Meteosat-9',
-    'MSG3': 'Meteosat-10',
-    'MSG4': 'Meteosat-11',
+    "MET08": "Meteosat-8",
+    "MET09": "Meteosat-9",
+    "MET10": "Meteosat-10",
+    "MET11": "Meteosat-11",
+    "MSG1": "Meteosat-8",
+    "MSG2": "Meteosat-9",
+    "MSG3": "Meteosat-10",
+    "MSG4": "Meteosat-11",
 }
 
 REPEAT_CYCLE_DURATION = 15
@@ -212,19 +212,19 @@ CHANNEL_NAMES = {1: "VIS006",
                  11: "IR_134",
                  12: "HRV"}
 
-VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
+VIS_CHANNELS = ["HRV", "VIS006", "VIS008", "IR_016"]
 
 # Polynomial coefficients for spectral-effective BT fits
 BTFIT = dict()
 # [A, B, C]
-BTFIT['IR_039'] = [0.0, 1.011751900, -3.550400]
-BTFIT['WV_062'] = [0.00001805700, 1.000255533, -1.790930]
-BTFIT['WV_073'] = [0.00000231818, 1.000668281, -0.456166]
-BTFIT['IR_087'] = [-0.00002332000, 1.011803400, -1.507390]
-BTFIT['IR_097'] = [-0.00002055330, 1.009370670, -1.030600]
-BTFIT['IR_108'] = [-0.00007392770, 1.032889800, -3.296740]
-BTFIT['IR_120'] = [-0.00007009840, 1.031314600, -3.181090]
-BTFIT['IR_134'] = [-0.00007293450, 1.030424800, -2.645950]
+BTFIT["IR_039"] = [0.0, 1.011751900, -3.550400]
+BTFIT["WV_062"] = [0.00001805700, 1.000255533, -1.790930]
+BTFIT["WV_073"] = [0.00000231818, 1.000668281, -0.456166]
+BTFIT["IR_087"] = [-0.00002332000, 1.011803400, -1.507390]
+BTFIT["IR_097"] = [-0.00002055330, 1.009370670, -1.030600]
+BTFIT["IR_108"] = [-0.00007392770, 1.032889800, -3.296740]
+BTFIT["IR_120"] = [-0.00007009840, 1.031314600, -3.181090]
+BTFIT["IR_134"] = [-0.00007293450, 1.030424800, -2.645950]
 
 SATNUM = {321: "8",
           322: "9",
@@ -234,124 +234,124 @@ SATNUM = {321: "8",
 CALIB = dict()
 
 # Meteosat 8
-CALIB[321] = {'HRV': {'F': 78.7599},
-              'VIS006': {'F': 65.2296},
-              'VIS008': {'F': 73.0127},
-              'IR_016': {'F': 62.3715},
-              'IR_039': {'VC': 2567.33,
-                         'ALPHA': 0.9956,
-                         'BETA': 3.41},
-              'WV_062': {'VC': 1598.103,
-                         'ALPHA': 0.9962,
-                         'BETA': 2.218},
-              'WV_073': {'VC': 1362.081,
-                         'ALPHA': 0.9991,
-                         'BETA': 0.478},
-              'IR_087': {'VC': 1149.069,
-                         'ALPHA': 0.9996,
-                         'BETA': 0.179},
-              'IR_097': {'VC': 1034.343,
-                         'ALPHA': 0.9999,
-                         'BETA': 0.06},
-              'IR_108': {'VC': 930.647,
-                         'ALPHA': 0.9983,
-                         'BETA': 0.625},
-              'IR_120': {'VC': 839.66,
-                         'ALPHA': 0.9988,
-                         'BETA': 0.397},
-              'IR_134': {'VC': 752.387,
-                         'ALPHA': 0.9981,
-                         'BETA': 0.578}}
+CALIB[321] = {"HRV": {"F": 78.7599},
+              "VIS006": {"F": 65.2296},
+              "VIS008": {"F": 73.0127},
+              "IR_016": {"F": 62.3715},
+              "IR_039": {"VC": 2567.33,
+                         "ALPHA": 0.9956,
+                         "BETA": 3.41},
+              "WV_062": {"VC": 1598.103,
+                         "ALPHA": 0.9962,
+                         "BETA": 2.218},
+              "WV_073": {"VC": 1362.081,
+                         "ALPHA": 0.9991,
+                         "BETA": 0.478},
+              "IR_087": {"VC": 1149.069,
+                         "ALPHA": 0.9996,
+                         "BETA": 0.179},
+              "IR_097": {"VC": 1034.343,
+                         "ALPHA": 0.9999,
+                         "BETA": 0.06},
+              "IR_108": {"VC": 930.647,
+                         "ALPHA": 0.9983,
+                         "BETA": 0.625},
+              "IR_120": {"VC": 839.66,
+                         "ALPHA": 0.9988,
+                         "BETA": 0.397},
+              "IR_134": {"VC": 752.387,
+                         "ALPHA": 0.9981,
+                         "BETA": 0.578}}
 
 # Meteosat 9
-CALIB[322] = {'HRV': {'F': 79.0113},
-              'VIS006': {'F': 65.2065},
-              'VIS008': {'F': 73.1869},
-              'IR_016': {'F': 61.9923},
-              'IR_039': {'VC': 2568.832,
-                         'ALPHA': 0.9954,
-                         'BETA': 3.438},
-              'WV_062': {'VC': 1600.548,
-                         'ALPHA': 0.9963,
-                         'BETA': 2.185},
-              'WV_073': {'VC': 1360.330,
-                         'ALPHA': 0.9991,
-                         'BETA': 0.47},
-              'IR_087': {'VC': 1148.620,
-                         'ALPHA': 0.9996,
-                         'BETA': 0.179},
-              'IR_097': {'VC': 1035.289,
-                         'ALPHA': 0.9999,
-                         'BETA': 0.056},
-              'IR_108': {'VC': 931.7,
-                         'ALPHA': 0.9983,
-                         'BETA': 0.64},
-              'IR_120': {'VC': 836.445,
-                         'ALPHA': 0.9988,
-                         'BETA': 0.408},
-              'IR_134': {'VC': 751.792,
-                         'ALPHA': 0.9981,
-                         'BETA': 0.561}}
+CALIB[322] = {"HRV": {"F": 79.0113},
+              "VIS006": {"F": 65.2065},
+              "VIS008": {"F": 73.1869},
+              "IR_016": {"F": 61.9923},
+              "IR_039": {"VC": 2568.832,
+                         "ALPHA": 0.9954,
+                         "BETA": 3.438},
+              "WV_062": {"VC": 1600.548,
+                         "ALPHA": 0.9963,
+                         "BETA": 2.185},
+              "WV_073": {"VC": 1360.330,
+                         "ALPHA": 0.9991,
+                         "BETA": 0.47},
+              "IR_087": {"VC": 1148.620,
+                         "ALPHA": 0.9996,
+                         "BETA": 0.179},
+              "IR_097": {"VC": 1035.289,
+                         "ALPHA": 0.9999,
+                         "BETA": 0.056},
+              "IR_108": {"VC": 931.7,
+                         "ALPHA": 0.9983,
+                         "BETA": 0.64},
+              "IR_120": {"VC": 836.445,
+                         "ALPHA": 0.9988,
+                         "BETA": 0.408},
+              "IR_134": {"VC": 751.792,
+                         "ALPHA": 0.9981,
+                         "BETA": 0.561}}
 
 # Meteosat 10
-CALIB[323] = {'HRV': {'F': 78.9416},
-              'VIS006': {'F': 65.5148},
-              'VIS008': {'F': 73.1807},
-              'IR_016': {'F': 62.0208},
-              'IR_039': {'VC': 2547.771,
-                         'ALPHA': 0.9915,
-                         'BETA': 2.9002},
-              'WV_062': {'VC': 1595.621,
-                         'ALPHA': 0.9960,
-                         'BETA': 2.0337},
-              'WV_073': {'VC': 1360.337,
-                         'ALPHA': 0.9991,
-                         'BETA': 0.4340},
-              'IR_087': {'VC': 1148.130,
-                         'ALPHA': 0.9996,
-                         'BETA': 0.1714},
-              'IR_097': {'VC': 1034.715,
-                         'ALPHA': 0.9999,
-                         'BETA': 0.0527},
-              'IR_108': {'VC': 929.842,
-                         'ALPHA': 0.9983,
-                         'BETA': 0.6084},
-              'IR_120': {'VC': 838.659,
-                         'ALPHA': 0.9988,
-                         'BETA': 0.3882},
-              'IR_134': {'VC': 750.653,
-                         'ALPHA': 0.9982,
-                         'BETA': 0.5390}}
+CALIB[323] = {"HRV": {"F": 78.9416},
+              "VIS006": {"F": 65.5148},
+              "VIS008": {"F": 73.1807},
+              "IR_016": {"F": 62.0208},
+              "IR_039": {"VC": 2547.771,
+                         "ALPHA": 0.9915,
+                         "BETA": 2.9002},
+              "WV_062": {"VC": 1595.621,
+                         "ALPHA": 0.9960,
+                         "BETA": 2.0337},
+              "WV_073": {"VC": 1360.337,
+                         "ALPHA": 0.9991,
+                         "BETA": 0.4340},
+              "IR_087": {"VC": 1148.130,
+                         "ALPHA": 0.9996,
+                         "BETA": 0.1714},
+              "IR_097": {"VC": 1034.715,
+                         "ALPHA": 0.9999,
+                         "BETA": 0.0527},
+              "IR_108": {"VC": 929.842,
+                         "ALPHA": 0.9983,
+                         "BETA": 0.6084},
+              "IR_120": {"VC": 838.659,
+                         "ALPHA": 0.9988,
+                         "BETA": 0.3882},
+              "IR_134": {"VC": 750.653,
+                         "ALPHA": 0.9982,
+                         "BETA": 0.5390}}
 
 # Meteosat 11
-CALIB[324] = {'HRV': {'F': 79.0035},
-              'VIS006': {'F': 65.2656},
-              'VIS008': {'F': 73.1692},
-              'IR_016': {'F': 61.9416},
-              'IR_039': {'VC': 2555.280,
-                         'ALPHA': 0.9916,
-                         'BETA': 2.9438},
-              'WV_062': {'VC': 1596.080,
-                         'ALPHA': 0.9959,
-                         'BETA': 2.0780},
-              'WV_073': {'VC': 1361.748,
-                         'ALPHA': 0.9990,
-                         'BETA': 0.4929},
-              'IR_087': {'VC': 1147.433,
-                         'ALPHA': 0.9996,
-                         'BETA': 0.1731},
-              'IR_097': {'VC': 1034.851,
-                         'ALPHA': 0.9998,
-                         'BETA': 0.0597},
-              'IR_108': {'VC': 931.122,
-                         'ALPHA': 0.9983,
-                         'BETA': 0.6256},
-              'IR_120': {'VC': 839.113,
-                         'ALPHA': 0.9988,
-                         'BETA': 0.4002},
-              'IR_134': {'VC': 748.585,
-                         'ALPHA': 0.9981,
-                         'BETA': 0.5635}}
+CALIB[324] = {"HRV": {"F": 79.0035},
+              "VIS006": {"F": 65.2656},
+              "VIS008": {"F": 73.1692},
+              "IR_016": {"F": 61.9416},
+              "IR_039": {"VC": 2555.280,
+                         "ALPHA": 0.9916,
+                         "BETA": 2.9438},
+              "WV_062": {"VC": 1596.080,
+                         "ALPHA": 0.9959,
+                         "BETA": 2.0780},
+              "WV_073": {"VC": 1361.748,
+                         "ALPHA": 0.9990,
+                         "BETA": 0.4929},
+              "IR_087": {"VC": 1147.433,
+                         "ALPHA": 0.9996,
+                         "BETA": 0.1731},
+              "IR_097": {"VC": 1034.851,
+                         "ALPHA": 0.9998,
+                         "BETA": 0.0597},
+              "IR_108": {"VC": 931.122,
+                         "ALPHA": 0.9983,
+                         "BETA": 0.6256},
+              "IR_120": {"VC": 839.113,
+                         "ALPHA": 0.9988,
+                         "BETA": 0.4002},
+              "IR_134": {"VC": 748.585,
+                         "ALPHA": 0.9981,
+                         "BETA": 0.5635}}
 
 
 def get_cds_time(days, msecs):
@@ -370,12 +370,12 @@ def get_cds_time(days, msecs):
 
     """
     if np.isscalar(days):
-        days = np.array([days], dtype='int64')
-        msecs = np.array([msecs], dtype='int64')
+        days = np.array([days], dtype="int64")
+        msecs = np.array([msecs], dtype="int64")
 
-    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
-        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
-    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+    time = np.datetime64("1958-01-01").astype("datetime64[ms]") + \
+        days.astype("timedelta64[D]") + msecs.astype("timedelta64[ms]")
+    time[time == np.datetime64("1958-01-01 00:00")] = np.datetime64("NaT")
 
     if len(time) == 1:
         return time[0]
@@ -384,9 +384,9 @@ def get_cds_time(days, msecs):
 
 def add_scanline_acq_time(dataset, acq_time):
     """Add scanline acquisition time to the given dataset."""
-    dataset.coords['acq_time'] = ('y', acq_time)
-    dataset.coords['acq_time'].attrs[
-        'long_name'] = 'Mean scanline acquisition time'
+    dataset.coords["acq_time"] = ("y", acq_time)
+    dataset.coords["acq_time"].attrs[
+        "long_name"] = "Mean scanline acquisition time"
 
 
 def dec10216(inbuf):
@@ -436,53 +436,53 @@ class MpefProductHeader(object):
     def get(self):
         """Return numpy record_array for MPEF product header."""
         record = [
-            ('MPEF_File_Id', np.int16),
-            ('MPEF_Header_Version', np.uint8),
-            ('ManualDissAuthRequest', bool),
-            ('ManualDisseminationAuth', bool),
-            ('DisseminationAuth', bool),
-            ('NominalTime', time_cds_short),
-            ('ProductQuality', np.uint8),
-            ('ProductCompleteness', np.uint8),
-            ('ProductTimeliness', np.uint8),
-            ('ProcessingInstanceId', np.int8),
-            ('ImagesUsed', self.images_used, (4,)),
-            ('BaseAlgorithmVersion',
+            ("MPEF_File_Id", np.int16),
+            ("MPEF_Header_Version", np.uint8),
+            ("ManualDissAuthRequest", bool),
+            ("ManualDisseminationAuth", bool),
+            ("DisseminationAuth", bool),
+            ("NominalTime", time_cds_short),
+            ("ProductQuality", np.uint8),
+            ("ProductCompleteness", np.uint8),
+            ("ProductTimeliness", np.uint8),
+            ("ProcessingInstanceId", np.int8),
+            ("ImagesUsed", self.images_used, (4,)),
+            ("BaseAlgorithmVersion",
              issue_revision),
-            ('ProductAlgorithmVersion',
+            ("ProductAlgorithmVersion",
              issue_revision),
-            ('InstanceServerName', 'S2'),
-            ('SpacecraftName', 'S2'),
-            ('Mission', 'S3'),
-            ('RectificationLongitude', 'S5'),
-            ('Encoding', 'S1'),
-            ('TerminationSpace', 'S1'),
-            ('EncodingVersion', np.uint16),
-            ('Channel', np.uint8),
-            ('ImageLocation', 'S3'),
-            ('GsicsCalMode', np.bool_),
-            ('GsicsCalValidity', np.bool_),
-            ('Padding', 'S2'),
-            ('OffsetToData', np.uint32),
-            ('Padding2', 'S9'),
-            ('RepeatCycle', 'S15'),
+            ("InstanceServerName", "S2"),
+            ("SpacecraftName", "S2"),
+            ("Mission", "S3"),
+            ("RectificationLongitude", "S5"),
+            ("Encoding", "S1"),
+            ("TerminationSpace", "S1"),
+            ("EncodingVersion", np.uint16),
+            ("Channel", np.uint8),
+            ("ImageLocation", "S3"),
+            ("GsicsCalMode", np.bool_),
+            ("GsicsCalValidity", np.bool_),
+            ("Padding", "S2"),
+            ("OffsetToData", np.uint32),
+            ("Padding2", "S9"),
+            ("RepeatCycle", "S15"),
         ]
 
-        return np.dtype(record).newbyteorder('>')
+        return np.dtype(record).newbyteorder(">")
 
     @property
     def images_used(self):
         """Return structure for images_used."""
         record = [
-            ('Padding1', 'S2'),
-            ('ExpectedImage', time_cds_short),
-            ('ImageReceived', bool),
-            ('Padding2', 'S1'),
-            ('UsedImageStart_Day', np.uint16),
-            ('UsedImageStart_Millsec', np.uint32),
-            ('Padding3', 'S2'),
-            ('UsedImageEnd_Day', np.uint16),
-            ('UsedImageEndt_Millsec', np.uint32),
+            ("Padding1", "S2"),
+            ("ExpectedImage", time_cds_short),
+            ("ImageReceived", bool),
+            ("Padding2", "S1"),
+            ("UsedImageStart_Day", np.uint16),
+            ("UsedImageStart_Millsec", np.uint32),
+            ("Padding3", "S2"),
+            ("UsedImageEnd_Day", np.uint16),
+            ("UsedImageEndt_Millsec", np.uint32),
         ]
 
         return record
@@ -522,7 +522,7 @@ class SEVIRICalibrationAlgorithm:
             # effective radiances
             return self._erads2bt(data, channel_name)
         else:
-            raise NotImplementedError('Unknown calibration type')
+            raise NotImplementedError("Unknown calibration type")
 
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""
@@ -566,36 +566,36 @@ class SEVIRICalibrationHandler:
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS')
+        valid_modes = ("NOMINAL", "GSICS")
         if self._calib_mode not in valid_modes:
             raise ValueError(
-                'Invalid calibration mode: {}. Choose one of {}'.format(
+                "Invalid calibration mode: {}. Choose one of {}".format(
                     self._calib_mode, valid_modes)
             )
 
     def calibrate(self, data, calibration):
         """Calibrate the given data."""
-        if calibration == 'counts':
+        if calibration == "counts":
             res = data
-        elif calibration in ['radiance', 'reflectance',
-                             'brightness_temperature']:
+        elif calibration in ["radiance", "reflectance",
+                             "brightness_temperature"]:
             gain, offset = self.get_gain_offset()
             res = self._algo.convert_to_radiance(
                 data.astype(np.float32), gain, offset
             )
         else:
             raise ValueError(
-                'Invalid calibration {} for channel {}'.format(
+                "Invalid calibration {} for channel {}".format(
                     calibration, self._channel_name
                 )
             )
 
-        if calibration == 'reflectance':
+        if calibration == "reflectance":
             solar_irradiance = CALIB[self._platform_id][self._channel_name]["F"]
             res = self._algo.vis_calibrate(res, solar_irradiance)
-        elif calibration == 'brightness_temperature':
+        elif calibration == "brightness_temperature":
             res = self._algo.ir_calibrate(
-                res, self._channel_name, self._coefs['radiance_type']
+                res, self._channel_name, self._coefs["radiance_type"]
             )
 
         return res
@@ -608,14 +608,14 @@ class SEVIRICalibrationHandler:
         nominal coefficients. External coefficients take precedence over
         internal coefficients.
         """
-        coefs = self._coefs['coefs']
+        coefs = self._coefs["coefs"]
 
         # Select internal coefficients for the given calibration mode
-        internal_gain = coefs['NOMINAL']['gain']
-        internal_offset = coefs['NOMINAL']['offset']
-        if self._calib_mode == 'GSICS':
-            gsics_gain = coefs['GSICS']['gain']
-            gsics_offset = coefs['GSICS']['offset'] * gsics_gain
+        internal_gain = coefs["NOMINAL"]["gain"]
+        internal_offset = coefs["NOMINAL"]["offset"]
+        if self._calib_mode == "GSICS":
+            gsics_gain = coefs["GSICS"]["gain"]
+            gsics_offset = coefs["GSICS"]["offset"] * gsics_gain
             if gsics_gain != 0 and gsics_offset != 0:
                 # If no GSICS coefficients are available for a certain channel,
                 # they are set to zero in the file.
@@ -623,8 +623,8 @@ class SEVIRICalibrationHandler:
                 internal_offset = gsics_offset
 
         # Override with external coefficients, if any.
-        gain = coefs['EXTERNAL'].get('gain', internal_gain)
-        offset = coefs['EXTERNAL'].get('offset', internal_offset)
+        gain = coefs["EXTERNAL"].get("gain", internal_gain)
+        offset = coefs["EXTERNAL"].get("offset", internal_offset)
         return gain, offset
 
 
@@ -689,9 +689,9 @@ class OrbitPolynomial:
         Returns:
             Earth-centered cartesian coordinates (x, y, z) in meters
         """
-        domain = [np.datetime64(self.start_time).astype('int64'),
-                  np.datetime64(self.end_time).astype('int64')]
-        time = np.datetime64(time).astype('int64')
+        domain = [np.datetime64(self.start_time).astype("int64"),
+                  np.datetime64(self.end_time).astype("int64")]
+        time = np.datetime64(time).astype("int64")
         x, y, z = chebyshev_3d(self.coefs, time, domain)
         return x * 1000, y * 1000, z * 1000  # km -> m
 
@@ -718,10 +718,10 @@ def get_satpos(orbit_polynomial, time, semi_major_axis, semi_minor_axis):
     """
     x, y, z = orbit_polynomial.evaluate(time)
     geocent = pyproj.CRS(
-        proj='geocent', a=semi_major_axis, b=semi_minor_axis, units='m'
+        proj="geocent", a=semi_major_axis, b=semi_minor_axis, units="m"
     )
     latlong = pyproj.CRS(
-        proj='latlong', a=semi_major_axis, b=semi_minor_axis, units='m'
+        proj="latlong", a=semi_major_axis, b=semi_minor_axis, units="m"
     )
     transformer = pyproj.Transformer.from_crs(geocent, latlong)
     lon, lat, alt = transformer.transform(x, y, z)
@@ -750,10 +750,10 @@ class OrbitPolynomialFinder:
         self.orbit_polynomials = orbit_polynomials
         # Left/right boundaries of time intervals for which the polynomials are
         # valid.
-        self.valid_from = orbit_polynomials['StartTime'][0, :].astype(
-            'datetime64[us]')
-        self.valid_to = orbit_polynomials['EndTime'][0, :].astype(
-            'datetime64[us]')
+        self.valid_from = orbit_polynomials["StartTime"][0, :].astype(
+            "datetime64[us]")
+        self.valid_to = orbit_polynomials["EndTime"][0, :].astype(
+            "datetime64[us]")
 
     def get_orbit_polynomial(self, time, max_delta=6):
         """Get orbit polynomial valid for the given time.
@@ -782,16 +782,16 @@ class OrbitPolynomialFinder:
             match = self._get_enclosing_interval(time)
         except ValueError:
             warnings.warn(
-                'No orbit polynomial valid for {}. Using closest '
-                'match.'.format(time),
+                "No orbit polynomial valid for {}. Using closest "
+                "match.".format(time),
                 stacklevel=2
             )
             match = self._get_closest_interval_within(time, max_delta)
         return OrbitPolynomial(
             coefs=(
-                self.orbit_polynomials['X'][match],
-                self.orbit_polynomials['Y'][match],
-                self.orbit_polynomials['Z'][match]
+                self.orbit_polynomials["X"][match],
+                self.orbit_polynomials["Y"][match],
+                self.orbit_polynomials["Z"][match]
             ),
             start_time=self.valid_from[match],
             end_time=self.valid_to[match]
@@ -819,12 +819,12 @@ class OrbitPolynomialFinder:
             Index of closest interval
         """
         closest_match, distance = self._get_closest_interval(time)
-        threshold_diff = np.timedelta64(threshold, 'h')
+        threshold_diff = np.timedelta64(threshold, "h")
         if distance < threshold_diff:
             return closest_match
         raise NoValidOrbitParams(
-            'Unable to find orbit coefficients valid for {} +/- {}'
-            'hours'.format(time, threshold)
+            "Unable to find orbit coefficients valid for {} +/- {}"
+            "hours".format(time, threshold)
         )
 
     def _get_closest_interval(self, time):
@@ -836,7 +836,7 @@ class OrbitPolynomialFinder:
         intervals_centre = self.valid_from + 0.5 * (
                 self.valid_to - self.valid_from
         )
-        diffs_us = (time - intervals_centre).astype('i8')
+        diffs_us = (time - intervals_centre).astype("i8")
         closest_match = np.argmin(np.fabs(diffs_us))
         distance = abs(intervals_centre[closest_match] - time)
         return closest_match, distance
@@ -864,15 +864,15 @@ def calculate_area_extent(area_dict):
     # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
     # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
     """
-    center_point = area_dict['center_point']
-    east = area_dict['east']
-    west = area_dict['west']
-    south = area_dict['south']
-    north = area_dict['north']
-    column_step = area_dict['column_step']
-    line_step = area_dict['line_step']
-    column_offset = area_dict.get('column_offset', 0)
-    line_offset = area_dict.get('line_offset', 0)
+    center_point = area_dict["center_point"]
+    east = area_dict["east"]
+    west = area_dict["west"]
+    south = area_dict["south"]
+    north = area_dict["north"]
+    column_step = area_dict["column_step"]
+    line_step = area_dict["line_step"]
+    column_offset = area_dict.get("column_offset", 0)
+    line_offset = area_dict.get("line_offset", 0)
 
     ll_c = (center_point - east + 0.5 + column_offset) * column_step
     ll_l = (north - center_point + 0.5 + line_offset) * line_step
@@ -885,18 +885,18 @@ def calculate_area_extent(area_dict):
 def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
     """Create coefficient dictionary expected by calibration class."""
     return {
-        'coefs': {
-            'NOMINAL': {
-                'gain': coefs_nominal[0],
-                'offset': coefs_nominal[1],
+        "coefs": {
+            "NOMINAL": {
+                "gain": coefs_nominal[0],
+                "offset": coefs_nominal[1],
             },
-            'GSICS': {
-                'gain': coefs_gsics[0],
-                'offset': coefs_gsics[1]
+            "GSICS": {
+                "gain": coefs_gsics[0],
+                "offset": coefs_gsics[1]
             },
-            'EXTERNAL': ext_coefs
+            "EXTERNAL": ext_coefs
         },
-        'radiance_type': radiance_type
+        "radiance_type": radiance_type
     }
 
 
@@ -916,7 +916,7 @@ def pad_data_horizontally(data, final_size, east_bound, west_bound):
     """Pad the data given east and west bounds and the desired size."""
     nlines = final_size[0]
     if west_bound - east_bound != data.shape[1] - 1:
-        raise IndexError('East and west bounds do not match data shape')
+        raise IndexError("East and west bounds do not match data shape")
 
     padding_east = get_padding_area((nlines, east_bound - 1), data.dtype)
     padding_west = get_padding_area((nlines, (final_size[1] - west_bound)), data.dtype)
@@ -928,7 +928,7 @@ def pad_data_vertically(data, final_size, south_bound, north_bound):
     """Pad the data given south and north bounds and the desired size."""
     ncols = final_size[1]
     if north_bound - south_bound != data.shape[0] - 1:
-        raise IndexError('South and north bounds do not match data shape')
+        raise IndexError("South and north bounds do not match data shape")
 
     padding_south = get_padding_area((south_bound - 1, ncols), data.dtype)
     padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)

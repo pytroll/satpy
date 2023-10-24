@@ -477,7 +477,7 @@ def patch_datetime_now(monkeypatch):
             return datetime.datetime(2033, 5, 18, 3, 33, 20,
                                      tzinfo=tz)
 
-    monkeypatch.setattr(datetime, 'datetime', mydatetime)
+    monkeypatch.setattr(datetime, "datetime", mydatetime)
 
 
 def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):

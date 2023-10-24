@@ -59,7 +59,7 @@ class TestBuiltinAreas(unittest.TestCase):
         swath_def = SwathDefinition(lons, lats)
         all_areas = parse_area_file(get_area_file())
         for area_obj in all_areas:
-            if hasattr(area_obj, 'freeze'):
+            if hasattr(area_obj, "freeze"):
                 try:
                     area_obj = area_obj.freeze(lonslats=swath_def)
                 except RuntimeError:
@@ -74,7 +74,7 @@ class TestBuiltinAreas(unittest.TestCase):
             from rasterio.crs import CRS
         except ImportError:
             return unittest.skip("Missing rasterio dependency")
-        if not hasattr(CRS, 'from_dict'):
+        if not hasattr(CRS, "from_dict"):
             return unittest.skip("RasterIO 1.0+ required")
 
         import numpy as np
@@ -91,7 +91,7 @@ class TestBuiltinAreas(unittest.TestCase):
         swath_def = SwathDefinition(lons, lats)
         all_areas = parse_area_file(get_area_file())
         for area_obj in all_areas:
-            if hasattr(area_obj, 'freeze'):
+            if hasattr(area_obj, "freeze"):
                 try:
                     area_obj = area_obj.freeze(lonslats=swath_def)
                 except RuntimeError:
@@ -115,8 +115,8 @@ def fake_plugin_etc_path(
     etc_path, entry_points, module_paths = _get_entry_points_and_etc_paths(tmp_path, entry_point_names)
     fake_iter_entry_points = _create_fake_iter_entry_points(entry_points)
     fake_importlib_files = _create_fake_importlib_files(module_paths)
-    with mock.patch('satpy._config.entry_points', fake_iter_entry_points), \
-            mock.patch('satpy._config.impr_files', fake_importlib_files):
+    with mock.patch("satpy._config.entry_points", fake_iter_entry_points), \
+            mock.patch("satpy._config.impr_files", fake_importlib_files):
         yield etc_path
 
 
@@ -298,7 +298,7 @@ class TestPluginsConfigs:
         from satpy._config import get_entry_points_config_dirs
 
         with satpy.config.set(config_path=[]):
-            dirs = get_entry_points_config_dirs('satpy.composites')
+            dirs = get_entry_points_config_dirs("satpy.composites")
             assert dirs == [str(fake_composite_plugin_etc_path)]
 
     def test_load_entry_point_composite(self, fake_composite_plugin_etc_path):
@@ -393,16 +393,16 @@ class TestConfigObject:
 
         import satpy
         my_config_dict = {
-            'cache_dir': "/path/to/cache",
+            "cache_dir": "/path/to/cache",
         }
         try:
-            with tempfile.NamedTemporaryFile(mode='w+t', suffix='.yaml', delete=False) as tfile:
+            with tempfile.NamedTemporaryFile(mode="w+t", suffix=".yaml", delete=False) as tfile:
                 yaml.dump(my_config_dict, tfile)
                 tfile.close()
-                with mock.patch.dict('os.environ', {'SATPY_CONFIG': tfile.name}):
+                with mock.patch.dict("os.environ", {"SATPY_CONFIG": tfile.name}):
                     reload(satpy._config)
                     reload(satpy)
-                    assert satpy.config.get('cache_dir') == '/path/to/cache'
+                    assert satpy.config.get("cache_dir") == "/path/to/cache"
         finally:
             os.remove(tfile.name)
 
@@ -412,15 +412,15 @@ class TestConfigObject:
 
         import satpy
         old_vars = {
-            'PPP_CONFIG_DIR': '/my/ppp/config/dir',
-            'SATPY_ANCPATH': '/my/ancpath',
+            "PPP_CONFIG_DIR": "/my/ppp/config/dir",
+            "SATPY_ANCPATH": "/my/ancpath",
         }
 
-        with mock.patch.dict('os.environ', old_vars):
+        with mock.patch.dict("os.environ", old_vars):
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('data_dir') == '/my/ancpath'
-            assert satpy.config.get('config_path') == ['/my/ppp/config/dir']
+            assert satpy.config.get("data_dir") == "/my/ancpath"
+            assert satpy.config.get("config_path") == ["/my/ppp/config/dir"]
 
     def test_config_path_multiple(self):
         """Test that multiple config paths are accepted."""
@@ -429,13 +429,13 @@ class TestConfigObject:
         import satpy
         exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
-            'SATPY_CONFIG_PATH': env_paths,
+            "SATPY_CONFIG_PATH": env_paths,
         }
 
-        with mock.patch.dict('os.environ', old_vars):
+        with mock.patch.dict("os.environ", old_vars):
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == exp_paths
+            assert satpy.config.get("config_path") == exp_paths
 
     def test_config_path_multiple_load(self):
         """Test that config paths from subprocesses load properly.
@@ -449,10 +449,10 @@ class TestConfigObject:
         import satpy
         exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
-            'SATPY_CONFIG_PATH': env_paths,
+            "SATPY_CONFIG_PATH": env_paths,
         }
 
-        with mock.patch.dict('os.environ', old_vars):
+        with mock.patch.dict("os.environ", old_vars):
             # these reloads will update env variable "SATPY_CONFIG_PATH"
             reload(satpy._config)
             reload(satpy)
@@ -460,7 +460,7 @@ class TestConfigObject:
             # load the updated env variable and parse it again.
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == exp_paths
+            assert satpy.config.get("config_path") == exp_paths
 
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
@@ -468,17 +468,17 @@ class TestConfigObject:
 
         import satpy
         old_vars = {
-            'SATPY_CONFIG_PATH': '/my/configs1',
+            "SATPY_CONFIG_PATH": "/my/configs1",
         }
 
         # single path from env var still works
-        with mock.patch.dict('os.environ', old_vars):
+        with mock.patch.dict("os.environ", old_vars):
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == ['/my/configs1']
+            assert satpy.config.get("config_path") == ["/my/configs1"]
 
         # strings are not allowed, lists are
-        with satpy.config.set(config_path='/single/string/paths/are/bad'):
+        with satpy.config.set(config_path="/single/string/paths/are/bad"):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
 
     def test_tmp_dir_is_writable(self):
@@ -503,7 +503,7 @@ def _is_writable(directory):
 
 
 def _os_specific_multipaths():
-    exp_paths = ['/my/configs1', '/my/configs2', '/my/configs3']
+    exp_paths = ["/my/configs1", "/my/configs2", "/my/configs3"]
     if sys.platform.startswith("win"):
         exp_paths = ["C:" + p for p in exp_paths]
     path_str = os.pathsep.join(exp_paths)

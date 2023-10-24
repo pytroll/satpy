@@ -428,9 +428,9 @@ PROJ = {
 }
 
 AREA_DEF_DICT = {
-    "proj_dict": {'proj': 'geos', 'lon_0': 0, 'h': 35785831, 'x_0': 0, 'y_0': 0,
-                  'a': 6378169, 'b': 6356583.8, 'units': 'm', 'no_defs': None, 'type': 'crs'},
-    "area_id": 'MSG-N',
+    "proj_dict": {"proj": "geos", "lon_0": 0, "h": 35785831, "x_0": 0, "y_0": 0,
+                  "a": 6378169, "b": 6356583.8, "units": "m", "no_defs": None, "type": "crs"},
+    "area_id": "MSG-N",
     "x_size": 3712,
     "y_size": 1856,
     "area_extent": (-5570248.2825, 1501.0099, 5567247.8793, 5570247.8784)
@@ -481,20 +481,20 @@ class TestH5NWCSAF(unittest.TestCase):
 
         area_def = test.get_area_def(dsid)
 
-        aext_res = AREA_DEF_DICT['area_extent']
+        aext_res = AREA_DEF_DICT["area_extent"]
         for i in range(4):
             self.assertAlmostEqual(area_def.area_extent[i], aext_res[i], 4)
 
-        proj_dict = AREA_DEF_DICT['proj_dict']
-        self.assertEqual(proj_dict['proj'], area_def.proj_dict['proj'])
+        proj_dict = AREA_DEF_DICT["proj_dict"]
+        self.assertEqual(proj_dict["proj"], area_def.proj_dict["proj"])
         # Not all elements passed on Appveyor, so skip testing every single element of the proj-dict:
         # for key in proj_dict:
         #    self.assertEqual(proj_dict[key], area_def.proj_dict[key])
 
-        self.assertEqual(AREA_DEF_DICT['x_size'], area_def.width)
-        self.assertEqual(AREA_DEF_DICT['y_size'], area_def.height)
+        self.assertEqual(AREA_DEF_DICT["x_size"], area_def.width)
+        self.assertEqual(AREA_DEF_DICT["y_size"], area_def.height)
 
-        self.assertEqual(AREA_DEF_DICT['area_id'], area_def.area_id)
+        self.assertEqual(AREA_DEF_DICT["area_id"], area_def.area_id)
 
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""

@@ -516,7 +516,7 @@ class TestParallaxCorrectionModifier:
 
         w_cth = 25
         h_cth = 15
-        proj_dict = {'a': '6378137', 'h': '35785863', 'proj': 'geos', 'units': 'm'}
+        proj_dict = {"a": "6378137", "h": "35785863", "proj": "geos", "units": "m"}
         fake_area_cth = pyresample.create_area_def(
                 area_id="test-area",
                 projection=proj_dict,

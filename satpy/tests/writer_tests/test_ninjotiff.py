@@ -43,58 +43,58 @@ pyninjotiff_mock = mock.Mock()
 pyninjotiff_mock.ninjotiff = mock.Mock()
 
 
-@mock.patch.dict(sys.modules, {'pyninjotiff': pyninjotiff_mock, 'pyninjotiff.ninjotiff': pyninjotiff_mock.ninjotiff})
+@mock.patch.dict(sys.modules, {"pyninjotiff": pyninjotiff_mock, "pyninjotiff.ninjotiff": pyninjotiff_mock.ninjotiff})
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
-    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
     def test_init(self):
         """Test the init."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
-        ninjo_tags = {40000: 'NINJO'}
+        ninjo_tags = {40000: "NINJO"}
         ntw = NinjoTIFFWriter(tags=ninjo_tags)
         self.assertDictEqual(ntw.tags, ninjo_tags)
 
-    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
-    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_dataset")
+    @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
     def test_dataset(self, iwsd):
         """Test saving a dataset."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
-        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
-        with mock.patch('satpy.writers.ninjotiff.convert_units') as uconv:
-            ntw.save_dataset(dataset, physic_unit='CELSIUS')
-            uconv.assert_called_once_with(dataset, 'K', 'CELSIUS')
+        dataset = xr.DataArray([1, 2, 3], attrs={"units": "K"})
+        with mock.patch("satpy.writers.ninjotiff.convert_units") as uconv:
+            ntw.save_dataset(dataset, physic_unit="CELSIUS")
+            uconv.assert_called_once_with(dataset, "K", "CELSIUS")
         self.assertEqual(iwsd.call_count, 1)
 
-    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
-    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_dataset")
+    @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
     def test_dataset_skip_unit_conversion(self, iwsd):
         """Test saving a dataset without unit conversion."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
-        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
-        with mock.patch('satpy.writers.ninjotiff.convert_units') as uconv:
-            ntw.save_dataset(dataset, physic_unit='CELSIUS',
+        dataset = xr.DataArray([1, 2, 3], attrs={"units": "K"})
+        with mock.patch("satpy.writers.ninjotiff.convert_units") as uconv:
+            ntw.save_dataset(dataset, physic_unit="CELSIUS",
                              convert_temperature_units=False)
             uconv.assert_not_called()
         self.assertEqual(iwsd.call_count, 1)
 
-    @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
-    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
-    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    @mock.patch("satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset")
+    @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_image")
+    @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
     def test_image(self, iwsi, save_dataset):
         """Test saving an image."""
         nt = pyninjotiff_mock.ninjotiff
         nt.reset_mock()
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
-        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
-        img = FakeImage(dataset, 'L')
-        ret = ntw.save_image(img, filename='bla.tif', compute=False)
+        dataset = xr.DataArray([1, 2, 3], attrs={"units": "K"})
+        img = FakeImage(dataset, "L")
+        ret = ntw.save_image(img, filename="bla.tif", compute=False)
         nt.save.assert_called()
-        assert nt.save.mock_calls[0][2]['compute'] is False
-        assert nt.save.mock_calls[0][2]['ch_min_measurement_unit'] < nt.save.mock_calls[0][2]['ch_max_measurement_unit']
+        assert nt.save.mock_calls[0][2]["compute"] is False
+        assert nt.save.mock_calls[0][2]["ch_min_measurement_unit"] < nt.save.mock_calls[0][2]["ch_max_measurement_unit"]
         assert ret == nt.save.return_value
 
     def test_convert_units_self(self):
@@ -145,9 +145,9 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         with pytest.raises(NotImplementedError):
             convert_units(ds_in, "millimeter/hour", "m/s")
 
-    @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
-    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
-    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    @mock.patch("satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset")
+    @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_image")
+    @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
     def test_P_image_is_uint8(self, iwsi, save_dataset):
         """Test that a P-mode image is converted to uint8s."""
         nt = pyninjotiff_mock.ninjotiff
@@ -155,6 +155,6 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3]).astype(int)
-        img = FakeImage(dataset, 'P')
-        ntw.save_image(img, filename='bla.tif', compute=False)
+        img = FakeImage(dataset, "P")
+        ntw.save_image(img, filename="bla.tif", compute=False)
         assert nt.save.mock_calls[0][1][0].data.dtype == np.uint8

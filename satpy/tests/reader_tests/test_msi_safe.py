@@ -955,7 +955,7 @@ class TestMTDXML:
     def test_xml_navigation(self):
         """Test the navigation."""
         from pyproj import CRS
-        crs = CRS('EPSG:32616')
+        crs = CRS("EPSG:32616")
 
         dsid = make_dataid(name="B01", resolution=60)
         result = self.xml_tile_fh.get_area_def(dsid)

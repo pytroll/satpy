@@ -26,7 +26,7 @@ import pytest
 
 import satpy
 
-TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
+TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), "etc")
 
 
 @pytest.fixture(autouse=True)

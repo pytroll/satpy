@@ -47,14 +47,14 @@ class SunZenithCorrectorBase(ModifierBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
+        projectables = self.match_data_arrays(list(projectables) + list(info.get("optional_datasets", [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             logger.debug("Sun zenith correction already applied")
             return vis
 
         logger.debug("Applying sun zen correction")
-        if not info.get('optional_datasets'):
+        if not info.get("optional_datasets"):
             # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
             from .angles import get_cos_sza

@@ -19,9 +19,9 @@ except ImportError as err:
 IR_NAVIGATION_REFERENCE = [
     {
         "pixel": nav.Pixel(line=686, pixel=1680),
-        'lon': 139.990380,
-        'lat': 35.047056,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 139.990380,
+        "lat": 35.047056,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397917902958,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -67,9 +67,9 @@ IR_NAVIGATION_REFERENCE = [
     },
     {
         "pixel": nav.Pixel(line=2089, pixel=1793),
-        'lon': 144.996967,
-        'lat': -34.959853,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 144.996967,
+        "lat": -34.959853,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944355762,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -119,9 +119,9 @@ IR_NAVIGATION_REFERENCE = [
 VIS_NAVIGATION_REFERENCE = [
     {
         "pixel": nav.Pixel(line=2744, pixel=6720),
-        'lon': 139.975527,
-        'lat': 35.078028,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 139.975527,
+        "lat": 35.078028,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397918405798,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -167,9 +167,9 @@ VIS_NAVIGATION_REFERENCE = [
     },
     {
         "pixel": nav.Pixel(line=8356, pixel=7172),
-        'lon': 144.980104,
-        'lat': -34.929123,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 144.980104,
+        "lat": -34.929123,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944858620,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,

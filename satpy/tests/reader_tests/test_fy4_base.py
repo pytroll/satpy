@@ -30,11 +30,11 @@ class Test_FY4Base:
 
     def setup_method(self):
         """Initialise the tests."""
-        self.p = mock.patch.object(FY4Base, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(FY4Base, "__bases__", (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-        self.file_type = {'file_type': 'agri_l1_0500m'}
+        self.file_type = {"file_type": "agri_l1_0500m"}
 
     def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
@@ -42,7 +42,7 @@ class Test_FY4Base:
 
     def test_badsensor(self):
         """Test case where we pass a bad sensor name, must be GHI or AGRI."""
-        fy4 = FY4Base(None, {'platform_id': 'FY4A', 'instrument': 'FCI'}, self.file_type)
+        fy4 = FY4Base(None, {"platform_id": "FY4A", "instrument": "FCI"}, self.file_type)
         with pytest.raises(ValueError):
             fy4.calibrate_to_reflectance(None, None, None)
         with pytest.raises(ValueError):
@@ -50,11 +50,11 @@ class Test_FY4Base:
 
     def test_badcalibration(self):
         """Test case where we pass a bad calibration type, radiance is not supported."""
-        fy4 = FY4Base(None, {'platform_id': 'FY4A', 'instrument': 'AGRI'}, self.file_type)
+        fy4 = FY4Base(None, {"platform_id": "FY4A", "instrument": "AGRI"}, self.file_type)
         with pytest.raises(NotImplementedError):
-            fy4.calibrate(None, {'calibration': 'radiance'}, None, None)
+            fy4.calibrate(None, {"calibration": "radiance"}, None, None)
 
     def test_badplatform(self):
         """Test case where we pass a bad calibration type, radiance is not supported."""
         with pytest.raises(KeyError):
-            FY4Base(None, {'platform_id': 'FY3D', 'instrument': 'AGRI'}, self.file_type)
+            FY4Base(None, {"platform_id": "FY3D", "instrument": "AGRI"}, self.file_type)

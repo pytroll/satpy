@@ -79,7 +79,7 @@ def get_area_extent(pdict):
     # count starts at 1
     cols = 1 - 0.5
 
-    if pdict['scandir'] == 'S2N':
+    if pdict["scandir"] == "S2N":
         lines = 0.5 - 1
         scanmult = -1
     else:
@@ -88,22 +88,22 @@ def get_area_extent(pdict):
     # Lower left x, y scanning angles in degrees
     ll_x, ll_y = get_xy_from_linecol(lines * scanmult,
                                      cols,
-                                     (pdict['loff'], pdict['coff']),
-                                     (pdict['lfac'], pdict['cfac']))
+                                     (pdict["loff"], pdict["coff"]),
+                                     (pdict["lfac"], pdict["cfac"]))
 
-    cols += pdict['ncols']
-    lines += pdict['nlines']
+    cols += pdict["ncols"]
+    lines += pdict["nlines"]
     # Upper right x, y scanning angles in degrees
     ur_x, ur_y = get_xy_from_linecol(lines * scanmult,
                                      cols,
-                                     (pdict['loff'], pdict['coff']),
-                                     (pdict['lfac'], pdict['cfac']))
-    if pdict['scandir'] == 'S2N':
+                                     (pdict["loff"], pdict["coff"]),
+                                     (pdict["lfac"], pdict["cfac"]))
+    if pdict["scandir"] == "S2N":
         ll_y *= -1
         ur_y *= -1
 
     # Convert degrees to radians and create area extent
-    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict['h'])
+    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict["h"])
 
     return aex
 
@@ -132,20 +132,20 @@ def get_area_definition(pdict, a_ext):
         The AreaDefinition `proj_id` attribute is being deprecated.
 
     """
-    proj_dict = {'a': float(pdict['a']),
-                 'b': float(pdict['b']),
-                 'lon_0': float(pdict['ssp_lon']),
-                 'h': float(pdict['h']),
-                 'proj': 'geos',
-                 'units': 'm'}
+    proj_dict = {"a": float(pdict["a"]),
+                 "b": float(pdict["b"]),
+                 "lon_0": float(pdict["ssp_lon"]),
+                 "h": float(pdict["h"]),
+                 "proj": "geos",
+                 "units": "m"}
 
     a_def = geometry.AreaDefinition(
-        pdict['a_name'],
-        pdict['a_desc'],
-        pdict['p_id'],
+        pdict["a_name"],
+        pdict["a_desc"],
+        pdict["p_id"],
         proj_dict,
-        int(pdict['ncols']),
-        int(pdict['nlines']),
+        int(pdict["ncols"]),
+        int(pdict["nlines"]),
         a_ext)
 
     return a_def
@@ -189,21 +189,21 @@ def get_geos_area_naming(input_dict):
     """
     area_naming_dict = {}
 
-    resolution_strings = get_resolution_and_unit_strings(input_dict['resolution'])
+    resolution_strings = get_resolution_and_unit_strings(input_dict["resolution"])
 
-    area_naming_dict['area_id'] = '{}_{}_{}_{}{}'.format(input_dict['platform_name'].lower(),
-                                                         input_dict['instrument_name'].lower(),
-                                                         input_dict['service_name'].lower(),
-                                                         resolution_strings['value'],
-                                                         resolution_strings['unit']
+    area_naming_dict["area_id"] = "{}_{}_{}_{}{}".format(input_dict["platform_name"].lower(),
+                                                         input_dict["instrument_name"].lower(),
+                                                         input_dict["service_name"].lower(),
+                                                         resolution_strings["value"],
+                                                         resolution_strings["unit"]
                                                          )
 
-    area_naming_dict['description'] = '{} {} {} area definition ' \
-                                      'with {} {} resolution'.format(input_dict['platform_name'].upper(),
-                                                                     input_dict['instrument_name'].upper(),
-                                                                     input_dict['service_desc'],
-                                                                     resolution_strings['value'],
-                                                                     resolution_strings['unit']
+    area_naming_dict["description"] = "{} {} {} area definition " \
+                                      "with {} {} resolution".format(input_dict["platform_name"].upper(),
+                                                                     input_dict["instrument_name"].upper(),
+                                                                     input_dict["service_desc"],
+                                                                     resolution_strings["value"],
+                                                                     resolution_strings["unit"]
                                                                      )
 
     return area_naming_dict
@@ -222,8 +222,8 @@ def get_resolution_and_unit_strings(resolution):
         Dictionary with `value` and `unit` keys, values are strings.
     """
     if resolution >= 1000:
-        return {'value': '{:.0f}'.format(resolution*1e-3),
-                'unit': 'km'}
+        return {"value": "{:.0f}".format(resolution*1e-3),
+                "unit": "km"}
 
-    return {'value': '{:.0f}'.format(resolution),
-            'unit': 'm'}
+    return {"value": "{:.0f}".format(resolution),
+            "unit": "m"}

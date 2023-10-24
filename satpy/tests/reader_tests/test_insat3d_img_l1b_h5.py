@@ -228,7 +228,7 @@ def test_filehandler_returns_masked_data_in_space(insat_filehandler):
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
     assert np.isnan(darr[0, 0])
 
@@ -238,7 +238,7 @@ def test_insat3d_has_orbital_parameters(insat_filehandler):
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
 
     assert "orbital_parameters" in darr.attrs

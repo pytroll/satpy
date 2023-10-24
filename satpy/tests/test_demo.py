@@ -58,7 +58,7 @@ class _GlobHelper(object):
         except IndexError:
             num_results = self.num_results[-1]
         self.current_call += 1
-        return [pattern + '.{:03d}'.format(idx) for idx in range(num_results)]
+        return [pattern + ".{:03d}".format(idx) for idx in range(num_results)]
 
 
 class TestDemo(unittest.TestCase):
@@ -80,26 +80,26 @@ class TestDemo(unittest.TestCase):
         except OSError:
             pass
 
-    @mock.patch('satpy.demo._google_cloud_platform.gcsfs')
+    @mock.patch("satpy.demo._google_cloud_platform.gcsfs")
     def test_get_us_midlatitude_cyclone_abi(self, gcsfs_mod):
         """Test data download function."""
         from satpy.demo import get_us_midlatitude_cyclone_abi
         gcsfs_mod.GCSFileSystem = mock.MagicMock()
         gcsfs_inst = mock.MagicMock()
         gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
-        gcsfs_inst.glob.return_value = ['a.nc', 'b.nc']
+        gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
         # expected 16 files, got 2
         self.assertRaises(AssertionError, get_us_midlatitude_cyclone_abi)
         # unknown access method
-        self.assertRaises(NotImplementedError, get_us_midlatitude_cyclone_abi, method='unknown')
+        self.assertRaises(NotImplementedError, get_us_midlatitude_cyclone_abi, method="unknown")
 
-        gcsfs_inst.glob.return_value = ['a.nc'] * 16
+        gcsfs_inst.glob.return_value = ["a.nc"] * 16
         filenames = get_us_midlatitude_cyclone_abi()
-        expected = os.path.join('.', 'abi_l1b', '20190314_us_midlatitude_cyclone', 'a.nc')
+        expected = os.path.join(".", "abi_l1b", "20190314_us_midlatitude_cyclone", "a.nc")
         for fn in filenames:
             self.assertEqual(expected, fn)
 
-    @mock.patch('satpy.demo._google_cloud_platform.gcsfs')
+    @mock.patch("satpy.demo._google_cloud_platform.gcsfs")
     def test_get_hurricane_florence_abi(self, gcsfs_mod):
         """Test data download function."""
         from satpy.demo import get_hurricane_florence_abi
@@ -110,7 +110,7 @@ class TestDemo(unittest.TestCase):
         gcsfs_inst.glob.side_effect = _GlobHelper([5, 0])
         # expected 16 files * 10 frames, got 16 * 5
         self.assertRaises(AssertionError, get_hurricane_florence_abi)
-        self.assertRaises(NotImplementedError, get_hurricane_florence_abi, method='unknown')
+        self.assertRaises(NotImplementedError, get_hurricane_florence_abi, method="unknown")
 
         gcsfs_inst.glob.side_effect = _GlobHelper([int(240 / 16), 0, 0, 0] * 16)
         filenames = get_hurricane_florence_abi()
@@ -132,63 +132,63 @@ class TestDemo(unittest.TestCase):
 class TestGCPUtils(unittest.TestCase):
     """Test Google Cloud Platform utilities."""
 
-    @mock.patch('satpy.demo._google_cloud_platform.urlopen')
+    @mock.patch("satpy.demo._google_cloud_platform.urlopen")
     def test_is_gcp_instance(self, uo):
         """Test is_google_cloud_instance."""
         from satpy.demo._google_cloud_platform import URLError, is_google_cloud_instance
         uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 
-    @mock.patch('satpy.demo._google_cloud_platform.gcsfs')
+    @mock.patch("satpy.demo._google_cloud_platform.gcsfs")
     def test_get_bucket_files(self, gcsfs_mod):
         """Test get_bucket_files basic cases."""
         from satpy.demo._google_cloud_platform import get_bucket_files
         gcsfs_mod.GCSFileSystem = mock.MagicMock()
         gcsfs_inst = mock.MagicMock()
         gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
-        gcsfs_inst.glob.return_value = ['a.nc', 'b.nc']
-        filenames = get_bucket_files('*.nc', '.')
-        expected = [os.path.join('.', 'a.nc'), os.path.join('.', 'b.nc')]
+        gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
+        filenames = get_bucket_files("*.nc", ".")
+        expected = [os.path.join(".", "a.nc"), os.path.join(".", "b.nc")]
         self.assertEqual(expected, filenames)
 
         gcsfs_inst.glob.side_effect = _GlobHelper(10)
-        filenames = get_bucket_files(['*.nc', '*.txt'], '.', pattern_slice=slice(2, 5))
+        filenames = get_bucket_files(["*.nc", "*.txt"], ".", pattern_slice=slice(2, 5))
         self.assertEqual(len(filenames), 3 * 2)
         gcsfs_inst.glob.side_effect = None  # reset mock side effect
 
-        gcsfs_inst.glob.return_value = ['a.nc', 'b.nc']
-        self.assertRaises(OSError, get_bucket_files, '*.nc', 'does_not_exist')
+        gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
+        self.assertRaises(OSError, get_bucket_files, "*.nc", "does_not_exist")
 
-        open('a.nc', 'w').close()  # touch the file
+        open("a.nc", "w").close()  # touch the file
         gcsfs_inst.get.reset_mock()
-        gcsfs_inst.glob.return_value = ['a.nc']
-        filenames = get_bucket_files('*.nc', '.')
-        self.assertEqual([os.path.join('.', 'a.nc')], filenames)
+        gcsfs_inst.glob.return_value = ["a.nc"]
+        filenames = get_bucket_files("*.nc", ".")
+        self.assertEqual([os.path.join(".", "a.nc")], filenames)
         gcsfs_inst.get.assert_not_called()
 
         # force redownload
         gcsfs_inst.get.reset_mock()
-        gcsfs_inst.glob.return_value = ['a.nc']
-        filenames = get_bucket_files('*.nc', '.', force=True)
-        self.assertEqual([os.path.join('.', 'a.nc')], filenames)
+        gcsfs_inst.glob.return_value = ["a.nc"]
+        filenames = get_bucket_files("*.nc", ".", force=True)
+        self.assertEqual([os.path.join(".", "a.nc")], filenames)
         gcsfs_inst.get.assert_called_once()
 
         # if we don't get any results then we expect an exception
         gcsfs_inst.get.reset_mock()
         gcsfs_inst.glob.return_value = []
-        self.assertRaises(OSError, get_bucket_files, '*.nc', '.')
+        self.assertRaises(OSError, get_bucket_files, "*.nc", ".")
 
-    @mock.patch('satpy.demo._google_cloud_platform.gcsfs', None)
+    @mock.patch("satpy.demo._google_cloud_platform.gcsfs", None)
     def test_no_gcsfs(self):
         """Test that 'gcsfs' is required."""
         from satpy.demo._google_cloud_platform import get_bucket_files
-        self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
+        self.assertRaises(RuntimeError, get_bucket_files, "*.nc", ".")
 
 
 class TestAHIDemoDownload:
     """Test the AHI demo data download."""
 
-    @mock.patch.dict(sys.modules, {'s3fs': mock.MagicMock()})
+    @mock.patch.dict(sys.modules, {"s3fs": mock.MagicMock()})
     def test_ahi_full_download(self):
         """Test that the himawari download works as expected."""
         from tempfile import gettempdir
@@ -197,7 +197,7 @@ class TestAHIDemoDownload:
         files = download_typhoon_surigae_ahi(base_dir=gettempdir())
         assert len(files) == 160
 
-    @mock.patch.dict(sys.modules, {'s3fs': mock.MagicMock()})
+    @mock.patch.dict(sys.modules, {"s3fs": mock.MagicMock()})
     def test_ahi_partial_download(self):
         """Test that the himawari download works as expected."""
         from tempfile import gettempdir
@@ -274,7 +274,7 @@ class _FakeRequest:
             x = bytes_io.read(chunk_size)
 
 
-@mock.patch('satpy.demo.utils.requests')
+@mock.patch("satpy.demo.utils.requests")
 class TestVIIRSSDRDemoDownload:
     """Test VIIRS SDR downloading."""
 
@@ -415,7 +415,7 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
         self.subdir = os.path.join(".", "seviri_hrit", "20180228_1500")
         self.files = generate_subset_of_filenames(base_dir=self.subdir)
 
-        self.patcher = mock.patch('satpy.demo.utils.requests.get', autospec=True)
+        self.patcher = mock.patch("satpy.demo.utils.requests.get", autospec=True)
         self.get_mock = self.patcher.start()
 
         _FakeRequest.requests_log = []
@@ -450,12 +450,12 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
         with mock_filesystem():
             files = download_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
             assert set(files) == set(os.path.join(self.subdir, filename) for filename in [
-                'H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__',
-                'H-000-MSG4__-MSG4________-HRV______-000001___-201802281500-__',
-                'H-000-MSG4__-MSG4________-HRV______-000002___-201802281500-__',
-                'H-000-MSG4__-MSG4________-HRV______-000003___-201802281500-__',
-                'H-000-MSG4__-MSG4________-IR_108___-000001___-201802281500-__',
-                'H-000-MSG4__-MSG4________-IR_108___-000002___-201802281500-__',
+                "H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__",
+                "H-000-MSG4__-MSG4________-HRV______-000001___-201802281500-__",
+                "H-000-MSG4__-MSG4________-HRV______-000002___-201802281500-__",
+                "H-000-MSG4__-MSG4________-HRV______-000003___-201802281500-__",
+                "H-000-MSG4__-MSG4________-IR_108___-000001___-201802281500-__",
+                "H-000-MSG4__-MSG4________-IR_108___-000002___-201802281500-__",
             ])
 
     def test_do_not_download_same_file_twice(self):

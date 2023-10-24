@@ -45,15 +45,15 @@ class SAFENC(BaseFileHandler):
         super(SAFENC, self).__init__(filename, filename_info,
                                      filetype_info)
 
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+        self._start_time = filename_info["start_time"]
+        self._end_time = filename_info["end_time"]
         # For some SAFE packages, fstart_time differs, but start_time is the same
         # To avoid over writing exiting file with same start_time, a solution is to
         # use fstart_time
-        self._fstart_time = filename_info['fstart_time']
-        self._fend_time = filename_info['fend_time']
+        self._fstart_time = filename_info["fstart_time"]
+        self._fend_time = filename_info["fend_time"]
 
-        self._polarization = filename_info['polarization']
+        self._polarization = filename_info["polarization"]
 
         self.lats = None
         self.lons = None
@@ -63,19 +63,19 @@ class SAFENC(BaseFileHandler):
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
-                                  chunks={'owiAzSize': CHUNK_SIZE,
-                                          'owiRaSize': CHUNK_SIZE})
-        self.nc = self.nc.rename({'owiAzSize': 'y'})
-        self.nc = self.nc.rename({'owiRaSize': 'x'})
+                                  chunks={"owiAzSize": CHUNK_SIZE,
+                                          "owiRaSize": CHUNK_SIZE})
+        self.nc = self.nc.rename({"owiAzSize": "y"})
+        self.nc = self.nc.rename({"owiRaSize": "x"})
         self.filename = filename
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key['name'] in ['owiLat', 'owiLon']:
+        if key["name"] in ["owiLat", "owiLon"]:
             if self.lons is None or self.lats is None:
-                self.lons = self.nc['owiLon']
-                self.lats = self.nc['owiLat']
-            if key['name'] == 'owiLat':
+                self.lons = self.nc["owiLon"]
+                self.lats = self.nc["owiLat"]
+            if key["name"] == "owiLat":
                 res = self.lats
             else:
                 res = self.lons
@@ -83,11 +83,11 @@ class SAFENC(BaseFileHandler):
         else:
             res = self._get_data_channels(key, info)
 
-        if 'missionName' in self.nc.attrs:
-            res.attrs.update({'platform_name': self.nc.attrs['missionName']})
+        if "missionName" in self.nc.attrs:
+            res.attrs.update({"platform_name": self.nc.attrs["missionName"]})
 
-        res.attrs.update({'fstart_time': self._fstart_time})
-        res.attrs.update({'fend_time': self._fend_time})
+        res.attrs.update({"fstart_time": self._fstart_time})
+        res.attrs.update({"fend_time": self._fend_time})
 
         if not self._shape:
             self._shape = res.shape
@@ -95,23 +95,23 @@ class SAFENC(BaseFileHandler):
         return res
 
     def _get_data_channels(self, key, info):
-        res = self.nc[key['name']]
-        if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
-            res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
-        elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
-            res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
-        elif key['name'] in ['owiPolarisationName']:
-            res = xr.DataArray(res, dims=['owiPolarisation'])
-        elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
-            res = xr.DataArray(res, dims=['owiIncSize'])
-        elif key['name'].startswith('owi'):
-            res = xr.DataArray(res, dims=['y', 'x'])
+        res = self.nc[key["name"]]
+        if key["name"] in ["owiHs", "owiWl", "owiDirmet"]:
+            res = xr.DataArray(res, dims=["y", "x", "oswPartitions"])
+        elif key["name"] in ["owiNrcs", "owiNesz", "owiNrcsNeszCorr"]:
+            res = xr.DataArray(res, dims=["y", "x", "oswPolarisation"])
+        elif key["name"] in ["owiPolarisationName"]:
+            res = xr.DataArray(res, dims=["owiPolarisation"])
+        elif key["name"] in ["owiCalConstObsi", "owiCalConstInci"]:
+            res = xr.DataArray(res, dims=["owiIncSize"])
+        elif key["name"].startswith("owi"):
+            res = xr.DataArray(res, dims=["y", "x"])
         else:
-            res = xr.DataArray(res, dims=['y', 'x'])
+            res = xr.DataArray(res, dims=["y", "x"])
         res.attrs.update(info)
-        if '_FillValue' in res.attrs:
-            res = res.where(res != res.attrs['_FillValue'])
-            res.attrs['_FillValue'] = np.nan
+        if "_FillValue" in res.attrs:
+            res = res.where(res != res.attrs["_FillValue"])
+            res.attrs["_FillValue"] = np.nan
         return res
 
     @property

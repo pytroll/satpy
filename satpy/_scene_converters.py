@@ -45,7 +45,7 @@ def to_xarray(scn,
               include_lonlats=True,
               epoch=None,
               include_orig_name=True,
-              numeric_name_prefix='CHANNEL_'):
+              numeric_name_prefix="CHANNEL_"):
     """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
 
     If all Scene DataArrays are on the same area, it returns an xr.Dataset.

@@ -44,9 +44,9 @@ class TestPillowWriter(unittest.TestCase):
         import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime.utcnow()}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime.utcnow()}
         )
         return [ds1]
 

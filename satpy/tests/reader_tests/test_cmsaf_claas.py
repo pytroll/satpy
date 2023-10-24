@@ -219,8 +219,8 @@ class TestCLAAS2SingleFile:
     @pytest.mark.parametrize(
         "ds_name,expected",
         [
-            ("ctt", xr.DataArray([[280, 290], [300, 310]], dims=('y', 'x'))),
-            ("cph", xr.DataArray([[0, 1], [2, 0]], dims=('y', 'x'))),
+            ("ctt", xr.DataArray([[280, 290], [300, 310]], dims=("y", "x"))),
+            ("cph", xr.DataArray([[0, 1], [2, 0]], dims=("y", "x"))),
         ]
     )
     def test_get_dataset(self, file_handler, ds_name, expected):

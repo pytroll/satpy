@@ -41,7 +41,7 @@ LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 CF_UNITS = {
-    'none': '1',
+    "none": "1",
 }
 
 
@@ -60,46 +60,46 @@ class GRIBFileHandler(BaseFileHandler):
                 first_msg = grib_file.message(1)
                 last_msg = grib_file.message(grib_file.messages)
                 start_time = self._convert_datetime(
-                    first_msg, 'validityDate', 'validityTime')
+                    first_msg, "validityDate", "validityTime")
                 end_time = self._convert_datetime(
-                    last_msg, 'validityDate', 'validityTime')
+                    last_msg, "validityDate", "validityTime")
                 self._start_time = start_time
                 self._end_time = end_time
-                if 'keys' not in filetype_info:
+                if "keys" not in filetype_info:
                     self._analyze_messages(grib_file)
                     self._idx = None
                 else:
-                    self._create_dataset_ids(filetype_info['keys'])
+                    self._create_dataset_ids(filetype_info["keys"])
                     self._idx = pygrib.index(self.filename,
-                                             *filetype_info['keys'].keys())
+                                             *filetype_info["keys"].keys())
         except (RuntimeError, KeyError):
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
-            msg_id = DataQuery(name=msg['shortName'],
-                               level=msg['level'],
+            msg_id = DataQuery(name=msg["shortName"],
+                               level=msg["level"],
                                modifiers=tuple())
             ds_info = {
-                'message': idx + 1,
-                'name': msg['shortName'],
-                'level': msg['level'],
-                'file_type': self.filetype_info['file_type'],
+                "message": idx + 1,
+                "name": msg["shortName"],
+                "level": msg["level"],
+                "file_type": self.filetype_info["file_type"],
             }
             self._msg_datasets[msg_id] = ds_info
 
     def _create_dataset_ids(self, keys):
         from itertools import product
-        ordered_keys = [k for k in keys.keys() if 'id_key' in keys[k]]
-        for id_vals in product(*[keys[k]['values'] for k in ordered_keys]):
-            id_keys = [keys[k]['id_key'] for k in ordered_keys]
+        ordered_keys = [k for k in keys.keys() if "id_key" in keys[k]]
+        for id_vals in product(*[keys[k]["values"] for k in ordered_keys]):
+            id_keys = [keys[k]["id_key"] for k in ordered_keys]
             msg_info = dict(zip(ordered_keys, id_vals))
             ds_info = dict(zip(id_keys, id_vals))
             msg_id = DataQuery(**ds_info)
             ds_info = msg_id.to_dict()
             ds_info.update(msg_info)
-            ds_info['file_type'] = self.filetype_info['file_type']
+            ds_info["file_type"] = self.filetype_info["file_type"]
             self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
@@ -137,11 +137,11 @@ class GRIBFileHandler(BaseFileHandler):
 
     def _get_message(self, ds_info):
         with pygrib.open(self.filename) as grib_file:
-            if 'message' in ds_info:
-                msg_num = ds_info['message']
+            if "message" in ds_info:
+                msg_num = ds_info["message"]
                 msg = grib_file.message(msg_num)
             else:
-                msg_keys = self.filetype_info['keys'].keys()
+                msg_keys = self.filetype_info["keys"].keys()
                 msg = self._idx(**{k: ds_info[k] for k in msg_keys})[0]
             return msg
 
@@ -154,7 +154,7 @@ class GRIBFileHandler(BaseFileHandler):
             # wrap around
             # make 180 longitude the prime meridian
             # assuming we are going from 0 to 360 longitude
-            proj_params['pm'] = 180
+            proj_params["pm"] = 180
             proj = Proj(**proj_params)
             # recompute x/y extents with this new projection
             min_x, min_y = proj(min_lon, min_lat)
@@ -173,9 +173,9 @@ class GRIBFileHandler(BaseFileHandler):
         return min_lon, min_lat, max_lon, max_lat
 
     def _get_cyl_area_info(self, msg, proj_params):
-        proj_params['proj'] = 'eqc'
-        lons = msg['distinctLongitudes']
-        lats = msg['distinctLatitudes']
+        proj_params["proj"] = "eqc"
+        lons = msg["distinctLongitudes"]
+        lats = msg["distinctLatitudes"]
         shape = (lats.shape[0], lons.shape[0])
         minmax_lonlat = self._get_cyl_minmax_lonlat(lons, lats)
         proj_params, minmax_xy = self._correct_cyl_minmax_xy(proj_params, *minmax_lonlat)
@@ -208,14 +208,14 @@ class GRIBFileHandler(BaseFileHandler):
         # if we have longitudes over 180, assume 0-360
         if (lons > 180).any():
             # make 180 longitude the prime meridian
-            proj_params['pm'] = 180
+            proj_params["pm"] = 180
         return proj_params, lons, lats
 
     def _get_area_info(self, msg, proj_params):
         lats, lons = msg.latlons()
         shape = lats.shape
-        scans_positively = (msg.valid_key('jScansPositively') and
-                            msg['jScansPositively'] == 1)
+        scans_positively = (msg.valid_key("jScansPositively") and
+                            msg["jScansPositively"] == 1)
         proj_params, lons, lats = self._get_corner_lonlat(
             proj_params, lons, lats)
         minmax_xy = self._get_corner_xy(proj_params, lons, lats, scans_positively)
@@ -225,7 +225,7 @@ class GRIBFileHandler(BaseFileHandler):
     @staticmethod
     def _correct_proj_params_over_prime_meridian(proj_params):
         # correct for longitudes over 180
-        for lon_param in ['lon_0', 'lon_1', 'lon_2']:
+        for lon_param in ["lon_0", "lon_1", "lon_2"]:
             if proj_params.get(lon_param, 0) > 180:
                 proj_params[lon_param] -= 360
         return proj_params
@@ -234,16 +234,16 @@ class GRIBFileHandler(BaseFileHandler):
         proj_params = msg.projparams.copy()
         proj_params = self._correct_proj_params_over_prime_meridian(proj_params)
 
-        if proj_params['proj'] in ('cyl', 'eqc'):
+        if proj_params["proj"] in ("cyl", "eqc"):
             # eqc projection that goes from 0 to 360
             proj_params, shape, extents = self._get_cyl_area_info(msg, proj_params)
         else:
             proj_params, shape, extents = self._get_area_info(msg, proj_params)
 
         return geometry.AreaDefinition(
-            'on-the-fly grib area',
-            'on-the-fly grib area',
-            'on-the-fly grib area',
+            "on-the-fly grib area",
+            "on-the-fly grib area",
+            "on-the-fly grib area",
             proj_params,
             shape[1],
             shape[0],
@@ -264,41 +264,41 @@ class GRIBFileHandler(BaseFileHandler):
 
     def get_metadata(self, msg, ds_info):
         """Get metadata."""
-        model_time = self._convert_datetime(msg, 'dataDate',
-                                            'dataTime')
-        start_time = self._convert_datetime(msg, 'validityDate',
-                                            'validityTime')
+        model_time = self._convert_datetime(msg, "dataDate",
+                                            "dataTime")
+        start_time = self._convert_datetime(msg, "validityDate",
+                                            "validityTime")
         end_time = start_time
         try:
-            center_description = msg['centreDescription']
+            center_description = msg["centreDescription"]
         except (RuntimeError, KeyError):
             center_description = None
 
         key_dicts = {
-            'shortName': 'shortName',
-            'long_name': 'name',
-            'pressureUnits': 'pressureUnits',
-            'typeOfLevel': 'typeOfLevel',
-            'standard_name': 'cfName',
-            'units': 'units',
-            'modelName': 'modelName',
-            'valid_min': 'minimum',
-            'valid_max': 'maximum',
-            'sensor': 'modelName'}
+            "shortName": "shortName",
+            "long_name": "name",
+            "pressureUnits": "pressureUnits",
+            "typeOfLevel": "typeOfLevel",
+            "standard_name": "cfName",
+            "units": "units",
+            "modelName": "modelName",
+            "valid_min": "minimum",
+            "valid_max": "maximum",
+            "sensor": "modelName"}
 
         ds_info.update({
-            'filename': self.filename,
-            'model_time': model_time,
-            'centreDescription': center_description,
-            'start_time': start_time,
-            'end_time': end_time,
-            'platform_name': 'unknown'})
+            "filename": self.filename,
+            "model_time": model_time,
+            "centreDescription": center_description,
+            "start_time": start_time,
+            "end_time": end_time,
+            "platform_name": "unknown"})
 
         for key in key_dicts:
             if key_dicts[key] in msg.keys():
                 ds_info[key] = msg[key_dicts[key]]
             else:
-                ds_info[key] = 'unknown'
+                ds_info[key] = "unknown"
 
         return ds_info
 
@@ -306,9 +306,9 @@ class GRIBFileHandler(BaseFileHandler):
         """Read a GRIB message into an xarray DataArray."""
         msg = self._get_message(ds_info)
         ds_info = self.get_metadata(msg, ds_info)
-        fill = msg['missingValue']
+        fill = msg["missingValue"]
         data = msg.values.astype(np.float32)
-        if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+        if msg.valid_key("jScansPositively") and msg["jScansPositively"] == 1:
             data = data[::-1]
 
         if isinstance(data, np.ma.MaskedArray):
@@ -318,4 +318,4 @@ class GRIBFileHandler(BaseFileHandler):
             data[data == fill] = np.nan
             data = da.from_array(data, chunks=CHUNK_SIZE)
 
-        return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
+        return xr.DataArray(data, attrs=ds_info, dims=("y", "x"))
