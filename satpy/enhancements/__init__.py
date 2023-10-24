@@ -31,8 +31,7 @@ from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
 from satpy._config import get_config_path
-
-from ..utils import find_in_ancillary
+from satpy.utils import find_in_ancillary
 
 LOG = logging.getLogger(__name__)
 

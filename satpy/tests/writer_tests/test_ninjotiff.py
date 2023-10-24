@@ -99,9 +99,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     def test_convert_units_self(self):
         """Test that unit conversion to themselves do nothing."""
+        from satpy.tests.utils import make_fake_scene
         from satpy.writers.ninjotiff import convert_units
-
-        from ..utils import make_fake_scene
 
         # ensure that converting from % to itself does not change the data
         sc = make_fake_scene(
@@ -115,9 +114,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
     def test_convert_units_temp(self):
         """Test that temperature unit conversions works as expected."""
         # test converting between °C and K
+        from satpy.tests.utils import make_fake_scene
         from satpy.writers.ninjotiff import convert_units
-
-        from ..utils import make_fake_scene
         sc = make_fake_scene(
                 {"IR108": np.arange(25, dtype="f4").reshape(5, 5)},
                 common_attrs={"units": "K"})
@@ -134,9 +132,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
     def test_convert_units_other(self):
         """Test that other unit conversions are not implemented."""
         # test arbitrary different conversion
+        from satpy.tests.utils import make_fake_scene
         from satpy.writers.ninjotiff import convert_units
-
-        from ..utils import make_fake_scene
         sc = make_fake_scene(
                 {"rain_rate": np.arange(25, dtype="f8").reshape(5, 5)},
                 common_attrs={"units": "millimeter/hour"})

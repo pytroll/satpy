@@ -70,7 +70,7 @@ class TempFile:
 
 def test_lonlat_storage(tmp_path):
     """Test correct storage for area with lon/lat units."""
-    from ..utils import make_fake_scene
+    from satpy.tests.utils import make_fake_scene
     scn = make_fake_scene(
         {"ketolysis": np.arange(25).reshape(5, 5)},
         daskify=True,

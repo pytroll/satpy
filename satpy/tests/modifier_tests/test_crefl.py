@@ -23,7 +23,7 @@ import xarray as xr
 from dask import array as da
 from pyresample.geometry import AreaDefinition
 
-from ..utils import assert_maximum_dask_computes
+from satpy.tests.utils import assert_maximum_dask_computes
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:

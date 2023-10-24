@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'cmsaf-claas2_l2_nc' reader."""
 
-import datetime
+import datetime  # noqa: I001
 import os
 
 import numpy as np
