@@ -754,8 +754,8 @@ class DayNightCompositor(GenericCompositor):
 
     def _mask_weights(self, weights):
         if "day" in self.day_night:
-            return da.where(weights != 0, weights, np.nan)
-        return da.where(weights != 1, weights, np.nan)
+            return weights.where(weights == 0, np.nan)
+        return weights.where(weights == 1, np.nan)
 
     def _get_day_night_data_for_single_side_product(self, foreground_data):
         if "day" in self.day_night:
@@ -786,12 +786,12 @@ class DayNightCompositor(GenericCompositor):
         else:
             mask = _get_weight_mask_for_daynight_product(weights, data_a, data_b)
 
-        return da.where(mask, weights, np.nan)
+        return weights.where(mask, np.nan)
 
     def _weight_data(self, day_data, night_data, weights, attrs):
         if not self.include_alpha:
             fill = 1 if self.day_night == "night_only" else 0
-            weights = da.where(np.isnan(weights), fill, weights)
+            weights = weights.where(~np.isnan(weights), fill)
 
         data = []
         for b in _get_band_names(day_data, night_data):
