@@ -11,41 +11,41 @@ reader:
 
 file_types:
   seviri_l2_bufr_asr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'ASRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGASRE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGASRE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
   seviri_l2_bufr_cla:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'CLABUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGCLAP-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGCLAP-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_csr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'CSRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGCSKR-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGCSKR-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_gii:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'GIIBUFRProduct_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGGIIN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGGIIN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_thu:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'THBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGTPHU-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGTPHU-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_toz:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'

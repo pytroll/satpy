@@ -24,7 +24,7 @@ References:
 
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -43,20 +43,25 @@ except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
-CHUNK_SIZE = get_legacy_chunk_size()
-logger = logging.getLogger('SeviriL2Bufr')
+logger = logging.getLogger('EumetsatL2Bufr')
 
-data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0455', 'name': '09'},
-                    57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
+CHUNK_SIZE = get_legacy_chunk_size()
+
+SSP_DEFAULT = 0.0
+
+data_center_dict = {55: {'ssp': 'E0415', 'name': 'MSG1'}, 56:  {'ssp': 'E0455', 'name': 'MSG2'},
+                    57: {'ssp': 'E0095', 'name': 'MSG3'}, 70: {'ssp': 'E0000', 'name': 'MSG4'},
+                    71: {'ssp': 'E0000', 'name': 'MTGi1'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
-                 'seviri_l2_bufr_amv': 24}
+                 'seviri_l2_bufr_amv': None,
+                 'fci_l2_bufr_asr': 32, 'fci_l2_bufr_amv': None}
 
 
-class SeviriL2BufrFileHandler(BaseFileHandler):
-    """File handler for SEVIRI L2 BUFR products.
+class EumetsatL2BufrFileHandler(BaseFileHandler):
+    """File handler for EUMETSAT SEVIRI and FCI L2 BUFR products.
 
     **Loading data with AreaDefinition**
 
@@ -84,54 +89,79 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=False,
                  rectification_longitude='default', **kwargs):
-        """Initialise the file handler for SEVIRI L2 BUFR data."""
-        super(SeviriL2BufrFileHandler, self).__init__(filename,
-                                                      filename_info,
-                                                      filetype_info)
+        """Initialise the file handler for EUMETSAT SEVIRI and FCI L2 BUFR data."""
+        super(EumetsatL2BufrFileHandler, self).__init__(filename,
+                                                        filename_info,
+                                                        filetype_info)
 
         if ('server' in filename_info):
             # EUMETSAT Offline Bufr product
-            self.mpef_header = self._read_mpef_header()
+            self.bufr_header = self._read_mpef_header()
         else:
             # Product was retrieved from the EUMETSAT Data Center
-            timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
-            buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
-            sc_id = self.get_attribute('satelliteIdentifier')
-            self.mpef_header = {}
-            self.mpef_header['NominalTime'] = buf_start_time
-            self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
-            self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
+            # get all attributes in one call
+            attr = self.get_attributes(['typicalDate', 'typicalTime', 'satelliteIdentifier'])
+
+            timeStr = attr['typicalDate']+attr['typicalTime']
+            sc_id = attr['satelliteIdentifier']
+            self.bufr_header = {}
+            self.bufr_header['NominalTime'] = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+            self.bufr_header['SpacecraftName'] = data_center_dict[sc_id]['name']
+            self.bufr_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
         if rectification_longitude != 'default':
-            self.mpef_header['RectificationLongitude'] = f'E{int(rectification_longitude * 10):04d}'
+            self.bufr_header['RectificationLongitude'] = f'E{int(rectification_longitude * 10):04d}'
 
-        self.with_adef = with_area_definition
-        if self.with_adef and filetype_info['file_type'] == 'seviri_l2_bufr_amv':
-            logging.warning("AMV BUFR data cannot be loaded with an area definition. Setting self.with_def = False.")
-            self.with_adef = False
-
-        self.seg_size = seg_size_dict[filetype_info['file_type']]
+        self.filetype = filetype_info['file_type']
+        self.seg_size = seg_size_dict[self.filetype]
+        if self.seg_size:
+            # make this keyword not usable for non-grided products
+            self.with_adef = with_area_definition
+            attr = self.get_attributes(['segmentSizeAtNadirInXDirection'])
+            self.resolution = attr['segmentSizeAtNadirInXDirection']
+            # Note: There a difference between resolution and seg_size as from the seg_size_dict
+            # in the bufr files segmentSizeAtNadirInXDirection is encoded in meters so it's indeed
+            # the physical size of the segment while seg_size is the number of pixel lines / cols
+            # but because FCI pixel size is 1km they look very similar, modulo 1000
+        else:
+            self.with_adef = None
+            self.resolution = None
 
     @property
     def start_time(self):
         """Return the repeat cycle start time."""
-        return self.mpef_header['NominalTime']
+        return self.bufr_header['NominalTime']
 
-    @property
-    def end_time(self):
-        """Return the repeat cycle end time."""
-        return self.start_time + timedelta(minutes=15)
+    # @property
+    # def end_time(self):
+    #     """Return the repeat cycle end time."""
+    #     return self.start_time + timedelta(minutes=15)
 
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        return 'MET{}'.format(self.mpef_header['SpacecraftName'])
+        if self.bufr_header['SpacecraftName'].isdigit():
+            # self._read_mpef_header will return the SpacecraftName as a string with an integer, representing the
+            # Meteosat series number (1-11). This is cnverted to the corresponding MSG ID.
+            return f"MSG{int(self.bufr_header['SpacecraftName'])-7}"
+        else:
+            return self.bufr_header['SpacecraftName']
+
+    @property
+    def sensor_name(self):
+        """Return instrument name."""
+        if self.platform_name.startswith('MSG'):
+            return 'seviri'
+        elif self.platform_name.startswith('MTG'):
+            return 'fci'
+        else:
+            raise NotImplementedError(f'Unknown satellite platform {self.platform_name}.')
 
     @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
         # e.g. E0415
-        ssp_lon = self.mpef_header['RectificationLongitude']
+        ssp_lon = self.bufr_header['RectificationLongitude']
         return float(ssp_lon[1:])/10.
 
     def get_area_def(self, key):
@@ -146,19 +176,31 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         hdr = np.fromfile(self.filename, mpef_product_header, 1)
         return recarray2dict(hdr)
 
-    def get_attribute(self, key):
+    def get_attributes(self, keys):
         """Get BUFR attributes."""
         # This function is inefficient as it is looping through the entire
         # file to get 1 attribute. It causes a problem though if you break
         # from the file early - dont know why but investigating - fix later
         fh = open(self.filename, "rb")
+
+        # initialize output
+        attr = {}
+        for k in keys:
+            attr[k] = None
+
         while True:
             # get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
             if bufr is None:
                 break
             ec.codes_set(bufr, 'unpack', 1)
-            attr = ec.codes_get(bufr, key)
+            for k in keys:
+                try:
+                    value = ec.codes_get(bufr, k)
+                    attr[k] = value
+                except BaseException:
+                    logging.warning(f'Failed to read key {k} from message')
+
             ec.codes_release(bufr)
 
         fh.close()
@@ -175,13 +217,37 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
                 ec.codes_set(bufr, 'unpack', 1)
 
+                # Introduced fix for cases where all values in the expected array are the same
+                # (in particular fill values) which causes the eccodes to encode them and return
+                # them as a single value
+
                 # if is the first message initialise our final array
                 if (msgCount == 0):
-                    arr = da.from_array(ec.codes_get_array(
-                        bufr, key, float), chunks=CHUNK_SIZE)
+                    arr = da.from_array(ec.codes_get_array(bufr, key, float), chunks=CHUNK_SIZE)
+
+                    if (arr.size == 1):
+                        # get the correct size from latitude key
+                        lat = da.from_array(ec.codes_get_array(bufr, '#1#latitude', float), chunks=CHUNK_SIZE)
+                        value = arr.compute()[0]
+                        # print('Warning: BUFR message size mismatch')
+                        # print(f'Expected: {lat.size} Decoded: {arr.size} value {arr[0]}')
+                        # duplicate the lat object and set all elements to the correct value
+                        arr = lat
+                        arr[:] = value
+
                 else:
-                    tmpArr = da.from_array(ec.codes_get_array(
-                        bufr, key, float), chunks=CHUNK_SIZE)
+                    tmpArr = da.from_array(ec.codes_get_array(bufr, key, float), chunks=CHUNK_SIZE)
+
+                    if (tmpArr.size == 1):
+                        # get the correct size from latitude key
+                        lat = da.from_array(ec.codes_get_array(bufr, '#1#latitude', float), chunks=CHUNK_SIZE)
+                        value = tmpArr.compute()[0]
+                        # print('Warning: BUFR message size mismatch')
+                        # print(f'Expected: {lat.size} Decoded: {tmpArr.size} value {arr[0]}')
+                        # duplicate the lat object and set all elements to the correct value
+                        tmpArr = lat
+                        tmpArr[:] = value
+
                     arr = da.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
@@ -213,7 +279,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             xarr = xarr.where(xarr != dataset_info['fill_value'])
 
         self._add_attributes(xarr, dataset_info)
-
         return xarr
 
     def get_dataset_with_area_def(self, arr, dataset_id):
@@ -223,7 +288,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             xarr = xr.DataArray(arr, dims=["y"])
         else:
             lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
-
             self._area_def = self._construct_area_def(dataset_id)
             icol, irow = self._area_def.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
@@ -248,15 +312,13 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        res = dataset_id['resolution']
-
-        area_naming_input_dict = {'platform_name': 'msg',
-                                  'instrument_name': 'seviri',
-                                  'resolution': res,
+        area_naming_input_dict = {'platform_name': self.platform_name[:3].lower(),
+                                  'instrument_name': self.sensor_name,
+                                  'resolution': self.resolution,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('seviri', self.ssp_lon)})
+                                            **get_service_mode(self.sensor_name, self.ssp_lon)})
 
         # Datasets with a segment size of 3 pixels extend outside the original SEVIRI 3km grid (with 1238 x 1238
         # segments a 3 pixels). Hence, we need to use corresponding area defintions in areas.yaml
@@ -271,7 +333,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
     def _add_attributes(self, xarr, dataset_info):
         """Add dataset attributes to xarray."""
-        xarr.attrs['sensor'] = 'SEVIRI'
+        xarr.attrs['sensor'] = self.sensor_name.upper()
         xarr.attrs['platform_name'] = self.platform_name
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
