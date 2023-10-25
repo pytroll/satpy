@@ -151,18 +151,18 @@ class ZarrCacheHelper:
     def _cache_and_read(self, args, cache_dir):
         sanitized_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
 
-        zarr_format = self._get_zarr_format(sanitized_args, cache_dir)
-        zarr_paths = glob(zarr_format.format("*"))
+        zarr_file_pattern = self._get_zarr_file_pattern(sanitized_args, cache_dir)
+        zarr_paths = glob(zarr_file_pattern.format("*"))
 
         if not zarr_paths:
             # use sanitized arguments
             self._warn_if_irregular_input_chunks(args, sanitized_args)
             res_to_cache = self._func(*(sanitized_args))
-            self._cache_results(res_to_cache, zarr_format)
+            self._cache_results(res_to_cache, zarr_file_pattern)
 
         # if we did any caching, let's load from the zarr files, so that future calls have the same name
         # re-calculate the cached paths
-        zarr_paths = sorted(glob(zarr_format.format("*")))
+        zarr_paths = sorted(glob(zarr_file_pattern.format("*")))
         if not zarr_paths:
             raise RuntimeError("Data was cached to disk but no files were found")
 
@@ -170,12 +170,11 @@ class ZarrCacheHelper:
         res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
-    def _get_zarr_format(self, sanitized_args, cache_dir):
+    def _get_zarr_file_pattern(self, sanitized_args, cache_dir):
         arg_hash = _hash_args(*sanitized_args, unhashable_types=self._uncacheable_arg_types)
         zarr_filename = self._zarr_pattern(arg_hash)
         cache_dir = self._get_cache_dir_from_config(cache_dir)
-        zarr_format = os.path.join(cache_dir, zarr_filename)
-        return zarr_format
+        return os.path.join(cache_dir, zarr_filename)
 
     @staticmethod
     def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
@@ -198,14 +197,14 @@ class ZarrCacheHelper:
                 stacklevel=3
             )
 
-    def _cache_results(self, res, zarr_format):
-        os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
+    def _cache_results(self, res, zarr_file_pattern):
+        os.makedirs(os.path.dirname(zarr_file_pattern), exist_ok=True)
         new_res = []
         for idx, sub_res in enumerate(res):
             if not isinstance(sub_res, da.Array):
                 raise ValueError("Zarr caching currently only supports dask "
                                  f"arrays. Got {type(sub_res)}")
-            zarr_path = zarr_format.format(idx)
+            zarr_path = zarr_file_pattern.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
                 new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
