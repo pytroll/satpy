@@ -144,7 +144,7 @@ If you need the angles in both resolutions, use data queries:
 
 
 References:
-----------
+-----------
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide
 
