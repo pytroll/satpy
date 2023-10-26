@@ -201,7 +201,7 @@ variant of this dataset with the following differences:
 
 
 References:
-==========
+===========
 
 - `[GVAR]`_  GVAR transmission format
 - `[BOOK-N]`_ GOES-N databook

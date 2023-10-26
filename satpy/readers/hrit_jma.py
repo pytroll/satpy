@@ -35,7 +35,7 @@ Sample data is available here:
 
 
 Example:
--------
+--------
 Here is an example how to read Himwari-8 HRIT data with Satpy:
 
 .. code-block:: python

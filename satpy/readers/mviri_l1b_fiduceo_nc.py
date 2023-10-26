@@ -44,7 +44,7 @@ name in the reader as in the netCDF file.
 
 
 Example:
--------
+--------
 This is how to read FIDUCEO MVIRI FCDR data in satpy:
 
 .. code-block:: python

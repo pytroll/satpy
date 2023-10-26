@@ -38,7 +38,7 @@ To see the full list of arguments that can be provided, look into the documentat
 of :class:`NativeMSGFileHandler`.
 
 Example:
--------
+--------
 Here is an example how to read the data in satpy.
 
 NOTE: When loading the data, the orientation

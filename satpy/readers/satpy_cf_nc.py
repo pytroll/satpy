@@ -37,7 +37,7 @@ The generic ``satpy_cf_nc`` reader reads files of type:
 
 
 Example:
--------
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -92,7 +92,7 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
 
 Example:
--------
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python

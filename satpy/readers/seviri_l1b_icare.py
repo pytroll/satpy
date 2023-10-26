@@ -33,7 +33,7 @@ CHANN is the channel (i.e: HRV, IR016, WV073, etc)
 VX-XX is the processing version number
 
 Example:
--------
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python

@@ -85,7 +85,7 @@ Here is an exmaple of the content of the start/end time and ``time_parameters`` 
 
 
 Example:
--------
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
