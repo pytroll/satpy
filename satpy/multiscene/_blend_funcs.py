@@ -178,3 +178,20 @@ def timeseries(datasets):
     res = xr.concat(expanded_ds, dim="time")
     res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
     return res
+
+
+def temporal_rgb(
+        data_arrays: Sequence[xr.DataArray],
+) -> xr.DataArray:
+    """Combine a series of datasets as a temporal RGB.
+
+    The first dataset is used as the Red component of the new composite, the second as Green and the third as Blue.
+    All the other datasets are discarded.
+    """
+    from satpy.composites import GenericCompositor
+
+    compositor = GenericCompositor("temporal_composite")
+    composite = compositor((data_arrays[0], data_arrays[1], data_arrays[2]))
+    composite.attrs = data_arrays[2].attrs
+
+    return composite

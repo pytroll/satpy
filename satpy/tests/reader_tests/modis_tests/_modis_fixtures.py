@@ -62,7 +62,7 @@ def _shape_for_resolution(resolution: int) -> tuple[int, int]:
     return factor * shape_1km[0], factor * shape_1km[1]
 
 
-def _generate_lonlat_data(resolution: int) -> np.ndarray:
+def _generate_lonlat_data(resolution: int) -> tuple[np.ndarray, np.ndarray]:
     shape = _shape_for_resolution(resolution)
     lat = np.repeat(np.linspace(35., 45., shape[0])[:, None], shape[1], 1)
     lat *= np.linspace(0.9, 1.1, shape[1])

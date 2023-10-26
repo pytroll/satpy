@@ -26,19 +26,8 @@ import sys
 import tempfile
 from collections import OrderedDict
 from importlib.metadata import EntryPoint, entry_points
-from pathlib import Path
+from importlib.resources import files as impr_files
 from typing import Iterable
-
-try:
-    from importlib.resources import files as impr_files  # type: ignore
-except ImportError:
-    # Python 3.8
-    def impr_files(module_name: str) -> Path:
-        """Get path to module as a backport for Python 3.8."""
-        from importlib.resources import path as impr_path
-
-        with impr_path(module_name, "__init__.py") as pkg_init_path:
-            return pkg_init_path.parent
 
 import appdirs
 from donfig import Config

@@ -24,7 +24,7 @@ import logging
 import numpy as np
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers.angles import sunzen_corr_cos
+from satpy.modifiers.angles import sunzen_corr_cos, sunzen_reduction
 from satpy.utils import atmospheric_path_length_correction
 
 logger = logging.getLogger(__name__)
@@ -159,3 +159,46 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
         return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
+
+
+class SunZenithReducer(SunZenithCorrectorBase):
+    """Reduce signal strength at large sun zenith angles.
+
+    Within a given sunz interval [correction_limit, max_sza] the strength of the signal is reduced following the
+    formula:
+
+      res = signal * reduction_factor
+
+    where reduction_factor is a pixel-level value ranging from 0 to 1 within the sunz interval.
+
+    The `strength` parameter can be used for a non-linear reduction within the sunz interval. A strength larger
+    than 1.0 will decelerate the signal reduction towards the sunz interval extremes, whereas a strength
+    smaller than 1.0 will accelerate the signal reduction towards the sunz interval extremes.
+
+    """
+
+    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Solar zenith angle in degrees where to start the signal reduction. Default 60.
+            max_sza (float): Maximum solar zenith angle in degrees where to apply the signal reduction. Beyond
+                             this solar zenith angle the signal will become zero. Default 90.
+            strength (float): The strength of the non-linear signal reduction. Default 1.5
+
+        """
+        self.correction_limit = correction_limit
+        self.strength = strength
+        super(SunZenithReducer, self).__init__(max_sza=max_sza, **kwargs)
+        if self.max_sza is None:
+            raise ValueError("`max_sza` must be defined when using the SunZenithReducer.")
+
+    def _apply_correction(self, proj, coszen):
+        logger.debug("Apply sun-zenith signal reduction")
+        res = proj.copy()
+        sunz = np.rad2deg(np.arccos(coszen.data))
+        res.data = sunzen_reduction(proj.data, sunz,
+                                    limit=self.correction_limit,
+                                    max_sza=self.max_sza,
+                                    strength=self.strength)
+        return res

@@ -192,24 +192,24 @@ except ImportError:
 if netCDF4 is None and h5netcdf is None:
     raise ImportError("Ensure that the netCDF4 or h5netcdf package is installed.")
 
-# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# Numpy datatypes compatible with all netCDF4 backends. ``np.str_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
-NC4_DTYPES = [np.dtype("int8"), np.dtype("uint8"),
-              np.dtype("int16"), np.dtype("uint16"),
-              np.dtype("int32"), np.dtype("uint32"),
-              np.dtype("int64"), np.dtype("uint64"),
-              np.dtype("float32"), np.dtype("float64"),
-              np.string_]
+NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
+              np.dtype('int16'), np.dtype('uint16'),
+              np.dtype('int32'), np.dtype('uint32'),
+              np.dtype('int64'), np.dtype('uint64'),
+              np.dtype('float32'), np.dtype('float64'),
+              np.bytes_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
 # Note: Unsigned and int64 are CF 1.9 compatible
-CF_DTYPES = [np.dtype("int8"),
-             np.dtype("int16"),
-             np.dtype("int32"),
-             np.dtype("float32"),
-             np.dtype("float64"),
-             np.string_]
+CF_DTYPES = [np.dtype('int8'),
+             np.dtype('int16'),
+             np.dtype('int32'),
+             np.dtype('float32'),
+             np.dtype('float64'),
+             np.bytes_]
 
 CF_VERSION = "CF-1.7"
 
@@ -581,8 +581,8 @@ def _remove_satpy_attrs(new_data):
 
 def _format_prerequisites_attrs(dataarray):
     """Reformat prerequisites attribute value to string."""
-    if "prerequisites" in dataarray.attrs:
-        dataarray.attrs["prerequisites"] = [np.string_(str(prereq)) for prereq in dataarray.attrs["prerequisites"]]
+    if 'prerequisites' in dataarray.attrs:
+        dataarray.attrs['prerequisites'] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
     return dataarray
 
 
