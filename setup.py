@@ -22,10 +22,10 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.21', 'pillow', 'pyresample >=1.24.0', 'trollsift',
-            'trollimage >=1.20', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
-            'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
-            'packaging', 'pooch', 'pyorbital']
+requires = ["numpy >=1.21", "pillow", "pyresample >=1.24.0", "trollsift",
+            "trollimage >=1.20", "pykdtree", "pyyaml >=5.1", "xarray >=0.10.1, !=0.13.0",
+            "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "appdirs",
+            "packaging", "pooch", "pyorbital"]
 
 test_requires = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
                  "rasterio", "geoviews", "trollimage", "fsspec", "bottleneck",

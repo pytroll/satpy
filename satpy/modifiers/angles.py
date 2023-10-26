@@ -331,6 +331,7 @@ def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr
     Args:
         sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
         sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+
     Returns:
         A DataArray containing the relative azimuth angle in the 0-180 degree range.
 
@@ -571,7 +572,7 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
     reduction_factor = reduction_factor.clip(0., 1.)
 
     # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
-    with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+    with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
         reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
 
     # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a

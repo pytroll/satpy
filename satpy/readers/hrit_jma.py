@@ -34,7 +34,7 @@ Sample data is available here:
 - `AHI sample data`_
 
 
-Example
+Example:
 -------
 Here is an example how to read Himwari-8 HRIT data with Satpy:
 

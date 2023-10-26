@@ -151,6 +151,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         Args:
             gid: The ID of the GRIB message.
+
         Returns:
             tuple: A tuple of two dictionaries for the projection and the area definition.
                 pdict:
@@ -232,6 +233,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         Args:
             gid: The ID of the GRIB message.
+
         Returns:
             DataArray: The array containing the retrieved values.
         """
@@ -268,6 +270,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         Args:
             gid: The ID of the GRIB message.
             key: The key of the required attribute.
+
         Returns:
             The retrieved attribute or None if the key is missing.
         """

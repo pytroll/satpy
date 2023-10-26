@@ -390,34 +390,34 @@ CALIB[324] = {"HRV": {"F": 79.0035},
 MEIRINK_EPOCH = datetime(2000, 1, 1)
 
 MEIRINK_COEFS: dict[str, dict[int, dict[str, tuple[float, float]]]] = {}
-MEIRINK_COEFS['2023'] = {}
+MEIRINK_COEFS["2023"] = {}
 
 # Meteosat-8
 
-MEIRINK_COEFS['2023'][321] = {'VIS006': (24.346, 0.3739),
-                              'VIS008': (30.989, 0.3111),
-                              'IR_016': (22.869, 0.0065)
+MEIRINK_COEFS["2023"][321] = {"VIS006": (24.346, 0.3739),
+                              "VIS008": (30.989, 0.3111),
+                              "IR_016": (22.869, 0.0065)
                               }
 
 # Meteosat-9
 
-MEIRINK_COEFS['2023'][322] = {'VIS006': (21.026, 0.2556),
-                              'VIS008': (26.875, 0.1835),
-                              'IR_016': (21.394, 0.0498)
+MEIRINK_COEFS["2023"][322] = {"VIS006": (21.026, 0.2556),
+                              "VIS008": (26.875, 0.1835),
+                              "IR_016": (21.394, 0.0498)
                               }
 
 # Meteosat-10
 
-MEIRINK_COEFS['2023'][323] = {'VIS006': (19.829, 0.5856),
-                              'VIS008': (25.284, 0.6787),
-                              'IR_016': (23.066, -0.0286)
+MEIRINK_COEFS["2023"][323] = {"VIS006": (19.829, 0.5856),
+                              "VIS008": (25.284, 0.6787),
+                              "IR_016": (23.066, -0.0286)
                               }
 
 # Meteosat-11
 
-MEIRINK_COEFS['2023'][324] = {'VIS006': (20.515, 0.3600),
-                              'VIS008': (25.803, 0.4844),
-                              'IR_016': (22.354, -0.0187)
+MEIRINK_COEFS["2023"][324] = {"VIS006": (20.515, 0.3600),
+                              "VIS008": (25.803, 0.4844),
+                              "IR_016": (22.354, -0.0187)
                               }
 
 
@@ -440,7 +440,7 @@ def get_meirink_slope(meirink_coefs, acquisition_time):
 
 def should_apply_meirink(calib_mode, channel_name):
     """Decide whether to use the Meirink calibration coefficients."""
-    return "MEIRINK" in calib_mode and channel_name in ['VIS006', 'VIS008', 'IR_016']
+    return "MEIRINK" in calib_mode and channel_name in ["VIS006", "VIS008", "IR_016"]
 
 
 class MeirinkCalibrationHandler:
@@ -448,7 +448,7 @@ class MeirinkCalibrationHandler:
 
     def __init__(self, calib_mode):
         """Initialize the calibration handler."""
-        self.coefs = MEIRINK_COEFS[calib_mode.split('-')[1]]
+        self.coefs = MEIRINK_COEFS[calib_mode.split("-")[1]]
 
     def get_slope(self, platform, channel, time):
         """Return the slope using the provided calibration coefficients."""
@@ -963,6 +963,7 @@ def calculate_area_extent(area_dict):
             line_step: Pixel resolution in meters in south-north direction
             [column_offset: Column offset, defaults to 0 if not given]
             [line_offset: Line offset, defaults to 0 if not given]
+
     Returns:
         tuple: An area extent for the scene defined by the lower left and
                upper right corners

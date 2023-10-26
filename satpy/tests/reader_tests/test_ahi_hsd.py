@@ -569,10 +569,10 @@ class TestAHICalibration(unittest.TestCase):
     def test_user_calibration(self):
         """Test user-defined calibration modes."""
         # This is for radiance correction
-        self.fh.user_calibration = {'B13': {'slope': 0.95,
-                                            'offset': -0.1}}
-        self.fh.band_name = 'B13'
-        rad = self.fh.calibrate(data=self.counts, calibration='radiance')
+        self.fh.user_calibration = {"B13": {"slope": 0.95,
+                                            "offset": -0.1}}
+        self.fh.band_name = "B13"
+        rad = self.fh.calibrate(data=self.counts, calibration="radiance")
         rad_np = rad.compute()
         assert rad.dtype == rad_np.dtype
         assert rad.dtype == np.float32
@@ -581,11 +581,11 @@ class TestAHICalibration(unittest.TestCase):
         assert np.allclose(rad, rad_exp)
 
         # This is for DN calibration
-        self.fh.user_calibration = {'B13': {'slope': -0.0032,
-                                            'offset': 15.20},
-                                    'type': 'DN'}
-        self.fh.band_name = 'B13'
-        rad = self.fh.calibrate(data=self.counts, calibration='radiance')
+        self.fh.user_calibration = {"B13": {"slope": -0.0032,
+                                            "offset": 15.20},
+                                    "type": "DN"}
+        self.fh.band_name = "B13"
+        rad = self.fh.calibrate(data=self.counts, calibration="radiance")
         rad_np = rad.compute()
         assert rad.dtype == rad_np.dtype
         assert rad.dtype == np.float32

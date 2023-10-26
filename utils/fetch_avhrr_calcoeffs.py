@@ -112,7 +112,6 @@ def get_all_coeffs():
             coeffs[platform] = {}
         for chan in URLS[platform].keys():
             url = URLS[platform][chan]
-            print(url)
             page = get_page(url)
             coeffs[platform][chan] = get_coeffs(page)
 
@@ -134,7 +133,6 @@ def save_coeffs(coeffs, out_dir=""):
             fid[chan]["intercept2"] = coeffs[platform][chan]["intercept2"]
 
         fid.close()
-        print("Calibration coefficients saved for %s" % platform)
 
 
 def main():

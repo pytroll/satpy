@@ -267,7 +267,6 @@ class TestAHIGriddedLUTs(unittest.TestCase):
     def test_get_luts(self):
         """Check that the function to download LUTs operates successfully."""
         tempdir = tempfile.gettempdir()
-        print(self.fh.lut_dir)
         self.fh._get_luts()
         assert not os.path.exists(os.path.join(tempdir, "count2tbb_v102/"))
         for lut_name in AHI_LUT_NAMES:

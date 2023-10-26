@@ -36,9 +36,8 @@ The generic ``satpy_cf_nc`` reader reads files of type:
     '{platform_name}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
 
 
-Example
+Example:
 -------
-
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -92,9 +91,8 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
     ''AVHRR-GAC_FDR_1C_{platform}_{start_time:%Y%m%dT%H%M%SZ}_{end_time:%Y%m%dT%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc'
 
 
-Example
+Example:
 -------
-
 Here is an example how to read the data in satpy:
 
 .. code-block:: python

@@ -37,7 +37,7 @@ provided through the `Scene` instantiation, eg::
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`NativeMSGFileHandler`.
 
-Example
+Example:
 -------
 Here is an example how to read the data in satpy.
 
@@ -749,7 +749,7 @@ class ImageBoundaries:
     def get_img_bounds(self, dataset_id, is_roi):
         """Get image line and column boundaries.
 
-        returns:
+        Returns:
             Dictionary with the four keys 'south_bound', 'north_bound', 'east_bound' and 'west_bound',
             each containing a list of the respective line/column numbers of the image boundaries.
 

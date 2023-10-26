@@ -526,31 +526,31 @@ class TestCFWriter:
             Attributes, encoded attributes, encoded and flattened attributes
 
         """
-        attrs = {'name': 'IR_108',
-                 'start_time': datetime(2018, 1, 1, 0),
-                 'end_time': datetime(2018, 1, 1, 0, 15),
-                 'int': 1,
-                 'float': 1.0,
-                 'none': None,  # should be dropped
-                 'numpy_int': np.uint8(1),
-                 'numpy_float': np.float32(1),
-                 'numpy_bool': True,
-                 'numpy_void': np.void(0),
-                 'numpy_bytes': np.bytes_('test'),
-                 'numpy_string': np.str_('test'),
-                 'list': [1, 2, np.float64(3)],
-                 'nested_list': ["1", ["2", [3]]],
-                 'bool': True,
-                 'array': np.array([1, 2, 3], dtype='uint8'),
-                 'array_bool': np.array([True, False, True]),
-                 'array_2d': np.array([[1, 2], [3, 4]]),
-                 'array_3d': np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
-                 'dict': {'a': 1, 'b': 2},
-                 'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3], dtype='uint8')}}},
-                 'raw_metadata': OrderedDict([
-                     ('recarray', np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')])),
-                     ('flag', np.bool_(True)),
-                     ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3], dtype='uint8'))]))
+        attrs = {"name": "IR_108",
+                 "start_time": datetime(2018, 1, 1, 0),
+                 "end_time": datetime(2018, 1, 1, 0, 15),
+                 "int": 1,
+                 "float": 1.0,
+                 "none": None,  # should be dropped
+                 "numpy_int": np.uint8(1),
+                 "numpy_float": np.float32(1),
+                 "numpy_bool": True,
+                 "numpy_void": np.void(0),
+                 "numpy_bytes": np.bytes_("test"),
+                 "numpy_string": np.str_("test"),
+                 "list": [1, 2, np.float64(3)],
+                 "nested_list": ["1", ["2", [3]]],
+                 "bool": True,
+                 "array": np.array([1, 2, 3], dtype="uint8"),
+                 "array_bool": np.array([True, False, True]),
+                 "array_2d": np.array([[1, 2], [3, 4]]),
+                 "array_3d": np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
+                 "dict": {"a": 1, "b": 2},
+                 "nested_dict": {"l1": {"l2": {"l3": np.array([1, 2, 3], dtype="uint8")}}},
+                 "raw_metadata": OrderedDict([
+                     ("recarray", np.zeros(3, dtype=[("x", "i4"), ("y", "u1")])),
+                     ("flag", np.bool_(True)),
+                     ("dict", OrderedDict([("a", 1), ("b", np.array([1, 2, 3], dtype="uint8"))]))
                  ])}
         encoded = {"name": "IR_108",
                    "start_time": "2018-01-01 00:00:00",

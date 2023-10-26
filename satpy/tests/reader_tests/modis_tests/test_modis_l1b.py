@@ -50,7 +50,7 @@ def _check_shared_metadata(data_arr):
     assert data_arr.attrs["platform_name"] == "EOS-Terra"
     assert "rows_per_scan" in data_arr.attrs
     assert isinstance(data_arr.attrs["rows_per_scan"], int)
-    assert data_arr.attrs['reader'] == "modis_l1b"
+    assert data_arr.attrs["reader"] == "modis_l1b"
     assert "resolution" in data_arr.attrs
     res = data_arr.attrs["resolution"]
     if res == 5000:
@@ -160,7 +160,7 @@ class TestModisL1b:
         shape_250m = _shape_for_resolution(250)
         default_shape = _shape_for_resolution(default_res)
         scheduler = CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)
-        with dask.config.set({'scheduler': scheduler, 'array.chunk-size': '1 MiB'}):
+        with dask.config.set({"scheduler": scheduler, "array.chunk-size": "1 MiB"}):
             _load_and_check_geolocation(scene, "*", default_res, default_shape, True)
             _load_and_check_geolocation(scene, 5000, 5000, shape_5km, has_5km)
             _load_and_check_geolocation(scene, 500, 500, shape_500m, has_500)
@@ -179,9 +179,9 @@ class TestModisL1b:
 
     def test_load_vis(self, modis_l1b_nasa_mod021km_file):
         """Test loading visible band."""
-        scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file)
-        dataset_name = '1'
-        with dask.config.set({'array.chunk-size': '1 MiB'}):
+        scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
+        dataset_name = "1"
+        with dask.config.set({"array.chunk-size": "1 MiB"}):
             scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset[0, 0] == 300.0
@@ -194,8 +194,8 @@ class TestModisL1b:
         """Test loading visible band."""
         scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file,
                       reader_kwargs={"mask_saturated": mask_saturated})
-        dataset_name = '2'
-        with dask.config.set({'array.chunk-size': '1 MiB'}):
+        dataset_name = "2"
+        with dask.config.set({"array.chunk-size": "1 MiB"}):
             scene.load([dataset_name])
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)

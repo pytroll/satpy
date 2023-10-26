@@ -15,7 +15,8 @@ line_length = 120
 
 [tool.ruff]
 # See https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "A", "B", "S", "N", "D","PT", "TID", "C90", "Q", "T10", "T20"]
+# "A", "B", "S", "N", "D",
+select = ["E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
 ignore = ["B905"]  # only available from python 3.10
 line-length = 120
 

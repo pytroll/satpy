@@ -505,24 +505,15 @@ def check_satpy(readers=None, writers=None, extras=None):
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
 
-    print("Readers")
-    print("=======")
-    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
-        print(reader + ": ", res)
-    print()
+    for _reader, _res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
+        pass
 
-    print("Writers")
-    print("=======")
-    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
-        print(writer + ": ", res)
-    print()
+    for _writer, _res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
+        pass
 
-    print("Extras")
-    print("======")
     module_names = extras if extras is not None else ("cartopy", "geoviews")
-    for module_name, res in sorted(_check_import(module_names).items()):
-        print(module_name + ": ", res)
-    print()
+    for _module_name, _res in sorted(_check_import(module_names).items()):
+        pass
 
 
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:

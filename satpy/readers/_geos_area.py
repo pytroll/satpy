@@ -72,6 +72,7 @@ def get_area_extent(pdict):
             coff: Column offset factor
             loff: Line offset factor
             scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+
     Returns:
         aex: An area extent for the scene
 
@@ -178,6 +179,7 @@ def get_geos_area_naming(input_dict):
         input_dict: dict
             Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `service_desc`, `resolution` .
             The resolution is expected in meters.
+
     Returns:
         area_naming_dict with `area_id`, `description`  keys, values are strings.
 

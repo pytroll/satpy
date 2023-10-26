@@ -43,7 +43,7 @@ Remaining datasets (such as quality flags and uncertainties) have the same
 name in the reader as in the netCDF file.
 
 
-Example
+Example:
 -------
 This is how to read FIDUCEO MVIRI FCDR data in satpy:
 
@@ -143,7 +143,7 @@ If you need the angles in both resolutions, use data queries:
     sza_vis = scn[query_vis]
 
 
-References
+References:
 ----------
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide

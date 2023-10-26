@@ -28,7 +28,6 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from pytest import approx  # noqa: PT013
 
 from satpy.utils import (
     angle2xyz,
@@ -193,8 +192,8 @@ class TestGetSatPos:
         "attrs",
         [
                 {},
-                {'orbital_parameters': {'projection_longitude': 1}},
-                {'satellite_altitude': 1}
+                {"orbital_parameters": {"projection_longitude": 1}},
+                {"satellite_altitude": 1}
         ]
     )
     def test_get_satpos_fails_with_informative_error(self, attrs):

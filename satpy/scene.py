@@ -785,7 +785,7 @@ class Scene:
         Returns:
             A new aggregated scene
 
-        See also:
+        See Also:
             xarray.DataArray.coarsen
 
         Example:
@@ -1146,7 +1146,7 @@ class Scene:
             Prefix to add the each variable with name starting with a digit.
             Use '' or None to leave this out.
 
-        Returns
+        Returns:
         -------
         ds, xr.Dataset
             A CF-compliant xr.Dataset

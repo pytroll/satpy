@@ -31,7 +31,7 @@ A list of retrieval files, fnames, can be opened as follows::
 
   Scene(reader="iasi_l2_so2_bufr", filenames=fnames)
 
-Example
+Example:
 -------
 Here is an example how to read the data in satpy:
 

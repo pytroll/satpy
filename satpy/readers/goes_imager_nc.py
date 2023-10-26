@@ -200,7 +200,7 @@ variant of this dataset with the following differences:
 6. Data is received via EumetCast
 
 
-References
+References:
 ==========
 
 - `[GVAR]`_  GVAR transmission format
@@ -887,6 +887,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             counts: Raw detector counts
             slope: Slope [W m-2 um-1 sr-1]
             offset: Offset [W m-2 um-1 sr-1]
+
         Returns:
             Radiance [W m-2 um-1 sr-1]
         """
@@ -913,6 +914,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             k: pi / H, where H is the solar spectral irradiance at
                annual-average sun-earth distance, averaged over the spectral
                response function of the detector). Units of k: [m2 um sr W-1]
+
         Returns:
             Reflectance [%]
         """

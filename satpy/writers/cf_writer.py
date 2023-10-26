@@ -195,20 +195,20 @@ if netCDF4 is None and h5netcdf is None:
 # Numpy datatypes compatible with all netCDF4 backends. ``np.str_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
-NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
-              np.dtype('int16'), np.dtype('uint16'),
-              np.dtype('int32'), np.dtype('uint32'),
-              np.dtype('int64'), np.dtype('uint64'),
-              np.dtype('float32'), np.dtype('float64'),
+NC4_DTYPES = [np.dtype("int8"), np.dtype("uint8"),
+              np.dtype("int16"), np.dtype("uint16"),
+              np.dtype("int32"), np.dtype("uint32"),
+              np.dtype("int64"), np.dtype("uint64"),
+              np.dtype("float32"), np.dtype("float64"),
               np.bytes_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
 # Note: Unsigned and int64 are CF 1.9 compatible
-CF_DTYPES = [np.dtype('int8'),
-             np.dtype('int16'),
-             np.dtype('int32'),
-             np.dtype('float32'),
-             np.dtype('float64'),
+CF_DTYPES = [np.dtype("int8"),
+             np.dtype("int16"),
+             np.dtype("int32"),
+             np.dtype("float32"),
+             np.dtype("float64"),
              np.bytes_]
 
 CF_VERSION = "CF-1.7"
@@ -581,8 +581,8 @@ def _remove_satpy_attrs(new_data):
 
 def _format_prerequisites_attrs(dataarray):
     """Reformat prerequisites attribute value to string."""
-    if 'prerequisites' in dataarray.attrs:
-        dataarray.attrs['prerequisites'] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+    if "prerequisites" in dataarray.attrs:
+        dataarray.attrs["prerequisites"] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs["prerequisites"]]
     return dataarray
 
 
@@ -809,7 +809,7 @@ def make_cf_dataarray(dataarray,
         Prepend dataset name with this if starting with a digit.
         The default is ``"CHANNEL_"``.
 
-    Returns
+    Returns:
     -------
     new_data : xr.DataArray
         CF-compliant xr.DataArray.
@@ -859,7 +859,7 @@ def _collect_cf_dataset(list_dataarrays,
         Prefix to add the each variable with name starting with a digit.
         Use '' or None to leave this out.
 
-    Returns
+    Returns:
     -------
     ds : xr.Dataset
         A partially CF-compliant xr.Dataset
@@ -977,7 +977,7 @@ def collect_cf_datasets(list_dataarrays,
         It is used to create grouped netCDFs using the CF_Writer.
         If None (the default), no groups will be created.
 
-    Returns
+    Returns:
     -------
     grouped_datasets : dict
         A dictionary of CF-compliant xr.Dataset: {group_name: xr.Dataset}

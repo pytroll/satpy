@@ -67,13 +67,13 @@ class TestSpectralComposites:
 
     def test_green_corrector(self):
         """Test the deprecated class for green corrections."""
-        comp = GreenCorrector('blended_channel', fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
-                              standard_name='toa_bidirectional_reflectance')
+        comp = GreenCorrector("blended_channel", fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
+                              standard_name="toa_bidirectional_reflectance")
         res = comp((self.c01, self.c03))
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        assert res.attrs['name'] == 'blended_channel'
-        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
+        assert res.attrs["name"] == "blended_channel"
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.compute()
         np.testing.assert_allclose(data, 0.23)
 
@@ -114,6 +114,6 @@ class TestNdviHybridGreenCompositor:
 
     def test_invalid_strength(self):
         """Test using invalid `strength` term for non-linear scaling."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected strength greater than 0.0, got 0.0."):
             _ = NDVIHybridGreen("ndvi_hybrid_green", strength=0.0, prerequisites=(0.51, 0.65, 0.85),
                                 standard_name="toa_bidirectional_reflectance")

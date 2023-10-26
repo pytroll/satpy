@@ -394,7 +394,7 @@ def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
 class TestTemporalRGB:
     """Test the temporal RGB blending method."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def nominal_data(self):
         """Return the input arrays for the nominal use case."""
         da1 = xr.DataArray([1, 0, 0], attrs={"start_time": datetime(2023, 5, 22, 9, 0, 0)})
@@ -403,7 +403,7 @@ class TestTemporalRGB:
 
         return [da1, da2, da3]
 
-    @pytest.fixture
+    @pytest.fixture()
     def expected_result(self):
         """Return the expected result arrays."""
         return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]

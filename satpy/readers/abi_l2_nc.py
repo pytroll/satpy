@@ -43,9 +43,9 @@ class NC_ABI_L2(NC_ABI_BASE):
         self._remove_problem_attrs(variable)
 
         # convert to satpy standard units
-        if variable.attrs['units'] == '1' and key['calibration'] == 'reflectance':
+        if variable.attrs["units"] == "1" and key["calibration"] == "reflectance":
             variable *= 100.0
-            variable.attrs['units'] = '%'
+            variable.attrs["units"] = "%"
 
         return variable
 

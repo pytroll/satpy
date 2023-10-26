@@ -245,7 +245,7 @@ def _bits_strip(bit_start, bit_count, value):
     value : int
         Number from which to extract the bits
 
-    Returns
+    Returns:
     -------
         int
         Value of the extracted bits
