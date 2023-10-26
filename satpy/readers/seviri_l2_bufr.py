@@ -46,7 +46,7 @@ except ImportError:
 CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger("SeviriL2Bufr")
 
-data_center_dict = {55: {"ssp": "E0415", "name": "08"}, 56:  {"ssp": "E0455", "name": "09"},
+data_center_dict = {55: {"ssp": "E0415", "name": "08"}, 56: {"ssp": "E0455", "name": "09"},
                     57: {"ssp": "E0095", "name": "10"}, 70: {"ssp": "E0000", "name": "11"}}
 
 seg_size_dict = {"seviri_l2_bufr_asr": 16, "seviri_l2_bufr_cla": 16,

@@ -29,7 +29,7 @@ from pyresample import geometry
 
 from satpy.tests.utils import make_dataid
 
-FILETYPE_INFO = {"file_type":  "seviri_l2_bufr_asr"}
+FILETYPE_INFO = {"file_type": "seviri_l2_bufr_asr"}
 
 FILENAME_INFO = {"start_time": "20191112000000",
                  "spacecraft": "MSG2"}

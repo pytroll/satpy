@@ -283,7 +283,7 @@ class TestCheckSatpy(unittest.TestCase):
                 if len(call[1]) > 0 and "__fake" in call[1][0]:
                     assert "ok" not in call[1][1]
                     checked_fake = True
-            assert checked_fake,  "Did not find __fake module mentioned in checks"
+            assert checked_fake, "Did not find __fake module mentioned in checks"
 
 
 def test_debug_on(caplog):

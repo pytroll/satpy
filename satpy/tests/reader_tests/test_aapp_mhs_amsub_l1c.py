@@ -310,9 +310,9 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
         self._header = np.zeros(1, dtype=_HEADERTYPE)
         self._header["satid"][0] = 3
         self._header["instrument"][0] = 12
-        self._header["tempradcnv"][0] = [[2968720,       0, 1000000, 5236956,       0],
-                                         [1000000, 6114597,       0, 1000000, 6114597],
-                                         [-3100, 1000270, 6348092,       0, 1000000]]
+        self._header["tempradcnv"][0] = [[2968720, 0, 1000000, 5236956, 0],
+                                         [1000000, 6114597, 0, 1000000, 6114597],
+                                         [-3100, 1000270, 6348092, 0, 1000000]]
         self._data = np.zeros(3, dtype=_SCANTYPE)
         self._data["scnlinyr"][:] = 2020
         self._data["scnlindy"][:] = 261

@@ -73,7 +73,7 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content["Fire Pixels/attr/units"] = "none"
         file_content["Fire Pixels/shape"] = DEFAULT_FILE_SHAPE
 
-        attrs = ("FP_latitude", "FP_longitude",  "FP_T13", "FP_confidence")
+        attrs = ("FP_latitude", "FP_longitude", "FP_T13", "FP_confidence")
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
             dims=("z", "fakeDim0", "fakeDim1"))
@@ -97,7 +97,7 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content["Fire Pixels/FP_T4/attr/units"] = "kelvins"
         file_content["Fire Pixels/FP_confidence"] = DEFAULT_DETECTION_FILE_DATA
 
-        attrs = ("FP_latitude", "FP_longitude",  "FP_T13", "FP_confidence")
+        attrs = ("FP_latitude", "FP_longitude", "FP_T13", "FP_confidence")
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
             dims=("z", "fakeDim0", "fakeDim1"))
