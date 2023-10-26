@@ -39,9 +39,9 @@ DEFAULT_FILE_FLOAT_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1
 DEFAULT_FILE_DATE_DATA = np.clip(DEFAULT_FILE_FLOAT_DATA, 0, 1049)
 DEFAULT_FILE_UBYTE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                                     dtype=np.ubyte)
-float_variables = ['tpwGrid', 'tpwGridPrior', 'tpwGridSubseq', 'footGridPrior', 'footGridSubseq']
-date_variables = ['timeAwayGridPrior', 'timeAwayGridSubseq']
-ubyte_variables = ['satGridPrior', 'satGridSubseq']
+float_variables = ["tpwGrid", "tpwGridPrior", "tpwGridSubseq", "footGridPrior", "footGridSubseq"]
+date_variables = ["timeAwayGridPrior", "timeAwayGridSubseq"]
+ubyte_variables = ["satGridPrior", "satGridSubseq"]
 file_content_attr = dict()
 
 
@@ -50,57 +50,57 @@ class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content for lower resolution files."""
-        dt_s = filename_info.get('start_time', DEFAULT_DATE)
-        dt_e = filename_info.get('end_time', DEFAULT_DATE)
+        dt_s = filename_info.get("start_time", DEFAULT_DATE)
+        dt_e = filename_info.get("end_time", DEFAULT_DATE)
 
-        if filetype_info['file_type'] == 'mimicTPW2_comp':
+        if filetype_info["file_type"] == "mimicTPW2_comp":
             file_content = {
-                '/attr/start_time': dt_s.strftime('%Y%m%d.%H%M%S'),
-                '/attr/end_time': dt_e.strftime('%Y%m%d.%H%M%S'),
-                '/attr/platform_shortname': 'aggregated microwave',
-                '/attr/sensor': 'mimic',
+                "/attr/start_time": dt_s.strftime("%Y%m%d.%H%M%S"),
+                "/attr/end_time": dt_e.strftime("%Y%m%d.%H%M%S"),
+                "/attr/platform_shortname": "aggregated microwave",
+                "/attr/sensor": "mimic",
             }
-            file_content['latArr'] = DEFAULT_LAT
-            file_content['latArr/shape'] = (DEFAULT_FILE_SHAPE[0],)
-            file_content['latArr/attr/units'] = 'degress_north'
+            file_content["latArr"] = DEFAULT_LAT
+            file_content["latArr/shape"] = (DEFAULT_FILE_SHAPE[0],)
+            file_content["latArr/attr/units"] = "degress_north"
 
-            file_content['lonArr'] = DEFAULT_LON
-            file_content['lonArr/shape'] = (DEFAULT_FILE_SHAPE[1],)
-            file_content['lonArr/attr/units'] = 'degrees_east'
+            file_content["lonArr"] = DEFAULT_LON
+            file_content["lonArr/shape"] = (DEFAULT_FILE_SHAPE[1],)
+            file_content["lonArr/attr/units"] = "degrees_east"
 
-            file_content['/dimension/lat'] = DEFAULT_FILE_SHAPE[0]
-            file_content['/dimension/lon'] = DEFAULT_FILE_SHAPE[1]
+            file_content["/dimension/lat"] = DEFAULT_FILE_SHAPE[0]
+            file_content["/dimension/lon"] = DEFAULT_FILE_SHAPE[1]
 
             for float_var in float_variables:
                 file_content[float_var] = DEFAULT_FILE_FLOAT_DATA.reshape(DEFAULT_FILE_SHAPE)
-                file_content['{}/shape'.format(float_var)] = DEFAULT_FILE_SHAPE
+                file_content["{}/shape".format(float_var)] = DEFAULT_FILE_SHAPE
                 file_content_attr[float_var] = {"units": "mm"}
             for date_var in date_variables:
                 file_content[date_var] = DEFAULT_FILE_DATE_DATA.reshape(DEFAULT_FILE_SHAPE)
-                file_content['{}/shape'.format(date_var)] = DEFAULT_FILE_SHAPE
+                file_content["{}/shape".format(date_var)] = DEFAULT_FILE_SHAPE
                 file_content_attr[date_var] = {"units": "minutes"}
             for ubyte_var in ubyte_variables:
                 file_content[ubyte_var] = DEFAULT_FILE_UBYTE_DATA.reshape(DEFAULT_FILE_SHAPE)
-                file_content['{}/shape'.format(ubyte_var)] = DEFAULT_FILE_SHAPE
+                file_content["{}/shape".format(ubyte_var)] = DEFAULT_FILE_SHAPE
                 file_content_attr[ubyte_var] = {"source_key": "Key: 0: None, 1: NOAA-N, 2: NOAA-P, 3: Metop-A, \
                                                               4: Metop-B, 5: SNPP, 6: SSMI-17, 7: SSMI-18"}
 
             # convert to xarrays
             for key, val in file_content.items():
-                if key == 'lonArr' or key == 'latArr':
+                if key == "lonArr" or key == "latArr":
                     file_content[key] = xr.DataArray(val)
                 elif isinstance(val, np.ndarray):
                     if val.ndim > 1:
-                        file_content[key] = xr.DataArray(val, dims=('y', 'x'), attrs=file_content_attr[key])
+                        file_content[key] = xr.DataArray(val, dims=("y", "x"), attrs=file_content_attr[key])
                     else:
                         file_content[key] = xr.DataArray(val)
             for key in itertools.chain(float_variables, ubyte_variables):
-                file_content[key].attrs['_FillValue'] = -999.0
-                file_content[key].attrs['name'] = key
-                file_content[key].attrs['file_key'] = key
-                file_content[key].attrs['file_type'] = self.filetype_info['file_type']
+                file_content[key].attrs["_FillValue"] = -999.0
+                file_content[key].attrs["name"] = key
+                file_content[key].attrs["file_key"] = key
+                file_content[key].attrs["file_type"] = self.filetype_info["file_type"]
         else:
-            msg = 'Wrong Test Reader for file_type {}'.format(filetype_info['file_type'])
+            msg = "Wrong Test Reader for file_type {}".format(filetype_info["file_type"])
             raise AssertionError(msg)
 
         return file_content
@@ -115,9 +115,9 @@ class TestMimicTPW2Reader(unittest.TestCase):
         """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.mimic_TPW2_nc import MimicTPW2FileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(MimicTPW2FileHandler, '__bases__', (FakeNetCDF4FileHandlerMimicLow,))
+        self.p = mock.patch.object(MimicTPW2FileHandler, "__bases__", (FakeNetCDF4FileHandlerMimicLow,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -130,65 +130,65 @@ class TestMimicTPW2Reader(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'comp20190619.130000.nc',
+            "comp20190619.130000.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_mimic_float(self):
         """Load TPW mimic float data."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.mimic_TPW2_nc.netCDF4.Variable', xr.DataArray):
+        with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'comp20190619.130000.nc',
+                "comp20190619.130000.nc",
             ])
             r.create_filehandlers(loadables)
         ds = r.load(float_variables)
-        self.assertEqual(len(ds), len(float_variables))
+        assert len(ds) == len(float_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
-            self.assertEqual(d.attrs['sensor'], 'mimic')
-            self.assertEqual(d.attrs['units'], 'mm')
-            self.assertIn('area', d.attrs)
-            self.assertIsNotNone(d.attrs['area'])
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["units"] == "mm"
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
     def test_load_mimic_timedelta(self):
         """Load TPW mimic timedelta data (data latency variables)."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.mimic_TPW2_nc.netCDF4.Variable', xr.DataArray):
+        with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'comp20190619.130000.nc',
+                "comp20190619.130000.nc",
             ])
             r.create_filehandlers(loadables)
         ds = r.load(date_variables)
-        self.assertEqual(len(ds), len(date_variables))
+        assert len(ds) == len(date_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
-            self.assertEqual(d.attrs['sensor'], 'mimic')
-            self.assertEqual(d.attrs['units'], 'minutes')
-            self.assertIn('area', d.attrs)
-            self.assertIsNotNone(d.attrs['area'])
-            self.assertEqual(d.dtype, DEFAULT_FILE_DTYPE)
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["units"] == "minutes"
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.dtype == DEFAULT_FILE_DTYPE
 
     def test_load_mimic_ubyte(self):
         """Load TPW mimic sensor grids."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.mimic_TPW2_nc.netCDF4.Variable', xr.DataArray):
+        with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'comp20190619.130000.nc',
+                "comp20190619.130000.nc",
             ])
             r.create_filehandlers(loadables)
         ds = r.load(ubyte_variables)
-        self.assertEqual(len(ds), len(ubyte_variables))
+        assert len(ds) == len(ubyte_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
-            self.assertEqual(d.attrs['sensor'], 'mimic')
-            self.assertIn('source_key', d.attrs)
-            self.assertIn('area', d.attrs)
-            self.assertIsNotNone(d.attrs['area'])
-            self.assertEqual(d.dtype, np.uint8)
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert "source_key" in d.attrs
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.dtype == np.uint8

@@ -42,7 +42,7 @@ class VIIRSSDRBenchmarkBase:
         except ImportError:
             assert len(self.get_filenames()) == 6 * 3  # nosec
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_type="rayleigh_only")
 
     def setup(self, name):
         """Set up the benchmarks."""
@@ -58,14 +58,14 @@ class VIIRSSDRBenchmarkBase:
     def load(self, composite):
         """Load one composite."""
         from satpy import Scene
-        scn = Scene(filenames=self.data_files, reader='viirs_sdr')
+        scn = Scene(filenames=self.data_files, reader="viirs_sdr")
         scn.load([composite])
         return scn
 
     def load_and_native_resample(self, composite):
         """Load and native resample a composite."""
         scn = self.load(composite)
-        lscn = scn.resample(resampler='native')
+        lscn = scn.resample(resampler="native")
         return lscn
 
 
@@ -119,4 +119,4 @@ class VIIRSSDRCompositeBenchmarks(VIIRSSDRBenchmarkBase):
     def save_composite_as_geotiff(self, name):
         """Save a composite to disk as geotiff."""
         lscn = self.load_and_native_resample(name)
-        lscn.save_dataset(name, filename='test.tif', tiled=True)
+        lscn.save_dataset(name, filename="test.tif", tiled=True)

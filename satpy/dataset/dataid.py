@@ -34,10 +34,10 @@ def get_keys_from_config(common_id_keys, config):
     for key, val in common_id_keys.items():
         if key in config:
             id_keys[key] = val
-        elif val is not None and (val.get('required') is True or val.get('default') is not None):
+        elif val is not None and (val.get("required") is True or val.get("default") is not None):
             id_keys[key] = val
     if not id_keys:
-        raise ValueError('Metadata does not contain enough information to create a DataID.')
+        raise ValueError("Metadata does not contain enough information to create a DataID.")
     return id_keys
 
 
@@ -57,7 +57,7 @@ class ValueList(IntEnum):
         try:
             return cls[value]
         except KeyError:
-            raise ValueError('{} invalid value for {}'.format(value, cls))
+            raise ValueError("{} invalid value for {}".format(value, cls))
 
     @classmethod
     def _unpickle(cls, enum_name, enum_members, enum_member):
@@ -88,10 +88,10 @@ class ValueList(IntEnum):
 
     def __repr__(self):
         """Represent the values."""
-        return '<' + str(self) + '>'
+        return "<" + str(self) + ">"
 
 
-wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))  # type: ignore
+wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=("µm",))  # type: ignore
 
 
 class WavelengthRange(wlklass):
@@ -196,7 +196,7 @@ class WavelengthRange(wlklass):
         from trollsift import Parser
         parser = Parser(pattern)
         res_dict = parser.parse(blob)
-        res_dict.pop('unit2')
+        res_dict.pop("unit2")
         obj = cls(**res_dict)
         return obj
 
@@ -239,46 +239,46 @@ class ModifierTuple(tuple):
 
 
 #: Default ID keys DataArrays.
-default_id_keys_config = {'name': {
-                              'required': True,
+default_id_keys_config = {"name": {
+                              "required": True,
                           },
-                          'wavelength': {
-                              'type': WavelengthRange,
+                          "wavelength": {
+                              "type": WavelengthRange,
                           },
-                          'resolution': {
-                              'transitive': False,
+                          "resolution": {
+                              "transitive": False,
                               },
-                          'calibration': {
-                              'enum': [
-                                  'reflectance',
-                                  'brightness_temperature',
-                                  'radiance',
-                                  'radiance_wavenumber',
-                                  'counts'
+                          "calibration": {
+                              "enum": [
+                                  "reflectance",
+                                  "brightness_temperature",
+                                  "radiance",
+                                  "radiance_wavenumber",
+                                  "counts"
                                   ],
-                              'transitive': True,
+                              "transitive": True,
                           },
-                          'modifiers': {
-                              'default': ModifierTuple(),
-                              'type': ModifierTuple,
+                          "modifiers": {
+                              "default": ModifierTuple(),
+                              "type": ModifierTuple,
                           },
                           }
 
 #: Default ID keys for coordinate DataArrays.
-default_co_keys_config = {'name': {
-                              'required': True,
+default_co_keys_config = {"name": {
+                              "required": True,
                           },
-                          'resolution': {
-                              'transitive': True,
+                          "resolution": {
+                              "transitive": True,
                           }
                           }
 
 #: Minimal ID keys for DataArrays, for example composites.
-minimal_default_keys_config = {'name': {
-                                  'required': True,
+minimal_default_keys_config = {"name": {
+                                  "required": True,
                               },
-                               'resolution': {
-                                   'transitive': True,
+                               "resolution": {
+                                   "transitive": True,
                                }
                               }
 
@@ -313,11 +313,11 @@ class DataID(dict):
         for key, val in id_keys.items():
             if not val:
                 continue
-            if 'enum' in val and 'type' in val:
-                raise ValueError('Cannot have both type and enum for the same id key.')
+            if "enum" in val and "type" in val:
+                raise ValueError("Cannot have both type and enum for the same id key.")
             new_val = copy(val)
-            if 'enum' in val:
-                new_val['type'] = ValueList(key, ' '.join(new_val.pop('enum')))
+            if "enum" in val:
+                new_val["type"] = ValueList(key, " ".join(new_val.pop("enum")))
             new_id_keys[key] = new_val
         return new_id_keys
 
@@ -329,12 +329,12 @@ class DataID(dict):
         for key, val in self._id_keys.items():
             if val is None:
                 val = {}
-            if key in keyvals or val.get('default') is not None or val.get('required'):
-                curated_val = keyvals.get(key, val.get('default'))
-                if 'required' in val and curated_val is None:
-                    raise ValueError('Required field {} missing.'.format(key))
-                if 'type' in val:
-                    curated[key] = val['type'].convert(curated_val)
+            if key in keyvals or val.get("default") is not None or val.get("required"):
+                curated_val = keyvals.get(key, val.get("default"))
+                if "required" in val and curated_val is None:
+                    raise ValueError("Required field {} missing.".format(key))
+                if "type" in val:
+                    curated[key] = val["type"].convert(curated_val)
                 elif curated_val is not None:
                     curated[key] = curated_val
 
@@ -356,17 +356,17 @@ class DataID(dict):
     @classmethod
     def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
         """Get the DataID using the dataarray attributes."""
-        if '_satpy_id' in array.attrs:
-            return array.attrs['_satpy_id']
+        if "_satpy_id" in array.attrs:
+            return array.attrs["_satpy_id"]
         return cls.new_id_from_dataarray(array, default_keys)
 
     @classmethod
     def new_id_from_dataarray(cls, array, default_keys=minimal_default_keys_config):
         """Create a new DataID from a dataarray's attributes."""
         try:
-            id_keys = array.attrs['_satpy_id'].id_keys
+            id_keys = array.attrs["_satpy_id"].id_keys
         except KeyError:
-            id_keys = array.attrs.get('_satpy_id_keys', default_keys)
+            id_keys = array.attrs.get("_satpy_id_keys", default_keys)
         return cls(id_keys, **array.attrs)
 
     @property
@@ -381,7 +381,7 @@ class DataID(dict):
         except AttributeError:
             new_query = query.copy()
         for key, val in self._id_keys.items():
-            if val and (val.get('transitive') is not True):
+            if val and (val.get("transitive") is not True):
                 new_query.pop(key, None)
         return DataQuery.from_dict(new_query)
 
@@ -431,7 +431,7 @@ class DataID(dict):
 
     def _immutable(self, *args, **kws) -> NoReturn:
         """Raise and error."""
-        raise TypeError('Cannot change a DataID')
+        raise TypeError("Cannot change a DataID")
 
     def __lt__(self, other):
         """Check lesser than."""
@@ -469,7 +469,7 @@ class DataID(dict):
     def create_less_modified_query(self):
         """Create a query with one less modifier."""
         new_dict = self.to_dict()
-        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        new_dict["modifiers"] = tuple(new_dict["modifiers"][:-1])
         return DataQuery.from_dict(new_dict)
 
     def is_modified(self):
@@ -536,7 +536,7 @@ class DataQuery:
         fields = []
         values = []
         for field, value in sorted(self._dict.items()):
-            if value != '*':
+            if value != "*":
                 fields.append(field)
                 if isinstance(value, (list, set)):
                     value = tuple(value)
@@ -568,7 +568,7 @@ class DataQuery:
 
     def _to_trimmed_dict(self):
         return {key: val for key, val in self._dict.items()
-                if val != '*'}
+                if val != "*"}
 
     def __repr__(self):
         """Represent the query."""
@@ -595,7 +595,7 @@ class DataQuery:
         """Check if dataid shares required keys with the current query."""
         for key, val in dataid._id_keys.items():
             try:
-                if val.get('required', False):
+                if val.get("required", False):
                     if key in self._fields:
                         return True
             except AttributeError:
@@ -604,7 +604,7 @@ class DataQuery:
 
     def _match_query_value(self, key, id_val):
         val = self._dict[key]
-        if val == '*':
+        if val == "*":
             return True
         if isinstance(id_val, tuple) and isinstance(val, (tuple, list)):
             return tuple(val) == id_val
@@ -664,8 +664,8 @@ class DataQuery:
             for key in keys:
                 if distance == np.inf:
                     break
-                val = self._dict.get(key, '*')
-                if val == '*':
+                val = self._dict.get(key, "*")
+                if val == "*":
                     distance = self._add_absolute_distance(dataid, key, distance)
                 else:
                     try:
@@ -711,12 +711,12 @@ class DataQuery:
     def create_less_modified_query(self):
         """Create a query with one less modifier."""
         new_dict = self.to_dict()
-        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        new_dict["modifiers"] = tuple(new_dict["modifiers"][:-1])
         return DataQuery.from_dict(new_dict)
 
     def is_modified(self):
         """Check if this is modified."""
-        return bool(self._dict.get('modifiers'))
+        return bool(self._dict.get("modifiers"))
 
 
 def create_filtered_query(dataset_key, filter_query):
@@ -735,7 +735,7 @@ def create_filtered_query(dataset_key, filter_query):
 def _update_dict_with_filter_query(ds_dict, filter_query):
     if filter_query is not None:
         for key, value in filter_query.items():
-            if value != '*':
+            if value != "*":
                 ds_dict.setdefault(key, value)
 
 
@@ -744,9 +744,9 @@ def _create_id_dict_from_any_key(dataset_key):
         ds_dict = dataset_key.to_dict()
     except AttributeError:
         if isinstance(dataset_key, str):
-            ds_dict = {'name': dataset_key}
+            ds_dict = {"name": dataset_key}
         elif isinstance(dataset_key, numbers.Number):
-            ds_dict = {'wavelength': dataset_key}
+            ds_dict = {"wavelength": dataset_key}
         else:
             raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
     return ds_dict

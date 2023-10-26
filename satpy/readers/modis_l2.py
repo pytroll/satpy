@@ -113,30 +113,30 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         dataset = self.sd.select(hdf_dataset_name)
         dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
         attrs = dataset.attributes()
-        dims = ['y', 'x']
+        dims = ["y", "x"]
         if byte_dimension == 0:
-            dims = ['i', 'y', 'x']
+            dims = ["i", "y", "x"]
             dask_arr = dask_arr.astype(np.uint8)
         elif byte_dimension == 2:
-            dims = ['y', 'x', 'i']
+            dims = ["y", "x", "i"]
             dask_arr = dask_arr.astype(np.uint8)
         dataset = xr.DataArray(dask_arr, dims=dims, attrs=attrs)
-        if 'i' in dataset.dims:
+        if "i" in dataset.dims:
             # Reorder dimensions for consistency
-            dataset = dataset.transpose('i', 'y', 'x')
+            dataset = dataset.transpose("i", "y", "x")
         return dataset
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
-        dataset_name = dataset_id['name']
+        dataset_name = dataset_id["name"]
         if self.is_geo_loadable_dataset(dataset_name):
             return HDFEOSGeoReader.get_dataset(self, dataset_id, dataset_info)
-        dataset_name_in_file = dataset_info['file_key']
+        dataset_name_in_file = dataset_info["file_key"]
         if self.is_imapp_mask_byte1:
-            dataset_name_in_file = dataset_info.get('imapp_file_key', dataset_name_in_file)
+            dataset_name_in_file = dataset_info.get("imapp_file_key", dataset_name_in_file)
 
         # The dataset asked correspond to a given set of bits of the HDF EOS dataset
-        if 'byte' in dataset_info and 'byte_dimension' in dataset_info:
+        if "byte" in dataset_info and "byte_dimension" in dataset_info:
             dataset = self._extract_and_mask_category_dataset(dataset_id, dataset_info, dataset_name_in_file)
         else:
             # No byte manipulation required
@@ -147,39 +147,39 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
     def _extract_and_mask_category_dataset(self, dataset_id, dataset_info, var_name):
         # what dimension is per-byte
-        byte_dimension = None if self.is_imapp_mask_byte1 else dataset_info['byte_dimension']
+        byte_dimension = None if self.is_imapp_mask_byte1 else dataset_info["byte_dimension"]
         dataset = self._select_hdf_dataset(var_name, byte_dimension)
         # category products always have factor=1/offset=0 so don't apply them
         # also remove them so they don't screw up future satpy processing
-        dataset.attrs.pop('scale_factor', None)
-        dataset.attrs.pop('add_offset', None)
+        dataset.attrs.pop("scale_factor", None)
+        dataset.attrs.pop("add_offset", None)
         # Don't do this byte work if we are using the IMAPP mask_byte1 file
         if self.is_imapp_mask_byte1:
             return dataset
 
         dataset = _extract_byte_mask(dataset,
-                                     dataset_info['byte'],
-                                     dataset_info['bit_start'],
-                                     dataset_info['bit_count'])
+                                     dataset_info["byte"],
+                                     dataset_info["bit_start"],
+                                     dataset_info["bit_count"])
         dataset = self._mask_with_quality_assurance_if_needed(dataset, dataset_info, dataset_id)
         return dataset
 
     def _mask_with_quality_assurance_if_needed(self, dataset, dataset_info, dataset_id):
-        if not dataset_info.get('quality_assurance', False):
+        if not dataset_info.get("quality_assurance", False):
             return dataset
 
         # Get quality assurance dataset recursively
         quality_assurance_dataset_id = dataset_id.from_dict(
-            dict(name='quality_assurance', resolution=1000)
+            dict(name="quality_assurance", resolution=1000)
         )
         quality_assurance_dataset_info = {
-            'name': 'quality_assurance',
-            'resolution': 1000,
-            'byte_dimension': 2,
-            'byte': 0,
-            'bit_start': 0,
-            'bit_count': 1,
-            'file_key': 'Quality_Assurance'
+            "name": "quality_assurance",
+            "resolution": 1000,
+            "byte_dimension": 2,
+            "byte": 0,
+            "bit_start": 0,
+            "bit_count": 1,
+            "file_key": "Quality_Assurance"
         }
         quality_assurance = self.get_dataset(
             quality_assurance_dataset_id, quality_assurance_dataset_info
@@ -245,7 +245,7 @@ def _bits_strip(bit_start, bit_count, value):
     value : int
         Number from which to extract the bits
 
-    Returns
+    Returns:
     -------
         int
         Value of the extracted bits

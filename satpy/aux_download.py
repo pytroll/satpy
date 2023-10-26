@@ -68,14 +68,14 @@ def _generate_filename(filename, component_type):
         return None
     path = filename
     if component_type:
-        path = '/'.join([component_type, path])
+        path = "/".join([component_type, path])
     return path
 
 
 def _retrieve_offline(data_dir, cache_key):
-    logger.debug('Downloading auxiliary files is turned off, will check '
-                 'local files.')
-    local_file = os.path.join(data_dir, *cache_key.split('/'))
+    logger.debug("Downloading auxiliary files is turned off, will check "
+                 "local files.")
+    local_file = os.path.join(data_dir, *cache_key.split("/"))
     if not os.path.isfile(local_file):
         raise RuntimeError("Satpy 'download_aux' setting is False meaning "
                            "no new files will be downloaded and the local "
@@ -85,7 +85,7 @@ def _retrieve_offline(data_dir, cache_key):
 
 def _should_download(cache_key):
     """Check if we're running tests and can download this file."""
-    return not RUNNING_TESTS or 'README' in cache_key
+    return not RUNNING_TESTS or "README" in cache_key
 
 
 def retrieve(cache_key, pooch_kwargs=None):
@@ -107,8 +107,8 @@ def retrieve(cache_key, pooch_kwargs=None):
     """
     pooch_kwargs = pooch_kwargs or {}
 
-    path = satpy.config.get('data_dir')
-    if not satpy.config.get('download_aux'):
+    path = satpy.config.get("data_dir")
+    if not satpy.config.get("download_aux"):
         return _retrieve_offline(path, cache_key)
     if not _should_download(cache_key):
         raise RuntimeError("Auxiliary data download is not allowed during "
@@ -123,7 +123,7 @@ def retrieve(cache_key, pooch_kwargs=None):
 def _retrieve_all_with_pooch(pooch_kwargs):
     if pooch_kwargs is None:
         pooch_kwargs = {}
-    path = satpy.config.get('data_dir')
+    path = satpy.config.get("data_dir")
     pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
                              urls=_FILE_URLS)
     for fname in _FILE_REGISTRY:
@@ -153,7 +153,7 @@ def retrieve_all(readers=None, writers=None, composite_sensors=None,
             ``fetch``.
 
     """
-    if not satpy.config.get('download_aux'):
+    if not satpy.config.get("download_aux"):
         raise RuntimeError("Satpy 'download_aux' setting is False so no files "
                            "will be downloaded.")
 
@@ -305,11 +305,11 @@ class DataDownloadMixin:
     """
 
     DATA_FILE_COMPONENTS = {
-        'reader': 'readers',
-        'writer': 'writers',
-        'composit': 'composites',
-        'modifi': 'modifiers',
-        'corr': 'modifiers',
+        "reader": "readers",
+        "writer": "writers",
+        "composit": "composites",
+        "modifi": "modifiers",
+        "corr": "modifiers",
     }
 
     @property
@@ -318,7 +318,7 @@ class DataDownloadMixin:
         for cls_name_sub, comp_type in self.DATA_FILE_COMPONENTS.items():
             if cls_name_sub in cls_name:
                 return comp_type
-        return 'other'
+        return "other"
 
     def register_data_files(self, data_files=None):
         """Register a series of files that may be downloaded later.
@@ -330,8 +330,8 @@ class DataDownloadMixin:
         """
         comp_type = self._data_file_component_type
         if data_files is None:
-            df_parent = getattr(self, 'info', self.config)
-            data_files = df_parent.get('data_files', [])
+            df_parent = getattr(self, "info", self.config)
+            data_files = df_parent.get("data_files", [])
         cache_keys = []
         for data_file_entry in data_files:
             cache_key = self._register_data_file(data_file_entry, comp_type)
@@ -340,9 +340,9 @@ class DataDownloadMixin:
 
     @staticmethod
     def _register_data_file(data_file_entry, comp_type):
-        url = data_file_entry['url']
-        filename = data_file_entry.get('filename', os.path.basename(url))
-        known_hash = data_file_entry.get('known_hash')
+        url = data_file_entry["url"]
+        filename = data_file_entry.get("filename", os.path.basename(url))
+        known_hash = data_file_entry.get("known_hash")
         return register_file(url, filename, component_type=comp_type,
                              known_hash=known_hash)
 
@@ -351,20 +351,20 @@ def retrieve_all_cmd(argv=None):
     """Call 'retrieve_all' function from console script 'satpy_retrieve_all'."""
     import argparse
     parser = argparse.ArgumentParser(description="Download auxiliary data files used by Satpy.")
-    parser.add_argument('--data-dir',
+    parser.add_argument("--data-dir",
                         help="Override 'SATPY_DATA_DIR' for destination of "
                              "downloaded files. This does NOT change the "
                              "directory Satpy will look at when searching "
                              "for files outside of this script.")
-    parser.add_argument('--composite-sensors', nargs="*",
+    parser.add_argument("--composite-sensors", nargs="*",
                         help="Limit loaded composites for the specified "
                              "sensors. If specified with no arguments, "
                              "no composite files will be downloaded.")
-    parser.add_argument('--readers', nargs="*",
+    parser.add_argument("--readers", nargs="*",
                         help="Limit searching to these readers. If specified "
                              "with no arguments, no reader files will be "
                              "downloaded.")
-    parser.add_argument('--writers', nargs="*",
+    parser.add_argument("--writers", nargs="*",
                         help="Limit searching to these writers. If specified "
                              "with no arguments, no writer files will be "
                              "downloaded.")
@@ -373,7 +373,7 @@ def retrieve_all_cmd(argv=None):
     logging.basicConfig(level=logging.INFO)
 
     if args.data_dir is None:
-        args.data_dir = satpy.config.get('data_dir')
+        args.data_dir = satpy.config.get("data_dir")
 
     with satpy.config.set(data_dir=args.data_dir):
         retrieve_all(readers=args.readers, writers=args.writers,

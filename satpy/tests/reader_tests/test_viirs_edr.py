@@ -33,7 +33,7 @@ import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
-from pytest import TempPathFactory
+from pytest import TempPathFactory  # noqa: PT013
 from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 6400

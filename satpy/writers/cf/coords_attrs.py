@@ -19,28 +19,28 @@ def add_xy_coords_attrs(dataarray):
         dataarray = _add_xy_projected_coords_attrs(dataarray)
     else:
         dataarray = _add_xy_geographic_coords_attrs(dataarray)
-    if 'crs' in dataarray.coords:
-        dataarray = dataarray.drop_vars('crs')
+    if "crs" in dataarray.coords:
+        dataarray = dataarray.drop_vars("crs")
     return dataarray
 
 
-def _add_xy_projected_coords_attrs(dataarray, x='x', y='y'):
+def _add_xy_projected_coords_attrs(dataarray, x="x", y="y"):
     """Add relevant attributes to x, y coordinates of a projected CRS."""
     if x in dataarray.coords:
-        dataarray[x].attrs['standard_name'] = 'projection_x_coordinate'
-        dataarray[x].attrs['units'] = 'm'
+        dataarray[x].attrs["standard_name"] = "projection_x_coordinate"
+        dataarray[x].attrs["units"] = "m"
     if y in dataarray.coords:
-        dataarray[y].attrs['standard_name'] = 'projection_y_coordinate'
-        dataarray[y].attrs['units'] = 'm'
+        dataarray[y].attrs["standard_name"] = "projection_y_coordinate"
+        dataarray[y].attrs["units"] = "m"
     return dataarray
 
 
-def _add_xy_geographic_coords_attrs(dataarray, x='x', y='y'):
+def _add_xy_geographic_coords_attrs(dataarray, x="x", y="y"):
     """Add relevant attributes to x, y coordinates of a geographic CRS."""
     if x in dataarray.coords:
-        dataarray[x].attrs['standard_name'] = 'longitude'
-        dataarray[x].attrs['units'] = 'degrees_east'
+        dataarray[x].attrs["standard_name"] = "longitude"
+        dataarray[x].attrs["units"] = "degrees_east"
     if y in dataarray.coords:
-        dataarray[y].attrs['standard_name'] = 'latitude'
-        dataarray[y].attrs['units'] = 'degrees_north'
+        dataarray[y].attrs["standard_name"] = "latitude"
+        dataarray[y].attrs["units"] = "degrees_north"
     return dataarray

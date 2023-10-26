@@ -14,7 +14,7 @@ def stack(
         data_arrays: Sequence[xr.DataArray],
         weights: Optional[Sequence[xr.DataArray]] = None,
         combine_times: bool = True,
-        blend_type: str = 'select_with_weights'
+        blend_type: str = "select_with_weights"
 ) -> xr.DataArray:
     """Combine a series of datasets in different ways.
 
@@ -143,7 +143,7 @@ def _stack_no_weights(
 
 def _combine_stacked_attrs(collected_attrs: Sequence[Mapping], combine_times: bool) -> dict:
     attrs = combine_metadata(*collected_attrs)
-    if combine_times and ('start_time' in attrs or 'end_time' in attrs):
+    if combine_times and ("start_time" in attrs or "end_time" in attrs):
         new_start, new_end = _get_combined_start_end_times(collected_attrs)
         if new_start:
             attrs["start_time"] = new_start
@@ -157,10 +157,10 @@ def _get_combined_start_end_times(metadata_objects: Iterable[Mapping]) -> tuple[
     start_time = None
     end_time = None
     for md_obj in metadata_objects:
-        if "start_time" in md_obj and (start_time is None or md_obj['start_time'] < start_time):
-            start_time = md_obj['start_time']
-        if "end_time" in md_obj and (end_time is None or md_obj['end_time'] > end_time):
-            end_time = md_obj['end_time']
+        if "start_time" in md_obj and (start_time is None or md_obj["start_time"] < start_time):
+            start_time = md_obj["start_time"]
+        if "end_time" in md_obj and (end_time is None or md_obj["end_time"] > end_time):
+            end_time = md_obj["end_time"]
     return start_time, end_time
 
 
@@ -168,7 +168,7 @@ def timeseries(datasets):
     """Expand dataset with and concatenate by time dimension."""
     expanded_ds = []
     for ds in datasets:
-        if 'time' not in ds.dims:
+        if "time" not in ds.dims:
             tmp = ds.expand_dims("time")
             tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
         else:

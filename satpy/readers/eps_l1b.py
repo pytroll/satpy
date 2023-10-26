@@ -90,11 +90,11 @@ def read_records(filename):
                 the_type = form.dtype((rec_class, sub_class))
                 # the_descr = grh_dtype.descr + the_type.descr
             except KeyError:
-                the_type = np.dtype([('unknown', 'V%d' % bare_size)])
+                the_type = np.dtype([("unknown", "V%d" % bare_size)])
             the_descr = grh_dtype.descr + the_type.descr
             the_type = np.dtype(the_descr)
             if the_type.itemsize < expected_size:
-                padding = [('unknown%d' % cnt, 'V%d' % (expected_size - the_type.itemsize))]
+                padding = [("unknown%d" % cnt, "V%d" % (expected_size - the_type.itemsize))]
                 cnt += 1
                 the_descr += padding
             new_dtype = np.dtype(the_descr)
@@ -112,14 +112,14 @@ def read_records(filename):
         offset = 0
         for dtype, count, rec_class in zip(dtypes, counts, classes):
             fdes.seek(offset)
-            if rec_class == ('mdr', 2):
-                record = da.from_array(np.memmap(fdes, mode='r', dtype=dtype, shape=count, offset=offset),
+            if rec_class == ("mdr", 2):
+                record = da.from_array(np.memmap(fdes, mode="r", dtype=dtype, shape=count, offset=offset),
                                        chunks=(max_lines,))
             else:
                 record = np.fromfile(fdes, dtype=dtype, count=count)
             offset += dtype.itemsize * count
             if rec_class in sections:
-                logger.debug('Multiple records for ', str(rec_class))
+                logger.debug("Multiple records for ", str(rec_class))
                 sections[rec_class] = np.hstack((sections[rec_class], record))
             else:
                 sections[rec_class] = record
@@ -130,7 +130,7 @@ def read_records(filename):
 def create_xarray(arr):
     """Create xarray with correct dimensions."""
     res = arr
-    res = xr.DataArray(res, dims=['y', 'x'])
+    res = xr.DataArray(res, dims=["y", "x"])
     return res
 
 
@@ -152,8 +152,8 @@ class EPSAVHRRFile(BaseFileHandler):
             filename, filename_info, filetype_info)
 
         self.area = None
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+        self._start_time = filename_info["start_time"]
+        self._end_time = filename_info["end_time"]
         self.form = None
         self.scanlines = None
         self.pixels = None
@@ -168,10 +168,10 @@ class EPSAVHRRFile(BaseFileHandler):
     def _read_all(self):
         logger.debug("Reading %s", self.filename)
         self.sections, self.form = read_records(self.filename)
-        self.scanlines = self['TOTAL_MDR']
-        if self.scanlines != len(self.sections[('mdr', 2)]):
+        self.scanlines = self["TOTAL_MDR"]
+        if self.scanlines != len(self.sections[("mdr", 2)]):
             logger.warning("Number of declared records doesn't match number of scanlines in the file.")
-            self.scanlines = len(self.sections[('mdr', 2)])
+            self.scanlines = len(self.sections[("mdr", 2)])
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
 
     def __getitem__(self, key):
@@ -287,24 +287,24 @@ class EPSAVHRRFile(BaseFileHandler):
         if self.sections is None:
             self._read_all()
 
-        if key['name'] in ['longitude', 'latitude']:
+        if key["name"] in ["longitude", "latitude"]:
             lons, lats = self.get_full_lonlats()
-            if key['name'] == 'longitude':
+            if key["name"] == "longitude":
                 dataset = create_xarray(lons)
             else:
                 dataset = create_xarray(lats)
 
-        elif key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle',
-                             'satellite_zenith_angle', 'satellite_azimuth_angle']:
+        elif key["name"] in ["solar_zenith_angle", "solar_azimuth_angle",
+                             "satellite_zenith_angle", "satellite_azimuth_angle"]:
             dataset = self._get_angle_dataarray(key)
-        elif key['name'] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
+        elif key["name"] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
             dataset = self._get_calibrated_dataarray(key)
         else:
-            logger.info("Can't load channel in eps_l1b: " + str(key['name']))
+            logger.info("Can't load channel in eps_l1b: " + str(key["name"]))
             return
 
-        dataset.attrs['platform_name'] = self.platform_name
-        dataset.attrs['sensor'] = self.sensor_name
+        dataset.attrs["platform_name"] = self.platform_name
+        dataset.attrs["sensor"] = self.sensor_name
         if "calibration" in key:
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)
@@ -314,13 +314,13 @@ class EPSAVHRRFile(BaseFileHandler):
     def _get_angle_dataarray(self, key):
         """Get an angle dataarray."""
         sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-        if key['name'] == 'solar_zenith_angle':
+        if key["name"] == "solar_zenith_angle":
             dataset = create_xarray(sun_zen)
-        elif key['name'] == 'solar_azimuth_angle':
+        elif key["name"] == "solar_azimuth_angle":
             dataset = create_xarray(sun_azi)
-        if key['name'] == 'satellite_zenith_angle':
+        if key["name"] == "satellite_zenith_angle":
             dataset = create_xarray(sat_zen)
-        elif key['name'] == 'satellite_azimuth_angle':
+        elif key["name"] == "satellite_azimuth_angle":
             dataset = create_xarray(sat_azi)
         return dataset
 
@@ -336,26 +336,26 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def _get_calibrated_dataarray(self, key):
         """Get a calibrated dataarray."""
-        if key['calibration'] not in ['reflectance', 'brightness_temperature', 'radiance']:
-            raise ValueError('calibration type ' + str(key['calibration']) +
-                             ' is not supported!')
+        if key["calibration"] not in ["reflectance", "brightness_temperature", "radiance"]:
+            raise ValueError("calibration type " + str(key["calibration"]) +
+                             " is not supported!")
 
         mask = None
 
-        channel_name = key['name'].upper()
+        channel_name = key["name"].upper()
 
         radiance_indices = {"1": 0, "2": 1, "3A": 2, "3B": 2, "4": 3, "5": 4}
         array = self["SCENE_RADIANCES"][:, radiance_indices[channel_name], :]
 
         if channel_name in ["1", "2", "3A"]:
-            if key['calibration'] == 'reflectance':
+            if key["calibration"] == "reflectance":
                 array = radiance_to_refl(array,
                                          self[f"CH{channel_name}_SOLAR_FILTERED_IRRADIANCE"])
             if channel_name == "3A":
                 mask = self.three_a_mask[:, np.newaxis]
 
         if channel_name in ["3B", "4", "5"]:
-            if key['calibration'] == 'brightness_temperature':
+            if key["calibration"] == "brightness_temperature":
                 array = radiance_to_bt(array,
                                        self[f"CH{channel_name}_CENTRAL_WAVENUMBER"],
                                        self[f"CH{channel_name}_CONSTANT1"],
@@ -373,7 +373,7 @@ class EPSAVHRRFile(BaseFileHandler):
         if self.area is None:
             lons, lats = self.get_full_lonlats()
             self.area = SwathDefinition(lons, lats)
-            self.area.name = '_'.join([self.platform_name, str(self.start_time),
+            self.area.name = "_".join([self.platform_name, str(self.start_time),
                                        str(self.end_time)])
         return self.area
 

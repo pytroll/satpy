@@ -33,8 +33,8 @@ class TestVIIRSEnhancement(unittest.TestCase):
         """Create test data."""
         data = np.arange(15, 301, 15).reshape(2, 10)
         data = da.from_array(data, chunks=(2, 10))
-        self.da = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
-        self.palette = {'colors':
+        self.da = xr.DataArray(data, dims=("y", "x"), attrs={"test": "test"})
+        self.palette = {"colors":
                         [[14, [0.0, 0.0, 0.0]],
                          [15, [0.0, 0.0, 0.39215]],
                          [16, [0.76862, 0.63529, 0.44705]],
@@ -64,8 +64,8 @@ class TestVIIRSEnhancement(unittest.TestCase):
                          [191, [1.0, 0.0, 0.0]],
                          [200, [1.0, 0.0, 0.0]],
                          [201, [0.0, 0.0, 0.0]]],
-                        'min_value': 0,
-                        'max_value': 201}
+                        "min_value": 0,
+                        "max_value": 201}
 
     def test_viirs(self):
         """Test VIIRS flood enhancement."""
