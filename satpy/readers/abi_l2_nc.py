@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2023 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,12 +35,18 @@ class NC_ABI_L2(NC_ABI_BASE):
         """Load a dataset."""
         var = info['file_key']
         if self.filetype_info['file_type'] == 'abi_l2_mcmip':
-            var += "_" + key.name
+            var += "_" + key["name"]
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self[var]
         variable.attrs.update(key.to_dict())
         self._update_data_arr_with_filename_attrs(variable)
         self._remove_problem_attrs(variable)
+
+        # convert to satpy standard units
+        if variable.attrs['units'] == '1' and key['calibration'] == 'reflectance':
+            variable *= 100.0
+            variable.attrs['units'] = '%'
+
         return variable
 
     def _update_data_arr_with_filename_attrs(self, variable):
@@ -64,7 +67,7 @@ class NC_ABI_L2(NC_ABI_BASE):
 
         # add in information from the filename that may be useful to the user
         for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
-            variable.attrs[attr] = self.filename_info[attr]
+            variable.attrs[attr] = self.filename_info.get(attr)
 
         # add in information hardcoded in the filetype YAML
         for attr in ('observation_type',):

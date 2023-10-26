@@ -56,19 +56,27 @@ In order to change the default behaviour, use the ``reader_kwargs`` keyword
 argument upon Scene creation::
 
     import satpy
-    scene = satpy.Scene(filenames,
+    scene = satpy.Scene(filenames=filenames,
                         reader='seviri_l1b_...',
                         reader_kwargs={'calib_mode': 'GSICS'})
     scene.load(['VIS006', 'IR_108'])
 
-Furthermore, it is possible to specify external calibration coefficients
-for the conversion from counts to radiances. External coefficients take
-precedence over internal coefficients, but you can also mix internal and
-external coefficients: If external calibration coefficients are specified
-for only a subset of channels, the remaining channels will be calibrated
-using the chosen file-internal coefficients (nominal or GSICS).
+In addition, two other calibration methods are available:
 
-Calibration coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+1. It is possible to specify external calibration coefficients for the
+   conversion from counts to radiances. External coefficients take
+   precedence over internal coefficients and over the Meirink
+   coefficients, but you can also mix internal and external coefficients:
+   If external calibration coefficients are specified for only a subset
+   of channels, the remaining channels will be calibrated using the
+   chosen file-internal coefficients (nominal or GSICS).  Calibration
+   coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+
+2. The calibration mode ``meirink-2023`` uses coefficients based on an
+   intercalibration with Aqua-MODIS for the visible channels, as found in
+   `Inter-calibration of polar imager solar channels using SEVIRI`_
+   (2013) by J. F. Meirink, R. A. Roebeling, and P. Stammes.
+
 
 In the following example we use external calibration coefficients for the
 ``VIS006`` & ``IR_108`` channels, and nominal coefficients for the
@@ -93,6 +101,15 @@ In the next example we use external calibration coefficients for the
                                        'ext_calib_coefs': coefs})
     scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
 
+In the next example we use the mode ``meirink-2023`` calibration
+coefficients for all visible channels and nominal coefficients for the
+rest::
+
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'meirink-2023'})
+    scene.load(['VIS006', 'VIS008', 'IR_016'])
+
 
 Calibration to reflectance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -106,14 +123,23 @@ removed on a per-channel basis using
 :func:`satpy.readers.utils.remove_earthsun_distance_correction`.
 
 
+Masking of bad quality scan lines
+---------------------------------
+
+By default bad quality scan lines are masked and replaced with ``np.nan`` for radiance, reflectance and
+brightness temperature calibrations based on the quality flags provided by the data (for details on quality
+flags see `MSG Level 1.5 Image Data Format Description`_ page 109). To disable masking
+``reader_kwargs={'mask_bad_quality_scan_lines': False}`` can be passed to the Scene.
+
+
 Metadata
-^^^^^^^^
+--------
 
 The SEVIRI L1.5 readers provide the following metadata:
 
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite
   position, as well as the projection centre. See the `Metadata` section in
-  the :doc:`../readers` chapter for more information.
+  the :doc:`../reading` chapter for more information.
 
 * The ``acq_time`` coordinate provides the mean acquisition time for each
   scanline. Use a ``MultiIndex`` to enable selection by acquisition time:
@@ -129,7 +155,7 @@ The SEVIRI L1.5 readers provide the following metadata:
 * Raw metadata from the file header can be included by setting the reader
   argument ``include_raw_metadata=True`` (HRIT and Native format only). Note
   that this comes with a performance penalty of up to 10% if raw metadata from
-  multiple segments or scans need to be combined. By default arrays with more
+  multiple segments or scans need to be combined. By default, arrays with more
   than 100 elements are excluded to limit the performance penalty. This
   threshold can be adjusted using the ``mda_max_array_size`` reader keyword
   argument:
@@ -149,24 +175,30 @@ References:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+    https://www.eumetsat.int/media/45126
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
 
+.. _Inter-calibration of polar imager solar channels using SEVIRI:
+   http://dx.doi.org/10.5194/amt-6-2495-2013
+
 """
+from __future__ import annotations
 
 import warnings
+from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
 import pyproj
 from numpy.polynomial.chebyshev import Chebyshev
 
-from satpy import CHUNK_SIZE
 from satpy.readers.eum_base import issue_revision, time_cds_short
 from satpy.readers.utils import apply_earthsun_distance_correction
+from satpy.utils import get_legacy_chunk_size
 
+CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
     'MET09': 'Meteosat-9',
@@ -204,7 +236,7 @@ CHANNEL_NAMES = {1: "VIS006",
 VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
-BTFIT = {}
+BTFIT = dict()
 # [A, B, C]
 BTFIT['IR_039'] = [0.0, 1.011751900, -3.550400]
 BTFIT['WV_062'] = [0.00001805700, 1.000255533, -1.790930]
@@ -220,7 +252,7 @@ SATNUM = {321: "8",
           323: "10",
           324: "11"}
 
-CALIB = {}
+CALIB = dict()
 
 # Meteosat 8
 CALIB[321] = {'HRV': {'F': 78.7599},
@@ -342,6 +374,87 @@ CALIB[324] = {'HRV': {'F': 79.0035},
                          'ALPHA': 0.9981,
                          'BETA': 0.5635}}
 
+# Calibration coefficients from Meirink, J.F., R.A. Roebeling and P. Stammes, 2013:
+# Inter-calibration of polar imager solar channels using SEVIRI, Atm. Meas. Tech., 6,
+# 2495-2508, doi:10.5194/amt-6-2495-2013
+#
+# The coeffients in the 2023 entry have been obtained from the webpage
+# https://msgcpp.knmi.nl/solar-channel-calibration.html on 2023-10-11.
+#
+# The coefficients are stored in pairs of A, B (see function `get_meirink_slope`) where the
+# units of A are µW m-2 sr-1 (cm-1)-1 and those of B are µW m-2 sr-1 (cm-1)-1 (86400 s)-1
+#
+# To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
+
+# Epoch for the MEIRINK re-calibration
+MEIRINK_EPOCH = datetime(2000, 1, 1)
+
+MEIRINK_COEFS: dict[str, dict[int, dict[str, tuple[float, float]]]] = {}
+MEIRINK_COEFS['2023'] = {}
+
+# Meteosat-8
+
+MEIRINK_COEFS['2023'][321] = {'VIS006': (24.346, 0.3739),
+                              'VIS008': (30.989, 0.3111),
+                              'IR_016': (22.869, 0.0065)
+                              }
+
+# Meteosat-9
+
+MEIRINK_COEFS['2023'][322] = {'VIS006': (21.026, 0.2556),
+                              'VIS008': (26.875, 0.1835),
+                              'IR_016': (21.394, 0.0498)
+                              }
+
+# Meteosat-10
+
+MEIRINK_COEFS['2023'][323] = {'VIS006': (19.829, 0.5856),
+                              'VIS008': (25.284, 0.6787),
+                              'IR_016': (23.066, -0.0286)
+                              }
+
+# Meteosat-11
+
+MEIRINK_COEFS['2023'][324] = {'VIS006': (20.515, 0.3600),
+                              'VIS008': (25.803, 0.4844),
+                              'IR_016': (22.354, -0.0187)
+                              }
+
+
+def get_meirink_slope(meirink_coefs, acquisition_time):
+    """Compute the slope for the visible channel calibration according to Meirink 2013.
+
+    S = A + B * 1.e-3* Day
+
+    S is here in µW m-2 sr-1 (cm-1)-1
+
+    EUMETSAT calibration is given in mW m-2 sr-1 (cm-1)-1, so an extra factor of 1/1000 must
+    be applied.
+    """
+    A = meirink_coefs[0]
+    B = meirink_coefs[1]
+    delta_t = (acquisition_time - MEIRINK_EPOCH).total_seconds()
+    S = A + B * delta_t / (3600*24) / 1000.
+    return S/1000
+
+
+def should_apply_meirink(calib_mode, channel_name):
+    """Decide whether to use the Meirink calibration coefficients."""
+    return "MEIRINK" in calib_mode and channel_name in ['VIS006', 'VIS008', 'IR_016']
+
+
+class MeirinkCalibrationHandler:
+    """Re-calibration of the SEVIRI visible channels slope (see Meirink 2013)."""
+
+    def __init__(self, calib_mode):
+        """Initialize the calibration handler."""
+        self.coefs = MEIRINK_COEFS[calib_mode.split('-')[1]]
+
+    def get_slope(self, platform, channel, time):
+        """Return the slope using the provided calibration coefficients."""
+        coefs = self.coefs[platform][channel]
+        return get_meirink_slope(coefs, time)
+
 
 def get_cds_time(days, msecs):
     """Compute timestamp given the days since epoch and milliseconds of the day.
@@ -449,8 +562,8 @@ class MpefProductHeader(object):
             ('EncodingVersion', np.uint16),
             ('Channel', np.uint8),
             ('ImageLocation', 'S3'),
-            ('GsicsCalMode', np.bool),
-            ('GsicsCalValidity', np.bool),
+            ('GsicsCalMode', np.bool_),
+            ('GsicsCalValidity', np.bool_),
             ('Padding', 'S2'),
             ('OffsetToData', np.uint32),
             ('Padding2', 'S9'),
@@ -555,7 +668,7 @@ class SEVIRICalibrationHandler:
             scan_time=self._scan_time
         )
 
-        valid_modes = ('NOMINAL', 'GSICS')
+        valid_modes = ('NOMINAL', 'GSICS', 'MEIRINK-2023')
         if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(
@@ -610,6 +723,10 @@ class SEVIRICalibrationHandler:
                 # they are set to zero in the file.
                 internal_gain = gsics_gain
                 internal_offset = gsics_offset
+
+        if should_apply_meirink(self._calib_mode, self._channel_name):
+            meirink = MeirinkCalibrationHandler(calib_mode=self._calib_mode)
+            internal_gain = meirink.get_slope(self._platform_id, self._channel_name, self._scan_time)
 
         # Override with external coefficients, if any.
         gain = coefs['EXTERNAL'].get('gain', internal_gain)
@@ -670,13 +787,13 @@ class OrbitPolynomial:
         self.end_time = end_time
 
     def evaluate(self, time):
-        """Get satellite position in earth-centered cartesion coordinates.
+        """Get satellite position in earth-centered cartesian coordinates.
 
         Args:
             time: Timestamp where to evaluate the polynomial
 
         Returns:
-            Earth-centered cartesion coordinates (x, y, z) in meters
+            Earth-centered cartesian coordinates (x, y, z) in meters
         """
         domain = [np.datetime64(self.start_time).astype('int64'),
                   np.datetime64(self.end_time).astype('int64')]
@@ -772,7 +889,8 @@ class OrbitPolynomialFinder:
         except ValueError:
             warnings.warn(
                 'No orbit polynomial valid for {}. Using closest '
-                'match.'.format(time)
+                'match.'.format(time),
+                stacklevel=2
             )
             match = self._get_closest_interval_within(time, max_delta)
         return OrbitPolynomial(
@@ -841,8 +959,8 @@ def calculate_area_extent(area_dict):
             east: Eastmost column number
             west: Westmost column number
             south: Southmost row number
-            column_step: Pixel resulution in meters in east-west direction
-            line_step: Pixel resulution in meters in soutth-north direction
+            column_step: Pixel resolution in meters in east-west direction
+            line_step: Pixel resolution in meters in south-north direction
             [column_offset: Column offset, defaults to 0 if not given]
             [line_offset: Line offset, defaults to 0 if not given]
     Returns:
@@ -922,3 +1040,67 @@ def pad_data_vertically(data, final_size, south_bound, north_bound):
     padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)
 
     return np.vstack((padding_south, data, padding_north))
+
+
+def _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality):
+    """Create bad quality scan lines mask.
+
+    For details on quality flags see `MSG Level 1.5 Image Data Format Description`_
+    page 109.
+
+    Args:
+        line_validity (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        numpy.ndarray: Indicating if the scan line is bad.
+    """
+    # Based on missing (2) or corrupted (3) data
+    line_mask = line_validity >= 2
+    line_mask &= line_validity <= 3
+    # Do not use (4)
+    line_mask &= line_radiometric_quality == 4
+    line_mask &= line_geometric_quality == 4
+    return line_mask
+
+
+def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality):
+    """Mask scan lines with bad quality.
+
+    Args:
+        data (xarray.DataArray):
+            Channel data
+        line_validity (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.ndarray):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        xarray.DataArray: data with lines flagged as bad converted to np.nan.
+    """
+    line_mask = _create_bad_quality_lines_mask(line_validity, line_geometric_quality, line_radiometric_quality)
+    line_mask = line_mask[:, np.newaxis]
+    data = data.where(~line_mask, np.nan).astype(np.float32)
+    return data
+
+
+def round_nom_time(dt, time_delta):
+    """Round a datetime object to a multiple of a timedelta.
+
+    dt : datetime.datetime object, default now.
+    time_delta : timedelta object, we round to a multiple of this, default 1 minute.
+    adapted for SEVIRI from:
+    https://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
+    """
+    seconds = (dt - dt.min).seconds
+    round_to = time_delta.total_seconds()
+
+    rounding = (seconds + round_to / 2) // round_to * round_to
+
+    return dt + timedelta(0, rounding - seconds, - dt.microsecond)

@@ -76,7 +76,6 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf4_utils import from_sds
 from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 
@@ -117,7 +116,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         subdata = self.sd.select(var_name)
         var_attrs = subdata.attributes()
         uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
-        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[band_index, :, :],
+        chunks = self._chunks_for_variable(subdata)
+        array = xr.DataArray(from_sds(subdata, chunks=chunks)[band_index, :, :],
                              dims=['y', 'x']).astype(np.float32)
         valid_range = var_attrs['valid_range']
         valid_min = np.float32(valid_range[0])
@@ -213,7 +213,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
     def _mask_uncertain_pixels(self, array, uncertainty, band_index):
         if not self._mask_saturated:
             return array
-        band_uncertainty = from_sds(uncertainty, chunks=CHUNK_SIZE)[band_index, :, :]
+        uncertainty_chunks = self._chunks_for_variable(uncertainty)
+        band_uncertainty = from_sds(uncertainty, chunks=uncertainty_chunks)[band_index, :, :]
         array = array.where(band_uncertainty < 15)
         return array
 

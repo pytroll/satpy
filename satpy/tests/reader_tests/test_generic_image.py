@@ -209,8 +209,7 @@ class TestGenericImage(unittest.TestCase):
 
         dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertIn('crs', dataset.attrs)
-        self.assertIn('transform', dataset.attrs)
+        self.assertIn('spatial_ref', dataset.coords)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
     def test_GenericImageFileHandler_masking_only_integer(self):

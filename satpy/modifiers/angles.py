@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -111,7 +111,7 @@ class ZarrCacheHelper:
                  func: Callable,
                  cache_config_key: str,
                  uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
-                 sanitize_args_func: Callable = None,
+                 sanitize_args_func: Optional[Callable] = None,
                  cache_version: int = 1,
                  ):
         """Hold on to provided arguments for future use."""
@@ -131,7 +131,7 @@ class ZarrCacheHelper:
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
             shutil.rmtree(zarr_dir, ignore_errors=True)
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: Union[None, int, str] = None) -> str:
         if cache_version is None:
             cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
@@ -185,7 +185,9 @@ class ZarrCacheHelper:
                 "has been rechunked for caching, but this is not optimal for "
                 "future calculations. "
                 f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
-                PerformanceWarning)
+                PerformanceWarning,
+                stacklevel=3
+            )
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
@@ -222,7 +224,7 @@ def _get_output_chunks_from_func_arguments(args):
 def cache_to_zarr_if(
         cache_config_key: str,
         uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
-        sanitize_args_func: Callable = None,
+        sanitize_args_func: Optional[Callable] = None,
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
 
@@ -233,6 +235,7 @@ def cache_to_zarr_if(
     out old entries. It is up to the user to manage the size of the cache.
 
     """
+
     def _decorator(func: Callable) -> Callable:
         zarr_cacher = ZarrCacheHelper(func,
                                       cache_config_key,
@@ -240,6 +243,7 @@ def cache_to_zarr_if(
                                       sanitize_args_func)
         wrapper = update_wrapper(zarr_cacher, func)
         return wrapper
+
     return _decorator
 
 
@@ -265,8 +269,10 @@ def _sanitize_observer_look_args(*args):
         if isinstance(arg, datetime):
             new_args.append(STATIC_EARTH_INERTIAL_DATETIME)
         elif isinstance(arg, (float, np.float64, np.float32)):
-            # round floating point numbers to nearest tenth
-            new_args.append(round(arg, 1))
+            # Round floating point numbers to nearest tenth. Numpy types don't
+            # serialize into JSON which is needed for hashing, thus the casting
+            # to float here:
+            new_args.append(float(round(arg, 1)))
         elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
             new_chunks = _regular_chunks_from_irregular_chunks(arg)
             new_args.append(new_chunks)
@@ -310,11 +316,32 @@ def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
     is when all chunks are the same size (except for the last one).
 
     """
-    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
+    if any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple):
+        return True
+    return any(chunks[-1] > chunks[0] for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
     return xr.DataArray(arr, dims=('y', 'x'))
+
+
+def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr.DataArray:
+    """Compute the relative azimuth angle.
+
+    Args:
+        sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
+        sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+    Returns:
+        A DataArray containing the relative azimuth angle in the 0-180 degree range.
+
+    NOTE: Relative azimuth is defined such that:
+    Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
+    Relative azimuth is 180 when sun and satellite are directly opposite each other (forward scatter).
+    """
+    ssadiff = np.absolute(sun_azi - sat_azi)
+    ssadiff = np.minimum(ssadiff, 360 - ssadiff)
+
+    return ssadiff
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
@@ -374,6 +401,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
 def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
+        # NOTE: This defaults to 64-bit floats due to needed precision for X/Y coordinates
         lons, lats = area.get_lonlats(chunks=chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)
         lats = da.where(lats >= 1e30, np.nan, lats)
@@ -412,6 +440,12 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
+
+        # The get_alt_az function returns values in the range -180 to 180 degrees.
+        # Satpy expects values in the 0 - 360 range, which is what is returned for the
+        # satellite azimuth angles.
+        # Here this is corrected so both sun and sat azimuths are in the same range.
+        suna = suna % 360.
     return suna
 
 
@@ -420,6 +454,7 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
     chunks = _geo_chunks_from_data_arr(data_arr)
+
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],
                                                  area_def, chunks)
@@ -494,7 +529,7 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
 
     # Cosine correction
-    corr = 1. / cos_zen
+    corr = (1. / cos_zen).astype(data.dtype, copy=False)
     if max_sza is not None:
         # gradually fall off for larger zenith angle
         grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
@@ -506,7 +541,52 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     else:
         # Use constant value (the limit) for larger zenith angles
         grad_factor = 1.
-    corr = np.where(cos_zen > limit_cos, corr, grad_factor / limit_cos)
+    corr = np.where(
+        cos_zen > limit_cos,
+        corr,
+        (grad_factor / limit_cos).astype(data.dtype, copy=False)
+    )
     # Force "night" pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
     return data * corr
+
+
+def sunzen_reduction(data: da.Array,
+                     sunz: da.Array,
+                     limit: float = 55.,
+                     max_sza: float = 90.,
+                     strength: float = 1.5) -> da.Array:
+    """Reduced strength of signal at high sun zenith angles."""
+    return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
+                         meta=np.array((), dtype=data.dtype), chunks=data.chunks)
+
+
+def _sunzen_reduction_ndarray(data: np.ndarray,
+                              sunz: np.ndarray,
+                              limit: float,
+                              max_sza: float,
+                              strength: float) -> np.ndarray:
+    # compute reduction factor (0.0 - 1.0) between limit and maz_sza
+    reduction_factor = (sunz - limit) / (max_sza - limit)
+    reduction_factor = reduction_factor.clip(0., 1.)
+
+    # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
+    with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+        reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
+
+    # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a
+    # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this
+    # operation has no effect on the reduction_factor.
+    reduction_factor = reduction_factor ** strength / (
+                reduction_factor ** strength + (1 - reduction_factor) ** strength)
+
+    # compute final correction term, with no reduction for angles < limit
+    corr = np.where(sunz < limit, 1.0, reduction_factor)
+
+    # force "night" pixels to 0 (where SZA is invalid)
+    corr[np.isnan(sunz)] = 0
+
+    # reduce data signal with correction term
+    res = data * corr
+
+    return res

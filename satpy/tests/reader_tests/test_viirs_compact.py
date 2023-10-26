@@ -25,6 +25,10 @@ import pytest
 
 from satpy.tests.reader_tests.utils import fill_h5
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
 
 @pytest.fixture
 def fake_dnb():

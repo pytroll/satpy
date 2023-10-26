@@ -1,0 +1,197 @@
+reader:
+  name: li_l2_nc
+  short_name: LI L2 NC Reader
+  long_name: LI Level-2 NetCDF Reader
+  description: Reader for MTG Lightning Imager (LI) Level-2 NetCDF files
+  sensors: [li]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  status: Beta
+  supports_fsspec: false
+
+file_types:
+  li_l2_le_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LE-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-LE'
+      search_paths: ['data', 'state/processor']
+      sectors: ['north', 'east', 'south', 'west']
+      sector_variables: ['detector',
+                        'epoch_time',
+                        'time_offset',
+                        'event_id',
+                        'group_id',
+                        'flash_id',
+                        'l1b_chunk_ids',
+                        'l1b_chunk_offsets',
+                        'l1b_window',
+                        'filter_values',
+                        'l1b_filter_qa',
+                        'l2_group_filter_qa',
+                        'l2_flash_filter_qa']
+      variables: []
+      variable_transforms:
+        l1b_chunk_offsets:
+          accumulate_index_offset: "{sector_name}/l1b_window"
+        epoch_time:
+          seconds_to_datetime: true
+          broadcast_to: "{sector_name}/time_offset"
+        time_offset:
+          seconds_to_timedelta: true
+      swath_coordinates:
+        # latitude: 'latitude_{sector_name}_sector'
+        # longitude: 'longitude_{sector_name}_sector'
+        variable_patterns: []
+        # variable_patterns: ['_id', '_qa', ...]
+
+  li_l2_lgr_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LGR-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-LGR'
+      variables: ['l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'group_time',
+                  'latitude',
+                  'longitude',
+                  'radiance',
+                  'group_id',
+                  'flash_id',
+                  'number_of_events',
+                  'group_filter_qa']
+      variable_transforms:
+        group_time:
+          seconds_to_datetime: true
+      swath_coordinates:
+        latitude: 'latitude'
+        longitude: 'longitude'
+        variable_patterns: ['radiance', 'group_', 'flash_', 'number_of_']
+
+  li_l2_lef_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LEF-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-LEF'
+      search_paths: ['data', 'state/processor']
+      sectors: ['north', 'east', 'south', 'west']
+      sector_variables: ['detector',
+                        'detector_column',
+                        'detector_row',
+                        'epoch_time',
+                        'event_filter_qa',
+                        'event_id',
+                        'flash_id',
+                        'group_id',
+                        'latitude',
+                        'longitude',
+                        'radiance',
+                        'time_offset']
+      variables: ['l1b_geolocation_warning',
+                  'l1b_missing_warning',
+                  'l1b_radiometric_warning']
+      variable_transforms:
+        epoch_time:
+          seconds_to_datetime: true
+          broadcast_to: "{sector_name}/time_offset"
+        time_offset:
+          seconds_to_timedelta: true
+      swath_coordinates:
+        latitude: 'latitude_{sector_name}_sector'
+        longitude: 'longitude_{sector_name}_sector'
+        variable_patterns: ['detector_', 'event', 'flash_', 'group_', 'radiance', 'time_']
+
+  li_l2_lfl_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-LFL-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-LFL'
+      variables: ['flash_duration',
+                  'flash_filter_confidence',
+                  'flash_footprint',
+                  'flash_id',
+                  'flash_time',
+                  'l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'latitude',
+                  'longitude',
+                  'number_of_events',
+                  'number_of_groups',
+                  'radiance']
+      variable_transforms:
+        flash_time:
+          seconds_to_datetime: true
+        flash_duration:
+          milliseconds_to_timedelta: true
+      swath_coordinates:
+        latitude: 'latitude'
+        longitude: 'longitude'
+        variable_patterns: ['radiance', 'flash_', 'number_of_']
+
+  li_l2_af_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AF-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-AF'
+      variables: ['accumulation_offsets',
+                  'accumulation_start_times',
+                  'average_flash_qa',
+                  'flash_accumulation',
+                  'l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'mtg_geos_projection',
+                  'x',
+                  'y']
+      variable_transforms:
+        accumulation_start_times:
+          seconds_to_datetime: true
+      swath_coordinates:
+        azimuth: 'x'
+        elevation: 'y'
+        projection: 'mtg_geos_projection'
+        variable_patterns: ['flash_accumulation']
+
+  li_l2_afr_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AFR-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-AFR'
+      variables: ['mtg_geos_projection',
+                  'accumulation_start_times',
+                  'accumulation_offsets',
+                  'x',
+                  'y',
+                  'flash_radiance',
+                  'l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'average_flash_qa']
+      variable_transforms:
+        accumulation_start_times:
+          seconds_to_datetime: true
+      swath_coordinates:
+        azimuth: 'x'
+        elevation: 'y'
+        projection: 'mtg_geos_projection'
+        variable_patterns: ['flash_radiance']
+
+  li_l2_afa_nc:
+    file_reader: !!python/name:satpy.readers.li_l2_nc.LIL2NCFileHandler
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},{mission_prefix}I{spacecraft_id}+LI-2-AFA-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_desc:
+      product_type: '2-AFA'
+      variables: ['mtg_geos_projection',
+                  'accumulation_start_times',
+                  'accumulation_offsets',
+                  'x',
+                  'y',
+                  'accumulated_flash_area',
+                  'l1b_geolocation_warning',
+                  'l1b_radiometric_warning',
+                  'average_flash_qa']
+      variable_transforms:
+        accumulation_start_times:
+          seconds_to_datetime: true
+      swath_coordinates:
+        azimuth: 'x'
+        elevation: 'y'
+        projection: 'mtg_geos_projection'
+        variable_patterns: ['accumulated_flash_area']

@@ -32,14 +32,14 @@ from satpy.tests.utils import make_dataid
 FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_asr'}
 
 FILENAME_INFO = {'start_time': '20191112000000',
-                 'spacecraft': 'MSG1'}
+                 'spacecraft': 'MSG2'}
 FILENAME_INFO2 = {'start_time': '20191112000000',
-                  'spacecraft': 'MSG1',
+                  'spacecraft': 'MSG2',
                   'server': 'TESTSERVER'}
 MPEF_PRODUCT_HEADER = {
     'NominalTime': datetime(2019, 11, 6, 18, 0),
-    'SpacecraftName': '08',
-    'RectificationLongitude': 'E0415'
+    'SpacecraftName': '09',
+    'RectificationLongitude': 'E0455'
 }
 
 DATASET_INFO = {
@@ -51,20 +51,20 @@ DATASET_INFO = {
 
 DATASET_INFO_LAT = {
     'name': 'latitude',
-    'key': 'latitude',
+    'key': '#1#latitude',
     'fill_value': -1.e+100
 }
 
 DATASET_INFO_LON = {
     'name': 'longitude',
-    'key': 'longitude',
+    'key': '#1#longitude',
     'fill_value': -1.e+100
 }
 
 
 DATASET_ATTRS = {
-    'platform_name': 'MET08',
-    'ssp_lon': 41.5,
+    'platform_name': 'MET09',
+    'ssp_lon': 45.5,
     'seg_size': 16
 }
 
@@ -76,7 +76,7 @@ AREA_DEF = geometry.AreaDefinition(
      'h': 35785831., 'proj': 'geos', 'units': 'm'},
     232,
     232,
-    (-5570248.6866, -5567248.2834, 5567248.2834, 5570248.6866)
+    (-5570248.6867, -5567248.2834, 5567248.2834, 5570248.6867)
 )
 
 AREA_DEF_FES = geometry.AreaDefinition(
@@ -87,7 +87,7 @@ AREA_DEF_FES = geometry.AreaDefinition(
      'h': 35785831., 'proj': 'geos', 'units': 'm'},
     232,
     232,
-    (-5570248.6866, -5567248.2834, 5567248.2834, 5570248.6866)
+    (-5570248.6867, -5567248.2834, 5567248.2834, 5570248.6867)
 )
 
 AREA_DEF_EXT = geometry.AreaDefinition(
@@ -99,13 +99,13 @@ AREA_DEF_EXT = geometry.AreaDefinition(
      'h': 35785831., 'proj': 'geos', 'units': 'm'},
     1238,
     1238,
-    (-5571748.888268564, -5571748.888155806, 5571748.888155806, 5571748.888268564)
+    (-5571748.8883, -5571748.8882, 5571748.8882, 5571748.8883)
 )
 
 TEST_FILES = [
-    'ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000',
-    'MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
-    'MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148'
+    'ASRBUFRProd_20191106130000Z_00_OMPEFS02_MET09_FES_E0000',
+    'MSG2-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
+    'MSG2-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148'
 ]
 
 # Test data
@@ -125,13 +125,13 @@ class SeviriL2BufrData:
         from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         self.buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(self.buf1, 'unpack', 1)
-        # write the bufr test data twice as we want to read in and the concatenate the data in the reader
+        # write the bufr test data twice as we want to read in and then concatenate the data in the reader
         # 55 id corresponds to METEOSAT 8`
-        ec.codes_set(self.buf1, 'satelliteIdentifier', 55)
-        ec.codes_set_array(self.buf1, 'latitude', LAT)
-        ec.codes_set_array(self.buf1, 'latitude', LAT)
-        ec.codes_set_array(self.buf1, 'longitude', LON)
-        ec.codes_set_array(self.buf1, 'longitude', LON)
+        ec.codes_set(self.buf1, 'satelliteIdentifier', 56)
+        ec.codes_set_array(self.buf1, '#1#latitude', LAT)
+        ec.codes_set_array(self.buf1, '#1#latitude', LAT)
+        ec.codes_set_array(self.buf1, '#1#longitude', LON)
+        ec.codes_set_array(self.buf1, '#1#longitude', LON)
         ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
         ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
 
@@ -255,3 +255,27 @@ class TestSeviriL2BufrReader:
 
         ad = bufr_obj.fh.get_area_def(None)
         assert ad == AREA_DEF_FES
+
+
+class SeviriL2AMVBufrData:
+    """Mock SEVIRI L2 AMV BUFR data."""
+
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
+    def __init__(self, filename):
+        """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
+        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
+
+        with mock.patch('satpy.readers.seviri_l2_bufr.np.fromfile'):
+            self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2,
+                                              filetype_info={'file_type': 'seviri_l2_bufr_amv'},
+                                              with_area_definition=True)
+
+
+class TestSeviriL2AMVBufrReader:
+    """Test SEVIRI L2 BUFR Reader for AMV data."""
+
+    @staticmethod
+    def test_amv_with_area_def():
+        """Test that AMV data can not be loaded with an area definition."""
+        bufr_obj = SeviriL2AMVBufrData('AMVBUFRProd_20201110124500Z_00_OMPEFS04_MET11_FES_E0000')
+        assert bufr_obj.fh.with_adef is False

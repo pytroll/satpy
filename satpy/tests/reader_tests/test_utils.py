@@ -202,20 +202,20 @@ class TestHelpers(unittest.TestCase):
     def test_np2str(self):
         """Test the np2str function."""
         # byte object
-        npstring = np.string_('hej')
-        self.assertEqual(hf.np2str(npstring), 'hej')
+        npbytes = np.bytes_('hej')
+        self.assertEqual(hf.np2str(npbytes), 'hej')
 
         # single element numpy array
-        np_arr = np.array([npstring])
+        np_arr = np.array([npbytes])
         self.assertEqual(hf.np2str(np_arr), 'hej')
 
         # scalar numpy array
-        np_arr = np.array(npstring)
+        np_arr = np.array(npbytes)
         self.assertEqual(hf.np2str(np_arr), 'hej')
 
         # multi-element array
-        npstring = np.array([npstring, npstring])
-        self.assertRaises(ValueError, hf.np2str, npstring)
+        npbytes = np.array([npbytes, npbytes])
+        self.assertRaises(ValueError, hf.np2str, npbytes)
 
         # non-array
         self.assertRaises(ValueError, hf.np2str, 5)
@@ -276,7 +276,7 @@ class TestHelpers(unittest.TestCase):
         mock_popen.return_value = process_mock
 
         bz2_mock = mock.MagicMock()
-        bz2_mock.read.return_value = b'TEST'
+        bz2_mock.__enter__.return_value.read.return_value = b'TEST'
         mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
@@ -287,24 +287,24 @@ class TestHelpers(unittest.TestCase):
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename, prefix=segmentstr)
-            self.assertTrue(bz2_mock.read.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert bz2_mock.__enter__.return_value.read.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] == segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
         # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
-            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
+            assert mock_popen.called
+            assert os.path.exists(new_fname)
+            assert os.path.split(new_fname)[1][0:2] != segmentstr
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
-        self.assertIsNone(new_fname)
+        assert new_fname is None
 
     @mock.patch('bz2.BZ2File')
     def test_generic_open_BZ2File(self, bz2_mock):
@@ -344,47 +344,42 @@ class TestHelpers(unittest.TestCase):
 
         assert mock_fn_open.read.called
 
-    def test_generic_open_text(self):
-        """Test the bz2 file unzipping context manager using dummy text data."""
-        dummy_text_data = 'Hello'
-        dummy_text_filename = 'dummy.txt'
-        with open(dummy_text_filename, 'w') as f:
-            f.write(dummy_text_data)
+    @mock.patch('bz2.decompress', return_value=b'TEST_DECOMPRESSED')
+    def test_unzip_FSFile(self, bz2_mock):
+        """Test the FSFile bz2 file unzipping techniques."""
+        mock_bz2_decompress = mock.MagicMock()
+        mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
 
-        with hf.generic_open(dummy_text_filename, 'r') as f:
-            read_text_data = f.read()
+        segment = 3
+        segmentstr = str(segment).zfill(2)
 
-        assert read_text_data == dummy_text_data
+        # test zipped FSFile unzipped in fly (decompress shouldn't be called)
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
 
-        dummy_text_filename = 'dummy.txt.bz2'
-        with hf.bz2.open(dummy_text_filename, 'wt') as f:
-            f.write(dummy_text_data)
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_not_called
+        bz2_mock.assert_not_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
 
-        with hf.generic_open(dummy_text_filename, 'rt') as f:
-            read_text_data = f.read()
+        # test FSFile without unzipping in fly (decompress should be called)
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT.bz2".format(mem_fs.root_marker),
+                              data=bytes.fromhex("425A68")+b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
 
-        assert read_text_data == dummy_text_data
-
-    def test_generic_open_binary(self):
-        """Test the bz2 file unzipping context manager using dummy binary data."""
-        dummy_binary_data = b'Hello'
-        dummy_binary_filename = 'dummy.dat'
-        with open(dummy_binary_filename, 'wb') as f:
-            f.write(dummy_binary_data)
-
-        with hf.generic_open(dummy_binary_filename, 'rb') as f:
-            read_binary_data = f.read()
-
-        assert read_binary_data == dummy_binary_data
-
-        dummy_binary_filename = 'dummy.dat.bz2'
-        with hf.bz2.open(dummy_binary_filename, 'wb') as f:
-            f.write(dummy_binary_data)
-
-        with hf.generic_open(dummy_binary_filename, 'rb') as f:
-            read_binary_data = f.read()
-
-        assert read_binary_data == dummy_binary_data
+        new_fname = hf.unzip_file(fsf, prefix=segmentstr)
+        mock_bz2_decompress.assert_called
+        bz2_mock.assert_called
+        assert os.path.exists(new_fname)
+        assert os.path.split(new_fname)[1][0:2] == segmentstr
+        if os.path.exists(new_fname):
+            os.remove(new_fname)
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
@@ -489,3 +484,28 @@ class TestSunEarthDistanceCorrection:
         np.testing.assert_allclose(out_refl, self.raw_refl)
         assert not out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
+
+
+@pytest.mark.parametrize("data, filename, mode",
+                         [(b"Hello", "dummy.dat", "b"),
+                          ("Hello", "dummy.txt", "t")])
+def test_generic_open_binary(tmp_path, data, filename, mode):
+    """Test the bz2 file unzipping context manager using dummy binary data."""
+    dummy_data = data
+    dummy_filename = os.fspath(tmp_path / filename)
+    with open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data
+
+    dummy_filename = os.fspath(tmp_path / (filename + '.bz2'))
+    with hf.bz2.open(dummy_filename, 'w' + mode) as f:
+        f.write(dummy_data)
+
+    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+        read_binary_data = f.read()
+
+    assert read_binary_data == dummy_data

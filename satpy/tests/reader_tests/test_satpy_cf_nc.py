@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF reader."""
-
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -27,6 +27,64 @@ from pyresample import AreaDefinition, SwathDefinition
 from satpy import Scene
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
+
+def _create_test_netcdf(filename, resolution=742):
+    size = 2
+    if resolution == 371:
+        size = 4
+    data_visir = np.array(np.arange(1, size * size + 1)).reshape(size, size)
+    lat = 33.0 * data_visir
+    lon = -13.0 * data_visir
+
+    lat = xr.DataArray(lat,
+                       dims=('y', 'x'),
+                       attrs={'name': 'lat',
+                              'standard_name': 'latitude',
+                              'modifiers': np.array([])})
+    lon = xr.DataArray(lon,
+                       dims=('y', 'x'),
+                       attrs={'name': 'lon',
+                              'standard_name': 'longitude',
+                              'modifiers': np.array([])})
+
+    solar_zenith_angle_i = xr.DataArray(data_visir,
+                                        dims=('y', 'x'),
+                                        attrs={'name': 'solar_zenith_angle',
+                                               'coordinates': 'lat lon',
+                                               'resolution': resolution})
+
+    scene = Scene()
+    scene.attrs['sensor'] = ['viirs']
+    scene_dict = {
+        'lat': lat,
+        'lon': lon,
+        'solar_zenith_angle': solar_zenith_angle_i
+    }
+
+    tstart = datetime(2019, 4, 1, 12, 0)
+    tend = datetime(2019, 4, 1, 12, 15)
+    common_attrs = {
+        'start_time': tstart,
+        'end_time': tend,
+        'platform_name': 'NOAA 20',
+        'orbit_number': 99999
+    }
+
+    for key in scene_dict:
+        scene[key] = scene_dict[key]
+        if key != 'swath_data':
+            scene[key].attrs.update(common_attrs)
+    scene.save_datasets(writer='cf',
+                        filename=filename,
+                        engine='h5netcdf',
+                        flatten_attrs=True,
+                        pretty=True)
+    return filename
 
 
 @pytest.fixture(scope="session")
@@ -158,6 +216,13 @@ def _cf_scene():
 def _nc_filename(tmp_path):
     now = datetime.utcnow()
     filename = f'testingcfwriter{now:%Y%j%H%M%S}-viirs-mband-20201007075915-20201007080744.nc'
+    return str(tmp_path / filename)
+
+
+@pytest.fixture
+def _nc_filename_i(tmp_path):
+    now = datetime.utcnow()
+    filename = f'testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc'
     return str(tmp_path / filename)
 
 
@@ -306,12 +371,14 @@ class TestCFReader:
 
     def test_read_prefixed_channels_by_user_no_prefix(self, _cf_scene, _nc_filename):
         """Check channels starting with digit is not prefixed by user."""
-        _cf_scene.save_datasets(writer='cf',
-                                filename=_nc_filename,
-                                engine='netcdf4',
-                                flatten_attrs=True,
-                                pretty=True,
-                                numeric_name_prefix='')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, message=".*starts with a digit.*")
+            _cf_scene.save_datasets(writer='cf',
+                                    filename=_nc_filename,
+                                    engine='netcdf4',
+                                    flatten_attrs=True,
+                                    pretty=True,
+                                    numeric_name_prefix='')
         scn_ = Scene(reader='satpy_cf_nc',
                      filenames=[_nc_filename])
         scn_.load(['1'])
@@ -330,3 +397,44 @@ class TestCFReader:
         assert isinstance(new_attrs, dict)
         for key in orig_attrs:
             assert orig_attrs[key] == new_attrs[key]
+
+    def test_write_and_read_from_two_files(self, _nc_filename, _nc_filename_i):
+        """Save two datasets with different resolution and read the solar_zenith_angle again."""
+        _create_test_netcdf(_nc_filename, resolution=742)
+        _create_test_netcdf(_nc_filename_i, resolution=371)
+        scn_ = Scene(reader='satpy_cf_nc',
+                     filenames=[_nc_filename, _nc_filename_i])
+        scn_.load(['solar_zenith_angle'], resolution=742)
+        assert scn_['solar_zenith_angle'].attrs['resolution'] == 742
+        scn_.unload()
+        scn_.load(['solar_zenith_angle'], resolution=371)
+        assert scn_['solar_zenith_angle'].attrs['resolution'] == 371
+
+    def test_dataid_attrs_equal_matching_dataset(self, _cf_scene, _nc_filename):
+        """Check that get_dataset returns valid dataset when keys matches."""
+        from satpy.dataset.dataid import DataID, default_id_keys_config
+        _create_test_netcdf(_nc_filename, resolution=742)
+        reader = SatpyCFFileHandler(_nc_filename, {}, {'filetype': 'info'})
+        ds_id = DataID(default_id_keys_config, name='solar_zenith_angle', resolution=742, modifiers=())
+        res = reader.get_dataset(ds_id, {})
+        assert res.attrs['resolution'] == 742
+
+    def test_dataid_attrs_equal_not_matching_dataset(self, _cf_scene, _nc_filename):
+        """Check that get_dataset returns None when key(s) are not matching."""
+        from satpy.dataset.dataid import DataID, default_id_keys_config
+        _create_test_netcdf(_nc_filename, resolution=742)
+        reader = SatpyCFFileHandler(_nc_filename, {}, {'filetype': 'info'})
+        not_existing_resolution = 9999999
+        ds_id = DataID(default_id_keys_config, name='solar_zenith_angle', resolution=not_existing_resolution,
+                       modifiers=())
+        assert reader.get_dataset(ds_id, {}) is None
+
+    def test_dataid_attrs_equal_contains_not_matching_key(self, _cf_scene, _nc_filename):
+        """Check that get_dataset returns valid dataset when dataid have key(s) not existing in data."""
+        from satpy.dataset.dataid import DataID, default_id_keys_config
+        _create_test_netcdf(_nc_filename, resolution=742)
+        reader = SatpyCFFileHandler(_nc_filename, {}, {'filetype': 'info'})
+        ds_id = DataID(default_id_keys_config, name='solar_zenith_angle', resolution=742,
+                       modifiers=(), calibration='counts')
+        res = reader.get_dataset(ds_id, {})
+        assert res.attrs['resolution'] == 742

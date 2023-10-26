@@ -179,7 +179,8 @@ class FakeCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **kwargs):
         """Produce test compositor data depending on modifiers and input data provided."""
-        projectables = self.match_data_arrays(projectables)
+        if projectables:
+            projectables = self.match_data_arrays(projectables)
         if nonprojectables:
             self.match_data_arrays(nonprojectables)
         info = self.attrs.copy()
@@ -194,8 +195,12 @@ class FakeCompositor(GenericCompositor):
             raise ValueError("Not enough prerequisite datasets passed")
 
         info.update(kwargs)
-        info['area'] = projectables[0].attrs['area']
-        dim_sizes = projectables[0].sizes
+        if projectables:
+            info['area'] = projectables[0].attrs['area']
+            dim_sizes = projectables[0].sizes
+        else:
+            # static_image
+            dim_sizes = {'y': 4, 'x': 5}
         return DataArray(data=da.zeros((dim_sizes['y'], dim_sizes['x'], 3)),
                          attrs=info,
                          dims=['y', 'x', 'bands'],

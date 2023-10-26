@@ -28,7 +28,7 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../readers`.
+To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../reading`.
 
 
 Geolocation files
@@ -50,11 +50,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf4_utils import from_sds
 from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class ModisL2HDFFileHandler(HDFEOSGeoReader):

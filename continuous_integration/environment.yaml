@@ -5,10 +5,12 @@ dependencies:
   - xarray!=2022.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
   - appdirs
   - toolz
   - Cython
+  - numba
   - sphinx
   - cartopy
   - panel>=0.12.7
@@ -45,14 +47,17 @@ dependencies:
   - pytest-lazy-fixture
   - fsspec
   - s3fs
-  - pylibtiff
   - python-geotiepoints
   - pooch
   - pip
   - skyfield
   - astropy
+  - xarray-datatree
+  - pint-xarray
+  - ephem
+  - bokeh
   - pip:
     - trollsift
-    - trollimage
+    - trollimage>=1.20
     - pyspectral
     - pyorbital

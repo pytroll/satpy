@@ -30,8 +30,9 @@ import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy import CHUNK_SIZE, DataID
+from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -186,10 +187,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             return self._start_time_from_filename()
 
     def _start_time_from_filename(self):
-        for fn_key in ("start_time", "acquisition_time"):
-            if fn_key in self.filename_info:
-                return self.filename_info[fn_key]
-        raise RuntimeError("Could not determine file start time")
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
@@ -216,13 +214,40 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         from satpy.readers.hdf4_utils import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
-        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        chunks = self._chunks_for_variable(dataset)
+        dask_arr = from_sds(dataset, chunks=chunks)
         dims = ('y', 'x') if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
         data = self._scale_and_mask_data_array(data, is_category=is_category)
 
         return data
+
+    def _chunks_for_variable(self, hdf_dataset):
+        scan_length_250m = 40
+        var_shape = hdf_dataset.info()[2]
+        res_multiplier = self._get_res_multiplier(var_shape)
+        num_nonyx_dims = len(var_shape) - 2
+        return normalize_low_res_chunks(
+            (1,) * num_nonyx_dims + ("auto", -1),
+            var_shape,
+            (1,) * num_nonyx_dims + (scan_length_250m, -1),
+            (1,) * num_nonyx_dims + (res_multiplier, res_multiplier),
+            np.float32,
+        )
+
+    @staticmethod
+    def _get_res_multiplier(var_shape):
+        num_columns_to_multiplier = {
+            271: 20,  # 5km
+            1354: 4,  # 1km
+            2708: 2,  # 500m
+            5416: 1,  # 250m
+        }
+        for max_columns, res_multiplier in num_columns_to_multiplier.items():
+            if var_shape[-1] <= max_columns:
+                return res_multiplier
+        return 1
 
     def _scale_and_mask_data_array(self, data, is_category=False):
         """Unscale byte data and mask invalid/fill values.
@@ -243,7 +268,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
             if add_offset is not None and add_offset != 0:
-                data = data - add_offset
+                data = data - np.float32(add_offset)
             data = data * np.float32(scale_factor)
 
         if good_mask is not None:

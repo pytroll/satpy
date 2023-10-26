@@ -24,11 +24,12 @@ import numpy as np
 import xarray as xr
 from pyhdf.SD import SD, SDC, SDS
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
 
+CHUNK_SIZE = get_legacy_chunk_size()
 
 HTYPE_TO_DTYPE = {
     SDC.INT8: np.int8,
@@ -68,7 +69,7 @@ class HDF4FileHandler(BaseFileHandler):
     def _collect_attrs(self, name, attrs):
         for key, value in attrs.items():
             value = np.squeeze(value)
-            if issubclass(value.dtype.type, (np.string_, np.unicode_)) and not value.shape:
+            if issubclass(value.dtype.type, (np.bytes_, np.str_)) and not value.shape:
                 value = value.item()  # convert to scalar
                 if not isinstance(value, str):
                     # python 3 - was scalar numpy array of bytes

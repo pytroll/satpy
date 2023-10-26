@@ -23,23 +23,16 @@ import glob
 import logging
 import os
 import sys
+import tempfile
 from collections import OrderedDict
-from importlib.metadata import entry_points
-from pathlib import Path
-
-try:
-    from importlib.resources import files as impr_files  # type: ignore
-except ImportError:
-    # Python 3.8
-    def impr_files(module_name: str) -> Path:
-        """Get path to module as a backport for Python 3.8."""
-        from importlib.resources import path as impr_path
-
-        with impr_path(module_name, "__init__.py") as pkg_init_path:
-            return pkg_init_path.parent
+from importlib.metadata import EntryPoint, entry_points
+from importlib.resources import files as impr_files
+from typing import Iterable
 
 import appdirs
 from donfig import Config
+
+from satpy._compat import cache
 
 LOG = logging.getLogger(__name__)
 
@@ -49,6 +42,7 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
+    'tmp_dir': tempfile.gettempdir(),
     'cache_dir': _satpy_dirs.user_cache_dir,
     'cache_lonlats': False,
     'cache_sensor_angles': False,
@@ -57,6 +51,9 @@ _CONFIG_DEFAULTS = {
     'demo_data_dir': '.',
     'download_aux': True,
     'sensor_angles_position_preference': 'actual',
+    'readers': {
+        'clip_negative_radiances': False,
+    },
 }
 
 # Satpy main configuration object
@@ -119,10 +116,10 @@ def get_config_path_safe():
     return config_path
 
 
-def get_entry_points_config_dirs(name, include_config_path=True):
+def get_entry_points_config_dirs(group_name: str, include_config_path: bool = True) -> list[str]:
     """Get the config directories for all entry points of given name."""
-    dirs = []
-    for entry_point in entry_points().get(name, []):
+    dirs: list[str] = []
+    for entry_point in cached_entry_point(group_name):
         module = _entry_point_module(entry_point)
         new_dir = str(impr_files(module) / "etc")
         if not dirs or dirs[-1] != new_dir:
@@ -130,6 +127,24 @@ def get_entry_points_config_dirs(name, include_config_path=True):
     if include_config_path:
         dirs.extend(config.get('config_path')[::-1])
     return dirs
+
+
+@cache
+def cached_entry_point(group_name: str) -> Iterable[EntryPoint]:
+    """Return entry_point for specified ``group``.
+
+    This is a dummy proxy to allow caching and provide compatibility between
+    versions of Python and importlib_metadata.
+
+    """
+    try:
+        # mypy in pre-commit currently checks for Python 3.8 compatibility
+        # this line is for Python 3.10+ so it will fail checks
+        return entry_points(group=group_name)  # type: ignore
+    except TypeError:
+        # Python <3.10
+        entry_points_list = entry_points()
+        return entry_points_list.get(group_name, [])
 
 
 def _entry_point_module(entry_point):

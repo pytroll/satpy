@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2021 Satpy developers
+# Copyright (c) 2015-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,7 +17,6 @@
 
 import logging
 import numbers
-import warnings
 from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
@@ -256,6 +253,7 @@ default_id_keys_config = {'name': {
                                   'reflectance',
                                   'brightness_temperature',
                                   'radiance',
+                                  'radiance_wavenumber',
                                   'counts'
                                   ],
                               'transitive': True,
@@ -399,15 +397,6 @@ class DataID(dict):
             else:
                 res_dict[key] = value
         return res_dict
-
-    def __getattr__(self, key):
-        """Support old syntax for getting items."""
-        if key in self._id_keys:
-            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.',
-                          stacklevel=2)
-            return self[key]
-        else:
-            return super().__getattr__(key)
 
     def __deepcopy__(self, memo=None):
         """Copy this object.

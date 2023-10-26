@@ -40,11 +40,19 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
-.. versionchanged:: 0.20.0
-
-    Dropped Python 2 support.
-
 .. _project: http://github.com/pytroll/satpy
+
+
+Getting Help
+============
+
+Having trouble installing or using Satpy? Feel free to ask questions at
+any of the contact methods for the PyTroll group
+`here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on
+`Satpy's GitHub page <https://github.com/pytroll/satpy/issues>`_.
+
+Documentation
+=============
 
 .. toctree::
     :maxdepth: 2
@@ -55,12 +63,12 @@ the base Satpy installation.
     data_download
     examples/index
     quickstart
-    readers
+    reading
     remote_reading
     composites
     resample
     enhancements
-    writers
+    writing
     multiscene
     dev_guide/index
 

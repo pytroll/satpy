@@ -141,9 +141,18 @@ class TestGetServiceMode(unittest.TestCase):
         self.assertEqual(res['service_name'], name)
         self.assertEqual(res['service_desc'], desc)
 
-    def test_get_seviri_service_mode_iodc(self):
-        """Test fetching of SEVIRI service mode information for IODC."""
+    def test_get_seviri_service_mode_iodc_E0415(self):
+        """Test fetching of SEVIRI service mode information for IODC at 41.5 degrees East."""
         ssp_lon = 41.5
+        name = 'iodc'
+        desc = 'Indian Ocean Data Coverage service'
+        res = get_service_mode('seviri', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_seviri_service_mode_iodc_E0455(self):
+        """Test fetching of SEVIRI service mode information for IODC at 45.5 degrees East."""
+        ssp_lon = 45.5
         name = 'iodc'
         desc = 'Indian Ocean Data Coverage service'
         res = get_service_mode('seviri', ssp_lon)

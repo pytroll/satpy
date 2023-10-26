@@ -67,7 +67,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
@@ -79,6 +78,7 @@ from satpy.readers.utils import (
     np2str,
     unzip_file,
 )
+from satpy.utils import normalize_low_res_chunks
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -458,7 +458,10 @@ class AHIHSDFileHandler(BaseFileHandler):
         """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
         if not self._is_valid_timeline(timeline):
-            warnings.warn("Observation timeline is fill value, not rounding observation time.")
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=3
+            )
             return observation_time
 
         if self.observation_area == 'FLDK':
@@ -505,14 +508,17 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         pdict['a_name'] = self.observation_area
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
-        pdict['p_id'] = 'geosh8'
+        pdict['p_id'] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
 
         return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
         if fp_.tell() + offset != fpos:
-            warnings.warn(f"Actual {block} header size does not match expected")
+            warnings.warn(
+                f"Actual {block} header size does not match expected",
+                stacklevel=3
+            )
         return
 
     def _read_header(self, fp_):
@@ -609,13 +615,21 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         return header
 
-    def _read_data(self, fp_, header):
+    def _read_data(self, fp_, header, resolution):
         """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
+        chunks = normalize_low_res_chunks(
+            ("auto", "auto"),
+            (nlines, ncols),
+            # 1100 minimum chunk size for 500m, 550 for 1km, 225 for 2km
+            (1100, 1100),
+            (int(resolution / 500), int(resolution / 500)),
+            np.float32,
+        )
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
-                             chunks=CHUNK_SIZE)
+                             chunks=chunks)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data."""
@@ -631,7 +645,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Read the data."""
         with open(self.filename, "rb") as fp_:
             self._header = self._read_header(fp_)
-            res = self._read_data(fp_, self._header)
+            res = self._read_data(fp_, self._header, key["resolution"])
         res = self._mask_invalid(data=res, header=self._header)
         res = self.calibrate(res, key['calibration'])
 
@@ -660,7 +674,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             units=ds_info['units'],
             standard_name=ds_info['standard_name'],
             wavelength=ds_info['wavelength'],
-            resolution='resolution',
+            resolution=ds_info['resolution'],
             id=key,
             name=key['name'],
             platform_name=self.platform_name,
@@ -721,12 +735,12 @@ class AHIHSDFileHandler(BaseFileHandler):
             dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
                                                               self.user_calibration)
 
-        data = (data * dn_gain + dn_offset)
+        data = (data * np.float32(dn_gain) + np.float32(dn_offset))
         # If using radiance correction factors from GSICS or similar, apply here
         if correction_type == 'RAD':
             user_slope, user_offset = get_user_calibration_factors(self.band_name,
                                                                    self.user_calibration)
-            data = apply_rad_correction(data, user_slope, user_offset)
+            data = apply_rad_correction(data, np.float32(user_slope), np.float32(user_offset))
         return data
 
     def _get_user_calibration_correction_type(self):
@@ -739,7 +753,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
         coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
-        return (data * coeff * 100).clip(0)
+        return (data * np.float32(coeff) * 100).clip(0)
 
     def _ir_calibrate(self, data):
         """IR calibration."""

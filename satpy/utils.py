@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -24,16 +22,20 @@ import contextlib
 import datetime
 import logging
 import os
+import pathlib
 import warnings
-from typing import Mapping, Optional
+from contextlib import contextmanager
+from copy import deepcopy
+from typing import Literal, Mapping, Optional
 from urllib.parse import urlparse
 
+import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
 
-from satpy import CHUNK_SIZE
+from satpy._compat import DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -43,13 +45,6 @@ logger = logging.getLogger(__name__)
 
 class PerformanceWarning(Warning):
     """Warning raised when there is a possible performance impact."""
-
-
-def ensure_dir(filename):
-    """Check if the dir of f exists, otherwise create it."""
-    directory = os.path.dirname(filename)
-    if directory and not os.path.isdir(directory):
-        os.makedirs(directory)
 
 
 def debug_on(deprecation_warnings=True):
@@ -379,7 +374,10 @@ def _get_sat_altitude(data_arr, key_prefixes):
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
         alt = orb_params['projection_altitude']
-        warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        warnings.warn(
+            'Actual satellite altitude not available, using projection altitude instead.',
+            stacklevel=3
+        )
     return alt
 
 
@@ -393,7 +391,10 @@ def _get_sat_lonlat(data_arr, key_prefixes):
     except KeyError:
         lon = orb_params['projection_longitude']
         lat = orb_params['projection_latitude']
-        warnings.warn('Actual satellite lon/lat not available, using projection center instead.')
+        warnings.warn(
+            'Actual satellite lon/lat not available, using projection center instead.',
+            stacklevel=3
+        )
     return lon, lat
 
 
@@ -575,29 +576,138 @@ def ignore_invalid_float_warnings():
         yield
 
 
-def get_chunk_size_limit(dtype):
-    """Compute the chunk size limit in bytes given *dtype*.
+def get_chunk_size_limit(dtype=float):
+    """Compute the chunk size limit in bytes given *dtype* (float by default).
+
+    It is derived from PYTROLL_CHUNK_SIZE if defined (although deprecated) first, from dask config's `array.chunk-size`
+    then. It defaults to 128MiB.
 
     Returns:
-        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
-        otherwise it returns the computed chunk size in bytes.
+        The recommended chunk size in bytes.
     """
-    pixel_size = get_chunk_pixel_size()
+    pixel_size = _get_chunk_pixel_size()
     if pixel_size is not None:
         return pixel_size * np.dtype(dtype).itemsize
-    return None
+    return get_dask_chunk_size_in_bytes()
 
 
-def get_chunk_pixel_size():
-    """Compute the maximum chunk size from CHUNK_SIZE."""
-    if CHUNK_SIZE is None:
+def get_dask_chunk_size_in_bytes():
+    """Get the dask configured chunk size in bytes."""
+    return dask.utils.parse_bytes(dask.config.get("array.chunk-size", "128MiB"))
+
+
+def _get_chunk_pixel_size():
+    """Compute the maximum chunk size from PYTROLL_CHUNK_SIZE."""
+    legacy_chunk_size = _get_pytroll_chunk_size()
+    if legacy_chunk_size is not None:
+        return legacy_chunk_size ** 2
+
+
+def get_legacy_chunk_size():
+    """Get the legacy chunk size.
+
+    This function should only be used while waiting for code to be migrated to use satpy.utils.get_chunk_size_limit
+    instead.
+    """
+    chunk_size = _get_pytroll_chunk_size()
+
+    if chunk_size is not None:
+        return chunk_size
+
+    import math
+
+    return int(math.sqrt(get_dask_chunk_size_in_bytes() / 8))
+
+
+def _get_pytroll_chunk_size():
+    try:
+        chunk_size = int(os.environ['PYTROLL_CHUNK_SIZE'])
+        warnings.warn(
+            "The PYTROLL_CHUNK_SIZE environment variable is pending deprecation. "
+            "You can use the dask config setting `array.chunk-size` (or the DASK_ARRAY__CHUNK_SIZE environment"
+            " variable) and set it to the square of the PYTROLL_CHUNK_SIZE instead.",
+            stacklevel=2
+        )
+        return chunk_size
+    except KeyError:
         return None
 
-    if isinstance(CHUNK_SIZE, (tuple, list)):
-        array_size = np.product(CHUNK_SIZE)
-    else:
-        array_size = CHUNK_SIZE ** 2
-    return array_size
+
+def normalize_low_res_chunks(
+        chunks: tuple[int | Literal["auto"], ...],
+        input_shape: tuple[int, ...],
+        previous_chunks: tuple[int, ...],
+        low_res_multipliers: tuple[int, ...],
+        input_dtype: DTypeLike,
+) -> tuple[int, ...]:
+    """Compute dask chunk sizes based on data resolution.
+
+    First, chunks are computed for the highest resolution version of the data.
+    This is done by multiplying the input array shape by the
+    ``low_res_multiplier`` and then using Dask's utility functions and
+    configuration to produce a chunk size to fit into a specific number of
+    bytes. See :doc:`dask:array-chunks` for more information.
+    Next, the same multiplier is used to reduce the high resolution chunk sizes
+    to the lower resolution of the input data. The end result of reading
+    multiple resolutions of data is that each dask chunk covers the same
+    geographic region. This also means replicating or aggregating one
+    resolution and then combining arrays should not require any rechunking.
+
+    Args:
+        chunks: Requested chunk size for each dimension. This is passed
+            directly to dask. Use ``"auto"`` for dimensions that should have
+            chunks determined for them, ``-1`` for dimensions that should be
+            whole (not chunked), and ``1`` or any other positive integer for
+            dimensions that have a known chunk size beforehand.
+        input_shape: Shape of the array to compute dask chunk size for.
+        previous_chunks: Any previous chunking or structure of the data. This
+            can also be thought of as the smallest number of high (fine) resolution
+            elements that make up a single "unit" or chunk of data. This could
+            be a multiple or factor of the scan size for some instruments and/or
+            could be based on the on-disk chunk size. This value ensures that
+            chunks are aligned to the underlying data structure for best
+            performance. On-disk chunk sizes should be multiplied by the
+            largest low resolution multiplier if it is the same between all
+            files (ex. 500m file has 226 chunk size, 1km file has 226 chunk
+            size, etc).. Otherwise, the resulting low resolution chunks may
+            not be aligned to the on-disk chunks. For example, if dask decides
+            on a chunk size of 226 * 3 for 500m data, that becomes 226 * 3 / 2
+            for 1km data which is not aligned to the on-disk chunk size of 226.
+        low_res_multipliers: Number of high (fine) resolution pixels that fit
+            in a single low (coarse) resolution pixel.
+        input_dtype: Dtype for the final unscaled array. This is usually
+            32-bit float (``np.float32``) or 64-bit float (``np.float64``)
+            for non-category data. If this doesn't represent the final data
+            type of the data then the final size of chunks in memory will not
+            match the user's request via dask's ``array.chunk-size``
+            configuration. Sometimes it is useful to keep this as a single
+            dtype for all reading functionality (ex. ``np.float32``) in order
+            to keep all read variable chunks the same size regardless of dtype.
+
+    Returns:
+        A tuple where each element is the chunk size for that axis/dimension.
+
+    """
+    if any(len(input_shape) != len(param) for param in (low_res_multipliers, chunks, previous_chunks)):
+        raise ValueError("Input shape, low res multipliers, chunks, and previous chunks must all be the same size")
+    high_res_shape = tuple(dim_size * lr_mult for dim_size, lr_mult in zip(input_shape, low_res_multipliers))
+    chunks_for_high_res = dask.array.core.normalize_chunks(
+        chunks,
+        shape=high_res_shape,
+        dtype=input_dtype,
+        previous_chunks=previous_chunks,
+    )
+    low_res_chunks: list[int] = []
+    for req_chunks, hr_chunks, prev_chunks, lr_mult in zip(
+            chunks,
+            chunks_for_high_res,
+            previous_chunks, low_res_multipliers
+    ):
+        if req_chunks != "auto":
+            low_res_chunks.append(req_chunks)
+            continue
+        low_res_chunks.append(round(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
+    return tuple(low_res_chunks)
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
@@ -635,6 +745,8 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
     for f in filenames:
         if isinstance(f, FSFile):
             fs_files.append(f)
+        elif isinstance(f, pathlib.Path):
+            local_files.append(f)
         elif urlparse(f).scheme in ('', 'file') or "\\" in f:
             local_files.append(f)
         else:
@@ -657,26 +769,56 @@ def get_storage_options_from_reader_kwargs(reader_kwargs):
     """Read and clean storage options from reader_kwargs."""
     if reader_kwargs is None:
         return None, None
-    storage_options = reader_kwargs.pop('storage_options', None)
-    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
-    storage_options = _merge_storage_options(storage_options, storage_opt_dict)
-
-    return storage_options, reader_kwargs
+    new_reader_kwargs = deepcopy(reader_kwargs)  # don't modify user provided dict
+    storage_options = _get_storage_dictionary_options(new_reader_kwargs)
+    return storage_options, new_reader_kwargs
 
 
 def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
-    for k, v in reader_kwargs.items():
-        if isinstance(v, dict):
-            storage_opt_dict[k] = v.pop('storage_options', None)
-
+    shared_storage_options = reader_kwargs.pop("storage_options", {})
+    if not reader_kwargs:
+        # no other reader kwargs
+        return shared_storage_options
+    for reader_name, rkwargs in reader_kwargs.items():
+        if not isinstance(rkwargs, dict):
+            # reader kwargs are not per-reader, return a single dictionary of storage options
+            return shared_storage_options
+        if shared_storage_options:
+            # set base storage options if there are any
+            storage_opt_dict[reader_name] = shared_storage_options.copy()
+        if isinstance(rkwargs, dict) and "storage_options" in rkwargs:
+            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop('storage_options'))
     return storage_opt_dict
 
 
-def _merge_storage_options(storage_options, storage_opt_dict):
-    if storage_opt_dict:
-        if storage_options:
-            storage_opt_dict['storage_options'] = storage_options
-        storage_options = storage_opt_dict
+@contextmanager
+def import_error_helper(dependency_name):
+    """Give more info on an import error."""
+    try:
+        yield
+    except ImportError as err:
+        raise ImportError(err.msg + f" It can be installed with the {dependency_name} package.")
 
-    return storage_options
+
+def find_in_ancillary(data, dataset):
+    """Find a dataset by name in the ancillary vars of another dataset.
+
+    Args:
+        data (xarray.DataArray):
+            Array for which to search the ancillary variables
+        dataset (str):
+            Name of ancillary variable to look for.
+    """
+    matches = [x for x in data.attrs["ancillary_variables"] if x.attrs.get("name") == dataset]
+    cnt = len(matches)
+    if cnt < 1:
+        raise ValueError(
+            f"Could not find dataset named {dataset:s} in ancillary "
+            f"variables for dataset {data.attrs.get('name')!r}")
+    if cnt > 1:
+        raise ValueError(
+            f"Expected exactly one dataset named {dataset:s} in ancillary "
+            f"variables for dataset {data.attrs.get('name')!r}, "
+            f"found {cnt:d}")
+    return matches[0]
