@@ -133,7 +133,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
 
                 # Checks that dask.array has been called with the correct arguments
                 name, args, kwargs = da_.mock_calls[0]
-                assert np.all(args[0] == np.ones((1200, 1000))) is True
+                assert np.all(args[0] == np.ones((1200, 1000)))
                 assert args[1] == CHUNK_SIZE
 
                 # Checks that xarray.DataArray has been called with the correct arguments

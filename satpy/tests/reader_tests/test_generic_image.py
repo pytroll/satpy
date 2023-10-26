@@ -267,7 +267,7 @@ class TestGenericImage(unittest.TestCase):
         info = {"nodata_handling": "nan_mask"}
         dataset = reader.get_dataset(foo, info)
         assert isinstance(dataset, xr.DataArray)
-        assert np.all(np.isnan(dataset.data[0][:10, :10].compute())) is True
+        assert np.all(np.isnan(dataset.data[0][:10, :10].compute()))
         assert np.isnan(dataset.attrs["_FillValue"])
 
         info = {"nodata_handling": "fill_value"}

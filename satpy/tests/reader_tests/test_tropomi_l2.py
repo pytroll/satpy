@@ -196,6 +196,6 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             assert "x" in dest.dims
             assert DEFAULT_FILE_SHAPE[0] + 1 == dest.shape[0]
             assert DEFAULT_FILE_SHAPE[1] + 1 == dest.shape[1]
-            assert np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0])
-            assert np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3])
-            assert np.testing.assert_array_equal(dest[:, -1], np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))
+            np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0])
+            np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3])
+            np.testing.assert_array_equal(dest[:, -1], np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))
