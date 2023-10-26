@@ -39,35 +39,35 @@ class TestGHRSSTL2Reader:
         self.lat_data = np.array(([43.43, 55.56, 61.25], [41.38, 50.28, 60.80]))
         self.lon = xr.DataArray(
             self.lon_data,
-            dims=('nj', 'ni'),
-            attrs={'standard_name': 'longitude',
-                   'units': 'degrees_east',
+            dims=("nj", "ni"),
+            attrs={"standard_name": "longitude",
+                   "units": "degrees_east",
                    }
         )
         self.lat = xr.DataArray(
             self.lat_data,
-            dims=('nj', 'ni'),
-            attrs={'standard_name': 'latitude',
-                   'units': 'degrees_north',
+            dims=("nj", "ni"),
+            attrs={"standard_name": "latitude",
+                   "units": "degrees_north",
                    }
         )
         self.sst = xr.DataArray(
             self.base_data,
-            dims=('nj', 'ni'),
-            attrs={'scale_factor': 0.01, 'add_offset': 273.15,
-                   '_FillValue': -32768, 'units': 'kelvin',
+            dims=("nj", "ni"),
+            attrs={"scale_factor": 0.01, "add_offset": 273.15,
+                   "_FillValue": -32768, "units": "kelvin",
                    }
         )
         self.fake_dataset = xr.Dataset(
             data_vars={
-                'sea_surface_temperature': self.sst,
-                'longitude': self.lon,
-                'latitude': self.lat,
+                "sea_surface_temperature": self.sst,
+                "longitude": self.lon,
+                "latitude": self.lat,
             },
             attrs={
                 "start_time": "20220321T112640Z",
                 "stop_time": "20220321T145711Z",
-                "platform": 'NOAA20',
+                "platform": "NOAA20",
                 "sensor": "VIIRS",
             },
         )
@@ -81,12 +81,12 @@ class TestGHRSSTL2Reader:
         slstrdir.mkdir(parents=True, exist_ok=True)
         tarfile_path = mypath / tarfile_fakename
 
-        ncfilename = slstrdir / 'L2P_GHRSST-SSTskin-202204131200.nc'
+        ncfilename = slstrdir / "L2P_GHRSST-SSTskin-202204131200.nc"
         self.fake_dataset.to_netcdf(os.fspath(ncfilename))
-        xmlfile_path = slstrdir / 'xfdumanifest.xml'
+        xmlfile_path = slstrdir / "xfdumanifest.xml"
         xmlfile_path.touch()
 
-        with tarfile.open(name=tarfile_path, mode='w') as tar:
+        with tarfile.open(name=tarfile_path, mode="w") as tar:
             tar.add(os.fspath(ncfilename), arcname=Path(slstr_fakename) / ncfilename.name)
             tar.add(os.fspath(xmlfile_path), arcname=Path(slstr_fakename) / xmlfile_path.name)
 
@@ -95,7 +95,7 @@ class TestGHRSSTL2Reader:
     def test_instantiate_single_netcdf_file(self, tmp_path):
         """Test initialization of file handlers - given a single netCDF file."""
         filename_info = {}
-        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
         GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
@@ -110,29 +110,29 @@ class TestGHRSSTL2Reader:
     def test_get_dataset(self, tmp_path):
         """Test retrieval of datasets."""
         filename_info = {}
-        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
         test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
 
-        test.get_dataset('longitude', {'standard_name': 'longitude'})
-        test.get_dataset('latitude', {'standard_name': 'latitude'})
-        test.get_dataset('sea_surface_temperature', {'standard_name': 'sea_surface_temperature'})
+        test.get_dataset("longitude", {"standard_name": "longitude"})
+        test.get_dataset("latitude", {"standard_name": "latitude"})
+        test.get_dataset("sea_surface_temperature", {"standard_name": "sea_surface_temperature"})
 
         with pytest.raises(KeyError):
-            test.get_dataset('erroneous dataset', {'standard_name': 'erroneous dataset'})
+            test.get_dataset("erroneous dataset", {"standard_name": "erroneous dataset"})
 
     def test_get_sensor(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
         dt_valid = datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
-        filename_info = {'field_type': 'NARSST', 'generating_centre': 'FRA_',
-                         'satid': 'NOAA20_', 'valid_time': dt_valid}
+        filename_info = {"field_type": "NARSST", "generating_centre": "FRA_",
+                         "satid": "NOAA20_", "valid_time": dt_valid}
 
-        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
         test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
-        assert test.sensor == 'viirs'
+        assert test.sensor == "viirs"
 
     def test_get_start_and_end_times(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
@@ -140,10 +140,10 @@ class TestGHRSSTL2Reader:
         good_start_time = datetime(2022, 3, 21, 11, 26, 40)  # 20220321T112640Z
         good_stop_time = datetime(2022, 3, 21, 14, 57, 11)  # 20220321T145711Z
 
-        filename_info = {'field_type': 'NARSST', 'generating_centre': 'FRA_',
-                         'satid': 'NOAA20_', 'valid_time': dt_valid}
+        filename_info = {"field_type": "NARSST", "generating_centre": "FRA_",
+                         "satid": "NOAA20_", "valid_time": dt_valid}
 
-        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
         test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)

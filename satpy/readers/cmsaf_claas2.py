@@ -87,7 +87,7 @@ class CLAAS2(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
-        ds = self[dataset_id['name']]
+        ds = self[dataset_id["name"]]
         if "time" in ds.dims:
             return ds.squeeze(["time"])
 

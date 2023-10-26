@@ -29,8 +29,8 @@ This is how to read them with Satpy:
     scene.load(["VIS", "IR1"])
 
 
-References
-~~~~~~~~~~
+References:
+~~~~~~~~~~~
 
 Details about platform, instrument and data format can be found in the
 following references:

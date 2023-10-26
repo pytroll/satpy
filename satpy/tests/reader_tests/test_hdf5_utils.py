@@ -67,86 +67,86 @@ class TestHDF5FileHandler(unittest.TestCase):
     def setUp(self):
         """Create a test HDF5 file."""
         import h5py
-        h = h5py.File('test.h5', 'w')
+        h = h5py.File("test.h5", "w")
         # Create Group
-        g1 = h.create_group('test_group')
+        g1 = h.create_group("test_group")
 
         # Add datasets
-        ds1_f = g1.create_dataset('ds1_f',
+        ds1_f = g1.create_dataset("ds1_f",
                                   shape=(10, 100),
                                   dtype=np.float32,
                                   data=np.arange(10. * 100).reshape((10, 100)))
-        ds1_i = g1.create_dataset('ds1_i',
+        ds1_i = g1.create_dataset("ds1_i",
                                   shape=(10, 100),
                                   dtype=np.int32,
                                   data=np.arange(10 * 100).reshape((10, 100)))
-        ds2_f = h.create_dataset('ds2_f',
+        ds2_f = h.create_dataset("ds2_f",
                                  shape=(10, 100),
                                  dtype=np.float32,
                                  data=np.arange(10. * 100).reshape((10, 100)))
-        ds2_i = h.create_dataset('ds2_i',
+        ds2_i = h.create_dataset("ds2_i",
                                  shape=(10, 100),
                                  dtype=np.int32,
                                  data=np.arange(10 * 100).reshape((10, 100)))
 
         # Add attributes
         # shows up as a scalar array of bytes (shape=(), size=1)
-        h.attrs['test_attr_str'] = 'test_string'
-        h.attrs['test_attr_byte'] = b'test_byte'
-        h.attrs['test_attr_int'] = 0
-        h.attrs['test_attr_float'] = 1.2
+        h.attrs["test_attr_str"] = "test_string"
+        h.attrs["test_attr_byte"] = b"test_byte"
+        h.attrs["test_attr_int"] = 0
+        h.attrs["test_attr_float"] = 1.2
         # shows up as a numpy bytes object
-        h.attrs['test_attr_str_arr'] = np.array(b"test_string2")
-        g1.attrs['test_attr_str'] = 'test_string'
-        g1.attrs['test_attr_byte'] = b'test_byte'
-        g1.attrs['test_attr_int'] = 0
-        g1.attrs['test_attr_float'] = 1.2
+        h.attrs["test_attr_str_arr"] = np.array(b"test_string2")
+        g1.attrs["test_attr_str"] = "test_string"
+        g1.attrs["test_attr_byte"] = b"test_byte"
+        g1.attrs["test_attr_int"] = 0
+        g1.attrs["test_attr_float"] = 1.2
         for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
-            d.attrs['test_attr_str'] = 'test_string'
-            d.attrs['test_attr_byte'] = b'test_byte'
-            d.attrs['test_attr_int'] = 0
-            d.attrs['test_attr_float'] = 1.2
-            d.attrs['test_ref'] = d.ref
+            d.attrs["test_attr_str"] = "test_string"
+            d.attrs["test_attr_byte"] = b"test_byte"
+            d.attrs["test_attr_int"] = 0
+            d.attrs["test_attr_float"] = 1.2
+            d.attrs["test_ref"] = d.ref
         self.var_attrs = list(d.attrs.keys())
 
         h.close()
 
     def tearDown(self):
         """Remove the previously created test file."""
-        os.remove('test.h5')
+        os.remove("test.h5")
 
     def test_all_basic(self):
         """Test everything about the HDF5 class."""
         import xarray as xr
 
         from satpy.readers.hdf5_utils import HDF5FileHandler
-        file_handler = HDF5FileHandler('test.h5', {}, {})
+        file_handler = HDF5FileHandler("test.h5", {}, {})
 
-        for ds_name in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
+        for ds_name in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i"):
             ds = file_handler[ds_name]
             attrs = ds.attrs
-            self.assertEqual(ds.dtype, np.float32 if ds_name.endswith('f') else np.int32)
-            self.assertTupleEqual(file_handler[ds_name + '/shape'], (10, 100))
-            self.assertEqual(attrs['test_attr_str'], 'test_string')
-            self.assertEqual(attrs['test_attr_byte'], 'test_byte')
-            self.assertEqual(attrs['test_attr_int'], 0)
-            self.assertEqual(attrs['test_attr_float'], 1.2)
-            self.assertEqual(file_handler[ds_name + '/attr/test_attr_str'], 'test_string')
-            self.assertEqual(file_handler[ds_name + '/attr/test_attr_byte'], 'test_byte')
-            self.assertEqual(file_handler[ds_name + '/attr/test_attr_int'], 0)
-            self.assertEqual(file_handler[ds_name + '/attr/test_attr_float'], 1.2)
+            assert ds.dtype == (np.float32 if ds_name.endswith("f") else np.int32)
+            assert file_handler[ds_name + "/shape"] == (10, 100)
+            assert attrs["test_attr_str"] == "test_string"
+            assert attrs["test_attr_byte"] == "test_byte"
+            assert attrs["test_attr_int"] == 0
+            assert attrs["test_attr_float"] == 1.2
+            assert file_handler[ds_name + "/attr/test_attr_str"] == "test_string"
+            assert file_handler[ds_name + "/attr/test_attr_byte"] == "test_byte"
+            assert file_handler[ds_name + "/attr/test_attr_int"] == 0
+            assert file_handler[ds_name + "/attr/test_attr_float"] == 1.2
 
-        self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
-        self.assertEqual(file_handler['/attr/test_attr_byte'], 'test_byte')
-        self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
-        self.assertEqual(file_handler['/attr/test_attr_int'], 0)
-        self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
+        assert file_handler["/attr/test_attr_str"] == "test_string"
+        assert file_handler["/attr/test_attr_byte"] == "test_byte"
+        assert file_handler["/attr/test_attr_str_arr"] == "test_string2"
+        assert file_handler["/attr/test_attr_int"] == 0
+        assert file_handler["/attr/test_attr_float"] == 1.2
 
-        self.assertIsInstance(file_handler.get('ds2_f'), xr.DataArray)
-        self.assertIsNone(file_handler.get('fake_ds'))
-        self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
+        assert isinstance(file_handler.get("ds2_f"), xr.DataArray)
+        assert file_handler.get("fake_ds") is None
+        assert file_handler.get("fake_ds", "test") == "test"
 
-        self.assertTrue('ds2_f' in file_handler)
-        self.assertFalse('fake_ds' in file_handler)
+        assert "ds2_f" in file_handler
+        assert "fake_ds" not in file_handler
 
-        self.assertIsInstance(file_handler['ds2_f/attr/test_ref'], np.ndarray)
+        assert isinstance(file_handler["ds2_f/attr/test_ref"], np.ndarray)

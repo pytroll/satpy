@@ -164,16 +164,16 @@ LOG = getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
 CACHE_SIZE = 10
-NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
-                  'valid_output_index': ('y2', 'x2'),
-                  'index_array': ('y2', 'x2', 'z2')}
-BIL_COORDINATES = {'bilinear_s': ('x1', ),
-                   'bilinear_t': ('x1', ),
-                   'slices_x': ('x1', 'n'),
-                   'slices_y': ('x1', 'n'),
-                   'mask_slices': ('x1', 'n'),
-                   'out_coords_x': ('x2', ),
-                   'out_coords_y': ('y2', )}
+NN_COORDINATES = {"valid_input_index": ("y1", "x1"),
+                  "valid_output_index": ("y2", "x2"),
+                  "index_array": ("y2", "x2", "z2")}
+BIL_COORDINATES = {"bilinear_s": ("x1", ),
+                   "bilinear_t": ("x1", ),
+                   "slices_x": ("x1", "n"),
+                   "slices_y": ("x1", "n"),
+                   "mask_slices": ("x1", "n"),
+                   "out_coords_x": ("x2", ),
+                   "out_coords_y": ("y2", )}
 
 resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
@@ -184,7 +184,7 @@ def hash_dict(the_dict, the_hash=None):
     """Calculate a hash for a dictionary."""
     if the_hash is None:
         the_hash = hashlib.sha1()  # nosec
-    the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
+    the_hash.update(json.dumps(the_dict, sort_keys=True).encode("utf-8"))
     return the_hash
 
 
@@ -193,11 +193,11 @@ def get_area_file():
 
     The files are to be named `areas.yaml` or `areas.def`.
     """
-    paths = config_search_paths('areas.yaml')
+    paths = config_search_paths("areas.yaml")
     if paths:
         return paths
     else:
-        return get_config_path('areas.def')
+        return get_config_path("areas.def")
 
 
 def get_area_def(area_name):
@@ -229,13 +229,13 @@ def add_xy_coords(data_arr, area, crs=None):
     Returns (xarray.DataArray): Updated DataArray object
 
     """
-    if 'x' in data_arr.coords and 'y' in data_arr.coords:
+    if "x" in data_arr.coords and "y" in data_arr.coords:
         # x/y coords already provided
         return data_arr
-    if 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+    if "x" not in data_arr.dims or "y" not in data_arr.dims:
         # no defined x and y dimensions
         return data_arr
-    if not hasattr(area, 'get_proj_vectors'):
+    if not hasattr(area, "get_proj_vectors"):
         return data_arr
     x, y = area.get_proj_vectors()
 
@@ -245,15 +245,15 @@ def add_xy_coords(data_arr, area, crs=None):
     if crs is not None:
         units = crs.axis_info[0].unit_name
         # fix udunits/CF standard units
-        units = units.replace('metre', 'meter')
-        if units == 'degree':
-            y_attrs['units'] = 'degrees_north'
-            x_attrs['units'] = 'degrees_east'
+        units = units.replace("metre", "meter")
+        if units == "degree":
+            y_attrs["units"] = "degrees_north"
+            x_attrs["units"] = "degrees_east"
         else:
-            y_attrs['units'] = units
-            x_attrs['units'] = units
-    y = xr.DataArray(y, dims=('y',), attrs=y_attrs)
-    x = xr.DataArray(x, dims=('x',), attrs=x_attrs)
+            y_attrs["units"] = units
+            x_attrs["units"] = units
+    y = xr.DataArray(y, dims=("y",), attrs=y_attrs)
+    x = xr.DataArray(x, dims=("x",), attrs=x_attrs)
     return data_arr.assign_coords(y=y, x=x)
 
 
@@ -283,10 +283,10 @@ def add_crs_xy_coords(data_arr, area):
         # default lat/lon projection
         latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
         # otherwise get it from the area definition
-        if hasattr(area, 'crs'):
+        if hasattr(area, "crs"):
             crs = area.crs
         else:
-            proj_str = getattr(area, 'proj_str', latlon_proj)
+            proj_str = getattr(area, "proj_str", latlon_proj)
             crs = CRS.from_string(proj_str)
         data_arr = data_arr.assign_coords(crs=crs)
 
@@ -299,12 +299,12 @@ def add_crs_xy_coords(data_arr, area):
         # array).
         lons = area.lons
         lats = area.lats
-        lons.attrs.setdefault('standard_name', 'longitude')
-        lons.attrs.setdefault('long_name', 'longitude')
-        lons.attrs.setdefault('units', 'degrees_east')
-        lats.attrs.setdefault('standard_name', 'latitude')
-        lats.attrs.setdefault('long_name', 'latitude')
-        lats.attrs.setdefault('units', 'degrees_north')
+        lons.attrs.setdefault("standard_name", "longitude")
+        lons.attrs.setdefault("long_name", "longitude")
+        lons.attrs.setdefault("units", "degrees_east")
+        lats.attrs.setdefault("standard_name", "latitude")
+        lats.attrs.setdefault("long_name", "latitude")
+        lats.attrs.setdefault("units", "degrees_north")
         # See https://github.com/pydata/xarray/issues/3068
         # data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
     else:
@@ -327,7 +327,7 @@ def update_resampled_coords(old_data, new_data, new_area):
     # this *MUST* happen before we set 'crs' below otherwise any 'crs'
     # coordinate in the coordinate variables we are copying will overwrite the
     # 'crs' coordinate we just assigned to the data
-    ignore_coords = ('y', 'x', 'crs')
+    ignore_coords = ("y", "x", "crs")
     new_coords = {}
     for cname, cval in old_data.coords.items():
         # we don't want coordinates that depended on the old x/y dimensions
@@ -387,7 +387,7 @@ class KDTreeResampler(PRBaseResampler):
                         "masked pixels. Will not cache results.")
             cache_dir = None
 
-        if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
+        if radius_of_influence is None and not hasattr(self.source_geo_def, "geocentric_resolution"):
             radius_of_influence = self._adjust_radius_of_influence(radius_of_influence)
 
         kwargs = dict(source_geo_def=self.source_geo_def,
@@ -438,7 +438,7 @@ class KDTreeResampler(PRBaseResampler):
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
-        mask_name = getattr(mask, 'name', None)
+        mask_name = getattr(mask, "name", None)
         cached = {}
         for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
@@ -447,11 +447,11 @@ class KDTreeResampler(PRBaseResampler):
             elif cache_dir:
                 try:
                     filename = self._create_cache_filename(
-                        cache_dir, prefix='nn_lut-',
+                        cache_dir, prefix="nn_lut-",
                         mask=mask_name, **kwargs)
-                    fid = zarr.open(filename, 'r')
+                    fid = zarr.open(filename, "r")
                     cache = np.array(fid[idx_name])
-                    if idx_name == 'valid_input_index':
+                    if idx_name == "valid_input_index":
                         # valid input index array needs to be boolean
                         cache = cache.astype(bool)
                 except ValueError:
@@ -465,11 +465,11 @@ class KDTreeResampler(PRBaseResampler):
     def save_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Cache resampler's index arrays if there is a cache dir."""
         if cache_dir:
-            mask_name = getattr(mask, 'name', None)
+            mask_name = getattr(mask, "name", None)
             cache = self._read_resampler_attrs()
             filename = self._create_cache_filename(
-                cache_dir, prefix='nn_lut-', mask=mask_name, **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
+                cache_dir, prefix="nn_lut-", mask=mask_name, **kwargs)
+            LOG.info("Saving kd_tree neighbour info to %s", filename)
             zarr_out = xr.Dataset()
             for idx_name, coord in NN_COORDINATES.items():
                 # update the cache in place with persisted dask arrays
@@ -554,7 +554,7 @@ class BilinearResampler(PRBaseResampler):
         """Load bilinear resampling info from cache directory."""
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
-                                                   prefix='bil_lut-',
+                                                   prefix="bil_lut-",
                                                    **kwargs)
             try:
                 self.resampler.load_resampling_info(filename)
@@ -572,12 +572,12 @@ class BilinearResampler(PRBaseResampler):
         """Save bilinear resampling info to cache directory."""
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
-                                                   prefix='bil_lut-',
+                                                   prefix="bil_lut-",
                                                    **kwargs)
             # There are some old caches, move them out of the way
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
-            LOG.info('Saving BIL neighbour info to %s', filename)
+            LOG.info("Saving BIL neighbour info to %s", filename)
             try:
                 self.resampler.save_resampling_info(filename)
             except AttributeError:
@@ -592,7 +592,7 @@ class BilinearResampler(PRBaseResampler):
         del kwargs
 
         if fill_value is None:
-            fill_value = data.attrs.get('_FillValue')
+            fill_value = data.attrs.get("_FillValue")
         target_shape = self.target_geo_def.shape
 
         res = self.resampler.get_sample_from_bil_info(data,
@@ -606,7 +606,7 @@ def _move_existing_caches(cache_dir, filename):
     """Move existing cache files out of the way."""
     import os
     import shutil
-    old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
+    old_cache_dir = os.path.join(cache_dir, "moved_by_satpy")
     try:
         os.makedirs(old_cache_dir)
     except FileExistsError:
@@ -631,7 +631,7 @@ def _mean(data, y_size, x_size):
 def _repeat_by_factor(data, block_info=None):
     if block_info is None:
         return data
-    out_shape = block_info[None]['chunk-shape']
+    out_shape = block_info[None]["chunk-shape"]
     out_data = data
     for axis, axis_size in enumerate(out_shape):
         in_size = data.shape[axis]
@@ -689,15 +689,15 @@ class NativeResampler(PRBaseResampler):
             target_geo_def = self.target_geo_def
 
         # convert xarray backed with numpy array to dask array
-        if 'x' not in data.dims or 'y' not in data.dims:
+        if "x" not in data.dims or "y" not in data.dims:
             if data.ndim not in [2, 3]:
                 raise ValueError("Can only handle 2D or 3D arrays without dimensions.")
             # assume rows is the second to last axis
             y_axis = data.ndim - 2
             x_axis = data.ndim - 1
         else:
-            y_axis = data.dims.index('y')
-            x_axis = data.dims.index('x')
+            y_axis = data.dims.index("y")
+            x_axis = data.dims.index("x")
 
         out_shape = target_geo_def.shape
         in_shape = data.shape
@@ -778,24 +778,24 @@ def _get_arg_to_pass_for_skipna_handling(**kwargs):
     # FIXME this can be removed once Pyresample 1.18.0 is a Satpy requirement
 
     if PR_USE_SKIPNA:
-        if 'mask_all_nan' in kwargs:
+        if "mask_all_nan" in kwargs:
             warnings.warn(
-                'Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
-                'Continuing with default skipna=True, if not provided differently.',
+                "Argument mask_all_nan is deprecated. Please use skipna for missing values handling. "
+                "Continuing with default skipna=True, if not provided differently.",
                 DeprecationWarning,
                 stacklevel=3
             )
-            kwargs.pop('mask_all_nan')
+            kwargs.pop("mask_all_nan")
     else:
-        if 'mask_all_nan' in kwargs:
+        if "mask_all_nan" in kwargs:
             warnings.warn(
-                'Argument mask_all_nan is deprecated.'
-                'Please update Pyresample and use skipna for missing values handling.',
+                "Argument mask_all_nan is deprecated."
+                "Please update Pyresample and use skipna for missing values handling.",
                 DeprecationWarning,
                 stacklevel=3
             )
-        kwargs.setdefault('mask_all_nan', False)
-        kwargs.pop('skipna')
+        kwargs.setdefault("mask_all_nan", False)
+        kwargs.pop("skipna")
 
     return kwargs
 
@@ -832,32 +832,32 @@ class BucketResamplerBase(PRBaseResampler):
         Returns (xarray.DataArray): Data resampled to the target area
 
         """
-        if not PR_USE_SKIPNA and 'skipna' in kwargs:
-            raise ValueError('You are trying to set the skipna argument but you are using an old version of'
-                             ' Pyresample that does not support it.'
-                             'Please update Pyresample to 1.18.0 or higher to be able to use this argument.')
+        if not PR_USE_SKIPNA and "skipna" in kwargs:
+            raise ValueError("You are trying to set the skipna argument but you are using an old version of"
+                             " Pyresample that does not support it."
+                             "Please update Pyresample to 1.18.0 or higher to be able to use this argument.")
 
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
-        if data.ndim == 3 and data.dims[0] == 'bands':
-            dims = ('bands', 'y', 'x')
+        if data.ndim == 3 and data.dims[0] == "bands":
+            dims = ("bands", "y", "x")
         # Both one and two dimensional input data results in 2D output
         elif data.ndim in (1, 2):
-            dims = ('y', 'x')
+            dims = ("y", "x")
         else:
             dims = data.dims
-        LOG.debug("Resampling %s", str(data.attrs.get('_satpy_id', 'unknown')))
+        LOG.debug("Resampling %s", str(data.attrs.get("_satpy_id", "unknown")))
         result = self.compute(data_arr, **kwargs)
         coords = {}
-        if 'bands' in data.coords:
-            coords['bands'] = data.coords['bands']
+        if "bands" in data.coords:
+            coords["bands"] = data.coords["bands"]
         # Fractions are returned in a dict
         elif isinstance(result, dict):
-            coords['categories'] = sorted(result.keys())
-            dims = ('categories', 'y', 'x')
+            coords["categories"] = sorted(result.keys())
+            dims = ("categories", "y", "x")
             new_result = []
-            for cat in coords['categories']:
+            for cat in coords["categories"]:
                 new_result.append(result[cat])
             result = da.stack(new_result)
         if result.ndim > len(dims):
@@ -865,13 +865,13 @@ class BucketResamplerBase(PRBaseResampler):
 
         # Adjust some attributes
         if "BucketFraction" in str(self):
-            attrs['units'] = ''
-            attrs['calibration'] = ''
-            attrs['standard_name'] = 'area_fraction'
+            attrs["units"] = ""
+            attrs["calibration"] = ""
+            attrs["standard_name"] = "area_fraction"
         elif "BucketCount" in str(self):
-            attrs['units'] = ''
-            attrs['calibration'] = ''
-            attrs['standard_name'] = 'number_of_observations'
+            attrs["units"] = ""
+            attrs["calibration"] = ""
+            attrs["standard_name"] = "number_of_observations"
 
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
@@ -1024,7 +1024,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
-        resampler = 'kd_tree'
+        resampler = "kd_tree"
 
     if isinstance(resampler, PRBaseResampler):
         raise ValueError("Trying to create a resampler when one already "
@@ -1034,7 +1034,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
         if resampler_class is None:
             if resampler == "gradient_search":
                 warnings.warn(
-                    'Gradient search resampler not available. Maybe missing `shapely`?',
+                    "Gradient search resampler not available. Maybe missing `shapely`?",
                     stacklevel=2
                 )
             raise KeyError("Resampler '%s' not available" % resampler)
@@ -1075,7 +1075,7 @@ def resample(source_area, data, destination_area,
 def get_fill_value(dataset):
     """Get the fill value of the *dataset*, defaulting to np.nan."""
     if np.issubdtype(dataset.dtype, np.integer):
-        return dataset.attrs.get('_FillValue', np.nan)
+        return dataset.attrs.get("_FillValue", np.nan)
     return np.nan
 
 
@@ -1099,11 +1099,11 @@ def resample_dataset(dataset, destination_area, **kwargs):
         source_area = dataset.attrs["area"]
     except KeyError:
         LOG.info("Cannot reproject dataset %s, missing area info",
-                 dataset.attrs['name'])
+                 dataset.attrs["name"])
 
         return dataset
 
-    fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
+    fill_value = kwargs.pop("fill_value", get_fill_value(dataset))
     new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()

@@ -58,19 +58,19 @@ class GAASPFileHandler(BaseFileHandler):
     """Generic file handler for GAASP output files."""
 
     y_dims: Tuple[str, ...] = (
-        'Number_of_Scans',
+        "Number_of_Scans",
     )
     x_dims: Tuple[str, ...] = (
-        'Number_of_hi_rez_FOVs',
-        'Number_of_low_rez_FOVs',
+        "Number_of_hi_rez_FOVs",
+        "Number_of_low_rez_FOVs",
     )
     time_dims = (
-        'Time_Dimension',
+        "Time_Dimension",
     )
     is_gridded = False
     dim_resolutions = {
-        'Number_of_hi_rez_FOVs': 5000,
-        'Number_of_low_rez_FOVs': 10000,
+        "Number_of_hi_rez_FOVs": 5000,
+        "Number_of_low_rez_FOVs": 10000,
     }
 
     @cached_property
@@ -84,39 +84,39 @@ class GAASPFileHandler(BaseFileHandler):
                              chunks=chunks)
 
         if len(self.time_dims) == 1:
-            nc = nc.rename({self.time_dims[0]: 'time'})
+            nc = nc.rename({self.time_dims[0]: "time"})
         return nc
 
     @property
     def start_time(self):
         """Get start time of observation."""
         try:
-            return self.filename_info['start_time']
+            return self.filename_info["start_time"]
         except KeyError:
-            time_str = self.nc.attrs['time_coverage_start']
+            time_str = self.nc.attrs["time_coverage_start"]
             return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get end time of observation."""
         try:
-            return self.filename_info['end_time']
+            return self.filename_info["end_time"]
         except KeyError:
-            time_str = self.nc.attrs['time_coverage_end']
+            time_str = self.nc.attrs["time_coverage_end"]
             return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def sensor_names(self):
         """Sensors who have data in this file."""
-        return {self.nc.attrs['instrument_name'].lower()}
+        return {self.nc.attrs["instrument_name"].lower()}
 
     @property
     def platform_name(self):
         """Name of the platform whose data is stored in this file."""
-        return self.nc.attrs['platform_name']
+        return self.nc.attrs["platform_name"]
 
     def _get_var_name_without_suffix(self, var_name):
-        var_suffix = self.filetype_info.get('var_suffix', "")
+        var_suffix = self.filetype_info.get("var_suffix", "")
         if var_suffix:
             var_name = var_name[:-len(var_suffix)]
         return var_name
@@ -124,8 +124,8 @@ class GAASPFileHandler(BaseFileHandler):
     def _scale_data(self, data_arr, attrs):
         # handle scaling
         # take special care for integer/category fields
-        scale_factor = attrs.pop('scale_factor', 1.)
-        add_offset = attrs.pop('add_offset', 0.)
+        scale_factor = attrs.pop("scale_factor", 1.)
+        add_offset = attrs.pop("add_offset", 0.)
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
@@ -138,19 +138,19 @@ class GAASPFileHandler(BaseFileHandler):
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
         if np.issubdtype(data_arr_dtype, np.timedelta64):
-            return np.timedelta64('NaT')
+            return np.timedelta64("NaT")
         if np.issubdtype(data_arr_dtype, np.datetime64):
-            return np.datetime64('NaT')
+            return np.datetime64("NaT")
         return np.nan
 
     def _fill_data(self, data_arr, attrs):
-        fill_value = attrs.pop('_FillValue', None)
+        fill_value = attrs.pop("_FillValue", None)
         is_int = np.issubdtype(data_arr.dtype, np.integer)
-        has_flag_comment = 'comment' in attrs
+        has_flag_comment = "comment" in attrs
         if is_int and has_flag_comment:
             # category product
             fill_out = fill_value
-            attrs['_FillValue'] = fill_out
+            attrs["_FillValue"] = fill_out
         else:
             fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
@@ -159,19 +159,19 @@ class GAASPFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataid, ds_info):
         """Load, scale, and collect metadata for the specified DataID."""
-        orig_var_name = self._get_var_name_without_suffix(dataid['name'])
+        orig_var_name = self._get_var_name_without_suffix(dataid["name"])
         data_arr = self.nc[orig_var_name].copy()
         attrs = data_arr.attrs.copy()
         data_arr, attrs = self._scale_data(data_arr, attrs)
         data_arr, attrs = self._fill_data(data_arr, attrs)
 
         attrs.update({
-            'platform_name': self.platform_name,
-            'sensor': sorted(self.sensor_names)[0],
-            'start_time': self.start_time,
-            'end_time': self.end_time,
+            "platform_name": self.platform_name,
+            "sensor": sorted(self.sensor_names)[0],
+            "start_time": self.start_time,
+            "end_time": self.end_time,
         })
-        dim_map = dict(zip(data_arr.dims, ('y', 'x')))
+        dim_map = dict(zip(data_arr.dims, ("y", "x")))
         # rename dims
         data_arr = data_arr.rename(**dim_map)
         # drop coords, the base reader will recreate these
@@ -187,27 +187,27 @@ class GAASPFileHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+            yield self.file_type_matches(ds_info["file_type"]), ds_info
 
     def _add_lonlat_coords(self, data_arr, ds_info):
         lat_coord = None
         lon_coord = None
         for coord_name in data_arr.coords:
-            if 'longitude' in coord_name.lower():
+            if "longitude" in coord_name.lower():
                 lon_coord = coord_name
-            if 'latitude' in coord_name.lower():
+            if "latitude" in coord_name.lower():
                 lat_coord = coord_name
-        ds_info['coordinates'] = [lon_coord, lat_coord]
+        ds_info["coordinates"] = [lon_coord, lat_coord]
 
     def _get_ds_info_for_data_arr(self, var_name, data_arr):
-        var_suffix = self.filetype_info.get('var_suffix', "")
+        var_suffix = self.filetype_info.get("var_suffix", "")
         ds_info = {
-            'file_type': self.filetype_info['file_type'],
-            'name': var_name + var_suffix,
+            "file_type": self.filetype_info["file_type"],
+            "name": var_name + var_suffix,
         }
         x_dim_name = data_arr.dims[1]
         if x_dim_name in self.dim_resolutions:
-            ds_info['resolution'] = self.dim_resolutions[x_dim_name]
+            ds_info["resolution"] = self.dim_resolutions[x_dim_name]
         if not self.is_gridded and data_arr.coords:
             self._add_lonlat_coords(data_arr, ds_info)
         return ds_info
@@ -245,13 +245,13 @@ class GAASPGriddedFileHandler(GAASPFileHandler):
     """GAASP file handler for gridded products like SEAICE."""
 
     y_dims = (
-        'Number_of_Y_Dimension',
+        "Number_of_Y_Dimension",
     )
     x_dims = (
-        'Number_of_X_Dimension',
+        "Number_of_X_Dimension",
     )
     dim_resolutions = {
-        'Number_of_X_Dimension': 10000,
+        "Number_of_X_Dimension": 10000,
     }
     is_gridded = True
 
@@ -266,12 +266,12 @@ class GAASPGriddedFileHandler(GAASPFileHandler):
 
     def get_area_def(self, dataid):
         """Create area definition for equirectangular projected data."""
-        var_suffix = self.filetype_info.get('var_suffix', '')
-        area_name = 'gaasp{}'.format(var_suffix)
-        orig_var_name = self._get_var_name_without_suffix(dataid['name'])
+        var_suffix = self.filetype_info.get("var_suffix", "")
+        area_name = "gaasp{}".format(var_suffix)
+        orig_var_name = self._get_var_name_without_suffix(dataid["name"])
         data_shape = self.nc[orig_var_name].shape
-        crs = CRS(self.filetype_info['grid_epsg'])
-        res = dataid['resolution']
+        crs = CRS(self.filetype_info["grid_epsg"])
+        res = dataid["resolution"]
         extent = self._get_extents(data_shape, res)
         area_def = AreaDefinition(
             area_name,
@@ -289,8 +289,8 @@ class GAASPLowResFileHandler(GAASPFileHandler):
     """GAASP file handler for files that only have low resolution products."""
 
     x_dims = (
-        'Number_of_low_rez_FOVs',
+        "Number_of_low_rez_FOVs",
     )
     dim_resolutions = {
-        'Number_of_low_rez_FOVs': 10000,
+        "Number_of_low_rez_FOVs": 10000,
     }

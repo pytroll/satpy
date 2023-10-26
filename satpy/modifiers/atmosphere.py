@@ -93,28 +93,28 @@ class PSPRayleighReflectance(ModifierBase):
         ssadiff = compute_relative_azimuth(sata, suna)
         del sata, suna
 
-        atmosphere = self.attrs.get('atmosphere', 'us-standard')
-        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        reduce_lim_low = abs(self.attrs.get('reduce_lim_low', 70))
-        reduce_lim_high = abs(self.attrs.get('reduce_lim_high', 105))
-        reduce_strength = np.clip(self.attrs.get('reduce_strength', 0), 0, 1)
+        atmosphere = self.attrs.get("atmosphere", "us-standard")
+        aerosol_type = self.attrs.get("aerosol_type", "marine_clean_aerosol")
+        reduce_lim_low = abs(self.attrs.get("reduce_lim_low", 70))
+        reduce_lim_high = abs(self.attrs.get("reduce_lim_high", 105))
+        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1)
 
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
-                    atmosphere, aerosol_type, vis.attrs['name'])
-        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                    atmosphere, aerosol_type, vis.attrs["name"])
+        corrector = Rayleigh(vis.attrs["platform_name"], vis.attrs["sensor"],
                              atmosphere=atmosphere,
                              aerosol_type=aerosol_type)
 
         try:
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['name'],
+                                                      vis.attrs["name"],
                                                       red.data)
         except (KeyError, IOError):
-            logger.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
+            logger.warning("Could not get the reflectance correction using band name: %s", vis.attrs["name"])
             logger.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['wavelength'][1],
+                                                      vis.attrs["wavelength"][1],
                                                       red.data)
 
         if reduce_strength > 0:
@@ -155,13 +155,13 @@ class PSPAtmosphericalCorrection(ModifierBase):
             satz = get_satellite_zenith_angle(band)
         satz = satz.data  # get dask array underneath
 
-        logger.info('Correction for limb cooling')
-        corrector = AtmosphericalCorrection(band.attrs['platform_name'],
-                                            band.attrs['sensor'])
+        logger.info("Correction for limb cooling")
+        corrector = AtmosphericalCorrection(band.attrs["platform_name"],
+                                            band.attrs["sensor"])
 
         atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
                                  corrector=corrector,
-                                 band_name=band.attrs['name'],
+                                 band_name=band.attrs["name"],
                                  meta=np.array((), dtype=band.dtype))
         proj = xr.DataArray(atm_corr, attrs=band.attrs,
                             dims=band.dims, coords=band.coords)
@@ -187,7 +187,7 @@ class CO2Corrector(ModifierBase):
     def __call__(self, projectables, optional_datasets=None, **info):
         """Apply correction."""
         ir_039, ir_108, ir_134 = projectables
-        logger.info('Applying CO2 correction')
+        logger.info("Applying CO2 correction")
         dt_co2 = (ir_108 - ir_134) / 4.0
         rcorr = ir_108 ** 4 - (ir_108 - dt_co2) ** 4
         t4_co2corr = (ir_039 ** 4 + rcorr).clip(0.0) ** 0.25

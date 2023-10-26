@@ -36,26 +36,26 @@ class EDRFileHandler(HDF5FileHandler):
     @property
     def start_orbit_number(self):
         """Get the start orbit number."""
-        return self.filename_info['orbit']
+        return self.filename_info["orbit"]
 
     @property
     def end_orbit_number(self):
         """Get the end orbit number."""
-        return self.filename_info['orbit']
+        return self.filename_info["orbit"]
 
     @property
     def platform_name(self):
         """Get the platform name."""
-        return self.filename_info['platform_shortname']
+        return self.filename_info["platform_shortname"]
 
     @property
     def sensor_name(self):
         """Get the sensor name."""
-        return self.filename_info['instrument_shortname']
+        return self.filename_info["instrument_shortname"]
 
     def get_shape(self, ds_id, ds_info):
         """Get the shape."""
-        return self[ds_info['file_key'] + '/shape']
+        return self[ds_info["file_key"] + "/shape"]
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         """Adjust scaling factors."""
@@ -68,20 +68,20 @@ class EDRFileHandler(HDF5FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get the metadata."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
-        info = getattr(self[var_path], 'attrs', {}).copy()
-        info.pop('DIMENSION_LIST', None)
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
+        info = getattr(self[var_path], "attrs", {}).copy()
+        info.pop("DIMENSION_LIST", None)
         info.update(ds_info)
 
-        file_units = ds_info.get('file_units')
+        file_units = ds_info.get("file_units")
         if file_units is None:
-            file_units = self.get(var_path + '/attr/units', self.get(var_path + '/attr/Units'))
+            file_units = self.get(var_path + "/attr/units", self.get(var_path + "/attr/Units"))
         if file_units is None:
             raise KeyError("File variable '{}' has no units attribute".format(var_path))
-        if file_units == 'deg':
-            file_units = 'degrees'
-        elif file_units == 'Unitless':
-            file_units = '1'
+        if file_units == "deg":
+            file_units = "degrees"
+        elif file_units == "Unitless":
+            file_units = "1"
 
         info.update({
             "shape": self.get_shape(dataset_id, ds_info),
@@ -93,32 +93,32 @@ class EDRFileHandler(HDF5FileHandler):
             "end_orbit": self.end_orbit_number,
         })
         info.update(dataset_id.to_dict())
-        if 'standard_name' not in ds_info:
-            info['standard_name'] = self.get(var_path + '/attr/Title', dataset_id['name'])
+        if "standard_name" not in ds_info:
+            info["standard_name"] = self.get(var_path + "/attr/Title", dataset_id["name"])
         return info
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        valid_min, valid_max = self.get(var_path + '/attr/valid_range',
-                                        self.get(var_path + '/attr/ValidRange', (None, None)))
+        valid_min, valid_max = self.get(var_path + "/attr/valid_range",
+                                        self.get(var_path + "/attr/ValidRange", (None, None)))
         if valid_min is None or valid_max is None:
-            valid_min = self.get(var_path + '/attr/valid_min', None)
-            valid_max = self.get(var_path + '/attr/valid_max', None)
+            valid_min = self.get(var_path + "/attr/valid_min", None)
+            valid_max = self.get(var_path + "/attr/valid_max", None)
             if valid_min is None or valid_max is None:
                 raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
-        fill_name = var_path + '/attr/{}'.format(self._fill_name)
+        fill_name = var_path + "/attr/{}".format(self._fill_name)
         if fill_name in self:
             fill_value = self[fill_name]
         else:
             fill_value = None
 
         data = self[var_path]
-        scale_factor_path = var_path + '/attr/ScaleFactor'
+        scale_factor_path = var_path + "/attr/ScaleFactor"
         if scale_factor_path in self:
             scale_factor = self[scale_factor_path]
-            scale_offset = self[var_path + '/attr/Offset']
+            scale_offset = self[var_path + "/attr/Offset"]
         else:
             scale_factor = None
             scale_offset = None
@@ -130,14 +130,14 @@ class EDRFileHandler(HDF5FileHandler):
             data = data.where(data != fill_value)
 
         factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
+        factors = self.adjust_scaling_factors(factors, metadata["file_units"], ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
             data = data * factors[0] + factors[1]
 
         data.attrs.update(metadata)
-        if 'DIMENSION_LIST' in data.attrs:
-            data.attrs.pop('DIMENSION_LIST')
-            dimensions = self.get_reference(var_path, 'DIMENSION_LIST')
+        if "DIMENSION_LIST" in data.attrs:
+            data.attrs.pop("DIMENSION_LIST")
+            dimensions = self.get_reference(var_path, "DIMENSION_LIST")
             for dim, coord in zip(data.dims, dimensions):
                 data.coords[dim] = coord[0]
         return data

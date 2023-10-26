@@ -37,69 +37,70 @@ class TestSceneSaving:
         """Save a dataset using 'save_datasets'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
-        scn['test'] = ds1
+        scn["test"] = ds1
         scn.save_datasets(base_dir=tmp_path)
-        assert os.path.isfile(os.path.join(tmp_path, 'test_20180101_000000.tif'))
+        assert os.path.isfile(os.path.join(tmp_path, "test_20180101_000000.tif"))
 
     def test_save_datasets_by_ext(self, tmp_path):
         """Save a dataset using 'save_datasets' with 'filename'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
-        scn['test'] = ds1
+        scn["test"] = ds1
 
         from satpy.writers.simple_image import PillowWriter
         save_image_mock = spy_decorator(PillowWriter.save_image)
-        with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
-            scn.save_datasets(base_dir=tmp_path, filename='{name}.png')
+        with mock.patch.object(PillowWriter, "save_image", save_image_mock):
+            scn.save_datasets(base_dir=tmp_path, filename="{name}.png")
         save_image_mock.mock.assert_called_once()
-        assert os.path.isfile(os.path.join(tmp_path, 'test.png'))
+        assert os.path.isfile(os.path.join(tmp_path, "test.png"))
 
     def test_save_datasets_bad_writer(self, tmp_path):
         """Save a dataset using 'save_datasets' and a bad writer."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime.utcnow()}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime.utcnow()}
         )
         scn = Scene()
-        scn['test'] = ds1
+        scn["test"] = ds1
         pytest.raises(ValueError,
                       scn.save_datasets,
-                      writer='_bad_writer_',
-                      base_dir=tmp_path)
+                      writer="_bad_writer_",
+                      base_dir=tmp_path,
+                      match="Unknown writer '_bad_writer_'")
 
     def test_save_datasets_missing_wishlist(self, tmp_path):
         """Calling 'save_datasets' with no valid datasets."""
         scn = Scene()
-        scn._wishlist.add(make_cid(name='true_color'))
+        scn._wishlist.add(make_cid(name="true_color"))
         pytest.raises(RuntimeError,
                       scn.save_datasets,
-                      writer='geotiff',
+                      writer="geotiff",
                       base_dir=tmp_path)
         pytest.raises(KeyError,
                       scn.save_datasets,
-                      datasets=['no_exist'])
+                      datasets=["no_exist"])
 
     def test_save_dataset_default(self, tmp_path):
         """Save a dataset using 'save_dataset'."""
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
-        scn['test'] = ds1
-        scn.save_dataset('test', base_dir=tmp_path)
-        assert os.path.isfile(os.path.join(tmp_path, 'test_20180101_000000.tif'))
+        scn["test"] = ds1
+        scn.save_dataset("test", base_dir=tmp_path)
+        assert os.path.isfile(os.path.join(tmp_path, "test_20180101_000000.tif"))

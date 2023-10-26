@@ -70,7 +70,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         if not self.url:
             return
         reg_files = self.register_data_files([{
-            'url': self.url, 'known_hash': self.known_hash}
+            "url": self.url, "known_hash": self.known_hash}
         ])
         return reg_files[0]
 

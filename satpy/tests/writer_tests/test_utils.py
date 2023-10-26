@@ -27,9 +27,9 @@ class WriterUtilsTest(unittest.TestCase):
 
     def test_flatten_dict(self):
         """Test dictionary flattening."""
-        d = {'a': 1, 'b': {'c': 1, 'd': {'e': 1, 'f': {'g': [1, 2]}}}}
-        expected = {'a': 1,
-                    'b_c': 1,
-                    'b_d_e': 1,
-                    'b_d_f_g': [1, 2]}
-        self.assertDictEqual(wutils.flatten_dict(d), expected)
+        d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
+        expected = {"a": 1,
+                    "b_c": 1,
+                    "b_d_e": 1,
+                    "b_d_f_g": [1, 2]}
+        assert wutils.flatten_dict(d) == expected

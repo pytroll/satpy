@@ -26,11 +26,11 @@ import pytest
 
 import satpy
 
-TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
+TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), "etc")
 
 
 @pytest.fixture(autouse=True)
-def reset_satpy_config(tmpdir):
+def _reset_satpy_config(tmpdir):
     """Set satpy config to logical defaults for tests."""
     test_config = {
         "cache_dir": str(tmpdir / "cache"),
@@ -44,13 +44,13 @@ def reset_satpy_config(tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def clear_function_caches():
+def _clear_function_caches():
     """Clear out global function-level caches that may cause conflicts between tests."""
     from satpy.composites.config_loader import load_compositor_configs_for_sensor
     load_compositor_configs_for_sensor.cache_clear()
 
 
-@pytest.fixture
+@pytest.fixture()
 def include_test_etc():
     """Tell Satpy to use the config 'etc' directory from the tests directory."""
     with satpy.config.set(config_path=[TEST_ETC_DIR]):

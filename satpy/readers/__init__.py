@@ -37,7 +37,7 @@ LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
-PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc', 'viirs_l2_cloud_mask_nc': 'viirs_edr'}
+PENDING_OLD_READER_NAMES = {"fci_l1c_fdhsi": "fci_l1c_nc", "viirs_l2_cloud_mask_nc": "viirs_edr"}
 OLD_READER_NAMES: dict[str, str] = {}
 
 
@@ -171,7 +171,7 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
         if group_keys is None:
-            group_keys = reader_instance.info.get('group_keys', ('start_time',))
+            group_keys = reader_instance.info.get("group_keys", ("start_time",))
         file_keys[reader_name] = []
         # make a copy because filename_items_for_filetype will modify inplace
         files_to_sort = set(files_to_sort)
@@ -301,7 +301,7 @@ def _get_keys_with_empty_values(grp):
 def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the extracted reader metadata."""
     reader_config = load_yaml_reader_configs(*config_files, loader=loader)
-    return reader_config['reader']
+    return reader_config["reader"]
 
 
 def load_reader(reader_configs, **reader_kwargs):
@@ -324,16 +324,16 @@ def configs_for_reader(reader=None):
 
         reader = get_valid_reader_names(reader)
         # given a config filename or reader name
-        config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
+        config_files = [r if r.endswith(".yaml") else r + ".yaml" for r in reader]
     else:
-        paths = get_entry_points_config_dirs('satpy.readers')
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'), search_dirs=paths)
+        paths = get_entry_points_config_dirs("satpy.readers")
+        reader_configs = glob_config(os.path.join("readers", "*.yaml"), search_dirs=paths)
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
-        paths = get_entry_points_config_dirs('satpy.readers')
+        paths = get_entry_points_config_dirs("satpy.readers")
         reader_configs = config_search_paths(
             os.path.join("readers", config_basename),
             search_dirs=paths, check_exists=True)
@@ -393,9 +393,9 @@ def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
             LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
-        readers.append(reader_info if as_dict else reader_info['name'])
+        readers.append(reader_info if as_dict else reader_info["name"])
     if as_dict:
-        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+        readers = sorted(readers, key=lambda reader_info: reader_info["name"])
     else:
         readers = sorted(readers)
     return readers
@@ -467,13 +467,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     """
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
-    filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
+    filter_parameters = filter_parameters or reader_kwargs.get("filter_parameters", {})
     sensor_supported = False
 
     if start_time or end_time:
-        filter_parameters['start_time'] = start_time
-        filter_parameters['end_time'] = end_time
-    reader_kwargs['filter_parameters'] = filter_parameters
+        filter_parameters["start_time"] = start_time
+        filter_parameters["end_time"] = end_time
+    reader_kwargs["filter_parameters"] = filter_parameters
 
     for reader_configs in configs_for_reader(reader):
         (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
@@ -509,7 +509,7 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
     try:
         reader_instance = load_reader(reader_configs, **reader_kwargs)
     except (KeyError, IOError, yaml.YAMLError) as err:
-        LOG.info('Cannot use %s', str(reader_configs))
+        LOG.info("Cannot use %s", str(reader_configs))
         LOG.debug(str(err))
         if reader and (isinstance(reader, str) or len(reader) == 1):
             # if it is a single reader then give a more usable error
@@ -563,7 +563,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
                     reader_configs,
                     **reader_kwargs[None if reader is None else reader[idx]])
         except (KeyError, IOError, yaml.YAMLError) as err:
-            LOG.info('Cannot use %s', str(reader_configs))
+            LOG.info("Cannot use %s", str(reader_configs))
             LOG.debug(str(err))
             continue
 
@@ -644,7 +644,7 @@ def _get_reader_kwargs(reader, reader_kwargs):
     reader_kwargs_without_filter = {}
     for (k, v) in reader_kwargs.items():
         reader_kwargs_without_filter[k] = v.copy()
-        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+        reader_kwargs_without_filter[k].pop("filter_parameters", None)
 
     return (reader_kwargs, reader_kwargs_without_filter)
 

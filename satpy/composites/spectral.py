@@ -149,7 +149,7 @@ class NDVIHybridGreen(SpectralBlender):
     def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
         """Initialize class and set the NDVI limits, blending fraction limits and strength."""
         if strength <= 0.0:
-            raise ValueError(f"Expected stength greater than 0.0, got {strength}.")
+            raise ValueError(f"Expected strength greater than 0.0, got {strength}.")
 
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max

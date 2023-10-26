@@ -29,46 +29,46 @@ import numpy as np
 # bufr file distributed over EUMETCAST
 
 msg = {
-    'unpack': 1,
-    'inputDelayedDescriptorReplicationFactor': 5,
-    'edition': 4,
-    'masterTableNumber': 0,
-    'bufrHeaderCentre': 254,
-    'bufrHeaderSubCentre': 0,
-    'updateSequenceNumber': 0,
-    'dataCategory': 3,
-    'internationalDataSubCategory': 255,
-    'dataSubCategory': 230,
-    'masterTablesVersionNumber': 31,
-    'localTablesVersionNumber': 0,
-    'typicalYear': 2020,
-    'typicalMonth': 2,
-    'typicalDay': 4,
-    'typicalHour': 8,
-    'typicalMinute': 59,
-    'typicalSecond': 0,
-    'numberOfSubsets': 120,
-    'observedData': 1,
-    'compressedData': 1,
-    'unexpandedDescriptors': np.array([
+    "unpack": 1,
+    "inputDelayedDescriptorReplicationFactor": 5,
+    "edition": 4,
+    "masterTableNumber": 0,
+    "bufrHeaderCentre": 254,
+    "bufrHeaderSubCentre": 0,
+    "updateSequenceNumber": 0,
+    "dataCategory": 3,
+    "internationalDataSubCategory": 255,
+    "dataSubCategory": 230,
+    "masterTablesVersionNumber": 31,
+    "localTablesVersionNumber": 0,
+    "typicalYear": 2020,
+    "typicalMonth": 2,
+    "typicalDay": 4,
+    "typicalHour": 8,
+    "typicalMinute": 59,
+    "typicalSecond": 0,
+    "numberOfSubsets": 120,
+    "observedData": 1,
+    "compressedData": 1,
+    "unexpandedDescriptors": np.array([
         1007,   1031,  25060,   2019,   2020,   4001,   4002,   4003,   4004,   4005,
         4006,   5040, 201133,   5041, 201000,   5001,   6001,   5043,   7024,   5021,
         7025,   5022,   7007,  40068,   7002,  15045,  12080, 102000,  31001,   7007,
         15045], dtype=int),
-    '#1#satelliteIdentifier': 4,
-    '#1#centre': 254,
-    '#1#softwareIdentification': 605,
-    '#1#satelliteInstruments': 221,
-    '#1#satelliteClassification': 61,
-    '#1#year': 2020,
-    '#1#month': 2,
-    '#1#day': 4,
-    '#1#hour': 9,
-    '#1#minute': 1,
-    '#1#second': 11,
-    '#1#orbitNumber': 68984,
-    '#1#scanLineNumber': 447,
-    '#1#latitude': np.array([
+    "#1#satelliteIdentifier": 4,
+    "#1#centre": 254,
+    "#1#softwareIdentification": 605,
+    "#1#satelliteInstruments": 221,
+    "#1#satelliteClassification": 61,
+    "#1#year": 2020,
+    "#1#month": 2,
+    "#1#day": 4,
+    "#1#hour": 9,
+    "#1#minute": 1,
+    "#1#second": 11,
+    "#1#orbitNumber": 68984,
+    "#1#scanLineNumber": 447,
+    "#1#latitude": np.array([
         -33.4055, -33.6659, -33.738,  -33.4648, -33.263,  -33.5027, -33.5673, -33.3172,
         -33.1332, -33.3564, -33.4151, -33.1832, -33.0132, -33.2232, -33.2771, -33.0596,
         -32.903,  -33.1021, -33.1522, -32.9466, -32.7982, -32.9884, -33.0354, -32.8395,
@@ -85,7 +85,7 @@ msg = {
         -30.4071, -30.6153, -30.7036, -30.4967, -30.146,  -30.3672, -30.4712, -30.2521,
         -29.8276, -30.0649, -30.1911, -29.9569, -29.4268, -29.6844, -29.8436, -29.5903]),
 
-    '#1#longitude': np.array([
+    "#1#longitude": np.array([
         2.53790e+00,  2.49440e+00,  3.08690e+00,  3.12690e+00,  1.15600e+00,
         1.11230e+00,  1.59640e+00,  1.63750e+00, -3.70000e-03, -4.73000e-02,
         3.61900e-01,  4.03500e-01, -1.00010e+00, -1.04340e+00, -6.88300e-01,
@@ -111,7 +111,7 @@ msg = {
         -1.59045e+01, -1.58264e+01, -1.73549e+01, -1.74460e+01, -1.69944e+01,
         -1.69085e+01, -1.87277e+01, -1.88302e+01, -1.82832e+01, -1.81873e+01]),
 
-    '#1#fieldOfViewNumber': np.array([
+    "#1#fieldOfViewNumber": np.array([
         1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,
         19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,
         37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,
@@ -120,7 +120,7 @@ msg = {
         91,  92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
         109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120]),
 
-    '#1#satelliteZenithAngle': np.array([
+    "#1#satelliteZenithAngle": np.array([
         56.64, 56.64, 58.38, 58.37, 52.15, 52.15, 53.8,  53.79, 47.84, 47.84, 49.42, 49.42,
         43.67, 43.67, 45.21, 45.2,  39.59, 39.59, 41.1,  41.09, 35.59, 35.59, 37.08, 37.07,
         31.65, 31.65, 33.11, 33.1,  27.75, 27.75, 29.2,  29.19, 23.89, 23.89, 25.33, 25.32,
@@ -133,7 +133,7 @@ msg = {
         49.52, 49.53, 47.94, 47.94, 53.89, 53.9,  52.25, 52.25, 58.48, 58.48, 56.74, 56.75]),
 
 
-    '#1#bearingOrAzimuth': np.array([
+    "#1#bearingOrAzimuth": np.array([
         276.93, 278.61, 278.27, 276.61, 277.64, 279.42, 279.14, 277.38, 278.22, 280.11,
         279.88, 278.01, 278.69, 280.72, 280.51, 278.51, 279.09, 281.3,  281.11, 278.94,
         279.41, 281.83, 281.64, 279.28, 279.68, 282.36, 282.18, 279.58, 279.88, 282.9,
@@ -147,7 +147,7 @@ msg = {
         107.74, 105.67, 105.47, 107.64, 108.11, 106.2,  105.99, 107.98, 108.54, 106.76,
         106.53, 108.38, 109.06, 107.39, 107.14, 108.87, 109.7,  108.13, 107.83, 109.46]),
 
-    '#1#solarZenithAngle': np.array([
+    "#1#solarZenithAngle": np.array([
         44.36, 44.44, 43.98, 43.89, 45.47, 45.54, 45.16, 45.08, 46.4,  46.47, 46.14, 46.07,
         47.21, 47.27, 46.99, 46.92, 47.92, 47.98, 47.73, 47.67, 48.56, 48.62, 48.39, 48.33,
         49.15, 49.21, 49.,   48.94, 49.7,  49.75, 49.55, 49.5,  50.21, 50.26, 50.07, 50.02,
@@ -160,7 +160,7 @@ msg = {
         59.98, 60.04, 59.70, 59.64, 60.98, 61.05, 60.65, 60.59, 62.20, 62.27, 61.78, 61.72]),
 
 
-    '#1#solarAzimuth': np.array([
+    "#1#solarAzimuth": np.array([
         78.89, 78.66, 78.16, 78.41, 80.00, 79.80, 79.40, 79.62, 80.92, 80.74, 80.40, 80.6,
         81.69, 81.53, 81.24, 81.42, 82.36, 82.21, 81.96, 82.12, 82.96, 82.82, 82.60, 82.74,
         83.49, 83.36, 83.16, 83.3,  83.98, 83.86, 83.68, 83.80, 84.43, 84.32, 84.15, 84.27,
@@ -172,11 +172,11 @@ msg = {
         90.58, 90.49, 90.31, 90.4,  91.09, 91.,   90.81, 90.89, 91.66, 91.57, 91.35, 91.44,
         92.29, 92.20, 91.95, 92.04, 93.02, 92.93, 92.64, 92.73, 93.87, 93.79, 93.45, 93.54]),
 
-    '#1#height': 83270,
-    '#1#generalRetrievalQualityFlagForSo2': 9,
-    '#2#height': -1e+100,
-    '#1#sulphurDioxide': -1e+100,
-    '#1#brightnessTemperatureRealPart': np.array([
+    "#1#height": 83270,
+    "#1#generalRetrievalQualityFlagForSo2": 9,
+    "#2#height": -1e+100,
+    "#1#sulphurDioxide": -1e+100,
+    "#1#brightnessTemperatureRealPart": np.array([
         0.11,  0.11, -0.07,  0.08,  0.13,  0.15,  0.10,  0.06, -0.02, -0.03,  0.08,  0.17,
         -0.05,  0.12,  0.08, -0.06,  0.15,  0.08, -0.04, -0.01,  0.06,  0.17, -0.01,  0.15,
         0.18,  0.05,  0.11, -0.03,  0.09,  0.02,  0.04,  0.10,  0.00,  0.00,  0.01,  0.18,
@@ -188,8 +188,8 @@ msg = {
         0.08, -0.05, -0.08,  0.41, -0.19, -0.22, -0.03,  0.11, -0.26, -0.33, -0.08,  0.03,
         -0.05,  0.02,  0.17, -0.10,  0.01,  0.01,  0.05,  0.01,  0.15, -0.06, -0.14,  0.38]),
 
-    '#3#height': 7000,
-    '#2#sulphurDioxide': np.array([
+    "#3#height": 7000,
+    "#2#sulphurDioxide": np.array([
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
@@ -209,8 +209,8 @@ msg = {
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100]),
 
-    '#4#height': 10000,
-    '#3#sulphurDioxide': np.array([
+    "#4#height": 10000,
+    "#3#sulphurDioxide": np.array([
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
@@ -227,8 +227,8 @@ msg = {
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100]),
 
-    '#5#height': 13000,
-    '#4#sulphurDioxide': np.array([
+    "#5#height": 13000,
+    "#4#sulphurDioxide": np.array([
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
@@ -245,8 +245,8 @@ msg = {
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100]),
 
-    '#6#height': 16000,
-    '#5#sulphurDioxide': np.array([
+    "#6#height": 16000,
+    "#5#sulphurDioxide": np.array([
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
@@ -263,8 +263,8 @@ msg = {
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100]),
 
-    '#7#height': 25000,
-    '#6#sulphurDioxide': np.array([
+    "#7#height": 25000,
+    "#6#sulphurDioxide": np.array([
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
         -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100, -1.0e+100,
@@ -283,23 +283,23 @@ msg = {
 }
 
 # the notional filename that would contain the above test message data
-FILENAME = 'W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68977_eps_o_so2_l2.bin'
+FILENAME = "W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68977_eps_o_so2_l2.bin"
 
 # the information that would be extracted from the above filename according to the pattern in the .yaml
 FILENAME_INFO = {
-    'reception_location': 'EUMETSAT-Darmstadt',
-    'platform': 'METOPA',
-    'instrument': 'IASI',
-    'start_time': '20200204091455',
-    'perigee': '68977',
-    'species': 'so2',
-    'level': 'l2'
+    "reception_location": "EUMETSAT-Darmstadt",
+    "platform": "METOPA",
+    "instrument": "IASI",
+    "start_time": "20200204091455",
+    "perigee": "68977",
+    "species": "so2",
+    "level": "l2"
 }
 
 # file type info for the above file that is defined in the .yaml
 FILETYPE_INFO = {
-    'file_type': 'iasi_l2_so2_bufr',
-    'file_reader': 'IASIL2SO2BUFR'
+    "file_type": "iasi_l2_so2_bufr",
+    "file_reader": "IASIL2SO2BUFR"
 }
 
 # number of cross track samples in one IASI scan
@@ -314,7 +314,7 @@ def save_test_data(path):
 
         for m in [msg]:
 
-            buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
+            buf = ec.codes_bufr_new_from_samples("BUFR4_local_satellite")
 
             for key in m:
                 val = m[key]
@@ -325,7 +325,7 @@ def save_test_data(path):
                 else:
                     ec.codes_set_array(buf, key, val)
 
-            ec.codes_set(buf, 'pack', 1)
+            ec.codes_set(buf, "pack", 1)
             ec.codes_write(buf, f)
             ec.codes_release(buf)
 
@@ -354,36 +354,36 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         except OSError:
             pass
 
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
+    @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene(self):
         """Test scene creation."""
         from satpy import Scene
 
         fname = os.path.join(self.base_dir, FILENAME)
 
-        scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
+        scn = Scene(reader="iasi_l2_so2_bufr", filenames=[fname])
 
         assert scn.start_time is not None
         assert scn.end_time is not None
         assert scn.sensor_names
-        assert 'iasi' in scn.sensor_names
+        assert "iasi" in scn.sensor_names
 
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
+    @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):
         """Test that all datasets are available."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FILENAME)
-        scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
+        scn = Scene(reader="iasi_l2_so2_bufr", filenames=[fname])
         scn.load(scn.available_dataset_names())
 
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
+    @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_dataset_values(self):
         """Test loading data."""
         from satpy import Scene
 
         fname = os.path.join(self.base_dir, FILENAME)
 
-        scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
+        scn = Scene(reader="iasi_l2_so2_bufr", filenames=[fname])
 
         for name in scn.available_dataset_names():
 
@@ -391,13 +391,13 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
             loaded_values = scn[name].values
 
-            fill_value = scn[name].attrs['fill_value']
+            fill_value = scn[name].attrs["fill_value"]
 
             # replace nans in data loaded from file with the fill value defined in the .yaml
             # to make them comparable
             loaded_values_nan_filled = np.nan_to_num(loaded_values, nan=fill_value)
 
-            key = scn[name].attrs['key']
+            key = scn[name].attrs["key"]
 
             original_values = msg[key]
 
@@ -405,9 +405,4 @@ class TestIasiL2So2Bufr(unittest.TestCase):
             # (note: if all subtests pass, they will count as one test)
             with self.subTest(msg="Test failed for dataset: "+name):
 
-                self.assertTrue(np.allclose(original_values, loaded_values_nan_filled))
-
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def test_init(self):
-        """Test reader initialization."""
-        self.assertTrue(True)
+                assert np.allclose(original_values, loaded_values_nan_filled)

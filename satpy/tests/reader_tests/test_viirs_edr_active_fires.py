@@ -60,23 +60,23 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filename_type):
         """Mimic reader input file content."""
         file_content = {}
-        file_content['/attr/data_id'] = "AFMOD"
-        file_content['/attr/satellite_name'] = "NPP"
-        file_content['/attr/instrument_name'] = 'VIIRS'
+        file_content["/attr/data_id"] = "AFMOD"
+        file_content["/attr/satellite_name"] = "NPP"
+        file_content["/attr/instrument_name"] = "VIIRS"
 
-        file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['Fire Pixels/FP_power'] = DEFAULT_POWER_FILE_DATA
-        file_content['Fire Pixels/FP_T13'] = DEFAULT_M13_FILE_DATA
-        file_content['Fire Pixels/FP_T13/attr/units'] = 'kelvins'
-        file_content['Fire Pixels/FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
-        file_content['Fire Pixels/attr/units'] = 'none'
-        file_content['Fire Pixels/shape'] = DEFAULT_FILE_SHAPE
+        file_content["Fire Pixels/FP_latitude"] = DEFAULT_LATLON_FILE_DATA
+        file_content["Fire Pixels/FP_longitude"] = DEFAULT_LATLON_FILE_DATA
+        file_content["Fire Pixels/FP_power"] = DEFAULT_POWER_FILE_DATA
+        file_content["Fire Pixels/FP_T13"] = DEFAULT_M13_FILE_DATA
+        file_content["Fire Pixels/FP_T13/attr/units"] = "kelvins"
+        file_content["Fire Pixels/FP_confidence"] = DEFAULT_DETECTION_FILE_DATA
+        file_content["Fire Pixels/attr/units"] = "none"
+        file_content["Fire Pixels/shape"] = DEFAULT_FILE_SHAPE
 
-        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        attrs = ("FP_latitude", "FP_longitude", "FP_T13", "FP_confidence")
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
-            dims=('z', 'fakeDim0', 'fakeDim1'))
+            dims=("z", "fakeDim0", "fakeDim1"))
         return file_content
 
 
@@ -86,21 +86,21 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filename_type):
         """Mimic reader input file content."""
         file_content = {}
-        file_content['/attr/data_id'] = "AFIMG"
-        file_content['/attr/satellite_name'] = "NPP"
-        file_content['/attr/instrument_name'] = 'VIIRS'
+        file_content["/attr/data_id"] = "AFIMG"
+        file_content["/attr/satellite_name"] = "NPP"
+        file_content["/attr/instrument_name"] = "VIIRS"
 
-        file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['Fire Pixels/FP_power'] = DEFAULT_POWER_FILE_DATA
-        file_content['Fire Pixels/FP_T4'] = DEFAULT_M13_FILE_DATA
-        file_content['Fire Pixels/FP_T4/attr/units'] = 'kelvins'
-        file_content['Fire Pixels/FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
+        file_content["Fire Pixels/FP_latitude"] = DEFAULT_LATLON_FILE_DATA
+        file_content["Fire Pixels/FP_longitude"] = DEFAULT_LATLON_FILE_DATA
+        file_content["Fire Pixels/FP_power"] = DEFAULT_POWER_FILE_DATA
+        file_content["Fire Pixels/FP_T4"] = DEFAULT_M13_FILE_DATA
+        file_content["Fire Pixels/FP_T4/attr/units"] = "kelvins"
+        file_content["Fire Pixels/FP_confidence"] = DEFAULT_DETECTION_FILE_DATA
 
-        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        attrs = ("FP_latitude", "FP_longitude", "FP_T13", "FP_confidence")
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
-            dims=('z', 'fakeDim0', 'fakeDim1'))
+            dims=("z", "fakeDim0", "fakeDim1"))
         return file_content
 
 
@@ -114,13 +114,13 @@ class FakeModFiresTextFileHandler(BaseFileHandler):
 
         platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
 
-        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
+        self.platform_name = platform_key.get(self.filename_info["satellite_name"].upper(), "unknown")
 
     def get_test_content(self):
         """Create fake test file content."""
-        fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+        fake_file = io.StringIO(u"""\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
-        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
+        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764""")
 
         return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
                                           names=["latitude", "longitude",
@@ -139,13 +139,13 @@ class FakeImgFiresTextFileHandler(BaseFileHandler):
 
     def get_test_content(self):
         """Create fake test file content."""
-        fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+        fake_file = io.StringIO(u"""\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
-        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
+        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764""")
 
         platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
 
-        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
+        self.platform_name = platform_key.get(self.filename_info["satellite_name"].upper(), "unknown")
 
         return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
                                           names=["latitude", "longitude",
@@ -157,14 +157,14 @@ class FakeImgFiresTextFileHandler(BaseFileHandler):
 class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader."""
 
-    yaml_file = 'viirs_edr_active_fires.yaml'
+    yaml_file = "viirs_edr_active_fires.yaml"
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeModFiresNetCDF4FileHandler,))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresFileHandler, "__bases__", (FakeModFiresNetCDF4FileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -177,51 +177,51 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            "AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            "AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['confidence_pct'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["confidence_pct"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '%')
-            self.assertEqual(v.attrs['_FillValue'], 255)
-            self.assertTrue(np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE))
+            assert v.attrs["units"] == "%"
+            assert v.attrs["_FillValue"] == 255
+            assert np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE)
 
-        datasets = r.load(['T13'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["T13"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
+            assert v.attrs["units"] == "K"
 
-        datasets = r.load(['power'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["power"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'MW')
-            self.assertEqual(v.attrs['platform_name'], 'NOAA-21')
-            self.assertEqual(v.attrs['sensor'], 'viirs')
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "NOAA-21"
+            assert v.attrs["sensor"] == "viirs"
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader."""
 
-    yaml_file = 'viirs_edr_active_fires.yaml'
+    yaml_file = "viirs_edr_active_fires.yaml"
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeImgFiresNetCDF4FileHandler,))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresFileHandler, "__bases__", (FakeImgFiresNetCDF4FileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -234,52 +234,52 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['confidence_cat'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["confidence_cat"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '1')
-            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
-            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
+            assert v.attrs["units"] == "1"
+            assert v.attrs["flag_meanings"] == ["low", "medium", "high"]
+            assert v.attrs["flag_values"] == [7, 8, 9]
 
-        datasets = r.load(['T4'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["T4"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
+            assert v.attrs["units"] == "K"
 
-        datasets = r.load(['power'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["power"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'MW')
-            self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
-            self.assertEqual(v.attrs['sensor'], 'viirs')
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "Suomi-NPP"
+            assert v.attrs["sensor"] == "viirs"
 
 
-@mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
+@mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
 class TestModVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader."""
 
-    yaml_file = 'viirs_edr_active_fires.yaml'
+    yaml_file = "viirs_edr_active_fires.yaml"
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeModFiresTextFileHandler,))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, "__bases__", (FakeModFiresTextFileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -292,50 +292,50 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            "AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self, csv_mock):
         """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            "AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['confidence_pct'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["confidence_pct"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '%')
+            assert v.attrs["units"] == "%"
 
-        datasets = r.load(['T13'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["T13"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
+            assert v.attrs["units"] == "K"
 
-        datasets = r.load(['power'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["power"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'MW')
-            self.assertEqual(v.attrs['platform_name'], 'NOAA-20')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "NOAA-20"
+            assert v.attrs["sensor"] == "VIIRS"
 
 
-@mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
+@mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader."""
 
-    yaml_file = 'viirs_edr_active_fires.yaml'
+    yaml_file = "viirs_edr_active_fires.yaml"
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeImgFiresTextFileHandler,))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, "__bases__", (FakeImgFiresTextFileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -348,35 +348,35 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self, mock_obj):
         """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['confidence_cat'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["confidence_cat"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '1')
-            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
-            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
+            assert v.attrs["units"] == "1"
+            assert v.attrs["flag_meanings"] == ["low", "medium", "high"]
+            assert v.attrs["flag_values"] == [7, 8, 9]
 
-        datasets = r.load(['T4'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["T4"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
+            assert v.attrs["units"] == "K"
 
-        datasets = r.load(['power'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["power"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'MW')
-            self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "Suomi-NPP"
+            assert v.attrs["sensor"] == "VIIRS"

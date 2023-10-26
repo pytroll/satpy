@@ -43,51 +43,51 @@ N_HORNS = 7
 N_183 = 3
 
 
-@pytest.fixture
+@pytest.fixture()
 def reader(fake_file):
     """Return reader of ici level1b data."""
     return IciL1bNCFileHandler(
         filename=fake_file,
         filename_info={
-            'sensing_start_time': (
-                datetime.fromisoformat('2000-01-01T01:00:00')
+            "sensing_start_time": (
+                datetime.fromisoformat("2000-01-01T01:00:00")
             ),
-            'sensing_end_time': (
-                datetime.fromisoformat('2000-01-01T02:00:00')
+            "sensing_end_time": (
+                datetime.fromisoformat("2000-01-01T02:00:00")
             ),
-            'creation_time': (
-                datetime.fromisoformat('2000-01-01T03:00:00')
+            "creation_time": (
+                datetime.fromisoformat("2000-01-01T03:00:00")
             ),
         },
         filetype_info={
-            'longitude': 'data/navigation_data/longitude',
-            'latitude': 'data/navigation_data/latitude',
-            'solar_azimuth': 'data/navigation_data/ici_solar_azimuth_angle',
-            'solar_zenith': 'data/navigation_data/ici_solar_zenith_angle',
+            "longitude": "data/navigation_data/longitude",
+            "latitude": "data/navigation_data/latitude",
+            "solar_azimuth": "data/navigation_data/ici_solar_azimuth_angle",
+            "solar_zenith": "data/navigation_data/ici_solar_zenith_angle",
         }
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_file(tmp_path):
     """Return file path to level1b file."""
-    file_path = tmp_path / 'test_file_ici_l1b_nc.nc'
+    file_path = tmp_path / "test_file_ici_l1b_nc.nc"
     writer = IciL1bFakeFileWriter(file_path)
     writer.write()
-    yield file_path
+    return file_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def dataset_info():
     """Return dataset info."""
     return {
-        'name': '1',
-        'file_type': 'nc_ici_l1b_rad',
-        'file_key': 'data/measurement_data/ici_radiance_183',
-        'coordinates': ['lat_pixels_horn_1', 'lon_pixels_horn_1'],
-        'n_183': 0,
-        'chan_index': 0,
-        'calibration': 'brightness_temperature',
+        "name": "1",
+        "file_type": "nc_ici_l1b_rad",
+        "file_key": "data/measurement_data/ici_radiance_183",
+        "coordinates": ["lat_pixels_horn_1", "lon_pixels_horn_1"],
+        "n_183": 0,
+        "chan_index": 0,
+        "calibration": "brightness_temperature",
     }
 
 
@@ -100,10 +100,10 @@ class IciL1bFakeFileWriter:
 
     def write(self):
         """Write fake data to file."""
-        with Dataset(self.file_path, 'w') as dataset:
+        with Dataset(self.file_path, "w") as dataset:
             self._write_attributes(dataset)
             self._write_quality_group(dataset)
-            data_group = dataset.createGroup('data')
+            data_group = dataset.createGroup("data")
             self._write_measurement_data_group(data_group)
             self._write_navigation_data_group(data_group)
 
@@ -118,59 +118,59 @@ class IciL1bFakeFileWriter:
     @staticmethod
     def _write_quality_group(dataset):
         """Write the quality group."""
-        group = dataset.createGroup('quality')
+        group = dataset.createGroup("quality")
         group.overall_quality_flag = 0
         duration_of_product = group.createVariable(
-            'duration_of_product', "f4"
+            "duration_of_product", "f4"
         )
         duration_of_product[:] = 1000.
 
     @staticmethod
     def _write_navigation_data_group(dataset):
         """Write the navigation data group."""
-        group = dataset.createGroup('navigation_data')
-        group.createDimension('n_scan', N_SCAN)
-        group.createDimension('n_samples', N_SAMPLES)
-        group.createDimension('n_subs', N_SUBS)
-        group.createDimension('n_horns', N_HORNS)
-        subs = group.createVariable('n_subs', "i4", dimensions=('n_subs',))
+        group = dataset.createGroup("navigation_data")
+        group.createDimension("n_scan", N_SCAN)
+        group.createDimension("n_samples", N_SAMPLES)
+        group.createDimension("n_subs", N_SUBS)
+        group.createDimension("n_horns", N_HORNS)
+        subs = group.createVariable("n_subs", "i4", dimensions=("n_subs",))
         subs[:] = np.arange(N_SUBS)
-        dimensions = ('n_scan', 'n_subs', 'n_horns')
+        dimensions = ("n_scan", "n_subs", "n_horns")
         shape = (N_SCAN, N_SUBS, N_HORNS)
         longitude = group.createVariable(
-            'longitude',
+            "longitude",
             np.float32,
             dimensions=dimensions,
         )
         longitude[:] = np.ones(shape)
         latitude = group.createVariable(
-            'latitude',
+            "latitude",
             np.float32,
             dimensions=dimensions,
         )
         latitude[:] = 2. * np.ones(shape)
         azimuth = group.createVariable(
-            'ici_solar_azimuth_angle',
+            "ici_solar_azimuth_angle",
             np.float32,
             dimensions=dimensions,
         )
         azimuth[:] = 3. * np.ones(shape)
         zenith = group.createVariable(
-            'ici_solar_zenith_angle',
+            "ici_solar_zenith_angle",
             np.float32,
             dimensions=dimensions,
         )
         zenith[:] = 4. * np.ones(shape)
-        dimensions = ('n_scan', 'n_samples', 'n_horns')
+        dimensions = ("n_scan", "n_samples", "n_horns")
         shape = (N_SCAN, N_SAMPLES, N_HORNS)
         delta_longitude = group.createVariable(
-            'delta_longitude',
+            "delta_longitude",
             np.float32,
             dimensions=dimensions,
         )
         delta_longitude[:] = 1000. * np.ones(shape)
         delta_latitude = group.createVariable(
-            'delta_latitude',
+            "delta_latitude",
             np.float32,
             dimensions=dimensions,
         )
@@ -179,35 +179,35 @@ class IciL1bFakeFileWriter:
     @staticmethod
     def _write_measurement_data_group(dataset):
         """Write the measurement data group."""
-        group = dataset.createGroup('measurement_data')
-        group.createDimension('n_scan', N_SCAN)
-        group.createDimension('n_samples', N_SAMPLES)
-        group.createDimension('n_channels', N_CHANNELS)
-        group.createDimension('n_183', N_183)
-        scan = group.createVariable('n_scan', "i4", dimensions=('n_scan',))
+        group = dataset.createGroup("measurement_data")
+        group.createDimension("n_scan", N_SCAN)
+        group.createDimension("n_samples", N_SAMPLES)
+        group.createDimension("n_channels", N_CHANNELS)
+        group.createDimension("n_183", N_183)
+        scan = group.createVariable("n_scan", "i4", dimensions=("n_scan",))
         scan[:] = np.arange(N_SCAN)
         samples = group.createVariable(
-            'n_samples', "i4", dimensions=('n_samples',)
+            "n_samples", "i4", dimensions=("n_samples",)
         )
         samples[:] = np.arange(N_SAMPLES)
         bt_a = group.createVariable(
-            'bt_conversion_a', np.float32, dimensions=('n_channels',)
+            "bt_conversion_a", np.float32, dimensions=("n_channels",)
         )
         bt_a[:] = np.ones(N_CHANNELS)
         bt_b = group.createVariable(
-            'bt_conversion_b', np.float32, dimensions=('n_channels',)
+            "bt_conversion_b", np.float32, dimensions=("n_channels",)
         )
         bt_b[:] = np.zeros(N_CHANNELS)
         cw = group.createVariable(
-            'centre_wavenumber', np.float32, dimensions=('n_channels',)
+            "centre_wavenumber", np.float32, dimensions=("n_channels",)
         )
         cw[:] = np.array(
             [6.0] * 3 + [8.0] * 2 + [11.0] * 3 + [15.0] * 3 + [22.0] * 2
         )
         ici_radiance_183 = group.createVariable(
-            'ici_radiance_183',
+            "ici_radiance_183",
             np.float32,
-            dimensions=('n_scan', 'n_samples', 'n_183'),
+            dimensions=("n_scan", "n_samples", "n_183"),
         )
         ici_radiance_183[:] = 0.08 * np.ones((N_SCAN, N_SAMPLES, N_183))
 
@@ -254,11 +254,11 @@ class TestIciL1bNCFileHandler:
     def test_calibrate_raises_for_unknown_calibration_method(self, reader):
         """Test perform calibration raises for unknown calibration method."""
         variable = xr.DataArray(np.ones(3))
-        dataset_info = {'calibration': 'unknown', 'name': 'radiance'}
-        with pytest.raises(ValueError, match='Unknown calibration'):
+        dataset_info = {"calibration": "unknown", "name": "radiance"}
+        with pytest.raises(ValueError, match="Unknown calibration"):
             reader._calibrate(variable, dataset_info)
 
-    @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt')
+    @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt")
     def test_calibrate_does_not_call_calibrate_bt_if_not_needed(
         self,
         mocked_calibrate,
@@ -270,13 +270,13 @@ class TestIciL1bNCFileHandler:
                 [0.060, 0.065, 0.070, 0.075],
                 [0.080, 0.085, 0.090, 0.095],
             ]),
-            dims=('n_scan', 'n_samples'),
+            dims=("n_scan", "n_samples"),
         )
-        dataset_info = {'calibration': 'radiance'}
+        dataset_info = {"calibration": "radiance"}
         reader._calibrate(variable, dataset_info)
         mocked_calibrate.assert_not_called()
 
-    @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt')
+    @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt")
     def test_calibrate_calls_calibrate_bt(
         self,
         mocked_calibrate_bt,
@@ -288,11 +288,11 @@ class TestIciL1bNCFileHandler:
                 [0.060, 0.065, 0.070, 0.075],
                 [0.080, 0.085, 0.090, 0.095],
             ]),
-            dims=('n_scan', 'n_samples'),
+            dims=("n_scan", "n_samples"),
         )
         dataset_info = {
-            'calibration': 'brightness_temperature',
-            'chan_index': 2,
+            "calibration": "brightness_temperature",
+            "chan_index": 2,
         }
         reader._calibrate(variable, dataset_info)
         mocked_calibrate_bt.assert_called_once_with(
@@ -320,10 +320,10 @@ class TestIciL1bNCFileHandler:
         ])
         np.testing.assert_allclose(bt, expected_bt)
 
-    @pytest.mark.parametrize('dims', (
-        ('n_scan', 'n_samples'),
-        ('x', 'y'),
-    ))
+    @pytest.mark.parametrize("dims", [
+        ("n_scan", "n_samples"),
+        ("x", "y"),
+    ])
     def test_standardize_dims(self, reader, dims):
         """Test standardize dims."""
         variable = xr.DataArray(
@@ -331,12 +331,12 @@ class TestIciL1bNCFileHandler:
             dims=dims,
         )
         standardized = reader._standardize_dims(variable)
-        assert standardized.dims == ('y', 'x')
+        assert standardized.dims == ("y", "x")
 
-    @pytest.mark.parametrize('dims,data_info,expect', (
-        (('y', 'x', 'n_horns'), {"n_horns": 1}, 1),
-        (('y', 'x', 'n_183'), {"n_183": 2}, 2),
-    ))
+    @pytest.mark.parametrize(("dims", "data_info", "expect"), [
+        (("y", "x", "n_horns"), {"n_horns": 1}, 1),
+        (("y", "x", "n_183"), {"n_183": 2}, 2),
+    ])
     def test_filter_variable(self, reader, dims, data_info, expect):
         """Test filter variable."""
         data = np.arange(24).reshape(2, 3, 4)
@@ -345,7 +345,7 @@ class TestIciL1bNCFileHandler:
             dims=dims,
         )
         filtered = reader._filter_variable(variable, data_info)
-        assert filtered.dims == ('y', 'x')
+        assert filtered.dims == ("y", "x")
         assert (filtered == data[:, :, expect]).all()
 
     def test_drop_coords(self, reader):
@@ -353,7 +353,7 @@ class TestIciL1bNCFileHandler:
         coords = "dummy"
         data = xr.DataArray(
             np.ones(10),
-            dims=('y'),
+            dims=("y"),
             coords={coords: 0},
         )
         assert coords in data.coords
@@ -362,22 +362,22 @@ class TestIciL1bNCFileHandler:
 
     def test_get_third_dimension_name(self, reader):
         """Test get third dimension name."""
-        data = xr.DataArray(np.ones((1, 1, 1)), dims=('x', 'y', 'z'))
-        assert reader._get_third_dimension_name(data) == 'z'
+        data = xr.DataArray(np.ones((1, 1, 1)), dims=("x", "y", "z"))
+        assert reader._get_third_dimension_name(data) == "z"
 
     def test_get_third_dimension_name_return_none_for_2d_data(self, reader):
         """Test get third dimension name return none for 2d data."""
-        data = xr.DataArray(np.ones((1, 1)), dims=('x', 'y'))
+        data = xr.DataArray(np.ones((1, 1)), dims=("x", "y"))
         assert reader._get_third_dimension_name(data) is None
 
     def test_get_dataset_return_none_if_data_not_exist(self, reader):
         """Tes get dataset return none if data does not exist."""
-        dataset_id = {'name': 'unknown'}
-        dataset_info = {'file_key': 'non/existing/data'}
+        dataset_id = {"name": "unknown"}
+        dataset_info = {"file_key": "non/existing/data"}
         dataset = reader.get_dataset(dataset_id, dataset_info)
         assert dataset is None
 
-    @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt')
+    @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt")
     def test_get_dataset_does_not_calibrate_if_not_desired(
         self,
         mocked_calibrate,
@@ -385,10 +385,10 @@ class TestIciL1bNCFileHandler:
         dataset_info,
     ):
         """Test get dataset does not calibrate if not desired."""
-        dataset_id = {'name': '1'}
-        dataset_info.pop('calibration')
+        dataset_id = {"name": "1"}
+        dataset_info.pop("calibration")
         dataset = reader.get_dataset(dataset_id, dataset_info)
-        assert dataset.dims == ('y', 'x')
+        assert dataset.dims == ("y", "x")
         mocked_calibrate.assert_not_called()
         assert isinstance(dataset, xr.DataArray)
 
@@ -397,15 +397,15 @@ class TestIciL1bNCFileHandler:
         reader,
     ):
         """Test get dataset orthorectifies if orthorect data is defined."""
-        dataset_id = {'name': 'lon_pixels_horn_1'}
+        dataset_id = {"name": "lon_pixels_horn_1"}
         dataset_info = {
-            'name': 'lon_pixels_horn_1',
-            'file_type': 'nc_ici_l1b_rad',
-            'file_key': 'longitude',
-            'orthorect_data': 'data/navigation_data/delta_longitude',
-            'standard_name': 'longitude',
-            'n_horns': 0,
-            'modifiers': (),
+            "name": "lon_pixels_horn_1",
+            "file_type": "nc_ici_l1b_rad",
+            "file_key": "longitude",
+            "orthorect_data": "data/navigation_data/delta_longitude",
+            "standard_name": "longitude",
+            "n_horns": 0,
+            "modifiers": (),
         }
         dataset = reader.get_dataset(dataset_id, dataset_info)
         np.testing.assert_allclose(dataset, 1.009139, atol=1e-6)
@@ -416,7 +416,7 @@ class TestIciL1bNCFileHandler:
         dataset_info,
     ):
         """Test get dataset handles calibration."""
-        dataset_id = {'name': '1'}
+        dataset_id = {"name": "1"}
         dataset = reader.get_dataset(dataset_id, dataset_info)
         assert dataset.attrs["calibration"] == "brightness_temperature"
         np.testing.assert_allclose(dataset, 272.73734)
@@ -426,15 +426,16 @@ class TestIciL1bNCFileHandler:
         azimuth, zenith = reader._interpolate(
             InterpolationType.OBSERVATION_ANGLES
         )
-        assert azimuth is None and zenith is None
+        assert azimuth is None
+        assert zenith is None
 
-    @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_geo')
+    @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_geo")
     def test_interpolate_calls_interpolate_geo(self, mock, reader):
         """Test interpolate calls interpolate_geo."""
         reader._interpolate(InterpolationType.LONLAT)
         mock.assert_called_once()
 
-    @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_viewing_angle')  # noqa: E501
+    @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_viewing_angle")  # noqa: E501
     def test_interpolate_calls_interpolate_viewing_angles(self, mock, reader):
         """Test interpolate calls interpolate viewing_angles."""
         reader._interpolate(InterpolationType.SOLAR_ANGLES)
@@ -443,13 +444,13 @@ class TestIciL1bNCFileHandler:
     def test_interpolate_geo(self, reader):
         """Test interpolate geographic coordinates."""
         shape = (N_SCAN, N_SUBS, N_HORNS)
-        dims = ('n_scan', 'n_subs', 'n_horns')
+        dims = ("n_scan", "n_subs", "n_horns")
         longitude = xr.DataArray(
             2. * np.ones(shape),
             dims=dims,
             coords={
-                'n_horns': np.arange(N_HORNS),
-                'n_subs': np.arange(N_SUBS),
+                "n_horns": np.arange(N_HORNS),
+                "n_subs": np.arange(N_SUBS),
             },
         )
         latitude = xr.DataArray(np.ones(shape), dims=dims)
@@ -467,13 +468,13 @@ class TestIciL1bNCFileHandler:
     def test_interpolate_viewing_angle(self, reader):
         """Test interpolate viewing angle."""
         shape = (N_SCAN, N_SUBS, N_HORNS)
-        dims = ('n_scan', 'n_subs', 'n_horns')
+        dims = ("n_scan", "n_subs", "n_horns")
         azimuth = xr.DataArray(
             np.ones(shape),
             dims=dims,
             coords={
-                'n_horns': np.arange(N_HORNS),
-                'n_subs': np.arange(N_SUBS),
+                "n_horns": np.arange(N_HORNS),
+                "n_subs": np.arange(N_SUBS),
             },
         )
         zenith = xr.DataArray(100. * np.ones(shape), dims=dims)
@@ -492,11 +493,11 @@ class TestIciL1bNCFileHandler:
         """Test orthorectify."""
         variable = xr.DataArray(
             np.ones((N_SCAN, N_SAMPLES, N_HORNS)),
-            dims=('y', 'x', 'n_horns'),
-            coords={'n_horns': np.arange(N_HORNS)}
+            dims=("y", "x", "n_horns"),
+            coords={"n_horns": np.arange(N_HORNS)}
         )
-        variable = variable.sel({'n_horns': 0})
-        orthorect_data_name = 'data/navigation_data/delta_longitude'
+        variable = variable.sel({"n_horns": 0})
+        orthorect_data_name = "data/navigation_data/delta_longitude"
         orthorectified = reader._orthorectify(
             variable,
             orthorect_data_name,
@@ -507,18 +508,18 @@ class TestIciL1bNCFileHandler:
         """Test get global attributes."""
         attributes = reader._get_global_attributes()
         assert attributes == {
-            'filename': reader.filename,
-            'start_time': datetime(2000, 1, 2, 3, 4, 5),
-            'end_time': datetime(2000, 1, 2, 4, 5, 6),
-            'spacecraft_name': 'SGB',
-            'ssp_lon': None,
-            'sensor': 'ICI',
-            'filename_start_time': datetime(2000, 1, 1, 1, 0),
-            'filename_end_time': datetime(2000, 1, 1, 2, 0),
-            'platform_name': 'SGB',
-            'quality_group': {
-                'duration_of_product': np.array(1000., dtype=np.float32),
-                'overall_quality_flag': 0,
+            "filename": reader.filename,
+            "start_time": datetime(2000, 1, 2, 3, 4, 5),
+            "end_time": datetime(2000, 1, 2, 4, 5, 6),
+            "spacecraft_name": "SGB",
+            "ssp_lon": None,
+            "sensor": "ICI",
+            "filename_start_time": datetime(2000, 1, 1, 1, 0),
+            "filename_end_time": datetime(2000, 1, 1, 2, 0),
+            "platform_name": "SGB",
+            "quality_group": {
+                "duration_of_product": np.array(1000., dtype=np.float32),
+                "overall_quality_flag": 0,
             }
         }
 
@@ -526,12 +527,12 @@ class TestIciL1bNCFileHandler:
         """Test get quality attributes."""
         attributes = reader._get_quality_attributes()
         assert attributes == {
-            'duration_of_product': np.array(1000., dtype=np.float32),
-            'overall_quality_flag': 0,
+            "duration_of_product": np.array(1000., dtype=np.float32),
+            "overall_quality_flag": 0,
         }
 
     @patch(
-        'satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._get_global_attributes',
+        "satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._get_global_attributes",
         return_value={"mocked_global_attributes": True},
     )
     def test_manage_attributes(self, mock, reader):
@@ -540,11 +541,11 @@ class TestIciL1bNCFileHandler:
             np.ones(N_SCAN),
             attrs={"season": "summer"},
         )
-        dataset_info = {'name': 'ici_1', 'units': 'K'}
+        dataset_info = {"name": "ici_1", "units": "K"}
         variable = reader._manage_attributes(variable, dataset_info)
         assert variable.attrs == {
-            'season': 'summer',
-            'units': 'K',
-            'name': 'ici_1',
-            'mocked_global_attributes': True,
+            "season": "summer",
+            "units": "K",
+            "name": "ici_1",
+            "mocked_global_attributes": True,
         }

@@ -30,27 +30,27 @@ from satpy.dataset.dataid import ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
 
-local_id_keys_config = {'name': {
-    'required': True,
+local_id_keys_config = {"name": {
+    "required": True,
 },
-    'wavelength': {
-    'type': WavelengthRange,
+    "wavelength": {
+    "type": WavelengthRange,
 },
-    'resolution': None,
-    'calibration': {
-    'enum': [
-        'reflectance',
-        'brightness_temperature',
-        'radiance',
-        'counts'
+    "resolution": None,
+    "calibration": {
+    "enum": [
+        "reflectance",
+        "brightness_temperature",
+        "radiance",
+        "counts"
     ]
 },
-    'polarization': None,
-    'level': None,
-    'modifiers': {
-    'required': True,
-    'default': ModifierTuple(),
-    'type': ModifierTuple,
+    "polarization": None,
+    "level": None,
+    "modifiers": {
+    "required": True,
+    "default": ModifierTuple(),
+    "type": ModifierTuple,
 },
 }
 
@@ -63,14 +63,14 @@ def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):
 def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
     """Create a test area definition."""
     if proj_str is None:
-        proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. ' \
-                   '+lat_0=25 +lat_1=25 +units=m +no_defs'
+        proj_str = "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. " \
+                   "+lat_0=25 +lat_1=25 +units=m +no_defs"
     extents = extents or (-1000., -1500., 1000., 1500.)
 
     return AreaDefinition(
-        'test',
-        'test',
-        'test',
+        "test",
+        "test",
+        "test",
         proj_str,
         shape[1],
         shape[0],
@@ -82,9 +82,9 @@ def _create_test_int8_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None,
     """Create a test DataArray object."""
     return xr.DataArray(
         da.ones(shape, dtype=np.uint8, chunks=shape) * values, dims=dims,
-        attrs={'_FillValue': 255,
-               'valid_range': [1, 15],
-               'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
+        attrs={"_FillValue": 255,
+               "valid_range": [1, 15],
+               "name": name, "area": area, "_satpy_id_keys": local_id_keys_config})
 
 
 def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None, dims=("y", "x")):
@@ -92,22 +92,22 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None, values=None, dims
     if values:
         return xr.DataArray(
             da.ones(shape, dtype=np.float32, chunks=shape) * values, dims=dims,
-            attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
+            attrs={"name": name, "area": area, "_satpy_id_keys": local_id_keys_config})
 
     return xr.DataArray(
         da.zeros(shape, dtype=np.float32, chunks=shape), dims=dims,
-        attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
+        attrs={"name": name, "area": area, "_satpy_id_keys": local_id_keys_config})
 
 
 def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
     """Create some test scenes for various test cases."""
     from satpy import Scene
-    ds1 = _create_test_dataset('ds1', shape=shape, area=area)
-    ds2 = _create_test_dataset('ds2', shape=shape, area=area)
+    ds1 = _create_test_dataset("ds1", shape=shape, area=area)
+    ds2 = _create_test_dataset("ds2", shape=shape, area=area)
     scenes = []
     for _ in range(num_scenes):
         scn = Scene()
-        scn['ds1'] = ds1.copy()
-        scn['ds2'] = ds2.copy()
+        scn["ds1"] = ds1.copy()
+        scn["ds2"] = ds2.copy()
         scenes.append(scn)
     return scenes
