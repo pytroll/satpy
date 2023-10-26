@@ -30,7 +30,7 @@ This is how to read them with Satpy:
 
 
 References:
-~~~~~~~~~~
+~~~~~~~~~~~
 
 Details about platform, instrument and data format can be found in the
 following references:
