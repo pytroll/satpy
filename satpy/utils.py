@@ -505,15 +505,24 @@ def check_satpy(readers=None, writers=None, extras=None):
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
 
-    for _reader, _res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
-        pass
+    print("Readers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
+        print(reader + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
-    for _writer, _res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
-        pass
+    print("Writers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
+        print(writer + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
+    print("Extras")  # noqa: T201
+    print("======")  # noqa: T201
     module_names = extras if extras is not None else ("cartopy", "geoviews")
-    for _module_name, _res in sorted(_check_import(module_names).items()):
-        pass
+    for module_name, res in sorted(_check_import(module_names).items()):
+        print(module_name + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
 
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
