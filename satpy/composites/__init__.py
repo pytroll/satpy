@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from typing import Optional, Sequence
 
 import dask.array as da
 import numpy as np
@@ -119,7 +120,12 @@ class CompositeBase:
             id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
             return DataID(id_keys, **self.attrs)
 
-    def __call__(self, datasets, optional_datasets=None, **info):
+    def __call__(
+            self,
+            datasets: Sequence[xr.DataArray],
+            optional_datasets: Optional[Sequence[xr.DataArray]] = None,
+            **info
+    ) -> xr.DataArray:
         """Generate a composite."""
         raise NotImplementedError()
 
@@ -422,7 +428,12 @@ class GenericCompositor(CompositeBase):
             sensor = list(sensor)[0]
         return sensor
 
-    def __call__(self, projectables, nonprojectables=None, **attrs):
+    def __call__(
+            self,
+            datasets: Sequence[xr.DataArray],
+            optional_datasets: Optional[Sequence[xr.DataArray]] = None,
+            **attrs
+    ) -> xr.DataArray:
         """Build the composite."""
         if 'deprecation_warning' in self.attrs:
             warnings.warn(
@@ -431,29 +442,29 @@ class GenericCompositor(CompositeBase):
                 stacklevel=2
             )
             self.attrs.pop('deprecation_warning', None)
-        num = len(projectables)
+        num = len(datasets)
         mode = attrs.get('mode')
         if mode is None:
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
-        if len(projectables) > 1:
-            projectables = self.match_data_arrays(projectables)
-            data = self._concat_datasets(projectables, mode)
+        if len(datasets) > 1:
+            datasets = self.match_data_arrays(datasets)
+            data = self._concat_datasets(datasets, mode)
             # Skip masking if user wants it or a specific alpha channel is given.
             if self.common_channel_mask and mode[-1] != 'A':
                 data = data.where(data.notnull().all(dim='bands'))
         else:
-            data = projectables[0]
+            data = datasets[0]
 
         # if inputs have a time coordinate that may differ slightly between
         # themselves then find the mid time and use that as the single
         # time coordinate value
-        if len(projectables) > 1:
-            time = check_times(projectables)
+        if len(datasets) > 1:
+            time = check_times(datasets)
             if time is not None and 'time' in data.dims:
                 data['time'] = [time]
 
-        new_attrs = combine_metadata(*projectables)
+        new_attrs = combine_metadata(*datasets)
         # remove metadata that shouldn't make sense in a composite
         new_attrs["wavelength"] = None
         new_attrs.pop("units", None)
@@ -467,7 +478,7 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs['resolution'] = resolution
-        new_attrs["sensor"] = self._get_sensors(projectables)
+        new_attrs["sensor"] = self._get_sensors(datasets)
         new_attrs["mode"] = mode
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
@@ -692,22 +703,27 @@ class DayNightCompositor(GenericCompositor):
         self._has_sza = False
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
-    def __call__(self, projectables, **kwargs):
+    def __call__(
+            self,
+            datasets: Sequence[xr.DataArray],
+            optional_datasets: Optional[Sequence[xr.DataArray]] = None,
+            **attrs
+    ) -> xr.DataArray:
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        datasets = self.match_data_arrays(datasets)
         # At least one composite is requested.
-        foreground_data = projectables[0]
+        foreground_data = datasets[0]
 
-        weights = self._get_coszen_blending_weights(projectables)
+        weights = self._get_coszen_blending_weights(datasets)
 
         # Apply enhancements to the foreground data
         foreground_data = enhance2dataset(foreground_data)
 
         if "only" in self.day_night:
-            attrs = foreground_data.attrs.copy()
+            fg_attrs = foreground_data.attrs.copy()
             day_data, night_data, weights = self._get_data_for_single_side_product(foreground_data, weights)
         else:
-            day_data, night_data, attrs = self._get_data_for_combined_product(foreground_data, projectables[1])
+            day_data, night_data, fg_attrs = self._get_data_for_combined_product(foreground_data, datasets[1])
 
         # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
         if self.include_alpha and not self._has_sza:
@@ -718,11 +734,18 @@ class DayNightCompositor(GenericCompositor):
             day_data = zero_missing_data(day_data, night_data)
             night_data = zero_missing_data(night_data, day_data)
 
-        data = self._weight_data(day_data, night_data, weights, attrs)
+        data = self._weight_data(day_data, night_data, weights, fg_attrs)
 
-        return super(DayNightCompositor, self).__call__(data, **kwargs)
+        return super(DayNightCompositor, self).__call__(
+            data,
+            optional_datasets=optional_datasets,
+            **attrs
+        )
 
-    def _get_coszen_blending_weights(self, projectables):
+    def _get_coszen_blending_weights(
+            self,
+            projectables: Sequence[xr.DataArray],
+    ) -> xr.DataArray:
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
@@ -739,7 +762,11 @@ class DayNightCompositor(GenericCompositor):
 
         return coszen.clip(0, 1)
 
-    def _get_data_for_single_side_product(self, foreground_data, weights):
+    def _get_data_for_single_side_product(
+            self,
+            foreground_data: xr.DataArray,
+            weights: xr.DataArray,
+    ) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
         # Only one portion (day or night) is selected. One composite is requested.
         # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
         # L -> LA
@@ -778,7 +805,12 @@ class DayNightCompositor(GenericCompositor):
 
         return day_data, night_data, attrs
 
-    def _mask_weights_with_data(self, weights, day_data, night_data):
+    def _mask_weights_with_data(
+            self,
+            weights: xr.DataArray,
+            day_data: xr.DataArray,
+            night_data: xr.DataArray,
+    ) -> xr.DataArray:
         data_a = _get_single_channel(day_data)
         data_b = _get_single_channel(night_data)
         if "only" in self.day_night:
@@ -788,12 +820,16 @@ class DayNightCompositor(GenericCompositor):
 
         return weights.where(mask, np.nan)
 
-    def _weight_data(self, day_data, night_data, weights, attrs):
+    def _weight_data(
+            self,
+            day_data: xr.DataArray,
+            night_data: xr.DataArray,
+            weights: xr.DataArray,
+            attrs: dict,
+    ) -> list[xr.DataArray]:
         if not self.include_alpha:
             fill = 1 if self.day_night == "night_only" else 0
             weights = weights.where(~np.isnan(weights), fill)
-        if isinstance(weights, xr.DataArray):
-            weights = weights.data
         data = []
         for b in _get_band_names(day_data, night_data):
             day_band = _get_single_band_data(day_data, b)
@@ -823,9 +859,12 @@ def _get_single_band_data(data, band):
     return data.sel(bands=band)
 
 
-def _get_single_channel(data):
+def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
     try:
         data = data[0, :, :]
+        # remove coordinates that may be band-specific (ex. "bands")
+        # and we don't care about anymore
+        data = data.reset_coords(drop=True)
     except (IndexError, TypeError):
         pass
     return data
