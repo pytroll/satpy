@@ -21,6 +21,8 @@ line-length = 120
 
 [tool.ruff.per-file-ignores]
 "satpy/tests/*" = ["S101"]  # assert allowed in tests
+"utils/coord2area_def.py" = ["T201"]  # allow print
+"fetch_avhrr_calcoeffs.py" = ["T201"]  # allow print
 
 [tool.ruff.pydocstyle]
 convention = "google"
