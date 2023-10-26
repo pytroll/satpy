@@ -318,7 +318,7 @@ class _CREFLRunner:
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
         raise NotImplementedError()
 
-    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
+    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array | float:
         """Get digital elevation map data for our granule with ocean fill value set to 0."""
         if avg_elevation is None:
             LOG.debug("No average elevation information provided in CREFL")
