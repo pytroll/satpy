@@ -89,7 +89,7 @@ class TestDemo(unittest.TestCase):
         gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
         gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
         # expected 16 files, got 2
-        self.assertRaises(AssertionError, get_us_midlatitude_cyclone_abi)
+        self.assertRaises(RuntimeError, get_us_midlatitude_cyclone_abi)
         # unknown access method
         self.assertRaises(NotImplementedError, get_us_midlatitude_cyclone_abi, method="unknown")
 
@@ -109,7 +109,7 @@ class TestDemo(unittest.TestCase):
         # only return 5 results total
         gcsfs_inst.glob.side_effect = _GlobHelper([5, 0])
         # expected 16 files * 10 frames, got 16 * 5
-        self.assertRaises(AssertionError, get_hurricane_florence_abi)
+        self.assertRaises(RuntimeError, get_hurricane_florence_abi)
         self.assertRaises(NotImplementedError, get_hurricane_florence_abi, method="unknown")
 
         gcsfs_inst.glob.side_effect = _GlobHelper([int(240 / 16), 0, 0, 0] * 16)
@@ -244,11 +244,12 @@ class _FakeRequest:
 
     requests_log: list[str] = []
 
-    def __init__(self, url, stream=None):
+    def __init__(self, url, stream=None, timeout=None):
         self._filename = os.path.basename(url)
         self.headers = {}
         self.requests_log.append(url)
         del stream  # just mimicking requests 'get'
+        del timeout  # just mimicking requests 'get'
 
     def __enter__(self):
         return self
