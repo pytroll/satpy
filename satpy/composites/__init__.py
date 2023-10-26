@@ -792,7 +792,8 @@ class DayNightCompositor(GenericCompositor):
         if not self.include_alpha:
             fill = 1 if self.day_night == "night_only" else 0
             weights = weights.where(~np.isnan(weights), fill)
-
+        if isinstance(weights, xr.DataArray):
+            weights = weights.data
         data = []
         for b in _get_band_names(day_data, night_data):
             # if self.day_night == "night_only" and self.include_alpha is False:
