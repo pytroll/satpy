@@ -93,5 +93,5 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         orthorect_variable = self.reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
 
         expected_values = 1.1 * np.ones((10, 100))
-        self.assertTrue(np.allclose(orthorect_variable.values, expected_values))
-        self.assertEqual(orthorect_variable.attrs["key_1"], "value_1")
+        assert np.allclose(orthorect_variable.values, expected_values)
+        assert orthorect_variable.attrs["key_1"] == "value_1"

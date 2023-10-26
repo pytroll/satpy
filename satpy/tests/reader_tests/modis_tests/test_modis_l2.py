@@ -72,8 +72,8 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ("input_files", "has_5km", "has_500", "has_250", "default_res"),
         [
-            [lazy_fixture("modis_l2_nasa_mod35_file"),
-             True, False, False, 1000],
+            (lazy_fixture("modis_l2_nasa_mod35_file"),
+             True, False, False, 1000),
         ]
     )
     def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):
@@ -108,12 +108,12 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ("input_files", "loadables", "request_resolution", "exp_resolution", "exp_area"),
         [
-            [lazy_fixture("modis_l2_nasa_mod35_mod03_files"),
+            (lazy_fixture("modis_l2_nasa_mod35_mod03_files"),
              ["cloud_mask"],
-             1000, 1000, True],
-            [lazy_fixture("modis_l2_imapp_mask_byte1_geo_files"),
+             1000, 1000, True),
+            (lazy_fixture("modis_l2_imapp_mask_byte1_geo_files"),
              ["cloud_mask", "land_sea_mask", "snow_ice_mask"],
-             None, 1000, True],
+             None, 1000, True),
         ]
     )
     def test_load_category_dataset(self, input_files, loadables, request_resolution, exp_resolution, exp_area):
@@ -138,8 +138,8 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ("input_files", "exp_area"),
         [
-            [lazy_fixture("modis_l2_nasa_mod35_file"), False],
-            [lazy_fixture("modis_l2_nasa_mod35_mod03_files"), True],
+            (lazy_fixture("modis_l2_nasa_mod35_file"), False),
+            (lazy_fixture("modis_l2_nasa_mod35_mod03_files"), True),
         ]
     )
     def test_load_250m_cloud_mask_dataset(self, input_files, exp_area):
@@ -162,10 +162,10 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ("input_files", "loadables", "exp_resolution", "exp_area", "exp_value"),
         [
-            [lazy_fixture("modis_l2_nasa_mod06_file"), ["surface_pressure"], 5000, True, 4.0],
+            (lazy_fixture("modis_l2_nasa_mod06_file"), ["surface_pressure"], 5000, True, 4.0),
             # snow mask is considered a category product, factor/offset ignored
-            [lazy_fixture("modis_l2_imapp_snowmask_file"), ["snow_mask"], 1000, False, 1.0],
-            [lazy_fixture("modis_l2_imapp_snowmask_geo_files"), ["snow_mask"], 1000, True, 1.0],
+            (lazy_fixture("modis_l2_imapp_snowmask_file"), ["snow_mask"], 1000, False, 1.0),
+            (lazy_fixture("modis_l2_imapp_snowmask_geo_files"), ["snow_mask"], 1000, True, 1.0),
         ]
     )
     def test_load_l2_dataset(self, input_files, loadables, exp_resolution, exp_area, exp_value):

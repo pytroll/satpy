@@ -106,29 +106,29 @@ class TestHRITJMAFileHandler(unittest.TestCase):
              "unit": "ALBEDO(%)"})
         mda_expected["projection_parameters"]["SSP_longitude"] = 140.7
         reader = self._get_reader(mda=mda)
-        self.assertEqual(reader.mda, mda_expected)
+        assert reader.mda == mda_expected
 
         # Check projection name
-        self.assertEqual(reader.projection_name, "GEOS(140.70)")
+        assert reader.projection_name == "GEOS(140.70)"
 
         # Check calibration table
         cal_expected = np.array([[0, -0.1],
                                  [1023,  100],
                                  [65535,  100]])
-        self.assertTrue(np.all(reader.calibration_table == cal_expected))
+        assert np.all(reader.calibration_table == cal_expected)
 
         # Check if scanline timestamps are there (dedicated test below)
-        self.assertIsInstance(reader.acq_time, np.ndarray)
+        assert isinstance(reader.acq_time, np.ndarray)
 
         # Check platform
-        self.assertEqual(reader.platform, HIMAWARI8)
+        assert reader.platform == HIMAWARI8
 
         # Check is_segmented attribute
         expected = {0: False, 1: True, 8: True}
         for segno, is_segmented in expected.items():
             mda = self._get_mda(segno=segno)
             reader = self._get_reader(mda=mda)
-            self.assertEqual(reader.is_segmented, is_segmented)
+            assert reader.is_segmented == is_segmented
 
         # Check area IDs
         expected = [
@@ -139,7 +139,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mda = self._get_mda()
         for filename_info, area_id in expected:
             reader = self._get_reader(mda=mda, filename_info=filename_info)
-            self.assertEqual(reader.area_id, area_id)
+            assert reader.area_id == area_id
 
     @mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__")
     def test_get_platform(self, mocked_init):
@@ -151,11 +151,11 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         for proj_name, platform in PLATFORMS.items():
             reader.projection_name = proj_name
-            self.assertEqual(reader._get_platform(), platform)
+            assert reader._get_platform() == platform
 
         with mock.patch("logging.Logger.error") as mocked_log:
             reader.projection_name = "invalid"
-            self.assertEqual(reader._get_platform(), UNKNOWN_PLATFORM)
+            assert reader._get_platform() == UNKNOWN_PLATFORM
             mocked_log.assert_called()
 
     def test_get_area_def(self):
@@ -206,8 +206,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             reader = self._get_reader(mda=mda,
                                       filename_info={"area": case["area"]})
             area = reader.get_area_def("some_id")
-            self.assertTupleEqual(area.area_extent, case["extent"])
-            self.assertEqual(area.description, AREA_NAMES[case["area"]]["long"])
+            assert area.area_extent == case["extent"]
+            assert area.description == AREA_NAMES[case["area"]]["long"]
 
     def test_calibrate(self):
         """Test calibration."""
@@ -238,7 +238,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         # 1. Counts
         res = reader.calibrate(data=counts, calibration="counts")
-        self.assertTrue(np.all(counts.values == res.values))
+        assert np.all(counts.values == res.values)
 
         # 2. Reflectance
         res = reader.calibrate(data=counts, calibration="reflectance")
@@ -263,7 +263,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         # First line of the segment should be space, in the middle of the
         # last line there should be some valid pixels
         np.testing.assert_allclose(masked.values[0, :], np.nan)
-        self.assertTrue(np.all(masked.values[-1, 588:788] == 1))
+        assert np.all(masked.values[-1, 588:788] == 1)
 
     @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
@@ -281,15 +281,15 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         # Check attributes
         res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
-        self.assertEqual(res.attrs["units"], "%")
-        self.assertEqual(res.attrs["sensor"], "ahi")
-        self.assertEqual(res.attrs["platform_name"], HIMAWARI8)
-        self.assertDictEqual(res.attrs["orbital_parameters"], {"projection_longitude": 140.7,
-                                                               "projection_latitude": 0.,
-                                                               "projection_altitude": 35785831.0})
+        assert res.attrs["units"] == "%"
+        assert res.attrs["sensor"] == "ahi"
+        assert res.attrs["platform_name"] == HIMAWARI8
+        assert res.attrs["orbital_parameters"] == {"projection_longitude": 140.7,
+                                                   "projection_latitude": 0.0,
+                                                   "projection_altitude": 35785831.0}
 
         # Check if acquisition time is a coordinate
-        self.assertIn("acq_time", res.coords)
+        assert "acq_time" in res.coords
 
         # Check called methods
         with mock.patch.object(reader, "_mask_space") as mask_space:
@@ -305,10 +305,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
     def test_mjd2datetime64(self):
         """Test conversion from modified julian day to datetime64."""
         from satpy.readers.hrit_jma import mjd2datetime64
-        self.assertEqual(mjd2datetime64(np.array([0])),
-                         np.datetime64("1858-11-17", "us"))
-        self.assertEqual(mjd2datetime64(np.array([40587.5])),
-                         np.datetime64("1970-01-01 12:00", "us"))
+        assert mjd2datetime64(np.array([0])) == np.datetime64("1858-11-17", "us")
+        assert mjd2datetime64(np.array([40587.5])) == np.datetime64("1970-01-01 12:00", "us")
 
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""

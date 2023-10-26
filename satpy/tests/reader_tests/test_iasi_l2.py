@@ -210,18 +210,18 @@ class TestIasiL2(unittest.TestCase):
 
     def test_init(self):
         """Test reader initialization."""
-        self.assertEqual(self.reader.filename, self.fname)
-        self.assertEqual(self.reader.finfo, self.fname_info)
-        self.assertTrue(self.reader.lons is None)
-        self.assertTrue(self.reader.lats is None)
-        self.assertEqual(self.reader.mda["platform_name"], "Metop-B")
-        self.assertEqual(self.reader.mda["sensor"], "iasi")
+        assert self.reader.filename == self.fname
+        assert self.reader.finfo == self.fname_info
+        assert self.reader.lons is None
+        assert self.reader.lats is None
+        assert self.reader.mda["platform_name"] == "Metop-B"
+        assert self.reader.mda["sensor"] == "iasi"
 
     def test_time_properties(self):
         """Test time properties."""
         import datetime as dt
-        self.assertTrue(isinstance(self.reader.start_time, dt.datetime))
-        self.assertTrue(isinstance(self.reader.end_time, dt.datetime))
+        assert isinstance(self.reader.start_time, dt.datetime)
+        assert isinstance(self.reader.end_time, dt.datetime)
 
     def test_get_dataset(self):
         """Test get_dataset() for different datasets."""
@@ -230,39 +230,39 @@ class TestIasiL2(unittest.TestCase):
         key = make_dataid(name="pressure")
         data = self.reader.get_dataset(key, info).compute()
         self.check_pressure(data)
-        self.assertTrue("eggs" in data.attrs)
-        self.assertEqual(data.attrs["eggs"], "spam")
+        assert "eggs" in data.attrs
+        assert data.attrs["eggs"] == "spam"
         key = make_dataid(name="emissivity")
         data = self.reader.get_dataset(key, info).compute()
         self.check_emissivity(data)
         key = make_dataid(name="sensing_time")
         data = self.reader.get_dataset(key, info).compute()
-        self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
+        assert data.shape == (NUM_SCANLINES, SCAN_WIDTH)
 
     def check_pressure(self, pres, attrs=None):
         """Test reading pressure dataset.
 
         Helper function.
         """
-        self.assertTrue(np.all(pres == 0.0))
-        self.assertEqual(pres.x.size, SCAN_WIDTH)
-        self.assertEqual(pres.y.size, NUM_SCANLINES)
-        self.assertEqual(pres.level.size, NUM_LEVELS)
+        assert np.all(pres == 0.0)
+        assert pres.x.size == SCAN_WIDTH
+        assert pres.y.size == NUM_SCANLINES
+        assert pres.level.size == NUM_LEVELS
         if attrs:
-            self.assertEqual(pres.attrs["start_time"], attrs["start_time"])
-            self.assertEqual(pres.attrs["end_time"], attrs["end_time"])
-        self.assertTrue("long_name" in pres.attrs)
-        self.assertTrue("units" in pres.attrs)
+            assert pres.attrs["start_time"] == attrs["start_time"]
+            assert pres.attrs["end_time"] == attrs["end_time"]
+        assert "long_name" in pres.attrs
+        assert "units" in pres.attrs
 
     def check_emissivity(self, emis):
         """Test reading emissivity dataset.
 
         Helper function.
         """
-        self.assertTrue(np.all(emis == 0.0))
-        self.assertEqual(emis.x.size, SCAN_WIDTH)
-        self.assertEqual(emis.y.size, NUM_SCANLINES)
-        self.assertTrue("emissivity_wavenumbers" in emis.attrs)
+        assert np.all(emis == 0.0)
+        assert emis.x.size == SCAN_WIDTH
+        assert emis.y.size == NUM_SCANLINES
+        assert "emissivity_wavenumbers" in emis.attrs
 
     def check_sensing_times(self, times):
         """Test reading sensing times.
@@ -272,8 +272,8 @@ class TestIasiL2(unittest.TestCase):
         # Times should be equal in blocks of four, but not beyond, so
         # there should be SCAN_WIDTH/4 different values
         for i in range(int(SCAN_WIDTH / 4)):
-            self.assertEqual(np.unique(times[0, i*4:i*4+4]).size, 1)
-        self.assertEqual(np.unique(times[0, :]).size, SCAN_WIDTH / 4)
+            assert np.unique(times[0, i * 4:i * 4 + 4]).size == 1
+        assert np.unique(times[0, :]).size == SCAN_WIDTH / 4
 
     def test_read_dataset(self):
         """Test read_dataset() function."""
@@ -291,7 +291,7 @@ class TestIasiL2(unittest.TestCase):
             # This dataset doesn't have any attributes
             key = make_dataid(name="ozone_total_column")
             data = read_dataset(fid, key).compute()
-            self.assertEqual(len(data.attrs), 0)
+            assert len(data.attrs) == 0
 
     def test_read_geo(self):
         """Test read_geo() function."""
@@ -302,10 +302,10 @@ class TestIasiL2(unittest.TestCase):
         with h5py.File(self.fname, "r") as fid:
             key = make_dataid(name="sensing_time")
             data = read_geo(fid, key).compute()
-            self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
+            assert data.shape == (NUM_SCANLINES, SCAN_WIDTH)
             key = make_dataid(name="latitude")
             data = read_geo(fid, key).compute()
-            self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
+            assert data.shape == (NUM_SCANLINES, SCAN_WIDTH)
 
     def test_form_datetimes(self):
         """Test _form_datetimes() function."""
@@ -316,7 +316,7 @@ class TestIasiL2(unittest.TestCase):
         self.check_sensing_times(times)
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_iasi_l2_cdr_nc_dataset():
     """Create minimally fake IASI L2 CDR NC dataset."""
     shp = (3, 4, 5)
@@ -371,7 +371,7 @@ def fake_iasi_l2_cdr_nc_dataset():
                 "pressure_levels": pres})
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_iasi_l2_cdr_nc_file(fake_iasi_l2_cdr_nc_dataset, tmp_path):
     """Write a NetCDF file with minimal fake IASI L2 CDR NC data."""
     fn = ("W_XX-EUMETSAT-Darmstadt,HYPERSPECT+SOUNDING,METOPA+PW3+"

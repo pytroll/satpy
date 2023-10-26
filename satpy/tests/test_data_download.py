@@ -158,7 +158,7 @@ class TestDataDownload:
         _setup_custom_writer_config(tmpdir)
         self.tmpdir = tmpdir
 
-    @pytest.mark.parametrize("comp_sensors", [[], None, ["visir"]])
+    @pytest.mark.parametrize("comp_sensors", [tuple(), None, ("visir",)])
     @pytest.mark.parametrize("writers", [[], None, ["fake"]])
     @pytest.mark.parametrize("readers", [[], None, ["fake"]])
     def test_find_registerable(self, readers, writers, comp_sensors):

@@ -96,10 +96,10 @@ class TestAMSR2L2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_basic(self):
         """Test loading of basic channels."""
@@ -108,15 +108,13 @@ class TestAMSR2L2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         ds = r.load(["ssw"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
-            self.assertTupleEqual(d.shape, (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1])))
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertTupleEqual(d.attrs["area"].lons.shape,
-                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]))
-            self.assertTupleEqual(d.attrs["area"].lats.shape,
-                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]))
+            assert d.shape == (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1]))
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.attrs["area"].lons.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1])
+            assert d.attrs["area"].lats.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1])

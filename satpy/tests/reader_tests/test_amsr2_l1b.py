@@ -124,10 +124,10 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_basic(self):
         """Test loading of basic channels."""
@@ -136,7 +136,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         ds = r.load([
             "btemp_10.7v",
@@ -152,16 +152,14 @@ class TestAMSR2L1BReader(unittest.TestCase):
             "btemp_36.5v",
             "btemp_36.5h",
         ])
-        self.assertEqual(len(ds), 12)
+        assert len(ds) == 12
         for d in ds.values():
-            self.assertEqual(d.attrs["calibration"], "brightness_temperature")
-            self.assertTupleEqual(d.shape, (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1] // 2)))
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertTupleEqual(d.attrs["area"].lons.shape,
-                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
-            self.assertTupleEqual(d.attrs["area"].lats.shape,
-                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
+            assert d.attrs["calibration"] == "brightness_temperature"
+            assert d.shape == (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1] // 2))
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.attrs["area"].lons.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2)
+            assert d.attrs["area"].lats.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2)
             assert d.attrs["sensor"] == "amsr2"
             assert d.attrs["platform_name"] == "GCOM-W1"
 
@@ -172,7 +170,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         ds = r.load([
             "btemp_89.0av",
@@ -180,13 +178,11 @@ class TestAMSR2L1BReader(unittest.TestCase):
             "btemp_89.0bv",
             "btemp_89.0bh",
         ])
-        self.assertEqual(len(ds), 4)
+        assert len(ds) == 4
         for d in ds.values():
-            self.assertEqual(d.attrs["calibration"], "brightness_temperature")
-            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertTupleEqual(d.attrs["area"].lons.shape,
-                                  DEFAULT_FILE_SHAPE)
-            self.assertTupleEqual(d.attrs["area"].lats.shape,
-                                  DEFAULT_FILE_SHAPE)
+            assert d.attrs["calibration"] == "brightness_temperature"
+            assert d.shape == DEFAULT_FILE_SHAPE
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.attrs["area"].lons.shape == DEFAULT_FILE_SHAPE
+            assert d.attrs["area"].lats.shape == DEFAULT_FILE_SHAPE

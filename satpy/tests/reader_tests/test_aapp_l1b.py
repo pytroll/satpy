@@ -218,9 +218,9 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             fh._get_coordinates_in_degrees.return_value = (lons40km, lats40km)
             (lons, lats) = fh._get_all_interpolated_coordinates()
             lon_data = lons.compute()
-            self.assertTrue(np.max(lon_data) <= 180)
+            assert (np.max(lon_data) <= 180)
             # Not longitdes between -110, 110 in indata
-            self.assertTrue(np.all(np.abs(lon_data) > 110))
+            assert np.all(np.abs(lon_data) > 110)
 
     def test_interpolation_angles(self):
         """Test reading the lon and lats."""
@@ -276,8 +276,8 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             fh._get_tiepoint_angles_in_degrees = mock.MagicMock()
             fh._get_tiepoint_angles_in_degrees.return_value = (sunz40km, satz40km, azidiff40km)
             (sunz, satz, azidiff) = fh._get_all_interpolated_angles()
-            self.assertTrue(np.max(sunz) <= 123)
-            self.assertTrue(np.max(satz) <= 70)
+            assert (np.max(sunz) <= 123)
+            assert (np.max(satz) <= 70)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):

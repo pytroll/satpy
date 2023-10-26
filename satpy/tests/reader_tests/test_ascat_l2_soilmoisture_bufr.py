@@ -151,9 +151,9 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FILENAME)
         scn = Scene(reader="ascat_l2_soilmoisture_bufr", filenames=[fname])
-        self.assertTrue("scatterometer" in scn.sensor_names)
-        self.assertTrue(datetime(2020, 12, 21, 9, 33, 0) == scn.start_time)
-        self.assertTrue(datetime(2020, 12, 21, 9, 33, 59) == scn.end_time)
+        assert "scatterometer" in scn.sensor_names
+        assert datetime(2020, 12, 21, 9, 33, 0) == scn.start_time
+        assert datetime(2020, 12, 21, 9, 33, 59) == scn.end_time
 
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):
@@ -161,10 +161,10 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FILENAME)
         scn = Scene(reader="ascat_l2_soilmoisture_bufr", filenames=[fname])
-        self.assertTrue("surface_soil_moisture" in scn.available_dataset_names())
+        assert "surface_soil_moisture" in scn.available_dataset_names()
         scn.load(scn.available_dataset_names())
         loaded = [dataset.name for dataset in scn]
-        self.assertTrue(sorted(loaded) == sorted(scn.available_dataset_names()))
+        assert sorted(loaded) == sorted(scn.available_dataset_names())
 
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_dataset_values(self):
@@ -184,4 +184,4 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
             # this makes each assertion below a separate test from unittest's point of view
             # (note: if all subtests pass, they will count as one test)
             with self.subTest(msg="Test failed for dataset: "+name):
-                self.assertTrue(np.allclose(original_values, loaded_values_nan_filled))
+                assert np.allclose(original_values, loaded_values_nan_filled)

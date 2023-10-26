@@ -43,7 +43,7 @@ N_HORNS = 7
 N_183 = 3
 
 
-@pytest.fixture
+@pytest.fixture()
 def reader(fake_file):
     """Return reader of ici level1b data."""
     return IciL1bNCFileHandler(
@@ -68,16 +68,16 @@ def reader(fake_file):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_file(tmp_path):
     """Return file path to level1b file."""
     file_path = tmp_path / "test_file_ici_l1b_nc.nc"
     writer = IciL1bFakeFileWriter(file_path)
     writer.write()
-    yield file_path
+    return file_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def dataset_info():
     """Return dataset info."""
     return {
@@ -320,10 +320,10 @@ class TestIciL1bNCFileHandler:
         ])
         np.testing.assert_allclose(bt, expected_bt)
 
-    @pytest.mark.parametrize("dims", (
+    @pytest.mark.parametrize("dims", [
         ("n_scan", "n_samples"),
         ("x", "y"),
-    ))
+    ])
     def test_standardize_dims(self, reader, dims):
         """Test standardize dims."""
         variable = xr.DataArray(
@@ -333,10 +333,10 @@ class TestIciL1bNCFileHandler:
         standardized = reader._standardize_dims(variable)
         assert standardized.dims == ("y", "x")
 
-    @pytest.mark.parametrize("dims,data_info,expect", (
+    @pytest.mark.parametrize(("dims", "data_info", "expect"), [
         (("y", "x", "n_horns"), {"n_horns": 1}, 1),
         (("y", "x", "n_183"), {"n_183": 2}, 2),
-    ))
+    ])
     def test_filter_variable(self, reader, dims, data_info, expect):
         """Test filter variable."""
         data = np.arange(24).reshape(2, 3, 4)
@@ -426,7 +426,8 @@ class TestIciL1bNCFileHandler:
         azimuth, zenith = reader._interpolate(
             InterpolationType.OBSERVATION_ANGLES
         )
-        assert azimuth is None and zenith is None
+        assert azimuth is None
+        assert zenith is None
 
     @patch("satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_geo")
     def test_interpolate_calls_interpolate_geo(self, mock, reader):

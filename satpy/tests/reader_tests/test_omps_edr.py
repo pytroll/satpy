@@ -195,10 +195,10 @@ class TestOMPSEDRReader(unittest.TestCase):
             "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
             "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
         ])
-        self.assertEqual(len(loadables), 3)
+        assert len(loadables) == 3
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_basic_load_so2(self):
         """Test basic load of so2 datasets."""
@@ -209,32 +209,32 @@ class TestOMPSEDRReader(unittest.TestCase):
             "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
             "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
         ])
-        self.assertEqual(len(loadables), 3)
+        assert len(loadables) == 3
         r.create_filehandlers(loadables)
         ds = r.load(["so2_trm"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
-            self.assertEqual(d.attrs["resolution"], 50000)
-            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert d.attrs["resolution"] == 50000
+            assert d.shape == DEFAULT_FILE_SHAPE
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
         ds = r.load(["tcso2_trm_sampo"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
-            self.assertEqual(d.attrs["resolution"], 50000)
-            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
+            assert d.attrs["resolution"] == 50000
+            assert d.shape == DEFAULT_FILE_SHAPE
 
         ds = r.load(["tcso2_stl_sampo"])
-        self.assertEqual(len(ds), 0)
+        assert len(ds) == 0
 
         # Dataset without _FillValue
         ds = r.load(["tcso2_tru_sampo"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
 
         # Dataset without unit
         ds = r.load(["tcso2_pbl_sampo"])
-        self.assertEqual(len(ds), 0)
+        assert len(ds) == 0
 
     def test_basic_load_to3(self):
         """Test basic load of to3 datasets."""
@@ -245,15 +245,15 @@ class TestOMPSEDRReader(unittest.TestCase):
             "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
             "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
         ])
-        self.assertEqual(len(loadables), 3)
+        assert len(loadables) == 3
         r.create_filehandlers(loadables)
         ds = r.load(["reflectivity_331", "uvaerosol_index"])
-        self.assertEqual(len(ds), 2)
+        assert len(ds) == 2
         for d in ds.values():
-            self.assertEqual(d.attrs["resolution"], 50000)
-            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert d.attrs["resolution"] == 50000
+            assert d.shape == DEFAULT_FILE_SHAPE
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
     @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
     @mock.patch("h5py.File")
@@ -269,4 +269,4 @@ class TestOMPSEDRReader(unittest.TestCase):
         r.create_filehandlers(loadables)
 
         ds = r.load(["tcso2_trl_sampo"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1

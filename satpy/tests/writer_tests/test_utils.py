@@ -32,4 +32,4 @@ class WriterUtilsTest(unittest.TestCase):
                     "b_c": 1,
                     "b_d_e": 1,
                     "b_d_f_g": [1, 2]}
-        self.assertDictEqual(wutils.flatten_dict(d), expected)
+        assert wutils.flatten_dict(d) == expected

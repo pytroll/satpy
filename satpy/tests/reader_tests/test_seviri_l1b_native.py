@@ -654,8 +654,8 @@ def prepare_area_definitions(test_dict):
 
 
 @pytest.mark.parametrize(
-    "actual, expected",
-    (
+    ("actual", "expected"),
+    [
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN)),
@@ -676,7 +676,7 @@ def prepare_area_definitions(test_dict):
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL)),
-    )
+    ]
 )
 def test_area_definitions(actual, expected):
     """Test area definitions with only one area."""
@@ -688,11 +688,11 @@ def test_area_definitions(actual, expected):
 
 
 @pytest.mark.parametrize(
-    "actual, expected",
-    (
+    ("actual", "expected"),
+    [
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK)),
         (prepare_area_definitions(TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK)),
-    )
+    ]
 )
 def test_stacked_area_definitions(actual, expected):
     """Test area definitions with stacked areas."""
@@ -736,12 +736,12 @@ def prepare_is_roi(test_dict):
 
 
 @pytest.mark.parametrize(
-    "actual, expected",
-    (
+    ("actual", "expected"),
+    [
         (prepare_is_roi(TEST_IS_ROI_FULLDISK)),
         (prepare_is_roi(TEST_IS_ROI_RAPIDSCAN)),
         (prepare_is_roi(TEST_IS_ROI_ROI)),
-    )
+    ]
 )
 def test_is_roi(actual, expected):
     """Test if given area is of area-of-interest."""
@@ -757,21 +757,21 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         trues = ("WV_062", "WV_073", "IR_108", "VIS006", "VIS008", "IR_120")
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
-                self.assertTrue(available_chs[bandname])
+                assert available_chs[bandname]
             else:
-                self.assertFalse(available_chs[bandname])
+                assert not available_chs[bandname]
 
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
         trues = ("VIS006", "VIS008", "IR_039", "WV_062", "WV_073", "IR_087", "HRV")
         for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
-                self.assertTrue(available_chs[bandname])
+                assert available_chs[bandname]
             else:
-                self.assertFalse(available_chs[bandname])
+                assert not available_chs[bandname]
 
         available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
         for bandname in AVAILABLE_CHANNELS:
-            self.assertTrue(available_chs[bandname])
+            assert available_chs[bandname]
 
 
 TEST_HEADER_CALIB = {
@@ -829,7 +829,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 
     @pytest.mark.parametrize(
         ("channel", "calibration", "calib_mode", "use_ext_coefs"),
-        (
+        [
             # VIS channel, internal coefficients
             ("VIS006", "counts", "NOMINAL", False),
             ("VIS006", "radiance", "NOMINAL", False),
@@ -855,7 +855,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
             ("HRV", "reflectance", "NOMINAL", True),
-        )
+        ]
     )
     def test_calibrate(
             self, file_handler, counts, channel, calibration, calib_mode,
@@ -882,7 +882,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def file_handler(self):
         """Create a file handler for testing."""
         trailer = {
@@ -1123,7 +1123,7 @@ class TestNativeMSGPadder(unittest.TestCase):
 class TestNativeMSGFilenames:
     """Test identification of Native format filenames."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
@@ -1150,11 +1150,11 @@ class TestNativeMSGFilenames:
 
 
 @pytest.mark.parametrize(
-    "file_content,exp_header_size",
-    (
+    ("file_content", "exp_header_size"),
+    [
         (ASCII_STARTSWITH, 450400),  # with ascii header
         (b"foobar", 445286),  # without ascii header
-    )
+    ]
 )
 def test_header_type(file_content, exp_header_size):
     """Test identification of the file header type."""
@@ -1225,7 +1225,7 @@ def test_header_warning():
 
 
 @pytest.mark.parametrize(
-    "starts_with, expected",
+    ("starts_with", "expected"),
     [
         (ASCII_STARTSWITH, True),
         (b"this_shall_fail", False)

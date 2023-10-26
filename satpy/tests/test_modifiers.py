@@ -275,7 +275,7 @@ class TestNIRReflectance(unittest.TestCase):
         info = {"modifiers": None}
         res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
-        self.assertEqual(res.attrs["sun_zenith_threshold"], 84.0)
+        assert res.attrs["sun_zenith_threshold"] == 84.0
         calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
                                       sunz_threshold=84.0, masking_limit=NIRReflectance.MASKING_LIMIT)
 
@@ -308,7 +308,7 @@ class TestNIRReflectance(unittest.TestCase):
         info = {"modifiers": None}
         res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
-        self.assertIsNone(res.attrs["sun_zenith_masking_limit"])
+        assert res.attrs["sun_zenith_masking_limit"] is None
         calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
                                       sunz_threshold=NIRReflectance.TERMINATOR_LIMIT, masking_limit=None)
 
@@ -383,11 +383,11 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         sza.return_value = sunz2
 
         res = comp([nir, ir_], optional_datasets=[sunz], **info)
-        self.assertEqual(res.attrs["sun_zenith_threshold"], 86.0)
-        self.assertEqual(res.attrs["units"], "K")
-        self.assertEqual(res.attrs["platform_name"], platform)
-        self.assertEqual(res.attrs["sensor"], sensor)
-        self.assertEqual(res.attrs["name"], chan_name)
+        assert res.attrs["sun_zenith_threshold"] == 86.0
+        assert res.attrs["units"] == "K"
+        assert res.attrs["platform_name"] == platform
+        assert res.attrs["sensor"] == sensor
+        assert res.attrs["name"] == chan_name
         calculator.assert_called_with("NOAA-20", "viirs", "M12", sunz_threshold=86.0,
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 

@@ -73,9 +73,8 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                 radiance = self.reader.get_dataset(
                     key=make_dataid(name=ch, calibration="radiance"), info={})
                 # ... this only compares the valid (unmasked) elements
-                self.assertTrue(np.all(self.radiance == radiance.to_masked_array()),
-                                msg="get_dataset() returns invalid radiance for "
-                                "channel {}".format(ch))
+                assert np.all(self.radiance == radiance.to_masked_array()), \
+                    f"get_dataset() returns invalid radiance for channel {ch}"
 
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
@@ -110,8 +109,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
             for channel in ("00_7", "10_7"):
                 sector = self.reader._get_sector(channel=channel, nlines=nlines,
                                                  ncols=ncols)
-                self.assertEqual(sector, sector_ref,
-                                 msg="Incorrect sector identification")
+                assert sector == sector_ref, "Incorrect sector identification"
 
 
 class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
@@ -162,6 +160,5 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
                 refl = self.reader.get_dataset(
                     key=make_dataid(name=ch, calibration="reflectance"), info={})
                 # ... this only compares the valid (unmasked) elements
-                self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
-                                msg="get_dataset() returns invalid reflectance for "
-                                "channel {}".format(ch))
+                assert np.all(self.reflectance == refl.to_masked_array()), \
+                    f"get_dataset() returns invalid reflectance for channel {ch}"

@@ -131,7 +131,7 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
 class TestABIYAML:
     """Tests for the ABI L1b reader's YAML configuration."""
 
-    @pytest.mark.parametrize(["channel", "suffix"],
+    @pytest.mark.parametrize(("channel", "suffix"),
                              [("C{:02d}".format(num), suffix)
                               for num in range(1, 17)
                               for suffix in ("", "_test_suffix")])
@@ -157,10 +157,8 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        self.assertEqual(self.reader.start_time,
-                         datetime(2017, 9, 20, 17, 30, 40, 800000))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2017, 9, 20, 17, 41, 17, 500000))
+        assert self.reader.start_time == datetime(2017, 9, 20, 17, 30, 40, 800000)
+        assert self.reader.end_time == datetime(2017, 9, 20, 17, 41, 17, 500000)
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
@@ -190,24 +188,24 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                "suffix": "custom",
                "units": "W m-2 um-1 sr-1"}
 
-        self.assertDictEqual(res.attrs, exp)
+        assert res.attrs == exp
         # we remove any time dimension information
-        self.assertNotIn("t", res.coords)
-        self.assertNotIn("t", res.dims)
-        self.assertNotIn("time", res.coords)
-        self.assertNotIn("time", res.dims)
+        assert "t" not in res.coords
+        assert "t" not in res.dims
+        assert "time" not in res.coords
+        assert "time" not in res.dims
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {"a": 1.0, "b": 1.0, "h": 1.0, "lon_0": -90.0, "proj": "geos",
-                                            "sweep": "x", "units": "m"})
-        self.assertEqual(call_args[4], self.reader.ncols)
-        self.assertEqual(call_args[5], self.reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0, "h": 1.0,
+                                "lon_0": -90.0, "proj": "geos", "sweep": "x", "units": "m"}
+        assert call_args[4] == self.reader.ncols
+        assert call_args[5] == self.reader.nlines
         np.testing.assert_allclose(call_args[6], (-2, -2, 8, 2))
 
 
@@ -236,11 +234,10 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
             make_dataid(name="C05", calibration="brightness_temperature"), {})
 
         # make sure the attributes from the file are in the data array
-        self.assertNotIn("scale_factor", res.attrs)
-        self.assertNotIn("_FillValue", res.attrs)
-        self.assertEqual(res.attrs["standard_name"],
-                         "toa_brightness_temperature")
-        self.assertEqual(res.attrs["long_name"], "Brightness Temperature")
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
+        assert res.attrs["long_name"] == "Brightness Temperature"
 
     def test_clip_negative_radiances_attribute(self):
         """Assert that clip_negative_radiances is set to False."""
@@ -331,13 +328,11 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
 
         expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
                              [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171]])
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
-        self.assertNotIn("scale_factor", res.attrs)
-        self.assertNotIn("_FillValue", res.attrs)
-        self.assertEqual(res.attrs["standard_name"],
-                         "toa_bidirectional_reflectance")
-        self.assertEqual(res.attrs["long_name"],
-                         "Bidirectional Reflectance")
+        assert np.allclose(res.data, expected, equal_nan=True)
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert res.attrs["long_name"] == "Bidirectional Reflectance"
 
 
 class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
@@ -366,22 +361,20 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
 
         # We expect the raw data to be unchanged
         expected = res.data
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        assert np.allclose(res.data, expected, equal_nan=True)
 
         # check for the presence of typical attributes
-        self.assertIn("scale_factor", res.attrs)
-        self.assertIn("add_offset", res.attrs)
-        self.assertIn("_FillValue", res.attrs)
-        self.assertIn("orbital_parameters", res.attrs)
-        self.assertIn("platform_shortname", res.attrs)
-        self.assertIn("scene_id", res.attrs)
+        assert "scale_factor" in res.attrs
+        assert "add_offset" in res.attrs
+        assert "_FillValue" in res.attrs
+        assert "orbital_parameters" in res.attrs
+        assert "platform_shortname" in res.attrs
+        assert "scene_id" in res.attrs
 
         # determine if things match their expected values/types.
-        self.assertEqual(res.data.dtype, np.int16, "int16 data type expected")
-        self.assertEqual(res.attrs["standard_name"],
-                         "counts")
-        self.assertEqual(res.attrs["long_name"],
-                         "Raw Counts")
+        assert res.data.dtype == np.int16
+        assert res.attrs["standard_name"] == "counts"
+        assert res.attrs["long_name"] == "Raw Counts"
 
 
 class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
@@ -405,7 +398,7 @@ class Test_NC_ABI_File(unittest.TestCase):
     """Test file opening."""
 
     @mock.patch("satpy.readers.abi_base.xr")
-    def test_open_dataset(self, _):
+    def test_open_dataset(self, _):  # noqa: PT019
         """Test openning a dataset."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 

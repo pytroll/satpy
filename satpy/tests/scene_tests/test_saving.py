@@ -77,7 +77,8 @@ class TestSceneSaving:
         pytest.raises(ValueError,
                       scn.save_datasets,
                       writer="_bad_writer_",
-                      base_dir=tmp_path)
+                      base_dir=tmp_path,
+                      match="Unknown writer '_bad_writer_'")
 
     def test_save_datasets_missing_wishlist(self, tmp_path):
         """Calling 'save_datasets' with no valid datasets."""

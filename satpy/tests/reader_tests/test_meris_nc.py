@@ -79,7 +79,7 @@ class TestMERISReader(unittest.TestCase):
         filename_info = {"mission_id": "ENV", "dataset_name": "mask", "start_time": 0, "end_time": 0}
         test = NCMERIS2("somedir/somefile.nc", filename_info, "c")
         res = test.get_dataset(ds_id, {"nc_key": "mask"})
-        self.assertEqual(res.dtype, np.dtype("bool"))
+        assert res.dtype == np.dtype("bool")
 
     @mock.patch("xarray.open_dataset")
     def test_meris_angles(self, mocked_dataset):
@@ -180,4 +180,4 @@ class TestBitFlags(unittest.TestCase):
         expected = np.array([True, True, True, False, False, True, True,
                              True, False, True, True, True, True, True, True,
                              True, True, True])
-        self.assertTrue(all(mask == expected))
+        assert all(mask == expected)

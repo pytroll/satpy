@@ -46,7 +46,8 @@ class TestScene:
 
     def test_init_str_filename(self):
         """Test initializing with a single string as filenames."""
-        pytest.raises(ValueError, Scene, reader="blo", filenames="test.nc")
+        with pytest.raises(ValueError, match="'filenames' must be a list of files: .*"):
+            Scene(reader="blo", filenames="test.nc")
 
     def test_start_end_times(self):
         """Test start and end times for a scene."""
@@ -74,7 +75,8 @@ class TestScene:
 
     def test_init_no_files(self):
         """Test that providing an empty list of filenames fails."""
-        pytest.raises(ValueError, Scene, reader="viirs_sdr", filenames=[])
+        with pytest.raises(ValueError, match="'filenames' was provided but is empty."):
+            Scene(reader="viirs_sdr", filenames=[])
 
     def test_create_reader_instances_with_filenames(self):
         """Test creating a reader providing filenames."""

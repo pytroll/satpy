@@ -138,7 +138,7 @@ def test_insat3d_backend_has_1km_channels(insat_filename):
     assert res["IMG_SWIR"].shape == shape_1km
 
 
-@pytest.mark.parametrize("resolution,name,shape,expected_values,expected_name,expected_units",
+@pytest.mark.parametrize(("resolution", "name", "shape", "expected_values", "expected_name", "expected_units"),
                          [(1000, "IMG_VIS_RADIANCE", shape_1km, mask_array(values_1km * 2),
                            "Visible Radiance", rad_units),
                           (1000, "IMG_VIS_ALBEDO", shape_1km, mask_array(values_1km * 3),
@@ -173,7 +173,7 @@ def test_insat3d_has_dask_arrays(insat_filename):
 
 def test_insat3d_only_has_3_resolutions(insat_filename):
     """Test that we only accept 1000, 4000, 8000."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Resolution 1024 not available. Available resolutions: 1000, 4000, 8000"):
         _ = open_dataset(insat_filename, resolution=1024)
 
 
@@ -208,7 +208,7 @@ def test_insat3d_datatree_has_global_attributes(insat_filename):
     assert res.attrs.keys() >= global_attrs.keys()
 
 
-@pytest.mark.parametrize("calibration,expected_values",
+@pytest.mark.parametrize(("calibration", "expected_values"),
                          [("counts", values_1km),
                           ("radiance", mask_array(values_1km * 2)),
                           ("reflectance", mask_array(values_1km * 3))])

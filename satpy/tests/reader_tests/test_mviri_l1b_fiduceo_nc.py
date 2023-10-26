@@ -400,7 +400,7 @@ class TestFiduceoMviriFileHandlers:
         is_refl = calibration == "reflectance"
         if is_easy and is_vis and not is_refl:
             # VIS counts/radiance not available in easy FCDR
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Cannot calibrate to .*. Easy FCDR provides reflectance only."):
                 file_handler.get_dataset(dataset_id, dataset_info)
         else:
             ds = file_handler.get_dataset(dataset_id, dataset_info)

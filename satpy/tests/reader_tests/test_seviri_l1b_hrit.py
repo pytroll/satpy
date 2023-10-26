@@ -67,7 +67,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
                                                 size=int((464 * 5568 * nbits) / 8),
                                                 dtype=np.uint8)
         res = self.reader.read_band("HRV", None)
-        self.assertEqual(res.shape, (464, 5568))
+        assert res.shape == (464, 5568)
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
@@ -79,7 +79,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(data=np.zeros((464, 5568)), dims=("y", "x"))
         res = self.reader.get_dataset(key, info)
-        self.assertEqual(res.shape, (464, 11136))
+        assert res.shape == (464, 11136)
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
@@ -102,7 +102,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(data=np.zeros((464, 5568)), dims=("y", "x"))
         res = self.reader.get_dataset(key, info)
-        self.assertEqual(res.shape, (464, 5568))
+        assert res.shape == (464, 5568)
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
@@ -118,16 +118,15 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
-        self.assertEqual(area.area_extent,
-                         (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
+        assert area.area_extent == (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356)
         proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
-        self.assertEqual(a, 6378169.0)
-        self.assertAlmostEqual(b, 6356583.8)
-        self.assertEqual(proj_dict["h"], 35785831.0)
-        self.assertEqual(proj_dict["lon_0"], 0.0)
-        self.assertEqual(proj_dict["proj"], "geos")
-        self.assertEqual(proj_dict["units"], "m")
+        assert a == 6378169.0
+        assert b == pytest.approx(6356583.8)
+        assert proj_dict["h"] == 35785831.0
+        assert proj_dict["lon_0"] == 0.0
+        assert proj_dict["proj"] == "geos"
+        assert proj_dict["units"] == "m"
         self.reader.fill_hrv = False
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         npt.assert_allclose(area.defs[0].area_extent,
@@ -135,8 +134,8 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         npt.assert_allclose(area.defs[1].area_extent,
                             (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
 
-        self.assertEqual(area.defs[0].area_id, "msg_seviri_fes_1km")
-        self.assertEqual(area.defs[1].area_id, "msg_seviri_fes_1km")
+        assert area.defs[0].area_id == "msg_seviri_fes_1km"
+        assert area.defs[1].area_id == "msg_seviri_fes_1km"
 
 
 class TestHRITMSGFileHandler(TestHRITMSGBase):
@@ -171,24 +170,20 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         area = self.reader.get_area_def(make_dataid(name="VIS006", resolution=3000))
         proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
-        self.assertEqual(a, 6378169.0)
-        self.assertAlmostEqual(b, 6356583.8)
-        self.assertEqual(proj_dict["h"], 35785831.0)
-        self.assertEqual(proj_dict["lon_0"], self.projection_longitude)
-        self.assertEqual(proj_dict["proj"], "geos")
-        self.assertEqual(proj_dict["units"], "m")
-        self.assertEqual(area.area_extent,
-                         (-77771774058.38356, -3720765401003.719,
-                          30310525626438.438, 77771774058.38356))
+        assert a == 6378169.0
+        assert b == pytest.approx(6356583.8)
+        assert proj_dict["h"] == 35785831.0
+        assert proj_dict["lon_0"] == self.projection_longitude
+        assert proj_dict["proj"] == "geos"
+        assert proj_dict["units"] == "m"
+        assert area.area_extent == (-77771774058.38356, -3720765401003.719, 30310525626438.438, 77771774058.38356)
 
         # Data shifted by 1.5km to N-W
         self.reader.mda["offset_corrected"] = False
         area = self.reader.get_area_def(make_dataid(name="VIS006", resolution=3000))
-        self.assertEqual(area.area_extent,
-                         (-77771772558.38356, -3720765402503.719,
-                          30310525627938.438, 77771772558.38356))
+        assert area.area_extent == (-77771772558.38356, -3720765402503.719, 30310525627938.438, 77771772558.38356)
 
-        self.assertEqual(area.area_id, "msg_seviri_rss_3km")
+        assert area.area_id == "msg_seviri_rss_3km"
 
     @mock.patch("satpy.readers.hrit_base.np.memmap")
     def test_read_band(self, memmap):
@@ -198,7 +193,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
                                                 size=int((464 * 3712 * nbits) / 8),
                                                 dtype=np.uint8)
         res = self.reader.read_band("VIS006", None)
-        self.assertEqual(res.shape, (464, 3712))
+        assert res.shape == (464, 3712)
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
@@ -227,18 +222,18 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             setup.get_attrs_exp(self.projection_longitude)
         )
         # testing start/end time
-        self.assertEqual(datetime(2006, 1, 1, 12, 15, 9, 304888), self.reader.observation_start_time)
-        self.assertEqual(datetime(2006, 1, 1, 12, 15,), self.reader.start_time)
-        self.assertEqual(self.reader.start_time, self.reader.nominal_start_time)
+        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == self.reader.observation_start_time
+        assert datetime(2006, 1, 1, 12, 15) == self.reader.start_time
+        assert self.reader.start_time == self.reader.nominal_start_time
 
-        self.assertEqual(datetime(2006, 1, 1, 12, 27, 39), self.reader.observation_end_time)
-        self.assertEqual(self.reader.end_time, self.reader.nominal_end_time)
-        self.assertEqual(datetime(2006, 1, 1, 12, 30,), self.reader.end_time)
+        assert datetime(2006, 1, 1, 12, 27, 39) == self.reader.observation_end_time
+        assert self.reader.end_time == self.reader.nominal_end_time
+        assert datetime(2006, 1, 1, 12, 30) == self.reader.end_time
         # test repeat cycle duration
-        self.assertEqual(15, self.reader._repeat_cycle_duration)
+        assert 15 == self.reader._repeat_cycle_duration
         # Change the reducescan scenario to test the repeat cycle duration handling
         self.reader.epilogue["ImageProductionStats"]["ActualScanningSummary"]["ReducedScan"] = 1
-        self.assertEqual(5, self.reader._repeat_cycle_duration)
+        assert 5 == self.reader._repeat_cycle_duration
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
@@ -282,10 +277,10 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         self.reader.prologue_.reduce = lambda max_size: {"prologue": 1}
         self.reader.epilogue_.reduce = lambda max_size: {"epilogue": 1}
         expected = {"prologue": 1, "epilogue": 1, "segment": 1}
-        self.assertDictEqual(self.reader._get_raw_mda(), expected)
+        assert self.reader._get_raw_mda() == expected
 
         # Make sure _get_raw_mda() doesn't modify the original dictionary
-        self.assertIn("loff", self.reader.mda)
+        assert "loff" in self.reader.mda
 
     def test_satpos_no_valid_orbit_polynomial(self):
         """Test satellite position if there is no valid orbit polynomial."""
@@ -296,10 +291,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             projection_longitude=self.projection_longitude,
             orbit_polynomials=ORBIT_POLYNOMIALS_INVALID
         )
-        self.assertNotIn(
-            "satellite_actual_longitude",
-            reader.mda["orbital_parameters"]
-        )
+        assert "satellite_actual_longitude" not in reader.mda["orbital_parameters"]
 
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
@@ -337,10 +329,10 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         reduce_mda.return_value = "reduced"
 
         # Set buffer
-        self.assertEqual(self.reader.reduce(123), "reduced")
+        assert self.reader.reduce(123) == "reduced"
 
         # Read buffer
-        self.assertEqual(self.reader.reduce(123), "reduced")
+        assert self.reader.reduce(123) == "reduced"
         reduce_mda.assert_called_once()
 
 
@@ -385,13 +377,13 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         reduce_mda.return_value = "reduced"
 
         # Set buffer
-        self.assertEqual(self.reader.reduce(123), "reduced")
+        assert self.reader.reduce(123) == "reduced"
         reduce_mda.assert_called()
 
         # Read buffer
         reduce_mda.reset_mock()
         self.reader._reduced = "red"
-        self.assertEqual(self.reader.reduce(123), "red")
+        assert self.reader.reduce(123) == "red"
         reduce_mda.assert_not_called()
 
 

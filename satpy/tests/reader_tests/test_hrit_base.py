@@ -59,13 +59,13 @@ class TestHRITDecompress(unittest.TestCase):
         else:
             os.environ.pop("XRIT_DECOMPRESS_PATH")
 
-        self.assertEqual(fname, res)
+        assert fname == res
 
     def test_xrit_outfile(self):
         """Test the right decompression filename is used."""
         stdout = [b"Decompressed file: bla.__\n"]
         outfile = get_xritdecompress_outfile(stdout)
-        self.assertEqual(outfile, b"bla.__")
+        assert outfile == b"bla.__"
 
     @mock.patch("satpy.readers.hrit_base.Popen")
     def test_decompress(self, popen):
@@ -84,7 +84,7 @@ class TestHRITDecompress(unittest.TestCase):
         else:
             os.environ.pop("XRIT_DECOMPRESS_PATH")
 
-        self.assertEqual(res, os.path.join(".", "bla.__"))
+        assert res == os.path.join(".", "bla.__")
 
 
 # From a compressed msg hrit file.
@@ -129,7 +129,7 @@ def new_get_hd_compressed(instance, hdr_info):
     instance.mda["data_field_length"] = 1578312
 
 
-@pytest.fixture
+@pytest.fixture()
 def stub_hrit_file(tmp_path):
     """Create a stub hrit file."""
     filename = tmp_path / "some_hrit_file"
@@ -153,7 +153,7 @@ def create_stub_hrit(filename, open_fun=open, meta=mda):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def stub_bzipped_hrit_file(tmp_path):
     """Create a stub bzipped hrit file."""
     filename = tmp_path / "some_hrit_file.bz2"
@@ -161,7 +161,7 @@ def stub_bzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def stub_gzipped_hrit_file(tmp_path):
     """Create a stub gzipped hrit file."""
     filename = tmp_path / "some_hrit_file.gz"
@@ -169,7 +169,7 @@ def stub_gzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def stub_compressed_hrit_file(tmp_path):
     """Create a stub compressed hrit file."""
     filename = tmp_path / "some_hrit_file.C_"

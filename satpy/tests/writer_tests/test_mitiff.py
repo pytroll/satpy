@@ -593,7 +593,7 @@ class TestMITIFFWriter(unittest.TestCase):
         imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         for key in imgdesc:
             if "In this file" in key:
-                self.assertEqual(key, " Channels: 1 In this file: 1")
+                assert key == " Channels: 1 In this file: 1"
 
     def test_save_one_dataset_sensor_set(self):
         """Test basic writer operation with one dataset ie. no bands."""
@@ -604,7 +604,7 @@ class TestMITIFFWriter(unittest.TestCase):
         imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         for key in imgdesc:
             if "In this file" in key:
-                self.assertEqual(key, " Channels: 1 In this file: 1")
+                assert key == " Channels: 1 In this file: 1"
 
     def test_save_dataset_with_calibration(self):
         """Test writer operation with calibration."""
@@ -751,29 +751,29 @@ class TestMITIFFWriter(unittest.TestCase):
             if "Table_calibration" in key:
                 found_table_calibration = True
                 if "1-VIS0.63" in key:
-                    self.assertEqual(key, expected_key_channel[0])
+                    assert key == expected_key_channel[0]
                     number_of_calibrations += 1
                 elif "2-VIS0.86" in key:
-                    self.assertEqual(key, expected_key_channel[1])
+                    assert key == expected_key_channel[1]
                     number_of_calibrations += 1
                 elif "3(3B)-IR3.7" in key:
-                    self.assertEqual(key, expected_key_channel[2])
+                    assert key == expected_key_channel[2]
                     number_of_calibrations += 1
                 elif "4-IR10.8" in key:
-                    self.assertEqual(key, expected_key_channel[3])
+                    assert key == expected_key_channel[3]
                     number_of_calibrations += 1
                 elif "5-IR11.5" in key:
-                    self.assertEqual(key, expected_key_channel[4])
+                    assert key == expected_key_channel[4]
                     number_of_calibrations += 1
                 elif "6(3A)-VIS1.6" in key:
-                    self.assertEqual(key, expected_key_channel[5])
+                    assert key == expected_key_channel[5]
                     number_of_calibrations += 1
                 else:
                     self.fail("Not a valid channel description i the given key.")
-        self.assertTrue(found_table_calibration, "Table_calibration is not found in the imagedescription.")
-        self.assertEqual(number_of_calibrations, 6)
+        assert found_table_calibration, "Table_calibration is not found in the imagedescription."
+        assert number_of_calibrations == 6
         pillow_tif = Image.open(os.path.join(self.base_dir, filename))
-        self.assertEqual(pillow_tif.n_frames, 6)
+        assert pillow_tif.n_frames == 6
         self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_dataset_with_calibration_one_dataset(self):
@@ -817,10 +817,10 @@ class TestMITIFFWriter(unittest.TestCase):
             if "Table_calibration" in key:
                 found_table_calibration = True
                 if "BT" in key:
-                    self.assertEqual(key, expected_key_channel[0])
+                    assert key == expected_key_channel[0]
                     number_of_calibrations += 1
-        self.assertTrue(found_table_calibration, "Expected table_calibration is not found in the imagedescription.")
-        self.assertEqual(number_of_calibrations, 1)
+        assert found_table_calibration, "Expected table_calibration is not found in the imagedescription."
+        assert number_of_calibrations == 1
         self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_save_dataset_with_bad_value(self):
@@ -883,7 +883,7 @@ class TestMITIFFWriter(unittest.TestCase):
 
             w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
             proj4_string = w._add_proj4_string(ds1, ds1)
-            self.assertEqual(proj4_string, check["proj4"])
+            assert proj4_string == check["proj4"]
 
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
@@ -934,11 +934,11 @@ class TestMITIFFWriter(unittest.TestCase):
                                                          dataset.attrs["start_time"])
         pillow_tif = Image.open(os.path.join(self.base_dir, filename))
         # Need to check PHOTOMETRIC is 3, ie palette
-        self.assertEqual(pillow_tif.tag_v2.get(262), 3)
+        assert pillow_tif.tag_v2.get(262) == 3
         # Check the colormap of the palette image
         palette = pillow_tif.palette
         colormap = list((palette.getdata())[1])
-        self.assertEqual(colormap, exp_c)
+        assert colormap == exp_c
         imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         found_color_info = False
         unit_name_found = False
@@ -961,11 +961,11 @@ class TestMITIFFWriter(unittest.TestCase):
             elif "COLOR INFO:" in key:
                 found_color_info = True
         # Check the name of the palette description
-        self.assertEqual(name_length, 2)
+        assert name_length == 2
         # Check the name and unit name of the palette
-        self.assertEqual(unit_name, " Test")
+        assert unit_name == " Test"
         # Check the palette description of the palette
-        self.assertEqual(names, [" test", " test2"])
+        assert names == [" test", " test2"]
         self._read_back_mitiff_and_check(os.path.join(self.base_dir, filename), expected)
 
     def test_simple_write_two_bands(self):
@@ -987,7 +987,7 @@ class TestMITIFFWriter(unittest.TestCase):
         imgdesc = self._imagedescription_from_mitiff(os.path.join(self.base_dir, filename))
         for element in imgdesc:
             if " Channels:" in element:
-                self.assertEqual(element, " Channels: 3 In this file: 1 2 3")
+                assert element == " Channels: 3 In this file: 1 2 3"
 
     def test_save_dataset_with_calibration_error_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel with invalid calibration."""
@@ -1010,7 +1010,7 @@ class TestMITIFFWriter(unittest.TestCase):
             with self.assertLogs(logger) as lc:
                 w._add_calibration_datasets(4, dataset, _reverse_offset, _reverse_scale, _decimals)
                 for _op in lc.output:
-                    self.assertIn("Unknown calib type. Must be Radiance, Reflectance or BT.", _op)
+                    assert "Unknown calib type. Must be Radiance, Reflectance or BT." in _op
         finally:
             logger.removeHandler(stream_handler)
 
@@ -1039,7 +1039,6 @@ class TestMITIFFWriter(unittest.TestCase):
             with self.assertLogs(logger, logging.ERROR) as lc:
                 w._save_as_palette(dataset.compute(), os.path.join(self.base_dir, filename), tiffinfo, **palette)
             for _op in lc.output:
-                self.assertIn(("In a mitiff palette image a color map must be provided: "
-                               "palette_color_map is missing."), _op)
+                assert "In a mitiff palette image a color map must be provided: palette_color_map is missing." in _op
         finally:
             logger.removeHandler(stream_handler)

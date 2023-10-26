@@ -127,25 +127,25 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler("test.nc", {}, {})
 
-        self.assertEqual(file_handler["/dimension/rows"], 10)
-        self.assertEqual(file_handler["/dimension/cols"], 100)
+        assert file_handler["/dimension/rows"] == 10
+        assert file_handler["/dimension/cols"] == 100
 
         for ds in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i"):
-            self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith("f") else np.int32)
-            self.assertTupleEqual(file_handler[ds + "/shape"], (10, 100))
-            self.assertEqual(file_handler[ds + "/dimensions"], ("rows", "cols"))
-            self.assertEqual(file_handler[ds + "/attr/test_attr_str"], "test_string")
-            self.assertEqual(file_handler[ds + "/attr/test_attr_int"], 0)
-            self.assertEqual(file_handler[ds + "/attr/test_attr_float"], 1.2)
+            assert file_handler[ds].dtype == (np.float32 if ds.endswith("f") else np.int32)
+            assert file_handler[ds + "/shape"] == (10, 100)
+            assert file_handler[ds + "/dimensions"] == ("rows", "cols")
+            assert file_handler[ds + "/attr/test_attr_str"] == "test_string"
+            assert file_handler[ds + "/attr/test_attr_int"] == 0
+            assert file_handler[ds + "/attr/test_attr_float"] == 1.2
 
         test_group = file_handler["test_group"]
-        self.assertTupleEqual(test_group["ds1_i"].shape, (10, 100))
-        self.assertTupleEqual(test_group["ds1_i"].dims, ("rows", "cols"))
+        assert test_group["ds1_i"].shape == (10, 100)
+        assert test_group["ds1_i"].dims == ("rows", "cols")
 
-        self.assertEqual(file_handler["/attr/test_attr_str"], "test_string")
-        self.assertEqual(file_handler["/attr/test_attr_str_arr"], "test_string2")
-        self.assertEqual(file_handler["/attr/test_attr_int"], 0)
-        self.assertEqual(file_handler["/attr/test_attr_float"], 1.2)
+        assert file_handler["/attr/test_attr_str"] == "test_string"
+        assert file_handler["/attr/test_attr_str_arr"] == "test_string2"
+        assert file_handler["/attr/test_attr_int"] == 0
+        assert file_handler["/attr/test_attr_float"] == 1.2
 
         global_attrs = {
             "test_attr_str": "test_string",
@@ -153,16 +153,16 @@ class TestNetCDF4FileHandler(unittest.TestCase):
             "test_attr_int": 0,
             "test_attr_float": 1.2
             }
-        self.assertEqual(file_handler["/attrs"], global_attrs)
+        assert file_handler["/attrs"] == global_attrs
 
-        self.assertIsInstance(file_handler.get("ds2_f")[:], xr.DataArray)
-        self.assertIsNone(file_handler.get("fake_ds"))
-        self.assertEqual(file_handler.get("fake_ds", "test"), "test")
+        assert isinstance(file_handler.get("ds2_f")[:], xr.DataArray)
+        assert file_handler.get("fake_ds") is None
+        assert file_handler.get("fake_ds", "test") == "test"
 
-        self.assertTrue("ds2_f" in file_handler)
-        self.assertFalse("fake_ds" in file_handler)
-        self.assertIsNone(file_handler.file_handle)
-        self.assertEqual(file_handler["ds2_sc"], 42)
+        assert ("ds2_f" in file_handler) is True
+        assert ("fake_ds" in file_handler) is False
+        assert file_handler.file_handle is None
+        assert file_handler["ds2_sc"] == 42
 
     def test_listed_variables(self):
         """Test that only listed variables/attributes area collected."""
@@ -212,11 +212,10 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
                                cache_handle=True)
-        self.assertIsNotNone(h.file_handle)
-        self.assertTrue(h.file_handle.isopen())
+        assert h.file_handle is not None
+        assert h.file_handle.isopen()
 
-        self.assertEqual(sorted(h.cached_file_content.keys()),
-                         ["ds2_s", "ds2_sc"])
+        assert sorted(h.cached_file_content.keys()) == ["ds2_s", "ds2_sc"]
         # with caching, these tests access different lines than without
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
         np.testing.assert_array_equal(h["test_group/ds1_i"],
@@ -227,7 +226,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 h["ds2_f"],
                 np.arange(10. * 100).reshape((10, 100)))
         h.__del__()
-        self.assertFalse(h.file_handle.isopen())
+        assert not h.file_handle.isopen()
 
     def test_filenotfound(self):
         """Test that error is raised when file not found."""

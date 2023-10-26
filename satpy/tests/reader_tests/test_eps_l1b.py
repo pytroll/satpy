@@ -189,7 +189,7 @@ class TestWrongScanlinesEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler on a corrupt file."""
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def _inject_fixtures(self, caplog):
         """Inject caplog."""
         self._caplog = caplog
 
@@ -251,7 +251,7 @@ class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler on a corrupt file."""
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def _inject_fixtures(self, caplog):
         """Inject caplog."""
         self._caplog = caplog
 

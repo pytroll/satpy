@@ -156,8 +156,8 @@ class FakeModifier(ModifierBase):
                 opt_dep_name = opt_dep if isinstance(opt_dep, str) else opt_dep.get("name", "")
                 if "NOPE" in opt_dep_name or "fail" in opt_dep_name:
                     continue
-                assert (optional_datasets is not None and
-                        len(optional_datasets))
+                assert optional_datasets is not None
+                assert len(optional_datasets)
         resolution = datasets[0].attrs.get("resolution")
         mod_name = self.attrs["modifiers"][-1]
         data = datasets[0].data

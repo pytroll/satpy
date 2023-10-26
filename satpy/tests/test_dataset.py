@@ -45,7 +45,7 @@ class TestDataID(unittest.TestCase):
                calibration="radiance")
         DataID(dikc, name="a", wavelength=0.86, resolution=250,
                calibration="radiance", modifiers=("sunz_corrected",))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Required field name missing."):
             DataID(dikc, wavelength=0.86)
         did = DataID(mdkc, name="comp24", resolution=500)
         assert did["resolution"] == 500
@@ -64,14 +64,14 @@ class TestDataID(unittest.TestCase):
         d2 = DataID(dikc, name="a", wavelength=None)
 
         # this happens when sorting IDs during dependency checks
-        self.assertFalse(d1 < d2)
-        self.assertTrue(d2 < d1)
+        assert not (d1 < d2)
+        assert d2 < d1
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
         from satpy.dataset.dataid import DataID
         from satpy.dataset.dataid import default_id_keys_config as dikc
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="_bad_ invalid value for <enum 'calibration'>"):
             DataID(dikc, name="C05", calibration="_bad_")
 
     def test_is_modified(self):
@@ -119,20 +119,20 @@ class TestCombineMetadata(unittest.TestCase):
             datetime(2018, 2, 1, 12, 2, 0),
         )
         ret = average_datetimes(dts)
-        self.assertEqual(dts[2], ret)
+        assert dts[2] == ret
 
     def test_combine_times_with_averaging(self):
         """Test the combine_metadata with times with averaging."""
         from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts)
-        self.assertEqual(self.datetime_dts[2]["start_time"], ret["start_time"])
+        assert self.datetime_dts[2]["start_time"] == ret["start_time"]
 
     def test_combine_times_without_averaging(self):
         """Test the combine_metadata with times without averaging."""
         from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts, average_times=False)
         # times are not equal so don't include it in the final result
-        self.assertNotIn("start_time", ret)
+        assert "start_time" not in ret
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
@@ -387,7 +387,7 @@ def test_dataid():
     did = make_dataid(name="cheese_shops", resolution=None)
     assert "resolution" not in did
     assert "None" not in did.__repr__()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Required field name missing."):
         make_dataid(name=None, resolution=1000)
 
     # Check that defaults are applied correctly
@@ -404,7 +404,7 @@ def test_dataid():
         did["resolution"] = 1000
 
     # Check that a missing required field crashes
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Required field name missing."):
         make_dataid(resolution=1000)
 
     # Check to_dict

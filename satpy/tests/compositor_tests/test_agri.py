@@ -54,10 +54,9 @@ class TestAGRIComposites(unittest.TestCase):
                            dims=("y", "x"),
                            attrs={"name": "C02", "area": area})
         res = comp((c01, c02))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs["name"], "red")
-        self.assertEqual(res.attrs["standard_name"],
-                         "toa_bidirectional_reflectance")
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "red"
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.compute()
         np.testing.assert_allclose(data, 0.24252874)

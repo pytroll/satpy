@@ -126,7 +126,7 @@ class TestMatchDataArrays(unittest.TestCase):
         ds["acq_time"] = ("y", [0, 1])
         comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays([ds, ds])
-        self.assertNotIn("acq_time", ret_datasets[0].coords)
+        assert "acq_time" not in ret_datasets[0].coords
 
 
 class TestRatioSharpenedCompositors:
@@ -196,7 +196,7 @@ class TestRatioSharpenedCompositors:
     def test_bad_colors(self, init_kwargs):
         """Test that only valid band colors can be provided."""
         from satpy.composites import RatioSharpenedRGB
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="RatioSharpenedRGB..*_band must be one of .*"):
             RatioSharpenedRGB(name="true_color", **init_kwargs)
 
     def test_match_data_arrays(self):
@@ -210,14 +210,14 @@ class TestRatioSharpenedCompositors:
         """Test that only 3 datasets can be passed."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected 3 datasets, got 4"):
             comp((self.ds1, self.ds2, self.ds3, self.ds1), optional_datasets=(self.ds4_big,))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color", high_resolution_band=None)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="SelfSharpenedRGB requires at least one high resolution band, not 'None'"):
             comp((self.ds1, self.ds2, self.ds3))
 
     def test_basic_no_high_res(self):
@@ -355,14 +355,14 @@ class TestDifferenceCompositor(unittest.TestCase):
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def
     return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
     ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
@@ -619,7 +619,7 @@ class TestSandwichCompositor:
 
     # Test RGB and RGBA
     @pytest.mark.parametrize(
-        "input_shape,bands",
+        ("input_shape", "bands"),
         [
             ((3, 2, 2), ["R", "G", "B"]),
             ((4, 2, 2), ["R", "G", "B", "A"])
@@ -665,28 +665,24 @@ class TestInlineComposites(unittest.TestCase):
         # Check that "fog" product has all its prerequisites defined
         keys = comps["visir"].keys()
         fog = [comps["visir"][dsid] for dsid in keys if "fog" == dsid["name"]][0]
-        self.assertEqual(fog.attrs["prerequisites"][0]["name"], "_fog_dep_0")
-        self.assertEqual(fog.attrs["prerequisites"][1]["name"], "_fog_dep_1")
-        self.assertEqual(fog.attrs["prerequisites"][2], 10.8)
+        assert fog.attrs["prerequisites"][0]["name"] == "_fog_dep_0"
+        assert fog.attrs["prerequisites"][1]["name"] == "_fog_dep_1"
+        assert fog.attrs["prerequisites"][2] == 10.8
 
         # Check that the sub-composite dependencies use wavelengths
         # (numeric values)
         keys = comps["visir"].keys()
         fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid["name"]]
-        self.assertEqual(comps["visir"][fog_dep_ids[0]].attrs["prerequisites"],
-                         [12.0, 10.8])
-        self.assertEqual(comps["visir"][fog_dep_ids[1]].attrs["prerequisites"],
-                         [10.8, 8.7])
+        assert comps["visir"][fog_dep_ids[0]].attrs["prerequisites"] == [12.0, 10.8]
+        assert comps["visir"][fog_dep_ids[1]].attrs["prerequisites"] == [10.8, 8.7]
 
         # Check the same for SEVIRI and verify channel names are used
         # in the sub-composite dependencies instead of wavelengths
         comps = load_compositor_configs_for_sensors(["seviri"])[0]
         keys = comps["seviri"].keys()
         fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid["name"]]
-        self.assertEqual(comps["seviri"][fog_dep_ids[0]].attrs["prerequisites"],
-                         ["IR_120", "IR_108"])
-        self.assertEqual(comps["seviri"][fog_dep_ids[1]].attrs["prerequisites"],
-                         ["IR_108", "IR_087"])
+        assert comps["seviri"][fog_dep_ids[0]].attrs["prerequisites"] == ["IR_120", "IR_108"]
+        assert comps["seviri"][fog_dep_ids[1]].attrs["prerequisites"] == ["IR_108", "IR_087"]
 
 
 class TestColormapCompositor(unittest.TestCase):
@@ -701,8 +697,8 @@ class TestColormapCompositor(unittest.TestCase):
         """Test colormap building."""
         palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
         colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(colormap.values, [0, 1]))
-        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+        assert np.allclose(colormap.values, [0, 1])
+        assert np.allclose(squeezed_palette, palette / 255.0)
 
     def test_build_colormap_with_int_data_and_with_meanings(self):
         """Test colormap building."""
@@ -710,8 +706,8 @@ class TestColormapCompositor(unittest.TestCase):
                                dims=["value", "band"])
         palette.attrs["palette_meanings"] = [2, 3, 4]
         colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(colormap.values, [2, 3, 4]))
-        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+        assert np.allclose(colormap.values, [2, 3, 4])
+        assert np.allclose(squeezed_palette, palette / 255.0)
 
 
 class TestPaletteCompositor(unittest.TestCase):
@@ -733,7 +729,7 @@ class TestPaletteCompositor(unittest.TestCase):
                          [0., 0.498039, 1.]],
                         [[1., 0.498039, 0.],
                          [0., 0.498039, 1.]]])
-        self.assertTrue(np.allclose(res, exp))
+        assert np.allclose(res, exp)
 
 
 class TestColorizeCompositor(unittest.TestCase):
@@ -758,7 +754,7 @@ class TestColorizeCompositor(unittest.TestCase):
                          [0., 0.498039, 1.]],
                         [[1., 0.498039, 0.],
                          [0., 0.498039, 1.]]])
-        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+        assert np.allclose(res, exp, atol=0.0001)
 
     def test_colorize_with_interpolation(self):
         """Test colorizing with interpolation."""
@@ -940,14 +936,14 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.comp.attrs["resolution"] = None
         res = self.comp([all_valid], **attrs)
         # Verify attributes
-        self.assertEqual(res.attrs.get("sensor"), "foo")
-        self.assertTrue("foo" in res.attrs)
-        self.assertEqual(res.attrs.get("foo"), "bar")
-        self.assertTrue("units" in res.attrs)
-        self.assertTrue("calibration" in res.attrs)
-        self.assertFalse("modifiers" in res.attrs)
-        self.assertEqual(res.attrs["wavelength"], 10.8)
-        self.assertEqual(res.attrs["resolution"], 333)
+        assert res.attrs.get("sensor") == "foo"
+        assert "foo" in res.attrs
+        assert res.attrs.get("foo") == "bar"
+        assert "units" in res.attrs
+        assert "calibration" in res.attrs
+        assert "modifiers" not in res.attrs
+        assert res.attrs["wavelength"] == 10.8
+        assert res.attrs["resolution"] == 333
 
 
 class TestCategoricalDataCompositor(unittest.TestCase):
@@ -1023,33 +1019,33 @@ class TestGenericCompositor(unittest.TestCase):
         from satpy.composites import IncompatibleAreas
         res = self.comp._concat_datasets([self.all_valid], "L")
         num_bands = len(res.bands)
-        self.assertEqual(num_bands, 1)
-        self.assertEqual(res.shape[0], num_bands)
-        self.assertEqual(res.bands[0], "L")
+        assert num_bands == 1
+        assert res.shape[0] == num_bands
+        assert res.bands[0] == "L"
         res = self.comp._concat_datasets([self.all_valid, self.all_valid], "LA")
         num_bands = len(res.bands)
-        self.assertEqual(num_bands, 2)
-        self.assertEqual(res.shape[0], num_bands)
-        self.assertEqual(res.bands[0], "L")
-        self.assertEqual(res.bands[1], "A")
+        assert num_bands == 2
+        assert res.shape[0] == num_bands
+        assert res.bands[0] == "L"
+        assert res.bands[1] == "A"
         self.assertRaises(IncompatibleAreas, self.comp._concat_datasets,
                           [self.all_valid, self.wrong_shape], "LA")
 
     def test_get_sensors(self):
         """Test getting sensors from the dataset attributes."""
         res = self.comp._get_sensors([self.all_valid])
-        self.assertIsNone(res)
+        assert res is None
         dset1 = self.all_valid
         dset1.attrs["sensor"] = "foo"
         res = self.comp._get_sensors([dset1])
-        self.assertEqual(res, "foo")
+        assert res == "foo"
         dset2 = self.first_invalid
         dset2.attrs["sensor"] = "bar"
         res = self.comp._get_sensors([dset1, dset2])
-        self.assertIn("foo", res)
-        self.assertIn("bar", res)
-        self.assertEqual(len(res), 2)
-        self.assertIsInstance(res, set)
+        assert "foo" in res
+        assert "bar" in res
+        assert len(res) == 2
+        assert isinstance(res, set)
 
     @mock.patch("satpy.composites.GenericCompositor._get_sensors")
     @mock.patch("satpy.composites.combine_metadata")
@@ -1062,8 +1058,8 @@ class TestGenericCompositor(unittest.TestCase):
         get_sensors.return_value = "foo"
         # One dataset, no mode given
         res = self.comp([self.all_valid])
-        self.assertEqual(res.shape[0], 1)
-        self.assertEqual(res.attrs["mode"], "L")
+        assert res.shape[0] == 1
+        assert res.attrs["mode"] == "L"
         match_data_arrays.assert_not_called()
         # This compositor has been initialized without common masking, so the
         # masking shouldn't have been called
@@ -1093,15 +1089,15 @@ class TestGenericCompositor(unittest.TestCase):
         self.comp.attrs["resolution"] = None
         res = self.comp([self.all_valid, self.first_invalid], **attrs)
         # Verify attributes
-        self.assertEqual(res.attrs.get("sensor"), "foo")
-        self.assertIn("foo", res.attrs)
-        self.assertEqual(res.attrs.get("foo"), "bar")
-        self.assertNotIn("units", res.attrs)
-        self.assertNotIn("calibration", res.attrs)
-        self.assertNotIn("modifiers", res.attrs)
-        self.assertIsNone(res.attrs["wavelength"])
-        self.assertEqual(res.attrs["mode"], "LA")
-        self.assertEqual(res.attrs["resolution"], 333)
+        assert res.attrs.get("sensor") == "foo"
+        assert "foo" in res.attrs
+        assert res.attrs.get("foo") == "bar"
+        assert "units" not in res.attrs
+        assert "calibration" not in res.attrs
+        assert "modifiers" not in res.attrs
+        assert res.attrs["wavelength"] is None
+        assert res.attrs["mode"] == "LA"
+        assert res.attrs["resolution"] == 333
 
     def test_deprecation_warning(self):
         """Test deprecation warning for dcprecated composite recipes."""
@@ -1125,7 +1121,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B"]
-        self.assertEqual(res.attrs["mode"], "".join(res_bands))
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
@@ -1140,7 +1136,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        self.assertEqual(res.attrs["mode"], "".join(res_bands))
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
@@ -1155,7 +1151,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        self.assertEqual(res.attrs["mode"], "".join(res_bands))
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
@@ -1171,7 +1167,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        self.assertEqual(res.attrs["mode"], "".join(res_bands))
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
@@ -1203,14 +1199,14 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # No area defined
         comp = StaticImageCompositor("name", filename="/foo.tif")
-        self.assertEqual(comp._cache_filename, "/foo.tif")
-        self.assertIsNone(comp.area)
+        assert comp._cache_filename == "/foo.tif"
+        assert comp.area is None
 
         # Area defined
         get_area_def.return_value = "bar"
         comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
-        self.assertEqual(comp._cache_filename, "/foo.tif")
-        self.assertEqual(comp.area, "bar")
+        assert comp._cache_filename == "/foo.tif"
+        assert comp.area == "bar"
         get_area_def.assert_called_once_with("euro4")
 
     @mock.patch("satpy.aux_download.retrieve")
@@ -1239,11 +1235,11 @@ class TestStaticImageCompositor(unittest.TestCase):
                                       filenames=["/foo.tif"])
         register.assert_not_called()
         retrieve.assert_not_called()
-        self.assertIn("start_time", res.attrs)
-        self.assertIn("end_time", res.attrs)
-        self.assertIsNone(res.attrs["sensor"])
-        self.assertNotIn("modifiers", res.attrs)
-        self.assertNotIn("calibration", res.attrs)
+        assert "start_time" in res.attrs
+        assert "end_time" in res.attrs
+        assert res.attrs["sensor"] is None
+        assert "modifiers" not in res.attrs
+        assert "calibration" not in res.attrs
 
         # remote file with local cached version
         Scene.reset_mock()
@@ -1253,11 +1249,11 @@ class TestStaticImageCompositor(unittest.TestCase):
         res = comp()
         Scene.assert_called_once_with(reader="generic_image",
                                       filenames=["data_dir/foo.tif"])
-        self.assertIn("start_time", res.attrs)
-        self.assertIn("end_time", res.attrs)
-        self.assertIsNone(res.attrs["sensor"])
-        self.assertNotIn("modifiers", res.attrs)
-        self.assertNotIn("calibration", res.attrs)
+        assert "start_time" in res.attrs
+        assert "end_time" in res.attrs
+        assert res.attrs["sensor"] is None
+        assert "modifiers" not in res.attrs
+        assert "calibration" not in res.attrs
 
         # Non-georeferenced image, no area given
         img.attrs.pop("area")
@@ -1268,25 +1264,24 @@ class TestStaticImageCompositor(unittest.TestCase):
         # Non-georeferenced image, area given
         comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
         res = comp()
-        self.assertEqual(res.attrs["area"].area_id, "euro4")
+        assert res.attrs["area"].area_id == "euro4"
 
         # Filename contains environment variable
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area="euro4")
-        self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+        assert comp._cache_filename == "/path/to/image/foo.tif"
 
         # URL and filename without absolute path
         comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
-        self.assertEqual(comp._url, remote_tif)
-        self.assertEqual(comp._cache_filename, "bar.tif")
+        assert comp._url == remote_tif
+        assert comp._cache_filename == "bar.tif"
 
         # No URL, filename without absolute path, use default data_dir from config
         with mock.patch("os.path.exists") as exists:
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
-            self.assertEqual(comp._url, None)
-            self.assertEqual(comp._cache_filename,
-                             os.path.join(os.path.sep, "path", "to", "image", "foo.tif"))
+            assert comp._url is None
+            assert comp._cache_filename == os.path.join(os.path.sep, "path", "to", "image", "foo.tif")
 
 
 def _enhance2dataset(dataset, convert_p=False):
@@ -1384,7 +1379,7 @@ class TestBackgroundCompositor:
 class TestMaskingCompositor:
     """Test case for the simple masking compositor."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def conditions_v1(self):
         """Masking conditions with string values."""
         return [{"method": "equal",
@@ -1394,7 +1389,7 @@ class TestMaskingCompositor:
                  "value": "Cloud-free_sea",
                  "transparency": 50}]
 
-    @pytest.fixture
+    @pytest.fixture()
     def conditions_v2(self):
         """Masking conditions with numerical values."""
         return [{"method": "equal",
@@ -1404,12 +1399,12 @@ class TestMaskingCompositor:
                  "value": 2,
                  "transparency": 50}]
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_data(self):
         """Test data to use with masking compositors."""
         return xr.DataArray(da.random.random((3, 3)), dims=["y", "x"])
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_ct_data(self):
         """Test 2D CT data array."""
         flag_meanings = ["Cloud-free_land", "Cloud-free_sea"]
@@ -1422,18 +1417,18 @@ class TestMaskingCompositor:
         ct_data.attrs["flag_values"] = flag_values
         return ct_data
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_ct_data_v3(self, test_ct_data):
         """Set ct data to NaN where it originally is 1."""
         return test_ct_data.where(test_ct_data == 1)
 
-    @pytest.fixture
+    @pytest.fixture()
     def reference_data(self, test_data, test_ct_data):
         """Get reference data to use in masking compositor tests."""
         # The data are set to NaN where ct is `1`
         return test_data.where(test_ct_data > 1)
 
-    @pytest.fixture
+    @pytest.fixture()
     def reference_alpha(self):
         """Get reference alpha to use in masking compositor tests."""
         ref_alpha = da.array([[0, 0.5, 0.5],
@@ -1446,8 +1441,8 @@ class TestMaskingCompositor:
         from satpy.composites import MaskingCompositor
 
         # No transparency or conditions given raises ValueError
-        with pytest.raises(ValueError):
-            comp = MaskingCompositor("name")
+        with pytest.raises(ValueError, match="Masking conditions not defined."):
+            _ = MaskingCompositor("name")
 
         # transparency defined
         transparency = {0: 100, 1: 50}
@@ -1621,7 +1616,7 @@ class TestMaskingCompositor:
         with pytest.raises(AttributeError):
             comp([test_data, test_ct_data])
         # Test with too few projectables.
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected 2 datasets, got 1"):
             comp([test_data])
 
     def test_incorrect_mode(self, conditions_v1):
@@ -1629,7 +1624,7 @@ class TestMaskingCompositor:
         from satpy.composites import MaskingCompositor
 
         # Incorrect mode raises ValueError
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid mode YCbCrA.  Supported modes: .*"):
             MaskingCompositor("name", conditions=conditions_v1,
                               mode="YCbCrA")
 
@@ -1660,17 +1655,17 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         match_data_arrays.side_effect = temp_func
         comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
                           ch06_w=self.ch06_w)
-        self.assertEqual(comp.ch16_w, self.ch16_w)
-        self.assertEqual(comp.ch08_w, self.ch08_w)
-        self.assertEqual(comp.ch06_w, self.ch06_w)
+        assert comp.ch16_w == self.ch16_w
+        assert comp.ch08_w == self.ch08_w
+        assert comp.ch06_w == self.ch06_w
         res = comp(projectables)
         assert mock.call(projectables) in match_data_arrays.mock_calls
         correct = (self.ch16_w * projectables[0] +
                    self.ch08_w * projectables[1] +
                    self.ch06_w * projectables[2])
-        self.assertEqual(res[0], correct)
-        self.assertEqual(res[1], projectables[1])
-        self.assertEqual(res[2], projectables[2])
+        assert res[0] == correct
+        assert res[1] == projectables[1]
+        assert res[2] == projectables[2]
 
 
 class TestEnhance2Dataset(unittest.TestCase):

@@ -23,6 +23,7 @@ from unittest import mock
 import dask.array as da
 import numpy as np
 import xarray as xr
+from pytest import approx  # noqa: PT013
 
 
 class FakeDataset(object):
@@ -144,7 +145,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             "satellite_actual_longitude": 128.2707,
         }
         for key, val in exp_params.items():
-            self.assertAlmostEqual(val, orb_params[key], places=3)
+            assert val == approx(orb_params[key], abs=1e-3)
 
     def test_filename_grouping(self):
         """Test that filenames are grouped properly."""
@@ -167,16 +168,14 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             "gk2a_ami_le1b_wv069_fd020ge_201909300300.nc",
             "gk2a_ami_le1b_wv073_fd020ge_201909300300.nc"]
         groups = group_files(filenames, reader="ami_l1b")
-        self.assertEqual(len(groups), 1)
-        self.assertEqual(len(groups[0]["ami_l1b"]), 16)
+        assert len(groups) == 1
+        assert len(groups[0]["ami_l1b"]) == 16
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        self.assertEqual(self.reader.start_time,
-                         datetime(2019, 9, 30, 3, 0, 31, 957882))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2019, 9, 30, 3, 9, 35, 606133))
+        assert self.reader.start_time == datetime(2019, 9, 30, 3, 0, 31, 957882)
+        assert self.reader.end_time == datetime(2019, 9, 30, 3, 9, 35, 606133)
 
     def test_get_dataset(self):
         """Test gettting radiance data."""
@@ -193,7 +192,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
                "sensor": "ami",
                "units": "W m-2 um-1 sr-1"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
+            assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
     def test_bad_calibration(self):
@@ -212,15 +211,15 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
         exp = {"a": 6378137.0, "b": 6356752.3, "h": 35785863.0,
                "lon_0": 128.2, "proj": "geos", "units": "m"}
         for key, val in exp.items():
-            self.assertIn(key, call_args[3])
-            self.assertAlmostEqual(val, call_args[3][key])
-        self.assertEqual(call_args[4], self.reader.nc.attrs["number_of_columns"])
-        self.assertEqual(call_args[5], self.reader.nc.attrs["number_of_lines"])
+            assert key in call_args[3]
+            assert val == approx(call_args[3][key])
+        assert call_args[4] == self.reader.nc.attrs["number_of_columns"]
+        assert call_args[5] == self.reader.nc.attrs["number_of_lines"]
         np.testing.assert_allclose(call_args[6],
                                    [-5511022.902, -5511022.902, 5511022.902, 5511022.902])
 
@@ -239,7 +238,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
                "sensor": "ami",
                "units": "%"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
+            assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
     def test_get_dataset_counts(self):
@@ -257,7 +256,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
                "sensor": "ami",
                "units": "1"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
+            assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
 
@@ -310,7 +309,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs["standard_name"], "toa_brightness_temperature")
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_infile_calibrate(self):
         """Test IR calibration using in-file coefficients."""
@@ -324,7 +323,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs["standard_name"], "toa_brightness_temperature")
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_gsics_radiance_corr(self):
         """Test IR radiance adjustment using in-file GSICS coefs."""
@@ -338,7 +337,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs["standard_name"], "toa_brightness_temperature")
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_user_radiance_corr(self):
         """Test IR radiance adjustment using user-supplied coefs."""
@@ -354,4 +353,4 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs["standard_name"], "toa_brightness_temperature")
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"

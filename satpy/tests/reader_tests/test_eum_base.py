@@ -41,17 +41,17 @@ class TestMakeTimeCdsDictionary(unittest.TestCase):
         # time_cds_short
         tcds = {"Days": 1, "Milliseconds": 2}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
         # time_cds
         tcds = {"Days": 1, "Milliseconds": 2, "Microseconds": 3}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
         # time_cds_expanded
         tcds = {"Days": 1, "Milliseconds": 2, "Microseconds": 3, "Nanoseconds": 4}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
 
 class TestMakeTimeCdsRecarray(unittest.TestCase):
@@ -62,17 +62,17 @@ class TestMakeTimeCdsRecarray(unittest.TestCase):
         # time_cds_short
         tcds = np.array([(1, 2)], dtype=np.dtype(time_cds_short))
         expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
         # time_cds
         tcds = np.array([(1, 2, 3)], dtype=np.dtype(time_cds))
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
         # time_cds_expanded
         tcds = np.array([(1, 2, 3, 4)], dtype=np.dtype(time_cds_expanded))
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
-        self.assertEqual(timecds2datetime(tcds), expected)
+        assert timecds2datetime(tcds) == expected
 
 
 class TestRecarray2Dict(unittest.TestCase):
@@ -101,7 +101,7 @@ class TestRecarray2Dict(unittest.TestCase):
             "PlannedRepeatCycleEnd": datetime(2018, 1, 2, 11, 45, 9, 417918)
         }
 
-        self.assertEqual(recarray2dict(pat), expected)
+        assert recarray2dict(pat) == expected
 
     def test_mpef_product_header(self):
         """Test function for TestRecarray2Dict and mpef product header."""
@@ -117,7 +117,7 @@ class TestRecarray2Dict(unittest.TestCase):
                     "OffsetToData": 1000,
                     "Padding2": "12345678"
                     }
-        self.assertEqual(recarray2dict(mph_struct), test_mph)
+        assert recarray2dict(mph_struct) == test_mph
 
 
 class TestGetServiceMode(unittest.TestCase):
@@ -129,8 +129,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "fes"
         desc = "Full Earth Scanning service"
         res = get_service_mode("seviri", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_seviri_service_mode_rss(self):
         """Test fetching of SEVIRI service mode information for RSS."""
@@ -138,8 +138,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "rss"
         desc = "Rapid Scanning Service"
         res = get_service_mode("seviri", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_seviri_service_mode_iodc_E0415(self):
         """Test fetching of SEVIRI service mode information for IODC at 41.5 degrees East."""
@@ -147,8 +147,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "iodc"
         desc = "Indian Ocean Data Coverage service"
         res = get_service_mode("seviri", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_seviri_service_mode_iodc_E0455(self):
         """Test fetching of SEVIRI service mode information for IODC at 45.5 degrees East."""
@@ -156,8 +156,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "iodc"
         desc = "Indian Ocean Data Coverage service"
         res = get_service_mode("seviri", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_fci_service_mode_fdss(self):
         """Test fetching of FCI service mode information for FDSS."""
@@ -165,8 +165,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "fdss"
         desc = "Full Disk Scanning Service"
         res = get_service_mode("fci", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_fci_service_mode_rss(self):
         """Test fetching of FCI service mode information for RSS."""
@@ -174,8 +174,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "rss"
         desc = "Rapid Scanning Service"
         res = get_service_mode("fci", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_unknown_lon_service_mode(self):
         """Test fetching of service mode information for unknown input longitude."""
@@ -183,8 +183,8 @@ class TestGetServiceMode(unittest.TestCase):
         name = "unknown"
         desc = "unknown"
         res = get_service_mode("fci", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc
 
     def test_get_unknown_instrument_service_mode(self):
         """Test fetching of service mode information for unknown input instrument."""
@@ -192,5 +192,5 @@ class TestGetServiceMode(unittest.TestCase):
         name = "unknown"
         desc = "unknown"
         res = get_service_mode("test", ssp_lon)
-        self.assertEqual(res["service_name"], name)
-        self.assertEqual(res["service_desc"], desc)
+        assert res["service_name"] == name
+        assert res["service_desc"] == desc

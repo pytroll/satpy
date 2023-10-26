@@ -56,19 +56,19 @@ class TestBaseFileHandler(unittest.TestCase):
         info2 = {"start_time": 2}
         res = self.fh.combine_info([info1, info2])
         exp = {"start_time": 1}
-        self.assertDictEqual(res, exp)
+        assert res == exp
         res = self.fh.combine_info([info2, info1])
         exp = {"start_time": 1}
-        self.assertDictEqual(res, exp)
+        assert res == exp
 
         info1 = {"end_time": 1}
         info2 = {"end_time": 2}
         res = self.fh.combine_info([info1, info2])
         exp = {"end_time": 2}
-        self.assertDictEqual(res, exp)
+        assert res == exp
         res = self.fh.combine_info([info2, info1])
         exp = {"end_time": 2}
-        self.assertDictEqual(res, exp)
+        assert res == exp
 
     def test_combine_orbits(self):
         """Combine orbits."""
@@ -76,19 +76,19 @@ class TestBaseFileHandler(unittest.TestCase):
         info2 = {"start_orbit": 2}
         res = self.fh.combine_info([info1, info2])
         exp = {"start_orbit": 1}
-        self.assertDictEqual(res, exp)
+        assert res == exp
         res = self.fh.combine_info([info2, info1])
         exp = {"start_orbit": 1}
-        self.assertDictEqual(res, exp)
+        assert res == exp
 
         info1 = {"end_orbit": 1}
         info2 = {"end_orbit": 2}
         res = self.fh.combine_info([info1, info2])
         exp = {"end_orbit": 2}
-        self.assertDictEqual(res, exp)
+        assert res == exp
         res = self.fh.combine_info([info2, info1])
         exp = {"end_orbit": 2}
-        self.assertDictEqual(res, exp)
+        assert res == exp
 
     @mock.patch("satpy.readers.file_handlers.SwathDefinition")
     def test_combine_area(self, sdef):
@@ -107,9 +107,9 @@ class TestBaseFileHandler(unittest.TestCase):
         info2 = {"area": area2}
 
         self.fh.combine_info([info1, info2])
-        self.assertTupleEqual(sdef.call_args[1]["lons"].shape, (2, 5))
-        self.assertTupleEqual(sdef.call_args[1]["lats"].shape, (2, 5))
-        self.assertEqual(sdef.return_value.name, "area1_area2")
+        assert sdef.call_args[1]["lons"].shape == (2, 5)
+        assert sdef.call_args[1]["lats"].shape == (2, 5)
+        assert sdef.return_value.name == "area1_area2"
 
     def test_combine_orbital_parameters(self):
         """Combine orbital parameters."""
@@ -148,10 +148,10 @@ class TestBaseFileHandler(unittest.TestCase):
                                       "only_in_1": False,
                                       "only_in_2": True}}
         res = self.fh.combine_info([info1, info2])
-        self.assertDictEqual(res, exp)
+        assert res == exp
 
         # Identity
-        self.assertEqual(self.fh.combine_info([info1]), info1)
+        assert self.fh.combine_info([info1]) == info1
 
         # Empty
         self.fh.combine_info([{}])

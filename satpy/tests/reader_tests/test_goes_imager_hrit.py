@@ -52,7 +52,7 @@ class TestGVARFloat(unittest.TestCase):
 
         for expected, str_val in test_data:
             val = np.frombuffer(str_val, dtype=">i4")
-            self.assertEqual(expected, make_gvar_float(val))
+            assert expected == make_gvar_float(val)
 
 
 class TestMakeSGSTime(unittest.TestCase):
@@ -63,7 +63,7 @@ class TestMakeSGSTime(unittest.TestCase):
         # 2018-129 (may 9th), 21:33:27.999
         tcds = np.array([(32, 24, 18, 146, 19, 50, 121, 153)], dtype=sgs_time)
         expected = datetime.datetime(2018, 5, 9, 21, 33, 27, 999000)
-        self.assertEqual(make_sgs_time(tcds[0]), expected)
+        assert make_sgs_time(tcds[0]) == expected
 
 
 test_pro = {"TISTR": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
@@ -124,7 +124,7 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
                              "service": "test_service"},
                 {"filetype": "info"})
 
-        self.assertEqual(test_pro, self.reader.prologue)
+        assert test_pro == self.reader.prologue
 
 
 class TestHRITGOESFileHandler(unittest.TestCase):
@@ -149,7 +149,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         mda = {"spectral_channel_id": 1,
                "projection_parameters": {"SSP_longitude": 100.1640625},
                "image_data_function": blob}
-        self.assertEqual(self.reader.mda, mda)
+        assert self.reader.mda == mda
 
     @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
@@ -163,12 +163,12 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                              [1.466276, 1.564027, 1.661779, 1.759531, 1.857283],
                              [1.955034, 2.052786, 2.150538, 2.248289, 2.346041]])
 
-        self.assertTrue(np.allclose(res.values, expected, equal_nan=True))
-        self.assertEqual(res.attrs["units"], "%")
-        self.assertDictEqual(res.attrs["orbital_parameters"],
-                             {"projection_longitude": self.reader.mda["projection_parameters"]["SSP_longitude"],
-                              "projection_latitude": 0.0,
-                              "projection_altitude": ALTITUDE})
+        assert np.allclose(res.values, expected, equal_nan=True)
+        assert res.attrs["units"] == "%"
+        ssp_longitude = self.reader.mda["projection_parameters"]["SSP_longitude"]
+        assert res.attrs["orbital_parameters"] == {"projection_longitude": ssp_longitude,
+                                                   "projection_latitude": 0.0,
+                                                   "projection_altitude": ALTITUDE}
 
     def test_get_area_def(self):
         """Test getting the area definition."""

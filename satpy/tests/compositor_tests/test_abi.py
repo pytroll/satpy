@@ -57,10 +57,9 @@ class TestABIComposites(unittest.TestCase):
                            dims=("y", "x"),
                            attrs={"name": "C03", "area": area})
         res = comp((c01, c02, c03))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs["name"], "green")
-        self.assertEqual(res.attrs["standard_name"],
-                         "toa_bidirectional_reflectance")
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "green"
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.compute()
         np.testing.assert_allclose(data, 0.28025)

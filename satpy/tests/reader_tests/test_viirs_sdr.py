@@ -282,40 +282,40 @@ class TestVIIRSSDRReader(unittest.TestCase):
     yaml_file = "viirs_sdr.yaml"
 
     def _assert_reflectance_properties(self, data_arr, num_scans=16, with_area=True):
-        self.assertTrue(np.issubdtype(data_arr.dtype, np.float32))
-        self.assertEqual(data_arr.attrs["calibration"], "reflectance")
-        self.assertEqual(data_arr.attrs["units"], "%")
-        self.assertEqual(data_arr.attrs["rows_per_scan"], num_scans)
+        assert np.issubdtype(data_arr.dtype, np.float32)
+        assert data_arr.attrs["calibration"] == "reflectance"
+        assert data_arr.attrs["units"] == "%"
+        assert data_arr.attrs["rows_per_scan"] == num_scans
         if with_area:
-            self.assertIn("area", data_arr.attrs)
-            self.assertIsNotNone(data_arr.attrs["area"])
-            self.assertEqual(data_arr.attrs["area"].shape, data_arr.shape)
+            assert "area" in data_arr.attrs
+            assert data_arr.attrs["area"] is not None
+            assert data_arr.attrs["area"].shape == data_arr.shape
         else:
-            self.assertNotIn("area", data_arr.attrs)
+            assert "area" not in data_arr.attrs
 
     def _assert_bt_properties(self, data_arr, num_scans=16, with_area=True):
-        self.assertTrue(np.issubdtype(data_arr.dtype, np.float32))
-        self.assertEqual(data_arr.attrs["calibration"], "brightness_temperature")
-        self.assertEqual(data_arr.attrs["units"], "K")
-        self.assertEqual(data_arr.attrs["rows_per_scan"], num_scans)
+        assert np.issubdtype(data_arr.dtype, np.float32)
+        assert data_arr.attrs["calibration"] == "brightness_temperature"
+        assert data_arr.attrs["units"] == "K"
+        assert data_arr.attrs["rows_per_scan"] == num_scans
         if with_area:
-            self.assertIn("area", data_arr.attrs)
-            self.assertIsNotNone(data_arr.attrs["area"])
-            self.assertEqual(data_arr.attrs["area"].shape, data_arr.shape)
+            assert "area" in data_arr.attrs
+            assert data_arr.attrs["area"] is not None
+            assert data_arr.attrs["area"].shape == data_arr.shape
         else:
-            self.assertNotIn("area", data_arr.attrs)
+            assert "area" not in data_arr.attrs
 
     def _assert_dnb_radiance_properties(self, data_arr, with_area=True):
-        self.assertTrue(np.issubdtype(data_arr.dtype, np.float32))
-        self.assertEqual(data_arr.attrs["calibration"], "radiance")
-        self.assertEqual(data_arr.attrs["units"], "W m-2 sr-1")
-        self.assertEqual(data_arr.attrs["rows_per_scan"], 16)
+        assert np.issubdtype(data_arr.dtype, np.float32)
+        assert data_arr.attrs["calibration"] == "radiance"
+        assert data_arr.attrs["units"] == "W m-2 sr-1"
+        assert data_arr.attrs["rows_per_scan"] == 16
         if with_area:
-            self.assertIn("area", data_arr.attrs)
-            self.assertIsNotNone(data_arr.attrs["area"])
-            self.assertEqual(data_arr.attrs["area"].shape, data_arr.shape)
+            assert "area" in data_arr.attrs
+            assert data_arr.attrs["area"] is not None
+            assert data_arr.attrs["area"].shape == data_arr.shape
         else:
-            self.assertNotIn("area", data_arr.attrs)
+            assert "area" not in data_arr.attrs
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
@@ -338,21 +338,19 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_init_start_time_is_nodate(self):
         """Test basic init with start_time being set to the no-date 1/1-1958."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with pytest.raises(ValueError) as exec_info:
+        with pytest.raises(ValueError, match="Datetime invalid 1958-01-01 00:00:00"):
             _ = r.create_filehandlers([
                 "SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5",
             ])
-        expected = "Datetime invalid 1958-01-01 00:00:00"
-        assert str(exec_info.value) == expected
 
     def test_init_start_time_beyond(self):
         """Test basic init with start_time after the provided files."""
@@ -366,7 +364,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         fhs = r.create_filehandlers([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
         ])
-        self.assertEqual(len(fhs), 0)
+        assert len(fhs) == 0
 
     def test_init_end_time_beyond(self):
         """Test basic init with end_time before the provided files."""
@@ -380,7 +378,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         fhs = r.create_filehandlers([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
         ])
-        self.assertEqual(len(fhs), 0)
+        assert len(fhs) == 0
 
     def test_init_start_end_time(self):
         """Test basic init with end_time before the provided files."""
@@ -396,10 +394,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_all_m_reflectances_no_geo(self):
         """Load all M band reflectances with no geo files provided."""
@@ -431,7 +429,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      "M10",
                      "M11",
                      ])
-        self.assertEqual(len(ds), 11)
+        assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=False)
 
@@ -467,7 +465,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                          "M11",
                          ])
 
-        self.assertEqual(len(ds), 11)
+        assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
 
@@ -503,13 +501,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
                          "M10",
                          "M11",
                          ])
-        self.assertEqual(len(ds), 11)
+        assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
-            self.assertEqual(d.attrs["area"].lons.min(), 5)
-            self.assertEqual(d.attrs["area"].lats.min(), 45)
-            self.assertEqual(d.attrs["area"].lons.attrs["rows_per_scan"], 16)
-            self.assertEqual(d.attrs["area"].lats.attrs["rows_per_scan"], 16)
+            assert d.attrs["area"].lons.min() == 5
+            assert d.attrs["area"].lats.min() == 45
+            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
+            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
     def test_load_all_m_reflectances_use_nontc(self):
         """Load all M band reflectances but use non-TC geolocation."""
@@ -544,13 +542,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
                          "M10",
                          "M11",
                          ])
-        self.assertEqual(len(ds), 11)
+        assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
-            self.assertEqual(d.attrs["area"].lons.min(), 15)
-            self.assertEqual(d.attrs["area"].lats.min(), 55)
-            self.assertEqual(d.attrs["area"].lons.attrs["rows_per_scan"], 16)
-            self.assertEqual(d.attrs["area"].lats.attrs["rows_per_scan"], 16)
+            assert d.attrs["area"].lons.min() == 15
+            assert d.attrs["area"].lats.min() == 55
+            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
+            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
     def test_load_all_m_reflectances_use_nontc2(self):
         """Load all M band reflectances but use non-TC geolocation because TC isn't available."""
@@ -584,13 +582,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
                          "M10",
                          "M11",
                          ])
-        self.assertEqual(len(ds), 11)
+        assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
-            self.assertEqual(d.attrs["area"].lons.min(), 15)
-            self.assertEqual(d.attrs["area"].lats.min(), 55)
-            self.assertEqual(d.attrs["area"].lons.attrs["rows_per_scan"], 16)
-            self.assertEqual(d.attrs["area"].lats.attrs["rows_per_scan"], 16)
+            assert d.attrs["area"].lons.min() == 15
+            assert d.attrs["area"].lats.min() == 55
+            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
+            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
     def test_load_all_m_bts(self):
         """Load all M band brightness temperatures."""
@@ -611,7 +609,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      "M15",
                      "M16",
                      ])
-        self.assertEqual(len(ds), 5)
+        assert len(ds) == 5
         for d in ds.values():
             self._assert_bt_properties(d, with_area=True)
 
@@ -634,13 +632,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      "dnb_satellite_azimuth_angle",
                      "dnb_lunar_zenith_angle",
                      "dnb_lunar_azimuth_angle"])
-        self.assertEqual(len(ds), 6)
+        assert len(ds) == 6
         for d in ds.values():
-            self.assertTrue(np.issubdtype(d.dtype, np.float32))
-            self.assertEqual(d.attrs["units"], "degrees")
-            self.assertEqual(d.attrs["rows_per_scan"], 16)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert np.issubdtype(d.dtype, np.float32)
+            assert d.attrs["units"] == "degrees"
+            assert d.attrs["rows_per_scan"] == 16
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
     def test_load_all_m_radiances(self):
         """Load all M band radiances."""
@@ -685,14 +683,14 @@ class TestVIIRSSDRReader(unittest.TestCase):
             make_dsq(name="M15", calibration="radiance"),
             make_dsq(name="M16", calibration="radiance"),
         ])
-        self.assertEqual(len(ds), 16)
+        assert len(ds) == 16
         for d in ds.values():
-            self.assertTrue(np.issubdtype(d.dtype, np.float32))
-            self.assertEqual(d.attrs["calibration"], "radiance")
-            self.assertEqual(d.attrs["units"], "W m-2 um-1 sr-1")
-            self.assertEqual(d.attrs["rows_per_scan"], 16)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert np.issubdtype(d.dtype, np.float32)
+            assert d.attrs["calibration"] == "radiance"
+            assert d.attrs["units"] == "W m-2 um-1 sr-1"
+            assert d.attrs["rows_per_scan"] == 16
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
     def test_load_dnb(self):
         """Load DNB dataset."""
@@ -704,17 +702,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         ds = r.load(["DNB"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
             data = d.values
             # default scale factors are 2 and offset 1
             # multiply DNB by 10000 should mean the first value of 0 should be:
             # data * factor * 10000 + offset * 10000
             # 0 * 2 * 10000 + 1 * 10000 => 10000
-            self.assertEqual(data[0, 0], 10000)
+            assert data[0, 0] == 10000
             # the second value of 1 should be:
             # 1 * 2 * 10000 + 1 * 10000 => 30000
-            self.assertEqual(data[0, 1], 30000)
+            assert data[0, 1] == 30000
             self._assert_dnb_radiance_properties(d, with_area=True)
 
     def test_load_dnb_no_factors(self):
@@ -727,17 +725,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables, {"include_factors": False})
         ds = r.load(["DNB"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
             data = d.values
             # no scale factors, default factor 1 and offset 0
             # multiply DNB by 10000 should mean the first value of 0 should be:
             # data * factor * 10000 + offset * 10000
             # 0 * 1 * 10000 + 0 * 10000 => 0
-            self.assertEqual(data[0, 0], 0)
+            assert data[0, 0] == 0
             # the second value of 1 should be:
             # 1 * 1 * 10000 + 0 * 10000 => 10000
-            self.assertEqual(data[0, 1], 10000)
+            assert data[0, 1] == 10000
             self._assert_dnb_radiance_properties(d, with_area=True)
 
     def test_load_i_no_files(self):
@@ -749,9 +747,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
             "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
         ])
         r.create_filehandlers(loadables)
-        self.assertNotIn("I01", [x["name"] for x in r.available_dataset_ids])
+        assert "I01" not in [x["name"] for x in r.available_dataset_ids]
         ds = r.load(["I01"])
-        self.assertEqual(len(ds), 0)
+        assert len(ds) == 0
 
     def test_load_all_i_reflectances_provided_geo(self):
         """Load all I band reflectances with geo files provided."""
@@ -768,13 +766,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      "I02",
                      "I03",
                      ])
-        self.assertEqual(len(ds), 3)
+        assert len(ds) == 3
         for d in ds.values():
             self._assert_reflectance_properties(d, num_scans=32)
-            self.assertEqual(d.attrs["area"].lons.min(), 5)
-            self.assertEqual(d.attrs["area"].lats.min(), 45)
-            self.assertEqual(d.attrs["area"].lons.attrs["rows_per_scan"], 32)
-            self.assertEqual(d.attrs["area"].lats.attrs["rows_per_scan"], 32)
+            assert d.attrs["area"].lons.min() == 5
+            assert d.attrs["area"].lats.min() == 45
+            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 32
+            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 32
 
     def test_load_all_i_bts(self):
         """Load all I band brightness temperatures."""
@@ -789,7 +787,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ds = r.load(["I04",
                      "I05",
                      ])
-        self.assertEqual(len(ds), 2)
+        assert len(ds) == 2
         for d in ds.values():
             self._assert_bt_properties(d, num_scans=32)
 
@@ -814,14 +812,14 @@ class TestVIIRSSDRReader(unittest.TestCase):
             make_dsq(name="I04", calibration="radiance"),
             make_dsq(name="I05", calibration="radiance"),
         ])
-        self.assertEqual(len(ds), 5)
+        assert len(ds) == 5
         for d in ds.values():
-            self.assertTrue(np.issubdtype(d.dtype, np.float32))
-            self.assertEqual(d.attrs["calibration"], "radiance")
-            self.assertEqual(d.attrs["units"], "W m-2 um-1 sr-1")
-            self.assertEqual(d.attrs["rows_per_scan"], 32)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert np.issubdtype(d.dtype, np.float32) is True
+            assert d.attrs["calibration"] == "radiance"
+            assert d.attrs["units"] == "W m-2 um-1 sr-1"
+            assert d.attrs["rows_per_scan"] == 32
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
 
 class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler2):
@@ -909,7 +907,7 @@ class TestShortAggrVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         ds = r.load(["I01"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         i01_data = ds["I01"].compute()
         expected_rows = sum(FakeShortHDF5FileHandlerAggr._num_scans_per_gran) * DEFAULT_FILE_SHAPE[0]
-        self.assertEqual(i01_data.shape, (expected_rows, 300))
+        assert i01_data.shape == (expected_rows, 300)

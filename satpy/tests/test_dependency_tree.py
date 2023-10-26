@@ -87,10 +87,8 @@ class TestDependencyTree(unittest.TestCase):
         new_dependency_tree = self.dependency_tree.copy()
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
 
-        self.assertIs(self.dependency_tree._root.children[0].children[0].children[1],
-                      self.dependency_tree.empty_node)
-        self.assertIs(new_dependency_tree._root.children[0].children[0].children[1],
-                      self.dependency_tree.empty_node)
+        assert self.dependency_tree._root.children[0].children[0].children[1] is self.dependency_tree.empty_node
+        assert new_dependency_tree._root.children[0].children[0].children[1] is self.dependency_tree.empty_node
 
     def test_new_dependency_tree_preserves_unique_empty_node(self):
         """Test that dependency tree instantiation preserves the uniqueness of the empty node."""
@@ -216,8 +214,8 @@ class TestMultipleSensors(unittest.TestCase):
         """Test that a compositor is loaded from the first alphabetical sensor."""
         self.dependency_tree.populate_with_keys({"comp1"})
         comp_nodes = self.dependency_tree.trunk()
-        self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].name["resolution"], 500)
+        assert len(comp_nodes) == 1
+        assert comp_nodes[0].name["resolution"] == 500
 
     def test_modifier_loaded_sensor_order(self):
         """Test that a modifier is loaded from the first alphabetical sensor."""
@@ -225,5 +223,5 @@ class TestMultipleSensors(unittest.TestCase):
         dq = DataQuery(name="ds5", modifiers=("mod1",))
         self.dependency_tree.populate_with_keys({dq})
         comp_nodes = self.dependency_tree.trunk()
-        self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].data[0].ret_val, 1)
+        assert len(comp_nodes) == 1
+        assert comp_nodes[0].data[0].ret_val == 1

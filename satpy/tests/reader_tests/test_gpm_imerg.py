@@ -119,23 +119,17 @@ class TestHdf5IMERG(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
         res = reader.load(["IRprecipitation"])
-        self.assertEqual(1, len(res))
-        self.assertEqual(res["IRprecipitation"].start_time,
-                         datetime(2020, 1, 31, 23, 30, 0))
-        self.assertEqual(res["IRprecipitation"].end_time,
-                         datetime(2020, 1, 31, 23, 59, 59))
-        self.assertEqual(res["IRprecipitation"].resolution,
-                         0.1)
-        self.assertEqual(res["IRprecipitation"].area.width,
-                         3600)
-        self.assertEqual(res["IRprecipitation"].area.height,
-                         1800)
-        self.assertEqual(res["IRprecipitation"].area.proj_dict,
-                         pdict)
+        assert 1 == len(res)
+        assert res["IRprecipitation"].start_time == datetime(2020, 1, 31, 23, 30, 0)
+        assert res["IRprecipitation"].end_time == datetime(2020, 1, 31, 23, 59, 59)
+        assert res["IRprecipitation"].resolution == 0.1
+        assert res["IRprecipitation"].area.width == 3600
+        assert res["IRprecipitation"].area.height == 1800
+        assert res["IRprecipitation"].area.proj_dict == pdict
         np.testing.assert_almost_equal(res["IRprecipitation"].area.area_extent,
                                        (-179.95, -89.95, 179.95, 89.95), 5)

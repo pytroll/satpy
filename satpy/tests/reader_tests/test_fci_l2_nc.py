@@ -114,9 +114,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test all basic functionalities."""
-        self.assertEqual(self.fh.spacecraft_name, "test_platform")
-        self.assertEqual(self.fh.sensor_name, "test_data_source")
-        self.assertEqual(self.fh.ssp_lon, 0.0)
+        assert self.fh.spacecraft_name == "test_platform"
+        assert self.fh.sensor_name == "test_data_source"
+        assert self.fh.ssp_lon == 0.0
 
         global_attributes = self.fh._get_global_attributes()
         expected_global_attributes = {
@@ -126,7 +126,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             "sensor": "test_data_source",
             "platform_name": "test_platform"
         }
-        self.assertEqual(global_attributes, expected_global_attributes)
+        assert global_attributes == expected_global_attributes
 
     @mock.patch("satpy.readers.fci_l2_nc.geometry.AreaDefinition")
     @mock.patch("satpy.readers.fci_l2_nc.make_ext")
@@ -150,12 +150,12 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Asserts that the get_area_definition function was called with the correct arguments
         gad_.assert_called_once()
         args, kwargs = gad_.call_args
-        self.assertEqual(args[0], "mtg_fci_fdss_2km")
-        self.assertEqual(args[1], "MTG FCI Full Disk Scanning Service area definition with 2 km resolution")
-        self.assertEqual(args[2], "")
-        self.assertEqual(args[3], proj_dict)
-        self.assertEqual(args[4], 10)
-        self.assertEqual(args[5], 100)
+        assert args[0] == "mtg_fci_fdss_2km"
+        assert args[1] == "MTG FCI Full Disk Scanning Service area definition with 2 km resolution"
+        assert args[2] == ""
+        assert args[3] == proj_dict
+        assert args[4] == 10
+        assert args[5] == 100
 
     def test_dataset(self):
         """Test the correct execution of the get_dataset function with a valid file_key."""
@@ -166,9 +166,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "file_type": "test_file_type"})
 
         np.testing.assert_allclose(dataset.values, np.ones((100, 10)))
-        self.assertEqual(dataset.attrs["test_attr"], "attr")
-        self.assertEqual(dataset.attrs["units"], "test_units")
-        self.assertEqual(dataset.attrs["fill_value"], -999)
+        assert dataset.attrs["test_attr"] == "attr"
+        assert dataset.attrs["units"] == "test_units"
+        assert dataset.attrs["fill_value"] == -999
 
     def test_dataset_with_layer(self):
         """Check the correct execution of the get_dataset function with a valid file_key & layer."""
@@ -178,8 +178,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
         np.testing.assert_allclose(dataset.values, 2 * np.ones((100, 10)))
-        self.assertEqual(dataset.attrs["units"], None)
-        self.assertEqual(dataset.attrs["spacecraft_name"], "test_platform")
+        assert dataset.attrs["units"] is None
+        assert dataset.attrs["spacecraft_name"] == "test_platform"
 
     def test_dataset_with_invalid_filekey(self):
         """Test the correct execution of the get_dataset function with an invalid file_key."""
@@ -188,7 +188,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                                "file_key": "test_invalid",
                                                "fill_value": -999,
                                                "file_type": "test_file_type"})
-        self.assertEqual(invalid_dataset, None)
+        assert invalid_dataset is None
 
     def test_dataset_with_total_cot(self):
         """Test the correct execution of the get_dataset function for total COT (add contributions from two layers)."""
@@ -209,7 +209,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                       {"name": "product_quality",
                                        "file_key": "product_quality",
                                        "file_type": "test_file_type"})
-        self.assertEqual(dataset.values, 99.)
+        assert dataset.values == 99.0
 
         # Checks that no AreaDefintion is implemented for scalar values
         with pytest.raises(NotImplementedError):
@@ -287,7 +287,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             "sensor": "test_fci_data_source",
             "platform_name": "test_fci_platform"
         }
-        self.assertEqual(global_attributes, expected_global_attributes)
+        assert global_attributes == expected_global_attributes
 
     def test_dataset(self):
         """Test the correct execution of the get_dataset function with valid file_key."""
@@ -300,9 +300,9 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        "fill_value": -999, })
         expected_dataset = self._get_unique_array(range(8), range(6))
         np.testing.assert_allclose(dataset.values, expected_dataset)
-        self.assertEqual(dataset.attrs["test_attr"], "attr")
-        self.assertEqual(dataset.attrs["units"], "test_units")
-        self.assertEqual(dataset.attrs["fill_value"], -999)
+        assert dataset.attrs["test_attr"] == "attr"
+        assert dataset.attrs["units"] == "test_units"
+        assert dataset.attrs["fill_value"] == -999
 
         # Checks that no AreaDefintion is implemented
         with pytest.raises(NotImplementedError):
@@ -318,7 +318,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                                "file_key": "test_invalid",
                                                "fill_value": -999, })
         # Checks that the function returns None
-        self.assertEqual(invalid_dataset, None)
+        assert invalid_dataset is None
 
     def test_dataset_with_adef(self):
         """Test the correct execution of the get_dataset function with `with_area_definition=True`."""
@@ -333,13 +333,13 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        "coordinates": ("test_lon", "test_lat"), })
         expected_dataset = self._get_unique_array(range(8), range(6))
         np.testing.assert_allclose(dataset.values, expected_dataset)
-        self.assertEqual(dataset.attrs["test_attr"], "attr")
-        self.assertEqual(dataset.attrs["units"], "test_units")
-        self.assertEqual(dataset.attrs["fill_value"], -999)
+        assert dataset.attrs["test_attr"] == "attr"
+        assert dataset.attrs["units"] == "test_units"
+        assert dataset.attrs["fill_value"] == -999
 
         # Checks returned AreaDefinition against reference
         adef = self.fh.get_area_def(None)
-        self.assertEqual(adef, SEG_AREA_DEF)
+        assert adef == SEG_AREA_DEF
 
     def test_dataset_with_adef_and_wrongs_dims(self):
         """Test the correct execution of the get_dataset function with dims that don't match expected AreaDefinition."""
@@ -358,7 +358,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                       {"name": "product_quality",
                                        "file_key": "product_quality",
                                        "file_type": "test_file_type"})
-        self.assertEqual(dataset.values, 99.)
+        assert dataset.values == 99.0
 
         # Checks that no AreaDefintion is implemented for scalar values
         with pytest.raises(NotImplementedError):
@@ -495,7 +495,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 1,
                                                 })
 
-        self.assertEqual(dataset.values, 1)
+        assert dataset.values == 1
 
         # Value of 0 is expected fto be returned or this test
         dataset = self.byte_reader.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
@@ -506,4 +506,4 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 23,
                                                 })
 
-        self.assertEqual(dataset.values, 0)
+        assert dataset.values == 0

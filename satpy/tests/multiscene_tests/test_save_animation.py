@@ -83,11 +83,11 @@ class TestMultiSceneSave(unittest.TestCase):
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
-        self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
+        assert writer_mock.append_data.call_count == 3 + 3
         filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
-        self.assertEqual(filenames[0], "test_save_mp4_ds1_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[1], "test_save_mp4_ds2_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[2], "test_save_mp4_ds3_20180102_00_20180102_12.mp4")
+        assert filenames[0] == "test_save_mp4_ds1_20180101_00_20180102_12.mp4"
+        assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
+        assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
         # Test no distributed client found
         mscn = MultiScene(scenes)
@@ -106,11 +106,11 @@ class TestMultiSceneSave(unittest.TestCase):
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
-        self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
+        assert writer_mock.append_data.call_count == 3 + 3
         filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
-        self.assertEqual(filenames[0], "test_save_mp4_ds1_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[1], "test_save_mp4_ds2_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[2], "test_save_mp4_ds3_20180102_00_20180102_12.mp4")
+        assert filenames[0] == "test_save_mp4_ds1_20180101_00_20180102_12.mp4"
+        assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
+        assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
     @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_mp4_no_distributed(self):
@@ -146,11 +146,11 @@ class TestMultiSceneSave(unittest.TestCase):
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
-        self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
+        assert writer_mock.append_data.call_count == 3 + 3
         filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
-        self.assertEqual(filenames[0], "test_save_mp4_ds1_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[1], "test_save_mp4_ds2_20180101_00_20180102_12.mp4")
-        self.assertEqual(filenames[2], "test_save_mp4_ds3_20180102_00_20180102_12.mp4")
+        assert filenames[0] == "test_save_mp4_ds1_20180101_00_20180102_12.mp4"
+        assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
+        assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
     @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_simple(self):
@@ -181,7 +181,7 @@ class TestMultiSceneSave(unittest.TestCase):
                                writer="simple_image")
 
         # 2 for each scene
-        self.assertEqual(save_datasets.call_count, 2)
+        assert save_datasets.call_count == 2
 
     @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_delayed(self):
@@ -216,7 +216,7 @@ class TestMultiSceneSave(unittest.TestCase):
                                writer="simple_image")
 
         # 2 for each scene
-        self.assertEqual(save_datasets.call_count, 2)
+        assert save_datasets.call_count == 2
 
     @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_source_target(self):
@@ -290,13 +290,13 @@ class TestMultiSceneSave(unittest.TestCase):
         # by lon/lat bbox
         new_mscn = mscn.crop(ll_bbox=(-20., -5., 0, 0))
         new_scn1 = list(new_mscn.scenes)[0]
-        self.assertIn("1", new_scn1)
-        self.assertIn("2", new_scn1)
-        self.assertIn("3", new_scn1)
-        self.assertTupleEqual(new_scn1["1"].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1["2"].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1["3"].shape, (184, 714))
-        self.assertTupleEqual(new_scn1["4"].shape, (92, 357))
+        assert "1" in new_scn1
+        assert "2" in new_scn1
+        assert "3" in new_scn1
+        assert new_scn1["1"].shape == (y_size, x_size)
+        assert new_scn1["2"].shape == (y_size, x_size)
+        assert new_scn1["3"].shape == (184, 714)
+        assert new_scn1["4"].shape == (92, 357)
 
 
 @mock.patch("satpy.multiscene._multiscene.get_enhanced_image")

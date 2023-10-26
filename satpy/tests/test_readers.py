@@ -67,7 +67,7 @@ local_id_keys_config = {"name": {
 real_import = builtins.__import__
 
 
-@pytest.fixture
+@pytest.fixture()
 def viirs_file(tmp_path, monkeypatch):
     """Create a dummy viirs file."""
     filename = "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
@@ -78,7 +78,7 @@ def viirs_file(tmp_path, monkeypatch):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def atms_file(tmp_path, monkeypatch):
     """Create a dummy atms file."""
     filename = "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5"
@@ -132,44 +132,44 @@ class TestDatasetDict(unittest.TestCase):
         """Test DatasetDict init with no arguments."""
         from satpy import DatasetDict
         d = DatasetDict()
-        self.assertIsInstance(d, dict)
+        assert isinstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
         from satpy import DatasetDict
         regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
-        self.assertEqual(d, regular_dict)
+        assert d == regular_dict
 
     def test_getitem(self):
         """Test DatasetDict getitem with different arguments."""
         from satpy.tests.utils import make_dsq
         d = self.test_dict
         # access by name
-        self.assertEqual(d["test"], "1")
+        assert d["test"] == "1"
         # access by exact wavelength
-        self.assertEqual(d[1.5], "2")
+        assert d[1.5] == "2"
         # access by near wavelength
-        self.assertEqual(d[1.55], "2")
+        assert d[1.55] == "2"
         # access by near wavelength of another dataset
-        self.assertEqual(d[1.65], "3")
+        assert d[1.65] == "3"
         # access by name with multiple levels
-        self.assertEqual(d["test6"], "6_100")
+        assert d["test6"] == "6_100"
 
-        self.assertEqual(d[make_dsq(wavelength=1.5)], "2")
-        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=1000)], "1")
-        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=500)], "1h")
-        self.assertEqual(d[make_dsq(name="test6", level=100)], "6_100")
-        self.assertEqual(d[make_dsq(name="test6", level=200)], "6_200")
+        assert d[make_dsq(wavelength=1.5)] == "2"
+        assert d[make_dsq(wavelength=0.5, resolution=1000)] == "1"
+        assert d[make_dsq(wavelength=0.5, resolution=500)] == "1h"
+        assert d[make_dsq(name="test6", level=100)] == "6_100"
+        assert d[make_dsq(name="test6", level=200)] == "6_200"
 
         # higher resolution is returned
-        self.assertEqual(d[0.5], "1h")
-        self.assertEqual(d["test4"], "4refl")
-        self.assertEqual(d[make_dataid(name="test4", calibration="radiance")], "4rad")
+        assert d[0.5] == "1h"
+        assert d["test4"] == "4refl"
+        assert d[make_dataid(name="test4", calibration="radiance")] == "4rad"
         self.assertRaises(KeyError, d.getitem, "1h")
 
         # test with full tuple
-        self.assertEqual(d[make_dsq(name="test", wavelength=(0, 0.5, 1), resolution=1000)], "1")
+        assert d[make_dsq(name="test", wavelength=(0, 0.5, 1), resolution=1000)] == "1"
 
     def test_get_key(self):
         """Test 'get_key' special functions."""
@@ -180,32 +180,27 @@ class TestDatasetDict(unittest.TestCase):
                        num_results=0)
         res3 = get_key(make_dataid(name="test4"), d, calibration="radiance",
                        num_results=3)
-        self.assertEqual(len(res2), 1)
-        self.assertEqual(len(res3), 1)
+        assert len(res2) == 1
+        assert len(res3) == 1
         res2 = res2[0]
         res3 = res3[0]
-        self.assertEqual(res1, res2)
-        self.assertEqual(res1, res3)
+        assert res1 == res2
+        assert res1 == res3
         res1 = get_key("test4", d, query=DataQuery(polarization="V"))
-        self.assertEqual(res1, make_dataid(name="test4", calibration="radiance",
-                                           polarization="V"))
+        assert res1 == make_dataid(name="test4", calibration="radiance", polarization="V")
 
         res1 = get_key(0.5, d, query=DataQuery(resolution=500))
-        self.assertEqual(res1, make_dataid(name="testh",
-                                           wavelength=(0, 0.5, 1),
-                                           resolution=500))
+        assert res1 == make_dataid(name="testh", wavelength=(0, 0.5, 1), resolution=500)
 
         res1 = get_key("test6", d, query=DataQuery(level=100))
-        self.assertEqual(res1, make_dataid(name="test6",
-                                           level=100))
+        assert res1 == make_dataid(name="test6", level=100)
 
         res1 = get_key("test5", d)
         res2 = get_key("test5", d, query=DataQuery(modifiers=("mod2",)))
         res3 = get_key("test5", d, query=DataQuery(modifiers=("mod1", "mod2",)))
-        self.assertEqual(res1, make_dataid(name="test5",
-                                           modifiers=("mod2",)))
-        self.assertEqual(res1, res2)
-        self.assertNotEqual(res1, res3)
+        assert res1 == make_dataid(name="test5", modifiers=("mod2",))
+        assert res1 == res2
+        assert res1 != res3
 
         # more than 1 result when default is to ask for 1 result
         self.assertRaises(KeyError, get_key, "test4", d, best=False)
@@ -213,40 +208,39 @@ class TestDatasetDict(unittest.TestCase):
     def test_contains(self):
         """Test DatasetDict contains method."""
         d = self.test_dict
-        self.assertIn("test", d)
-        self.assertFalse(d.contains("test"))
-        self.assertNotIn("test_bad", d)
-        self.assertIn(0.5, d)
-        self.assertFalse(d.contains(0.5))
-        self.assertIn(1.5, d)
-        self.assertIn(1.55, d)
-        self.assertIn(1.65, d)
-        self.assertIn(make_dataid(name="test4", calibration="radiance"), d)
-        self.assertIn("test4", d)
+        assert "test" in d
+        assert not d.contains("test")
+        assert "test_bad" not in d
+        assert 0.5 in d
+        assert not d.contains(0.5)
+        assert 1.5 in d
+        assert 1.55 in d
+        assert 1.65 in d
+        assert make_dataid(name="test4", calibration="radiance") in d
+        assert "test4" in d
 
     def test_keys(self):
         """Test keys method of DatasetDict."""
         from satpy.tests.utils import DataID
         d = self.test_dict
-        self.assertEqual(len(d.keys()), len(self.regular_dict.keys()))
-        self.assertTrue(all(isinstance(x, DataID) for x in d.keys()))
+        assert len(d.keys()) == len(self.regular_dict.keys())
+        assert all(isinstance(x, DataID) for x in d.keys())
         name_keys = d.keys(names=True)
-        self.assertListEqual(sorted(set(name_keys))[:4], [
-            "test", "test2", "test3", "test4"])
+        assert sorted(set(name_keys))[:4] == ["test", "test2", "test3", "test4"]
         wl_keys = tuple(d.keys(wavelengths=True))
-        self.assertIn((0, 0.5, 1), wl_keys)
-        self.assertIn((1, 1.5, 2, "µm"), wl_keys)
-        self.assertIn((1.2, 1.7, 2.2, "µm"), wl_keys)
-        self.assertIn(None, wl_keys)
+        assert (0, 0.5, 1) in wl_keys
+        assert (1, 1.5, 2, "µm") in wl_keys
+        assert (1.2, 1.7, 2.2, "µm") in wl_keys
+        assert None in wl_keys
 
     def test_setitem(self):
         """Test setitem method of DatasetDict."""
         d = self.test_dict
         d["new_ds"] = {"metadata": "new_ds"}
-        self.assertEqual(d["new_ds"]["metadata"], "new_ds")
+        assert d["new_ds"]["metadata"] == "new_ds"
         d[0.5] = {"calibration": "radiance"}
-        self.assertEqual(d[0.5]["resolution"], 500)
-        self.assertEqual(d[0.5]["name"], "testh")
+        assert d[0.5]["resolution"] == 500
+        assert d[0.5]["name"] == "testh"
 
 
 class TestReaderLoader(unittest.TestCase):
@@ -276,20 +270,20 @@ class TestReaderLoader(unittest.TestCase):
         """
         from satpy.readers import load_readers
         ri = load_readers()
-        self.assertDictEqual(ri, {})
+        assert ri == {}
 
     def test_filenames_only(self):
         """Test with filenames specified."""
         from satpy.readers import load_readers
         ri = load_readers(filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_filenames_and_reader(self):
         """Test with filenames and reader specified."""
         from satpy.readers import load_readers
         ri = load_readers(reader="viirs_sdr",
                           filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_bad_reader_name_with_filenames(self):
         """Test bad reader name with filenames provided."""
@@ -306,7 +300,7 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(filenames=[
             Path("SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"),
         ])
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_filenames_as_dict(self):
         """Test loading readers where filenames are organized by reader."""
@@ -315,7 +309,7 @@ class TestReaderLoader(unittest.TestCase):
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
         ri = load_readers(filenames=filenames)
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_filenames_as_dict_bad_reader(self):
         """Test loading with filenames dict but one of the readers is bad."""
@@ -340,7 +334,7 @@ class TestReaderLoader(unittest.TestCase):
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
         ri = load_readers(reader="viirs_sdr", filenames=filenames)
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_empty_filenames_as_dict(self):
         """Test passing filenames as a dictionary with an empty list of filenames."""
@@ -357,7 +351,7 @@ class TestReaderLoader(unittest.TestCase):
             "viirs_l1b": [],
         }
         ri = load_readers(filenames)
-        self.assertListEqual(list(ri.keys()), ["viirs_sdr"])
+        assert list(ri.keys()) == ["viirs_sdr"]
 
     @mock.patch("satpy.readers.hrit_base.HRITFileHandler._get_hd")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header")
@@ -436,10 +430,10 @@ class TestReaderLoader(unittest.TestCase):
                          "end_time": datetime.datetime(2012, 2, 26)}
         # viirs has data that matches the request, abi doesn't
         readers = load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
-        self.assertIn("viirs_sdr", readers)
+        assert "viirs_sdr" in readers
         # abi_l1b reader was created, but no datasets available
-        self.assertIn("abi_l1b", readers)
-        self.assertEqual(len(list(readers["abi_l1b"].available_dataset_ids)), 0)
+        assert "abi_l1b" in readers
+        assert len(list(readers["abi_l1b"].available_dataset_ids)) == 0
 
 
 class TestFindFilesAndReaders:
@@ -514,7 +508,7 @@ class TestFindFilesAndReaders:
         """Test with start and end time matching the filename."""
         from datetime import datetime
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No supported files found"):
             find_files_and_readers(reader="viirs_sdr",
                                    start_time=datetime(2012, 2, 26, 18, 0, 0),
                                    end_time=datetime(2012, 2, 26, 19, 0, 0))
@@ -540,7 +534,7 @@ class TestFindFilesAndReaders:
 
     def test_bad_sensor(self):
         """Test bad sensor doesn't find any files."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Sensor.* not supported by any readers"):
             find_files_and_readers(sensor="i_dont_exist")
 
     def test_sensor(self, viirs_file):
@@ -555,7 +549,7 @@ class TestFindFilesAndReaders:
         """Test that readers for the current sensor are loaded."""
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No supported files found"):
             find_files_and_readers(sensor="viirs")
         assert find_files_and_readers(sensor="viirs", missing_ok=True) == {}
 
@@ -589,7 +583,7 @@ class TestFindFilesAndReaders:
             return pytest.skip("Skipping deprecated reader tests because "
                                "no deprecated readers.")
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Reader name .* has been deprecated, use .* instead."):
             get_valid_reader_names([test_reader])
 
 
@@ -714,12 +708,12 @@ class TestGroupFiles(unittest.TestCase):
         # without files it's going to be an empty result
         assert group_files([]) == []
         groups = group_files(self.g16_files)
-        self.assertEqual(6, len(groups))
+        assert 6 == len(groups)
 
     def test_unknown_files(self):
         """Test that error is raised on unknown files."""
         from satpy.readers import group_files
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No matching readers found for these files: .*"):
             group_files(self.unknown_files, "abi_l1b")
 
     def test_bad_reader(self):
@@ -737,8 +731,8 @@ class TestGroupFiles(unittest.TestCase):
         """Test the default behavior with the 'abi_l1b' reader."""
         from satpy.readers import group_files
         groups = group_files(self.g16_files, reader="abi_l1b")
-        self.assertEqual(6, len(groups))
-        self.assertEqual(2, len(groups[0]["abi_l1b"]))
+        assert 6 == len(groups)
+        assert 2 == len(groups[0]["abi_l1b"])
 
     def test_default_behavior_set(self):
         """Test the default behavior with the 'abi_l1b' reader."""
@@ -747,23 +741,23 @@ class TestGroupFiles(unittest.TestCase):
         num_files = len(files)
         groups = group_files(files, reader="abi_l1b")
         # we didn't modify it
-        self.assertEqual(len(files), num_files)
-        self.assertEqual(6, len(groups))
-        self.assertEqual(2, len(groups[0]["abi_l1b"]))
+        assert len(files) == num_files
+        assert 6 == len(groups)
+        assert 2 == len(groups[0]["abi_l1b"])
 
     def test_non_datetime_group_key(self):
         """Test what happens when the start_time isn't used for grouping."""
         from satpy.readers import group_files
         groups = group_files(self.g16_files, reader="abi_l1b", group_keys=("platform_shortname",))
-        self.assertEqual(1, len(groups))
-        self.assertEqual(12, len(groups[0]["abi_l1b"]))
+        assert 1 == len(groups)
+        assert 12 == len(groups[0]["abi_l1b"])
 
     def test_large_time_threshold(self):
         """Test what happens when the time threshold holds multiple files."""
         from satpy.readers import group_files
         groups = group_files(self.g16_files, reader="abi_l1b", time_threshold=60*8)
-        self.assertEqual(3, len(groups))
-        self.assertEqual(4, len(groups[0]["abi_l1b"]))
+        assert 3 == len(groups)
+        assert 4 == len(groups[0]["abi_l1b"])
 
     def test_two_instruments_files(self):
         """Test the behavior when two instruments files are provided.
@@ -777,8 +771,8 @@ class TestGroupFiles(unittest.TestCase):
         """
         from satpy.readers import group_files
         groups = group_files(self.g16_files + self.g17_files, reader="abi_l1b", group_keys=("start_time",))
-        self.assertEqual(6, len(groups))
-        self.assertEqual(4, len(groups[0]["abi_l1b"]))
+        assert 6 == len(groups)
+        assert 4 == len(groups[0]["abi_l1b"])
 
     def test_two_instruments_files_split(self):
         """Test the default behavior when two instruments files are provided and split.
@@ -790,49 +784,49 @@ class TestGroupFiles(unittest.TestCase):
         from satpy.readers import group_files
         groups = group_files(self.g16_files + self.g17_files, reader="abi_l1b",
                              group_keys=("start_time", "platform_shortname"))
-        self.assertEqual(12, len(groups))
-        self.assertEqual(2, len(groups[0]["abi_l1b"]))
+        assert 12 == len(groups)
+        assert 2 == len(groups[0]["abi_l1b"])
         # default for abi_l1b should also behave like this
         groups = group_files(self.g16_files + self.g17_files, reader="abi_l1b")
-        self.assertEqual(12, len(groups))
-        self.assertEqual(2, len(groups[0]["abi_l1b"]))
+        assert 12 == len(groups)
+        assert 2 == len(groups[0]["abi_l1b"])
 
     def test_viirs_orbits(self):
         """Test a reader that doesn't use 'start_time' for default grouping."""
         from satpy.readers import group_files
         groups = group_files(self.noaa20_files + self.npp_files, reader="viirs_sdr")
-        self.assertEqual(2, len(groups))
+        assert 2 == len(groups)
         # the noaa-20 files will be first because the orbit number is smaller
         # 5 granules * 3 file types
-        self.assertEqual(5 * 3, len(groups[0]["viirs_sdr"]))
+        assert 5 * 3 == len(groups[0]["viirs_sdr"])
         # 3 granules * 2 file types
-        self.assertEqual(6, len(groups[1]["viirs_sdr"]))
+        assert 6 == len(groups[1]["viirs_sdr"])
 
     def test_viirs_override_keys(self):
         """Test overriding a group keys to add 'start_time'."""
         from satpy.readers import group_files
         groups = group_files(self.noaa20_files + self.npp_files, reader="viirs_sdr",
                              group_keys=("start_time", "orbit", "platform_shortname"))
-        self.assertEqual(8, len(groups))
-        self.assertEqual(2, len(groups[0]["viirs_sdr"]))  # NPP
-        self.assertEqual(2, len(groups[1]["viirs_sdr"]))  # NPP
-        self.assertEqual(2, len(groups[2]["viirs_sdr"]))  # NPP
-        self.assertEqual(3, len(groups[3]["viirs_sdr"]))  # N20
-        self.assertEqual(3, len(groups[4]["viirs_sdr"]))  # N20
-        self.assertEqual(3, len(groups[5]["viirs_sdr"]))  # N20
-        self.assertEqual(3, len(groups[6]["viirs_sdr"]))  # N20
-        self.assertEqual(3, len(groups[7]["viirs_sdr"]))  # N20
+        assert 8 == len(groups)
+        assert 2 == len(groups[0]["viirs_sdr"])  # NPP
+        assert 2 == len(groups[1]["viirs_sdr"])  # NPP
+        assert 2 == len(groups[2]["viirs_sdr"])  # NPP
+        assert 3 == len(groups[3]["viirs_sdr"])  # N20
+        assert 3 == len(groups[4]["viirs_sdr"])  # N20
+        assert 3 == len(groups[5]["viirs_sdr"])  # N20
+        assert 3 == len(groups[6]["viirs_sdr"])  # N20
+        assert 3 == len(groups[7]["viirs_sdr"])  # N20
 
         # Ask for a larger time span with our groups
         groups = group_files(self.noaa20_files + self.npp_files, reader="viirs_sdr",
                              time_threshold=60 * 60 * 2,
                              group_keys=("start_time", "orbit", "platform_shortname"))
-        self.assertEqual(2, len(groups))
+        assert 2 == len(groups)
         # NPP is first because it has an earlier time
         # 3 granules * 2 file types
-        self.assertEqual(6, len(groups[0]["viirs_sdr"]))
+        assert 6 == len(groups[0]["viirs_sdr"])
         # 5 granules * 3 file types
-        self.assertEqual(5 * 3, len(groups[1]["viirs_sdr"]))
+        assert 5 * 3 == len(groups[1]["viirs_sdr"])
 
     def test_multi_readers(self):
         """Test passing multiple readers."""
@@ -930,7 +924,7 @@ class TestGroupFiles(unittest.TestCase):
     def test_multi_readers_invalid_parameter(self):
         """Verify that invalid missing parameter raises ValueError."""
         from satpy.readers import group_files
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid value for ``missing`` argument..*"):
             group_files(
                 self._filenames_abi_glm,
                 reader=["abi_l1b", "glm_l2"],

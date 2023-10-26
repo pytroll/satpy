@@ -58,19 +58,17 @@ class TestMultiScene(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         mscn = MultiScene(scenes)
 
-        self.assertSetEqual(mscn.loaded_dataset_ids,
-                            {ds1_id, ds2_id, ds3_id})
-        self.assertSetEqual(mscn.shared_dataset_ids, {ds1_id, ds2_id})
-        self.assertTrue(mscn.all_same_area)
+        assert mscn.loaded_dataset_ids == {ds1_id, ds2_id, ds3_id}
+        assert mscn.shared_dataset_ids == {ds1_id, ds2_id}
+        assert mscn.all_same_area
 
         bigger_area = _create_test_area(shape=(20, 40))
         scenes[0]["ds4"] = _create_test_dataset("ds4", shape=(20, 40),
                                                 area=bigger_area)
 
-        self.assertSetEqual(mscn.loaded_dataset_ids,
-                            {ds1_id, ds2_id, ds3_id, ds4_id})
-        self.assertSetEqual(mscn.shared_dataset_ids, {ds1_id, ds2_id})
-        self.assertFalse(mscn.all_same_area)
+        assert mscn.loaded_dataset_ids == {ds1_id, ds2_id, ds3_id, ds4_id}
+        assert mscn.shared_dataset_ids == {ds1_id, ds2_id}
+        assert not mscn.all_same_area
 
     def test_from_files(self):
         """Test creating a multiscene from multiple files."""
@@ -133,7 +131,7 @@ class TestMultiScene(unittest.TestCase):
 class TestMultiSceneGrouping:
     """Test dataset grouping in MultiScene."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def scene1(self):
         """Create first test scene."""
         from satpy import Scene
@@ -154,7 +152,7 @@ class TestMultiSceneGrouping:
         scene[dsid2] = _create_test_dataset(name="ds2")
         return scene
 
-    @pytest.fixture
+    @pytest.fixture()
     def scene2(self):
         """Create second test scene."""
         from satpy import Scene
@@ -175,13 +173,13 @@ class TestMultiSceneGrouping:
         scene[dsid2] = _create_test_dataset(name="ds4")
         return scene
 
-    @pytest.fixture
+    @pytest.fixture()
     def multi_scene(self, scene1, scene2):
         """Create small multi scene for testing."""
         from satpy import MultiScene
         return MultiScene([scene1, scene2])
 
-    @pytest.fixture
+    @pytest.fixture()
     def groups(self):
         """Get group definitions for the MultiScene."""
         return {
@@ -201,5 +199,5 @@ class TestMultiSceneGrouping:
         """Test that multiple datasets from the same scene in one group fails."""
         groups = {DataQuery(name="mygroup"): ["ds1", "ds2"]}
         multi_scene.group(groups)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Cannot add multiple datasets from a scene to the same group"):
             next(multi_scene.scenes)

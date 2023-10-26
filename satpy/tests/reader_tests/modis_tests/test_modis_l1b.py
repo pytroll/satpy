@@ -84,16 +84,16 @@ class TestModisL1b:
     @pytest.mark.parametrize(
         ("input_files", "expected_names", "expected_data_res", "expected_geo_res"),
         [
-            [lazy_fixture("modis_l1b_nasa_mod021km_file"),
+            (lazy_fixture("modis_l1b_nasa_mod021km_file"),
              AVAILABLE_1KM_PRODUCT_NAMES + AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES,
-             [1000], [5000, 1000]],
-            [lazy_fixture("modis_l1b_imapp_1000m_file"),
+             [1000], [5000, 1000]),
+            (lazy_fixture("modis_l1b_imapp_1000m_file"),
              AVAILABLE_1KM_PRODUCT_NAMES + AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES,
-             [1000], [5000, 1000]],
-            [lazy_fixture("modis_l1b_nasa_mod02hkm_file"),
-             AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES, [500], [1000, 500, 250]],
-            [lazy_fixture("modis_l1b_nasa_mod02qkm_file"),
-             AVAILABLE_QKM_PRODUCT_NAMES, [250], [1000, 500, 250]],
+             [1000], [5000, 1000]),
+            (lazy_fixture("modis_l1b_nasa_mod02hkm_file"),
+             AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES, [500], [1000, 500, 250]),
+        (lazy_fixture("modis_l1b_nasa_mod02qkm_file"),
+             AVAILABLE_QKM_PRODUCT_NAMES, [250], [1000, 500, 250]),
         ]
     )
     def test_scene_available_datasets(self, input_files, expected_names, expected_data_res, expected_geo_res):
@@ -128,16 +128,16 @@ class TestModisL1b:
     @pytest.mark.parametrize(
         ("input_files", "has_5km", "has_500", "has_250", "default_res"),
         [
-            [lazy_fixture("modis_l1b_nasa_mod021km_file"),
-             True, False, False, 1000],
-            [lazy_fixture("modis_l1b_imapp_1000m_file"),
-             True, False, False, 1000],
-            [lazy_fixture("modis_l1b_nasa_mod02hkm_file"),
-             False, True, True, 250],
-            [lazy_fixture("modis_l1b_nasa_mod02qkm_file"),
-             False, True, True, 250],
-            [lazy_fixture("modis_l1b_nasa_1km_mod03_files"),
-             True, True, True, 250],
+            (lazy_fixture("modis_l1b_nasa_mod021km_file"),
+             True, False, False, 1000),
+            (lazy_fixture("modis_l1b_imapp_1000m_file"),
+             True, False, False, 1000),
+            (lazy_fixture("modis_l1b_nasa_mod02hkm_file"),
+             False, True, True, 250),
+            (lazy_fixture("modis_l1b_nasa_mod02qkm_file"),
+             False, True, True, 250),
+            (lazy_fixture("modis_l1b_nasa_1km_mod03_files"),
+             True, True, True, 250),
         ]
     )
     def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):

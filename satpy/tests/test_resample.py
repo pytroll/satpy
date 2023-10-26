@@ -125,13 +125,13 @@ class TestHLResample(unittest.TestCase):
         data.attrs["_FillValue"] = 255
         data.attrs["area"] = source_area
         res = resample_dataset(data, dest_area)
-        self.assertEqual(res.dtype, data.dtype)
-        self.assertTrue(np.all(res.values == expected_gap))
+        assert res.dtype == data.dtype
+        assert np.all(res.values == expected_gap)
 
         expected_filled = np.array([[1, 2], [3, 3]])
         res = resample_dataset(data, dest_area, radius_of_influence=1000000)
-        self.assertEqual(res.dtype, data.dtype)
-        self.assertTrue(np.all(res.values == expected_filled))
+        assert res.dtype == data.dtype
+        assert np.all(res.values == expected_filled)
 
 
 class TestKDTreeResampler(unittest.TestCase):
@@ -155,7 +155,7 @@ class TestKDTreeResampler(unittest.TestCase):
         xr_resampler.assert_called_once()
         resampler.resampler.get_neighbour_info.assert_called()
         # swath definitions should not be cached
-        self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
+        assert len(mock_dset.to_zarr.mock_calls) == 0
         resampler.resampler.reset_mock()
         cnc.assert_called_once()
 
@@ -170,11 +170,11 @@ class TestKDTreeResampler(unittest.TestCase):
             zarr_open.side_effect = ValueError()
             resampler.precompute(cache_dir=the_dir)
             # assert data was saved to the on-disk cache
-            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            assert len(mock_dset.to_zarr.mock_calls) == 1
             # assert that zarr_open was called to try to zarr_open something from disk
-            self.assertEqual(len(zarr_open.mock_calls), 1)
+            assert len(zarr_open.mock_calls) == 1
             # we should have cached things in-memory
-            self.assertEqual(len(resampler._index_caches), 1)
+            assert len(resampler._index_caches) == 1
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
             zarr_open.side_effect = None
@@ -195,20 +195,20 @@ class TestKDTreeResampler(unittest.TestCase):
                                               distance_array=4)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
-            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            assert len(mock_dset.to_zarr.mock_calls) == 1
             # we already have things cached in-memory, don't need to load
-            self.assertEqual(len(zarr_open.mock_calls), 1)
+            assert len(zarr_open.mock_calls) == 1
             # we should have cached things in-memory
-            self.assertEqual(len(resampler._index_caches), 1)
-            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
+            assert len(resampler._index_caches) == 1
+            assert len(resampler.resampler.get_neighbour_info.mock_calls) == nbcalls
 
             # test loading saved resampler
             resampler = KDTreeResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(zarr_open.mock_calls), 4)
-            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
+            assert len(zarr_open.mock_calls) == 4
+            assert len(resampler.resampler.get_neighbour_info.mock_calls) == nbcalls
             # we should have cached things in-memory now
-            self.assertEqual(len(resampler._index_caches), 1)
+            assert len(resampler._index_caches) == 1
         finally:
             shutil.rmtree(the_dir)
 
@@ -279,10 +279,10 @@ class TestEWAResampler(unittest.TestCase):
         num_chunks = len(source_swath.lons.chunks[0]) * len(source_swath.lons.chunks[1])
 
         new_data = resample_dataset(swath_data, target_area, resampler="ewa")
-        self.assertTupleEqual(new_data.shape, (200, 100))
-        self.assertEqual(new_data.dtype, np.float32)
-        self.assertEqual(new_data.attrs["test"], "test")
-        self.assertIs(new_data.attrs["area"], target_area)
+        assert new_data.shape == (200, 100)
+        assert new_data.dtype == np.float32
+        assert new_data.attrs["test"] == "test"
+        assert new_data.attrs["area"] is target_area
         # make sure we can actually compute everything
         new_data.compute()
         lonlat_calls = get_lonlats.call_count
@@ -296,17 +296,17 @@ class TestEWAResampler(unittest.TestCase):
         new_data = resample_dataset(data, target_area, resampler="ewa")
         new_data.compute()
         # ll2cr will be called once more because of the computation
-        self.assertEqual(ll2cr.call_count, ll2cr_calls + num_chunks)
+        assert ll2cr.call_count == ll2cr_calls + num_chunks
         # but we should already have taken the lonlats from the SwathDefinition
-        self.assertEqual(get_lonlats.call_count, lonlat_calls)
-        self.assertIn("y", new_data.coords)
-        self.assertIn("x", new_data.coords)
-        self.assertIn("crs", new_data.coords)
-        self.assertIsInstance(new_data.coords["crs"].item(), CRS)
-        self.assertIn("lambert", new_data.coords["crs"].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords["y"].attrs["units"], "meter")
-        self.assertEqual(new_data.coords["x"].attrs["units"], "meter")
-        self.assertEqual(target_area.crs, new_data.coords["crs"].item())
+        assert get_lonlats.call_count == lonlat_calls
+        assert "y" in new_data.coords
+        assert "x" in new_data.coords
+        assert "crs" in new_data.coords
+        assert isinstance(new_data.coords["crs"].item(), CRS)
+        assert "lambert" in new_data.coords["crs"].item().coordinate_operation.method_name.lower()
+        assert new_data.coords["y"].attrs["units"] == "meter"
+        assert new_data.coords["x"].attrs["units"] == "meter"
+        assert target_area.crs == new_data.coords["crs"].item()
 
     @mock.patch("satpy.resample.fornav")
     @mock.patch("satpy.resample.ll2cr")
@@ -329,10 +329,10 @@ class TestEWAResampler(unittest.TestCase):
         num_chunks = len(source_swath.lons.chunks[0]) * len(source_swath.lons.chunks[1])
 
         new_data = resample_dataset(swath_data, target_area, resampler="ewa")
-        self.assertTupleEqual(new_data.shape, (3, 200, 100))
-        self.assertEqual(new_data.dtype, np.float32)
-        self.assertEqual(new_data.attrs["test"], "test")
-        self.assertIs(new_data.attrs["area"], target_area)
+        assert new_data.shape == (3, 200, 100)
+        assert new_data.dtype == np.float32
+        assert new_data.attrs["test"] == "test"
+        assert new_data.attrs["area"] is target_area
         # make sure we can actually compute everything
         new_data.compute()
         lonlat_calls = get_lonlats.call_count
@@ -346,20 +346,20 @@ class TestEWAResampler(unittest.TestCase):
         new_data = resample_dataset(swath_data, target_area, resampler="ewa")
         new_data.compute()
         # ll2cr will be called once more because of the computation
-        self.assertEqual(ll2cr.call_count, ll2cr_calls + num_chunks)
+        assert ll2cr.call_count == ll2cr_calls + num_chunks
         # but we should already have taken the lonlats from the SwathDefinition
-        self.assertEqual(get_lonlats.call_count, lonlat_calls)
-        self.assertIn("y", new_data.coords)
-        self.assertIn("x", new_data.coords)
-        self.assertIn("bands", new_data.coords)
-        self.assertIn("crs", new_data.coords)
-        self.assertIsInstance(new_data.coords["crs"].item(), CRS)
-        self.assertIn("lambert", new_data.coords["crs"].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords["y"].attrs["units"], "meter")
-        self.assertEqual(new_data.coords["x"].attrs["units"], "meter")
+        assert get_lonlats.call_count == lonlat_calls
+        assert "y" in new_data.coords
+        assert "x" in new_data.coords
+        assert "bands" in new_data.coords
+        assert "crs" in new_data.coords
+        assert isinstance(new_data.coords["crs"].item(), CRS)
+        assert "lambert" in new_data.coords["crs"].item().coordinate_operation.method_name.lower()
+        assert new_data.coords["y"].attrs["units"] == "meter"
+        assert new_data.coords["x"].attrs["units"] == "meter"
         np.testing.assert_equal(new_data.coords["bands"].values,
                                 ["R", "G", "B"])
-        self.assertEqual(target_area.crs, new_data.coords["crs"].item())
+        assert target_area.crs == new_data.coords["crs"].item()
 
 
 class TestNativeResampler:
@@ -388,7 +388,7 @@ class TestNativeResampler:
     @pytest.mark.parametrize("dim0_factor", [1. / 4, 0.333323423, 1.333323423])
     def test_expand_reduce_aggregate_invalid(self, dim0_factor):
         """Test classmethod 'expand_reduce' fails when factor does not divide evenly."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="[Aggregation, Expand] .*"):
             NativeResampler._expand_reduce(self.d_arr, {0: dim0_factor, 1: 1.})
 
     def test_expand_reduce_agg_rechunk(self):
@@ -469,7 +469,7 @@ class TestNativeResampler:
             input_shape=(2, 3, 100, 50), input_dims=None)
         # source geo def doesn't actually matter
         resampler = NativeResampler(source_area, target_area)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Can only handle 2D or 3D arrays without dimensions."):
             resampler.resample(ds1)
 
 
@@ -500,14 +500,14 @@ class TestBilinearResampler(unittest.TestCase):
         new_data = resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_bil_info.assert_called_with(
             data, fill_value=fill_value, output_shape=target_area.shape)
-        self.assertIn("y", new_data.coords)
-        self.assertIn("x", new_data.coords)
-        self.assertIn("crs", new_data.coords)
-        self.assertIsInstance(new_data.coords["crs"].item(), CRS)
-        self.assertIn("lambert", new_data.coords["crs"].item().coordinate_operation.method_name.lower())
-        self.assertEqual(new_data.coords["y"].attrs["units"], "meter")
-        self.assertEqual(new_data.coords["x"].attrs["units"], "meter")
-        self.assertEqual(target_area.crs, new_data.coords["crs"].item())
+        assert "y" in new_data.coords
+        assert "x" in new_data.coords
+        assert "crs" in new_data.coords
+        assert isinstance(new_data.coords["crs"].item(), CRS)
+        assert "lambert" in new_data.coords["crs"].item().coordinate_operation.method_name.lower()
+        assert new_data.coords["y"].attrs["units"] == "meter"
+        assert new_data.coords["x"].attrs["units"] == "meter"
+        assert target_area.crs == new_data.coords["crs"].item()
 
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
@@ -533,13 +533,13 @@ class TestBilinearResampler(unittest.TestCase):
             # we already have things cached in-memory, no need to save again
             resampler.resampler.save_resampling_info.assert_called_once()
             # we already have things cached in-memory, don't need to load
-            self.assertEqual(resampler.resampler.get_bil_info.call_count, nbcalls)
+            assert resampler.resampler.get_bil_info.call_count == nbcalls
 
             # test loading saved resampler
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(resampler.resampler.load_resampling_info.call_count, 3)
-            self.assertEqual(resampler.resampler.get_bil_info.call_count, nbcalls)
+            assert resampler.resampler.load_resampling_info.call_count == 3
+            assert resampler.resampler.get_bil_info.call_count == nbcalls
 
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
@@ -564,10 +564,8 @@ class TestBilinearResampler(unittest.TestCase):
                 fid.write("42")
             from satpy.resample import _move_existing_caches
             _move_existing_caches(the_dir, zarr_file)
-            self.assertFalse(os.path.exists(zarr_file))
-            self.assertTrue(os.path.exists(
-                os.path.join(the_dir, "moved_by_satpy",
-                             "test.zarr")))
+            assert not os.path.exists(zarr_file)
+            assert os.path.exists(os.path.join(the_dir, "moved_by_satpy", "test.zarr"))
             # Run again to see that the existing dir doesn't matter
             with open(zarr_file, "w") as fid:
                 fid.write("42")
@@ -594,18 +592,16 @@ class TestCoordinateHelpers(unittest.TestCase):
             dims=("y", "x"),
         )
         new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        self.assertIn("y", new_data_arr.coords)
-        self.assertIn("x", new_data_arr.coords)
+        assert "y" in new_data_arr.coords
+        assert "x" in new_data_arr.coords
 
-        self.assertIn("units", new_data_arr.coords["y"].attrs)
-        self.assertEqual(
-            new_data_arr.coords["y"].attrs["units"], "meter")
-        self.assertIn("units", new_data_arr.coords["x"].attrs)
-        self.assertEqual(
-            new_data_arr.coords["x"].attrs["units"], "meter")
-        self.assertIn("crs", new_data_arr.coords)
-        self.assertIsInstance(new_data_arr.coords["crs"].item(), CRS)
-        self.assertEqual(area_def.crs, new_data_arr.coords["crs"].item())
+        assert "units" in new_data_arr.coords["y"].attrs
+        assert new_data_arr.coords["y"].attrs["units"] == "meter"
+        assert "units" in new_data_arr.coords["x"].attrs
+        assert new_data_arr.coords["x"].attrs["units"] == "meter"
+        assert "crs" in new_data_arr.coords
+        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
+        assert area_def.crs == new_data_arr.coords["crs"].item()
 
         # already has coords
         data_arr = xr.DataArray(
@@ -615,15 +611,15 @@ class TestCoordinateHelpers(unittest.TestCase):
             coords={"y": np.arange(2, 202), "x": np.arange(100)}
         )
         new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        self.assertIn("y", new_data_arr.coords)
-        self.assertNotIn("units", new_data_arr.coords["y"].attrs)
-        self.assertIn("x", new_data_arr.coords)
-        self.assertNotIn("units", new_data_arr.coords["x"].attrs)
+        assert "y" in new_data_arr.coords
+        assert "units" not in new_data_arr.coords["y"].attrs
+        assert "x" in new_data_arr.coords
+        assert "units" not in new_data_arr.coords["x"].attrs
         np.testing.assert_equal(new_data_arr.coords["y"], np.arange(2, 202))
 
-        self.assertIn("crs", new_data_arr.coords)
-        self.assertIsInstance(new_data_arr.coords["crs"].item(), CRS)
-        self.assertEqual(area_def.crs, new_data_arr.coords["crs"].item())
+        assert "crs" in new_data_arr.coords
+        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
+        assert area_def.crs == new_data_arr.coords["crs"].item()
 
         # lat/lon area
         area_def = AreaDefinition(
@@ -636,18 +632,16 @@ class TestCoordinateHelpers(unittest.TestCase):
             dims=("y", "x"),
         )
         new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        self.assertIn("y", new_data_arr.coords)
-        self.assertIn("x", new_data_arr.coords)
+        assert "y" in new_data_arr.coords
+        assert "x" in new_data_arr.coords
 
-        self.assertIn("units", new_data_arr.coords["y"].attrs)
-        self.assertEqual(
-            new_data_arr.coords["y"].attrs["units"], "degrees_north")
-        self.assertIn("units", new_data_arr.coords["x"].attrs)
-        self.assertEqual(
-            new_data_arr.coords["x"].attrs["units"], "degrees_east")
-        self.assertIn("crs", new_data_arr.coords)
-        self.assertIsInstance(new_data_arr.coords["crs"].item(), CRS)
-        self.assertEqual(area_def.crs, new_data_arr.coords["crs"].item())
+        assert "units" in new_data_arr.coords["y"].attrs
+        assert new_data_arr.coords["y"].attrs["units"] == "degrees_north"
+        assert "units" in new_data_arr.coords["x"].attrs
+        assert new_data_arr.coords["x"].attrs["units"] == "degrees_east"
+        assert "crs" in new_data_arr.coords
+        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
+        assert area_def.crs == new_data_arr.coords["crs"].item()
 
     def test_swath_def_coordinates(self):
         """Test coordinates being added with an SwathDefinition."""
@@ -679,11 +673,11 @@ class TestCoordinateHelpers(unittest.TestCase):
         #     new_data_arr.coords['latitude'].attrs['units'], 'degrees_north')
         # self.assertIsInstance(new_data_arr.coords['latitude'].data, da.Array)
 
-        self.assertIn("crs", new_data_arr.coords)
+        assert "crs" in new_data_arr.coords
         crs = new_data_arr.coords["crs"].item()
-        self.assertIsInstance(crs, CRS)
+        assert isinstance(crs, CRS)
         assert crs.is_geographic
-        self.assertIsInstance(new_data_arr.coords["crs"].item(), CRS)
+        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
 
 
 class TestBucketAvg(unittest.TestCase):
@@ -702,16 +696,16 @@ class TestBucketAvg(unittest.TestCase):
 
     def test_init(self):
         """Test bucket resampler initialization."""
-        self.assertIsNone(self.bucket.resampler)
-        self.assertTrue(self.bucket.source_geo_def == self.source_geo_def)
-        self.assertTrue(self.bucket.target_geo_def == self.target_geo_def)
+        assert self.bucket.resampler is None
+        assert self.bucket.source_geo_def == self.source_geo_def
+        assert self.bucket.target_geo_def == self.target_geo_def
 
     @mock.patch("pyresample.bucket.BucketResampler")
     def test_precompute(self, bucket):
         """Test bucket resampler precomputation."""
         bucket.return_value = True
         self.bucket.precompute()
-        self.assertTrue(self.bucket.resampler)
+        assert self.bucket.resampler
         bucket.assert_called_once_with(self.target_geo_def, 1, 2)
 
     def _compute_mocked_bucket_avg(self, data, return_data=None, **kwargs):
@@ -729,16 +723,16 @@ class TestBucketAvg(unittest.TestCase):
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.assertEqual(res.shape, (1, 5))
+        assert res.shape == (1, 5)
         # 2D data
         data = da.ones((5, 5))
         res = self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.assertEqual(res.shape, (1, 5, 5))
+        assert res.shape == (1, 5, 5)
         # 3D data
         data = da.ones((3, 5, 5))
         self.bucket.resampler.get_average.return_value = data[0, :, :]
         res = self._compute_mocked_bucket_avg(data, return_data=data[0, :, :], fill_value=2)
-        self.assertEqual(res.shape, (3, 5, 5))
+        assert res.shape == (3, 5, 5)
 
     @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
@@ -805,33 +799,33 @@ class TestBucketAvg(unittest.TestCase):
         res = self.bucket.resample(data)
         self.bucket.precompute.assert_called_once()
         self.bucket.compute.assert_called_once()
-        self.assertEqual(res.shape, (5, 5))
-        self.assertEqual(res.dims, ("y", "x"))
-        self.assertTrue("bar" in res.attrs)
-        self.assertEqual(res.attrs["bar"], "baz")
+        assert res.shape == (5, 5)
+        assert res.dims == ("y", "x")
+        assert "bar" in res.attrs
+        assert res.attrs["bar"] == "baz"
 
         # 2D input data
         data = xr.DataArray(da.ones((5, 5)), dims=("foo", "bar"))
         self.bucket.compute.return_value = da.ones((5, 5))
         res = self.bucket.resample(data)
-        self.assertEqual(res.shape, (5, 5))
-        self.assertEqual(res.dims, ("y", "x"))
+        assert res.shape == (5, 5)
+        assert res.dims == ("y", "x")
 
         # 3D input data with 'bands' dim
         data = xr.DataArray(da.ones((1, 5, 5)), dims=("bands", "foo", "bar"),
                             coords={"bands": ["L"]})
         self.bucket.compute.return_value = da.ones((1, 5, 5))
         res = self.bucket.resample(data)
-        self.assertEqual(res.shape, (1, 5, 5))
-        self.assertEqual(res.dims, ("bands", "y", "x"))
-        self.assertEqual(res.coords["bands"], ["L"])
+        assert res.shape == (1, 5, 5)
+        assert res.dims == ("bands", "y", "x")
+        assert res.coords["bands"] == ["L"]
 
         # 3D input data with misc dim names
         data = xr.DataArray(da.ones((3, 5, 5)), dims=("foo", "bar", "baz"))
         self.bucket.compute.return_value = da.ones((3, 5, 5))
         res = self.bucket.resample(data)
-        self.assertEqual(res.shape, (3, 5, 5))
-        self.assertEqual(res.dims, ("foo", "bar", "baz"))
+        assert res.shape == (3, 5, 5)
+        assert res.dims == ("foo", "bar", "baz")
 
 
 class TestBucketSum(unittest.TestCase):
@@ -861,15 +855,15 @@ class TestBucketSum(unittest.TestCase):
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_sum(data)
-        self.assertEqual(res.shape, (1, 5))
+        assert res.shape == (1, 5)
         # 2D data
         data = da.ones((5, 5))
         res = self._compute_mocked_bucket_sum(data)
-        self.assertEqual(res.shape, (1, 5, 5))
+        assert res.shape == (1, 5, 5)
         # 3D data
         data = da.ones((3, 5, 5))
         res = self._compute_mocked_bucket_sum(data, return_data=data[0, :, :])
-        self.assertEqual(res.shape, (3, 5, 5))
+        assert res.shape == (3, 5, 5)
 
     @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
@@ -946,16 +940,16 @@ class TestBucketCount(unittest.TestCase):
         data = da.ones((5,))
         res = self._compute_mocked_bucket_count(data)
         self.bucket.resampler.get_count.assert_called_once_with()
-        self.assertEqual(res.shape, (1, 5))
+        assert res.shape == (1, 5)
         # 2D data
         data = da.ones((5, 5))
         res = self._compute_mocked_bucket_count(data)
         self.bucket.resampler.get_count.assert_called_once_with()
-        self.assertEqual(res.shape, (1, 5, 5))
+        assert res.shape == (1, 5, 5)
         # 3D data
         data = da.ones((3, 5, 5))
         res = self._compute_mocked_bucket_count(data, return_data=data[0, :, :])
-        self.assertEqual(res.shape, (3, 5, 5))
+        assert res.shape == (3, 5, 5)
 
 
 class TestBucketFraction(unittest.TestCase):
@@ -1007,6 +1001,6 @@ class TestBucketFraction(unittest.TestCase):
         arr = da.ones((5, 5))
         self.bucket.compute.return_value = {0: arr, 1: arr, 2: arr}
         res = self.bucket.resample(data)
-        self.assertTrue("categories" in res.coords)
-        self.assertTrue("categories" in res.dims)
-        self.assertTrue(np.all(res.coords["categories"] == np.array([0, 1, 2])))
+        assert "categories" in res.coords
+        assert "categories" in res.dims
+        assert np.all(res.coords["categories"] == np.array([0, 1, 2]))

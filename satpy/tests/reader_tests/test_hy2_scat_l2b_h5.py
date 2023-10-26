@@ -395,13 +395,13 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
 
         res = reader.load(["wvc_lon", "wvc_lat"])
-        self.assertEqual(2, len(res))
+        assert 2 == len(res)
 
     def test_load_geo_nsoas(self):
         """Test loading data from nsoas file."""
@@ -411,13 +411,13 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
 
         res = reader.load(["wvc_lon", "wvc_lat"])
-        self.assertEqual(2, len(res))
+        assert 2 == len(res)
 
     def test_load_data_selection(self):
         """Test loading data."""
@@ -427,14 +427,14 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
         res = reader.load(["wind_speed_selection",
                            "wind_dir_selection",
                            "wvc_selection"])
-        self.assertEqual(3, len(res))
+        assert 3 == len(res)
 
     def test_load_data_all_ambiguities(self):
         """Test loading data."""
@@ -444,10 +444,10 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
         res = reader.load(["wind_speed",
                            "wind_dir",
                            "max_likelihood_est",
@@ -459,7 +459,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
                            "num_out_aft",
                            "num_out_fore",
                            "wvc_quality_flag"])
-        self.assertEqual(11, len(res))
+        assert 11 == len(res)
 
     def test_load_data_row_times(self):
         """Test loading data."""
@@ -469,12 +469,12 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
         res = reader.load(["wvc_row_time"])
-        self.assertEqual(1, len(res))
+        assert 1 == len(res)
 
     def test_reading_attrs(self):
         """Test loading data."""
@@ -487,9 +487,9 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         reader.create_filehandlers(files)
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
-        self.assertEqual(res["wvc_lon"].attrs["L2B_Number_WVC_cells"], 10)
+        assert res["wvc_lon"].attrs["L2B_Number_WVC_cells"] == 10
         with self.assertRaises(KeyError):
-            self.assertEqual(res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"], 10)
+            assert res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"] == 10
 
     def test_reading_attrs_nsoas(self):
         """Test loading data."""
@@ -503,8 +503,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
         with self.assertRaises(KeyError):
-            self.assertEqual(res["wvc_lon"].attrs["L2B_Number_WVC_cells"], 10)
-        self.assertEqual(res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"], 10)
+            assert res["wvc_lon"].attrs["L2B_Number_WVC_cells"] == 10
+        assert res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"] == 10
 
     def test_properties(self):
         """Test platform_name."""
@@ -519,6 +519,6 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         reader.create_filehandlers(files)
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
-        self.assertEqual(res["wvc_lon"].platform_name, "HY-2B")
-        self.assertEqual(res["wvc_lon"].start_time, datetime(2020, 3, 26, 1, 11, 7))
-        self.assertEqual(res["wvc_lon"].end_time, datetime(2020, 3, 26, 2, 55, 40))
+        assert res["wvc_lon"].platform_name == "HY-2B"
+        assert res["wvc_lon"].start_time == datetime(2020, 3, 26, 1, 11, 7)
+        assert res["wvc_lon"].end_time == datetime(2020, 3, 26, 2, 55, 40)

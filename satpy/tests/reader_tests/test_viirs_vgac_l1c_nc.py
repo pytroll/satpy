@@ -29,8 +29,8 @@ import pytest
 from netCDF4 import Dataset
 
 
-@pytest.fixture
-def _nc_filename(tmp_path):
+@pytest.fixture()
+def nc_filename(tmp_path):
     now = datetime.datetime.utcnow()
     filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
@@ -66,14 +66,14 @@ def _nc_filename(tmp_path):
 class TestVGACREader:
     """Test the VGACFileHandler reader."""
 
-    def test_read_vgac(self, _nc_filename):
+    def test_read_vgac(self, nc_filename):
         """Test reading reflectances and BT."""
         from satpy.scene import Scene
 
         # Read data
         scn_ = Scene(
             reader="viirs_vgac_l1c_nc",
-            filenames=[_nc_filename])
+            filenames=[nc_filename])
         scn_.load(["M05", "M15"])
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)

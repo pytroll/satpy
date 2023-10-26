@@ -133,22 +133,22 @@ class TestGenericImage(unittest.TestCase):
         fname = os.path.join(self.base_dir, "test_l.png")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
-        self.assertEqual(scn["image"].shape, (1, self.y_size, self.x_size))
-        self.assertEqual(scn.sensor_names, {"images"})
-        self.assertEqual(scn.start_time, None)
-        self.assertEqual(scn.end_time, None)
-        self.assertNotIn("area", scn["image"].attrs)
+        assert scn["image"].shape == (1, self.y_size, self.x_size)
+        assert scn.sensor_names == {"images"}
+        assert scn.start_time is None
+        assert scn.end_time is None
+        assert "area" not in scn["image"].attrs
 
         fname = os.path.join(self.base_dir, "20180101_0000_test_la.png")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
         data = da.compute(scn["image"].data)
-        self.assertEqual(scn["image"].shape, (1, self.y_size, self.x_size))
-        self.assertEqual(scn.sensor_names, {"images"})
-        self.assertEqual(scn.start_time, self.date)
-        self.assertEqual(scn.end_time, self.date)
-        self.assertNotIn("area", scn["image"].attrs)
-        self.assertEqual(np.sum(np.isnan(data)), 100)
+        assert scn["image"].shape == (1, self.y_size, self.x_size)
+        assert scn.sensor_names == {"images"}
+        assert scn.start_time == self.date
+        assert scn.end_time == self.date
+        assert "area" not in scn["image"].attrs
+        assert np.sum(np.isnan(data)) == 100
 
     def test_geotiff_scene(self):
         """Test reading TIFF images via satpy.Scene()."""
@@ -157,20 +157,20 @@ class TestGenericImage(unittest.TestCase):
         fname = os.path.join(self.base_dir, "20180101_0000_test_rgb.tif")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
-        self.assertEqual(scn["image"].shape, (3, self.y_size, self.x_size))
-        self.assertEqual(scn.sensor_names, {"images"})
-        self.assertEqual(scn.start_time, self.date)
-        self.assertEqual(scn.end_time, self.date)
-        self.assertEqual(scn["image"].area, self.area_def)
+        assert scn["image"].shape == (3, self.y_size, self.x_size)
+        assert scn.sensor_names == {"images"}
+        assert scn.start_time == self.date
+        assert scn.end_time == self.date
+        assert scn["image"].area == self.area_def
 
         fname = os.path.join(self.base_dir, "test_rgba.tif")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
-        self.assertEqual(scn["image"].shape, (3, self.y_size, self.x_size))
-        self.assertEqual(scn.sensor_names, {"images"})
-        self.assertEqual(scn.start_time, None)
-        self.assertEqual(scn.end_time, None)
-        self.assertEqual(scn["image"].area, self.area_def)
+        assert scn["image"].shape == (3, self.y_size, self.x_size)
+        assert scn.sensor_names == {"images"}
+        assert scn.start_time is None
+        assert scn.end_time is None
+        assert scn["image"].area == self.area_def
 
     def test_geotiff_scene_nan(self):
         """Test reading TIFF images originally containing NaN values via satpy.Scene()."""
@@ -179,14 +179,14 @@ class TestGenericImage(unittest.TestCase):
         fname = os.path.join(self.base_dir, "test_l_nan_fillvalue.tif")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
-        self.assertEqual(scn["image"].shape, (1, self.y_size, self.x_size))
-        self.assertEqual(np.sum(scn["image"].data[0][:10, :10].compute()), 0)
+        assert scn["image"].shape == (1, self.y_size, self.x_size)
+        assert np.sum(scn["image"].data[0][:10, :10].compute()) == 0
 
         fname = os.path.join(self.base_dir, "test_l_nan_nofillvalue.tif")
         scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
-        self.assertEqual(scn["image"].shape, (1, self.y_size, self.x_size))
-        self.assertTrue(np.all(np.isnan(scn["image"].data[0][:10, :10].compute())))
+        assert scn["image"].shape == (1, self.y_size, self.x_size)
+        assert np.all(np.isnan(scn["image"].data[0][:10, :10].compute()))
 
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
@@ -198,19 +198,19 @@ class TestGenericImage(unittest.TestCase):
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
         foo = make_dataid(name="image")
-        self.assertTrue(reader.file_content)
-        self.assertEqual(reader.finfo["filename"], fname)
-        self.assertEqual(reader.finfo["start_time"], self.date)
-        self.assertEqual(reader.finfo["end_time"], self.date)
-        self.assertEqual(reader.area, self.area_def)
-        self.assertEqual(reader.get_area_def(None), self.area_def)
-        self.assertEqual(reader.start_time, self.date)
-        self.assertEqual(reader.end_time, self.date)
+        assert reader.file_content
+        assert reader.finfo["filename"] == fname
+        assert reader.finfo["start_time"] == self.date
+        assert reader.finfo["end_time"] == self.date
+        assert reader.area == self.area_def
+        assert reader.get_area_def(None) == self.area_def
+        assert reader.start_time == self.date
+        assert reader.end_time == self.date
 
         dataset = reader.get_dataset(foo, {})
-        self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertIn("spatial_ref", dataset.coords)
-        self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
+        assert isinstance(dataset, xr.DataArray)
+        assert "spatial_ref" in dataset.coords
+        assert np.all(np.isnan(dataset.data[:, :10, :10].compute()))
 
     def test_GenericImageFileHandler_masking_only_integer(self):
         """Test direct use of the reader."""
@@ -230,14 +230,14 @@ class TestGenericImage(unittest.TestCase):
         # do nothing if not integer
         float_data = data / 255.
         reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": float_data})
-        self.assertIs(reader.get_dataset(make_dataid(name="image"), {}), float_data)
+        assert reader.get_dataset(make_dataid(name="image"), {}) is float_data
 
         # masking if integer
         data = data.astype(np.uint32)
-        self.assertEqual(data.bands.size, 4)
+        assert data.bands.size == 4
         reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": data})
         ret_data = reader.get_dataset(make_dataid(name="image"), {})
-        self.assertEqual(ret_data.bands.size, 3)
+        assert ret_data.bands.size == 3
 
     def test_GenericImageFileHandler_datasetid(self):
         """Test direct use of the reader."""
@@ -249,9 +249,9 @@ class TestGenericImage(unittest.TestCase):
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
         foo = make_dataid(name="image-custom")
-        self.assertTrue(reader.file_content, "file_content should be set")
+        assert reader.file_content
         dataset = reader.get_dataset(foo, {})
-        self.assertTrue(isinstance(dataset, xr.DataArray), "dataset should be a xr.DataArray")
+        assert isinstance(dataset, xr.DataArray)
 
     def test_GenericImageFileHandler_nodata(self):
         """Test nodata handling with direct use of the reader."""
@@ -263,21 +263,21 @@ class TestGenericImage(unittest.TestCase):
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
         foo = make_dataid(name="image-custom")
-        self.assertTrue(reader.file_content, "file_content should be set")
+        assert reader.file_content
         info = {"nodata_handling": "nan_mask"}
         dataset = reader.get_dataset(foo, info)
-        self.assertTrue(isinstance(dataset, xr.DataArray), "dataset should be a xr.DataArray")
-        self.assertTrue(np.all(np.isnan(dataset.data[0][:10, :10].compute())), "values should be np.nan")
-        self.assertTrue(np.isnan(dataset.attrs["_FillValue"]), "_FillValue should be np.nan")
+        assert isinstance(dataset, xr.DataArray)
+        assert np.all(np.isnan(dataset.data[0][:10, :10].compute())) is True
+        assert np.isnan(dataset.attrs["_FillValue"])
 
         info = {"nodata_handling": "fill_value"}
         dataset = reader.get_dataset(foo, info)
-        self.assertTrue(isinstance(dataset, xr.DataArray), "dataset should be a xr.DataArray")
-        self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
-        self.assertEqual(dataset.attrs["_FillValue"], 0)
+        assert isinstance(dataset, xr.DataArray)
+        assert np.sum(dataset.data[0][:10, :10].compute()) == 0
+        assert dataset.attrs["_FillValue"] == 0
 
         # default same as 'nodata_handling': 'fill_value'
         dataset = reader.get_dataset(foo, {})
-        self.assertTrue(isinstance(dataset, xr.DataArray), "dataset should be a xr.DataArray")
-        self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
-        self.assertEqual(dataset.attrs["_FillValue"], 0)
+        assert isinstance(dataset, xr.DataArray)
+        assert np.sum(dataset.data[0][:10, :10].compute()) == 0
+        assert dataset.attrs["_FillValue"] == 0

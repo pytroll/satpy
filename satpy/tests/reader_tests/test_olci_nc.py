@@ -109,7 +109,7 @@ class TestOLCIReader(unittest.TestCase):
         filename_info = {"mission_id": "S3A", "dataset_name": "mask", "start_time": 0, "end_time": 0}
         test = NCOLCI2("somedir/somefile.nc", filename_info, "c")
         res = test.get_dataset(ds_id, {"nc_key": "mask"})
-        self.assertEqual(res.dtype, np.dtype("bool"))
+        assert res.dtype == np.dtype("bool")
         expected = np.array([[True, False, True, True, True, True],
                              [False, False, True, True, False, False],
                              [False, False, False, False, False, True],
@@ -133,7 +133,7 @@ class TestOLCIReader(unittest.TestCase):
         filename_info = {"mission_id": "S3A", "dataset_name": "mask", "start_time": 0, "end_time": 0}
         test = NCOLCI2("somedir/somefile.nc", filename_info, "c", mask_items=["INVALID"])
         res = test.get_dataset(ds_id, {"nc_key": "mask"})
-        self.assertEqual(res.dtype, np.dtype("bool"))
+        assert res.dtype == np.dtype("bool")
         expected = np.array([True] + [False] * 29).reshape(5, 6)
         np.testing.assert_array_equal(res.values, expected)
 
@@ -273,4 +273,4 @@ class TestBitFlags(unittest.TestCase):
                              False, False, False,  True, False,  True, False,
                              False, False,  True,  True, False, False, True,
                              False])
-        self.assertTrue(all(mask == expected))
+        assert all(mask == expected)

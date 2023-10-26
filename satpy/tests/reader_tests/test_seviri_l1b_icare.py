@@ -104,9 +104,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                                      -5570248.6866857,
                                      -5537244.2506213,
                                      -4670127.7031114)}
-        self.assertEqual(v.attrs["area"].area_id, test_area["area_id"])
-        self.assertEqual(v.attrs["area"].width, test_area["width"])
-        self.assertEqual(v.attrs["area"].height, test_area["height"])
+        assert v.attrs["area"].area_id == test_area["area_id"]
+        assert v.attrs["area"].width == test_area["width"]
+        assert v.attrs["area"].height == test_area["height"]
         np.testing.assert_almost_equal(v.attrs["area"].area_extent,
                                        test_area["area_extent"])
 
@@ -117,9 +117,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             "GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf",
             "GEO_L1B-MSG1_2004-12-29T12-15-00_G_IR108_V1-04.hdf"
         ])
-        self.assertEqual(len(loadables), 2)
+        assert len(loadables) == 2
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset_vis(self):
         """Test loading all datasets from a full swath file."""
@@ -130,11 +130,11 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["VIS008"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
             dt = datetime(2004, 12, 29, 12, 27, 44)
-            self.assertEqual(v.attrs["end_time"], dt)
-            self.assertEqual(v.attrs["calibration"], "reflectance")
+            assert v.attrs["end_time"] == dt
+            assert v.attrs["calibration"] == "reflectance"
 
     def test_load_dataset_ir(self):
         """Test loading all datasets from a full swath file."""
@@ -144,9 +144,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["IR_108"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["calibration"], "brightness_temperature")
+            assert v.attrs["calibration"] == "brightness_temperature"
 
     def test_area_def_lores(self):
         """Test loading all datasets from an area of interest file."""
@@ -157,7 +157,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         ds = r.load(["VIS008"])
         self.compare_areas(ds["VIS008"])
-        self.assertEqual(ds["VIS008"].attrs["area"].proj_id, "msg_lowres")
+        assert ds["VIS008"].attrs["area"].proj_id == "msg_lowres"
 
     def test_area_def_hires(self):
         """Test loading all datasets from an area of interest file."""
@@ -168,7 +168,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         ds = r.load(["HRV"])
         self.compare_areas(ds["HRV"])
-        self.assertEqual(ds["HRV"].attrs["area"].proj_id, "msg_hires")
+        assert ds["HRV"].attrs["area"].proj_id == "msg_hires"
 
     def test_sensor_names(self):
         """Check satellite name conversion is correct, including error case."""
@@ -191,7 +191,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             for sat in sensor_list:
                 file_data["/attr/Sensors"] = sensor_list[sat]
                 plat, sens = _run_target()
-                self.assertEqual(plat, sat)
+                assert plat == sat
 
             with self.assertRaises(NameError):
                 file_data["/attr/Sensors"] = "BADSAT/NOSENSE"

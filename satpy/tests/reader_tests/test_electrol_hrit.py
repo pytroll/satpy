@@ -57,7 +57,7 @@ class Testrecarray2dict(unittest.TestCase):
         expected = {"test_sec": {"test_str": np.array([b"Testing"], dtype="<S20"),
                                  "test_int": np.array([10], dtype=np.int32)},
                     "test_flt": np.array([1.45], dtype=np.float32)}
-        self.assertEqual(expected, recarray2dict(outer_da))
+        assert expected == recarray2dict(outer_da)
 
 
 class TestHRITGOMSProFileHandler(unittest.TestCase):
@@ -116,8 +116,7 @@ class TestHRITGOMSProFileHandler(unittest.TestCase):
 
         # assertDictEqual doesn't seem to work for dicts containing dicts,
         # so we must compare some items individually
-        self.assertDictEqual(self.test_pro["SatelliteStatus"],
-                             self.reader.prologue["SatelliteStatus"])
+        assert self.test_pro["SatelliteStatus"] == self.reader.prologue["SatelliteStatus"]
         prop = "ImageAcquisition"
         for key in self.reader.prologue[prop]:
             np.testing.assert_array_equal(self.test_pro[prop][key],
@@ -158,7 +157,7 @@ class TestHRITGOMSEpiFileHandler(unittest.TestCase):
             # We don't check everything in the epilogue (too many nested dicts)
             # but rather check the epilogue is returned as a dict and that two
             # representative data fields are as we expect.
-            self.assertIsInstance(epi, dict)
+            assert isinstance(epi, dict)
             np.testing.assert_array_equal(
                 epi["RadiometricProcessing"]["RPSummary"]["IsOptic"], np.ones(10))
             np.testing.assert_array_equal(
@@ -217,15 +216,15 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
 
         # Test that 'counts' calibration returns identical values to input
         out = fh.calibrate(counts, "counts")
-        self.assertTrue(np.all(out.values == counts.values))
+        assert np.all(out.values == counts.values)
 
         # Test that 'radiance' calibrates successfully
         out = fh.calibrate(counts, "radiance")
-        self.assertTrue(np.allclose(out.values, lut[0, counts]/1000.))
+        assert np.allclose(out.values, lut[0, counts] / 1000.0)
 
         # Test that 'brightness_temperature' calibrates successfully
         out = fh.calibrate(counts, "brightness_temperature")
-        self.assertTrue(np.allclose(out.values, lut[0, counts]/1000.))
+        assert np.allclose(out.values, lut[0, counts] / 1000.0)
 
     def test_get_area_def(self, *mocks):
         """Test get_area_def."""
@@ -239,5 +238,4 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
                   "projection_parameters": {"SSP_longitude": 0.0}}
         area = fh.get_area_def(True)
 
-        self.assertTrue(np.allclose(np.array(area.area_extent),
-                        np.array(example_area_ext)))
+        assert np.allclose(np.array(area.area_extent), np.array(example_area_ext))

@@ -177,10 +177,10 @@ class TestNUCAPSReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_init_with_kwargs(self):
         """Test basic init with extra parameters."""
@@ -189,10 +189,10 @@ class TestNUCAPSReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables, fh_kwargs={"mask_surface": False})
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_nonpressure_based(self):
         """Test loading all channels that aren't based on pressure."""
@@ -209,14 +209,14 @@ class TestNUCAPSReader(unittest.TestCase):
                            "Skin_Temperature",
                            "Quality_Flag",
                            ])
-        self.assertEqual(len(datasets), 6)
+        assert len(datasets) == 6
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             # self.assertEqual(v.info['units'], 'degrees')
-            self.assertEqual(v.ndim, 1)
-            self.assertEqual(v.attrs["sensor"], set(["cris", "atms", "viirs"]))
-            self.assertEqual(type(v.attrs["start_time"]), datetime.datetime)
-            self.assertEqual(type(v.attrs["end_time"]), datetime.datetime)
+            assert v.ndim == 1
+            assert v.attrs["sensor"] == set(["cris", "atms", "viirs"])
+            assert type(v.attrs["start_time"]) == datetime.datetime
+            assert type(v.attrs["end_time"]) == datetime.datetime
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
@@ -246,10 +246,10 @@ class TestNUCAPSReader(unittest.TestCase):
                            "SO2",
                            "SO2_MR",
                            ])
-        self.assertEqual(len(datasets), 19)
+        assert len(datasets) == 19
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
-            self.assertEqual(v.ndim, 2)
+            assert v.ndim == 2
             if np.issubdtype(v.dtype, np.floating):
                 assert "_FillValue" not in v.attrs
 
@@ -263,9 +263,9 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=True)
-        self.assertEqual(len(datasets), 100)
+        assert len(datasets) == 100
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
@@ -276,9 +276,9 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=True)
-        self.assertEqual(len(datasets), 100)
+        assert len(datasets) == 100
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_individual_pressure_levels_min_max(self):
         """Test loading individual Temperature with min/max level specified."""
@@ -289,9 +289,9 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=(100., 150.))
-        self.assertEqual(len(datasets), 6)
+        assert len(datasets) == 6
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_individual_pressure_levels_single(self):
         """Test loading individual Temperature with specific levels."""
@@ -302,9 +302,9 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_pressure_levels_true(self):
         """Test loading Temperature with all pressure levels."""
@@ -315,10 +315,10 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=True)
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape, DEFAULT_PRES_FILE_SHAPE)
+            assert v.ndim == 2
+            assert v.shape == DEFAULT_PRES_FILE_SHAPE
 
     def test_load_pressure_levels_min_max(self):
         """Test loading Temperature with min/max level specified."""
@@ -329,11 +329,10 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=(100., 150.))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape,
-                                  (DEFAULT_PRES_FILE_SHAPE[0], 6))
+            assert v.ndim == 2
+            assert v.shape == (DEFAULT_PRES_FILE_SHAPE[0], 6)
 
     def test_load_pressure_levels_single(self):
         """Test loading a specific Temperature level."""
@@ -344,11 +343,10 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape,
-                                  (DEFAULT_PRES_FILE_SHAPE[0], 1))
+            assert v.ndim == 2
+            assert v.shape == (DEFAULT_PRES_FILE_SHAPE[0], 1)
 
     def test_load_pressure_levels_single_and_pressure_levels(self):
         """Test loading a specific Temperature level and pressure levels."""
@@ -359,13 +357,12 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature", "Pressure_Levels"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 2)
+        assert len(datasets) == 2
         t_ds = datasets["Temperature"]
-        self.assertEqual(t_ds.ndim, 2)
-        self.assertTupleEqual(t_ds.shape,
-                              (DEFAULT_PRES_FILE_SHAPE[0], 1))
+        assert t_ds.ndim == 2
+        assert t_ds.shape == (DEFAULT_PRES_FILE_SHAPE[0], 1)
         pl_ds = datasets["Pressure_Levels"]
-        self.assertTupleEqual(pl_ds.shape, (1,))
+        assert pl_ds.shape == (1,)
 
 
 class TestNUCAPSScienceEDRReader(unittest.TestCase):
@@ -394,10 +391,10 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_nonpressure_based(self):
         """Test loading all channels that aren't based on pressure."""
@@ -413,12 +410,12 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
                            "Skin_Temperature",
                            "Quality_Flag",
                            ])
-        self.assertEqual(len(datasets), 5)
+        assert len(datasets) == 5
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
-            self.assertEqual(v.attrs["sensor"], set(["cris", "atms", "viirs"]))
-            self.assertEqual(type(v.attrs["start_time"]), datetime.datetime)
-            self.assertEqual(type(v.attrs["end_time"]), datetime.datetime)
+            assert v.ndim == 1
+            assert v.attrs["sensor"] == set(["cris", "atms", "viirs"])
+            assert type(v.attrs["start_time"]) == datetime.datetime
+            assert type(v.attrs["end_time"]) == datetime.datetime
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
@@ -445,10 +442,10 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
                            "SO2",
                            "SO2_MR",
                            ])
-        self.assertEqual(len(datasets), 16)
+        assert len(datasets) == 16
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
-            self.assertEqual(v.ndim, 2)
+            assert v.ndim == 2
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
@@ -459,9 +456,9 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=True)
-        self.assertEqual(len(datasets), 100)
+        assert len(datasets) == 100
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_individual_pressure_levels_min_max(self):
         """Test loading individual Temperature with min/max level specified."""
@@ -472,9 +469,9 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=(100., 150.))
-        self.assertEqual(len(datasets), 6)
+        assert len(datasets) == 6
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_individual_pressure_levels_single(self):
         """Test loading individual Temperature with specific levels."""
@@ -485,9 +482,9 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(r.pressure_dataset_names["Temperature"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 1)
+            assert v.ndim == 1
 
     def test_load_pressure_levels_true(self):
         """Test loading Temperature with all pressure levels."""
@@ -498,10 +495,10 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=True)
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape, DEFAULT_PRES_FILE_SHAPE)
+            assert v.ndim == 2
+            assert v.shape == DEFAULT_PRES_FILE_SHAPE
 
     def test_load_pressure_levels_min_max(self):
         """Test loading Temperature with min/max level specified."""
@@ -512,11 +509,10 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=(100., 150.))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape,
-                                  (DEFAULT_PRES_FILE_SHAPE[0], 6))
+            assert v.ndim == 2
+            assert v.shape == (DEFAULT_PRES_FILE_SHAPE[0], 6)
 
     def test_load_pressure_levels_single(self):
         """Test loading a specific Temperature level."""
@@ -527,11 +523,10 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.ndim, 2)
-            self.assertTupleEqual(v.shape,
-                                  (DEFAULT_PRES_FILE_SHAPE[0], 1))
+            assert v.ndim == 2
+            assert v.shape == (DEFAULT_PRES_FILE_SHAPE[0], 1)
 
     def test_load_pressure_levels_single_and_pressure_levels(self):
         """Test loading a specific Temperature level and pressure levels."""
@@ -542,10 +537,9 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["Temperature", "Pressure_Levels"], pressure_levels=(103.017,))
-        self.assertEqual(len(datasets), 2)
+        assert len(datasets) == 2
         t_ds = datasets["Temperature"]
-        self.assertEqual(t_ds.ndim, 2)
-        self.assertTupleEqual(t_ds.shape,
-                              (DEFAULT_PRES_FILE_SHAPE[0], 1))
+        assert t_ds.ndim == 2
+        assert t_ds.shape == (DEFAULT_PRES_FILE_SHAPE[0], 1)
         pl_ds = datasets["Pressure_Levels"]
-        self.assertTupleEqual(pl_ds.shape, (1,))
+        assert pl_ds.shape == (1,)

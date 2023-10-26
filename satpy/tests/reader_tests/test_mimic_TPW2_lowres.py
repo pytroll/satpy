@@ -132,10 +132,10 @@ class TestMimicTPW2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "comp20190619.130000.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_mimic_float(self):
         """Load TPW mimic float data."""
@@ -147,13 +147,13 @@ class TestMimicTPW2Reader(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
         ds = r.load(float_variables)
-        self.assertEqual(len(ds), len(float_variables))
+        assert len(ds) == len(float_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs["platform_shortname"], "aggregated microwave")
-            self.assertEqual(d.attrs["sensor"], "mimic")
-            self.assertEqual(d.attrs["units"], "mm")
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["units"] == "mm"
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
 
     def test_load_mimic_timedelta(self):
         """Load TPW mimic timedelta data (data latency variables)."""
@@ -165,14 +165,14 @@ class TestMimicTPW2Reader(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
         ds = r.load(date_variables)
-        self.assertEqual(len(ds), len(date_variables))
+        assert len(ds) == len(date_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs["platform_shortname"], "aggregated microwave")
-            self.assertEqual(d.attrs["sensor"], "mimic")
-            self.assertEqual(d.attrs["units"], "minutes")
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertEqual(d.dtype, DEFAULT_FILE_DTYPE)
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["units"] == "minutes"
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.dtype == DEFAULT_FILE_DTYPE
 
     def test_load_mimic_ubyte(self):
         """Load TPW mimic sensor grids."""
@@ -184,11 +184,11 @@ class TestMimicTPW2Reader(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
         ds = r.load(ubyte_variables)
-        self.assertEqual(len(ds), len(ubyte_variables))
+        assert len(ds) == len(ubyte_variables)
         for d in ds.values():
-            self.assertEqual(d.attrs["platform_shortname"], "aggregated microwave")
-            self.assertEqual(d.attrs["sensor"], "mimic")
-            self.assertIn("source_key", d.attrs)
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertEqual(d.dtype, np.uint8)
+            assert d.attrs["platform_shortname"] == "aggregated microwave"
+            assert d.attrs["sensor"] == "mimic"
+            assert "source_key" in d.attrs
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert d.dtype == np.uint8

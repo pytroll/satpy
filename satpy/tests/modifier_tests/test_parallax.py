@@ -39,7 +39,7 @@ from satpy.writers import get_enhanced_image
 # - request
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_tle():
     """Produce fake Two Line Element (TLE) object from pyorbital."""
     return pyorbital.tlefile.Tle(
@@ -109,7 +109,7 @@ class TestForwardParallax:
         assert np.isnan(corr_lon).all()
         assert np.isnan(corr_lat).all()
 
-    @pytest.mark.parametrize("lat,lon", [(0, 0), (0, 40), (0, 179.9)])
+    @pytest.mark.parametrize(("lat", "lon"), [(0, 0), (0, 40), (0, 179.9)])
     @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
     def test_get_parallax_corrected_lonlats_cloudy_ssp(self, lat, lon, resolution):
         """Test parallax correction for fully cloudy scene at SSP."""
@@ -219,7 +219,7 @@ class TestParallaxCorrectionClass:
         pc = ParallaxCorrection(fake_area)
         assert pc.base_area == fake_area
 
-    @pytest.mark.parametrize("sat_pos,ar_pos",
+    @pytest.mark.parametrize(("sat_pos", "ar_pos"),
                              [((0, 0), (0, 0)), ((0, 0), (40, 0))])
     @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
     def test_correct_area_clearsky(self, sat_pos, ar_pos, resolution, caplog):
@@ -247,7 +247,7 @@ class TestParallaxCorrectionClass:
                 new_area.get_lonlats(),
                 fake_area_small.get_lonlats())
 
-    @pytest.mark.parametrize("lat,lon",
+    @pytest.mark.parametrize(("lat", "lon"),
                              [(0, 0), (0, 40), (0, 180),
                               (90, 0)])  # relevant for Арктика satellites
     @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
@@ -345,7 +345,7 @@ class TestParallaxCorrectionClass:
                 [49.86860622, 49.9097198, 49.90971976, 49.9097198, 49.88231496]]),
             rtol=1e-6)
 
-    @pytest.mark.parametrize("res1,res2", [(0.08, 0.3), (0.3, 0.08)])
+    @pytest.mark.parametrize(("res1", "res2"), [(0.08, 0.3), (0.3, 0.08)])
     def test_correct_area_clearsky_different_resolutions(self, res1, res2):
         """Test clearsky correction when areas have different resolutions."""
         from satpy.modifiers.parallax import ParallaxCorrection
@@ -564,7 +564,7 @@ class TestParallaxCorrectionModifier:
         # do so after parallax correction
         assert not (res.diff("x") < 0).any()
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_area(self, request):
         """Produce test area for parallax correction unit tests.
 
@@ -711,12 +711,12 @@ composites:
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def yaml_code(self):
         """Return YAML code for parallax_corrected_VIS006."""
         return _test_yaml_code
 
-    @pytest.fixture
+    @pytest.fixture()
     def conf_file(self, yaml_code, tmp_path):
         """Produce a fake configuration file."""
         conf_file = tmp_path / "test.yaml"
@@ -724,7 +724,7 @@ class TestParallaxCorrectionSceneLoad:
             fp.write(yaml_code)
         return conf_file
 
-    @pytest.fixture
+    @pytest.fixture()
     def fake_scene(self, yaml_code):
         """Produce fake scene and prepare fake composite config."""
         from satpy import Scene

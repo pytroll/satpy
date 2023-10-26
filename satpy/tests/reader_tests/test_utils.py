@@ -162,24 +162,24 @@ class TestHelpers(unittest.TestCase):
 
         # Check results along a couple of lines
         # a) Horizontal
-        self.assertTrue(np.all(mask[50, :8] == 0))
-        self.assertTrue(np.all(mask[50, 8:93] == 1))
-        self.assertTrue(np.all(mask[50, 93:] == 0))
+        assert np.all(mask[50, :8] == 0)
+        assert np.all(mask[50, 8:93] == 1)
+        assert np.all(mask[50, 93:] == 0)
 
         # b) Vertical
-        self.assertTrue(np.all(mask[:31, 50] == 0))
-        self.assertTrue(np.all(mask[31:70, 50] == 1))
-        self.assertTrue(np.all(mask[70:, 50] == 0))
+        assert np.all(mask[:31, 50] == 0)
+        assert np.all(mask[31:70, 50] == 1)
+        assert np.all(mask[70:, 50] == 0)
 
         # c) Top left to bottom right
-        self.assertTrue(np.all(mask[range(33), range(33)] == 0))
-        self.assertTrue(np.all(mask[range(33, 68), range(33, 68)] == 1))
-        self.assertTrue(np.all(mask[range(68, 101), range(68, 101)] == 0))
+        assert np.all(mask[range(33), range(33)] == 0)
+        assert np.all(mask[range(33, 68), range(33, 68)] == 1)
+        assert np.all(mask[range(68, 101), range(68, 101)] == 0)
 
         # d) Bottom left to top right
-        self.assertTrue(np.all(mask[range(101-1, 68-1, -1), range(33)] == 0))
-        self.assertTrue(np.all(mask[range(68-1, 33-1, -1), range(33, 68)] == 1))
-        self.assertTrue(np.all(mask[range(33-1, -1, -1), range(68, 101)] == 0))
+        assert np.all(mask[range(101 - 1, 68 - 1, -1), range(33)] == 0)
+        assert np.all(mask[range(68 - 1, 33 - 1, -1), range(33, 68)] == 1)
+        assert np.all(mask[range(33 - 1, -1, -1), range(68, 101)] == 0)
 
     @mock.patch("satpy.readers.utils.AreaDefinition")
     def test_sub_area(self, adef):
@@ -203,15 +203,15 @@ class TestHelpers(unittest.TestCase):
         """Test the np2str function."""
         # byte object
         npstring = np.string_("hej")
-        self.assertEqual(hf.np2str(npstring), "hej")
+        assert hf.np2str(npstring) == "hej"
 
         # single element numpy array
         np_arr = np.array([npstring])
-        self.assertEqual(hf.np2str(np_arr), "hej")
+        assert hf.np2str(np_arr) == "hej"
 
         # scalar numpy array
         np_arr = np.array(npstring)
-        self.assertEqual(hf.np2str(np_arr), "hej")
+        assert hf.np2str(np_arr) == "hej"
 
         # multi-element array
         npstring = np.array([npstring, npstring])
@@ -236,10 +236,10 @@ class TestHelpers(unittest.TestCase):
             return n * np.sqrt((1 - e2)**2 * np.sin(lat)**2 + np.cos(lat)**2)
 
         for lon in (0, 180, 270):
-            self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
+            assert hf.get_earth_radius(lon=lon, lat=0.0, a=a, b=b) == a
         for lat in (90, -90):
-            self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
-        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
+            assert hf.get_earth_radius(lon=0.0, lat=lat, a=a, b=b) == b
+        assert np.isclose(hf.get_earth_radius(lon=123, lat=45.0, a=a, b=b), re(45.0))
 
     def test_reduce_mda(self):
         """Test metadata size reduction."""
@@ -261,9 +261,9 @@ class TestHelpers(unittest.TestCase):
         numpy.testing.assert_equal(hf.reduce_mda(mda, max_size=3), exp)
 
         # Make sure, reduce_mda() doesn't modify the original dictionary
-        self.assertIn("c", mda)
-        self.assertIn("c", mda["d"])
-        self.assertIn("c", mda["d"]["d"])
+        assert "c" in mda
+        assert "c" in mda["d"]
+        assert "c" in mda["d"]["d"]
 
     @mock.patch("satpy.readers.utils.bz2.BZ2File")
     @mock.patch("satpy.readers.utils.Popen")
@@ -389,7 +389,7 @@ class TestHelpers(unittest.TestCase):
         expected_filename = filename[:-4]
 
         with hf.unzip_context(filename) as new_filename:
-            self.assertEqual(new_filename, expected_filename)
+            assert new_filename == expected_filename
 
         fake_unzip_file.assert_called_with(filename)
         fake_remove.assert_called_with(expected_filename)
@@ -409,14 +409,14 @@ class TestHelpers(unittest.TestCase):
                                  "off": -0.0556}}
         # Test that correct values are returned from the dict
         slope, offset = hf.get_user_calibration_factors("WV063", radcor_dict)
-        self.assertEqual(slope, 1.015)
-        self.assertEqual(offset, -0.0556)
+        assert slope == 1.015
+        assert offset == -0.0556
 
         # Test that channels not present in dict return 1.0, 0.0
         with self.assertWarns(UserWarning):
             slope, offset = hf.get_user_calibration_factors("IR097", radcor_dict)
-        self.assertEqual(slope, 1.)
-        self.assertEqual(offset, 0.)
+        assert slope == 1.0
+        assert offset == 0.0
 
         # Check that incorrect dict keys throw an error
         with self.assertRaises(KeyError):
@@ -486,7 +486,7 @@ class TestSunEarthDistanceCorrection:
         assert isinstance(out_refl.data, da.Array)
 
 
-@pytest.mark.parametrize("data, filename, mode",
+@pytest.mark.parametrize(("data", "filename", "mode"),
                          [(b"Hello", "dummy.dat", "b"),
                           ("Hello", "dummy.txt", "t")])
 def test_generic_open_binary(tmp_path, data, filename, mode):

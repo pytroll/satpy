@@ -142,12 +142,12 @@ class TestAHIHSDNavigation(unittest.TestCase):
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
             a, b = proj4_radius_parameters(proj_dict)
-            self.assertEqual(a, 6378137.0)
-            self.assertEqual(b, 6356752.3)
-            self.assertEqual(proj_dict["h"], 35785863.0)
-            self.assertEqual(proj_dict["lon_0"], 140.7)
-            self.assertEqual(proj_dict["proj"], "geos")
-            self.assertEqual(proj_dict["units"], "m")
+            assert a == 6378137.0
+            assert b == 6356752.3
+            assert proj_dict["h"] == 35785863.0
+            assert proj_dict["lon_0"] == 140.7
+            assert proj_dict["proj"] == "geos"
+            assert proj_dict["units"] == "m"
             np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
                                                               1592000.0102878273, 5132000.033164027))
 
@@ -190,17 +190,17 @@ class TestAHIHSDNavigation(unittest.TestCase):
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
             a, b = proj4_radius_parameters(proj_dict)
-            self.assertEqual(a, 6378137.0)
-            self.assertEqual(b, 6356752.3)
-            self.assertEqual(proj_dict["h"], 35785863.0)
-            self.assertEqual(proj_dict["lon_0"], 140.7)
-            self.assertEqual(proj_dict["proj"], "geos")
-            self.assertEqual(proj_dict["units"], "m")
+            assert a == 6378137.0
+            assert b == 6356752.3
+            assert proj_dict["h"] == 35785863.0
+            assert proj_dict["lon_0"] == 140.7
+            assert proj_dict["proj"] == "geos"
+            assert proj_dict["units"] == "m"
             np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
                                                               5500000.035542117, -2200000.0142168473))
 
 
-@pytest.fixture
+@pytest.fixture()
 def hsd_file_jp01(tmp_path):
     """Create a jp01 hsd file."""
     from satpy.readers.ahi_hsd import (  # _IRCAL_INFO_TYPE,
@@ -279,7 +279,7 @@ class TestAHIHSDFileHandler:
 
     def test_bad_calibration(self):
         """Test that a bad calibration mode causes an exception."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid calibration mode: BAD_MODE. Choose one of (.*)"):
             with _fake_hsd_handler(fh_kwargs={"calib_mode": "BAD_MODE"}):
                 pass
 
@@ -503,16 +503,14 @@ class TestAHICalibration(unittest.TestCase):
         """Test default in-file calibration modes."""
         self.setUp()
         # Counts
-        self.assertEqual(self.fh.calibrate(data=123,
-                                           calibration="counts"),
-                         123)
+        assert self.fh.calibrate(data=123, calibration="counts") == 123
 
         # Radiance
         rad_exp = np.array([[15.2, 11.5],
                             [7.8, -3.3]])
         rad = self.fh.calibrate(data=self.counts,
                                 calibration="radiance")
-        self.assertTrue(np.allclose(rad, rad_exp))
+        assert np.allclose(rad, rad_exp)
 
         # Brightness Temperature
         bt_exp = np.array([[330.978979, 310.524688],
@@ -526,7 +524,7 @@ class TestAHICalibration(unittest.TestCase):
                              [1.50189, 0.]])
         refl = self.fh.calibrate(data=self.counts,
                                  calibration="reflectance")
-        self.assertTrue(np.allclose(refl, refl_exp))
+        assert np.allclose(refl, refl_exp)
 
     def test_updated_calibrate(self):
         """Test updated in-file calibration modes."""
@@ -535,7 +533,7 @@ class TestAHICalibration(unittest.TestCase):
         rad_exp = np.array([[30.4, 23.0],
                             [15.6, -6.6]])
         rad = self.fh.calibrate(data=self.counts, calibration="radiance")
-        self.assertTrue(np.allclose(rad, rad_exp))
+        assert np.allclose(rad, rad_exp)
 
         # Case for no updated calibration available (older data)
         self.fh._header = {
@@ -556,7 +554,7 @@ class TestAHICalibration(unittest.TestCase):
         rad = self.fh.calibrate(data=self.counts, calibration="radiance")
         rad_exp = np.array([[15.2, 11.5],
                             [7.8, -3.3]])
-        self.assertTrue(np.allclose(rad, rad_exp))
+        assert np.allclose(rad, rad_exp)
 
     def test_user_calibration(self):
         """Test user-defined calibration modes."""
@@ -567,7 +565,7 @@ class TestAHICalibration(unittest.TestCase):
         rad = self.fh.calibrate(data=self.counts, calibration="radiance").compute()
         rad_exp = np.array([[16.10526316, 12.21052632],
                             [8.31578947, -3.36842105]])
-        self.assertTrue(np.allclose(rad, rad_exp))
+        assert np.allclose(rad, rad_exp)
 
         # This is for DN calibration
         self.fh.user_calibration = {"B13": {"slope": -0.0032,
@@ -577,7 +575,7 @@ class TestAHICalibration(unittest.TestCase):
         rad = self.fh.calibrate(data=self.counts, calibration="radiance").compute()
         rad_exp = np.array([[15.2, 12.],
                             [8.8, -0.8]])
-        self.assertTrue(np.allclose(rad, rad_exp))
+        assert np.allclose(rad, rad_exp)
 
 
 @contextlib.contextmanager

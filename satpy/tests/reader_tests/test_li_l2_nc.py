@@ -45,7 +45,7 @@ def std_filetype_infos():
     # get the li_l2 filetype:
     ftypes = cfg["file_types"]
 
-    yield ftypes
+    return ftypes
 
 
 # Note: the helper class below has some missing abstract class implementation,

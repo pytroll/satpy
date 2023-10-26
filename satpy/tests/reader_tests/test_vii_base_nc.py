@@ -158,15 +158,15 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Checks that the basic functionalities are correctly executed
         expected_start_time = datetime.datetime(year=2017, month=9, day=20,
                                                 hour=17, minute=30, second=40, microsecond=888000)
-        self.assertEqual(self.reader.start_time, expected_start_time)
+        assert self.reader.start_time == expected_start_time
 
         expected_end_time = datetime.datetime(year=2017, month=9, day=20,
                                               hour=17, minute=41, second=17, microsecond=555000)
-        self.assertEqual(self.reader.end_time, expected_end_time)
+        assert self.reader.end_time == expected_end_time
 
-        self.assertEqual(self.reader.spacecraft_name, "test_spacecraft")
-        self.assertEqual(self.reader.sensor, "test_instrument")
-        self.assertEqual(self.reader.ssp_lon, None)
+        assert self.reader.spacecraft_name == "test_spacecraft"
+        assert self.reader.sensor == "test_instrument"
+        assert self.reader.ssp_lon is None
 
         # Checks that the global attributes are correctly read
         expected_global_attributes = {
@@ -195,7 +195,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Since the global_attributes dictionary contains numpy arrays,
         # it is not possible to peform a simple equality test
         # Must iterate on all keys to confirm that the dictionaries are equal
-        self.assertEqual(global_attributes.keys(), expected_global_attributes.keys())
+        assert global_attributes.keys() == expected_global_attributes.keys()
         for key in expected_global_attributes:
             if key not in ["quality_group"]:
                 # Quality check must be valid for both iterable and not iterable elements
@@ -203,16 +203,16 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                     equal = all(global_attributes[key] == expected_global_attributes[key])
                 except (TypeError, ValueError):
                     equal = global_attributes[key] == expected_global_attributes[key]
-                self.assertTrue(equal)
+                assert equal
             else:
-                self.assertEqual(global_attributes[key].keys(), expected_global_attributes[key].keys())
+                assert global_attributes[key].keys() == expected_global_attributes[key].keys()
                 for inner_key in global_attributes[key]:
                     # Equality check must be valid for both iterable and not iterable elements
                     try:
                         equal = all(global_attributes[key][inner_key] == expected_global_attributes[key][inner_key])
                     except (TypeError, ValueError):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
-                    self.assertTrue(equal)
+                    assert equal
 
     @mock.patch("satpy.readers.vii_base_nc.tie_points_interpolation")
     @mock.patch("satpy.readers.vii_base_nc.tie_points_geo_interpolation")
@@ -242,10 +242,10 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         return_value = self.reader._perform_interpolation(variable)
 
         tpi_.assert_called_with([variable], SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR)
-        self.assertTrue(np.allclose(return_value, np.ones((10, 100))))
-        self.assertEqual(return_value.attrs, {"key_1": "value_1", "key_2": "value_2"})
-        self.assertEqual(return_value.name, "test_name")
-        self.assertEqual(return_value.dims, ("num_pixels", "num_lines"))
+        assert np.allclose(return_value, np.ones((10, 100)))
+        assert return_value.attrs == {"key_1": "value_1", "key_2": "value_2"}
+        assert return_value.name == "test_name"
+        assert return_value.dims == ("num_pixels", "num_lines")
 
         # Checks that the _perform_geo_interpolation function is correctly executed
         variable_lon = xr.DataArray(
@@ -282,15 +282,15 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         tpgi_.assert_called_with(variable_lon, variable_lat, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR)
 
-        self.assertTrue(np.allclose(return_lon, np.ones((10, 100))))
-        self.assertEqual(return_lon.attrs, {"key_1": "value_lon_1", "key_2": "value_lon_2"})
-        self.assertEqual(return_lon.name, "test_lon")
-        self.assertEqual(return_lon.dims, ("num_pixels", "num_lines"))
+        assert np.allclose(return_lon, np.ones((10, 100)))
+        assert return_lon.attrs == {"key_1": "value_lon_1", "key_2": "value_lon_2"}
+        assert return_lon.name == "test_lon"
+        assert return_lon.dims == ("num_pixels", "num_lines")
 
-        self.assertTrue(np.allclose(return_lat, 6 * np.ones((10, 100))))
-        self.assertEqual(return_lat.attrs, {"key_1": "value_lat_1", "key_2": "value_lat_2"})
-        self.assertEqual(return_lat.name, "test_lat")
-        self.assertEqual(return_lat.dims, ("num_pixels", "num_lines"))
+        assert np.allclose(return_lat, 6 * np.ones((10, 100)))
+        assert return_lat.attrs == {"key_1": "value_lat_1", "key_2": "value_lat_2"}
+        assert return_lat.name == "test_lat"
+        assert return_lat.dims == ("num_pixels", "num_lines")
 
     def test_standardize_dims(self):
         """Test the standardize dims function."""
@@ -304,9 +304,9 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             data=np.ones((10, 100)) * 1.
         )
         out_variable = self.reader._standardize_dims(test_variable)
-        self.assertTrue(np.allclose(out_variable.values, np.ones((100, 10))))
-        self.assertEqual(out_variable.dims, ("y", "x"))
-        self.assertEqual(out_variable.attrs["key_1"], "value_lat_1")
+        assert np.allclose(out_variable.values, np.ones((100, 10)))
+        assert out_variable.dims == ("y", "x")
+        assert out_variable.attrs["key_1"] == "value_lat_1"
 
     @mock.patch("satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_calibration")
     @mock.patch("satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_interpolation")
@@ -320,10 +320,10 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         pi_.assert_not_called()
         po_.assert_not_called()
 
-        self.assertTrue(np.allclose(variable.values, np.ones((100, 10))))
-        self.assertEqual(variable.dims, ("y", "x"))
-        self.assertEqual(variable.attrs["test_attr"], "attr")
-        self.assertEqual(variable.attrs["units"], None)
+        assert np.allclose(variable.values, np.ones((100, 10)))
+        assert variable.dims == ("y", "x")
+        assert variable.attrs["test_attr"] == "attr"
+        assert variable.attrs["units"] is None
 
         # Checks the correct execution of the get_dataset function with a valid file_key
         # and required calibration and interpolation
@@ -346,7 +346,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with an invalid file_key
         invalid_dataset = self.reader.get_dataset(None, {"file_key": "test_invalid", "calibration": None})
         # Checks that the function returns None
-        self.assertEqual(invalid_dataset, None)
+        assert invalid_dataset is None
 
         pc_.reset_mock()
         pi_.reset_mock()
@@ -358,12 +358,12 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                                                    "interpolate": True})
         pc_.assert_not_called()
         pi_.assert_not_called()
-        self.assertEqual(longitude[0, 0], 1.)
+        assert longitude[0, 0] == 1.0
 
         # Checks the correct execution of the get_dataset function with a 'cached_latitude' file_key
         latitude = self.reader.get_dataset(None, {"file_key": "cached_latitude",
                                                   "calibration": None})
-        self.assertEqual(latitude[0, 0], 2.)
+        assert latitude[0, 0] == 2.0
 
         # Repeats some check with the reader where orthorectification and interpolation are inhibited
         # by means of the filetype_info flags
@@ -392,7 +392,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         longitude = self.reader_2.get_dataset(None, {"file_key": "cached_longitude",
                                                      "calibration": None})
-        self.assertEqual(longitude[0, 0], 100.)
+        assert longitude[0, 0] == 100.0
 
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         # in a reader without defined longitude
@@ -400,4 +400,4 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                                                      "calibration": "reflectance",
                                                      "interpolate": True})
         # Checks that the function returns None
-        self.assertEqual(longitude, None)
+        assert longitude is None

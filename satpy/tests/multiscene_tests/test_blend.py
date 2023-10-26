@@ -59,7 +59,7 @@ def _get_expected_stack_blend(scene1: Scene, scene2: Scene) -> xr.DataArray:
     return expected
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_area():
     """Get area definition used by test DataArrays."""
     return _create_test_area()
@@ -77,7 +77,7 @@ def image_mode(request):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture()
 def cloud_type_data_array1(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the first test Scene."""
     dsid1 = make_dataid(
@@ -107,7 +107,7 @@ def cloud_type_data_array1(test_area, data_type, image_mode):
     return data_arr
 
 
-@pytest.fixture
+@pytest.fixture()
 def cloud_type_data_array2(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the second test Scene."""
     dsid1 = make_dataid(
@@ -133,7 +133,7 @@ def cloud_type_data_array2(test_area, data_type, image_mode):
     return data_arr
 
 
-@pytest.fixture
+@pytest.fixture()
 def scene1_with_weights(cloud_type_data_array1, test_area):
     """Create first test scene with a dataset of weights."""
     from satpy import Scene
@@ -160,7 +160,7 @@ def scene1_with_weights(cloud_type_data_array1, test_area):
     return scene, [wgt1, wgt2]
 
 
-@pytest.fixture
+@pytest.fixture()
 def scene2_with_weights(cloud_type_data_array2, test_area):
     """Create second test scene."""
     from satpy import Scene
@@ -183,7 +183,7 @@ def scene2_with_weights(cloud_type_data_array2, test_area):
     return scene, [wgt1, wgt2]
 
 
-@pytest.fixture
+@pytest.fixture()
 def multi_scene_and_weights(scene1_with_weights, scene2_with_weights):
     """Create small multi-scene for testing."""
     from satpy import MultiScene
@@ -193,7 +193,7 @@ def multi_scene_and_weights(scene1_with_weights, scene2_with_weights):
     return MultiScene([scene1, scene2]), [weights1, weights2]
 
 
-@pytest.fixture
+@pytest.fixture()
 def groups():
     """Get group definitions for the MultiScene."""
     return {
@@ -237,7 +237,7 @@ class TestBlendFuncs:
 
         weights = [weights[0][0], weights[1][0]]
         stack_func = partial(stack, weights=weights, blend_type="i_dont_exist")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown weighted blending type: .*.Expected one of: .*"):
             multi_scene.blend(blend_function=stack_func)
 
     @pytest.mark.parametrize(
@@ -283,7 +283,7 @@ class TestBlendFuncs:
             assert result.attrs["start_time"] == datetime(2023, 1, 16, 11, 11, 7, 250000)
             assert result.attrs["end_time"] == datetime(2023, 1, 16, 11, 20, 11, 950000)
 
-    @pytest.fixture
+    @pytest.fixture()
     def datasets_and_weights(self):
         """X-Array datasets with area definition plus weights for input to tests."""
         shape = (8, 12)

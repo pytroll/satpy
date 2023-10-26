@@ -124,7 +124,7 @@ class TestUtils(unittest.TestCase):
         pattern = os.path.join(*pattern.split("/"))
         filename = os.path.join(base_dir, "Oa05_radiance.nc")
         expected = os.path.join(base_data, "Oa05_radiance.nc")
-        self.assertEqual(yr._get_filebase(filename, pattern), expected)
+        assert yr._get_filebase(filename, pattern) == expected
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
@@ -143,7 +143,7 @@ class TestUtils(unittest.TestCase):
         filenames = [os.path.join(base_dir, "Oa05_radiance.nc"),
                      os.path.join(base_dir, "geo_coordinates.nc")]
         expected = os.path.join(base_dir, "geo_coordinates.nc")
-        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
+        assert yr._match_filenames(filenames, pattern) == {expected}
 
     def test_match_filenames_windows_forward_slash(self):
         """Check that matching filenames works on Windows with forward slashes.
@@ -166,14 +166,13 @@ class TestUtils(unittest.TestCase):
         filenames = [os.path.join(base_dir, "Oa05_radiance.nc").replace(os.sep, "/"),
                      os.path.join(base_dir, "geo_coordinates.nc").replace(os.sep, "/")]
         expected = os.path.join(base_dir, "geo_coordinates.nc").replace(os.sep, "/")
-        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
+        assert yr._match_filenames(filenames, pattern) == {expected}
 
     def test_listify_string(self):
         """Check listify_string."""
-        self.assertEqual(yr.listify_string(None), [])
-        self.assertEqual(yr.listify_string("some string"), ["some string"])
-        self.assertEqual(yr.listify_string(["some", "string"]),
-                         ["some", "string"])
+        assert yr.listify_string(None) == []
+        assert yr.listify_string("some string") == ["some string"]
+        assert yr.listify_string(["some", "string"]) == ["some", "string"]
 
 
 class DummyReader(BaseFileHandler):
@@ -237,8 +236,8 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
         res = self.reader.select_files_from_pathnames(filelist)
         for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
-            self.assertIn(expected, res)
-        self.assertEqual(len(res), 3)
+            assert expected in res
+        assert len(res) == 3
 
     def test_fn_items_for_ft(self):
         """Check filename_items_for_filetype."""
@@ -247,7 +246,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         fiter = self.reader.filename_items_for_filetype(filelist, ft_info)
 
         filenames = dict(fname for fname in fiter)
-        self.assertEqual(len(filenames.keys()), 3)
+        assert len(filenames.keys()) == 3
 
     def test_create_filehandlers(self):
         """Check create_filehandlers."""
@@ -255,7 +254,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
                     "abcd.bla", "k001.bla", "a003.bli"]
 
         self.reader.create_filehandlers(filelist)
-        self.assertEqual(len(self.reader.file_handlers["ftype1"]), 3)
+        assert len(self.reader.file_handlers["ftype1"]) == 3
 
     def test_serializable(self):
         """Check that a reader is serializable by dask.
@@ -342,29 +341,22 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_all_dataset_names(self):
         """Get all dataset names."""
-        self.assertSetEqual(self.reader.all_dataset_names,
-                            set(["ch01", "ch02", "lons", "lats"]))
+        assert self.reader.all_dataset_names == set(["ch01", "ch02", "lons", "lats"])
 
     def test_available_dataset_ids(self):
         """Get ids of the available datasets."""
         loadables = self.reader.select_files_from_pathnames(["a001.bla"])
         self.reader.create_filehandlers(loadables)
-        self.assertSetEqual(set(self.reader.available_dataset_ids),
-                            {make_dataid(name="ch02",
-                                         wavelength=(0.7, 0.75, 0.8),
-                                         calibration="counts",
-                                         modifiers=()),
-                             make_dataid(name="ch01",
-                                         wavelength=(0.5, 0.6, 0.7),
-                                         calibration="reflectance",
-                                         modifiers=())})
+        assert set(self.reader.available_dataset_ids) == {make_dataid(name="ch02", wavelength=(0.7, 0.75, 0.8),
+                                                                      calibration="counts", modifiers=()),
+                                                          make_dataid(name="ch01", wavelength=(0.5, 0.6, 0.7),
+                                                                      calibration="reflectance", modifiers=())}
 
     def test_available_dataset_names(self):
         """Get ids of the available datasets."""
         loadables = self.reader.select_files_from_pathnames(["a001.bla"])
         self.reader.create_filehandlers(loadables)
-        self.assertSetEqual(set(self.reader.available_dataset_names),
-                            set(["ch01", "ch02"]))
+        assert set(self.reader.available_dataset_names) == set(["ch01", "ch02"])
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
@@ -383,11 +375,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, fh.end_time)
             # only the first one should be false
-            self.assertEqual(res, idx not in [0, 4])
+            assert res == (idx not in [0, 4])
 
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, None)
-            self.assertEqual(res, idx not in [0, 1, 4, 5])
+            assert res == (idx not in [0, 1, 4, 5])
 
     @patch("satpy.readers.yaml_reader.get_area_def")
     @patch("satpy.readers.yaml_reader.AreaDefBoundary")
@@ -401,17 +393,17 @@ class TestFileFileYAMLReader(unittest.TestCase):
         bnd.return_value.contour_poly.intersection.return_value = True
         adb.return_value.contour_poly.intersection.return_value = True
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertTrue(res)
+        assert res
 
         bnd.return_value.contour_poly.intersection.return_value = False
         adb.return_value.contour_poly.intersection.return_value = False
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertFalse(res)
+        assert not res
 
         file_handler.get_bounding_box.side_effect = NotImplementedError()
         self.reader.filter_parameters["area"] = True
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertTrue(res)
+        assert res
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
@@ -446,8 +438,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
             "2": [fh2, fh3],
         }
 
-        self.assertEqual(self.reader.start_time, datetime(1999, 12, 30, 0, 0))
-        self.assertEqual(self.reader.end_time, datetime(2000, 1, 3, 12, 30))
+        assert self.reader.start_time == datetime(1999, 12, 30, 0, 0)
+        assert self.reader.end_time == datetime(2000, 1, 3, 12, 30)
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -455,9 +447,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         res = self.reader.select_files_from_pathnames(filelist)
         for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
-            self.assertIn(expected, res)
+            assert expected in res
 
-        self.assertEqual(0, len(self.reader.select_files_from_pathnames([])))
+        assert 0 == len(self.reader.select_files_from_pathnames([]))
 
     def test_select_from_directory(self):
         """Check select_files_from_directory."""
@@ -469,12 +461,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         res = self.reader.select_files_from_directory(dpath)
         for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
-            self.assertIn(os.path.join(dpath, expected), res)
+            assert os.path.join(dpath, expected) in res
 
         for fname in filelist:
             os.remove(os.path.join(dpath, fname))
-        self.assertEqual(0,
-                         len(self.reader.select_files_from_directory(dpath)))
+        assert 0 == len(self.reader.select_files_from_directory(dpath))
         os.rmdir(dpath)
 
         from fsspec.implementations.local import LocalFileSystem
@@ -484,14 +475,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
                 return ["/grocery/apricot.nc", "/grocery/aubergine.nc"]
 
         res = self.reader.select_files_from_directory(dpath, fs=Silly())
-        self.assertEqual(
-            res,
-            {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
+        assert res == {"/grocery/apricot.nc", "/grocery/aubergine.nc"}
 
     def test_supports_sensor(self):
         """Check supports_sensor."""
-        self.assertTrue(self.reader.supports_sensor("canon"))
-        self.assertFalse(self.reader.supports_sensor("nikon"))
+        assert self.reader.supports_sensor("canon")
+        assert not self.reader.supports_sensor("nikon")
 
     @patch("satpy.readers.yaml_reader.StackedAreaDefinition")
     def test_load_area_def(self, sad):
@@ -502,33 +491,31 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for _i in range(items):
             file_handlers.append(MagicMock())
         final_area = self.reader._load_area_def(dataid, file_handlers)
-        self.assertEqual(final_area, sad.return_value.squeeze.return_value)
+        assert final_area == sad.return_value.squeeze.return_value
 
         args, kwargs = sad.call_args
-        self.assertEqual(len(args), items)
+        assert len(args) == items
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""
         self.reader.file_handlers = {"a": "a", "b": "b", "c": "c"}
-        self.assertEqual(self.reader._preferred_filetype(["c", "a"]), "c")
-        self.assertEqual(self.reader._preferred_filetype(["a", "c"]), "a")
-        self.assertEqual(self.reader._preferred_filetype(["d", "e"]), None)
+        assert self.reader._preferred_filetype(["c", "a"]) == "c"
+        assert self.reader._preferred_filetype(["a", "c"]) == "a"
+        assert self.reader._preferred_filetype(["d", "e"]) is None
 
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
         ds_q = DataQuery(name="ch01", wavelength=(0.5, 0.6, 0.7, "µm"),
                          calibration="reflectance", modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_q)
-        self.assertListEqual(res,
-                             [make_dataid(name="lons"),
-                              make_dataid(name="lats")])
+        assert res == [make_dataid(name="lons"), make_dataid(name="lats")]
 
     def test_get_coordinates_for_dataset_key_without(self):
         """Test getting coordinates for a key without coordinates."""
         ds_id = make_dataid(name="lons",
                             modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_id)
-        self.assertListEqual(res, [])
+        assert res == []
 
     def test_get_coordinates_for_dataset_keys(self):
         """Test getting coordinates for keys."""
@@ -543,7 +530,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                                              lons])
         expected = {ds_id1: [lons, lats], ds_id2: [lons, lats], lons: []}
 
-        self.assertDictEqual(res, expected)
+        assert res == expected
 
     def test_get_file_handlers(self):
         """Test getting filehandler to load a dataset."""
@@ -551,10 +538,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
                              calibration="reflectance", modifiers=())
         self.reader.file_handlers = {"ftype1": "bla"}
 
-        self.assertEqual(self.reader._get_file_handlers(ds_id1), "bla")
+        assert self.reader._get_file_handlers(ds_id1) == "bla"
 
         lons = make_dataid(name="lons", modifiers=())
-        self.assertEqual(self.reader._get_file_handlers(lons), None)
+        assert self.reader._get_file_handlers(lons) is None
 
     @patch("satpy.readers.yaml_reader.xr")
     def test_load_entire_dataset(self, xarray):
@@ -564,7 +551,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         proj = self.reader._load_dataset(None, {}, file_handlers)
 
-        self.assertIs(proj, xarray.concat.return_value)
+        assert proj is xarray.concat.return_value
 
 
 class TestFileYAMLReaderLoading(unittest.TestCase):
@@ -711,7 +698,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     if not isinstance(file_types, list):
                         file_types = [file_types]
                     if ftype in file_types:
-                        self.assertEqual(resol, ds_id["resolution"])
+                        assert resol == ds_id["resolution"]
 
 
 # Test methods
@@ -1016,13 +1003,13 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         # default (1)
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filetype_info["expected_segments"]
-        self.assertEqual(es, 1)
+        assert es == 1
 
         # YAML defined for each file type
         fake_fh.filetype_info["expected_segments"] = 2
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filetype_info["expected_segments"]
-        self.assertEqual(es, 2)
+        assert es == 2
 
         # defined both in the filename and the YAML metadata
         # YAML has priority
@@ -1030,20 +1017,20 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fake_fh.filetype_info = {"expected_segments": 2}
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filetype_info["expected_segments"]
-        self.assertEqual(es, 2)
+        assert es == 2
 
         # defined in the filename
         fake_fh.filename_info = {"total_segments": 3}
         fake_fh.filetype_info = {}
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filetype_info["expected_segments"]
-        self.assertEqual(es, 3)
+        assert es == 3
 
         # check correct FCI segment (aka chunk in the FCI world) number reading into segment
         fake_fh.filename_info = {"count_in_repeat_cycle": 5}
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filename_info["segment"]
-        self.assertEqual(es, 5)
+        assert es == 5
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
@@ -1082,8 +1069,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
         # No missing segments
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(res.attrs is file_handlers[0].combine_info.return_value)
-        self.assertTrue(empty_segment not in slice_list)
+        assert res.attrs is file_handlers[0].combine_info.return_value
+        assert empty_segment not in slice_list
 
         # One missing segment in the middle
         slice_list[4] = None
@@ -1091,7 +1078,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[4] is empty_segment)
+        assert slice_list[4] is empty_segment
 
         # The last segment is missing
         slice_list = expected_segments * [seg, ]
@@ -1100,7 +1087,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[-1] is empty_segment)
+        assert slice_list[-1] is empty_segment
 
         # The last two segments are missing
         slice_list = expected_segments * [seg, ]
@@ -1109,8 +1096,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[-1] is empty_segment)
-        self.assertTrue(slice_list[-2] is empty_segment)
+        assert slice_list[-1] is empty_segment
+        assert slice_list[-2] is empty_segment
 
         # The first segment is missing
         slice_list = expected_segments * [seg, ]
@@ -1119,7 +1106,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[0] is empty_segment)
+        assert slice_list[0] is empty_segment
 
         # The first two segments are missing
         slice_list = expected_segments * [seg, ]
@@ -1129,8 +1116,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[0] is empty_segment)
-        self.assertTrue(slice_list[1] is empty_segment)
+        assert slice_list[0] is empty_segment
+        assert slice_list[1] is empty_segment
 
         # Disable padding
         res = reader._load_dataset(dataid, ds_info, file_handlers,
@@ -1174,7 +1161,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         file_handlers = [fh_1]
         dataid = "dataid"
         res = reader._pad_later_segments_area(file_handlers, dataid)
-        self.assertEqual(len(res), 2)
+        assert len(res) == 2
         seg2_extent = (0, 1500, 200, 1000)
         expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
                          seg2_extent)
@@ -1197,7 +1184,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         dataid = "dataid"
         area_defs = {2: seg2_area}
         res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
-        self.assertEqual(len(res), 2)
+        assert len(res) == 2
         seg1_extent = (0, 500, 200, 0)
         expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
                          seg1_extent)
@@ -1219,11 +1206,11 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         dataid = "dataid"
         res = fms(file_handlers, ds_info, dataid)
         counter, expected_segments, slice_list, failure, proj = res
-        self.assertEqual(counter, 2)
-        self.assertEqual(expected_segments, 1)
-        self.assertTrue(projectable in slice_list)
-        self.assertFalse(failure)
-        self.assertTrue(proj is projectable)
+        assert counter == 2
+        assert expected_segments == 1
+        assert projectable in slice_list
+        assert failure is False
+        assert proj is projectable
 
         # Three expected segments, first and last missing
         filename_info = {"segment": 2}
@@ -1240,14 +1227,14 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         dataid = "dataid"
         res = fms(file_handlers, ds_info, dataid)
         counter, expected_segments, slice_list, failure, proj = res
-        self.assertEqual(counter, 3)
-        self.assertEqual(expected_segments, 3)
-        self.assertEqual(slice_list, [None, projectable, None])
-        self.assertFalse(failure)
-        self.assertTrue(proj is projectable)
+        assert counter == 3
+        assert expected_segments == 3
+        assert slice_list == [None, projectable, None]
+        assert failure is False
+        assert proj is projectable
 
 
-@pytest.fixture
+@pytest.fixture()
 @patch.object(yr.GEOVariableSegmentYAMLReader, "__init__", lambda x: None)
 def GVSYReader():
     """Get a fixture of the GEOVariableSegmentYAMLReader."""
@@ -1258,28 +1245,28 @@ def GVSYReader():
     return reader
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_geswh():
     """Get a fixture of the patched _get_empty_segment_with_height."""
     with patch("satpy.readers.yaml_reader._get_empty_segment_with_height") as geswh:
         yield geswh
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_xr():
     """Get a fixture of the patched xarray."""
     with patch("satpy.readers.yaml_reader.xr") as xr:
         yield xr
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_mss():
     """Get a fixture of the patched _find_missing_segments."""
     with patch("satpy.readers.yaml_reader._find_missing_segments") as mss:
         yield mss
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_adef():
     """Get a fixture of the patched AreaDefinition."""
     with patch("satpy.readers.yaml_reader.AreaDefinition") as adef:

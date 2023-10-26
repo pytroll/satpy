@@ -95,9 +95,9 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets from a full swath file."""
@@ -108,9 +108,9 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["WaterDetection"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "none")
+            assert v.attrs["units"] == "none"
 
     def test_load_dataset_aoi(self):
         """Test loading all datasets from an area of interest file."""
@@ -121,6 +121,6 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["WaterDetection"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "none")
+            assert v.attrs["units"] == "none"

@@ -365,7 +365,7 @@ class TestColormapLoading:
             cmap_data = _generate_cmap_test_data(None, real_mode)
             _write_cmap_to_file(cmap_filename, cmap_data)
             # Force colormap_mode VRGBA to RGBA and we should see an exception
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Unexpected colormap shape for mode .*"):
                 create_colormap({"filename": cmap_filename, "colormap_mode": forced_mode})
 
     def test_cmap_from_file_bad_shape(self):
@@ -381,7 +381,7 @@ class TestColormapLoading:
                 [255],
             ]))
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Unexpected colormap shape for mode 'None'"):
                 create_colormap({"filename": cmap_filename})
 
     def test_cmap_from_config_path(self, tmp_path):
@@ -415,7 +415,7 @@ class TestColormapLoading:
     def test_cmap_no_colormap(self):
         """Test that being unable to create a colormap raises an error."""
         from satpy.enhancements import create_colormap
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown colormap format: .*"):
             create_colormap({})
 
     def test_cmap_list(self):
@@ -484,7 +484,7 @@ def test_on_dask_array():
     assert res.shape == arr.shape
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def

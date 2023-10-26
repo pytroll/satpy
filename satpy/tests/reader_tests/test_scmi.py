@@ -105,12 +105,9 @@ class TestSCMIFileHandler(unittest.TestCase):
         from datetime import datetime
 
         from satpy.tests.utils import make_dataid
-        self.assertEqual(self.reader.start_time,
-                         datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.get_shape(make_dataid(name="C05"), {}),
-                         (2, 5))
+        assert self.reader.start_time == datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.end_time == datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.get_shape(make_dataid(name="C05"), {}) == (2, 5)
 
     def test_data_load(self):
         """Test data loading."""
@@ -119,10 +116,9 @@ class TestSCMIFileHandler(unittest.TestCase):
             make_dataid(name="C05", calibration="reflectance"), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
-        self.assertNotIn("scale_factor", res.attrs)
-        self.assertNotIn("_FillValue", res.attrs)
-        self.assertEqual(res.attrs["standard_name"],
-                         "toa_bidirectional_reflectance")
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         assert "orbital_parameters" in res.attrs
         orb_params = res.attrs["orbital_parameters"]
         assert orb_params["projection_longitude"] == -90.0
@@ -181,13 +177,13 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            "a": 1.0, "b": 1.0, "h": 1.0, "lon_0": -90.0, "lat_0": 0.0,
-            "proj": "geos", "sweep": "x", "units": "m"})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0, "h": 1.0,
+                                "lon_0": -90.0, "lat_0": 0.0,
+                                "proj": "geos", "sweep": "x", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
@@ -206,13 +202,13 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            "a": 1.0, "b": 1.0, "lon_0": -90.0, "lat_0": 25.0, "lat_1": 25.0,
-            "proj": "lcc", "units": "m"})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 25.0, "lat_1": 25.0,
+                                "proj": "lcc", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
@@ -231,13 +227,13 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            "a": 1.0, "b": 1.0, "lon_0": -90.0, "lat_0": 90.0, "lat_ts": 60.0,
-            "proj": "stere", "units": "m"})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 90.0, "lat_ts": 60.0,
+                                "proj": "stere", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
@@ -255,13 +251,13 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            "a": 1.0, "b": 1.0, "lon_0": -90.0, "lat_0": 0.0, "lat_ts": 0.0,
-            "proj": "merc", "units": "m"})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 0.0, "lat_ts": 0.0,
+                                "proj": "merc", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")

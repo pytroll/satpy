@@ -194,7 +194,7 @@ class TestReflectanceCorrectorModifier:
         np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
 
     @pytest.mark.parametrize(
-        "url,dem_mock_cm,dem_sds",
+        ("url", "dem_mock_cm", "dem_sds"),
         [
             (None, mock_cmgdem, "average elevation"),
             ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),
@@ -341,12 +341,12 @@ class TestReflectanceCorrectorModifier:
         """Test ReflectanceCorrector modifier with wrong number of inputs."""
         from satpy.modifiers._crefl import ReflectanceCorrector
         ref_cor = ReflectanceCorrector("test")
-        pytest.raises(ValueError, ref_cor, [1], [2, 3, 4])
-        pytest.raises(ValueError, ref_cor, [1, 2, 3, 4], [])
-        pytest.raises(ValueError, ref_cor, [], [1, 2, 3, 4])
+        pytest.raises(ValueError, ref_cor, [1], [2, 3, 4], match="Not sure how to handle provided dependencies..*")
+        pytest.raises(ValueError, ref_cor, [1, 2, 3, 4], [], match="Not sure how to handle provided dependencies..*")
+        pytest.raises(ValueError, ref_cor, [], [1, 2, 3, 4], match="Not sure how to handle provided dependencies..*")
 
     @pytest.mark.parametrize(
-        "url,dem_mock_cm,dem_sds",
+        ("url", "dem_mock_cm", "dem_sds"),
         [
             (None, mock_cmgdem, "average elevation"),
             ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),

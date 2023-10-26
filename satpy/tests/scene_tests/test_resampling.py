@@ -619,7 +619,7 @@ class TestSceneAggregation:
 
         scene1 = self._create_test_data(x_size, y_size)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Could not coarsen a dimension.*"):
             scene1.aggregate(func="sum", x=2, y=2, boundary="exact")
 
         scene2 = scene1.aggregate(func="sum", x=2, y=2, boundary="trim")

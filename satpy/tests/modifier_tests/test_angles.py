@@ -318,7 +318,7 @@ class TestAngleGeneration:
         def _fake_func(shape, chunks):
             return np.zeros(shape)
 
-        with pytest.raises(ValueError), \
+        with pytest.raises(ValueError, match="Zarr caching currently only supports dask arrays. Got .*"), \
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func((5, 5), ((5,), (5,)))
 

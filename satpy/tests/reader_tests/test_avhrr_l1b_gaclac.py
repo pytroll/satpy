@@ -158,10 +158,8 @@ class TestGACLACFile(GACLACFilePatcher):
                                          [GACPODReader, GACKLMReader, LACPODReader, LACKLMReader]):
             for filename in filenames:
                 fh = self._get_fh(filename, **kwargs)
-                self.assertLess(fh.start_time, fh.end_time,
-                                "Start time must precede end time.")
-                self.assertIs(fh.reader_class, reader_cls,
-                              "Wrong reader class assigned to {}".format(filename))
+                assert fh.start_time < fh.end_time
+                assert fh.reader_class is reader_cls
 
     def test_read_raw_data(self):
         """Test raw data reading."""
@@ -261,7 +259,7 @@ class TestGACLACFile(GACLACFilePatcher):
             key = make_dataid(name=name)
             info = {"name": name, "standard_name": "my_standard_name"}
             res = fh.get_dataset(key=key, info=info)
-            self.assertTupleEqual(res.dims, ("y", "x_every_eighth"))
+            assert res.dims == ("y", "x_every_eighth")
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs")
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle")
@@ -298,7 +296,7 @@ class TestGACLACFile(GACLACFilePatcher):
             key = make_dataid(name=angle)
             info = {"name": angle, "standard_name": "my_standard_name"}
             res = fh.get_dataset(key=key, info=info)
-            self.assertTupleEqual(res.dims, ("y", "x_every_eighth"))
+            assert res.dims == ("y", "x_every_eighth")
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs")
     def test_get_dataset_qual_flags(self, *mocks):
@@ -348,21 +346,19 @@ class TestGACLACFile(GACLACFilePatcher):
         key = make_dataid(name="1", calibration="counts")
         # Counts
         res = fh._get_channel(key=key)
-        np.testing.assert_array_equal(res, [[1, 2, 3],
-                                            [4, 5, 6]])
+        np.testing.assert_array_equal(res, [[1, 2, 3], [4, 5, 6]])
         np.testing.assert_array_equal(fh.counts, counts)
 
         # Reflectance and Brightness Temperature
         for calib in ["reflectance", "brightness_temperature"]:
             key = make_dataid(name="1", calibration=calib)
             res = fh._get_channel(key=key)
-            np.testing.assert_array_equal(res, [[2, 4, 6],
-                                                [8, 10, 12]])
+            np.testing.assert_array_equal(res, [[2, 4, 6], [8, 10, 12]])
             np.testing.assert_array_equal(fh.calib_channels, calib_channels)
 
         # Invalid
-        with pytest.raises(ValueError):
-            key = make_dataid(name="7", calibration="coffee")
+        with pytest.raises(ValueError, match="coffee invalid value for <enum 'calibration'>"):
+            _ = make_dataid(name="7", calibration="coffee")
 
         # Buffering
         reader.get_counts.reset_mock()
@@ -387,12 +383,10 @@ class TestGACLACFile(GACLACFilePatcher):
         # Test angle readout
         key = make_dataid(name="sensor_zenith_angle")
         res = fh._get_angle(key)
-        self.assertEqual(res, 2)
-        self.assertDictEqual(fh.angles, {"sensor_zenith_angle": 2,
-                                         "sensor_azimuth_angle": 1,
-                                         "solar_zenith_angle": 4,
-                                         "solar_azimuth_angle": 3,
-                                         "sun_sensor_azimuth_difference_angle": 5})
+        assert res == 2
+        assert fh.angles == {"sensor_zenith_angle": 2, "sensor_azimuth_angle": 1,
+                             "solar_zenith_angle": 4, "solar_azimuth_angle": 3,
+                             "sun_sensor_azimuth_difference_angle": 5}
 
         # Test buffering
         key = make_dataid(name="sensor_azimuth_angle")
@@ -410,14 +404,14 @@ class TestGACLACFile(GACLACFilePatcher):
         # Test stripping
         pygac.utils.strip_invalid_lat.return_value = 1, 2
         start, end = fh._strip_invalid_lat()
-        self.assertTupleEqual((start, end), (1, 2))
+        assert (start, end) == (1, 2)
 
         # Test buffering
         fh._strip_invalid_lat()
         pygac.utils.strip_invalid_lat.assert_called_once()
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._slice")
-    def test_slice(self, _slice):
+    def test_slice(self, _slice):  # noqa: PT019
         """Test slicing."""
 
         def _slice_patched(data):
@@ -431,8 +425,8 @@ class TestGACLACFile(GACLACFilePatcher):
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
-        self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 2))
-        self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 3))
+        assert fh.start_time == datetime(1970, 1, 1, 0, 0, 0, 2)
+        assert fh.end_time == datetime(1970, 1, 1, 0, 0, 0, 3)
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_qual_flags")
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._strip_invalid_lat")
@@ -449,7 +443,7 @@ class TestGACLACFile(GACLACFilePatcher):
         # a) Only start/end line given
         fh = _get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False)
         data_slc = fh._slice(data)
-        self.assertEqual(data_slc, "sliced")
+        assert data_slc == "sliced"
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=None, last_valid_lat=None, along_track=2)
@@ -474,7 +468,7 @@ class TestGACLACFile(GACLACFilePatcher):
         # Test slicing with older pygac versions
         pygac.utils.slice_channel.return_value = ("sliced", "foo", "bar")
         data_slc = fh._slice(data)
-        self.assertEqual(data_slc, "sliced")
+        assert data_slc == "sliced"
 
 
 class TestGetDataset(GACLACFilePatcher):

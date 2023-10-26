@@ -49,11 +49,8 @@ def test_get_scale_factors_for_units_unsupported_units():
     factors = xr.DataArray(da.from_array(DEFAULT_FILE_FACTORS, chunks=1))
     file_units = "unknown unit"
     output_units = "%"
-    with pytest.raises(ValueError) as exec_info:
+    with pytest.raises(ValueError, match="Don't know how to convert 'unknown unit' to '%'"):
         _ = _get_scale_factors_for_units(factors, file_units, output_units)
-
-    expected = "Don't know how to convert 'unknown unit' to '%'"
-    assert str(exec_info.value) == expected
 
 
 def test_get_scale_factors_for_units_reflectances(caplog):

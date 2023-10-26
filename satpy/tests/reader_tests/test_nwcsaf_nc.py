@@ -105,7 +105,7 @@ def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_geo_ct_filename, {}, {})
@@ -156,13 +156,13 @@ def create_ctth_file(path, attrs=global_attrs):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def nwcsaf_pps_cmic_filehandler(nwcsaf_pps_cmic_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_cmic_filename, {}, {"file_key_prefix": "cmic_"})
 
 
-@pytest.fixture
+@pytest.fixture()
 def nwcsaf_pps_ctth_filehandler(nwcsaf_pps_ctth_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_ctth_filename, {}, {})
@@ -218,7 +218,7 @@ def create_ctth_alti_pal_variable_with_fill_value_color(nc_file, var_name):
     var.attrs["_FillValue"] = 65535
 
 
-@pytest.fixture
+@pytest.fixture()
 def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     """Create a CPP filehandler."""
     return NcNWCSAF(nwcsaf_pps_cpp_filename, {}, {"file_key_prefix": "cpp_"})
@@ -233,7 +233,7 @@ def nwcsaf_old_geo_ct_filename(tmp_path_factory):
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data-old"), attrs=attrs)
 
 
-@pytest.fixture
+@pytest.fixture()
 def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_old_geo_ct_filename, {}, {})
@@ -242,19 +242,19 @@ def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
 class TestNcNWCSAFGeo:
     """Test the NcNWCSAF reader for Geo products."""
 
-    @pytest.mark.parametrize("platform, instrument", [("Metop-B", "avhrr-3"),
-                                                      ("NOAA-20", "viirs"),
-                                                      ("Himawari-8", "ahi"),
-                                                      ("GOES-17", "abi"),
-                                                      ("Meteosat-11", "seviri")])
+    @pytest.mark.parametrize(("platform", "instrument"), [("Metop-B", "avhrr-3"),
+                                                          ("NOAA-20", "viirs"),
+                                                          ("Himawari-8", "ahi"),
+                                                          ("GOES-17", "abi"),
+                                                          ("Meteosat-11", "seviri")])
     def test_sensor_name_platform(self, nwcsaf_geo_ct_filehandler, platform, instrument):
         """Test that the correct sensor name is being set."""
         nwcsaf_geo_ct_filehandler.set_platform_and_sensor(platform_name=platform)
         assert nwcsaf_geo_ct_filehandler.sensor == set([instrument])
         assert nwcsaf_geo_ct_filehandler.sensor_names == set([instrument])
 
-    @pytest.mark.parametrize("platform, instrument", [("GOES16", "abi"),
-                                                      ("MSG4", "seviri")])
+    @pytest.mark.parametrize(("platform", "instrument"), [("GOES16", "abi"),
+                                                          ("MSG4", "seviri")])
     def test_sensor_name_sat_id(self, nwcsaf_geo_ct_filehandler, platform, instrument):
         """Test that the correct sensor name is being set."""
         nwcsaf_geo_ct_filehandler.set_platform_and_sensor(sat_id=platform)
@@ -286,22 +286,22 @@ class TestNcNWCSAFGeo:
         assert "scale_factor" not in var.attrs
         assert "add_offset" not in var.attrs
 
-    @pytest.mark.parametrize("attrs, expected", [({"scale_factor": np.array(1.5),
-                                                   "add_offset": np.array(2.5),
-                                                   "_FillValue": 1},
-                                                  [np.nan, 5.5, 7]),
-                                                 ({"scale_factor": np.array(1.5),
-                                                   "add_offset": np.array(2.5),
-                                                   "valid_min": 1.1},
-                                                  [np.nan, 5.5, 7]),
-                                                 ({"scale_factor": np.array(1.5),
-                                                   "add_offset": np.array(2.5),
-                                                   "valid_max": 2.1},
-                                                  [4, 5.5, np.nan]),
-                                                 ({"scale_factor": np.array(1.5),
-                                                   "add_offset": np.array(2.5),
-                                                   "valid_range": (1.1, 2.1)},
-                                                  [np.nan, 5.5, np.nan])])
+    @pytest.mark.parametrize(("attrs", "expected"), [({"scale_factor": np.array(1.5),
+                                                       "add_offset": np.array(2.5),
+                                                       "_FillValue": 1},
+                                                      [np.nan, 5.5, 7]),
+                                                     ({"scale_factor": np.array(1.5),
+                                                       "add_offset": np.array(2.5),
+                                                       "valid_min": 1.1},
+                                                      [np.nan, 5.5, 7]),
+                                                     ({"scale_factor": np.array(1.5),
+                                                       "add_offset": np.array(2.5),
+                                                       "valid_max": 2.1},
+                                                      [4, 5.5, np.nan]),
+                                                     ({"scale_factor": np.array(1.5),
+                                                       "add_offset": np.array(2.5),
+                                                       "valid_range": (1.1, 2.1)},
+                                                      [np.nan, 5.5, np.nan])])
     def test_scale_dataset_floating(self, nwcsaf_geo_ct_filehandler, attrs, expected):
         """Test the scaling of the dataset with floating point values."""
         var = xr.DataArray([1, 2, 3], attrs=attrs)

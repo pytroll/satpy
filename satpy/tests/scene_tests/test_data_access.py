@@ -97,7 +97,8 @@ class TestDataAccessMethods:
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
         scene = Scene()
-        pytest.raises(ValueError, scene.__setitem__, "1", np.arange(5))
+        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
+            scene.__setitem__("1", np.arange(5))
 
     def test_setitem(self):
         """Test setting an item."""
@@ -112,7 +113,7 @@ class TestDataAccessMethods:
         scene[did] = ds1
         assert "oranges" in scene
         nparray = np.arange(5*5).reshape(5, 5)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
             scene["apples"] = nparray
         assert "apples" not in scene
         did = make_dataid(name="apples")

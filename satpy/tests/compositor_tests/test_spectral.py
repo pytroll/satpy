@@ -39,7 +39,7 @@ class TestSpectralComposites:
         """Test that error is raised if the amount of channels to blend does not match the number of weights."""
         comp = SpectralBlender("blended_channel", fractions=(0.3, 0.7), prerequisites=(0.51, 0.85),
                                standard_name="toa_bidirectional_reflectance")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="fractions and projectables must have the same length."):
             comp((self.c01, self.c02, self.c03))
 
     def test_spectral_blender(self):

@@ -71,12 +71,12 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     def test_init(self):
         """Tests reader initialization."""
-        self.assertEqual(self.reader.nlines, self.dummy2d.shape[0])
-        self.assertEqual(self.reader.ncols, self.dummy2d.shape[1])
-        self.assertEqual(self.reader.platform_name, "GOES-15")
-        self.assertEqual(self.reader.platform_shortname, "goes15")
-        self.assertEqual(self.reader.gvar_channel, self.band)
-        self.assertIsInstance(self.reader.geo_data, xr.Dataset)
+        assert self.reader.nlines == self.dummy2d.shape[0]
+        assert self.reader.ncols == self.dummy2d.shape[1]
+        assert self.reader.platform_name == "GOES-15"
+        assert self.reader.platform_shortname == "goes15"
+        assert self.reader.gvar_channel == self.band
+        assert isinstance(self.reader.geo_data, xr.Dataset)
 
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel."""
@@ -89,8 +89,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                                [0, 0, 0, 0]])
         nadir_row, nadir_col = self.reader._get_nadir_pixel(
             earth_mask=earth_mask, sector=FULL_DISC)
-        self.assertEqual((nadir_row, nadir_col), (2, 1),
-                         msg="Incorrect nadir pixel")
+        assert (nadir_row, nadir_col) == (2, 1), "Incorrect nadir pixel"
 
     def test_viscounts2radiance(self):
         """Test conversion from VIS counts to radiance."""
@@ -103,9 +102,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
              275.6276, 568.2259, 581.685422])
         rad = self.reader._viscounts2radiance(counts=counts, slope=slope,
                                               offset=offset)
-        self.assertTrue(np.allclose(rad.data, rad_expected.data, atol=1E-6),
-                        msg="Incorrect conversion from VIS counts to "
-                            "radiance")
+        assert np.allclose(rad.data, rad_expected.data, atol=1e-06), "Incorrect conversion from VIS counts to radiance"
 
     def test_ircounts2radiance(self):
         """Test conversion from IR counts to radiance."""
@@ -129,9 +126,8 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
             coefs = self.coefs[ch]
             rad = self.reader._ircounts2radiance(
                 counts=counts, scale=coefs["scale"], offset=coefs["offset"])
-            self.assertTrue(np.allclose(rad.data, rad_expected[ch], atol=atol),
-                            msg="Incorrect conversion from IR counts to "
-                                "radiance in channel {}".format(ch))
+            assert np.allclose(rad.data, rad_expected[ch], atol=atol), \
+                "Incorrect conversion from IR counts to radiance in channel {}".format(ch)
 
     def test_calibrate_vis(self):
         """Test VIS calibration."""
@@ -139,9 +135,8 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         refl_expected = xr.DataArray([0., 0.188852, 1.88852, 18.8852, 94.426])
         refl = self.reader._calibrate_vis(radiance=rad,
                                           k=self.coefs["00_7"]["k"])
-        self.assertTrue(np.allclose(refl.data, refl_expected.data, atol=1E-6),
-                        msg="Incorrect conversion from radiance to "
-                            "reflectance")
+        assert np.allclose(refl.data, refl_expected.data, atol=1e-06), \
+            "Incorrect conversion from radiance to reflectance"
 
     def test_calibrate_ir(self):
         """Test IR calibration."""
@@ -177,15 +172,12 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                                                       "n": coefs["n"][det],
                                                       "btmin": coefs["btmin"],
                                                       "btmax": coefs["btmax"]})
-                self.assertTrue(
-                    np.allclose(bt.data, bt_expected[ch][det], equal_nan=True,
-                                atol=atol[ch]),
-                    msg="Incorrect conversion from radiance to brightness "
-                        "temperature in channel {} detector {}".format(ch, det))
+                assert np.allclose(bt.data, bt_expected[ch][det], equal_nan=True, atol=atol[ch]), \
+                    f"Incorrect conversion from radiance to brightness temperature in channel {ch} detector {det}"
 
     def test_start_time(self):
         """Test dataset start time stamp."""
-        self.assertEqual(self.reader.start_time, self.time)
+        assert self.reader.start_time == self.time
 
     def test_end_time(self):
         """Test dataset end time stamp."""
@@ -196,7 +188,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         }
         for sector, end_time in expected.items():
             self.reader.sector = sector
-            self.assertEqual(self.reader.end_time, end_time)
+            assert self.reader.end_time == end_time
 
 
 class TestMetadata:
@@ -217,7 +209,7 @@ class TestMetadata:
             data_array.data = np.flipud(data_array.data)
         return data_array
 
-    @pytest.fixture
+    @pytest.fixture()
     def lons_lats(self, yaw_flip):
         """Get longitudes and latitudes."""
         lon = xr.DataArray(
@@ -235,7 +227,7 @@ class TestMetadata:
         self._apply_yaw_flip(lat, yaw_flip)
         return lon, lat
 
-    @pytest.fixture
+    @pytest.fixture()
     def dataset(self, lons_lats, channel_id):
         """Create a fake dataset."""
         lon, lat = lons_lats
@@ -261,7 +253,7 @@ class TestMetadata:
             attrs={"Satellite Sensor": "G-15"}
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def earth_mask(self, yaw_flip):
         """Get expected earth mask."""
         earth_mask = xr.DataArray(
@@ -273,7 +265,7 @@ class TestMetadata:
         self._apply_yaw_flip(earth_mask, yaw_flip)
         return earth_mask
 
-    @pytest.fixture
+    @pytest.fixture()
     def geometry(self, channel_id, yaw_flip):
         """Get expected geometry."""
         shapes = {
@@ -286,7 +278,7 @@ class TestMetadata:
             "shape": shapes[channel_id]
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def expected(self, geometry, earth_mask, yaw_flip):
         """Define expected metadata."""
         proj_dict = {
@@ -319,7 +311,7 @@ class TestMetadata:
             "nadir_col": 1
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def mocked_file_handler(self, dataset):
         """Mock file handler to load the given fake dataset."""
         from satpy.readers.goes_imager_nc import FULL_DISC, GOESNCFileHandler
@@ -393,10 +385,8 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         lat = self.reader.get_dataset(key=make_dataid(name="latitude"),
                                       info={})
         # ... this only compares the valid (unmasked) elements
-        self.assertTrue(np.all(lat.to_masked_array() == self.lat),
-                        msg="get_dataset() returns invalid latitude")
-        self.assertTrue(np.all(lon.to_masked_array() == self.lon),
-                        msg="get_dataset() returns invalid longitude")
+        assert np.all(lat.to_masked_array() == self.lat), "get_dataset() returns invalid latitude"
+        assert np.all(lon.to_masked_array() == self.lon), "get_dataset() returns invalid longitude"
 
     def test_get_dataset_counts(self):
         """Test whether counts returned by get_dataset() are correct."""
@@ -423,12 +413,11 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             counts = self.reader.get_dataset(
                 key=make_dataid(name=ch, calibration="counts"), info={})
             # ... this only compares the valid (unmasked) elements
-            self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
-                            msg="get_dataset() returns invalid counts for "
-                                "channel {}".format(ch))
+            assert np.all(self.counts / 32.0 == counts.to_masked_array()), \
+                f"get_dataset() returns invalid counts for channel {ch}"
 
             # Check attributes
-            self.assertDictEqual(counts.attrs, attrs_exp)
+            assert counts.attrs == attrs_exp
 
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently."""
@@ -446,9 +435,8 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                 except ValueError:
                     continue
                 data_mask = data.to_masked_array().mask
-                self.assertTrue(np.all(data_mask == lon_mask),
-                                msg="get_dataset() returns inconsistently "
-                                    "masked {} in channel {}".format(calib, ch))
+                assert np.all(data_mask == lon_mask), \
+                    f"get_dataset() returns inconsistently masked {calib} in channel {ch}"
 
     def test_get_dataset_invalid(self):
         """Test handling of invalid calibrations."""
@@ -465,10 +453,10 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
         # Unsupported calibration
-        with pytest.raises(ValueError):
-            args = dict(key=make_dataid(name="10_7",
-                                        calibration="invalid"),
-                        info={})
+        with pytest.raises(ValueError, match="invalid invalid value for <enum 'calibration'>"):
+            _ = dict(key=make_dataid(name="10_7",
+                                     calibration="invalid"),
+                     info={})
 
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
@@ -520,15 +508,14 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                 channel = "10_7"
             sector = self.reader._get_sector(channel=channel, nlines=nlines,
                                              ncols=ncols)
-            self.assertEqual(sector, sector_ref,
-                             msg="Incorrect sector identification")
+            assert sector == sector_ref, "Incorrect sector identification"
 
 
 class TestChannelIdentification:
     """Test identification of channel type."""
 
     @pytest.mark.parametrize(
-        "channel_name,expected",
+        ("channel_name", "expected"),
         [
             ("00_7", True),
             ("10_7", False),
@@ -542,5 +529,5 @@ class TestChannelIdentification:
 
     def test_invalid_channel(self):
         """Test handling of invalid channel type."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid channel"):
             is_vis_channel({"foo": "bar"})

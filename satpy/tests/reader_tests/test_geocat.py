@@ -161,11 +161,11 @@ class TestGEOCATReader(unittest.TestCase):
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
             assert "calibration" not in v.attrs
-            self.assertEqual(v.attrs["units"], "1")
-        self.assertIsNotNone(datasets["variable3"].attrs.get("flag_meanings"))
+            assert v.attrs["units"] == "1"
+        assert datasets["variable3"].attrs.get("flag_meanings") is not None
 
     def test_load_all_himawari8(self):
         """Test loading all test datasets from H8 NetCDF file."""
@@ -182,12 +182,12 @@ class TestGEOCATReader(unittest.TestCase):
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
             assert "calibration" not in v.attrs
-            self.assertEqual(v.attrs["units"], "1")
-        self.assertIsNotNone(datasets["variable3"].attrs.get("flag_meanings"))
-        self.assertIsInstance(datasets["variable1"].attrs["area"], AreaDefinition)
+            assert v.attrs["units"] == "1"
+        assert datasets["variable3"].attrs.get("flag_meanings") is not None
+        assert isinstance(datasets["variable1"].attrs["area"], AreaDefinition)
 
     def test_load_all_goes17_hdf4(self):
         """Test loading all test datasets from GOES-17 HDF4 file."""
@@ -204,9 +204,9 @@ class TestGEOCATReader(unittest.TestCase):
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
             assert "calibration" not in v.attrs
-            self.assertEqual(v.attrs["units"], "1")
-        self.assertIsNotNone(datasets["variable3"].attrs.get("flag_meanings"))
-        self.assertIsInstance(datasets["variable1"].attrs["area"], AreaDefinition)
+            assert v.attrs["units"] == "1"
+        assert datasets["variable3"].attrs.get("flag_meanings") is not None
+        assert isinstance(datasets["variable1"].attrs["area"], AreaDefinition)

@@ -115,14 +115,14 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         bt = self.reader._calibrate_bt(radiance, cw, a, b)
         expected_bt = np.array([[675.04993213, 753.10301462, 894.93149648],
                                 [963.20401882, 1048.95086402, 1270.95546218]])
-        self.assertTrue(np.allclose(bt, expected_bt))
+        assert np.allclose(bt, expected_bt)
 
         angle_factor = 0.4
         isi = 2.0
         refl = self.reader._calibrate_refl(radiance, angle_factor, isi)
         expected_refl = np.array([[62.8318531, 125.6637061, 314.1592654],
                                   [439.8229715, 628.3185307, 1256.637061]])
-        self.assertTrue(np.allclose(refl, expected_refl))
+        assert np.allclose(refl, expected_refl)
 
     def test_functions(self):
         """Test the functions."""
@@ -139,12 +139,12 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
 
         orthorect_variable = self.reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
         expected_values = np.degrees(np.ones((600, 72)) / MEAN_EARTH_RADIUS) + np.ones((600, 72))
-        self.assertTrue(np.allclose(orthorect_variable.values, expected_values))
+        assert np.allclose(orthorect_variable.values, expected_values)
 
         # Checks that the _perform_calibration function is correctly executed in all cases
         # radiance calibration: return value is simply a copy of the variable
         return_variable = self.reader._perform_calibration(variable, {"calibration": "radiance"})
-        self.assertTrue(np.all(return_variable == variable))
+        assert np.all(return_variable == variable)
 
         # invalid calibration: raises a ValueError
         with self.assertRaises(ValueError):
@@ -156,7 +156,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                                                {"calibration": "brightness_temperature",
                                                                 "chan_thermal_index": 3})
         expected_values = np.full((600, 72), 1101.10413712)
-        self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
+        assert np.allclose(calibrated_variable.values, expected_values)
 
         # reflectance calibration: checks that the return value is correct
         calibrated_variable = self.reader._perform_calibration(variable,
@@ -164,4 +164,4 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                                                 "wavelength": [0.658, 0.668, 0.678],
                                                                 "chan_solar_index": 2})
         expected_values = np.full((600, 72), 173.3181982)
-        self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
+        assert np.allclose(calibrated_variable.values, expected_values)

@@ -57,20 +57,20 @@ class TestAHIGriddedArea(unittest.TestCase):
     def test_low_res(self):
         """Check size of the low resolution (2km) grid."""
         tmp_fh = self.make_fh("tir.01")
-        self.assertEqual(self.FULLDISK_SIZES[0.02]["x_size"], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.02]["y_size"], tmp_fh.nlines)
+        assert self.FULLDISK_SIZES[0.02]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.02]["y_size"] == tmp_fh.nlines
 
     def test_med_res(self):
         """Check size of the low resolution (1km) grid."""
         tmp_fh = self.make_fh("vis.02")
-        self.assertEqual(self.FULLDISK_SIZES[0.01]["x_size"], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.01]["y_size"], tmp_fh.nlines)
+        assert self.FULLDISK_SIZES[0.01]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.01]["y_size"] == tmp_fh.nlines
 
     def test_hi_res(self):
         """Check size of the low resolution (0.5km) grid."""
         tmp_fh = self.make_fh("ext.01")
-        self.assertEqual(self.FULLDISK_SIZES[0.005]["x_size"], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.005]["y_size"], tmp_fh.nlines)
+        assert self.FULLDISK_SIZES[0.005]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.005]["y_size"] == tmp_fh.nlines
 
     def test_area_def(self):
         """Check that a valid full disk area is produced."""
@@ -84,7 +84,7 @@ class TestAHIGriddedArea(unittest.TestCase):
 
         tmp_fh = self.make_fh("vis.01")
         tmp_fh.get_area_def(None)
-        self.assertEqual(tmp_fh.area, good_area)
+        assert tmp_fh.area == good_area
 
     def test_bad_area(self):
         """Ensure an error is raised for an usupported area."""
@@ -170,7 +170,7 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
                                        filetype_info={"file_type": "tir.01"})
 
             # Check that the filename is altered for bz2 format files
-            self.assertNotEqual(in_fname, fh.filename)
+            assert in_fname != fh.filename
             self.fh = fh
 
         key = {"calibration": "counts",
@@ -206,8 +206,8 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
             # Check output data is correct
             np.testing.assert_allclose(res.values, out_data)
             # Also check a couple of attributes
-            self.assertEqual(res.attrs["name"], self.key["name"])
-            self.assertEqual(res.attrs["wavelength"], self.info["wavelength"])
+            assert res.attrs["name"] == self.key["name"]
+            assert res.attrs["wavelength"] == self.info["wavelength"]
 
     @mock.patch("os.path.exists", return_value=True)
     @mock.patch("os.remove")
@@ -269,9 +269,9 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         tempdir = tempfile.gettempdir()
         print(self.fh.lut_dir)
         self.fh._get_luts()
-        self.assertFalse(os.path.exists(os.path.join(tempdir, "count2tbb_v102/")))
+        assert not os.path.exists(os.path.join(tempdir, "count2tbb_v102/"))
         for lut_name in AHI_LUT_NAMES:
-            self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
+            assert os.path.isfile(os.path.join(self.fh.lut_dir, lut_name))
 
     @mock.patch("urllib.request.urlopen")
     @mock.patch("shutil.copyfileobj")

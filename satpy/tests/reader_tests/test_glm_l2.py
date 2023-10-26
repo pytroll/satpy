@@ -129,10 +129,8 @@ class TestGLML2FileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        self.assertEqual(self.reader.start_time,
-                         datetime(2017, 9, 20, 17, 30, 40))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2017, 9, 20, 17, 41, 17))
+        assert self.reader.start_time == datetime(2017, 9, 20, 17, 30, 40)
+        assert self.reader.end_time == datetime(2017, 9, 20, 17, 41, 17)
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
@@ -163,7 +161,7 @@ class TestGLML2FileHandler(unittest.TestCase):
                "long_name": "Flash extent density",
                "units": "Count per nominal    3136 microradian^2 pixel per 1.0 min"}
 
-        self.assertDictEqual(res.attrs, exp)
+        assert res.attrs == exp
 
     def test_get_dataset_dqf(self):
         """Test the get_dataset method with special DQF var."""
@@ -196,8 +194,8 @@ class TestGLML2FileHandler(unittest.TestCase):
                "long_name": "GLM data quality flags",
                "flag_meanings": "valid invalid"}
 
-        self.assertDictEqual(res.attrs, exp)
-        self.assertTrue(np.issubdtype(res.dtype, np.integer))
+        assert res.attrs == exp
+        assert np.issubdtype(res.dtype, np.integer)
 
 
 class TestGLML2Reader(unittest.TestCase):
@@ -218,19 +216,19 @@ class TestGLML2Reader(unittest.TestCase):
             "OR_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc",
             "CSPP_CG_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc",
         ])
-        self.assertEqual(len(loadables), 2)
+        assert len(loadables) == 2
         r.create_filehandlers(loadables)
         self.reader = r
 
     def test_available_datasets(self):
         """Test that resolution is added to YAML configured variables."""
         # make sure we have some files
-        self.assertTrue(self.reader.file_handlers)
+        assert self.reader.file_handlers
         available_datasets = list(self.reader.available_dataset_ids)
         # flash_extent_density, DQF, and not_configured are available in our tests
-        self.assertEqual(len(available_datasets), 3)
+        assert len(available_datasets) == 3
         for ds_id in available_datasets:
-            self.assertEqual(ds_id["resolution"], 2000)
+            assert ds_id["resolution"] == 2000
         # make sure not_configured was discovered
         names = [dataid["name"] for dataid in available_datasets]
         assert "not_configured" in names

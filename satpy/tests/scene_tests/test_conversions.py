@@ -93,7 +93,7 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture
+    @pytest.fixture()
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
@@ -108,7 +108,7 @@ class TestToXarrayConversion:
         scn["var1"] = data_array
         return scn
 
-    @pytest.fixture
+    @pytest.fixture()
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition
@@ -162,5 +162,5 @@ class TestToXarrayConversion:
     def test_to_xarray_with_multiple_area_scene(self, multi_area_scn):
         """Test converting muiltple area Scene to xarray."""
         # TODO: in future adapt for DataTree implementation
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Datasets to be saved .* must have identical projection coordinates."):
             _ = multi_area_scn.to_xarray()

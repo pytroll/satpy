@@ -43,11 +43,10 @@ class TestSARComposites(unittest.TestCase):
                           attrs={"name": "hv"})
 
         res = comp((hh, hv))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs["name"], "sar_ice")
-        self.assertEqual(res.attrs["standard_name"],
-                         "sar-ice")
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "sar_ice"
+        assert res.attrs["standard_name"] == "sar-ice"
         data = res.compute()
         np.testing.assert_allclose(data.sel(bands="R"), 31.58280822)
         np.testing.assert_allclose(data.sel(bands="G"), 159869.56789876)
@@ -73,11 +72,10 @@ class TestSARComposites(unittest.TestCase):
                           attrs={"name": "hv"})
 
         res = comp((hh, hv))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs["name"], "sar_ice_log")
-        self.assertEqual(res.attrs["standard_name"],
-                         "sar-ice-log")
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "sar_ice_log"
+        assert res.attrs["standard_name"] == "sar-ice-log"
         data = res.compute()
         np.testing.assert_allclose(data.sel(bands="R"), -20)
         np.testing.assert_allclose(data.sel(bands="G"), -4.6)

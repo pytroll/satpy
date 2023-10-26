@@ -66,10 +66,10 @@ class TestSAFENC(unittest.TestCase):
 
     def test_init(self):
         """Test reader initialization."""
-        self.assertEqual(self.reader.start_time, 0)
-        self.assertEqual(self.reader.end_time, 0)
-        self.assertEqual(self.reader.fstart_time, 0)
-        self.assertEqual(self.reader.fend_time, 0)
+        assert self.reader.start_time == 0
+        assert self.reader.end_time == 0
+        assert self.reader.fstart_time == 0
+        assert self.reader.fend_time == 0
 
     def test_get_dataset(self):
         """Test getting a dataset."""
@@ -77,6 +77,4 @@ class TestSAFENC(unittest.TestCase):
             dt = self.reader.get_dataset(
                 key=make_dataid(name=ch), info={})
             # ... this only compares the valid (unmasked) elements
-            self.assertTrue(np.all(self.nc[ch] == dt.to_masked_array()),
-                            msg="get_dataset() returns invalid data for "
-                            "dataset {}".format(ch))
+            assert np.all(self.nc[ch] == dt.to_masked_array()), f"get_dataset() returns invalid data for dataset {ch}"

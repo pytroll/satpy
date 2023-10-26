@@ -673,7 +673,7 @@ class TestReadMDA(unittest.TestCase):
         """Test reading basic metadata."""
         from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
-        self.assertDictEqual(res, nrt_mda_dict)
+        assert res == nrt_mda_dict
 
     def test_read_mda_geo_resolution(self):
         """Test reading geo resolution."""
@@ -681,8 +681,8 @@ class TestReadMDA(unittest.TestCase):
         resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl1b)
             )
-        self.assertEqual(resolution_l1b, 1000)
+        assert resolution_l1b == 1000
         resolution_l2 = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl2)
         )
-        self.assertEqual(resolution_l2, 5000)
+        assert resolution_l2 == 5000

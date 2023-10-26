@@ -53,7 +53,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ninjo_tags = {40000: "NINJO"}
         ntw = NinjoTIFFWriter(tags=ninjo_tags)
-        self.assertDictEqual(ntw.tags, ninjo_tags)
+        assert ntw.tags == ninjo_tags
 
     @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_dataset")
     @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
@@ -65,7 +65,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         with mock.patch("satpy.writers.ninjotiff.convert_units") as uconv:
             ntw.save_dataset(dataset, physic_unit="CELSIUS")
             uconv.assert_called_once_with(dataset, "K", "CELSIUS")
-        self.assertEqual(iwsd.call_count, 1)
+        assert iwsd.call_count == 1
 
     @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_dataset")
     @mock.patch("satpy.writers.ninjotiff.nt", pyninjotiff_mock.ninjotiff)
@@ -78,7 +78,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
             ntw.save_dataset(dataset, physic_unit="CELSIUS",
                              convert_temperature_units=False)
             uconv.assert_not_called()
-        self.assertEqual(iwsd.call_count, 1)
+        assert iwsd.call_count == 1
 
     @mock.patch("satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset")
     @mock.patch("satpy.writers.ninjotiff.ImageWriter.save_image")

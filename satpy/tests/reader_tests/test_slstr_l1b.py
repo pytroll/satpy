@@ -152,8 +152,8 @@ class TestSLSTRReader(TestSLSTRL1B):
         assert test.view == "nadir"
         assert test.stripe == "a"
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
+        assert test.start_time == good_start
+        assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
@@ -164,8 +164,8 @@ class TestSLSTRReader(TestSLSTRL1B):
         assert test.view == "oblique"
         assert test.stripe == "c"
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
+        assert test.start_time == good_start
+        assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
@@ -174,8 +174,8 @@ class TestSLSTRReader(TestSLSTRL1B):
                          "stripe": "a", "view": "n"}
         test = NCSLSTRGeo("somedir/geometry_an.nc", filename_info, "c")
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "latitude_{stripe:1s}{view:1s}"}))
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
+        assert test.start_time == good_start
+        assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
@@ -183,15 +183,15 @@ class TestSLSTRReader(TestSLSTRL1B):
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "flags_{stripe:1s}{view:1s}"}))
         assert test.view == "nadir"
         assert test.stripe == "a"
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
+        assert test.start_time == good_start
+        assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
         test = NCSLSTRAngles("somedir/S1_radiance_an.nc", filename_info, "c")
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
-        self.assertEqual(test.start_time, good_start)
-        self.assertEqual(test.end_time, good_end)
+        assert test.start_time == good_start
+        assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
         test.get_dataset(ds_id_500, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
@@ -244,7 +244,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
         ds_id = make_dataid(name="S5", calibration="reflectance", stripe="a", view="nadir")
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
-        self.assertEqual(data.units, "%")
+        assert data.units == "%"
         np.testing.assert_allclose(data.values, self.rad * np.pi)
 
     def test_cal_rad(self):

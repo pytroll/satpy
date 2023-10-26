@@ -299,7 +299,7 @@ class TestATMS_SDR_Reader:
         # make sure we have some files
         assert r.file_handlers
 
-    @pytest.mark.parametrize("files, expected",
+    @pytest.mark.parametrize(("files", "expected"),
                              [(["SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
                                 "GATMO_j01_d20221220_t0910240_e0921356_b26361_c20221220100456680030_cspp_dev.h5"],
                                True),

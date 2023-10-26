@@ -23,6 +23,7 @@ from datetime import datetime
 from unittest import mock
 
 import numpy as np
+from pytest import approx  # noqa: PT013
 
 from satpy.tests.utils import make_dataid
 
@@ -134,10 +135,10 @@ class TestHSAFFileHandler(unittest.TestCase):
         correct_dt = datetime(2019, 6, 3, 16, 45, 0)
         from satpy.readers.hsaf_grib import HSAFFileHandler
         fh = HSAFFileHandler("filename", mock.MagicMock(), mock.MagicMock())
-        self.assertEqual(fh._analysis_time, correct_dt)
-        self.assertEqual(fh.metadata["projparams"]["lat_0"], 0.0)
-        self.assertEqual(fh.metadata["shortName"], "irrate")
-        self.assertEqual(fh.metadata["nx"], 3712)
+        assert fh._analysis_time == correct_dt
+        assert fh.metadata["projparams"]["lat_0"] == 0.0
+        assert fh.metadata["shortName"] == "irrate"
+        assert fh.metadata["nx"] == 3712
 
     @mock.patch("satpy.readers.hsaf_grib.pygrib.open", return_value=FakeGRIB())
     def test_get_area_def(self, pg):
@@ -146,9 +147,9 @@ class TestHSAFFileHandler(unittest.TestCase):
         from satpy.readers.hsaf_grib import HSAFFileHandler
         fh = HSAFFileHandler("filename", mock.MagicMock(), mock.MagicMock())
         area_def = HSAFFileHandler.get_area_def(fh, "H03B")
-        self.assertEqual(area_def.width, 3712)
-        self.assertAlmostEqual(area_def.area_extent[0], -5569209.3026, places=3)
-        self.assertAlmostEqual(area_def.area_extent[3], 5587721.9097, places=3)
+        assert area_def.width == 3712
+        assert area_def.area_extent[0] == approx(-5569209.3026, abs=1e-3)
+        assert area_def.area_extent[3] == approx(5587721.9097, abs=1e-3)
 
     @mock.patch("satpy.readers.hsaf_grib.pygrib.open", return_value=FakeGRIB())
     def test_get_dataset(self, pg):

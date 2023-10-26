@@ -133,10 +133,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_available_datasets(self):
         """Test available_datasets with fake variables from YAML."""
@@ -145,10 +145,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
         # mimic the YAML file being configured for more datasets
         fake_dataset_info = [
@@ -162,47 +162,47 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         ]
         new_ds_infos = list(r.file_handlers["clavrx_hdf4"][0].available_datasets(
             fake_dataset_info))
-        self.assertEqual(len(new_ds_infos), 9)
+        assert len(new_ds_infos) == 9
 
         # we have this and can provide the resolution
-        self.assertTrue(new_ds_infos[0][0])
-        self.assertEqual(new_ds_infos[0][1]["resolution"], 742)  # hardcoded
+        assert new_ds_infos[0][0]
+        assert new_ds_infos[0][1]["resolution"] == 742  # hardcoded
 
         # we have this, but previous file handler said it knew about it
         # and it is producing the same resolution as what we have
-        self.assertTrue(new_ds_infos[1][0])
-        self.assertEqual(new_ds_infos[1][1]["resolution"], 742)
+        assert new_ds_infos[1][0]
+        assert new_ds_infos[1][1]["resolution"] == 742
 
         # we have this, but don't want to change the resolution
         # because a previous handler said it has it
-        self.assertTrue(new_ds_infos[2][0])
-        self.assertEqual(new_ds_infos[2][1]["resolution"], 1)
+        assert new_ds_infos[2][0]
+        assert new_ds_infos[2][1]["resolution"] == 1
 
         # even though the previous one was known we can still
         # produce it at our new resolution
-        self.assertTrue(new_ds_infos[3][0])
-        self.assertEqual(new_ds_infos[3][1]["resolution"], 742)
+        assert new_ds_infos[3][0]
+        assert new_ds_infos[3][1]["resolution"] == 742
 
         # we have this and can update the resolution since
         # no one else has claimed it
-        self.assertTrue(new_ds_infos[4][0])
-        self.assertEqual(new_ds_infos[4][1]["resolution"], 742)
+        assert new_ds_infos[4][0]
+        assert new_ds_infos[4][1]["resolution"] == 742
 
         # we don't have this variable, don't change it
-        self.assertFalse(new_ds_infos[5][0])
-        self.assertIsNone(new_ds_infos[5][1].get("resolution"))
+        assert not new_ds_infos[5][0]
+        assert new_ds_infos[5][1].get("resolution") is None
 
         # we have this, but it isn't supposed to come from our file type
-        self.assertIsNone(new_ds_infos[6][0])
-        self.assertIsNone(new_ds_infos[6][1].get("resolution"))
+        assert new_ds_infos[6][0] is None
+        assert new_ds_infos[6][1].get("resolution") is None
 
         # we could have loaded this but some other file handler said it has this
-        self.assertTrue(new_ds_infos[7][0])
-        self.assertIsNone(new_ds_infos[7][1].get("resolution"))
+        assert new_ds_infos[7][0]
+        assert new_ds_infos[7][1].get("resolution") is None
 
         # we can add resolution to the previous dataset, so we do
-        self.assertTrue(new_ds_infos[8][0])
-        self.assertEqual(new_ds_infos[8][1]["resolution"], 742)
+        assert new_ds_infos[8][0]
+        assert new_ds_infos[8][1]["resolution"] == 742
 
     def test_load_all(self):
         """Test loading all test datasets."""
@@ -218,15 +218,15 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
         var_list = ["variable1", "variable2", "variable3"]
         datasets = r.load(var_list)
-        self.assertEqual(len(datasets), len(var_list))
+        assert len(datasets) == len(var_list)
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "1")
-            self.assertEqual(v.attrs["platform_name"], "npp")
-            self.assertEqual(v.attrs["sensor"], "viirs")
-            self.assertIsInstance(v.attrs["area"], SwathDefinition)
-            self.assertEqual(v.attrs["area"].lons.attrs["rows_per_scan"], 16)
-            self.assertEqual(v.attrs["area"].lats.attrs["rows_per_scan"], 16)
-            self.assertIsInstance(datasets["variable3"].attrs.get("flag_meanings"), list)
+            assert v.attrs["units"] == "1"
+            assert v.attrs["platform_name"] == "npp"
+            assert v.attrs["sensor"] == "viirs"
+            assert isinstance(v.attrs["area"], SwathDefinition)
+            assert v.attrs["area"].lons.attrs["rows_per_scan"] == 16
+            assert v.attrs["area"].lats.attrs["rows_per_scan"] == 16
+            assert isinstance(datasets["variable3"].attrs.get("flag_meanings"), list)
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
@@ -331,10 +331,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "clavrx_H08_20180806_1800.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_no_nav_donor(self):
         """Test exception raised when no donor file is available."""
@@ -376,22 +376,22 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
             datasets = r.load(["variable1", "variable2", "variable3"])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
-            self.assertNotIn("calibration", v.attrs)
-            self.assertEqual(v.attrs["units"], "1")
-            self.assertIsInstance(v.attrs["area"], AreaDefinition)
+            assert "calibration" not in v.attrs
+            assert v.attrs["units"] == "1"
+            assert isinstance(v.attrs["area"], AreaDefinition)
             if v.attrs.get("flag_values"):
-                self.assertIn("_FillValue", v.attrs)
+                assert "_FillValue" in v.attrs
             else:
-                self.assertNotIn("_FillValue", v.attrs)
+                assert "_FillValue" not in v.attrs
             if v.attrs["name"] == "variable1":
-                self.assertIsInstance(v.attrs["valid_range"], list)
+                assert isinstance(v.attrs["valid_range"], list)
             else:
-                self.assertNotIn("valid_range", v.attrs)
+                assert "valid_range" not in v.attrs
             if "flag_values" in v.attrs:
-                self.assertTrue(np.issubdtype(v.dtype, np.integer))
-                self.assertIsNotNone(v.attrs.get("flag_meanings"))
+                assert np.issubdtype(v.dtype, np.integer)
+                assert v.attrs.get("flag_meanings") is not None
 
     def test_load_all_new_donor(self):
         """Test loading all test datasets with new donor."""
@@ -420,12 +420,12 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
             datasets = r.load(["variable1", "variable2", "variable3"])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
-            self.assertNotIn("calibration", v.attrs)
-            self.assertEqual(v.attrs["units"], "1")
-            self.assertIsInstance(v.attrs["area"], AreaDefinition)
-            self.assertTrue(v.attrs["area"].is_geostationary)
-            self.assertEqual(v.attrs["platform_name"], "himawari8")
-            self.assertEqual(v.attrs["sensor"], "ahi")
-        self.assertIsNotNone(datasets["variable3"].attrs.get("flag_meanings"))
+            assert "calibration" not in v.attrs
+            assert v.attrs["units"] == "1"
+            assert isinstance(v.attrs["area"], AreaDefinition)
+            assert v.attrs["area"].is_geostationary
+            assert v.attrs["platform_name"] == "himawari8"
+            assert v.attrs["sensor"] == "ahi"
+        assert datasets["variable3"].attrs.get("flag_meanings") is not None

@@ -43,9 +43,9 @@ class Test_FY4Base:
     def test_badsensor(self):
         """Test case where we pass a bad sensor name, must be GHI or AGRI."""
         fy4 = FY4Base(None, {"platform_id": "FY4A", "instrument": "FCI"}, self.file_type)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unsupported sensor type: FCI"):
             fy4.calibrate_to_reflectance(None, None, None)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Error, sensor must be GHI or AGRI."):
             fy4.calibrate_to_bt(None, None, None)
 
     def test_badcalibration(self):

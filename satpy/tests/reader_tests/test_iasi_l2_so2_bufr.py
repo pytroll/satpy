@@ -405,9 +405,4 @@ class TestIasiL2So2Bufr(unittest.TestCase):
             # (note: if all subtests pass, they will count as one test)
             with self.subTest(msg="Test failed for dataset: "+name):
 
-                self.assertTrue(np.allclose(original_values, loaded_values_nan_filled))
-
-    @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
-    def test_init(self):
-        """Test reader initialization."""
-        self.assertTrue(True)
+                assert np.allclose(original_values, loaded_values_nan_filled)

@@ -122,10 +122,10 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_no2(self):
         """Load NO2 dataset."""
@@ -137,16 +137,16 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
         ds = r.load(["nitrogen_dioxide_total_column"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
-            self.assertEqual(d.attrs["platform_shortname"], "S5P")
-            self.assertEqual(d.attrs["sensor"], "tropomi")
-            self.assertEqual(d.attrs["time_coverage_start"], datetime(2018, 7, 9, 17, 25, 34))
-            self.assertEqual(d.attrs["time_coverage_end"], datetime(2018, 7, 9, 18, 23, 4))
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertIn("y", d.dims)
-            self.assertIn("x", d.dims)
+            assert d.attrs["platform_shortname"] == "S5P"
+            assert d.attrs["sensor"] == "tropomi"
+            assert d.attrs["time_coverage_start"] == datetime(2018, 7, 9, 17, 25, 34)
+            assert d.attrs["time_coverage_end"] == datetime(2018, 7, 9, 18, 23, 4)
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert "y" in d.dims
+            assert "x" in d.dims
 
     def test_load_so2(self):
         """Load SO2 dataset."""
@@ -158,13 +158,13 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
         ds = r.load(["sulfurdioxide_total_vertical_column"])
-        self.assertEqual(len(ds), 1)
+        assert len(ds) == 1
         for d in ds.values():
-            self.assertEqual(d.attrs["platform_shortname"], "S5P")
-            self.assertIn("area", d.attrs)
-            self.assertIsNotNone(d.attrs["area"])
-            self.assertIn("y", d.dims)
-            self.assertIn("x", d.dims)
+            assert d.attrs["platform_shortname"] == "S5P"
+            assert "area" in d.attrs
+            assert d.attrs["area"] is not None
+            assert "y" in d.dims
+            assert "x" in d.dims
 
     def test_load_bounds(self):
         """Load bounds dataset."""
@@ -177,12 +177,12 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             r.create_filehandlers(loadables)
         keys = ["latitude_bounds", "longitude_bounds"]
         ds = r.load(keys)
-        self.assertEqual(len(ds), 2)
+        assert len(ds) == 2
         for key in keys:
-            self.assertEqual(ds[key].attrs["platform_shortname"], "S5P")
-            self.assertIn("y", ds[key].dims)
-            self.assertIn("x", ds[key].dims)
-            self.assertIn("corner", ds[key].dims)
+            assert ds[key].attrs["platform_shortname"] == "S5P"
+            assert "y" in ds[key].dims
+            assert "x" in ds[key].dims
+            assert "corner" in ds[key].dims
             # check assembled bounds
             left = np.vstack([ds[key][:, :, 0], ds[key][-1:, :, 3]])
             right = np.vstack([ds[key][:, -1:, 1], ds[key][-1:, -1:, 2]])
@@ -191,13 +191,11 @@ class TestTROPOMIL2Reader(unittest.TestCase):
                                 dims=("y", "x")
                                 )
             dest.attrs = ds[key].attrs
-            self.assertEqual(dest.attrs["platform_shortname"], "S5P")
-            self.assertIn("y", dest.dims)
-            self.assertIn("x", dest.dims)
-            self.assertEqual(DEFAULT_FILE_SHAPE[0] + 1, dest.shape[0])
-            self.assertEqual(DEFAULT_FILE_SHAPE[1] + 1, dest.shape[1])
-            self.assertIsNone(np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0]))
-            self.assertIsNone(np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3]))
-            self.assertIsNone(np.testing.assert_array_equal(dest[:, -1],
-                              np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))
-                              )
+            assert dest.attrs["platform_shortname"] == "S5P"
+            assert "y" in dest.dims
+            assert "x" in dest.dims
+            assert DEFAULT_FILE_SHAPE[0] + 1 == dest.shape[0]
+            assert DEFAULT_FILE_SHAPE[1] + 1 == dest.shape[1]
+            assert np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0])
+            assert np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3])
+            assert np.testing.assert_array_equal(dest[:, -1], np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))

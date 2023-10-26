@@ -104,13 +104,13 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def _band_helper(self, attributes, units, calibration, standard_name,
                      file_type, band_index_size, resolution):
-        self.assertEqual(units, attributes["units"])
-        self.assertEqual(calibration, attributes["calibration"])
-        self.assertEqual(standard_name, attributes["standard_name"])
-        self.assertEqual(file_type, attributes["file_type"])
-        self.assertTrue(attributes["band_index"] in range(band_index_size))
-        self.assertEqual(resolution, attributes["resolution"])
-        self.assertEqual(("longitude", "latitude"), attributes["coordinates"])
+        assert units == attributes["units"]
+        assert calibration == attributes["calibration"]
+        assert standard_name == attributes["standard_name"]
+        assert file_type == attributes["file_type"]
+        assert (attributes["band_index"] in range(band_index_size)) is True
+        assert resolution == attributes["resolution"]
+        assert ("longitude", "latitude") == attributes["coordinates"]
 
     def _fy3_helper(self, platform_name, reader, Emissive_units):
         """Load channels and test accurate metadata."""
@@ -133,13 +133,13 @@ class TestVIRRL1BReader(unittest.TestCase):
             # Object returned by get_dataset.
             ds = datasets[dataset["name"]]
             attributes = ds.attrs
-            self.assertTrue(isinstance(ds.data, da.Array))
-            self.assertEqual("virr", attributes["sensor"])
-            self.assertEqual(platform_name, attributes["platform_name"])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes["start_time"])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes["end_time"])
-            self.assertEqual((19, 20), datasets[dataset["name"]].shape)
-            self.assertEqual(("y", "x"), datasets[dataset["name"]].dims)
+            assert isinstance(ds.data, da.Array)
+            assert "virr" == attributes["sensor"]
+            assert platform_name == attributes["platform_name"]
+            assert datetime.datetime(2018, 12, 25, 21, 41, 47, 90000) == attributes["start_time"]
+            assert datetime.datetime(2018, 12, 25, 21, 47, 28, 254000) == attributes["end_time"]
+            assert (19, 20) == datasets[dataset["name"]].shape
+            assert ("y", "x") == datasets[dataset["name"]].dims
             if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
                 self._band_helper(attributes, "%", "reflectance",
                                   "toa_bidirectional_reflectance", "virr_l1b",
@@ -148,19 +148,17 @@ class TestVIRRL1BReader(unittest.TestCase):
                 self._band_helper(attributes, Emissive_units, "brightness_temperature",
                                   "toa_brightness_temperature", "virr_l1b", 3, 1000)
             elif dataset["name"] in ["longitude", "latitude"]:
-                self.assertEqual("degrees", attributes["units"])
-                self.assertTrue(attributes["standard_name"] in ["longitude", "latitude"])
-                self.assertEqual(["virr_l1b", "virr_geoxx"], attributes["file_type"])
-                self.assertEqual(1000, attributes["resolution"])
+                assert "degrees" == attributes["units"]
+                assert (attributes["standard_name"] in ["longitude", "latitude"]) is True
+                assert ["virr_l1b", "virr_geoxx"] == attributes["file_type"]
+                assert 1000 == attributes["resolution"]
             else:
-                self.assertEqual("degrees", attributes["units"])
-                self.assertTrue(
-                    attributes["standard_name"] in ["solar_zenith_angle", "sensor_zenith_angle", "solar_azimuth_angle",
-                                                    "sensor_azimuth_angle"])
-                self.assertEqual(["virr_geoxx", "virr_l1b"], attributes["file_type"])
-                self.assertEqual(("longitude", "latitude"), attributes["coordinates"])
-            self.assertEqual(band_values[dataset["name"]],
-                             round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
+                assert "degrees" == attributes["units"]
+                assert attributes["standard_name"] in ["solar_zenith_angle", "sensor_zenith_angle",
+                                                       "solar_azimuth_angle", "sensor_azimuth_angle"]
+                assert ["virr_geoxx", "virr_l1b"] == attributes["file_type"]
+                assert ("longitude", "latitude") == attributes["coordinates"]
+            assert band_values[dataset["name"]] == round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6)
             assert "valid_range" not in ds.attrs
 
     def test_fy3b_file(self):
@@ -168,10 +166,10 @@ class TestVIRRL1BReader(unittest.TestCase):
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(["tf2018359214943.FY3B-L_VIRRX_L1B.HDF"])
-        self.assertEqual(1, len(FY3B_file))
+        assert 1 == len(FY3B_file)
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
-        self.assertTrue(FY3B_reader.file_handlers)
+        assert FY3B_reader.file_handlers
         self._fy3_helper("FY3B", FY3B_reader, "milliWstts/m^2/cm^(-1)/steradian")
 
     def test_fy3c_file(self):
@@ -180,8 +178,8 @@ class TestVIRRL1BReader(unittest.TestCase):
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(["tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF",
                                                               "tf2018359143912.FY3C-L_VIRRX_L1B.HDF"])
-        self.assertEqual(2, len(FY3C_files))
+        assert 2 == len(FY3C_files)
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
-        self.assertTrue(FY3C_reader.file_handlers)
+        assert FY3C_reader.file_handlers
         self._fy3_helper("FY3C", FY3C_reader, "1")

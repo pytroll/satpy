@@ -72,6 +72,6 @@ class TestPillowWriter(unittest.TestCase):
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
         for r__ in res:
-            self.assertIsInstance(r__, Delayed)
+            assert isinstance(r__, Delayed)
             r__.compute()
         compute_writer_results(res)

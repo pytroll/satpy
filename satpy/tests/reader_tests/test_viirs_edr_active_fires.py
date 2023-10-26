@@ -179,9 +179,9 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets."""
@@ -192,23 +192,23 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["confidence_pct"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "%")
-            self.assertEqual(v.attrs["_FillValue"], 255)
-            self.assertTrue(np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE))
+            assert v.attrs["units"] == "%"
+            assert v.attrs["_FillValue"] == 255
+            assert np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE)
 
         datasets = r.load(["T13"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "K")
+            assert v.attrs["units"] == "K"
 
         datasets = r.load(["power"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "MW")
-            self.assertEqual(v.attrs["platform_name"], "NOAA-21")
-            self.assertEqual(v.attrs["sensor"], "viirs")
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "NOAA-21"
+            assert v.attrs["sensor"] == "viirs"
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
@@ -236,9 +236,9 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets."""
@@ -249,23 +249,23 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["confidence_cat"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "1")
-            self.assertEqual(v.attrs["flag_meanings"], ["low", "medium", "high"])
-            self.assertEqual(v.attrs["flag_values"], [7, 8, 9])
+            assert v.attrs["units"] == "1"
+            assert v.attrs["flag_meanings"] == ["low", "medium", "high"]
+            assert v.attrs["flag_values"] == [7, 8, 9]
 
         datasets = r.load(["T4"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "K")
+            assert v.attrs["units"] == "K"
 
         datasets = r.load(["power"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "MW")
-            self.assertEqual(v.attrs["platform_name"], "Suomi-NPP")
-            self.assertEqual(v.attrs["sensor"], "viirs")
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "Suomi-NPP"
+            assert v.attrs["sensor"] == "viirs"
 
 
 @mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
@@ -294,9 +294,9 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self, csv_mock):
         """Test loading all datasets."""
@@ -307,21 +307,21 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["confidence_pct"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "%")
+            assert v.attrs["units"] == "%"
 
         datasets = r.load(["T13"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "K")
+            assert v.attrs["units"] == "K"
 
         datasets = r.load(["power"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "MW")
-            self.assertEqual(v.attrs["platform_name"], "NOAA-20")
-            self.assertEqual(v.attrs["sensor"], "VIIRS")
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "NOAA-20"
+            assert v.attrs["sensor"] == "VIIRS"
 
 
 @mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
@@ -350,9 +350,9 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self, mock_obj):
         """Test loading all datasets."""
@@ -363,20 +363,20 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(["confidence_cat"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "1")
-            self.assertEqual(v.attrs["flag_meanings"], ["low", "medium", "high"])
-            self.assertEqual(v.attrs["flag_values"], [7, 8, 9])
+            assert v.attrs["units"] == "1"
+            assert v.attrs["flag_meanings"] == ["low", "medium", "high"]
+            assert v.attrs["flag_values"] == [7, 8, 9]
 
         datasets = r.load(["T4"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "K")
+            assert v.attrs["units"] == "K"
 
         datasets = r.load(["power"])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs["units"], "MW")
-            self.assertEqual(v.attrs["platform_name"], "Suomi-NPP")
-            self.assertEqual(v.attrs["sensor"], "VIIRS")
+            assert v.attrs["units"] == "MW"
+            assert v.attrs["platform_name"] == "Suomi-NPP"
+            assert v.attrs["sensor"] == "VIIRS"

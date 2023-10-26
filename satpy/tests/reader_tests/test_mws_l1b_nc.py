@@ -43,7 +43,7 @@ N_FOVS_CAL = 5
 N_PRTS = 6
 
 
-@pytest.fixture
+@pytest.fixture()
 def reader(fake_file):
     """Return reader of mws level-1b data."""
     return MWSL1BFile(
@@ -70,13 +70,13 @@ def reader(fake_file):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_file(tmp_path):
     """Return file path to level-1b file."""
     file_path = tmp_path / "test_file_mws_l1b.nc"
     writer = MWSL1BFakeFileWriter(file_path)
     writer.write()
-    yield file_path
+    return file_path
 
 
 class MWSL1BFakeFileWriter:
@@ -325,10 +325,10 @@ class TestMwsL1bNCFileHandler:
                       " no valid Dataset created")
         assert log_output in caplog.text
 
-    @pytest.mark.parametrize("dims", (
+    @pytest.mark.parametrize("dims", [
         ("n_scans", "n_fovs"),
         ("x", "y"),
-    ))
+    ])
     def test_standardize_dims(self, reader, dims):
         """Test standardize dims."""
         variable = xr.DataArray(
@@ -389,7 +389,7 @@ class TestMwsL1bNCFileHandler:
         }
 
 
-@pytest.mark.parametrize("name, index", [("1", 0), ("2", 1), ("24", 23)])
+@pytest.mark.parametrize(("name", "index"), [("1", 0), ("2", 1), ("24", 23)])
 def test_get_channel_index_from_name(name, index):
     """Test getting the MWS channel index from the channel name."""
     ch_idx = get_channel_index_from_name(name)
@@ -398,8 +398,5 @@ def test_get_channel_index_from_name(name, index):
 
 def test_get_channel_index_from_name_throw_exception():
     """Test that an excpetion is thrown when getting the MWS channel index from an unsupported name."""
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(AttributeError, match="Channel name 'channel 1' not supported"):
         _ = get_channel_index_from_name("channel 1")
-
-    assert str(excinfo.value) == "Channel name 'channel 1' not supported"
-    assert excinfo.type == AttributeError

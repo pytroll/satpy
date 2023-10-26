@@ -74,8 +74,7 @@ class SeviriBaseTest(unittest.TestCase):
     def test_get_cds_time(self):
         """Test the get_cds_time function."""
         # Scalar
-        self.assertEqual(get_cds_time(days=21246, msecs=12*3600*1000),
-                         np.datetime64("2016-03-03 12:00"))
+        assert get_cds_time(days=21246, msecs=12 * 3600 * 1000) == np.datetime64("2016-03-03 12:00")
 
         # Array
         days = np.array([21246, 21247, 21248])
@@ -118,18 +117,10 @@ class SeviriBaseTest(unittest.TestCase):
 
     def test_round_nom_time(self):
         """Test the rouding of start/end_time."""
-        self.assertEqual(round_nom_time(
-                                        dt=self.observation_start_time(),
-                                        time_delta=timedelta(minutes=15)
-                                        ),
-                         datetime(2023, 3, 20, 15, 0)
-                         )
-        self.assertEqual(round_nom_time(
-                                        dt=self.observation_end_time(),
-                                        time_delta=timedelta(minutes=15)
-                                        ),
-                         datetime(2023, 3, 20, 15, 15)
-                         )
+        assert round_nom_time(dt=self.observation_start_time(),
+                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 0)
+        assert round_nom_time(dt=self.observation_end_time(),
+                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 15)
 
     @staticmethod
     def test_pad_data_horizontally():
@@ -251,7 +242,7 @@ ORBIT_POLYNOMIALS_INVALID = {
 class TestSatellitePosition:
     """Test locating the satellite."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def orbit_polynomial(self):
         """Get an orbit polynomial for testing."""
         return OrbitPolynomial(
@@ -270,7 +261,7 @@ class TestSatellitePosition:
             )
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def time(self):
         """Get scan timestamp for testing."""
         return datetime(2006, 1, 1, 12, 15, 9, 304888)

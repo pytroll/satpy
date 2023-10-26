@@ -79,7 +79,7 @@ class TestWritersModule(unittest.TestCase):
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=["y", "x"])
         show(p)
-        self.assertTrue(mock_get_image.return_value.show.called)
+        assert mock_get_image.return_value.show.called
 
 
 class TestEnhancer(unittest.TestCase):
@@ -89,13 +89,13 @@ class TestEnhancer(unittest.TestCase):
         """Test Enhancer init with no arguments passed."""
         from satpy.writers import Enhancer
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
 
     def test_basic_init_no_enh(self):
         """Test Enhancer init requesting no enhancements."""
         from satpy.writers import Enhancer
         e = Enhancer(enhancement_config_file=False)
-        self.assertIsNone(e.enhancement_tree)
+        assert e.enhancement_tree is None
 
     def test_basic_init_provided_enh(self):
         """Test Enhancer init with string enhancement configs."""
@@ -108,7 +108,7 @@ class TestEnhancer(unittest.TestCase):
       method: !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
 """])
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
 
     def test_init_nonexistent_enh_file(self):
         """Test Enhancer init with a nonexistent enhancement configuration file."""
@@ -522,23 +522,21 @@ class TestYAMLFiles(unittest.TestCase):
             writer_fn_name = os.path.splitext(writer_fn)[0]
             writer_info = read_writer_config([writer_config],
                                              loader=IgnoreLoader)
-            self.assertEqual(writer_fn_name, writer_info["name"],
-                             "Writer YAML filename doesn't match writer "
-                             "name in the YAML file.")
+            assert writer_fn_name == writer_info["name"]
 
     def test_available_writers(self):
         """Test the 'available_writers' function."""
         from satpy import available_writers
         writer_names = available_writers()
-        self.assertGreater(len(writer_names), 0)
-        self.assertIsInstance(writer_names[0], str)
-        self.assertIn("geotiff", writer_names)
+        assert len(writer_names) > 0
+        assert isinstance(writer_names[0], str)
+        assert "geotiff" in writer_names
 
         writer_infos = available_writers(as_dict=True)
-        self.assertEqual(len(writer_names), len(writer_infos))
-        self.assertIsInstance(writer_infos[0], dict)
+        assert len(writer_names) == len(writer_infos)
+        assert isinstance(writer_infos[0], dict)
         for writer_info in writer_infos:
-            self.assertIn("name", writer_info)
+            assert "name" in writer_info
 
 
 class TestComputeWriterResults(unittest.TestCase):
@@ -584,7 +582,7 @@ class TestComputeWriterResults(unittest.TestCase):
                                      writer="simple_image",
                                      compute=False)
         compute_writer_results([res])
-        self.assertTrue(os.path.isfile(fname))
+        assert os.path.isfile(fname)
 
     def test_geotiff(self):
         """Test writing to mitiff file."""
@@ -594,7 +592,7 @@ class TestComputeWriterResults(unittest.TestCase):
                                      datasets=["test"],
                                      writer="geotiff", compute=False)
         compute_writer_results([res])
-        self.assertTrue(os.path.isfile(fname))
+        assert os.path.isfile(fname)
 
 # FIXME: This reader needs more information than exist at the moment
 #    def test_mitiff(self):
@@ -628,8 +626,8 @@ class TestComputeWriterResults(unittest.TestCase):
                                       datasets=["test"],
                                       writer="geotiff", compute=False)
         compute_writer_results([res1, res2])
-        self.assertTrue(os.path.isfile(fname1))
-        self.assertTrue(os.path.isfile(fname2))
+        assert os.path.isfile(fname1)
+        assert os.path.isfile(fname2)
 
     def test_multiple_simple(self):
         """Test writing to geotiff files."""
@@ -643,8 +641,8 @@ class TestComputeWriterResults(unittest.TestCase):
                                       datasets=["test"],
                                       writer="simple_image", compute=False)
         compute_writer_results([res1, res2])
-        self.assertTrue(os.path.isfile(fname1))
-        self.assertTrue(os.path.isfile(fname2))
+        assert os.path.isfile(fname1)
+        assert os.path.isfile(fname2)
 
     def test_mixed(self):
         """Test writing to multiple mixed-type files."""
@@ -659,8 +657,8 @@ class TestComputeWriterResults(unittest.TestCase):
                                       writer="geotiff", compute=False)
         res3 = []
         compute_writer_results([res1, res2, res3])
-        self.assertTrue(os.path.isfile(fname1))
-        self.assertTrue(os.path.isfile(fname2))
+        assert os.path.isfile(fname1)
+        assert os.path.isfile(fname2)
 
 
 class TestBaseWriter:
@@ -805,9 +803,9 @@ class TestOverlays(unittest.TestCase):
         with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
             apply_pil.return_value = self.orig_rgb_img
             new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir, fill_value=0)
-            self.assertEqual(self.orig_rgb_img.mode, new_img.mode)
+            assert self.orig_rgb_img.mode == new_img.mode
             new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
-            self.assertEqual(self.orig_rgb_img.mode + "A", new_img.mode)
+            assert self.orig_rgb_img.mode + "A" == new_img.mode
 
             with mock.patch.object(self.orig_rgb_img, "convert") as convert:
                 convert.return_value = self.orig_rgb_img
@@ -849,21 +847,21 @@ class TestOverlays(unittest.TestCase):
         """Test basic add_overlay usage with L data."""
         from satpy.writers import add_overlay
         new_img = add_overlay(self.orig_l_img, self.area_def, "", fill_value=0)
-        self.assertEqual("RGB", new_img.mode)
+        assert "RGB" == new_img.mode
         new_img = add_overlay(self.orig_l_img, self.area_def, "")
-        self.assertEqual("RGBA", new_img.mode)
+        assert "RGBA" == new_img.mode
 
     def test_add_decorate_basic_rgb(self):
         """Test basic add_decorate usage with RGB data."""
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_rgb_img, **self.decorate)
-        self.assertEqual("RGBA", new_img.mode)
+        assert "RGBA" == new_img.mode
 
     def test_add_decorate_basic_l(self):
         """Test basic add_decorate usage with L data."""
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
-        self.assertEqual("RGBA", new_img.mode)
+        assert "RGBA" == new_img.mode
 
 
 def test_group_results_by_output_file(tmp_path):

@@ -143,14 +143,14 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         good_res = (-3000.4032785810186, -3000.4032785810186)
 
         a_def = get_area_definition(pdict, extent)
-        self.assertEqual(a_def.area_id, pdict["a_name"])
-        self.assertEqual(a_def.resolution, good_res)
-        self.assertEqual(a_def.proj_dict["proj"], "geos")
-        self.assertEqual(a_def.proj_dict["units"], "m")
+        assert a_def.area_id == pdict["a_name"]
+        assert a_def.resolution == good_res
+        assert a_def.proj_dict["proj"] == "geos"
+        assert a_def.proj_dict["units"] == "m"
         a, b = proj4_radius_parameters(a_def.proj_dict)
-        self.assertEqual(a, 6378169)
-        self.assertEqual(b, 6356583.8)
-        self.assertEqual(a_def.proj_dict["h"], 35785831)
+        assert a == 6378169
+        assert b == 6356583.8
+        assert a_def.proj_dict["h"] == 35785831
 
     def test_sampling_to_lfac_cfac(self):
         """Test conversion from angular sampling to line/column offset."""
@@ -168,18 +168,17 @@ class TestGEOSProjectionUtil(unittest.TestCase):
 
         output_dict = get_geos_area_naming(input_dict)
 
-        self.assertEqual(output_dict["area_id"], "testplatform_testinstrument_testservicename_1km")
-        self.assertEqual(output_dict["description"], "TESTPLATFORM TESTINSTRUMENT testdesc area definition"
-                                                     " with 1 km resolution")
+        assert output_dict["area_id"] == "testplatform_testinstrument_testservicename_1km"
+        assert output_dict["description"] == "TESTPLATFORM TESTINSTRUMENT testdesc area definition with 1 km resolution"
 
     def test_get_resolution_and_unit_strings_in_km(self):
         """Test the resolution and unit strings function for a km resolution."""
         out = get_resolution_and_unit_strings(1000)
-        self.assertEqual(out["value"], "1")
-        self.assertEqual(out["unit"], "km")
+        assert out["value"] == "1"
+        assert out["unit"] == "km"
 
     def test_get_resolution_and_unit_strings_in_m(self):
         """Test the resolution and unit strings function for a m resolution."""
         out = get_resolution_and_unit_strings(500)
-        self.assertEqual(out["value"], "500")
-        self.assertEqual(out["unit"], "m")
+        assert out["value"] == "500"
+        assert out["unit"] == "m"

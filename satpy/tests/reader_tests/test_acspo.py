@@ -119,10 +119,10 @@ class TestACSPOReader:
         self.p.stop()
 
     @pytest.mark.parametrize(
-        ("filename",),
+        "filename",
         [
-            ["20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc"],
-            ["20210916161708-STAR-L2P_GHRSST-SSTsubskin-VIIRS_N20-ACSPO_V2.80-v02.0-fv01.0.nc"],
+            ("20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc"),
+            ("20210916161708-STAR-L2P_GHRSST-SSTsubskin-VIIRS_N20-ACSPO_V2.80-v02.0-fv01.0.nc"),
         ]
     )
     def test_init(self, filename):

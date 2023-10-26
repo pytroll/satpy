@@ -27,6 +27,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pytest import approx  # noqa: PT013
 
 from satpy.utils import (
     angle2xyz,
@@ -50,176 +51,176 @@ class TestUtils(unittest.TestCase):
     def test_lonlat2xyz(self):
         """Test the lonlat2xyz function."""
         x__, y__, z__ = lonlat2xyz(0, 0)
-        self.assertAlmostEqual(x__, 1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(1)
+        assert y__ == approx(0)
+        assert z__ == approx(0)
 
         x__, y__, z__ = lonlat2xyz(90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = lonlat2xyz(0, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(1)
 
         x__, y__, z__ = lonlat2xyz(180, 0)
-        self.assertAlmostEqual(x__, -1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(-1)
+        assert y__ == approx(0)
+        assert z__ == approx(0)
 
         x__, y__, z__ = lonlat2xyz(-90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(-1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = lonlat2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, -1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(-1)
 
         x__, y__, z__ = lonlat2xyz(0, 45)
-        self.assertAlmostEqual(x__, np.sqrt(2) / 2)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
+        assert x__ == approx(np.sqrt(2) / 2)
+        assert y__ == approx(0)
+        assert z__ == approx(np.sqrt(2) / 2)
 
         x__, y__, z__ = lonlat2xyz(0, 60)
-        self.assertAlmostEqual(x__, np.sqrt(1) / 2)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, np.sqrt(3) / 2)
+        assert x__ == approx(np.sqrt(1) / 2)
+        assert y__ == approx(0)
+        assert z__ == approx(np.sqrt(3) / 2)
 
     def test_angle2xyz(self):
         """Test the lonlat2xyz function."""
         x__, y__, z__ = angle2xyz(0, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(1)
 
         x__, y__, z__ = angle2xyz(90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(1)
 
         x__, y__, z__ = angle2xyz(0, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(180, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(1)
 
         x__, y__, z__ = angle2xyz(-90, 0)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 1)
+        assert x__ == approx(0)
+        assert y__ == approx(0)
+        assert z__ == approx(1)
 
         x__, y__, z__ = angle2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(-1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(90, 90)
-        self.assertAlmostEqual(x__, 1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(1)
+        assert y__ == approx(0)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(-90, 90)
-        self.assertAlmostEqual(x__, -1)
-        self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(-1)
+        assert y__ == approx(0)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(180, 90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(-1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(0, -90)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, -1)
-        self.assertAlmostEqual(z__, 0)
+        assert x__ == approx(0)
+        assert y__ == approx(-1)
+        assert z__ == approx(0)
 
         x__, y__, z__ = angle2xyz(0, 45)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, np.sqrt(2) / 2)
-        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
+        assert x__ == approx(0)
+        assert y__ == approx(np.sqrt(2) / 2)
+        assert z__ == approx(np.sqrt(2) / 2)
 
         x__, y__, z__ = angle2xyz(0, 60)
-        self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, np.sqrt(3) / 2)
-        self.assertAlmostEqual(z__, np.sqrt(1) / 2)
+        assert x__ == approx(0)
+        assert y__ == approx(np.sqrt(3) / 2)
+        assert z__ == approx(np.sqrt(1) / 2)
 
     def test_xyz2lonlat(self):
         """Test xyz2lonlat."""
         lon, lat = xyz2lonlat(1, 0, 0)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 0)
+        assert lon == approx(0)
+        assert lat == approx(0)
 
         lon, lat = xyz2lonlat(0, 1, 0)
-        self.assertAlmostEqual(lon, 90)
-        self.assertAlmostEqual(lat, 0)
+        assert lon == approx(90)
+        assert lat == approx(0)
 
         lon, lat = xyz2lonlat(0, 0, 1, asin=True)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 90)
+        assert lon == approx(0)
+        assert lat == approx(90)
 
         lon, lat = xyz2lonlat(0, 0, 1)
-        self.assertAlmostEqual(lon, 0)
-        self.assertAlmostEqual(lat, 90)
+        assert lon == approx(0)
+        assert lat == approx(90)
 
         lon, lat = xyz2lonlat(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
-        self.assertAlmostEqual(lon, 45)
-        self.assertAlmostEqual(lat, 0)
+        assert lon == approx(45)
+        assert lat == approx(0)
 
     def test_xyz2angle(self):
         """Test xyz2angle."""
         azi, zen = xyz2angle(1, 0, 0)
-        self.assertAlmostEqual(azi, 90)
-        self.assertAlmostEqual(zen, 90)
+        assert azi == approx(90)
+        assert zen == approx(90)
 
         azi, zen = xyz2angle(0, 1, 0)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 90)
+        assert azi == approx(0)
+        assert zen == approx(90)
 
         azi, zen = xyz2angle(0, 0, 1)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 0)
+        assert azi == approx(0)
+        assert zen == approx(0)
 
         azi, zen = xyz2angle(0, 0, 1, acos=True)
-        self.assertAlmostEqual(azi, 0)
-        self.assertAlmostEqual(zen, 0)
+        assert azi == approx(0)
+        assert zen == approx(0)
 
         azi, zen = xyz2angle(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
-        self.assertAlmostEqual(azi, 45)
-        self.assertAlmostEqual(zen, 90)
+        assert azi == approx(45)
+        assert zen == approx(90)
 
         azi, zen = xyz2angle(-1, 0, 0)
-        self.assertAlmostEqual(azi, -90)
-        self.assertAlmostEqual(zen, 90)
+        assert azi == approx(-90)
+        assert zen == approx(90)
 
         azi, zen = xyz2angle(0, -1, 0)
-        self.assertAlmostEqual(azi, 180)
-        self.assertAlmostEqual(zen, 90)
+        assert azi == approx(180)
+        assert zen == approx(90)
 
     def test_proj_units_to_meters(self):
         """Test proj units to meters conversion."""
         prj = "+asd=123123123123"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, prj)
+        assert res == prj
         prj = "+a=6378.137"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, "+a=6378137.000")
+        assert res == "+a=6378137.000"
         prj = "+a=6378.137 +units=km"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, "+a=6378137.000")
+        assert res == "+a=6378137.000"
         prj = "+a=6378.137 +b=6378.137"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, "+a=6378137.000 +b=6378137.000")
+        assert res == "+a=6378137.000 +b=6378137.000"
         prj = "+a=6378.137 +b=6378.137 +h=35785.863"
         res = proj_units_to_meters(prj)
-        self.assertEqual(res, "+a=6378137.000 +b=6378137.000 +h=35785863.000")
+        assert res == "+a=6378137.000 +b=6378137.000 +h=35785863.000"
 
 
 class TestGetSatPos:
@@ -271,11 +272,11 @@ class TestGetSatPos:
 
     @pytest.mark.parametrize(
         "attrs",
-        (
+        [
                 {},
                 {"orbital_parameters":  {"projection_longitude": 1}},
                 {"satellite_altitude": 1}
-        )
+        ]
     )
     def test_get_satpos_fails_with_informative_error(self, attrs):
         """Test that get_satpos raises an informative error message."""
@@ -358,10 +359,9 @@ class TestCheckSatpy(unittest.TestCase):
             checked_fake = False
             for call in print_mock.mock_calls:
                 if len(call[1]) > 0 and "__fake" in call[1][0]:
-                    self.assertNotIn("ok", call[1][1])
+                    assert "ok" not in call[1][1]
                     checked_fake = True
-            self.assertTrue(checked_fake, "Did not find __fake module "
-                                          "mentioned in checks")
+            assert checked_fake,  "Did not find __fake module mentioned in checks"
 
 
 def test_debug_on(caplog):
@@ -605,7 +605,7 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
 def test_import_error_helper():
     """Test the import error helper."""
     module = "some_crazy_name_for_unknow_dependency_module"
-    with pytest.raises(ImportError) as err:
+    with pytest.raises(ImportError) as err:  # noqa: PT012
         with import_error_helper(module):
             import unknow_dependency_module  # noqa
     assert module in str(err)
