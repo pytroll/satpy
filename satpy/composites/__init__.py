@@ -796,8 +796,6 @@ class DayNightCompositor(GenericCompositor):
             weights = weights.data
         data = []
         for b in _get_band_names(day_data, night_data):
-            # if self.day_night == "night_only" and self.include_alpha is False:
-            #     import ipdb; ipdb.set_trace()
             day_band = _get_single_band_data(day_data, b)
             night_band = _get_single_band_data(night_data, b)
             # For day-only and night-only products only the alpha channel is weighted
