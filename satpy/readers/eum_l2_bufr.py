@@ -24,6 +24,7 @@ References:
 
 """
 import logging
+import os
 from datetime import datetime
 
 import dask.array as da
@@ -48,6 +49,7 @@ logger = logging.getLogger('EumetsatL2Bufr')
 CHUNK_SIZE = get_legacy_chunk_size()
 
 SSP_DEFAULT = 0.0
+BUFR_FILL_VALUE = -1.e+100
 
 data_center_dict = {55: {'ssp': 'E0415', 'name': 'MSG1'}, 56:  {'ssp': 'E0455', 'name': 'MSG2'},
                     57: {'ssp': 'E0095', 'name': 'MSG3'}, 70: {'ssp': 'E0000', 'name': 'MSG4'},
@@ -58,6 +60,9 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
                  'seviri_l2_bufr_amv': None,
                  'fci_l2_bufr_asr': 32, 'fci_l2_bufr_amv': None}
+
+# Need to set this in order to get consistent array sizes from eccodes
+os.environ['ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS'] = "1"
 
 
 class EumetsatL2BufrFileHandler(BaseFileHandler):
@@ -100,10 +105,16 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         else:
             # Product was retrieved from the EUMETSAT Data Center
             # get all attributes in one call
-            attr = self.get_attributes(['typicalDate', 'typicalTime', 'satelliteIdentifier'])
-
+            attr = self.get_attributes(['typicalDate', 'typicalTime'])
             timeStr = attr['typicalDate']+attr['typicalTime']
-            sc_id = attr['satelliteIdentifier']
+
+            darr = self.get_array('satelliteIdentifier')
+            arr = da.where(darr != BUFR_FILL_VALUE, darr, darr).compute()
+            if (arr.ndim > 0):
+                sc_id = int(arr[0])
+            else:
+                sc_id = int(arr)
+
             self.bufr_header = {}
             self.bufr_header['NominalTime'] = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             self.bufr_header['SpacecraftName'] = data_center_dict[sc_id]['name']
@@ -117,14 +128,24 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         if self.seg_size:
             # make this keyword not usable for non-grided products
             self.with_adef = with_area_definition
-            attr = self.get_attributes(['segmentSizeAtNadirInXDirection'])
-            self.resolution = attr['segmentSizeAtNadirInXDirection']
+
+            darr = self.get_array('segmentSizeAtNadirInXDirection')
+            # This key may not exists in some files
+            # This is specifically a "dirty" fox for the unit tests because the template used doesn't
+            # contain that key so initializing the object would fail without thic check
+            # but 'real' EUM BUFR files shall all have it
+            if darr is None:
+                self.resolution = None
+            else:
+                arr = da.where(darr != BUFR_FILL_VALUE, darr, darr).compute()
+                self.resolution = arr[0]
+
             # Note: There a difference between resolution and seg_size as from the seg_size_dict
             # in the bufr files segmentSizeAtNadirInXDirection is encoded in meters so it's indeed
             # the physical size of the segment while seg_size is the number of pixel lines / cols
             # but because FCI pixel size is 1km they look very similar, modulo 1000
         else:
-            self.with_adef = None
+            self.with_adef = False
             self.resolution = None
 
     @property
@@ -217,6 +238,10 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
                 ec.codes_set(bufr, 'unpack', 1)
 
+                if not ec.codes_is_defined(bufr, key):
+                    logging.warning(f'Key: {key} does not exist in BUFR file')
+                    return None
+
                 # Introduced fix for cases where all values in the expected array are the same
                 # (in particular fill values) which causes the eccodes to encode them and return
                 # them as a single value
@@ -225,29 +250,8 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
                 if (msgCount == 0):
                     arr = da.from_array(ec.codes_get_array(bufr, key, float), chunks=CHUNK_SIZE)
 
-                    if (arr.size == 1):
-                        # get the correct size from latitude key
-                        lat = da.from_array(ec.codes_get_array(bufr, '#1#latitude', float), chunks=CHUNK_SIZE)
-                        value = arr.compute()[0]
-                        # print('Warning: BUFR message size mismatch')
-                        # print(f'Expected: {lat.size} Decoded: {arr.size} value {arr[0]}')
-                        # duplicate the lat object and set all elements to the correct value
-                        arr = lat
-                        arr[:] = value
-
                 else:
                     tmpArr = da.from_array(ec.codes_get_array(bufr, key, float), chunks=CHUNK_SIZE)
-
-                    if (tmpArr.size == 1):
-                        # get the correct size from latitude key
-                        lat = da.from_array(ec.codes_get_array(bufr, '#1#latitude', float), chunks=CHUNK_SIZE)
-                        value = tmpArr.compute()[0]
-                        # print('Warning: BUFR message size mismatch')
-                        # print(f'Expected: {lat.size} Decoded: {tmpArr.size} value {arr[0]}')
-                        # duplicate the lat object and set all elements to the correct value
-                        tmpArr = lat
-                        tmpArr[:] = value
-
                     arr = da.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
