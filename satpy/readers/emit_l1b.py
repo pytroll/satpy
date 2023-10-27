@@ -59,12 +59,12 @@ class EMITL1BFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get observation start time."""
-        return datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT)
+        return datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT).replace(tzinfo=None)
 
     @property
     def end_time(self):
         """Get observation end time."""
-        return datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT)
+        return datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT).replace(tzinfo=None)
 
     @property
     def platform_name(self):
