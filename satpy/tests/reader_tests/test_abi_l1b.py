@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l1b reader tests package."""
+from __future__ import annotations
 
 import unittest
+from typing import Any
 from unittest import mock
 
 import numpy as np
@@ -26,13 +28,23 @@ import xarray as xr
 
 from satpy.tests.utils import make_dataid
 
+RAD_SHAPE = {
+    500: (3000, 5000),  # conus - 500m
+    1000: (1500, 2500),  # conus - 1km
+    2000: (750, 1250),  # conus - 2km
+}
 
-def _create_fake_rad_dataarray(rad=None):
+
+def _create_fake_rad_dataarray(
+        rad: xr.DataArray | None = None,
+        # resolution: int = 2000,
+):
     x_image = xr.DataArray(0.)
     y_image = xr.DataArray(0.)
     time = xr.DataArray(0.)
+    shape = (2, 5)  # RAD_SHAPE[resolution]
     if rad is None:
-        rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
+        rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.) * 50.
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
@@ -115,17 +127,28 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
     @mock.patch("satpy.readers.abi_base.xr")
-    def setUp(self, xr_, rad=None, clip_negative_radiances=False):
+    def setUp(
+            self,
+            xr_,
+            rad: xr.DataArray | None = None,
+            clip_negative_radiances: bool = False,
+            filetype_resolution: int = 0
+    ) -> None:
         """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
         xr_.open_dataset.return_value = _create_fake_rad_dataset(rad=rad)
-        self.reader = NC_ABI_L1B("filename",
-                                 {"platform_shortname": "G16", "observation_type": "Rad",
-                                  "suffix": "custom",
-                                  "scene_abbr": "C", "scan_mode": "M3"},
-                                 {"filetype": "info"},
-                                 clip_negative_radiances=clip_negative_radiances)
+        ft_info: dict[str, Any] = {"filetype": "info"}
+        if filetype_resolution:
+            ft_info["resolution"] = filetype_resolution
+        self.file_handler = NC_ABI_L1B(
+            "filename",
+            {"platform_shortname": "G16", "observation_type": "Rad",
+            "suffix": "custom",
+            "scene_abbr": "C", "scan_mode": "M3"},
+            ft_info,
+            clip_negative_radiances=clip_negative_radiances
+        )
 
 
 class TestABIYAML:
@@ -157,13 +180,13 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        assert self.reader.start_time == datetime(2017, 9, 20, 17, 30, 40, 800000)
-        assert self.reader.end_time == datetime(2017, 9, 20, 17, 41, 17, 500000)
+        assert self.file_handler.start_time == datetime(2017, 9, 20, 17, 30, 40, 800000)
+        assert self.file_handler.end_time == datetime(2017, 9, 20, 17, 41, 17, 500000)
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
         key = make_dataid(name="Rad", calibration="radiance")
-        res = self.reader.get_dataset(key, {"info": "info"})
+        res = self.file_handler.get_dataset(key, {"info": "info"})
         exp = {"calibration": "radiance",
                "instrument_ID": None,
                "modifiers": (),
@@ -198,14 +221,14 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef):
         """Test the area generation."""
-        self.reader.get_area_def(None)
+        self.file_handler.get_area_def(None)
 
         assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
         assert call_args[3] == {"a": 1.0, "b": 1.0, "h": 1.0,
                                 "lon_0": -90.0, "proj": "geos", "sweep": "x", "units": "m"}
-        assert call_args[4] == self.reader.ncols
-        assert call_args[5] == self.reader.nlines
+        assert call_args[4] == self.file_handler.ncols
+        assert call_args[5] == self.file_handler.nlines
         np.testing.assert_allclose(call_args[6], (-2, -2, 8, 2))
 
 
@@ -226,11 +249,11 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
                 "_FillValue": 1002,  # last rad_data value
             }
         )
-        super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad)
+        super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad, filetype_resolution=2000)
 
     def test_ir_calibration_attrs(self):
         """Test IR calibrated DataArray attributes."""
-        res = self.reader.get_dataset(
+        res = self.file_handler.get_dataset(
             make_dataid(name="C05", calibration="brightness_temperature"), {})
 
         # make sure the attributes from the file are in the data array
@@ -241,11 +264,11 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
 
     def test_clip_negative_radiances_attribute(self):
         """Assert that clip_negative_radiances is set to False."""
-        assert not self.reader.clip_negative_radiances
+        assert not self.file_handler.clip_negative_radiances
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        res = self.reader.get_dataset(
+        res = self.file_handler.get_dataset(
             make_dataid(name="C05", calibration="brightness_temperature"), {})
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
@@ -273,15 +296,15 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
             }
         )
 
-        super().setUp(rad=rad, clip_negative_radiances=True)
+        super().setUp(rad=rad, clip_negative_radiances=True, filetype_resolution=2000)
 
     def test_clip_negative_radiances_attribute(self):
         """Assert that clip_negative_radiances has been set to True."""
-        assert self.reader.clip_negative_radiances
+        assert self.file_handler.clip_negative_radiances
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        res = self.reader.get_dataset(
+        res = self.file_handler.get_dataset(
             make_dataid(name="C07", calibration="brightness_temperature"), {})
 
         clipped_ir = 267.07775531
@@ -319,11 +342,11 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                 "_FillValue": 20,
             }
         )
-        super(Test_NC_ABI_L1B_vis_cal, self).setUp(rad=rad)
+        super(Test_NC_ABI_L1B_vis_cal, self).setUp(rad=rad, filetype_resolution=1000)
 
     def test_vis_calibrate(self):
         """Test VIS calibration."""
-        res = self.reader.get_dataset(
+        res = self.file_handler.get_dataset(
             make_dataid(name="C05", calibration="reflectance"), {})
 
         expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
@@ -352,11 +375,11 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
                 "_FillValue": 20,
             }
         )
-        super(Test_NC_ABI_L1B_raw_cal, self).setUp(rad=rad)
+        super(Test_NC_ABI_L1B_raw_cal, self).setUp(rad=rad, filetype_resolution=1000)
 
     def test_raw_calibrate(self):
         """Test RAW calibration."""
-        res = self.reader.get_dataset(
+        res = self.file_handler.get_dataset(
             make_dataid(name="C05", calibration="counts"), {})
 
         # We expect the raw data to be unchanged
@@ -391,7 +414,7 @@ class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
 
         with self.assertRaises(ValueError, msg="Did not detect invalid cal"):
             did = FakeDataID(name="C05", calibration="invalid", modifiers=())
-            self.reader.get_dataset(did, {})
+            self.file_handler.get_dataset(did, {})
 
 
 class Test_NC_ABI_File(unittest.TestCase):
