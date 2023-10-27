@@ -66,21 +66,16 @@ class NC_ABI_BASE(BaseFileHandler):
 
         from satpy.utils import get_dask_chunk_size_in_bytes
         chunk_size_for_high_res = math.sqrt(get_dask_chunk_size_in_bytes() / 4)  # 32-bit floats
-        chunk_size_for_high_res = np.round(chunk_size_for_high_res / 226) * 226
-        ft = self.filetype_info["file_type"]
-        low_res_factor = 1 if ft == "c02" else (2 if ft in ("c01", "c03", "c05") else 4)
-        chunk_size = int(chunk_size_for_high_res / low_res_factor)
-        f_obj = open_file_or_filename(self.filename)
-        try:
+        chunk_size_for_high_res = np.round(chunk_size_for_high_res / (4 * 226)) * (4 * 226)
+        low_res_factor = int(self.filetype_info.get("resolution", 2000) // 500)
+        res_chunk_bytes = int(chunk_size_for_high_res / low_res_factor) * 4
+        import dask
+        with dask.config.set({"array.chunk-size": res_chunk_bytes}):
+            f_obj = open_file_or_filename(self.filename)
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={'x': chunk_size, 'y': chunk_size}, )
-        except ValueError:
-            nc = xr.open_dataset(f_obj,
-                                 decode_cf=True,
-                                 mask_and_scale=False,
-                                 chunks={'lon': chunk_size, 'lat': chunk_size}, )
+                                 chunks="auto")
         nc = self._rename_dims(nc)
         return nc
 

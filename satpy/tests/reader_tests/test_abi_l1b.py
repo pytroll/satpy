@@ -404,7 +404,7 @@ class Test_NC_ABI_File(unittest.TestCase):
 
         openable_thing = mock.MagicMock()
 
-        NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, None)
+        NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, {})
         openable_thing.open.assert_called()
 
 
