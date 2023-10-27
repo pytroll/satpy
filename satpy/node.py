@@ -121,8 +121,8 @@ class Node:
         """Display the node."""
         no_data = " (No Data)" if self.data is None else ""
         return (
-            (" +" * previous) + str(self.name) + no_data + '\n' +
-            ''.join([child.display(previous + 1) for child in self.children]))
+            (" +" * previous) + str(self.name) + no_data + "\n" +
+            "".join([child.display(previous + 1) for child in self.children]))
 
     def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
@@ -204,12 +204,12 @@ class ReaderNode(Node):
 
     def __init__(self, unique_id, reader_name):
         """Set up the node."""
-        super().__init__(unique_id, data={'reader_name': reader_name})
+        super().__init__(unique_id, data={"reader_name": reader_name})
 
     def _copy_name_and_data(self, node_cache):
-        return ReaderNode(self.name, self.data['reader_name'])
+        return ReaderNode(self.name, self.data["reader_name"])
 
     @property
     def reader_name(self):
         """Get the name of the reader."""
-        return self.data['reader_name']
+        return self.data["reader_name"]

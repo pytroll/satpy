@@ -67,9 +67,9 @@ c = 299792458  # m.s-1
 h = 6.6260755e-34  # m2kg.s-1
 k = 1.380658e-23  # m2kg.s-2.K-1
 
-short_names = {'NPP': 'Suomi-NPP',
-               'J01': 'NOAA-20',
-               'J02': 'NOAA-21'}
+short_names = {"NPP": "Suomi-NPP",
+               "J01": "NOAA-20",
+               "J02": "NOAA-21"}
 
 
 class VIIRSCompactFileHandler(BaseFileHandler):
@@ -83,28 +83,28 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.finfo = filename_info
         self.lons = None
         self.lats = None
-        if filetype_info['file_type'] == 'compact_m':
-            self.ch_type = 'MOD'
-        elif filetype_info['file_type'] == 'compact_dnb':
-            self.ch_type = 'DNB'
+        if filetype_info["file_type"] == "compact_m":
+            self.ch_type = "MOD"
+        elif filetype_info["file_type"] == "compact_dnb":
+            self.ch_type = "DNB"
         else:
-            raise IOError('Compact Viirs file type not recognized.')
+            raise IOError("Compact Viirs file type not recognized.")
 
         geo_data = self.h5f["Data_Products"]["VIIRS-%s-GEO" % self.ch_type]["VIIRS-%s-GEO_Gran_0" % self.ch_type]
-        self.min_lat = geo_data.attrs['South_Bounding_Coordinate'].item()
-        self.max_lat = geo_data.attrs['North_Bounding_Coordinate'].item()
-        self.min_lon = geo_data.attrs['West_Bounding_Coordinate'].item()
-        self.max_lon = geo_data.attrs['East_Bounding_Coordinate'].item()
+        self.min_lat = geo_data.attrs["South_Bounding_Coordinate"].item()
+        self.max_lat = geo_data.attrs["North_Bounding_Coordinate"].item()
+        self.min_lon = geo_data.attrs["West_Bounding_Coordinate"].item()
+        self.max_lon = geo_data.attrs["East_Bounding_Coordinate"].item()
 
         self.switch_to_cart = ((abs(self.max_lon - self.min_lon) > 90)
                                or (max(abs(self.min_lat), abs(self.max_lat)) > 60))
 
         self.scans = self.h5f["All_Data"]["NumberOfScans"][0]
-        self.geography = self.h5f["All_Data"]['VIIRS-%s-GEO_All' % self.ch_type]
+        self.geography = self.h5f["All_Data"]["VIIRS-%s-GEO_All" % self.ch_type]
 
         for key in self.h5f["All_Data"].keys():
             if key.startswith("VIIRS") and key.endswith("SDR_All"):
-                channel = key.split('-')[1]
+                channel = key.split("-")[1]
                 break
 
         # This supposes there is only one tiepoint zone in the track direction.
@@ -134,9 +134,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.cache = {}
 
         self.mda = {}
-        short_name = np2str(self.h5f.attrs['Platform_Short_Name'])
-        self.mda['platform_name'] = short_names.get(short_name, short_name)
-        self.mda['sensor'] = 'viirs'
+        short_name = np2str(self.h5f.attrs["Platform_Short_Name"])
+        self.mda["platform_name"] = short_names.get(short_name, short_name)
+        self.mda["sensor"] = "viirs"
 
     def __del__(self):
         """Close file handlers when we are done."""
@@ -145,75 +145,75 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key['name'])
-        if key['name'] in _channels_dict:
+        logger.debug("Reading %s.", key["name"])
+        if key["name"] in _channels_dict:
             m_data = self.read_dataset(key, info)
         else:
             m_data = self.read_geo(key, info)
         m_data.attrs.update(info)
-        m_data.attrs['rows_per_scan'] = self.scan_size
+        m_data.attrs["rows_per_scan"] = self.scan_size
         return m_data
 
     def get_bounding_box(self):
         """Get the bounding box of the data."""
         for key in self.h5f["Data_Products"].keys():
             if key.startswith("VIIRS") and key.endswith("GEO"):
-                lats = self.h5f["Data_Products"][key][key + '_Gran_0'].attrs['G-Ring_Latitude'][()]
-                lons = self.h5f["Data_Products"][key][key + '_Gran_0'].attrs['G-Ring_Longitude'][()]
+                lats = self.h5f["Data_Products"][key][key + "_Gran_0"].attrs["G-Ring_Latitude"][()]
+                lons = self.h5f["Data_Products"][key][key + "_Gran_0"].attrs["G-Ring_Longitude"][()]
                 break
         else:
-            raise KeyError('Cannot find bounding coordinates!')
+            raise KeyError("Cannot find bounding coordinates!")
         return lons.ravel(), lats.ravel()
 
     @property
     def start_time(self):
         """Get the start time."""
-        return self.finfo['start_time']
+        return self.finfo["start_time"]
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = datetime.combine(self.start_time.date(),
-                                    self.finfo['end_time'].time())
+                                    self.finfo["end_time"].time())
         if end_time < self.start_time:
             end_time += timedelta(days=1)
         return end_time
 
     def read_geo(self, key, info):
         """Read angles."""
-        pairs = {('satellite_azimuth_angle', 'satellite_zenith_angle'):
+        pairs = {("satellite_azimuth_angle", "satellite_zenith_angle"):
                  ("SatelliteAzimuthAngle", "SatelliteZenithAngle"),
-                 ('solar_azimuth_angle', 'solar_zenith_angle'):
+                 ("solar_azimuth_angle", "solar_zenith_angle"):
                  ("SolarAzimuthAngle", "SolarZenithAngle"),
-                 ('dnb_solar_azimuth_angle', 'dnb_solar_zenith_angle'):
+                 ("dnb_solar_azimuth_angle", "dnb_solar_zenith_angle"):
                  ("SolarAzimuthAngle", "SolarZenithAngle"),
-                 ('dnb_lunar_azimuth_angle', 'dnb_lunar_zenith_angle'):
+                 ("dnb_lunar_azimuth_angle", "dnb_lunar_zenith_angle"):
                  ("LunarAzimuthAngle", "LunarZenithAngle"),
                  }
         if self.lons is None or self.lats is None:
             self.lons, self.lats = self.navigate()
         for pair, fkeys in pairs.items():
-            if key['name'] in pair:
+            if key["name"] in pair:
                 if (self.cache.get(pair[0]) is None
                         or self.cache.get(pair[1]) is None):
                     angles = self.angles(*fkeys)
                     self.cache[pair[0]], self.cache[pair[1]] = angles
-                if key['name'] == pair[0]:
-                    return xr.DataArray(self.cache[pair[0]], name=key['name'],
-                                        attrs=self.mda, dims=('y', 'x'))
+                if key["name"] == pair[0]:
+                    return xr.DataArray(self.cache[pair[0]], name=key["name"],
+                                        attrs=self.mda, dims=("y", "x"))
                 else:
-                    return xr.DataArray(self.cache[pair[1]], name=key['name'],
-                                        attrs=self.mda, dims=('y', 'x'))
+                    return xr.DataArray(self.cache[pair[1]], name=key["name"],
+                                        attrs=self.mda, dims=("y", "x"))
 
-        if info.get('standard_name') in ['latitude', 'longitude']:
+        if info.get("standard_name") in ["latitude", "longitude"]:
             mda = self.mda.copy()
             mda.update(info)
-            if info['standard_name'] == 'longitude':
-                return xr.DataArray(self.lons, attrs=mda, dims=('y', 'x'))
+            if info["standard_name"] == "longitude":
+                return xr.DataArray(self.lons, attrs=mda, dims=("y", "x"))
             else:
-                return xr.DataArray(self.lats, attrs=mda, dims=('y', 'x'))
+                return xr.DataArray(self.lats, attrs=mda, dims=("y", "x"))
 
-        if key['name'] == 'dnb_moon_illumination_fraction':
+        if key["name"] == "dnb_moon_illumination_fraction":
             mda = self.mda.copy()
             mda.update(info)
             return xr.DataArray(da.from_array(self.geography["MoonIllumFraction"]),
@@ -222,7 +222,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
     def read_dataset(self, dataset_key, info):
         """Read a dataset."""
         h5f = self.h5f
-        channel = _channels_dict[dataset_key['name']]
+        channel = _channels_dict[dataset_key["name"]]
         chan_dict = dict([(key.split("-")[1], key)
                           for key in h5f["All_Data"].keys()
                           if key.startswith("VIIRS")])
@@ -230,39 +230,39 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         h5rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
         chunks = h5rads.chunks or CHUNK_SIZE
         rads = xr.DataArray(da.from_array(h5rads, chunks=chunks),
-                            name=dataset_key['name'],
-                            dims=['y', 'x']).astype(np.float32)
+                            name=dataset_key["name"],
+                            dims=["y", "x"]).astype(np.float32)
         h5attrs = h5rads.attrs
         scans = h5f["All_Data"]["NumberOfScans"][0]
         rads = rads[:scans * 16, :]
         rads = rads.where(rads <= 65526)
         try:
-            rads = xr.where(rads <= h5attrs['Threshold'],
-                            rads * h5attrs['RadianceScaleLow'] +
-                            h5attrs['RadianceOffsetLow'],
-                            rads * h5attrs['RadianceScaleHigh'] +
-                            h5attrs['RadianceOffsetHigh'])
+            rads = xr.where(rads <= h5attrs["Threshold"],
+                            rads * h5attrs["RadianceScaleLow"] +
+                            h5attrs["RadianceOffsetLow"],
+                            rads * h5attrs["RadianceScaleHigh"] +
+                            h5attrs["RadianceOffsetHigh"])
         except (KeyError, AttributeError):
             logger.info("Missing attribute for scaling of %s.", channel)
             pass
         unit = "W m-2 sr-1 μm-1"
-        if dataset_key['calibration'] == 'counts':
+        if dataset_key["calibration"] == "counts":
             raise NotImplementedError("Can't get counts from this data")
-        if dataset_key['calibration'] in ['reflectance', 'brightness_temperature']:
+        if dataset_key["calibration"] in ["reflectance", "brightness_temperature"]:
             # do calibrate
             try:
                 # First guess: VIS or NIR data
-                a_vis = h5attrs['EquivalentWidth']
-                b_vis = h5attrs['IntegratedSolarIrradiance']
-                dse = h5attrs['EarthSunDistanceNormalised']
+                a_vis = h5attrs["EquivalentWidth"]
+                b_vis = h5attrs["IntegratedSolarIrradiance"]
+                dse = h5attrs["EarthSunDistanceNormalised"]
                 rads *= 100 * np.pi * a_vis / b_vis * (dse**2)
                 unit = "%"
             except KeyError:
                 # Maybe it's IR data?
                 try:
-                    a_ir = h5attrs['BandCorrectionCoefficientA']
-                    b_ir = h5attrs['BandCorrectionCoefficientB']
-                    lambda_c = h5attrs['CentralWaveLength']
+                    a_ir = h5attrs["BandCorrectionCoefficientA"]
+                    b_ir = h5attrs["BandCorrectionCoefficientB"]
+                    lambda_c = h5attrs["CentralWaveLength"]
                     rads *= 1e6
                     rads = (h * c) / (k * lambda_c *
                                       np.log(1 +
@@ -274,12 +274,12 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 except KeyError:
                     logger.warning("Calibration failed.")
 
-        elif dataset_key['calibration'] != 'radiance':
+        elif dataset_key["calibration"] != "radiance":
             raise ValueError("Calibration parameter should be radiance, "
                              "reflectance or brightness_temperature")
         rads = rads.clip(min=0)
         rads.attrs = self.mda
-        rads.attrs['units'] = unit
+        rads.attrs["units"] = unit
         return rads
 
     def expand_angle_and_nav(self, arrays):
@@ -326,7 +326,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         return expanded
 
     def _get_geographical_chunks(self):
-        shape = self.geography['Longitude'].shape
+        shape = self.geography["Longitude"].shape
         horizontal_chunks = (self.nb_tiepoint_zones + 1).compute()
         chunks = (shape[0], tuple(horizontal_chunks))
         return chunks

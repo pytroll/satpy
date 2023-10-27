@@ -79,9 +79,9 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
     vis = xr.DataArray(data,
                        dims=dims,
                        attrs={
-                           'area': area_def,
-                           'start_time': stime,
-                           'orbital_parameters': orb_params,
+                           "area": area_def,
+                           "start_time": stime,
+                           "orbital_parameters": orb_params,
                        })
     return vis
 
@@ -318,7 +318,7 @@ class TestAngleGeneration:
         def _fake_func(shape, chunks):
             return np.zeros(shape)
 
-        with pytest.raises(ValueError), \
+        with pytest.raises(ValueError, match="Zarr caching currently only supports dask arrays. Got .*"), \
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func((5, 5), ((5,), (5,)))
 

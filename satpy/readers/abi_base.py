@@ -34,13 +34,13 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
-    'g16': 'GOES-16',
-    'g17': 'GOES-17',
-    'g18': 'GOES-18',
-    'g19': 'GOES-19',
-    'goes16': 'GOES-16',
-    'goes17': 'GOES-17',
-    'goes18': 'GOES-18',
+    "g16": "GOES-16",
+    "g17": "GOES-17",
+    "g18": "GOES-18",
+    "g19": "GOES-19",
+    "goes16": "GOES-16",
+    "goes17": "GOES-17",
+    "goes18": "GOES-18",
 }
 
 
@@ -51,11 +51,11 @@ class NC_ABI_BASE(BaseFileHandler):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
 
-        platform_shortname = filename_info['platform_shortname']
+        platform_shortname = filename_info["platform_shortname"]
         self.platform_name = PLATFORM_NAMES.get(platform_shortname.lower())
 
-        self.nlines = self.nc['y'].size
-        self.ncols = self.nc['x'].size
+        self.nlines = self.nc["y"].size
+        self.ncols = self.nc["x"].size
 
         self.coords = {}
 
@@ -67,28 +67,28 @@ class NC_ABI_BASE(BaseFileHandler):
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
+                                 chunks={"x": CHUNK_SIZE, "y": CHUNK_SIZE}, )
         except ValueError:
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
+                                 chunks={"lon": CHUNK_SIZE, "lat": CHUNK_SIZE}, )
         nc = self._rename_dims(nc)
         return nc
 
     @staticmethod
     def _rename_dims(nc):
-        if 't' in nc.dims or 't' in nc.coords:
-            nc = nc.rename({'t': 'time'})
-        if 'goes_lat_lon_projection' in nc:
+        if "t" in nc.dims or "t" in nc.coords:
+            nc = nc.rename({"t": "time"})
+        if "goes_lat_lon_projection" in nc:
             with suppress(ValueError):
-                nc = nc.rename({'lon': 'x', 'lat': 'y'})
+                nc = nc.rename({"lon": "x", "lat": "y"})
         return nc
 
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
-        return 'abi'
+        return "abi"
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.
@@ -110,21 +110,21 @@ class NC_ABI_BASE(BaseFileHandler):
 
     def _adjust_data(self, data, item):
         """Adjust data with typing, scaling and filling."""
-        factor = data.attrs.get('scale_factor', 1)
-        offset = data.attrs.get('add_offset', 0)
-        fill = data.attrs.get('_FillValue')
-        unsigned = data.attrs.get('_Unsigned', None)
+        factor = data.attrs.get("scale_factor", 1)
+        offset = data.attrs.get("add_offset", 0)
+        fill = data.attrs.get("_FillValue")
+        unsigned = data.attrs.get("_Unsigned", None)
 
         def is_int(val):
-            return np.issubdtype(val.dtype, np.integer) if hasattr(val, 'dtype') else isinstance(val, int)
+            return np.issubdtype(val.dtype, np.integer) if hasattr(val, "dtype") else isinstance(val, int)
 
         # Ref. GOESR PUG-L1B-vol3, section 5.0.2 Unsigned Integer Processing
-        if unsigned is not None and unsigned.lower() == 'true':
+        if unsigned is not None and unsigned.lower() == "true":
             # cast the data from int to uint
-            data = data.astype('u%s' % data.dtype.itemsize)
+            data = data.astype("u%s" % data.dtype.itemsize)
 
             if fill is not None:
-                fill = fill.astype('u%s' % fill.dtype.itemsize)
+                fill = fill.astype("u%s" % fill.dtype.itemsize)
         if fill is not None:
             # Some backends (h5netcdf) may return attributes as shape (1,)
             # arrays rather than shape () scalars, which according to the netcdf
@@ -138,7 +138,7 @@ class NC_ABI_BASE(BaseFileHandler):
             else:
                 new_fill = np.nan
             data = data.where(data != fill, new_fill)
-        if factor != 1 and item in ('x', 'y'):
+        if factor != 1 and item in ("x", "y"):
             # be more precise with x/y coordinates
             # see get_area_def for more information
             data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
@@ -157,7 +157,7 @@ class NC_ABI_BASE(BaseFileHandler):
         # 'time' dimension causes issues in other processing
         # 'x_image' and 'y_image' are confusing to some users and unnecessary
         # 'x' and 'y' will be overwritten by base class AreaDefinition
-        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
+        for coord_name in ("x_image", "y_image", "time", "x", "y"):
             if coord_name in data.coords:
                 data = data.drop_vars(coord_name)
         if item in data.coords:
@@ -175,44 +175,44 @@ class NC_ABI_BASE(BaseFileHandler):
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
-        if 'goes_imager_projection' in self.nc:
+        if "goes_imager_projection" in self.nc:
             return self._get_areadef_fixedgrid(key)
-        if 'goes_lat_lon_projection' in self.nc:
+        if "goes_lat_lon_projection" in self.nc:
             return self._get_areadef_latlon(key)
-        raise ValueError('Unsupported projection found in the dataset')
+        raise ValueError("Unsupported projection found in the dataset")
 
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand."""
         projection = self.nc["goes_lat_lon_projection"]
 
-        a = projection.attrs['semi_major_axis']
-        b = projection.attrs['semi_minor_axis']
-        fi = projection.attrs['inverse_flattening']
-        pm = projection.attrs['longitude_of_prime_meridian']
+        a = projection.attrs["semi_major_axis"]
+        b = projection.attrs["semi_minor_axis"]
+        fi = projection.attrs["inverse_flattening"]
+        pm = projection.attrs["longitude_of_prime_meridian"]
 
         proj_ext = self.nc["geospatial_lat_lon_extent"]
 
-        w_lon = proj_ext.attrs['geospatial_westbound_longitude']
-        e_lon = proj_ext.attrs['geospatial_eastbound_longitude']
-        n_lat = proj_ext.attrs['geospatial_northbound_latitude']
-        s_lat = proj_ext.attrs['geospatial_southbound_latitude']
+        w_lon = proj_ext.attrs["geospatial_westbound_longitude"]
+        e_lon = proj_ext.attrs["geospatial_eastbound_longitude"]
+        n_lat = proj_ext.attrs["geospatial_northbound_latitude"]
+        s_lat = proj_ext.attrs["geospatial_southbound_latitude"]
 
-        lat_0 = proj_ext.attrs['geospatial_lat_center']
-        lon_0 = proj_ext.attrs['geospatial_lon_center']
+        lat_0 = proj_ext.attrs["geospatial_lat_center"]
+        lon_0 = proj_ext.attrs["geospatial_lon_center"]
 
         area_extent = (w_lon, s_lat, e_lon, n_lat)
-        proj_dict = {'proj': 'latlong',
-                     'lon_0': float(lon_0),
-                     'lat_0': float(lat_0),
-                     'a': float(a),
-                     'b': float(b),
-                     'fi': float(fi),
-                     'pm': float(pm)}
+        proj_dict = {"proj": "latlong",
+                     "lon_0": float(lon_0),
+                     "lat_0": float(lat_0),
+                     "a": float(a),
+                     "b": float(b),
+                     "fi": float(fi),
+                     "pm": float(pm)}
 
         ll_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'abi_geos'),
-            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
-            'abi_latlon',
+            self.nc.attrs.get("orbital_slot", "abi_geos"),
+            self.nc.attrs.get("spatial_resolution", "ABI file area"),
+            "abi_latlon",
             proj_dict,
             self.ncols,
             self.nlines,
@@ -231,17 +231,17 @@ class NC_ABI_BASE(BaseFileHandler):
 
         """
         projection = self.nc["goes_imager_projection"]
-        a = projection.attrs['semi_major_axis']
-        b = projection.attrs['semi_minor_axis']
-        h = projection.attrs['perspective_point_height']
+        a = projection.attrs["semi_major_axis"]
+        b = projection.attrs["semi_minor_axis"]
+        h = projection.attrs["perspective_point_height"]
 
-        lon_0 = projection.attrs['longitude_of_projection_origin']
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
+        lon_0 = projection.attrs["longitude_of_projection_origin"]
+        sweep_axis = projection.attrs["sweep_angle_axis"][0]
 
         # compute x and y extents in m
         h = np.float64(h)
-        x = self['x']
-        y = self['y']
+        x = self["x"]
+        y = self["y"]
         x_l = x[0].values
         x_r = x[-1].values
         y_l = y[-1].values
@@ -251,18 +251,18 @@ class NC_ABI_BASE(BaseFileHandler):
         area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
         area_extent = tuple(np.round(h * val, 6) for val in area_extent)
 
-        proj_dict = {'proj': 'geos',
-                     'lon_0': float(lon_0),
-                     'a': float(a),
-                     'b': float(b),
-                     'h': h,
-                     'units': 'm',
-                     'sweep': sweep_axis}
+        proj_dict = {"proj": "geos",
+                     "lon_0": float(lon_0),
+                     "a": float(a),
+                     "b": float(b),
+                     "h": h,
+                     "units": "m",
+                     "sweep": sweep_axis}
 
         fg_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'abi_geos'),
-            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
-            'abi_fixed_grid',
+            self.nc.attrs.get("orbital_slot", "abi_geos"),
+            self.nc.attrs.get("spatial_resolution", "ABI file area"),
+            "abi_fixed_grid",
             proj_dict,
             self.ncols,
             self.nlines,
@@ -273,19 +273,19 @@ class NC_ABI_BASE(BaseFileHandler):
     @property
     def start_time(self):
         """Start time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["time_coverage_start"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """End time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["time_coverage_end"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     def spatial_resolution_to_number(self):
         """Convert the 'spatial_resolution' global attribute to meters."""
-        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
-        if res.endswith('km'):
+        res = self.nc.attrs["spatial_resolution"].split(" ")[0]
+        if res.endswith("km"):
             res = int(float(res[:-2]) * 1000)
-        elif res.endswith('m'):
+        elif res.endswith("m"):
             res = int(res[:-1])
         else:
             raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))

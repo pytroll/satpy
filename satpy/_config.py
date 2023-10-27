@@ -38,21 +38,21 @@ LOG = logging.getLogger(__name__)
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
-PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
+PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, "etc")
 
-_satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
+_satpy_dirs = appdirs.AppDirs(appname="satpy", appauthor="pytroll")
 _CONFIG_DEFAULTS = {
-    'tmp_dir': tempfile.gettempdir(),
-    'cache_dir': _satpy_dirs.user_cache_dir,
-    'cache_lonlats': False,
-    'cache_sensor_angles': False,
-    'config_path': [],
-    'data_dir': _satpy_dirs.user_data_dir,
-    'demo_data_dir': '.',
-    'download_aux': True,
-    'sensor_angles_position_preference': 'actual',
-    'readers': {
-        'clip_negative_radiances': False,
+    "tmp_dir": tempfile.gettempdir(),
+    "cache_dir": _satpy_dirs.user_cache_dir,
+    "cache_lonlats": False,
+    "cache_sensor_angles": False,
+    "config_path": [],
+    "data_dir": _satpy_dirs.user_data_dir,
+    "demo_data_dir": ".",
+    "download_aux": True,
+    "sensor_angles_position_preference": "actual",
+    "readers": {
+        "clip_negative_radiances": False,
     },
 }
 
@@ -68,17 +68,17 @@ _CONFIG_DEFAULTS = {
 # 5. ~/.satpy/satpy.yaml
 # 6. $SATPY_CONFIG_PATH/satpy.yaml if present (colon separated)
 _CONFIG_PATHS = [
-    os.path.join(PACKAGE_CONFIG_PATH, 'satpy.yaml'),
-    os.getenv('SATPY_ROOT_CONFIG', os.path.join('/etc', 'satpy', 'satpy.yaml')),
-    os.path.join(sys.prefix, 'etc', 'satpy', 'satpy.yaml'),
-    os.path.join(_satpy_dirs.user_config_dir, 'satpy.yaml'),
-    os.path.join(os.path.expanduser('~'), '.satpy', 'satpy.yaml'),
+    os.path.join(PACKAGE_CONFIG_PATH, "satpy.yaml"),
+    os.getenv("SATPY_ROOT_CONFIG", os.path.join("/etc", "satpy", "satpy.yaml")),
+    os.path.join(sys.prefix, "etc", "satpy", "satpy.yaml"),
+    os.path.join(_satpy_dirs.user_config_dir, "satpy.yaml"),
+    os.path.join(os.path.expanduser("~"), ".satpy", "satpy.yaml"),
 ]
 # The above files can also be directories. If directories all files
 # with `.yaml`., `.yml`, or `.json` extensions will be used.
 
-_ppp_config_dir = os.getenv('PPP_CONFIG_DIR', None)
-_satpy_config_path = os.getenv('SATPY_CONFIG_PATH', None)
+_ppp_config_dir = os.getenv("PPP_CONFIG_DIR", None)
+_satpy_config_path = os.getenv("SATPY_CONFIG_PATH", None)
 
 if _ppp_config_dir is not None and _satpy_config_path is None:
     LOG.warning("'PPP_CONFIG_DIR' is deprecated. Please use 'SATPY_CONFIG_PATH' instead.")
@@ -94,22 +94,22 @@ if _satpy_config_path is not None:
         # i.e. last-applied/highest priority to first-applied/lowest priority
         _satpy_config_path_list = _satpy_config_path.split(os.pathsep)
 
-    os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path_list)
+    os.environ["SATPY_CONFIG_PATH"] = repr(_satpy_config_path_list)
     for config_dir in _satpy_config_path_list:
-        _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
+        _CONFIG_PATHS.append(os.path.join(config_dir, "satpy.yaml"))
 
-_ancpath = os.getenv('SATPY_ANCPATH', None)
-_data_dir = os.getenv('SATPY_DATA_DIR', None)
+_ancpath = os.getenv("SATPY_ANCPATH", None)
+_data_dir = os.getenv("SATPY_DATA_DIR", None)
 if _ancpath is not None and _data_dir is None:
     LOG.warning("'SATPY_ANCPATH' is deprecated. Please use 'SATPY_DATA_DIR' instead.")
-    os.environ['SATPY_DATA_DIR'] = _ancpath
+    os.environ["SATPY_DATA_DIR"] = _ancpath
 
 config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
 def get_config_path_safe():
     """Get 'config_path' and check for proper 'list' type."""
-    config_path = config.get('config_path')
+    config_path = config.get("config_path")
     if not isinstance(config_path, list):
         raise ValueError("Satpy config option 'config_path' must be a "
                          "list, not '{}'".format(type(config_path)))
@@ -125,7 +125,7 @@ def get_entry_points_config_dirs(group_name: str, include_config_path: bool = Tr
         if not dirs or dirs[-1] != new_dir:
             dirs.append(new_dir)
     if include_config_path:
-        dirs.extend(config.get('config_path')[::-1])
+        dirs.extend(config.get("config_path")[::-1])
     return dirs
 
 

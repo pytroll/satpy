@@ -42,16 +42,16 @@ class UnfriendlyModifier(ModifierBase, DataDownloadMixin):
         if not prerequisites or len(prerequisites) != 1:
             raise ValueError("Unexpected number of prereqs")
         super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
-        self.register_data_files({'url': kwargs['url'],
-                                  'filename': kwargs['filename'],
-                                  'known_hash': kwargs['known_hash']})
+        self.register_data_files({"url": kwargs["url"],
+                                  "filename": kwargs["filename"],
+                                  "known_hash": kwargs["known_hash"]})
 
 
 def _setup_custom_composite_config(base_dir):
     from satpy.composites import StaticImageCompositor
     from satpy.modifiers.atmosphere import ReflectanceCorrector
     composite_config = base_dir.mkdir("composites").join("visir.yaml")
-    with open(composite_config, 'w') as comp_file:
+    with open(composite_config, "w") as comp_file:
         yaml.dump({
             "sensor_name": "visir",
             "modifiers": {
@@ -79,7 +79,7 @@ def _setup_custom_composite_config(base_dir):
 
 def _setup_custom_reader_config(base_dir):
     reader_config = base_dir.mkdir("readers").join("fake.yaml")
-    with open(reader_config, 'wt') as comp_file:
+    with open(reader_config, "wt") as comp_file:
         # abstract base classes can't be converted so we do raw string
         comp_file.write("""
 reader:
@@ -97,7 +97,7 @@ file_types: {{}}
 
 def _setup_custom_writer_config(base_dir):
     writer_config = base_dir.mkdir("writers").join("fake.yaml")
-    with open(writer_config, 'wt') as comp_file:
+    with open(writer_config, "wt") as comp_file:
         # abstract base classes can't be converted so we do raw string
         comp_file.write("""
 writer:
@@ -113,8 +113,8 @@ writer:
 
 
 def _assert_reader_files_downloaded(readers, found_files):
-    r_cond1 = 'readers/README.rst' in found_files
-    r_cond2 = 'readers/README2.rst' in found_files
+    r_cond1 = "readers/README.rst" in found_files
+    r_cond2 = "readers/README2.rst" in found_files
     if readers is not None and not readers:
         r_cond1 = not r_cond1
         r_cond2 = not r_cond2
@@ -123,8 +123,8 @@ def _assert_reader_files_downloaded(readers, found_files):
 
 
 def _assert_writer_files_downloaded(writers, found_files):
-    w_cond1 = 'writers/README.rst' in found_files
-    w_cond2 = 'writers/README2.rst' in found_files
+    w_cond1 = "writers/README.rst" in found_files
+    w_cond2 = "writers/README2.rst" in found_files
     if writers is not None and not writers:
         w_cond1 = not w_cond1
         w_cond2 = not w_cond2
@@ -133,15 +133,15 @@ def _assert_writer_files_downloaded(writers, found_files):
 
 
 def _assert_comp_files_downloaded(comp_sensors, found_files):
-    comp_cond = 'composites/README.rst' in found_files
+    comp_cond = "composites/README.rst" in found_files
     if comp_sensors is not None and not comp_sensors:
         comp_cond = not comp_cond
     assert comp_cond
 
 
 def _assert_mod_files_downloaded(comp_sensors, found_files):
-    mod_cond = 'modifiers/README.rst' in found_files
-    unfriendly_cond = 'modifiers/unfriendly.rst' in found_files
+    mod_cond = "modifiers/README.rst" in found_files
+    unfriendly_cond = "modifiers/unfriendly.rst" in found_files
     if comp_sensors is not None and not comp_sensors:
         mod_cond = not mod_cond
     assert mod_cond
@@ -158,15 +158,15 @@ class TestDataDownload:
         _setup_custom_writer_config(tmpdir)
         self.tmpdir = tmpdir
 
-    @pytest.mark.parametrize('comp_sensors', [[], None, ['visir']])
-    @pytest.mark.parametrize('writers', [[], None, ['fake']])
-    @pytest.mark.parametrize('readers', [[], None, ['fake']])
+    @pytest.mark.parametrize("comp_sensors", [tuple(), None, ("visir",)])
+    @pytest.mark.parametrize("writers", [[], None, ["fake"]])
+    @pytest.mark.parametrize("readers", [[], None, ["fake"]])
     def test_find_registerable(self, readers, writers, comp_sensors):
         """Test that find_registerable finds some things."""
         import satpy
         from satpy.aux_download import find_registerable_files
         with satpy.config.set(config_path=[self.tmpdir]), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', {}):
+             mock.patch("satpy.aux_download._FILE_REGISTRY", {}):
             found_files = find_registerable_files(
                 readers=readers, writers=writers,
                 composite_sensors=comp_sensors,
@@ -183,7 +183,7 @@ class TestDataDownload:
         from satpy.aux_download import find_registerable_files
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir]), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry):
             found_files = find_registerable_files(
                 readers=[], writers=[], composite_sensors=[],
             )
@@ -195,8 +195,8 @@ class TestDataDownload:
         from satpy.aux_download import find_registerable_files, retrieve
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
-            comp_file = 'composites/README.rst'
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry):
+            comp_file = "composites/README.rst"
             found_files = find_registerable_files()
             assert comp_file in found_files
             assert not self.tmpdir.join(comp_file).exists()
@@ -209,8 +209,8 @@ class TestDataDownload:
         from satpy.aux_download import find_registerable_files, retrieve
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir), download_aux=True), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
-            comp_file = 'composites/README.rst'
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry):
+            comp_file = "composites/README.rst"
             found_files = find_registerable_files()
             assert comp_file in found_files
 
@@ -242,10 +242,10 @@ class TestDataDownload:
         file_registry = {}
         file_urls = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
-             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
-             mock.patch('satpy.aux_download.find_registerable_files'):
-            comp_file = 'composites/README.rst'
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry), \
+             mock.patch("satpy.aux_download._FILE_URLS", file_urls), \
+             mock.patch("satpy.aux_download.find_registerable_files"):
+            comp_file = "composites/README.rst"
             file_registry[comp_file] = None
             file_urls[comp_file] = README_URL
             assert not self.tmpdir.join(comp_file).exists()
@@ -260,13 +260,13 @@ class TestDataDownload:
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir),
                               download_aux=True), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
-            cache_key = 'myfile.rst'
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry):
+            cache_key = "myfile.rst"
             register_file(README_URL, cache_key)
             assert not self.tmpdir.join(cache_key).exists()
             pytest.raises(RuntimeError, retrieve, cache_key)
             # touch the file so it gets created
-            open(self.tmpdir.join(cache_key), 'w').close()
+            open(self.tmpdir.join(cache_key), "w").close()
             # offline downloading should still be allowed
             with satpy.config.set(download_aux=False):
                 retrieve(cache_key)
@@ -278,10 +278,10 @@ class TestDataDownload:
         file_registry = {}
         file_urls = {}
         with satpy.config.set(config_path=[self.tmpdir]), \
-             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
-             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
-             mock.patch('satpy.aux_download.find_registerable_files'):
-            comp_file = 'composites/README.rst'
+             mock.patch("satpy.aux_download._FILE_REGISTRY", file_registry), \
+             mock.patch("satpy.aux_download._FILE_URLS", file_urls), \
+             mock.patch("satpy.aux_download.find_registerable_files"):
+            comp_file = "composites/README.rst"
             file_registry[comp_file] = None
             file_urls[comp_file] = README_URL
             assert not self.tmpdir.join(comp_file).exists()

@@ -90,13 +90,13 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "H": 500}
 
     res_to_possible_variable_names = {
-        1000: ['EV_250_Aggr1km_RefSB',
-               'EV_500_Aggr1km_RefSB',
-               'EV_1KM_RefSB',
-               'EV_1KM_Emissive'],
-        500: ['EV_250_Aggr500_RefSB',
-              'EV_500_RefSB'],
-        250: ['EV_250_RefSB'],
+        1000: ["EV_250_Aggr1km_RefSB",
+               "EV_500_Aggr1km_RefSB",
+               "EV_1KM_RefSB",
+               "EV_1KM_Emissive"],
+        500: ["EV_250_Aggr500_RefSB",
+              "EV_500_RefSB"],
+        250: ["EV_250_RefSB"],
     }
 
     def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, **kwargs):
@@ -104,13 +104,13 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         super().__init__(filename, filename_info, filetype_info, **kwargs)
         self._mask_saturated = mask_saturated
 
-        ds = self.metadata['INVENTORYMETADATA'][
-            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        ds = self.metadata["INVENTORYMETADATA"][
+            "COLLECTIONDESCRIPTIONCLASS"]["SHORTNAME"]["VALUE"]
         self.resolution = self.res[ds[-3]]
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        if self.resolution != key['resolution']:
+        if self.resolution != key["resolution"]:
             return
         var_name, band_index = self._get_band_variable_name_and_index(key["name"])
         subdata = self.sd.select(var_name)
@@ -118,8 +118,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
         chunks = self._chunks_for_variable(subdata)
         array = xr.DataArray(from_sds(subdata, chunks=chunks)[band_index, :, :],
-                             dims=['y', 'x']).astype(np.float32)
-        valid_range = var_attrs['valid_range']
+                             dims=["y", "x"]).astype(np.float32)
+        valid_range = var_attrs["valid_range"]
         valid_min = np.float32(valid_range[0])
         valid_max = np.float32(valid_range[1])
         if not self._mask_saturated:
@@ -219,24 +219,24 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return array
 
     def _calibrate_data(self, key, info, array, var_attrs, index):
-        if key['calibration'] == 'brightness_temperature':
-            projectable = calibrate_bt(array, var_attrs, index, key['name'])
-            info.setdefault('units', 'K')
-            info.setdefault('standard_name', 'toa_brightness_temperature')
-        elif key['calibration'] == 'reflectance':
+        if key["calibration"] == "brightness_temperature":
+            projectable = calibrate_bt(array, var_attrs, index, key["name"])
+            info.setdefault("units", "K")
+            info.setdefault("standard_name", "toa_brightness_temperature")
+        elif key["calibration"] == "reflectance":
             projectable = calibrate_refl(array, var_attrs, index)
-            info.setdefault('units', '%')
-            info.setdefault('standard_name',
-                            'toa_bidirectional_reflectance')
-        elif key['calibration'] == 'radiance':
+            info.setdefault("units", "%")
+            info.setdefault("standard_name",
+                            "toa_bidirectional_reflectance")
+        elif key["calibration"] == "radiance":
             projectable = calibrate_radiance(array, var_attrs, index)
-            info.setdefault('units', var_attrs.get('radiance_units'))
-            info.setdefault('standard_name',
-                            'toa_outgoing_radiance_per_unit_wavelength')
-        elif key['calibration'] == 'counts':
+            info.setdefault("units", var_attrs.get("radiance_units"))
+            info.setdefault("standard_name",
+                            "toa_outgoing_radiance_per_unit_wavelength")
+        elif key["calibration"] == "counts":
             projectable = calibrate_counts(array, var_attrs, index)
-            info.setdefault('units', 'counts')
-            info.setdefault('standard_name', 'counts')  # made up
+            info.setdefault("units", "counts")
+            info.setdefault("standard_name", "counts")  # made up
         else:
             raise ValueError("Unknown calibration for "
                              "key: {}".format(key))
@@ -254,7 +254,7 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
-        if key['name'] in HDFEOSGeoReader.DATASET_NAMES:
+        if key["name"] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
 

@@ -46,17 +46,17 @@ DEFAULT_LON = np.linspace(127.6879, 144.5284, N_SCANLINE * N_FOV,
 FREQ = xr.DataArray([23.8, 31.4, 50.3, 51.76, 52.8, 53.596, 54.4, 54.94, 55.5,
                      57.29, 57.29, 57.29, 57.29, 57.29, 57.29, 88.2, 165.5,
                      183.31, 183.31, 183.31, 183.31, 183.31][:N_CHANNEL],
-                    dims='Channel',
-                    attrs={'description': "Central Frequencies (GHz)"})
+                    dims="Channel",
+                    attrs={"description": "Central Frequencies (GHz)"})
 POLO = xr.DataArray([2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3,
-                     3, 3, 3][:N_CHANNEL], dims='Channel',
-                    attrs={'description': "Polarizations"})
+                     3, 3, 3][:N_CHANNEL], dims="Channel",
+                    attrs={"description": "Polarizations"})
 
-DS_IDS = ['RR', 'longitude', 'latitude']
-TEST_VARS = ['btemp_88v', 'btemp_165h',
-             'btemp_23v', 'RR', 'Sfc_type']
-DEFAULT_UNITS = {'btemp_88v': 'K', 'btemp_165h': 'K',
-                 'btemp_23v': 'K', 'RR': 'mm/hr', 'Sfc_type': "1"}
+DS_IDS = ["RR", "longitude", "latitude"]
+TEST_VARS = ["btemp_88v", "btemp_165h",
+             "btemp_23v", "RR", "Sfc_type"]
+DEFAULT_UNITS = {"btemp_88v": "K", "btemp_165h": "K",
+                 "btemp_23v": "K", "RR": "mm/hr", "Sfc_type": "1"}
 PLATFORM = {"M2": "metop-a", "NPP": "npp", "GPM": "gpm"}
 SENSOR = {"m2": "amsu-mhs", "npp": "atms", "gpm": "GPI"}
 
@@ -96,20 +96,20 @@ def fake_coeff_from_fn(fn):
     coeff_str = []
     for idx in range(1, N_CHANNEL + 1):
         nx = idx - 1
-        coeff_str.append('\n')
-        next_line = '   {}  {} {}\n'.format(idx, all_nchx[nx], ameans[nx])
+        coeff_str.append("\n")
+        next_line = "   {}  {} {}\n".format(idx, all_nchx[nx], ameans[nx])
         coeff_str.append(next_line)
-        next_line = '   {}\n'.format("   ".join([str(x) for x in locations[idx - 1]]))
+        next_line = "   {}\n".format("   ".join([str(x) for x in locations[idx - 1]]))
         coeff_str.append(next_line)
         for fov in range(1, N_FOV+1):
             random_coeff = np.random.rand(all_nchx[nx])
             random_coeff = np.ones(all_nchx[nx])
-            str_coeff = '  '.join([str(x) for x in random_coeff])
+            str_coeff = "  ".join([str(x) for x in random_coeff])
             random_means = np.random.uniform(261, 267, all_nchx[nx])
             random_means = np.zeros(all_nchx[nx])
-            str_means = ' '.join([str(x) for x in random_means])
+            str_means = " ".join([str(x) for x in random_means])
             error_val = np.random.uniform(0, 4)
-            coeffs_line = ' {:>2} {:>2}  {} {}   {}\n'.format(idx, fov,
+            coeffs_line = " {:>2} {:>2}  {} {}   {}\n".format(idx, fov,
                                                               str_coeff,
                                                               str_means,
                                                               error_val)
@@ -122,50 +122,50 @@ def _get_datasets_with_attributes(**kwargs):
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
-                      attrs={'long_name': "Channel Temperature (K)",
-                             'units': "Kelvin",
-                             'coordinates': "Longitude Latitude Freq",
-                             'scale_factor': 0.01,
-                             '_FillValue': -999,
-                             'valid_range': [0, 50000]},
-                      dims=('Scanline', 'Field_of_view', 'Channel'))
+                      attrs={"long_name": "Channel Temperature (K)",
+                             "units": "Kelvin",
+                             "coordinates": "Longitude Latitude Freq",
+                             "scale_factor": 0.01,
+                             "_FillValue": -999,
+                             "valid_range": [0, 50000]},
+                      dims=("Scanline", "Field_of_view", "Channel"))
     rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
-                      attrs={'long_name': "Rain Rate (mm/hr)",
-                             'units': "mm/hr",
-                             'coordinates': "Longitude Latitude",
-                             'scale_factor': 0.1,
-                             '_FillValue': -999,
-                             'valid_range': [0, 1000]},
-                      dims=('Scanline', 'Field_of_view'))
+                      attrs={"long_name": "Rain Rate (mm/hr)",
+                             "units": "mm/hr",
+                             "coordinates": "Longitude Latitude",
+                             "scale_factor": 0.1,
+                             "_FillValue": -999,
+                             "valid_range": [0, 1000]},
+                      dims=("Scanline", "Field_of_view"))
     sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV)),
-                            attrs={'description': "type of surface:0-ocean," +
+                            attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow",
-                                   'units': "1",
-                                   'coordinates': "Longitude Latitude",
-                                   '_FillValue': -999,
-                                   'valid_range': [0, 3]
+                                   "units": "1",
+                                   "coordinates": "Longitude Latitude",
+                                   "_FillValue": -999,
+                                   "valid_range": [0, 3]
                                    },
-                            dims=('Scanline', 'Field_of_view'))
+                            dims=("Scanline", "Field_of_view"))
     latitude = xr.DataArray(DEFAULT_LAT.reshape(DEFAULT_2D_SHAPE),
-                            attrs={'long_name':
+                            attrs={"long_name":
                                    "Latitude of the view (-90,90)"},
-                            dims=('Scanline', 'Field_of_view'))
+                            dims=("Scanline", "Field_of_view"))
     longitude = xr.DataArray(DEFAULT_LON.reshape(DEFAULT_2D_SHAPE),
-                             attrs={'long_name':
+                             attrs={"long_name":
                                     "Longitude of the view (-180,180)"},
-                             dims=('Scanline', 'Field_of_view'))
+                             dims=("Scanline", "Field_of_view"))
 
     ds_vars = {
-        'Freq': FREQ,
-        'Polo': POLO,
-        'BT': bt,
-        'RR': rr,
-        'Sfc_type': sfc_type,
-        'Latitude': latitude,
-        'Longitude': longitude
+        "Freq": FREQ,
+        "Polo": POLO,
+        "BT": bt,
+        "RR": rr,
+        "Sfc_type": sfc_type,
+        "Latitude": latitude,
+        "Longitude": longitude
     }
 
-    attrs = {'missing_value': -999.}
+    attrs = {"missing_value": -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
     ds = ds.assign_coords({"Freq": FREQ, "Latitude": latitude, "Longitude": longitude})
     return ds
@@ -175,38 +175,38 @@ def _get_datasets_with_less_attributes():
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
-                      attrs={'long_name': "Channel Temperature (K)",
-                             'scale_factor': 0.01},
-                      dims=('Scanline', 'Field_of_view', 'Channel'))
+                      attrs={"long_name": "Channel Temperature (K)",
+                             "scale_factor": 0.01},
+                      dims=("Scanline", "Field_of_view", "Channel"))
     rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
-                      attrs={'long_name': "Rain Rate (mm/hr)",
-                             'scale_factor': 0.1},
-                      dims=('Scanline', 'Field_of_view'))
+                      attrs={"long_name": "Rain Rate (mm/hr)",
+                             "scale_factor": 0.1},
+                      dims=("Scanline", "Field_of_view"))
 
     sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV)),
-                            attrs={'description': "type of surface:0-ocean," +
+                            attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow"},
-                            dims=('Scanline', 'Field_of_view'))
+                            dims=("Scanline", "Field_of_view"))
     latitude = xr.DataArray(DEFAULT_LAT.reshape(DEFAULT_2D_SHAPE),
-                            attrs={'long_name':
+                            attrs={"long_name":
                                    "Latitude of the view (-90,90)"},
-                            dims=('Scanline', 'Field_of_view'))
+                            dims=("Scanline", "Field_of_view"))
     longitude = xr.DataArray(DEFAULT_LON.reshape(DEFAULT_2D_SHAPE),
                              attrs={"long_name":
                                     "Longitude of the view (-180,180)"},
-                             dims=('Scanline', 'Field_of_view'))
+                             dims=("Scanline", "Field_of_view"))
 
     ds_vars = {
-        'Freq': FREQ,
-        'Polo': POLO,
-        'BT': bt,
-        'RR': rr,
-        'Sfc_type': sfc_type,
-        'Longitude': longitude,
-        'Latitude': latitude
+        "Freq": FREQ,
+        "Polo": POLO,
+        "BT": bt,
+        "RR": rr,
+        "Sfc_type": sfc_type,
+        "Longitude": longitude,
+        "Latitude": latitude
     }
 
-    attrs = {'missing_value': -999.}
+    attrs = {"missing_value": -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
     ds = ds.assign_coords({"Freq": FREQ, "Latitude": latitude, "Longitude": longitude})
     return ds
@@ -227,7 +227,7 @@ class TestMirsL2_NcReader:
     def setup_method(self):
         """Read fake data."""
         from satpy._config import config_search_paths
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
@@ -240,7 +240,7 @@ class TestMirsL2_NcReader:
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -260,7 +260,7 @@ class TestMirsL2_NcReader:
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -272,12 +272,12 @@ class TestMirsL2_NcReader:
     @staticmethod
     def _check_area(data_arr):
         from pyresample.geometry import SwathDefinition
-        area = data_arr.attrs['area']
+        area = data_arr.attrs["area"]
         assert isinstance(area, SwathDefinition)
 
     @staticmethod
     def _check_fill(data_arr):
-        assert '_FillValue' not in data_arr.attrs
+        assert "_FillValue" not in data_arr.attrs
         if np.issubdtype(data_arr.dtype, np.floating):
             # we started with float32, it should stay that way
             assert data_arr.dtype.type == np.float64
@@ -285,23 +285,23 @@ class TestMirsL2_NcReader:
     @staticmethod
     def _check_valid_range(data_arr, test_valid_range):
         # valid_range is popped out of data_arr.attrs when it is applied
-        assert 'valid_range' not in data_arr.attrs
+        assert "valid_range" not in data_arr.attrs
         assert data_arr.data.min() >= test_valid_range[0]
         assert data_arr.data.max() <= test_valid_range[1]
 
     @staticmethod
     def _check_fill_value(data_arr, test_fill_value):
-        assert '_FillValue' not in data_arr.attrs
+        assert "_FillValue" not in data_arr.attrs
         assert not (data_arr.data == test_fill_value).any()
 
     @staticmethod
     def _check_attrs(data_arr, platform_name):
         attrs = data_arr.attrs
-        assert 'scale_factor' not in attrs
-        assert 'platform_name' in attrs
-        assert attrs['platform_name'] == platform_name
-        assert attrs['start_time'] == START_TIME
-        assert attrs['end_time'] == END_TIME
+        assert "scale_factor" not in attrs
+        assert "platform_name" in attrs
+        assert attrs["platform_name"] == platform_name
+        assert attrs["start_time"] == START_TIME
+        assert attrs["end_time"] == END_TIME
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids", "platform_name"),
@@ -312,18 +312,18 @@ class TestMirsL2_NcReader:
             ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
-    @pytest.mark.parametrize('reader_kw', [{}, {'limb_correction': False}])
+    @pytest.mark.parametrize("reader_kw", [{}, {"limb_correction": False}])
     def test_basic_load(self, filenames, loadable_ids,
                         platform_name, reader_kw):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables,  fh_kwargs=reader_kw)
-            with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
-                    fd, mock.patch('satpy.readers.mirs.retrieve'):
+            with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
+                    fd, mock.patch("satpy.readers.mirs.retrieve"):
                 fd.side_effect = fake_coeff_from_fn
                 loaded_data_arrs = r.load(loadable_ids)
             assert len(loaded_data_arrs) == len(loadable_ids)
@@ -332,12 +332,12 @@ class TestMirsL2_NcReader:
             for _data_id, data_arr in loaded_data_arrs.items():
                 data_arr = data_arr.compute()
                 var_name = data_arr.attrs["name"]
-                if var_name not in ['latitude', 'longitude']:
+                if var_name not in ["latitude", "longitude"]:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
 
-                input_fake_data = test_data['BT'] if "btemp" in var_name \
+                input_fake_data = test_data["BT"] if "btemp" in var_name \
                     else test_data[var_name]
                 if "valid_range" in input_fake_data.attrs:
                     valid_range = input_fake_data.attrs["valid_range"]
@@ -346,9 +346,9 @@ class TestMirsL2_NcReader:
                     fill_value = input_fake_data.attrs["_FillValue"]
                     self._check_fill_value(data_arr, fill_value)
 
-                sensor = data_arr.attrs['sensor']
-                if reader_kw.get('limb_correction', True) and sensor == 'atms':
+                sensor = data_arr.attrs["sensor"]
+                if reader_kw.get("limb_correction", True) and sensor == "atms":
                     fd.assert_called()
                 else:
                     fd.assert_not_called()
-                assert data_arr.attrs['units'] == DEFAULT_UNITS[var_name]
+                assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]

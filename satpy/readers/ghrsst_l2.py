@@ -39,15 +39,15 @@ class GHRSSTL2FileHandler(BaseFileHandler):
         self._engine = engine
         self._tarfile = None
 
-        self.filename_info['start_time'] = datetime.strptime(
-            self.nc.start_time, '%Y%m%dT%H%M%SZ')
-        self.filename_info['end_time'] = datetime.strptime(
-            self.nc.stop_time, '%Y%m%dT%H%M%SZ')
+        self.filename_info["start_time"] = datetime.strptime(
+            self.nc.start_time, "%Y%m%dT%H%M%SZ")
+        self.filename_info["end_time"] = datetime.strptime(
+            self.nc.stop_time, "%Y%m%dT%H%M%SZ")
 
     @cached_property
     def nc(self):
         """Get the xarray Dataset for the filename."""
-        if os.fspath(self.filename).endswith('tar'):
+        if os.fspath(self.filename).endswith("tar"):
             file_obj = self._open_tarfile()
         else:
             file_obj = self.filename
@@ -56,13 +56,13 @@ class GHRSSTL2FileHandler(BaseFileHandler):
                              decode_cf=True,
                              mask_and_scale=True,
                              engine=self._engine,
-                             chunks={'ni': CHUNK_SIZE,
-                                     'nj': CHUNK_SIZE})
+                             chunks={"ni": CHUNK_SIZE,
+                                     "nj": CHUNK_SIZE})
 
-        return nc.rename({'ni': 'x', 'nj': 'y'})
+        return nc.rename({"ni": "x", "nj": "y"})
 
     def _open_tarfile(self):
-        self._tarfile = tarfile.open(name=self.filename, mode='r')
+        self._tarfile = tarfile.open(name=self.filename, mode="r")
         sst_filename = next((name for name in self._tarfile.getnames()
                              if self._is_sst_file(name)))
         file_obj = self._tarfile.extractfile(sst_filename)
@@ -71,27 +71,27 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     @staticmethod
     def _is_sst_file(name):
         """Check if file in the tar archive is a valid SST file."""
-        return name.endswith('nc') and 'GHRSST-SSTskin' in name
+        return name.endswith("nc") and "GHRSST-SSTskin" in name
 
     def get_dataset(self, key, info):
         """Get any available dataset."""
-        stdname = info.get('standard_name')
+        stdname = info.get("standard_name")
         return self.nc[stdname].squeeze()
 
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info['end_time']
+        return self.filename_info["end_time"]
 
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self.nc.attrs['sensor'].lower()
+        return self.nc.attrs["sensor"].lower()
 
     def __del__(self):
         """Close the tarfile object."""
