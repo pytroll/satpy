@@ -122,7 +122,7 @@ To access the loaded data use the wavelength or name:
     >>> print(global_scene[0.8])
 
 For more information on loading datasets by resolution, calibration, or other
-advanced loading methods see the :doc:`readers` documentation.
+advanced loading methods see the :doc:`reading` documentation.
 
 
 Calculating measurement values and navigation coordinates
@@ -255,7 +255,7 @@ Or to save an individual dataset:
 Datasets are automatically scaled or "enhanced" to be compatible with the
 output format and to provide the best looking image. For more information
 on saving datasets and customizing enhancements see the documentation on
-:doc:`writers`.
+:doc:`writing`.
 
 
 Slicing and subsetting scenes

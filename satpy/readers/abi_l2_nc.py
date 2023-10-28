@@ -33,43 +33,49 @@ class NC_ABI_L2(NC_ABI_BASE):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        var = info['file_key']
-        if self.filetype_info['file_type'] == 'abi_l2_mcmip':
+        var = info["file_key"]
+        if self.filetype_info["file_type"] == "abi_l2_mcmip":
             var += "_" + key["name"]
-        LOG.debug('Reading in get_dataset %s.', var)
+        LOG.debug("Reading in get_dataset %s.", var)
         variable = self[var]
         variable.attrs.update(key.to_dict())
         self._update_data_arr_with_filename_attrs(variable)
         self._remove_problem_attrs(variable)
+
+        # convert to satpy standard units
+        if variable.attrs["units"] == "1" and key["calibration"] == "reflectance":
+            variable *= 100.0
+            variable.attrs["units"] = "%"
+
         return variable
 
     def _update_data_arr_with_filename_attrs(self, variable):
-        _units = variable.attrs['units'] if 'units' in variable.attrs else None
+        _units = variable.attrs["units"] if "units" in variable.attrs else None
         variable.attrs.update({
-            'platform_name': self.platform_name,
-            'sensor': self.sensor,
-            'units': _units,
-            'orbital_parameters': {
-                'satellite_nominal_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
-                'satellite_nominal_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
-                'satellite_nominal_altitude': float(self.nc['nominal_satellite_height']) * 1000.,
+            "platform_name": self.platform_name,
+            "sensor": self.sensor,
+            "units": _units,
+            "orbital_parameters": {
+                "satellite_nominal_latitude": float(self.nc["nominal_satellite_subpoint_lat"]),
+                "satellite_nominal_longitude": float(self.nc["nominal_satellite_subpoint_lon"]),
+                "satellite_nominal_altitude": float(self.nc["nominal_satellite_height"]) * 1000.,
             },
         })
 
-        if 'flag_meanings' in variable.attrs:
-            variable.attrs['flag_meanings'] = variable.attrs['flag_meanings'].split(' ')
+        if "flag_meanings" in variable.attrs:
+            variable.attrs["flag_meanings"] = variable.attrs["flag_meanings"].split(" ")
 
         # add in information from the filename that may be useful to the user
-        for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
+        for attr in ("scene_abbr", "scan_mode", "platform_shortname"):
             variable.attrs[attr] = self.filename_info.get(attr)
 
         # add in information hardcoded in the filetype YAML
-        for attr in ('observation_type',):
+        for attr in ("observation_type",):
             if attr in self.filetype_info:
                 variable.attrs[attr] = self.filetype_info[attr]
 
         # copy global attributes to metadata
-        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+        for attr in ("scene_id", "orbital_slot", "instrument_ID", "production_site", "timeline_ID"):
             variable.attrs[attr] = self.nc.attrs.get(attr)
 
     @staticmethod
@@ -77,13 +83,13 @@ class NC_ABI_L2(NC_ABI_BASE):
         # remove attributes that could be confusing later
         if not np.issubdtype(variable.dtype, np.integer):
             # integer fields keep the _FillValue
-            variable.attrs.pop('_FillValue', None)
-        variable.attrs.pop('scale_factor', None)
-        variable.attrs.pop('add_offset', None)
-        variable.attrs.pop('valid_range', None)
-        variable.attrs.pop('_Unsigned', None)
-        variable.attrs.pop('valid_range', None)
-        variable.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+            variable.attrs.pop("_FillValue", None)
+        variable.attrs.pop("scale_factor", None)
+        variable.attrs.pop("add_offset", None)
+        variable.attrs.pop("valid_range", None)
+        variable.attrs.pop("_Unsigned", None)
+        variable.attrs.pop("valid_range", None)
+        variable.attrs.pop("ancillary_variables", None)  # Can't currently load DQF
 
     def available_datasets(self, configured_datasets=None):
         """Add resolution to configured datasets."""
@@ -92,12 +98,12 @@ class NC_ABI_L2(NC_ABI_BASE):
             # don't override what they've done
             if is_avail is not None:
                 yield is_avail, ds_info
-            matches = self.file_type_matches(ds_info['file_type'])
+            matches = self.file_type_matches(ds_info["file_type"])
             if matches:
                 # we have this dataset
                 resolution = self.spatial_resolution_to_number()
                 new_info = ds_info.copy()
-                new_info.setdefault('resolution', resolution)
+                new_info.setdefault("resolution", resolution)
                 yield True, ds_info
             elif is_avail is None:
                 # we don't know what to do with this

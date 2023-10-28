@@ -54,7 +54,7 @@ from satpy.utils import get_legacy_chunk_size
 CHUNK_SIZE = get_legacy_chunk_size()
 # NetCDF doesn't support multi-threaded reading, trick it by opening
 # as one whole chunk then split it up before we do any calculations
-LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
+LOAD_CHUNK_SIZE = int(os.getenv("PYTROLL_LOAD_CHUNK_SIZE", -1))
 logger = logging.getLogger(__name__)
 
 
@@ -69,20 +69,20 @@ class SCMIFileHandler(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
-                                  chunks={'x': LOAD_CHUNK_SIZE, 'y': LOAD_CHUNK_SIZE})
-        self.platform_name = self.nc.attrs['satellite_id']
+                                  chunks={"x": LOAD_CHUNK_SIZE, "y": LOAD_CHUNK_SIZE})
+        self.platform_name = self.nc.attrs["satellite_id"]
         self.sensor = self._get_sensor()
-        self.nlines = self.nc.dims['y']
-        self.ncols = self.nc.dims['x']
+        self.nlines = self.nc.dims["y"]
+        self.ncols = self.nc.dims["x"]
         self.coords = {}
 
     def _get_sensor(self):
         """Determine the sensor for this file."""
         # sometimes Himawari-8 (or 9) data is stored in SCMI format
-        is_h8 = 'H8' in self.platform_name
-        is_h9 = 'H9' in self.platform_name
+        is_h8 = "H8" in self.platform_name
+        is_h9 = "H9" in self.platform_name
         is_ahi = is_h8 or is_h9
-        return 'ahi' if is_ahi else 'abi'
+        return "ahi" if is_ahi else "abi"
 
     @property
     def sensor_names(self):
@@ -99,9 +99,9 @@ class SCMIFileHandler(BaseFileHandler):
         """
         data = self.nc[item]
         attrs = data.attrs
-        factor = data.attrs.get('scale_factor')
-        offset = data.attrs.get('add_offset')
-        fill = data.attrs.get('_FillValue')
+        factor = data.attrs.get("scale_factor")
+        offset = data.attrs.get("add_offset")
+        fill = data.attrs.get("_FillValue")
         if fill is not None:
             data = data.where(data != fill)
         if factor is not None:
@@ -114,8 +114,8 @@ class SCMIFileHandler(BaseFileHandler):
         # handle coordinates (and recursive fun)
         new_coords = {}
         # 'time' dimension causes issues in other processing
-        if 'time' in data.coords:
-            data = data.drop_vars('time')
+        if "time" in data.coords:
+            data = data.drop_vars("time")
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -131,60 +131,60 @@ class SCMIFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key['name'])
-        var_name = info.get('file_key', self.filetype_info.get('file_key'))
+        logger.debug("Reading in get_dataset %s.", key["name"])
+        var_name = info.get("file_key", self.filetype_info.get("file_key"))
         if var_name:
             data = self[var_name]
-        elif 'Sectorized_CMI' in self.nc:
-            data = self['Sectorized_CMI']
-        elif 'data' in self.nc:
-            data = self['data']
+        elif "Sectorized_CMI" in self.nc:
+            data = self["Sectorized_CMI"]
+        elif "data" in self.nc:
+            data = self["data"]
         # NetCDF doesn't support multi-threaded reading, trick it by opening
         # as one whole chunk then split it up before we do any calculations
-        data = data.chunk({'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
+        data = data.chunk({"x": CHUNK_SIZE, "y": CHUNK_SIZE})
 
         # convert to satpy standard units
-        factor = data.attrs.pop('scale_factor', 1)
-        offset = data.attrs.pop('add_offset', 0)
-        units = data.attrs.get('units', 1)
+        factor = data.attrs.pop("scale_factor", 1)
+        offset = data.attrs.pop("add_offset", 0)
+        units = data.attrs.get("units", 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ['1', '*1'] and key['calibration'] == 'reflectance':
+        if units in ["1", "*1"] and key["calibration"] == "reflectance":
             data *= 100
             factor *= 100  # used for valid_min/max
-            data.attrs['units'] = '%'
+            data.attrs["units"] = "%"
 
         # set up all the attributes that might be useful to the user/satpy
-        data.attrs.update({'platform_name': self.platform_name,
-                           'sensor': data.attrs.get('sensor', self.sensor),
+        data.attrs.update({"platform_name": self.platform_name,
+                           "sensor": data.attrs.get("sensor", self.sensor),
                            })
-        if 'satellite_longitude' in self.nc.attrs:
-            data.attrs['orbital_parameters'] = {
-                'projection_longitude': self.nc.attrs['satellite_longitude'],
-                'projection_latitude': self.nc.attrs['satellite_latitude'],
-                'projection_altitude': self.nc.attrs['satellite_altitude'],
+        if "satellite_longitude" in self.nc.attrs:
+            data.attrs["orbital_parameters"] = {
+                "projection_longitude": self.nc.attrs["satellite_longitude"],
+                "projection_latitude": self.nc.attrs["satellite_latitude"],
+                "projection_altitude": self.nc.attrs["satellite_altitude"],
             }
 
-        scene_id = self.nc.attrs.get('scene_id')
+        scene_id = self.nc.attrs.get("scene_id")
         if scene_id is not None:
-            data.attrs['scene_id'] = scene_id
+            data.attrs["scene_id"] = scene_id
         data.attrs.update(key.to_dict())
-        data.attrs.pop('_FillValue', None)
-        if 'valid_min' in data.attrs:
-            vmin = data.attrs.pop('valid_min')
-            vmax = data.attrs.pop('valid_max')
+        data.attrs.pop("_FillValue", None)
+        if "valid_min" in data.attrs:
+            vmin = data.attrs.pop("valid_min")
+            vmax = data.attrs.pop("valid_max")
             vmin = vmin * factor + offset
             vmax = vmax * factor + offset
-            data.attrs['valid_min'] = vmin
-            data.attrs['valid_max'] = vmax
+            data.attrs["valid_min"] = vmin
+            data.attrs["valid_max"] = vmax
         return data
 
     def _get_cf_grid_mapping_var(self):
         """Figure out which grid mapping should be used."""
-        gmaps = ['fixedgrid_projection', 'goes_imager_projection',
-                 'lambert_projection', 'polar_projection',
-                 'mercator_projection']
-        if 'grid_mapping' in self.filename_info:
-            gmaps = [self.filename_info.get('grid_mapping')] + gmaps
+        gmaps = ["fixedgrid_projection", "goes_imager_projection",
+                 "lambert_projection", "polar_projection",
+                 "mercator_projection"]
+        if "grid_mapping" in self.filename_info:
+            gmaps = [self.filename_info.get("grid_mapping")] + gmaps
         for grid_mapping in gmaps:
             if grid_mapping in self.nc:
                 return self.nc[grid_mapping]
@@ -192,12 +192,12 @@ class SCMIFileHandler(BaseFileHandler):
 
     def _get_proj4_name(self, projection):
         """Map CF projection name to PROJ.4 name."""
-        gmap_name = projection.attrs['grid_mapping_name']
+        gmap_name = projection.attrs["grid_mapping_name"]
         proj = {
-            'geostationary': 'geos',
-            'lambert_conformal_conic': 'lcc',
-            'polar_stereographic': 'stere',
-            'mercator': 'merc',
+            "geostationary": "geos",
+            "lambert_conformal_conic": "lcc",
+            "polar_stereographic": "stere",
+            "mercator": "merc",
         }.get(gmap_name, gmap_name)
         return proj
 
@@ -205,42 +205,42 @@ class SCMIFileHandler(BaseFileHandler):
         """Convert CF projection parameters to PROJ.4 dict."""
         proj = self._get_proj4_name(projection)
         proj_dict = {
-            'proj': proj,
-            'a': float(projection.attrs['semi_major_axis']),
-            'b': float(projection.attrs['semi_minor_axis']),
-            'units': 'm',
+            "proj": proj,
+            "a": float(projection.attrs["semi_major_axis"]),
+            "b": float(projection.attrs["semi_minor_axis"]),
+            "units": "m",
         }
-        if proj == 'geos':
-            proj_dict['h'] = float(projection.attrs['perspective_point_height'])
-            proj_dict['sweep'] = projection.attrs.get('sweep_angle_axis', 'y')
-            proj_dict['lon_0'] = float(projection.attrs['longitude_of_projection_origin'])
-            proj_dict['lat_0'] = float(projection.attrs.get('latitude_of_projection_origin', 0.0))
-        elif proj == 'lcc':
-            proj_dict['lat_0'] = float(projection.attrs['standard_parallel'])
-            proj_dict['lon_0'] = float(projection.attrs['longitude_of_central_meridian'])
-            proj_dict['lat_1'] = float(projection.attrs['latitude_of_projection_origin'])
-        elif proj == 'stere':
-            proj_dict['lat_ts'] = float(projection.attrs['standard_parallel'])
-            proj_dict['lon_0'] = float(projection.attrs['straight_vertical_longitude_from_pole'])
-            proj_dict['lat_0'] = float(projection.attrs['latitude_of_projection_origin'])
-        elif proj == 'merc':
-            proj_dict['lat_ts'] = float(projection.attrs['standard_parallel'])
-            proj_dict['lat_0'] = proj_dict['lat_ts']
-            proj_dict['lon_0'] = float(projection.attrs['longitude_of_projection_origin'])
+        if proj == "geos":
+            proj_dict["h"] = float(projection.attrs["perspective_point_height"])
+            proj_dict["sweep"] = projection.attrs.get("sweep_angle_axis", "y")
+            proj_dict["lon_0"] = float(projection.attrs["longitude_of_projection_origin"])
+            proj_dict["lat_0"] = float(projection.attrs.get("latitude_of_projection_origin", 0.0))
+        elif proj == "lcc":
+            proj_dict["lat_0"] = float(projection.attrs["standard_parallel"])
+            proj_dict["lon_0"] = float(projection.attrs["longitude_of_central_meridian"])
+            proj_dict["lat_1"] = float(projection.attrs["latitude_of_projection_origin"])
+        elif proj == "stere":
+            proj_dict["lat_ts"] = float(projection.attrs["standard_parallel"])
+            proj_dict["lon_0"] = float(projection.attrs["straight_vertical_longitude_from_pole"])
+            proj_dict["lat_0"] = float(projection.attrs["latitude_of_projection_origin"])
+        elif proj == "merc":
+            proj_dict["lat_ts"] = float(projection.attrs["standard_parallel"])
+            proj_dict["lat_0"] = proj_dict["lat_ts"]
+            proj_dict["lon_0"] = float(projection.attrs["longitude_of_projection_origin"])
         else:
             raise ValueError("Can't handle projection '{}'".format(proj))
         return proj_dict
 
     def _calc_extents(self, proj_dict):
         """Calculate area extents from x/y variables."""
-        h = float(proj_dict.get('h', 1.))  # force to 64-bit float
-        x = self['x']
-        y = self['y']
-        x_units = x.attrs.get('units', 'rad')
-        if x_units == 'meters':
+        h = float(proj_dict.get("h", 1.))  # force to 64-bit float
+        x = self["x"]
+        y = self["y"]
+        x_units = x.attrs.get("units", "rad")
+        if x_units == "meters":
             h_factor = 1.
             factor = 1.
-        elif x_units == 'microradian':
+        elif x_units == "microradian":
             h_factor = h
             factor = 1e6
         else:  # radians
@@ -260,7 +260,7 @@ class SCMIFileHandler(BaseFileHandler):
         projection = self._get_cf_grid_mapping_var()
         proj_dict = self._get_proj_specific_params(projection)
         area_extent = self._calc_extents(proj_dict)
-        area_name = '{}_{}'.format(self.sensor, proj_dict['proj'])
+        area_name = "{}_{}".format(self.sensor, proj_dict["proj"])
         return geometry.AreaDefinition(
             area_name,
             "SCMI file area",
@@ -273,7 +273,7 @@ class SCMIFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs['start_date_time'], '%Y%j%H%M%S')
+        return datetime.strptime(self.nc.attrs["start_date_time"], "%Y%j%H%M%S")
 
     @property
     def end_time(self):

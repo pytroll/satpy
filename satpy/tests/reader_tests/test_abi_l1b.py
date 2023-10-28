@@ -37,18 +37,18 @@ def _create_fake_rad_dataarray(rad=None):
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 1002,
-                'units': 'W m-2 um-1 sr-1',
-                'valid_range': (0, 4095),
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 1002,
+                "units": "W m-2 um-1 sr-1",
+                "valid_range": (0, 4095),
             }
         )
-    rad.coords['t'] = time
-    rad.coords['x_image'] = x_image
-    rad.coords['y_image'] = y_image
+    rad.coords["t"] = time
+    rad.coords["x_image"] = x_image
+    rad.coords["y_image"] = y_image
     return rad
 
 
@@ -57,36 +57,36 @@ def _create_fake_rad_dataset(rad=None):
 
     x__ = xr.DataArray(
         range(5),
-        attrs={'scale_factor': 2., 'add_offset': -1.},
-        dims=('x',)
+        attrs={"scale_factor": 2., "add_offset": -1.},
+        dims=("x",)
     )
     y__ = xr.DataArray(
         range(2),
-        attrs={'scale_factor': -2., 'add_offset': 1.},
-        dims=('y',)
+        attrs={"scale_factor": -2., "add_offset": 1.},
+        dims=("y",)
     )
     proj = xr.DataArray(
         [],
         attrs={
-            'semi_major_axis': 1.,
-            'semi_minor_axis': 1.,
-            'perspective_point_height': 1.,
-            'longitude_of_projection_origin': -90.,
-            'latitude_of_projection_origin': 0.,
-            'sweep_angle_axis': u'x'
+            "semi_major_axis": 1.,
+            "semi_minor_axis": 1.,
+            "perspective_point_height": 1.,
+            "longitude_of_projection_origin": -90.,
+            "latitude_of_projection_origin": 0.,
+            "sweep_angle_axis": u"x"
         }
     )
 
     fake_dataset = xr.Dataset(
         data_vars={
-            'Rad': rad,
-            'band_id': np.array(8),
+            "Rad": rad,
+            "band_id": np.array(8),
             # 'x': x__,
             # 'y': y__,
-            'x_image': xr.DataArray(0.),
-            'y_image': xr.DataArray(0.),
-            'goes_imager_projection': proj,
-            'yaw_flip_flag': np.array([1]),
+            "x_image": xr.DataArray(0.),
+            "y_image": xr.DataArray(0.),
+            "goes_imager_projection": proj,
+            "yaw_flip_flag": np.array([1]),
             "planck_fk1": np.array(13432.1),
             "planck_fk2": np.array(1497.61),
             "planck_bc1": np.array(0.09102),
@@ -98,9 +98,9 @@ def _create_fake_rad_dataset(rad=None):
             "earth_sun_distance_anomaly_in_AU": np.array(0.99)
         },
         coords={
-            't': rad.coords['t'],
-            'x': x__,
-            'y': y__,
+            "t": rad.coords["t"],
+            "x": x__,
+            "y": y__,
 
         },
         attrs={
@@ -114,31 +114,31 @@ def _create_fake_rad_dataset(rad=None):
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
-    @mock.patch('satpy.readers.abi_base.xr')
+    @mock.patch("satpy.readers.abi_base.xr")
     def setUp(self, xr_, rad=None, clip_negative_radiances=False):
         """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
         xr_.open_dataset.return_value = _create_fake_rad_dataset(rad=rad)
-        self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
-                                  'suffix': 'custom',
-                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                 {'filetype': 'info'},
+        self.reader = NC_ABI_L1B("filename",
+                                 {"platform_shortname": "G16", "observation_type": "Rad",
+                                  "suffix": "custom",
+                                  "scene_abbr": "C", "scan_mode": "M3"},
+                                 {"filetype": "info"},
                                  clip_negative_radiances=clip_negative_radiances)
 
 
 class TestABIYAML:
     """Tests for the ABI L1b reader's YAML configuration."""
 
-    @pytest.mark.parametrize(['channel', 'suffix'],
+    @pytest.mark.parametrize(("channel", "suffix"),
                              [("C{:02d}".format(num), suffix)
                               for num in range(1, 17)
-                              for suffix in ('', '_test_suffix')])
+                              for suffix in ("", "_test_suffix")])
     def test_file_patterns_match(self, channel, suffix):
         """Test that the configured file patterns work."""
         from satpy.readers import configs_for_reader, load_reader
-        reader_configs = list(configs_for_reader('abi_l1b'))[0]
+        reader_configs = list(configs_for_reader("abi_l1b"))[0]
         reader = load_reader(reader_configs)
         fn1 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
                "_c20182541300308{}.nc").format(channel, suffix)
@@ -157,57 +157,55 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        self.assertEqual(self.reader.start_time,
-                         datetime(2017, 9, 20, 17, 30, 40, 800000))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2017, 9, 20, 17, 41, 17, 500000))
+        assert self.reader.start_time == datetime(2017, 9, 20, 17, 30, 40, 800000)
+        assert self.reader.end_time == datetime(2017, 9, 20, 17, 41, 17, 500000)
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        key = make_dataid(name='Rad', calibration='radiance')
-        res = self.reader.get_dataset(key, {'info': 'info'})
-        exp = {'calibration': 'radiance',
-               'instrument_ID': None,
-               'modifiers': (),
-               'name': 'Rad',
-               'observation_type': 'Rad',
-               'orbital_parameters': {'projection_altitude': 1.0,
-                                      'projection_latitude': 0.0,
-                                      'projection_longitude': -90.0,
-                                      'satellite_nominal_altitude': 35786020.,
-                                      'satellite_nominal_latitude': 0.0,
-                                      'satellite_nominal_longitude': -89.5,
-                                      'yaw_flip': True},
-               'orbital_slot': None,
-               'platform_name': 'GOES-16',
-               'platform_shortname': 'G16',
-               'production_site': None,
-               'scan_mode': 'M3',
-               'scene_abbr': 'C',
-               'scene_id': None,
-               'sensor': 'abi',
-               'timeline_ID': None,
-               'suffix': 'custom',
-               'units': 'W m-2 um-1 sr-1'}
+        key = make_dataid(name="Rad", calibration="radiance")
+        res = self.reader.get_dataset(key, {"info": "info"})
+        exp = {"calibration": "radiance",
+               "instrument_ID": None,
+               "modifiers": (),
+               "name": "Rad",
+               "observation_type": "Rad",
+               "orbital_parameters": {"projection_altitude": 1.0,
+                                      "projection_latitude": 0.0,
+                                      "projection_longitude": -90.0,
+                                      "satellite_nominal_altitude": 35786020.,
+                                      "satellite_nominal_latitude": 0.0,
+                                      "satellite_nominal_longitude": -89.5,
+                                      "yaw_flip": True},
+               "orbital_slot": None,
+               "platform_name": "GOES-16",
+               "platform_shortname": "G16",
+               "production_site": None,
+               "scan_mode": "M3",
+               "scene_abbr": "C",
+               "scene_id": None,
+               "sensor": "abi",
+               "timeline_ID": None,
+               "suffix": "custom",
+               "units": "W m-2 um-1 sr-1"}
 
-        self.assertDictEqual(res.attrs, exp)
+        assert res.attrs == exp
         # we remove any time dimension information
-        self.assertNotIn('t', res.coords)
-        self.assertNotIn('t', res.dims)
-        self.assertNotIn('time', res.coords)
-        self.assertNotIn('time', res.dims)
+        assert "t" not in res.coords
+        assert "t" not in res.dims
+        assert "time" not in res.coords
+        assert "time" not in res.dims
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0, 'proj': 'geos',
-                                            'sweep': 'x', 'units': 'm'})
-        self.assertEqual(call_args[4], self.reader.ncols)
-        self.assertEqual(call_args[5], self.reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0, "h": 1.0,
+                                "lon_0": -90.0, "proj": "geos", "sweep": "x", "units": "m"}
+        assert call_args[4] == self.reader.ncols
+        assert call_args[5] == self.reader.nlines
         np.testing.assert_allclose(call_args[6], (-2, -2, 8, 2))
 
 
@@ -221,11 +219,11 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 1002,  # last rad_data value
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 1002,  # last rad_data value
             }
         )
         super(Test_NC_ABI_L1B_ir_cal, self).setUp(rad=rad)
@@ -233,14 +231,13 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
     def test_ir_calibration_attrs(self):
         """Test IR calibrated DataArray attributes."""
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='brightness_temperature'), {})
+            make_dataid(name="C05", calibration="brightness_temperature"), {})
 
         # make sure the attributes from the file are in the data array
-        self.assertNotIn('scale_factor', res.attrs)
-        self.assertNotIn('_FillValue', res.attrs)
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_brightness_temperature')
-        self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
+        assert res.attrs["long_name"] == "Brightness Temperature"
 
     def test_clip_negative_radiances_attribute(self):
         """Assert that clip_negative_radiances is set to False."""
@@ -249,7 +246,7 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
     def test_ir_calibrate(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='brightness_temperature'), {})
+            make_dataid(name="C05", calibration="brightness_temperature"), {})
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
@@ -268,11 +265,11 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 1002,
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 1002,
             }
         )
 
@@ -285,7 +282,7 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
     def test_ir_calibrate(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
-            make_dataid(name='C07', calibration='brightness_temperature'), {})
+            make_dataid(name="C07", calibration="brightness_temperature"), {})
 
         clipped_ir = 267.07775531
         expected = np.array([[clipped_ir, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
@@ -297,9 +294,9 @@ class Test_NC_ABI_L1B_clipped_ir_cal(Test_NC_ABI_L1B_Base):
         from satpy.readers.abi_l1b import NC_ABI_L1B
         data = xr.DataArray(
                attrs={
-                   'scale_factor': 0.5,
-                   'add_offset': -1.,
-                   '_FillValue': 1002,
+                   "scale_factor": 0.5,
+                   "add_offset": -1.,
+                   "_FillValue": 1002,
                }
         )
         np.testing.assert_allclose(NC_ABI_L1B._get_minimum_radiance(NC_ABI_L1B, data), 0.0)
@@ -315,11 +312,11 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 20,
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 20,
             }
         )
         super(Test_NC_ABI_L1B_vis_cal, self).setUp(rad=rad)
@@ -327,17 +324,15 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
     def test_vis_calibrate(self):
         """Test VIS calibration."""
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='reflectance'), {})
+            make_dataid(name="C05", calibration="reflectance"), {})
 
         expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
                              [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171]])
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
-        self.assertNotIn('scale_factor', res.attrs)
-        self.assertNotIn('_FillValue', res.attrs)
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_bidirectional_reflectance')
-        self.assertEqual(res.attrs['long_name'],
-                         'Bidirectional Reflectance')
+        assert np.allclose(res.data, expected, equal_nan=True)
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert res.attrs["long_name"] == "Bidirectional Reflectance"
 
 
 class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
@@ -350,11 +345,11 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 20,
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 20,
             }
         )
         super(Test_NC_ABI_L1B_raw_cal, self).setUp(rad=rad)
@@ -362,26 +357,24 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
     def test_raw_calibrate(self):
         """Test RAW calibration."""
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='counts'), {})
+            make_dataid(name="C05", calibration="counts"), {})
 
         # We expect the raw data to be unchanged
         expected = res.data
-        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        assert np.allclose(res.data, expected, equal_nan=True)
 
         # check for the presence of typical attributes
-        self.assertIn('scale_factor', res.attrs)
-        self.assertIn('add_offset', res.attrs)
-        self.assertIn('_FillValue', res.attrs)
-        self.assertIn('orbital_parameters', res.attrs)
-        self.assertIn('platform_shortname', res.attrs)
-        self.assertIn('scene_id', res.attrs)
+        assert "scale_factor" in res.attrs
+        assert "add_offset" in res.attrs
+        assert "_FillValue" in res.attrs
+        assert "orbital_parameters" in res.attrs
+        assert "platform_shortname" in res.attrs
+        assert "scene_id" in res.attrs
 
         # determine if things match their expected values/types.
-        self.assertEqual(res.data.dtype, np.int16, "int16 data type expected")
-        self.assertEqual(res.attrs['standard_name'],
-                         'counts')
-        self.assertEqual(res.attrs['long_name'],
-                         'Raw Counts')
+        assert res.data.dtype == np.int16
+        assert res.attrs["standard_name"] == "counts"
+        assert res.attrs["long_name"] == "Raw Counts"
 
 
 class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
@@ -396,22 +389,22 @@ class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
             def to_dict(self):
                 return self
 
-        with self.assertRaises(ValueError, msg='Did not detect invalid cal'):
-            did = FakeDataID(name='C05', calibration='invalid', modifiers=())
+        with self.assertRaises(ValueError, msg="Did not detect invalid cal"):
+            did = FakeDataID(name="C05", calibration="invalid", modifiers=())
             self.reader.get_dataset(did, {})
 
 
 class Test_NC_ABI_File(unittest.TestCase):
     """Test file opening."""
 
-    @mock.patch('satpy.readers.abi_base.xr')
-    def test_open_dataset(self, _):
+    @mock.patch("satpy.readers.abi_base.xr")
+    def test_open_dataset(self, _):  # noqa: PT019
         """Test openning a dataset."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
         openable_thing = mock.MagicMock()
 
-        NC_ABI_L1B(openable_thing, {'platform_shortname': 'g16'}, None)
+        NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, None)
         openable_thing.open.assert_called()
 
 
@@ -424,11 +417,11 @@ class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
         rad = xr.DataArray(
             rad_data,
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': np.array([1002]),
-                'units': 'W m-2 um-1 sr-1',
-                'valid_range': (0, 4095),
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": np.array([1002]),
+                "units": "W m-2 um-1 sr-1",
+                "valid_range": (0, 4095),
             }
         )
         super(Test_NC_ABI_L1B_H5netcdf, self).setUp(rad=rad)

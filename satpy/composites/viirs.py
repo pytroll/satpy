@@ -90,8 +90,8 @@ class HistogramDNB(CompositeBase):
 
         """
         # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
-        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+        dnb_data = xr.DataArray(dnb_data, dims=("y", "x"))
+        sza_data = xr.DataArray(sza_data, dims=("y", "x"))
 
         good_mask = ~(dnb_data.isnull() | sza_data.isnull())
         output_dataset = dnb_data.where(good_mask)
@@ -904,8 +904,8 @@ class NCCZinke(CompositeBase):
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = self.attrs['name']
-        mda['standard_name'] = 'ncc_radiance'
+        mda["name"] = self.attrs["name"]
+        mda["standard_name"] = "ncc_radiance"
         dnb_data.attrs = mda
         return dnb_data
 

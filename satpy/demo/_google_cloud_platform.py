@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 def is_google_cloud_instance():
     """Check if we are on a GCP virtual machine."""
     try:
-        return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
+        return urlopen("http://metadata.google.internal").headers.get("Metadata-Flavor") == "Google"  # nosec
     except URLError:
         return False
 
@@ -68,7 +68,7 @@ def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=None):
     if isinstance(glob_pattern, str):
         glob_pattern = [glob_pattern]
 
-    fs = gcsfs.GCSFileSystem(token='anon')
+    fs = gcsfs.GCSFileSystem(token="anon")  # nosec
     filenames = []
     for gp in glob_pattern:
         # handle multiple glob patterns being treated as one pattern
@@ -98,5 +98,5 @@ def _download_gcs_files(globbed_files, fs, base_dir, force):
             LOG.info("Found existing: {}".format(ondisk_pathname))
             continue
         LOG.info("Downloading: {}".format(ondisk_pathname))
-        fs.get('gs://' + fn, ondisk_pathname)
+        fs.get("gs://" + fn, ondisk_pathname)
     return filenames
