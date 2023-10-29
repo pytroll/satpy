@@ -32,6 +32,7 @@ import xarray as xr
 from satpy import Scene
 from satpy.readers.abi_l1b import NC_ABI_L1B
 from satpy.tests.utils import make_dataid
+from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {
     500: (3000, 5000),  # conus - 500m
@@ -276,26 +277,34 @@ class Test_NC_ABI_L1B:
         assert "time" not in res.coords
         assert "time" not in res.dims
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
-    def test_get_area_def(self, adef):
+    def test_get_area_def(self, l1b_c01_file):
         """Test the area generation."""
-        with create_file_handler(rad=self.fake_rad) as file_handler:
-            file_handler.get_area_def(None)
+        from pyresample.geometry import AreaDefinition
 
-            assert adef.call_count == 1
-            call_args = tuple(adef.call_args)[0]
-            assert call_args[3] == {
-                "a": 1.0,
-                "b": 1.0,
+        scn = l1b_c01_file(rad=self.fake_rad)
+        scn.load(["C01"])
+        area_def = scn["C01"].attrs["area"]
+        assert isinstance(area_def, AreaDefinition)
+
+        with ignore_pyproj_proj_warnings():
+            proj_dict = area_def.crs.to_dict()
+            exp_dict = {
                 "h": 1.0,
                 "lon_0": -90.0,
                 "proj": "geos",
                 "sweep": "x",
                 "units": "m",
             }
-            assert call_args[4] == file_handler.ncols
-            assert call_args[5] == file_handler.nlines
-            np.testing.assert_allclose(call_args[6], (-2, -2, 8, 2))
+            if "R" in proj_dict:
+                assert proj_dict["R"] == 1
+            else:
+                assert proj_dict["a"] == 1
+                assert proj_dict["b"] == 1
+            for proj_key, proj_val in exp_dict.items():
+                assert proj_dict[proj_key] == proj_val
+
+        assert area_def.shape == scn["C01"].shape
+        assert area_def.area_extent == (-2, -2, 8, 2)
 
 
 class Test_NC_ABI_L1B_ir_cal:
@@ -437,8 +446,6 @@ class Test_NC_ABI_File:
     @mock.patch("satpy.readers.abi_base.xr")
     def test_open_dataset(self, _):  # noqa: PT019
         """Test openning a dataset."""
-        from satpy.readers.abi_l1b import NC_ABI_L1B
-
         openable_thing = mock.MagicMock()
 
         NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, {})
@@ -451,7 +458,10 @@ class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
     @property
     def fake_rad(self):
         """Create fake data for the tests."""
-        rad_data = np.int16(50)
+        shape = (2, 5)
+        rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
+        rad_data = (rad_data + 1.0) / 0.5
+        rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
             da.from_array(rad_data),
             attrs={
