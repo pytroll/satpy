@@ -66,7 +66,7 @@ class NC_ABI_BASE(BaseFileHandler):
 
         from satpy.utils import get_dask_chunk_size_in_bytes
         chunk_size_for_high_res = math.sqrt(get_dask_chunk_size_in_bytes() / 4)  # 32-bit floats
-        chunk_size_for_high_res = np.round(chunk_size_for_high_res / (4 * 226)) * (4 * 226)
+        chunk_size_for_high_res = np.round(max(chunk_size_for_high_res / (4 * 226), 1)) * (4 * 226)
         low_res_factor = int(self.filetype_info.get("resolution", 2000) // 500)
         res_chunk_bytes = int(chunk_size_for_high_res / low_res_factor) * 4
         import dask

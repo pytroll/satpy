@@ -19,8 +19,9 @@
 from __future__ import annotations
 
 import contextlib
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 from unittest import mock
 
 import dask.array as da
@@ -28,6 +29,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from satpy import Scene
 from satpy.readers.abi_l1b import NC_ABI_L1B
 from satpy.tests.utils import make_dataid
 
@@ -77,7 +79,7 @@ def _create_fake_rad_dataset(rad=None):
         range(2), attrs={"scale_factor": -2.0, "add_offset": 1.0}, dims=("y",)
     )
     proj = xr.DataArray(
-        [],
+        np.int64(0),
         attrs={
             "semi_major_axis": 1.0,
             "semi_minor_axis": 1.0,
@@ -122,16 +124,27 @@ def _create_fake_rad_dataset(rad=None):
 
 
 def generate_l1b_filename(chan_name: str) -> str:
-    return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230.nc"
+    return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
 @pytest.fixture(scope="module")
-def l1b_c01_file(tmp_path_factory) -> list[Path]:
-    filename = generate_l1b_filename("C01")
-    data_path = tmp_path_factory.mktemp("abi_l1b").join(filename)
-    dataset = _create_fake_rad_dataset()
-    dataset.to_netcdf(data_path)
-    return [data_path]
+def l1b_c01_file(tmp_path_factory) -> Callable:
+    def _create_file_handler(
+            rad: xr.DataArray | None = None,
+            clip_negative_radiances: bool = False,
+    ):
+        filename = generate_l1b_filename("C01")
+        data_path = tmp_path_factory.mktemp("abi_l1b") / filename
+        dataset = _create_fake_rad_dataset(rad=rad)
+        dataset.to_netcdf(data_path)
+        scn = Scene(
+            reader="abi_l1b",
+            filenames=[str(data_path)],
+            reader_kwargs={"clip_negative_radiances": clip_negative_radiances}
+        )
+        return scn
+
+    return _create_file_handler
 
 
 @pytest.fixture(scope="module")
@@ -214,24 +227,17 @@ class Test_NC_ABI_L1B:
         """
         return None  # use default from file handler creator
 
-    def test_basic_attributes(self):
-        """Test getting basic file attributes."""
-        from datetime import datetime
-
-        with create_file_handler(rad=self.fake_rad) as file_handler:
-            assert file_handler.start_time == datetime(2017, 9, 20, 17, 30, 40, 800000)
-            assert file_handler.end_time == datetime(2017, 9, 20, 17, 41, 17, 500000)
-
-    def test_get_dataset(self):
+    def test_get_dataset(self, l1b_c01_file):
         """Test the get_dataset method."""
-        key = make_dataid(name="Rad", calibration="radiance")
-        with create_file_handler(rad=self.fake_rad) as file_handler:
-            res = file_handler.get_dataset(key, {"info": "info"})
+        scn = l1b_c01_file(rad=self.fake_rad)
+        key = make_dataid(name="C01", calibration="radiance")
+        scn.load([key])
+
         exp = {
             "calibration": "radiance",
             "instrument_ID": None,
             "modifiers": (),
-            "name": "Rad",
+            "name": "C01",
             "observation_type": "Rad",
             "orbital_parameters": {
                 "projection_altitude": 1.0,
@@ -246,16 +252,24 @@ class Test_NC_ABI_L1B:
             "platform_name": "GOES-16",
             "platform_shortname": "G16",
             "production_site": None,
-            "scan_mode": "M3",
+            "reader": "abi_l1b",
+            "resolution": 1000,
+            "scan_mode": "M4",
             "scene_abbr": "C",
             "scene_id": None,
             "sensor": "abi",
             "timeline_ID": None,
-            "suffix": "custom",
+            "suffix": "suffix",
             "units": "W m-2 um-1 sr-1",
+            "start_time": datetime(2017, 9, 20, 17, 30, 40, 800000),
+            "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
         }
 
-        assert res.attrs == exp
+        res = scn["C01"]
+        assert "area" in res.attrs
+        for exp_key, exp_val in exp.items():
+            assert res.attrs[exp_key] == exp_val
+
         # we remove any time dimension information
         assert "t" not in res.coords
         assert "t" not in res.dims
