@@ -51,7 +51,7 @@ def _create_fake_rad_dataarray(
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
-            rad_data,
+            da.from_array(rad_data),
             dims=("y", "x"),
             attrs={
                 "scale_factor": 0.5,
@@ -212,7 +212,7 @@ class Test_NC_ABI_L1B:
         Needs to be an instance method so the subclass can override it.
 
         """
-        return None
+        return None  # use default from file handler creator
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
@@ -315,14 +315,16 @@ class Test_NC_ABI_L1B_ir_cal:
 
 
 @contextlib.contextmanager
-def _ir_file_handler(
-    data: da.Array | None = None, clip_negative_radiances: bool = False
-):
+def _ir_file_handler(clip_negative_radiances: bool = False):
     """Create fake data for the tests."""
-    if data is None:
-        data = _fake_ir_data()
+    values = np.arange(10.0)
+    rad_data = (values.reshape((2, 5)) + 1.0) * 50.0
+    rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
+    rad_data = (rad_data + 1.3) / 0.5
+    data = rad_data.astype(np.int16)
+
     rad = xr.DataArray(
-        data,
+        da.from_array(data),
         dims=("y", "x"),
         attrs={
             "scale_factor": 0.5,
@@ -340,14 +342,6 @@ def _ir_file_handler(
         yield file_handler
 
 
-def _fake_ir_data():
-    values = np.arange(10.0)
-    rad_data = (values.reshape((2, 5)) + 1.0) * 50.0
-    rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
-    rad_data = (rad_data + 1.3) / 0.5
-    return rad_data.astype(np.int16)
-
-
 class Test_NC_ABI_L1B_vis_cal:
     """Test the NC_ABI_L1B reader."""
 
@@ -357,7 +351,7 @@ class Test_NC_ABI_L1B_vis_cal:
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
-            rad_data,
+            da.from_array(rad_data),
             dims=("y", "x"),
             attrs={
                 "scale_factor": 0.5,
@@ -392,7 +386,7 @@ class Test_NC_ABI_L1B_raw_cal:
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
-            rad_data,
+            da.from_array(rad_data),
             dims=("y", "x"),
             attrs={
                 "scale_factor": 0.5,
@@ -445,7 +439,7 @@ class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
         """Create fake data for the tests."""
         rad_data = np.int16(50)
         rad = xr.DataArray(
-            rad_data,
+            da.from_array(rad_data),
             attrs={
                 "scale_factor": 0.5,
                 "add_offset": -1.0,
