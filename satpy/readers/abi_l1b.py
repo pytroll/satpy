@@ -59,12 +59,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
             "radiance": self._rad_calibrate,
             "counts": self._raw_calibrate,
         }
-
-        try:
-            func = cal_dictionary[key["calibration"]]
-            res = func(radiances)
-        except KeyError:
-            raise ValueError("Unknown calibration '{}'".format(key["calibration"]))
+        func = cal_dictionary[key["calibration"]]
+        res = func(radiances)
 
         # convert to satpy standard units
         if res.attrs["units"] == "1" and key["calibration"] != "counts":
