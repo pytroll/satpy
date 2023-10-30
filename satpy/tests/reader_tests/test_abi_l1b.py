@@ -41,12 +41,12 @@ RAD_SHAPE = {
 
 def _create_fake_rad_dataarray(
     rad: xr.DataArray | None = None,
-    # resolution: int = 2000,
+    resolution: int = 2000,
 ) -> xr.DataArray:
     x_image = xr.DataArray(0.0)
     y_image = xr.DataArray(0.0)
     time = xr.DataArray(0.0)
-    shape = (2, 5)  # RAD_SHAPE[resolution]
+    shape = RAD_SHAPE[resolution]
     if rad is None:
         rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
         rad_data = (rad_data + 1.0) / 0.5
@@ -68,14 +68,14 @@ def _create_fake_rad_dataarray(
     return rad
 
 
-def _create_fake_rad_dataset(rad=None):
-    rad = _create_fake_rad_dataarray(rad=rad)
+def _create_fake_rad_dataset(rad: xr.DataArray, resolution: int) -> xr.Dataset:
+    rad = _create_fake_rad_dataarray(rad=rad, resolution=resolution)
 
     x__ = xr.DataArray(
-        range(5), attrs={"scale_factor": 2.0, "add_offset": -1.0}, dims=("x",)
+        range(rad.shape[1]), attrs={"scale_factor": 2.0, "add_offset": -1.0}, dims=("x",)
     )
     y__ = xr.DataArray(
-        range(2), attrs={"scale_factor": -2.0, "add_offset": 1.0}, dims=("y",)
+        range(rad.shape[0]), attrs={"scale_factor": -2.0, "add_offset": 1.0}, dims=("y",)
     )
     proj = xr.DataArray(
         np.int64(0),
@@ -131,7 +131,7 @@ def l1b_c01_file(tmp_path_factory) -> Callable:
     def _create_file_handler(rad: xr.DataArray | None = None):
         filename = generate_l1b_filename("C01")
         data_path = tmp_path_factory.mktemp("abi_l1b") / filename
-        dataset = _create_fake_rad_dataset(rad=rad)
+        dataset = _create_fake_rad_dataset(rad=rad, resolution=1000)
         dataset.to_netcdf(data_path)
         scn = Scene(
             reader="abi_l1b",
@@ -145,12 +145,12 @@ def l1b_c01_file(tmp_path_factory) -> Callable:
 @pytest.fixture(scope="module")
 def l1b_c07_file(tmp_path_factory) -> Callable:
     def _create_file_handler(
-            rad: xr.DataArray | None = None,
+            rad: xr.DataArray,
             clip_negative_radiances: bool = False,
     ):
         filename = generate_l1b_filename("C07")
         data_path = tmp_path_factory.mktemp("abi_l1b") / filename
-        dataset = _create_fake_rad_dataset(rad=rad)
+        dataset = _create_fake_rad_dataset(rad=rad, resolution=2000)
         dataset.to_netcdf(data_path)
         scn = Scene(
             reader="abi_l1b",
@@ -204,7 +204,7 @@ class Test_NC_ABI_L1B:
         Needs to be an instance method so the subclass can override it.
 
         """
-        return None  # use default from file handler creator
+        return None
 
     def test_get_dataset(self, l1b_c01_file):
         """Test the get_dataset method."""
@@ -282,7 +282,7 @@ class Test_NC_ABI_L1B:
                 assert proj_dict[proj_key] == proj_val
 
         assert area_def.shape == scn["C01"].shape
-        assert area_def.area_extent == (-2, -2, 8, 2)
+        assert area_def.area_extent == (-2.0, -2998.0, 4998.0, 2.0)
 
 
 class Test_NC_ABI_L1B_ir_cal:
@@ -298,11 +298,12 @@ class Test_NC_ABI_L1B_ir_cal:
         clipped_ir = 134.68753 if clip_negative_radiances else np.nan
         expected = np.array(
             [
-                [clipped_ir, 304.97037, 332.22778, 354.6147, 374.08688],
-                [391.58655, 407.64786, 422.60635, 436.68802, np.nan],
+                clipped_ir, 304.97037, 332.22778, 354.6147, 374.08688,
+                391.58655, 407.64786, 422.60635, 436.68802, np.nan,
             ]
         )
-        np.testing.assert_allclose(res.data, expected, equal_nan=True, atol=1e-04)
+        data_np = res.data.compute()
+        np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True, atol=1e-04)
 
         # make sure the attributes from the file are in the data array
         assert "scale_factor" not in res.attrs
@@ -312,8 +313,9 @@ class Test_NC_ABI_L1B_ir_cal:
 
 
 def _fake_ir_data():
-    values = np.arange(10.0)
-    rad_data = (values.reshape((2, 5)) + 1.0) * 50.0
+    shape = RAD_SHAPE[2000]
+    values = np.arange(shape[0] * shape[1])
+    rad_data = (values.reshape(shape) + 1.0) * 50.0
     rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
     rad_data = (rad_data + 1.3) / 0.5
     data = rad_data.astype(np.int16)
@@ -337,7 +339,8 @@ class Test_NC_ABI_L1B_vis_cal:
 
     def test_vis_calibrate(self, l1b_c01_file):
         """Test VIS calibration."""
-        rad_data = np.arange(10.0).reshape((2, 5)) + 1.0
+        shape = RAD_SHAPE[1000]
+        rad_data = np.arange(shape[0] * shape[1]).reshape(shape) + 1.0
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
@@ -355,11 +358,12 @@ class Test_NC_ABI_L1B_vis_cal:
 
         expected = np.array(
             [
-                [0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
-                [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171],
+                0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085,
+                0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171,
             ]
         )
-        assert np.allclose(res.data, expected, equal_nan=True)
+        data_np = res.data.compute()
+        assert np.allclose(data_np[0, :10], expected, equal_nan=True)
         assert "scale_factor" not in res.attrs
         assert "_FillValue" not in res.attrs
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
@@ -371,7 +375,8 @@ class Test_NC_ABI_L1B_raw_cal:
 
     def test_raw_calibrate(self, l1b_c01_file):
         """Test RAW calibration."""
-        rad_data = np.arange(10.0).reshape((2, 5)) + 1.0
+        shape = RAD_SHAPE[1000]
+        rad_data = np.arange(shape[0] * shape[1]).reshape(shape) + 1.0
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
@@ -423,7 +428,7 @@ class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
     @property
     def fake_rad(self):
         """Create fake data for the tests."""
-        shape = (2, 5)
+        shape = RAD_SHAPE[1000]
         rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
