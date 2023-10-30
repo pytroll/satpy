@@ -140,7 +140,7 @@ class NC_ABI_BASE(BaseFileHandler):
                 new_fill = fill
             else:
                 new_fill = np.nan
-            data = data.where(data != fill, np.float32(new_fill))
+            data = data.where(data != fill, new_fill)
         if factor != 1 and item in ("x", "y"):
             # be more precise with x/y coordinates
             # see get_area_def for more information
