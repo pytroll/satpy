@@ -49,6 +49,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         # For raw cal, don't apply scale and offset, return raw file counts
         if key["calibration"] == "counts":
             radiances = self.nc["Rad"].copy()
+            radiances = self._adjust_coords(radiances, "Rad")
         else:
             radiances = self["Rad"]
 

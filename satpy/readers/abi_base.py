@@ -139,18 +139,13 @@ class NC_ABI_BASE(BaseFileHandler):
             if is_int(data) and is_int(factor) and is_int(offset):
                 new_fill = fill
             else:
-                new_fill = np.nan
+                new_fill = np.float32(np.nan)
             data = data.where(data != fill, new_fill)
         if factor != 1 and item in ("x", "y"):
             # be more precise with x/y coordinates
             # see get_area_def for more information
             data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
         elif factor != 1:
-            # make sure the factor is a 64-bit float
-            # can't do this in place since data is most likely uint16
-            # and we are making it a 64-bit float
-            if not is_int(factor):
-                factor = np.float32(factor)
             data = data * np.float32(factor) + np.float32(offset)
         return data
 

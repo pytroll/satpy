@@ -25,6 +25,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import numpy.typing as npt
 import pytest
 import xarray as xr
 from pytest_lazyfixture import lazy_fixture
@@ -153,6 +154,7 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
     rad_data = rad_data.astype(np.int16)
     rad = xr.DataArray(
         da.from_array(rad_data),
+        dims=("y", "x"),
         attrs={
             "scale_factor": 0.5,
             "add_offset": -1.0,
@@ -171,25 +173,6 @@ def c01_counts(tmp_path) -> xr.DataArray:
     scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
     scn.load([DataQuery(name="C01", calibration="counts")])
     return scn["C01"]
-
-
-def _create_scene_for_data(
-    tmp_path: Path,
-    channel_name: str,
-    rad: xr.DataArray | None,
-    resolution: int,
-    reader_kwargs: dict[str, Any] | None = None,
-) -> Scene:
-    filename = generate_l1b_filename(channel_name)
-    data_path = tmp_path / filename
-    dataset = _create_fake_rad_dataset(rad=rad, resolution=resolution)
-    dataset.to_netcdf(data_path)
-    scn = Scene(
-        reader="abi_l1b",
-        filenames=[str(data_path)],
-        reader_kwargs=reader_kwargs,
-    )
-    return scn
 
 
 @pytest.fixture()
@@ -230,6 +213,73 @@ def _fake_c07_data() -> xr.DataArray:
         },
     )
     return rad
+
+
+def _create_scene_for_data(
+        tmp_path: Path,
+        channel_name: str,
+        rad: xr.DataArray | None,
+        resolution: int,
+        reader_kwargs: dict[str, Any] | None = None,
+) -> Scene:
+    filename = generate_l1b_filename(channel_name)
+    data_path = tmp_path / filename
+    dataset = _create_fake_rad_dataset(rad=rad, resolution=resolution)
+    dataset.to_netcdf(data_path)
+    scn = Scene(
+        reader="abi_l1b",
+        filenames=[str(data_path)],
+        reader_kwargs=reader_kwargs,
+    )
+    return scn
+
+
+def _get_and_check_array(data_arr: xr.DataArray, exp_dtype: npt.DTypeLike) -> npt.NDArray:
+    data_np = data_arr.data.compute()
+    assert data_np.dtype == data_arr.dtype
+    assert data_np.dtype == exp_dtype
+    return data_np
+
+def _check_area(data_arr: xr.DataArray) -> None:
+    from pyresample.geometry import AreaDefinition
+
+    area_def = data_arr.attrs["area"]
+    assert isinstance(area_def, AreaDefinition)
+
+    with ignore_pyproj_proj_warnings():
+        proj_dict = area_def.crs.to_dict()
+        exp_dict = {
+            "h": 1.0,
+            "lon_0": -90.0,
+            "proj": "geos",
+            "sweep": "x",
+            "units": "m",
+        }
+        if "R" in proj_dict:
+            assert proj_dict["R"] == 1
+        else:
+            assert proj_dict["a"] == 1
+            assert proj_dict["b"] == 1
+        for proj_key, proj_val in exp_dict.items():
+            assert proj_dict[proj_key] == proj_val
+
+    assert area_def.shape == data_arr.shape
+    if area_def.shape[0] == RAD_SHAPE[1000][0]:
+        exp_extent = (-2.0, -2998.0, 4998.0, 2.0)
+    else:
+        exp_extent = (-2.0, -1498.0, 2498.0, 2.0)
+    assert area_def.area_extent == exp_extent
+
+
+def _check_dims_and_coords(data_arr: xr.DataArray) -> None:
+    assert "y" in data_arr.dims
+    assert "x" in data_arr.dims
+
+    # we remove any time dimension information
+    assert "t" not in data_arr.coords
+    assert "t" not in data_arr.dims
+    assert "time" not in data_arr.coords
+    assert "time" not in data_arr.dims
 
 
 @pytest.mark.parametrize(
@@ -302,46 +352,15 @@ class Test_NC_ABI_L1B:
         }
 
         res = c01_data_arr
-        assert "area" in res.attrs
+        _get_and_check_array(res, np.float32)
+        _check_area(res)
+        _check_dims_and_coords(res)
         for exp_key, exp_val in exp.items():
             assert res.attrs[exp_key] == exp_val
 
-        # we remove any time dimension information
-        assert "t" not in res.coords
-        assert "t" not in res.dims
-        assert "time" not in res.coords
-        assert "time" not in res.dims
-
-    def test_get_area_def(self, c01_data_arr):
-        """Test the area generation."""
-        from pyresample.geometry import AreaDefinition
-
-        area_def = c01_data_arr.attrs["area"]
-        assert isinstance(area_def, AreaDefinition)
-
-        with ignore_pyproj_proj_warnings():
-            proj_dict = area_def.crs.to_dict()
-            exp_dict = {
-                "h": 1.0,
-                "lon_0": -90.0,
-                "proj": "geos",
-                "sweep": "x",
-                "units": "m",
-            }
-            if "R" in proj_dict:
-                assert proj_dict["R"] == 1
-            else:
-                assert proj_dict["a"] == 1
-                assert proj_dict["b"] == 1
-            for proj_key, proj_val in exp_dict.items():
-                assert proj_dict[proj_key] == proj_val
-
-        assert area_def.shape == c01_data_arr.shape
-        assert area_def.area_extent == (-2.0, -2998.0, 4998.0, 2.0)
-
 
 @pytest.mark.parametrize("clip_negative_radiances", [False, True])
-def test_ir_calibrate(self, c07_bt_creator, clip_negative_radiances):
+def test_ir_calibrate(c07_bt_creator, clip_negative_radiances):
     """Test IR calibration."""
     res = c07_bt_creator(clip_negative_radiances=clip_negative_radiances)
     clipped_ir = 134.68753 if clip_negative_radiances else np.nan
@@ -359,7 +378,9 @@ def test_ir_calibrate(self, c07_bt_creator, clip_negative_radiances):
             np.nan,
         ]
     )
-    data_np = res.data.compute()
+    data_np = _get_and_check_array(res, np.float32)
+    _check_area(res)
+    _check_dims_and_coords(res)
     np.testing.assert_allclose(
         data_np[0, :10], expected, equal_nan=True, atol=1e-04
     )
@@ -388,7 +409,9 @@ def test_vis_calibrate(c01_refl):
             np.nan,
         ]
     )
-    data_np = res.data.compute()
+    data_np = _get_and_check_array(res, np.float32)
+    _check_area(res)
+    _check_dims_and_coords(res)
     np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True)
     assert "scale_factor" not in res.attrs
     assert "_FillValue" not in res.attrs
@@ -401,8 +424,9 @@ def test_raw_calibrate(c01_counts):
     res = c01_counts
 
     # We expect the raw data to be unchanged
-    expected = res.data
-    assert np.allclose(res.data, expected, equal_nan=True)
+    _get_and_check_array(res, np.int16)
+    _check_area(res)
+    _check_dims_and_coords(res)
 
     # check for the presence of typical attributes
     assert "scale_factor" in res.attrs
@@ -413,7 +437,6 @@ def test_raw_calibrate(c01_counts):
     assert "scene_id" in res.attrs
 
     # determine if things match their expected values/types.
-    assert res.data.dtype == np.int16
     assert res.attrs["standard_name"] == "counts"
     assert res.attrs["long_name"] == "Raw Counts"
 
