@@ -23,7 +23,7 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-from pyresample.geometry import AreaDefinition
+from pyresample import geometry
 
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
@@ -212,7 +212,7 @@ class NC_ABI_BASE(BaseFileHandler):
                      "fi": float(fi),
                      "pm": float(pm)}
 
-        ll_area_def = AreaDefinition(
+        ll_area_def = geometry.AreaDefinition(
             self.nc.attrs.get("orbital_slot", "abi_geos"),
             self.nc.attrs.get("spatial_resolution", "ABI file area"),
             "abi_latlon",
@@ -262,7 +262,7 @@ class NC_ABI_BASE(BaseFileHandler):
                      "units": "m",
                      "sweep": sweep_axis}
 
-        fg_area_def = AreaDefinition(
+        fg_area_def = geometry.AreaDefinition(
             self.nc.attrs.get("orbital_slot", "abi_geos"),
             self.nc.attrs.get("spatial_resolution", "ABI file area"),
             "abi_fixed_grid",
