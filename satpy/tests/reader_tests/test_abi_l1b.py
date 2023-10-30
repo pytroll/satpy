@@ -19,17 +19,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Callable
+from pathlib import Path
+from typing import Any, Callable
 from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pytest_lazyfixture import lazy_fixture
 
 from satpy import DataQuery, Scene
 from satpy.readers.abi_l1b import NC_ABI_L1B
-from satpy.tests.utils import make_dataid
 from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {
@@ -72,10 +73,14 @@ def _create_fake_rad_dataset(rad: xr.DataArray, resolution: int) -> xr.Dataset:
     rad = _create_fake_rad_dataarray(rad=rad, resolution=resolution)
 
     x__ = xr.DataArray(
-        range(rad.shape[1]), attrs={"scale_factor": 2.0, "add_offset": -1.0}, dims=("x",)
+        range(rad.shape[1]),
+        attrs={"scale_factor": 2.0, "add_offset": -1.0},
+        dims=("x",),
     )
     y__ = xr.DataArray(
-        range(rad.shape[0]), attrs={"scale_factor": -2.0, "add_offset": 1.0}, dims=("y",)
+        range(rad.shape[0]),
+        attrs={"scale_factor": -2.0, "add_offset": 1.0},
+        dims=("y",),
     )
     proj = xr.DataArray(
         np.int64(0),
@@ -126,92 +131,144 @@ def generate_l1b_filename(chan_name: str) -> str:
     return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
-@pytest.fixture(scope="module")
-def l1b_c01_file(tmp_path_factory) -> Callable:
-    def _create_file_handler(rad: xr.DataArray | None = None):
-        filename = generate_l1b_filename("C01")
-        data_path = tmp_path_factory.mktemp("abi_l1b") / filename
-        dataset = _create_fake_rad_dataset(rad=rad, resolution=1000)
-        dataset.to_netcdf(data_path)
-        scn = Scene(
-            reader="abi_l1b",
-            filenames=[str(data_path)],
-        )
-        return scn
-
-    return _create_file_handler
+@pytest.fixture()
+def c01_refl(tmp_path) -> xr.DataArray:
+    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+    scn.load(["C01"])
+    return scn["C01"]
 
 
-@pytest.fixture(scope="module")
-def l1b_c07_file(tmp_path_factory) -> Callable:
-    def _create_file_handler(
-            rad: xr.DataArray,
-            clip_negative_radiances: bool = False,
-    ):
-        filename = generate_l1b_filename("C07")
-        data_path = tmp_path_factory.mktemp("abi_l1b") / filename
-        dataset = _create_fake_rad_dataset(rad=rad, resolution=2000)
-        dataset.to_netcdf(data_path)
-        scn = Scene(
-            reader="abi_l1b",
-            filenames=[str(data_path)],
-            reader_kwargs={"clip_negative_radiances": clip_negative_radiances}
-        )
-        return scn
-
-    return _create_file_handler
+@pytest.fixture()
+def c01_rad(tmp_path) -> xr.DataArray:
+    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+    scn.load([DataQuery(name="C01", calibration="radiance")])
+    return scn["C01"]
 
 
-class TestABIYAML:
-    """Tests for the ABI L1b reader's YAML configuration."""
-
-    @pytest.mark.parametrize(
-        ("channel", "suffix"),
-        [
-            ("C{:02d}".format(num), suffix)
-            for num in range(1, 17)
-            for suffix in ("", "_test_suffix")
-        ],
+@pytest.fixture()
+def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
+    shape = RAD_SHAPE[1000]
+    rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
+    rad_data = (rad_data + 1.0) / 0.5
+    rad_data = rad_data.astype(np.int16)
+    rad = xr.DataArray(
+        da.from_array(rad_data),
+        attrs={
+            "scale_factor": 0.5,
+            "add_offset": -1.0,
+            "_FillValue": np.array([1002]),
+            "units": "W m-2 um-1 sr-1",
+            "valid_range": (0, 4095),
+        },
     )
-    def test_file_patterns_match(self, channel, suffix):
-        """Test that the configured file patterns work."""
-        from satpy.readers import configs_for_reader, load_reader
+    scn = _create_scene_for_data(tmp_path, "C01", rad, 1000)
+    scn.load([DataQuery(name="C01", calibration="radiance")])
+    return scn["C01"]
 
-        reader_configs = list(configs_for_reader("abi_l1b"))[0]
-        reader = load_reader(reader_configs)
-        fn1 = (
+
+@pytest.fixture()
+def c01_counts(tmp_path) -> xr.DataArray:
+    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+    scn.load([DataQuery(name="C01", calibration="counts")])
+    return scn["C01"]
+
+
+def _create_scene_for_data(
+    tmp_path: Path,
+    channel_name: str,
+    rad: xr.DataArray | None,
+    resolution: int,
+    reader_kwargs: dict[str, Any] | None = None,
+) -> Scene:
+    filename = generate_l1b_filename(channel_name)
+    data_path = tmp_path / filename
+    dataset = _create_fake_rad_dataset(rad=rad, resolution=resolution)
+    dataset.to_netcdf(data_path)
+    scn = Scene(
+        reader="abi_l1b",
+        filenames=[str(data_path)],
+        reader_kwargs=reader_kwargs,
+    )
+    return scn
+
+
+@pytest.fixture()
+def c07_bt_creator(tmp_path) -> Callable:
+    def _load_data_array(
+        clip_negative_radiances: bool = False,
+    ):
+        rad = _fake_c07_data()
+        scn = _create_scene_for_data(
+            tmp_path,
+            "C07",
+            rad,
+            2000,
+            {"clip_negative_radiances": clip_negative_radiances},
+        )
+        scn.load(["C07"])
+        return scn["C07"]
+
+    return _load_data_array
+
+
+def _fake_c07_data() -> xr.DataArray:
+    shape = RAD_SHAPE[2000]
+    values = np.arange(shape[0] * shape[1])
+    rad_data = (values.reshape(shape) + 1.0) * 50.0
+    rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
+    rad_data = (rad_data + 1.3) / 0.5
+    data = rad_data.astype(np.int16)
+    rad = xr.DataArray(
+        da.from_array(data),
+        dims=("y", "x"),
+        attrs={
+            "scale_factor": 0.5,
+            "add_offset": -1.3,
+            "_FillValue": np.int16(
+                np.floor(((9 + 1) * 50.0 + 1.3) / 0.5)
+            ),  # last rad_data value
+        },
+    )
+    return rad
+
+
+@pytest.mark.parametrize(
+    ("channel", "suffix"),
+    [
+        ("C{:02d}".format(num), suffix)
+        for num in range(1, 17)
+        for suffix in ("", "_test_suffix")
+    ],
+)
+def test_file_patterns_match(channel, suffix):
+    """Test that the configured file patterns work."""
+    from satpy.readers import configs_for_reader, load_reader
+
+    reader_configs = list(configs_for_reader("abi_l1b"))[0]
+    reader = load_reader(reader_configs)
+    fn1 = (
+        "OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
+        "_c20182541300308{}.nc"
+    ).format(channel, suffix)
+    loadables = reader.select_files_from_pathnames([fn1])
+    assert len(loadables) == 1
+    if not suffix and channel in ["C01", "C02", "C03", "C05"]:
+        fn2 = (
             "OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
-            "_c20182541300308{}.nc"
-        ).format(channel, suffix)
-        loadables = reader.select_files_from_pathnames([fn1])
+            "_c20182541300308-000000_0.nc"
+        ).format(channel)
+        loadables = reader.select_files_from_pathnames([fn2])
         assert len(loadables) == 1
-        if not suffix and channel in ["C01", "C02", "C03", "C05"]:
-            fn2 = (
-                "OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
-                "_c20182541300308-000000_0.nc"
-            ).format(channel)
-            loadables = reader.select_files_from_pathnames([fn2])
-            assert len(loadables) == 1
 
 
+@pytest.mark.parametrize(
+    "c01_data_arr", [lazy_fixture("c01_rad"), lazy_fixture("c01_rad_h5netcdf")]
+)
 class Test_NC_ABI_L1B:
     """Test the NC_ABI_L1B reader."""
 
-    @property
-    def fake_rad(self):
-        """Create fake data for these tests.
-
-        Needs to be an instance method so the subclass can override it.
-
-        """
-        return None
-
-    def test_get_dataset(self, l1b_c01_file):
+    def test_get_dataset(self, c01_data_arr):
         """Test the get_dataset method."""
-        scn = l1b_c01_file(rad=self.fake_rad)
-        key = make_dataid(name="C01", calibration="radiance")
-        scn.load([key])
-
         exp = {
             "calibration": "radiance",
             "instrument_ID": None,
@@ -244,7 +301,7 @@ class Test_NC_ABI_L1B:
             "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
         }
 
-        res = scn["C01"]
+        res = c01_data_arr
         assert "area" in res.attrs
         for exp_key, exp_val in exp.items():
             assert res.attrs[exp_key] == exp_val
@@ -255,13 +312,11 @@ class Test_NC_ABI_L1B:
         assert "time" not in res.coords
         assert "time" not in res.dims
 
-    def test_get_area_def(self, l1b_c01_file):
+    def test_get_area_def(self, c01_data_arr):
         """Test the area generation."""
         from pyresample.geometry import AreaDefinition
 
-        scn = l1b_c01_file(rad=self.fake_rad)
-        scn.load(["C01"])
-        area_def = scn["C01"].attrs["area"]
+        area_def = c01_data_arr.attrs["area"]
         assert isinstance(area_def, AreaDefinition)
 
         with ignore_pyproj_proj_warnings():
@@ -281,165 +336,92 @@ class Test_NC_ABI_L1B:
             for proj_key, proj_val in exp_dict.items():
                 assert proj_dict[proj_key] == proj_val
 
-        assert area_def.shape == scn["C01"].shape
+        assert area_def.shape == c01_data_arr.shape
         assert area_def.area_extent == (-2.0, -2998.0, 4998.0, 2.0)
 
 
-class Test_NC_ABI_L1B_ir_cal:
-    """Test the NC_ABI_L1B reader's default IR calibration."""
-
-    @pytest.mark.parametrize("clip_negative_radiances", [False, True])
-    def test_ir_calibrate(self, l1b_c07_file, clip_negative_radiances):
-        """Test IR calibration."""
-        scn = l1b_c07_file(rad=_fake_ir_data(), clip_negative_radiances=clip_negative_radiances)
-        scn.load([DataQuery(name="C07", calibration="brightness_temperature")])
-        res = scn["C07"]
-
-        clipped_ir = 134.68753 if clip_negative_radiances else np.nan
-        expected = np.array(
-            [
-                clipped_ir, 304.97037, 332.22778, 354.6147, 374.08688,
-                391.58655, 407.64786, 422.60635, 436.68802, np.nan,
-            ]
-        )
-        data_np = res.data.compute()
-        np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True, atol=1e-04)
-
-        # make sure the attributes from the file are in the data array
-        assert "scale_factor" not in res.attrs
-        assert "_FillValue" not in res.attrs
-        assert res.attrs["standard_name"] == "toa_brightness_temperature"
-        assert res.attrs["long_name"] == "Brightness Temperature"
-
-
-def _fake_ir_data():
-    shape = RAD_SHAPE[2000]
-    values = np.arange(shape[0] * shape[1])
-    rad_data = (values.reshape(shape) + 1.0) * 50.0
-    rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
-    rad_data = (rad_data + 1.3) / 0.5
-    data = rad_data.astype(np.int16)
-
-    rad = xr.DataArray(
-        da.from_array(data),
-        dims=("y", "x"),
-        attrs={
-            "scale_factor": 0.5,
-            "add_offset": -1.3,
-            "_FillValue": np.int16(
-                np.floor(((9 + 1) * 50.0 + 1.3) / 0.5)
-            ),  # last rad_data value
-        },
+@pytest.mark.parametrize("clip_negative_radiances", [False, True])
+def test_ir_calibrate(self, c07_bt_creator, clip_negative_radiances):
+    """Test IR calibration."""
+    res = c07_bt_creator(clip_negative_radiances=clip_negative_radiances)
+    clipped_ir = 134.68753 if clip_negative_radiances else np.nan
+    expected = np.array(
+        [
+            clipped_ir,
+            304.97037,
+            332.22778,
+            354.6147,
+            374.08688,
+            391.58655,
+            407.64786,
+            422.60635,
+            436.68802,
+            np.nan,
+        ]
     )
-    return rad
+    data_np = res.data.compute()
+    np.testing.assert_allclose(
+        data_np[0, :10], expected, equal_nan=True, atol=1e-04
+    )
+
+    # make sure the attributes from the file are in the data array
+    assert "scale_factor" not in res.attrs
+    assert "_FillValue" not in res.attrs
+    assert res.attrs["standard_name"] == "toa_brightness_temperature"
+    assert res.attrs["long_name"] == "Brightness Temperature"
 
 
-class Test_NC_ABI_L1B_vis_cal:
-    """Test the NC_ABI_L1B reader."""
-
-    def test_vis_calibrate(self, l1b_c01_file):
-        """Test VIS calibration."""
-        shape = RAD_SHAPE[1000]
-        rad_data = np.arange(shape[0] * shape[1]).reshape(shape) + 1.0
-        rad_data = (rad_data + 1.0) / 0.5
-        rad_data = rad_data.astype(np.int16)
-        rad = xr.DataArray(
-            da.from_array(rad_data),
-            dims=("y", "x"),
-            attrs={
-                "scale_factor": 0.5,
-                "add_offset": -1.0,
-                "_FillValue": 20,
-            },
-        )
-        scn = l1b_c01_file(rad=rad)
-        scn.load(["C01"])
-        res = scn["C01"]
-
-        expected = np.array(
-            [
-                0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085,
-                0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171,
-            ]
-        )
-        data_np = res.data.compute()
-        assert np.allclose(data_np[0, :10], expected, equal_nan=True)
-        assert "scale_factor" not in res.attrs
-        assert "_FillValue" not in res.attrs
-        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
-        assert res.attrs["long_name"] == "Bidirectional Reflectance"
+def test_vis_calibrate(c01_refl):
+    """Test VIS calibration."""
+    res = c01_refl
+    expected = np.array(
+        [
+            7.632808,
+            15.265616,
+            22.898426,
+            30.531233,
+            38.164043,
+            45.796852,
+            53.429657,
+            61.062466,
+            68.695274,
+            np.nan,
+        ]
+    )
+    data_np = res.data.compute()
+    np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True)
+    assert "scale_factor" not in res.attrs
+    assert "_FillValue" not in res.attrs
+    assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+    assert res.attrs["long_name"] == "Bidirectional Reflectance"
 
 
-class Test_NC_ABI_L1B_raw_cal:
-    """Test the NC_ABI_L1B reader raw calibration."""
+def test_raw_calibrate(c01_counts):
+    """Test RAW calibration."""
+    res = c01_counts
 
-    def test_raw_calibrate(self, l1b_c01_file):
-        """Test RAW calibration."""
-        shape = RAD_SHAPE[1000]
-        rad_data = np.arange(shape[0] * shape[1]).reshape(shape) + 1.0
-        rad_data = (rad_data + 1.0) / 0.5
-        rad_data = rad_data.astype(np.int16)
-        rad = xr.DataArray(
-            da.from_array(rad_data),
-            dims=("y", "x"),
-            attrs={
-                "scale_factor": 0.5,
-                "add_offset": -1.0,
-                "_FillValue": 20,
-            },
-        )
-        scn = l1b_c01_file(rad=rad)
-        scn.load([DataQuery(name="C01", calibration="counts")])
-        res = scn["C01"]
+    # We expect the raw data to be unchanged
+    expected = res.data
+    assert np.allclose(res.data, expected, equal_nan=True)
 
-        # We expect the raw data to be unchanged
-        expected = res.data
-        assert np.allclose(res.data, expected, equal_nan=True)
+    # check for the presence of typical attributes
+    assert "scale_factor" in res.attrs
+    assert "add_offset" in res.attrs
+    assert "_FillValue" in res.attrs
+    assert "orbital_parameters" in res.attrs
+    assert "platform_shortname" in res.attrs
+    assert "scene_id" in res.attrs
 
-        # check for the presence of typical attributes
-        assert "scale_factor" in res.attrs
-        assert "add_offset" in res.attrs
-        assert "_FillValue" in res.attrs
-        assert "orbital_parameters" in res.attrs
-        assert "platform_shortname" in res.attrs
-        assert "scene_id" in res.attrs
-
-        # determine if things match their expected values/types.
-        assert res.data.dtype == np.int16
-        assert res.attrs["standard_name"] == "counts"
-        assert res.attrs["long_name"] == "Raw Counts"
+    # determine if things match their expected values/types.
+    assert res.data.dtype == np.int16
+    assert res.attrs["standard_name"] == "counts"
+    assert res.attrs["long_name"] == "Raw Counts"
 
 
-class Test_NC_ABI_File:
-    """Test file opening."""
+@mock.patch("satpy.readers.abi_base.xr")
+def test_open_dataset(_):  # noqa: PT019
+    """Test opening a dataset."""
+    openable_thing = mock.MagicMock()
 
-    @mock.patch("satpy.readers.abi_base.xr")
-    def test_open_dataset(self, _):  # noqa: PT019
-        """Test openning a dataset."""
-        openable_thing = mock.MagicMock()
-
-        NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, {})
-        openable_thing.open.assert_called()
-
-
-class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
-    """Allow h5netcdf peculiarities."""
-
-    @property
-    def fake_rad(self):
-        """Create fake data for the tests."""
-        shape = RAD_SHAPE[1000]
-        rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
-        rad_data = (rad_data + 1.0) / 0.5
-        rad_data = rad_data.astype(np.int16)
-        rad = xr.DataArray(
-            da.from_array(rad_data),
-            attrs={
-                "scale_factor": 0.5,
-                "add_offset": -1.0,
-                "_FillValue": np.array([1002]),
-                "units": "W m-2 um-1 sr-1",
-                "valid_range": (0, 4095),
-            },
-        )
-        return rad
+    NC_ABI_L1B(openable_thing, {"platform_shortname": "g16"}, {})
+    openable_thing.open.assert_called()
