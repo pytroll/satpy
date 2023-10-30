@@ -18,10 +18,8 @@
 """The abi_l1b reader tests package."""
 from __future__ import annotations
 
-import contextlib
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Callable
 from unittest import mock
 
 import dask.array as da
@@ -29,7 +27,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy import Scene
+from satpy import DataQuery, Scene
 from satpy.readers.abi_l1b import NC_ABI_L1B
 from satpy.tests.utils import make_dataid
 from satpy.utils import ignore_pyproj_proj_warnings
@@ -130,11 +128,27 @@ def generate_l1b_filename(chan_name: str) -> str:
 
 @pytest.fixture(scope="module")
 def l1b_c01_file(tmp_path_factory) -> Callable:
+    def _create_file_handler(rad: xr.DataArray | None = None):
+        filename = generate_l1b_filename("C01")
+        data_path = tmp_path_factory.mktemp("abi_l1b") / filename
+        dataset = _create_fake_rad_dataset(rad=rad)
+        dataset.to_netcdf(data_path)
+        scn = Scene(
+            reader="abi_l1b",
+            filenames=[str(data_path)],
+        )
+        return scn
+
+    return _create_file_handler
+
+
+@pytest.fixture(scope="module")
+def l1b_c07_file(tmp_path_factory) -> Callable:
     def _create_file_handler(
             rad: xr.DataArray | None = None,
             clip_negative_radiances: bool = False,
     ):
-        filename = generate_l1b_filename("C01")
+        filename = generate_l1b_filename("C07")
         data_path = tmp_path_factory.mktemp("abi_l1b") / filename
         dataset = _create_fake_rad_dataset(rad=rad)
         dataset.to_netcdf(data_path)
@@ -146,42 +160,6 @@ def l1b_c01_file(tmp_path_factory) -> Callable:
         return scn
 
     return _create_file_handler
-
-
-@pytest.fixture(scope="module")
-def l1b_all_files(
-    l1b_c01_file,
-) -> list[Path]:
-    return l1b_c01_file
-
-
-@contextlib.contextmanager
-def create_file_handler(
-    rad: xr.DataArray | None = None,
-    clip_negative_radiances: bool = False,
-    filetype_resolution: int = 0,
-) -> Iterator[NC_ABI_L1B]:
-    """Create a fake dataset using the given radiance data."""
-
-    ft_info: dict[str, Any] = {"filetype": "info"}
-    if filetype_resolution:
-        ft_info["resolution"] = filetype_resolution
-
-    with mock.patch("satpy.readers.abi_base.xr") as xr_:
-        xr_.open_dataset.return_value = _create_fake_rad_dataset(rad=rad)
-        file_handler = NC_ABI_L1B(
-            "filename",
-            {
-                "platform_shortname": "G16",
-                "observation_type": "Rad",
-                "suffix": "custom",
-                "scene_abbr": "C",
-                "scan_mode": "M3",
-            },
-            ft_info,
-            clip_negative_radiances=clip_negative_radiances,
-        )
-        yield file_handler
 
 
 class TestABIYAML:
@@ -311,15 +289,11 @@ class Test_NC_ABI_L1B_ir_cal:
     """Test the NC_ABI_L1B reader's default IR calibration."""
 
     @pytest.mark.parametrize("clip_negative_radiances", [False, True])
-    def test_ir_calibrate(self, clip_negative_radiances):
+    def test_ir_calibrate(self, l1b_c07_file, clip_negative_radiances):
         """Test IR calibration."""
-        with _ir_file_handler(
-            clip_negative_radiances=clip_negative_radiances
-        ) as file_handler:
-            res = file_handler.get_dataset(
-                make_dataid(name="C07", calibration="brightness_temperature"), {}
-            )
-            assert file_handler.clip_negative_radiances == clip_negative_radiances
+        scn = l1b_c07_file(rad=_fake_ir_data(), clip_negative_radiances=clip_negative_radiances)
+        scn.load([DataQuery(name="C07", calibration="brightness_temperature")])
+        res = scn["C07"]
 
         clipped_ir = 134.68753 if clip_negative_radiances else np.nan
         expected = np.array(
@@ -337,9 +311,7 @@ class Test_NC_ABI_L1B_ir_cal:
         assert res.attrs["long_name"] == "Brightness Temperature"
 
 
-@contextlib.contextmanager
-def _ir_file_handler(clip_negative_radiances: bool = False):
-    """Create fake data for the tests."""
+def _fake_ir_data():
     values = np.arange(10.0)
     rad_data = (values.reshape((2, 5)) + 1.0) * 50.0
     rad_data[0, 0] = -0.0001  # introduce below minimum expected radiance
@@ -357,18 +329,13 @@ def _ir_file_handler(clip_negative_radiances: bool = False):
             ),  # last rad_data value
         },
     )
-    with create_file_handler(
-        rad=rad,
-        clip_negative_radiances=clip_negative_radiances,
-        filetype_resolution=2000,
-    ) as file_handler:
-        yield file_handler
+    return rad
 
 
 class Test_NC_ABI_L1B_vis_cal:
     """Test the NC_ABI_L1B reader."""
 
-    def test_vis_calibrate(self):
+    def test_vis_calibrate(self, l1b_c01_file):
         """Test VIS calibration."""
         rad_data = np.arange(10.0).reshape((2, 5)) + 1.0
         rad_data = (rad_data + 1.0) / 0.5
@@ -382,10 +349,9 @@ class Test_NC_ABI_L1B_vis_cal:
                 "_FillValue": 20,
             },
         )
-        with create_file_handler(rad=rad, filetype_resolution=1000) as file_handler:
-            res = file_handler.get_dataset(
-                make_dataid(name="C05", calibration="reflectance"), {}
-            )
+        scn = l1b_c01_file(rad=rad)
+        scn.load(["C01"])
+        res = scn["C01"]
 
         expected = np.array(
             [
@@ -403,7 +369,7 @@ class Test_NC_ABI_L1B_vis_cal:
 class Test_NC_ABI_L1B_raw_cal:
     """Test the NC_ABI_L1B reader raw calibration."""
 
-    def test_raw_calibrate(self):
+    def test_raw_calibrate(self, l1b_c01_file):
         """Test RAW calibration."""
         rad_data = np.arange(10.0).reshape((2, 5)) + 1.0
         rad_data = (rad_data + 1.0) / 0.5
@@ -417,10 +383,9 @@ class Test_NC_ABI_L1B_raw_cal:
                 "_FillValue": 20,
             },
         )
-        with create_file_handler(rad=rad) as file_handler:
-            res = file_handler.get_dataset(
-                make_dataid(name="C05", calibration="counts"), {}
-            )
+        scn = l1b_c01_file(rad=rad)
+        scn.load([DataQuery(name="C01", calibration="counts")])
+        res = scn["C01"]
 
         # We expect the raw data to be unchanged
         expected = res.data
