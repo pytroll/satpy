@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Callable
 from unittest import mock
 
+import dask
 import dask.array as da
 import numpy as np
 import numpy.typing as npt
@@ -36,9 +37,12 @@ from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {
     500: (3000, 5000),  # conus - 500m
-    1000: (1500, 2500),  # conus - 1km
-    2000: (750, 1250),  # conus - 2km
 }
+# RAD_SHAPE = {
+#     500: (21696, 21696),  # fldk - 500m
+# }
+RAD_SHAPE[1000] = (RAD_SHAPE[500][0] // 2, RAD_SHAPE[500][1] // 2)
+RAD_SHAPE[2000] = (RAD_SHAPE[500][0] // 4, RAD_SHAPE[500][1] // 4)
 
 
 def _create_fake_rad_dataarray(
@@ -54,7 +58,7 @@ def _create_fake_rad_dataarray(
         rad_data = (rad_data + 1.0) / 0.5
         rad_data = rad_data.astype(np.int16)
         rad = xr.DataArray(
-            da.from_array(rad_data),
+            da.from_array(rad_data, chunks=226),
             dims=("y", "x"),
             attrs={
                 "scale_factor": 0.5,
@@ -134,15 +138,21 @@ def generate_l1b_filename(chan_name: str) -> str:
 
 @pytest.fixture()
 def c01_refl(tmp_path) -> xr.DataArray:
-    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-    scn.load(["C01"])
+    # 4 bytes for 32-bit floats
+    # 4 on-disk chunks for 500 meter data
+    # 226 on-disk chunk size
+    # Square (**2) for 2D size
+    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+        scn.load(["C01"])
     return scn["C01"]
 
 
 @pytest.fixture()
 def c01_rad(tmp_path) -> xr.DataArray:
-    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-    scn.load([DataQuery(name="C01", calibration="radiance")])
+    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+        scn.load([DataQuery(name="C01", calibration="radiance")])
     return scn["C01"]
 
 
@@ -153,7 +163,7 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
     rad_data = (rad_data + 1.0) / 0.5
     rad_data = rad_data.astype(np.int16)
     rad = xr.DataArray(
-        da.from_array(rad_data),
+        da.from_array(rad_data, chunks=226),
         dims=("y", "x"),
         attrs={
             "scale_factor": 0.5,
@@ -163,15 +173,17 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
             "valid_range": (0, 4095),
         },
     )
-    scn = _create_scene_for_data(tmp_path, "C01", rad, 1000)
-    scn.load([DataQuery(name="C01", calibration="radiance")])
+    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+        scn = _create_scene_for_data(tmp_path, "C01", rad, 1000)
+        scn.load([DataQuery(name="C01", calibration="radiance")])
     return scn["C01"]
 
 
 @pytest.fixture()
 def c01_counts(tmp_path) -> xr.DataArray:
-    scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-    scn.load([DataQuery(name="C01", calibration="counts")])
+    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
+        scn.load([DataQuery(name="C01", calibration="counts")])
     return scn["C01"]
 
 
@@ -181,14 +193,15 @@ def c07_bt_creator(tmp_path) -> Callable:
         clip_negative_radiances: bool = False,
     ):
         rad = _fake_c07_data()
-        scn = _create_scene_for_data(
-            tmp_path,
-            "C07",
-            rad,
-            2000,
-            {"clip_negative_radiances": clip_negative_radiances},
-        )
-        scn.load(["C07"])
+        with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+            scn = _create_scene_for_data(
+                tmp_path,
+                "C07",
+                rad,
+                2000,
+                {"clip_negative_radiances": clip_negative_radiances},
+            )
+            scn.load(["C07"])
         return scn["C07"]
 
     return _load_data_array
@@ -202,7 +215,7 @@ def _fake_c07_data() -> xr.DataArray:
     rad_data = (rad_data + 1.3) / 0.5
     data = rad_data.astype(np.int16)
     rad = xr.DataArray(
-        da.from_array(data),
+        da.from_array(data, chunks=226),
         dims=("y", "x"),
         attrs={
             "scale_factor": 0.5,
@@ -225,7 +238,12 @@ def _create_scene_for_data(
     filename = generate_l1b_filename(channel_name)
     data_path = tmp_path / filename
     dataset = _create_fake_rad_dataset(rad=rad, resolution=resolution)
-    dataset.to_netcdf(data_path)
+    dataset.to_netcdf(
+        data_path,
+        encoding={
+            "Rad": {"chunksizes": [226, 226]},
+        },
+    )
     scn = Scene(
         reader="abi_l1b",
         filenames=[str(data_path)],
@@ -236,9 +254,17 @@ def _create_scene_for_data(
 
 def _get_and_check_array(data_arr: xr.DataArray, exp_dtype: npt.DTypeLike) -> npt.NDArray:
     data_np = data_arr.data.compute()
+    assert isinstance(data_arr, xr.DataArray)
+    assert isinstance(data_arr.data, da.Array)
+    assert isinstance(data_np, np.ndarray)
+    res = 1000 if RAD_SHAPE[1000][0] == data_np.shape[0] else 2000
+    assert data_arr.chunks[0][0] == 226 * (4 / (res / 500))
+    assert data_arr.chunks[1][0] == 226 * (4 / (res / 500))
+
     assert data_np.dtype == data_arr.dtype
     assert data_np.dtype == exp_dtype
     return data_np
+
 
 def _check_area(data_arr: xr.DataArray) -> None:
     from pyresample.geometry import AreaDefinition
