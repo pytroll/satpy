@@ -6,6 +6,36 @@ reader:
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+          - reflectance
+          - brightness_temperature
+          - radiance
+          - counts
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+
+
+
 file_types:
     gcom-c_l1b_v:
         file_reader: !!python/name:satpy.readers.sgli_l1b.HDF5SGLI
@@ -31,7 +61,6 @@ datasets:
   longitude_v:
     name: longitude_v
     resolution: [250, 1000]
-    file_type: gcom-c_l1b
     standard_name: longitude
     units: degree
     file_key: Geometry_data/Longitude
@@ -40,7 +69,6 @@ datasets:
   latitude_v:
     name: latitude_v
     resolution: [250, 1000]
-    file_type: gcom-c_l1b
     standard_name: latitude
     units: degree
     file_key: Geometry_data/Latitude
@@ -50,7 +78,6 @@ datasets:
     name: longitude_p
     resolution: 1000
     polarization: [0, -60, 60]
-    file_type: gcom-c_l1b
     standard_name: longitude
     units: degree
     file_key: Geometry_data/Longitude
@@ -60,7 +87,6 @@ datasets:
     name: latitude_p
     resolution: 1000
     polarization: [0, -60, 60]
-    file_type: gcom-c_l1b
     standard_name: latitude
     units: degree
     file_key: Geometry_data/Latitude
@@ -69,7 +95,6 @@ datasets:
   longitude_ir:
     name: longitude_ir
     resolution: [250, 500, 1000]
-    file_type: gcom-c_l1b
     standard_name: longitude
     units: degree
     file_key: Geometry_data/Longitude
@@ -78,7 +103,6 @@ datasets:
   latitude_ir:
     name: latitude_ir
     resolution: [250, 500, 1000]
-    file_type: gcom-c_l1b
     standard_name: latitude
     units: degree
     file_key: Geometry_data/Latitude
@@ -87,7 +111,6 @@ datasets:
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: sgli
-    wavelength: [0.3925,0.4,0.4075]
     resolution: [250, 1000]
     coordinates: [longitude_v, latitude_v]
     file_type: gcom-c_l1b_v
@@ -96,7 +119,6 @@ datasets:
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: sgli
-    wavelength: [0.3925,0.4,0.4075]
     resolution: [250, 1000]
     coordinates: [longitude_v, latitude_v]
     file_type: gcom-c_l1b_v
@@ -105,7 +127,6 @@ datasets:
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: sgli
-    wavelength: [0.3925,0.4,0.4075]
     resolution: [250, 1000]
     coordinates: [longitude_v, latitude_v]
     file_type: gcom-c_l1b_v
@@ -114,7 +135,6 @@ datasets:
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: sgli
-    wavelength: [0.3925,0.4,0.4075]
     resolution: [250, 1000]
     coordinates: [longitude_v, latitude_v]
     file_type: gcom-c_l1b_v
