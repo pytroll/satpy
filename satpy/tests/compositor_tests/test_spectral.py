@@ -85,12 +85,15 @@ class TestNdviHybridGreenCompositor:
 
     def setup_method(self):
         """Initialize channels."""
-        self.c01 = xr.DataArray(da.from_array([[0.25, 0.30], [0.20, 0.30]], chunks=25),
-                                dims=("y", "x"), attrs={"name": "C02"})
-        self.c02 = xr.DataArray(da.from_array([[0.25, 0.30], [0.25, 0.35]], chunks=25),
-                                dims=("y", "x"), attrs={"name": "C03"})
-        self.c03 = xr.DataArray(da.from_array([[0.35, 0.35], [0.28, 0.65]], chunks=25),
-                                dims=("y", "x"), attrs={"name": "C04"})
+        self.c01 = xr.DataArray(
+            da.from_array(np.array([[0.25, 0.30], [0.20, 0.30]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), attrs={"name": "C02"})
+        self.c02 = xr.DataArray(
+            da.from_array(np.array([[0.25, 0.30], [0.25, 0.35]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), attrs={"name": "C03"})
+        self.c03 = xr.DataArray(
+            da.from_array(np.array([[0.35, 0.35], [0.28, 0.65]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), attrs={"name": "C04"})
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
@@ -106,6 +109,16 @@ class TestNdviHybridGreenCompositor:
             assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
             data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+
+    def test_ndvi_hybrid_green_dtype(self):
+        """Test that the datatype is not altered by the compositor."""
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+                                   standard_name="toa_bidirectional_reflectance")
+
+            # Test General functionality with linear strength (=1.0)
+            res = comp((self.c01, self.c02, self.c03)).compute()
+        assert res.data.dtype == np.float32
 
     def test_nonliniear_scaling(self):
         """Test non-linear scaling using `strength` term."""
