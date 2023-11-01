@@ -18,8 +18,6 @@ import os
 import sys
 from datetime import datetime
 
-from pkg_resources import get_distribution
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -28,12 +26,14 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 from reader_table import generate_reader_table  # noqa: E402
 
+import satpy  # noqa: E402
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # get version using setuptools-scm
-release = get_distribution("satpy").version
+release = satpy.__version__
 # The full version, including alpha/beta/rc tags.
 # for example take major/minor
 version = ".".join(release.split(".")[:2])
