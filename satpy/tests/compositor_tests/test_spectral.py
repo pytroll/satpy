@@ -15,12 +15,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for spectral correction compositors."""
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 
 from satpy.composites.spectral import GreenCorrector, HybridGreen, NDVIHybridGreen, SpectralBlender
+from satpy.tests.utils import CustomScheduler
 
 
 class TestSpectralComposites:
@@ -92,25 +94,28 @@ class TestNdviHybridGreenCompositor:
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
-        comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
-                               standard_name="toa_bidirectional_reflectance")
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+                                   standard_name="toa_bidirectional_reflectance")
 
-        # Test General functionality with linear strength (=1.0)
-        res = comp((self.c01, self.c02, self.c03))
-        assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array)
-        assert res.attrs["name"] == "ndvi_hybrid_green"
-        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
-        data = res.values
+            # Test General functionality with linear strength (=1.0)
+            res = comp((self.c01, self.c02, self.c03))
+            assert isinstance(res, xr.DataArray)
+            assert isinstance(res.data, da.Array)
+            assert res.attrs["name"] == "ndvi_hybrid_green"
+            assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+            data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
 
     def test_nonliniear_scaling(self):
         """Test non-linear scaling using `strength` term."""
-        comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), strength=2.0, prerequisites=(0.51, 0.65, 0.85),
-                               standard_name="toa_bidirectional_reflectance")
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), strength=2.0,
+                                   prerequisites=(0.51, 0.65, 0.85),
+                                   standard_name="toa_bidirectional_reflectance")
 
-        res = comp((self.c01, self.c02, self.c03))
-        np.testing.assert_array_almost_equal(res.values, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
+            res = comp((self.c01, self.c02, self.c03)).compute()
+        np.testing.assert_array_almost_equal(res.data, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
 
     def test_invalid_strength(self):
         """Test using invalid `strength` term for non-linear scaling."""
