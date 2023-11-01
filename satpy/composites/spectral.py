@@ -18,8 +18,6 @@
 import logging
 import warnings
 
-import dask.array as da
-
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -166,8 +164,7 @@ class NDVIHybridGreen(SpectralBlender):
 
         ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
 
-        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
-        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
