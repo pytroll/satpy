@@ -834,7 +834,7 @@ class TestBucketFraction(unittest.TestCase):
 
         # Too many dimensions
         data = da.ones((3, 5, 5))
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="BucketFraction not implemented for 3D datasets"):
             _ = self.bucket.compute(data)
 
     @mock.patch("pyresample.bucket.BucketResampler")

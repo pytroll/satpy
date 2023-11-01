@@ -166,7 +166,8 @@ class TestDatasetDict(unittest.TestCase):
         assert d[0.5] == "1h"
         assert d["test4"] == "4refl"
         assert d[make_dataid(name="test4", calibration="radiance")] == "4rad"
-        self.assertRaises(KeyError, d.getitem, "1h")
+        with pytest.raises(KeyError):
+            d.getitem("1h")
 
         # test with full tuple
         assert d[make_dsq(name="test", wavelength=(0, 0.5, 1), resolution=1000)] == "1"
@@ -203,7 +204,8 @@ class TestDatasetDict(unittest.TestCase):
         assert res1 != res3
 
         # more than 1 result when default is to ask for 1 result
-        self.assertRaises(KeyError, get_key, "test4", d, best=False)
+        with pytest.raises(KeyError):
+            get_key("test4", d, best=False)
 
     def test_contains(self):
         """Test DatasetDict contains method."""
@@ -288,9 +290,9 @@ class TestReaderLoader(unittest.TestCase):
     def test_bad_reader_name_with_filenames(self):
         """Test bad reader name with filenames provided."""
         from satpy.readers import load_readers
-        self.assertRaises(ValueError, load_readers, reader="i_dont_exist", filenames=[
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        with pytest.raises(ValueError, match="No reader named: i_dont_exist"):
+            load_readers(reader="i_dont_exist",
+                         filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
 
     def test_filenames_as_path(self):
         """Test with filenames specified as pathlib.Path."""
@@ -318,9 +320,8 @@ class TestReaderLoader(unittest.TestCase):
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "__fake__": ["fake.txt"],
         }
-        self.assertRaisesRegex(ValueError,
-                               r"(?=.*__fake__)(?!.*viirs)(^No reader.+)",
-                               load_readers, filenames=filenames)
+        with pytest.raises(ValueError, match=r"(?=.*__fake__)(?!.*viirs)(^No reader.+)"):
+            load_readers(filenames=filenames)
 
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
@@ -343,7 +344,8 @@ class TestReaderLoader(unittest.TestCase):
         filenames = {
             "viirs_sdr": [],
         }
-        self.assertRaises(ValueError, load_readers, filenames=filenames)
+        with pytest.raises(ValueError, match="No supported files found"):
+            load_readers(filenames=filenames)
 
         # two readers, one is empty
         filenames = {
@@ -370,7 +372,8 @@ class TestReaderLoader(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=r"No handler for reading requirement.*", category=UserWarning)
             for filenames in [epi_miss, pro_miss, epi_pro_miss]:
-                self.assertRaises(ValueError, load_readers, reader="seviri_l1b_hrit", filenames=filenames)
+                with pytest.raises(ValueError, match="No dataset could be loaded.*"):
+                    load_readers(reader="seviri_l1b_hrit", filenames=filenames)
 
         # Filenames from multiple scans
         at_least_one_complete = [
@@ -400,8 +403,8 @@ class TestReaderLoader(unittest.TestCase):
         filter_params = {"start_time": datetime.datetime(1970, 1, 1),
                          "end_time": datetime.datetime(1970, 1, 2),
                          "area": None}
-        self.assertRaises(ValueError, load_readers,
-                          filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
+        with pytest.raises(ValueError, match="No dataset could be loaded.*"):
+            load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
 
     def test_all_filtered_multiple(self):
         """Test behaviour if no file matches the filter parameters."""
@@ -414,8 +417,8 @@ class TestReaderLoader(unittest.TestCase):
         }
         filter_params = {"start_time": datetime.datetime(1970, 1, 1),
                          "end_time": datetime.datetime(1970, 1, 2)}
-        self.assertRaises(ValueError, load_readers,
-                          filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
+        with pytest.raises(ValueError, match="No dataset could be loaded."):
+            load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
 
     def test_almost_all_filtered(self):
         """Test behaviour if only one reader has datasets."""
@@ -725,7 +728,8 @@ class TestGroupFiles(unittest.TestCase):
         # touch the file so it exists on disk
         with mock.patch("yaml.load") as load:
             load.side_effect = yaml.YAMLError("Import problems")
-            self.assertRaises(yaml.YAMLError, group_files, [], reader="abi_l1b")
+            with pytest.raises(yaml.YAMLError):
+                group_files([], reader="abi_l1b")
 
     def test_default_behavior(self):
         """Test the default behavior with the 'abi_l1b' reader."""
