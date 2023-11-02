@@ -334,11 +334,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         vr = attrs.get("valid_range", [-np.inf, np.inf])
         if key["calibration"] == "counts":
             attrs["_FillValue"] = fv
-            nfv = fv
+            nfv = data.dtype.type(fv)
         else:
             nfv = np.nan
-        data = data.where(data >= vr[0], nfv)
-        data = data.where(data <= vr[1], nfv)
+        data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
         res = self.calibrate(data, key)
 
