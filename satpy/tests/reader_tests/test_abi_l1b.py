@@ -31,16 +31,14 @@ import pytest
 import xarray as xr
 from pytest_lazyfixture import lazy_fixture
 
-from satpy import DataQuery, Scene
+from satpy import DataQuery
 from satpy.readers.abi_l1b import NC_ABI_L1B
+from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {
     500: (3000, 5000),  # conus - 500m
 }
-# RAD_SHAPE = {
-#     500: (21696, 21696),  # fldk - 500m
-# }
 RAD_SHAPE[1000] = (RAD_SHAPE[500][0] // 2, RAD_SHAPE[500][1] // 2)
 RAD_SHAPE[2000] = (RAD_SHAPE[500][0] // 4, RAD_SHAPE[500][1] // 4)
 
@@ -143,17 +141,15 @@ def c01_refl(tmp_path) -> xr.DataArray:
     # 226 on-disk chunk size
     # Square (**2) for 2D size
     with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
-        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-        scn.load(["C01"])
-    return scn["C01"]
+        reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
+        return reader.load(["C01"])["C01"]
 
 
 @pytest.fixture()
 def c01_rad(tmp_path) -> xr.DataArray:
     with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
-        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-        scn.load([DataQuery(name="C01", calibration="radiance")])
-    return scn["C01"]
+        reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
+        return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
 @pytest.fixture()
@@ -174,17 +170,15 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
         },
     )
     with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
-        scn = _create_scene_for_data(tmp_path, "C01", rad, 1000)
-        scn.load([DataQuery(name="C01", calibration="radiance")])
-    return scn["C01"]
+        reader = _create_reader_for_data(tmp_path, "C01", rad, 1000)
+        return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
 @pytest.fixture()
 def c01_counts(tmp_path) -> xr.DataArray:
     with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
-        scn = _create_scene_for_data(tmp_path, "C01", None, 1000)
-        scn.load([DataQuery(name="C01", calibration="counts")])
-    return scn["C01"]
+        reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
+        return reader.load([DataQuery(name="C01", calibration="counts")])["C01"]
 
 
 @pytest.fixture()
@@ -194,15 +188,14 @@ def c07_bt_creator(tmp_path) -> Callable:
     ):
         rad = _fake_c07_data()
         with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
-            scn = _create_scene_for_data(
+            reader = _create_reader_for_data(
                 tmp_path,
                 "C07",
                 rad,
                 2000,
                 {"clip_negative_radiances": clip_negative_radiances},
             )
-            scn.load(["C07"])
-        return scn["C07"]
+            return reader.load(["C07"])["C07"]
 
     return _load_data_array
 
@@ -228,13 +221,13 @@ def _fake_c07_data() -> xr.DataArray:
     return rad
 
 
-def _create_scene_for_data(
+def _create_reader_for_data(
         tmp_path: Path,
         channel_name: str,
         rad: xr.DataArray | None,
         resolution: int,
         reader_kwargs: dict[str, Any] | None = None,
-) -> Scene:
+) -> FileYAMLReader:
     filename = generate_l1b_filename(channel_name)
     data_path = tmp_path / filename
     dataset = _create_fake_rad_dataset(rad=rad, resolution=resolution)
@@ -244,12 +237,8 @@ def _create_scene_for_data(
             "Rad": {"chunksizes": [226, 226]},
         },
     )
-    scn = Scene(
-        reader="abi_l1b",
-        filenames=[str(data_path)],
-        reader_kwargs=reader_kwargs,
-    )
-    return scn
+    from satpy.readers import load_readers
+    return load_readers([str(data_path)], "abi_l1b", reader_kwargs=reader_kwargs)["abi_l1b"]
 
 
 def _get_and_check_array(data_arr: xr.DataArray, exp_dtype: npt.DTypeLike) -> npt.NDArray:
