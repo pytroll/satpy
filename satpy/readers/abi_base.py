@@ -18,9 +18,11 @@
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
+import math
 from contextlib import suppress
 from datetime import datetime
 
+import dask
 import numpy as np
 import xarray as xr
 from pyresample import geometry
@@ -28,11 +30,10 @@ from pyresample import geometry
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_dask_chunk_size_in_bytes
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = get_legacy_chunk_size()
 PLATFORM_NAMES = {
     "g16": "GOES-16",
     "g17": "GOES-17",
@@ -62,19 +63,41 @@ class NC_ABI_BASE(BaseFileHandler):
     @cached_property
     def nc(self):
         """Get the xarray dataset for this file."""
-        f_obj = open_file_or_filename(self.filename)
-        try:
+        chunk_bytes = self._chunk_bytes_for_resolution()
+        with dask.config.set({"array.chunk-size": chunk_bytes}):
+            f_obj = open_file_or_filename(self.filename)
             nc = xr.open_dataset(f_obj,
                                  decode_cf=True,
                                  mask_and_scale=False,
-                                 chunks={"x": CHUNK_SIZE, "y": CHUNK_SIZE}, )
-        except ValueError:
-            nc = xr.open_dataset(f_obj,
-                                 decode_cf=True,
-                                 mask_and_scale=False,
-                                 chunks={"lon": CHUNK_SIZE, "lat": CHUNK_SIZE}, )
+                                 chunks="auto")
         nc = self._rename_dims(nc)
         return nc
+
+    def _chunk_bytes_for_resolution(self) -> int:
+        """Get a best-guess optimal chunk size for resolution-based chunking.
+
+        First a chunk size is chosen for the provided Dask setting `array.chunk-size`
+        and then aligned with a hardcoded on-disk chunk size of 226. This is then
+        adjusted to match the current resolution.
+
+        This should result in 500 meter data having 4 times as many pixels per
+        dask array chunk (2 in each dimension) as 1km data and 8 times as many
+        as 2km data. As data is combined or upsampled geographically the arrays
+        should not need to be rechunked. Care is taken to make sure that array
+        chunks are aligned with on-disk file chunks at all resolutions, but at
+        the cost of flexibility due to a hardcoded on-disk chunk size of 226
+        elements per dimension.
+
+        """
+        num_high_res_elems_per_dim = math.sqrt(get_dask_chunk_size_in_bytes() / 4)  # 32-bit floats
+        # assume on-disk chunk size of 226
+        # this is true for all CSPP Geo GRB output (226 for all sectors) and full disk from other sources
+        # 250 has been seen for AWS/CLASS CONUS, Mesoscale 1, and Mesoscale 2 files
+        # we align this with 4 on-disk chunks at 500m, so it will be 2 on-disk chunks for 1km, and 1 for 2km
+        high_res_elems_disk_aligned = np.round(max(num_high_res_elems_per_dim / (4 * 226), 1)) * (4 * 226)
+        low_res_factor = int(self.filetype_info.get("resolution", 2000) // 500)
+        res_elems_per_dim = int(high_res_elems_disk_aligned / low_res_factor)
+        return (res_elems_per_dim ** 2) * 4
 
     @staticmethod
     def _rename_dims(nc):
@@ -136,19 +159,14 @@ class NC_ABI_BASE(BaseFileHandler):
             if is_int(data) and is_int(factor) and is_int(offset):
                 new_fill = fill
             else:
-                new_fill = np.nan
+                new_fill = np.float32(np.nan)
             data = data.where(data != fill, new_fill)
         if factor != 1 and item in ("x", "y"):
             # be more precise with x/y coordinates
             # see get_area_def for more information
             data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
         elif factor != 1:
-            # make sure the factor is a 64-bit float
-            # can't do this in place since data is most likely uint16
-            # and we are making it a 64-bit float
-            if not is_int(factor):
-                factor = float(factor)
-            data = data * factor + offset
+            data = data * np.float32(factor) + np.float32(offset)
         return data
 
     def _adjust_coords(self, data, item):
