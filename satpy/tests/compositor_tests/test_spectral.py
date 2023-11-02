@@ -127,7 +127,10 @@ class TestNdviHybridGreenCompositor:
                                    prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
 
-            res = comp((self.c01, self.c02, self.c03)).compute()
+            res = comp((self.c01, self.c02, self.c03))
+            res_np = res.data.compute()
+            assert res.dtype == res_np.dtype
+            assert res.dtype == np.float32
         np.testing.assert_array_almost_equal(res.data, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
 
     def test_invalid_strength(self):
