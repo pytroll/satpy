@@ -120,7 +120,7 @@ class TestNdviHybridGreenCompositor:
             res = comp((self.c01, self.c02, self.c03)).compute()
         assert res.data.dtype == np.float32
 
-    def test_nonliniear_scaling(self):
+    def test_nonlinear_scaling(self):
         """Test non-linear scaling using `strength` term."""
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), strength=2.0,
