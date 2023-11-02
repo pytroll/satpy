@@ -115,8 +115,6 @@ class TestNdviHybridGreenCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
-
-            # Test General functionality with linear strength (=1.0)
             res = comp((self.c01, self.c02, self.c03)).compute()
         assert res.data.dtype == np.float32
 
