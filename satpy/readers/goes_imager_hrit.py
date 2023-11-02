@@ -117,11 +117,11 @@ sgs_time = np.dtype([("century", "u1"),
 
 def make_sgs_time(sgs_time_array):
     """Make sgs time."""
-    year = ((sgs_time_array["century"] >> 4) * 1000 +
-            (sgs_time_array["century"] & 15) * 100 +
+    year = ((sgs_time_array["century"] >> 4) * np.int64(1000) +
+            (sgs_time_array["century"] & 15) * np.int64(100) +
             (sgs_time_array["year"] >> 4) * 10 +
             (sgs_time_array["year"] & 15))
-    doy = ((sgs_time_array["doy1"] >> 4) * 100 +
+    doy = ((sgs_time_array["doy1"] >> 4) * np.int64(100) +
            (sgs_time_array["doy1"] & 15) * 10 +
            (sgs_time_array["doy_hours"] >> 4))
     hours = ((sgs_time_array["doy_hours"] & 15) * 10 +
@@ -130,7 +130,7 @@ def make_sgs_time(sgs_time_array):
             (sgs_time_array["mins_secs"] >> 4))
     secs = ((sgs_time_array["mins_secs"] & 15) * 10 +
             (sgs_time_array["secs_msecs"] >> 4))
-    msecs = ((sgs_time_array["secs_msecs"] & 15) * 100 +
+    msecs = ((sgs_time_array["secs_msecs"] & 15) * np.int64(100) +
              (sgs_time_array["msecs"] >> 4) * 10 +
              (sgs_time_array["msecs"] & 15))
     return (datetime(int(year), 1, 1) +
