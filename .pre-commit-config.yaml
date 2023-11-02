@@ -27,6 +27,7 @@ repos:
           - types-pkg-resources
           - types-PyYAML
           - types-requests
+          - typing_extensions  # Remove when Python 3.9 is dropped
         args: ["--python-version", "3.9", "--ignore-missing-imports"]
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
