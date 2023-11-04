@@ -44,7 +44,7 @@ class Mock(object):  # noqa
 
     def __init__(self, *args, **kwargs):
         """Mask any arguments to mock object."""
-        pass
+        self.__version__ = "0.0.0"
 
     def __call__(self, *args, **kwargs):
         """Mock a function and class object when accessed from mocked module."""
