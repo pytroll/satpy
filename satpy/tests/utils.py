@@ -430,11 +430,11 @@ def xfail_h5py_unstable_numpy2():
     from packaging import version
     try:
         import h5py
-        is_broken_h5py = version.parse(h5py.__version__) < version.parse("3.10.0")
+        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
     except ImportError:
         is_broken_h5py = True
 
     import os
     is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2")
+    is_np2 = np.__version__.startswith("2.")
     return is_broken_h5py and is_np2 and is_unstable_ci
