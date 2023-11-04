@@ -413,12 +413,15 @@ def xfail_skyfield_unstable_numpy2():
     """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
     try:
         import skyfield
+
+        # known numpy incompatibility:
+        from skyfield import timelib  # noqa
     except ImportError:
         skyfield = None
 
     import os
     is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2")
+    is_np2 = np.__version__.startswith("2.")
     return skyfield is None and is_np2 and is_unstable_ci
 
 
