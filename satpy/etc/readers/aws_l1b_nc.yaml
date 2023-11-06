@@ -306,80 +306,67 @@ datasets:
     lon_horn_1:
         name: lon_horn_1
         file_type: aws_l1b_nc
-        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 0
+        file_key: data/navigation/aws_lon
+
 
     lat_horn_1:
         name: lat_horn_1
         file_type: aws_l1b_nc
-        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 0
+        file_key: data/navigation/aws_lat
 
     lon_horn_2:
         name: lon_horn_2
         file_type: aws_l1b_nc
-        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 1
+        file_key: data/navigation/aws_lon
 
     lat_horn_2:
         name: lat_horn_2
         file_type: aws_l1b_nc
-        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 1
+        file_key: data/navigation/aws_lat
 
     lon_horn_3:
         name: lon_horn_3
         file_type: aws_l1b_nc
-        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 2
+        file_key: data/navigation/aws_lon
 
     lat_horn_3:
         name: lat_horn_3
         file_type: aws_l1b_nc
-        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 2
+        file_key: data/navigation/aws_lat
 
     lon_horn_4:
         name: lon_horn_4
         file_type: aws_l1b_nc
-        file_key: aws_lon
         standard_name: longitude
         units: degrees_east
         n_horns: 3
+        file_key: data/navigation/aws_lon
 
     lat_horn_4:
         name: lat_horn_4
         file_type: aws_l1b_nc
-        file_key: aws_lat
         standard_name: latitude
         units: degrees_north
         n_horns: 3
-
-    # aws_lat:
-    #     name: aws_lat
-    #     file_type: aws_l1b_nc
-    #     file_key: data/navigation/aws_lat
-    #     standard_name: latitude
-    #     units: degrees_north
-
-    # aws_lon:
-    #     name: aws_lon
-    #     file_type: aws_l1b_nc
-    #     file_key: data/navigation/aws_lon
-    #     standard_name: longitude
-    #     units: degrees_east
+        file_key: data/navigation/aws_lat
 
 # --- Navigation data ---
 
@@ -393,30 +380,115 @@ datasets:
             - lon_horn_1
             - lat_horn_1
 
-    # solar_zenith:
-    #     name: solar_zenith
-    #     standard_name: solar_zenith_angle
-    #     file_type: aws_l1b_nc
-    #     file_key: data/navigation/aws_solar_zenith_angle
-    #     coordinates:
-    #         - aws_lon
-    #         - aws_lat
-    # satellite_azimuth:
-    #     name: satellite_azimuth
-    #     standard_name: satellite_azimuth_angle
-    #     file_type: aws_l1b_nc
-    #     file_key: data/navigation/aws_satellite_azimuth_angle
-    #     coordinates:
-    #         - aws_lon
-    #         - aws_lat
-    # satellite_zenith:
-    #     name: satellite_zenith
-    #     standard_name: satellite_zenith_angle
-    #     file_type: aws_l1b_nc
-    #     file_key: data/navigation/aws_satellite_zenith_angle
-    #     coordinates:
-    #         - aws_lon
-    #         - aws_lat
+    solar_azimuth_horn_2:
+        name: solar_azimuth_horn_2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        n_horns: 1
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_azimuth_horn_3:
+        name: solar_azimuth_horn_3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        n_horns: 2
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_azimuth_horn_4:
+        name: solar_azimuth_horn_4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        n_horns: 3
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_zenith_horn_1:
+        name: solar_zenith_horn_1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_zenith_angle
+        standard_name: solar_zenith_angle
+        n_horns: 0
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_zenith_horn_2:
+        name: solar_zenith_horn_2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_zenith_angle
+        standard_name: solar_zenith_angle
+        n_horns: 1
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_zenith_horn_3:
+        name: solar_zenith_horn_3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_zenith_angle
+        standard_name: solar_zenith_angle
+        n_horns: 2
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    solar_zenith_horn_4:
+        name: solar_zenith_horn_4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_solar_zenith_angle
+        standard_name: solar_zenith_angle
+        n_horns: 3
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    satellite_azimuth_horn_1:
+        name: satellite_azimuth_horn_1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        n_horns: 0
+        coordinates:
+            - lon_horn_1
+            - lat_horn_1
+
+    satellite_azimuth_horn_2:
+        name: satellite_azimuth_horn_2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        n_horns: 1
+        coordinates:
+            - lon_horn_2
+            - lat_horn_2
+
+    satellite_azimuth_horn_3:
+        name: satellite_azimuth_horn_3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        n_horns: 2
+        coordinates:
+            - lon_horn_3
+            - lat_horn_3
+
+    satellite_azimuth_horn_4:
+        name: satellite_azimuth_horn_4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        n_horns: 3
+        coordinates:
+            - lon_horn_4
+            - lat_horn_4
 
     satellite_zenith_horn_1:
         name: satellite_zenith_horn_1
