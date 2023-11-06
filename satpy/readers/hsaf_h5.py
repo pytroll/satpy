@@ -42,7 +42,7 @@ class HSAFFileHandler(BaseFileHandler):
         super(HSAFFileHandler, self).__init__(filename,
                                               filename_info,
                                               filetype_info)
-        self._h5fh = h5py.File(self.filename, 'r')
+        self._h5fh = h5py.File(self.filename, "r")
 
     @property
     def end_time(self):
@@ -52,21 +52,21 @@ class HSAFFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['sensing_time']
+        return self.filename_info["sensing_time"]
 
     def _prepare_variable_for_palette(self, dset, ds_info):
         colormap = np.array(dset)
-        return xr.DataArray(colormap, attrs=ds_info, dims=('idx', 'RGB'))
+        return xr.DataArray(colormap, attrs=ds_info, dims=("idx", "RGB"))
 
     def get_metadata(self, dset, name):
         """Get the metadata."""
-        ds_info = {'name': name}
-        if name == 'SC':
+        ds_info = {"name": name}
+        if name == "SC":
             ds_info.update({
-                'filename': self.filename,
-                'data_time': self.start_time,
-                'nx': dset.shape[1],
-                'ny': dset.shape[0]
+                "filename": self.filename,
+                "data_time": self.start_time,
+                "nx": dset.shape[1],
+                "ny": dset.shape[0]
             })
         return ds_info
 
@@ -76,7 +76,7 @@ class HSAFFileHandler(BaseFileHandler):
         Since it is not available in the HDF5 message,
         using hardcoded one (it's known).
         """
-        if dsid['name'] == 'SC':
+        if dsid["name"] == "SC":
             return self._get_area_def()
         raise NotImplementedError
 
@@ -109,31 +109,31 @@ class HSAFFileHandler(BaseFileHandler):
                 units: m
 
         """
-        fd_def = get_area_def('msg_seviri_fes_3km')
+        fd_def = get_area_def("msg_seviri_fes_3km")
         hsaf_def = fd_def[AREA_Y_OFFSET:AREA_Y_OFFSET+916,
                           AREA_X_OFFSET:AREA_X_OFFSET+1902]
 
         return hsaf_def
 
     def _get_dataset(self, ds_name):
-        if ds_name == 'SC_pal':
-            _ds_name = 'colormap'
+        if ds_name == "SC_pal":
+            _ds_name = "colormap"
         else:
             _ds_name = ds_name
         return self._h5fh.get(_ds_name)
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-        ds = self._get_dataset(ds_id['name'])
-        ds_info = self.get_metadata(ds, ds_id['name'])
+        ds = self._get_dataset(ds_id["name"])
+        ds_info = self.get_metadata(ds, ds_id["name"])
 
-        if ds_id['name'] == 'SC':
-            ds_info['start_time'] = self.start_time
-            ds_info['data_time'] = self.start_time
-            ds_info['end_time'] = self.end_time
+        if ds_id["name"] == "SC":
+            ds_info["start_time"] = self.start_time
+            ds_info["data_time"] = self.start_time
+            ds_info["end_time"] = self.end_time
 
             data = da.from_array(ds, chunks=CHUNK_SIZE)
-            return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
+            return xr.DataArray(data, attrs=ds_info, dims=("y", "x"))
 
-        elif ds_id['name'] == 'SC_pal':
+        elif ds_id["name"] == "SC_pal":
             return self._prepare_variable_for_palette(ds, ds_info)

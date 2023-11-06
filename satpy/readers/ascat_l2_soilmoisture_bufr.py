@@ -38,7 +38,7 @@ except ImportError as e:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
-logger = logging.getLogger('AscatSoilMoistureBufr')
+logger = logging.getLogger("AscatSoilMoistureBufr")
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
@@ -53,34 +53,34 @@ class AscatSoilMoistureBufr(BaseFileHandler):
         start_time, end_time = self.get_start_end_date()
 
         self.metadata = {}
-        self.metadata['start_time'] = start_time
-        self.metadata['end_time'] = end_time
+        self.metadata["start_time"] = start_time
+        self.metadata["end_time"] = end_time
 
     @property
     def start_time(self):
         """Return the start time of data acqusition."""
-        return self.metadata['start_time']
+        return self.metadata["start_time"]
 
     @property
     def end_time(self):
         """Return the end time of data acquisition."""
-        return self.metadata['end_time']
+        return self.metadata["end_time"]
 
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        return self.filename_info['platform']
+        return self.filename_info["platform"]
 
     def extract_msg_date_extremes(self, bufr, date_min=None, date_max=None):
         """Extract the minimum and maximum dates from a single bufr message."""
-        ec.codes_set(bufr, 'unpack', 1)
-        size = ec.codes_get(bufr, 'numberOfSubsets')
-        years = np.resize(ec.codes_get_array(bufr, 'year'), size)
-        months = np.resize(ec.codes_get_array(bufr, 'month'), size)
-        days = np.resize(ec.codes_get_array(bufr, 'day'), size)
-        hours = np.resize(ec.codes_get_array(bufr, 'hour'), size)
-        minutes = np.resize(ec.codes_get_array(bufr, 'minute'), size)
-        seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
+        ec.codes_set(bufr, "unpack", 1)
+        size = ec.codes_get(bufr, "numberOfSubsets")
+        years = np.resize(ec.codes_get_array(bufr, "year"), size)
+        months = np.resize(ec.codes_get_array(bufr, "month"), size)
+        days = np.resize(ec.codes_get_array(bufr, "day"), size)
+        hours = np.resize(ec.codes_get_array(bufr, "hour"), size)
+        minutes = np.resize(ec.codes_get_array(bufr, "minute"), size)
+        seconds = np.resize(ec.codes_get_array(bufr, "second"), size)
         for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
             time_stamp = datetime(year, month, day, hour, minute, second)
             date_min = time_stamp if not date_min else min(date_min, time_stamp)
@@ -89,7 +89,7 @@ class AscatSoilMoistureBufr(BaseFileHandler):
 
     def get_start_end_date(self):
         """Get the first and last date from the bufr file."""
-        with open(self.filename, 'rb') as fh:
+        with open(self.filename, "rb") as fh:
             date_min = None
             date_max = None
             while True:
@@ -103,16 +103,16 @@ class AscatSoilMoistureBufr(BaseFileHandler):
     def get_bufr_data(self, key):
         """Get BUFR data by key."""
         attr = np.array([])
-        with open(self.filename, 'rb') as fh:
+        with open(self.filename, "rb") as fh:
             while True:
                 # get handle for message
                 bufr = ec.codes_bufr_new_from_file(fh)
                 if bufr is None:
                     break
-                ec.codes_set(bufr, 'unpack', 1)
+                ec.codes_set(bufr, "unpack", 1)
                 tmp = ec.codes_get_array(bufr, key, float)
                 if len(tmp) == 1:
-                    size = ec.codes_get(bufr, 'numberOfSubsets')
+                    size = ec.codes_get(bufr, "numberOfSubsets")
                     tmp = np.resize(tmp, size)
                 attr = np.append(attr, tmp)
                 ec.codes_release(bufr)
@@ -120,12 +120,12 @@ class AscatSoilMoistureBufr(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the BUFR key in dataset_info."""
-        arr = self.get_bufr_data(dataset_info['key'])
-        if 'fill_value' in dataset_info:
-            arr[arr == dataset_info['fill_value']] = np.nan
+        arr = self.get_bufr_data(dataset_info["key"])
+        if "fill_value" in dataset_info:
+            arr[arr == dataset_info["fill_value"]] = np.nan
         arr = da.from_array(arr, chunks=CHUNK_SIZE)
-        xarr = xr.DataArray(arr, dims=["y"], name=dataset_info['name'])
-        xarr.attrs['platform_name'] = self.platform_name
+        xarr = xr.DataArray(arr, dims=["y"], name=dataset_info["name"])
+        xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs.update(dataset_info)
 
         return xarr

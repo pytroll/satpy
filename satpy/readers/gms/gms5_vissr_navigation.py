@@ -445,6 +445,7 @@ def get_lon_lat(pixel, nav_params):
         pixel (Pixel): Point in image coordinates.
         nav_params (PixelNavigationParameters): Navigation parameters for a
             single pixel.
+
     Returns:
         Longitude and latitude in degrees.
     """
@@ -481,6 +482,7 @@ def transform_image_coords_to_scanning_angles(point, image_offset, scanning_angl
         point (Pixel): Point in image coordinates.
         image_offset (ImageOffset): Image offset.
         scanning_angles (ScanningAngles): Scanning angles.
+
     Returns:
         Scanning angles (x, y) at the pixel center (rad).
     """
@@ -677,6 +679,7 @@ def intersect_with_earth(view_vector, sat_pos, ellipsoid):
             coordinates.
         sat_pos (Vector3D): Satellite position in earth-fixed coordinates.
         ellipsoid (EarthEllipsoid): Earth ellipsoid.
+
     Returns:
         Intersection (Vector3D) with the earth's surface.
     """

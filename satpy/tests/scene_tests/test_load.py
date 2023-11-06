@@ -36,7 +36,7 @@ class TestSceneAllAvailableDatasets:
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
         scene = Scene()
-        pytest.raises(KeyError, scene.all_dataset_ids, reader_name='fake')
+        pytest.raises(KeyError, scene.all_dataset_ids, reader_name="fake")
         id_list = scene.all_dataset_ids()
         assert id_list == []
         # no sensors are loaded so we shouldn't get any comps either
@@ -46,7 +46,7 @@ class TestSceneAllAvailableDatasets:
     def test_all_dataset_names_no_readers(self):
         """Test all dataset names with no reader."""
         scene = Scene()
-        pytest.raises(KeyError, scene.all_dataset_names, reader_name='fake')
+        pytest.raises(KeyError, scene.all_dataset_names, reader_name="fake")
         name_list = scene.all_dataset_names()
         assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
@@ -57,7 +57,7 @@ class TestSceneAllAvailableDatasets:
         """Test the available datasets without a reader."""
         scene = Scene()
         pytest.raises(
-            KeyError, scene.available_dataset_ids, reader_name='fake')
+            KeyError, scene.available_dataset_ids, reader_name="fake")
         name_list = scene.available_dataset_ids()
         assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
@@ -68,7 +68,7 @@ class TestSceneAllAvailableDatasets:
         """Test the available dataset names without a reader."""
         scene = Scene()
         pytest.raises(
-            KeyError, scene.available_dataset_names, reader_name='fake')
+            KeyError, scene.available_dataset_names, reader_name="fake")
         name_list = scene.available_dataset_names()
         assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
@@ -77,8 +77,8 @@ class TestSceneAllAvailableDatasets:
 
     def test_all_datasets_one_reader(self):
         """Test all datasets for one reader."""
-        scene = Scene(filenames=['fake1_1.txt'],
-                      reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"],
+                      reader="fake1")
         id_list = scene.all_dataset_ids()
         # 20 data products + 6 lon/lat products
         num_reader_ds = 21 + 6
@@ -88,8 +88,8 @@ class TestSceneAllAvailableDatasets:
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
-        scene = Scene(filenames={'fake1_1ds': ['fake1_1ds_1.txt'],
-                                 'fake2_1ds': ['fake2_1ds_1.txt']})
+        scene = Scene(filenames={"fake1_1ds": ["fake1_1ds_1.txt"],
+                                 "fake2_1ds": ["fake2_1ds_1.txt"]})
         id_list = scene.all_dataset_ids()
         assert len(id_list) == 2
         id_list = scene.all_dataset_ids(composites=True)
@@ -99,8 +99,8 @@ class TestSceneAllAvailableDatasets:
 
     def test_available_datasets_one_reader(self):
         """Test the available datasets for one reader."""
-        scene = Scene(filenames=['fake1_1ds_1.txt'],
-                      reader='fake1_1ds')
+        scene = Scene(filenames=["fake1_1ds_1.txt"],
+                      reader="fake1_1ds")
         id_list = scene.available_dataset_ids()
         assert len(id_list) == 1
         id_list = scene.available_dataset_ids(composites=True)
@@ -109,13 +109,13 @@ class TestSceneAllAvailableDatasets:
 
     def test_available_composite_ids_missing_available(self):
         """Test available_composite_ids when a composites dep is missing."""
-        scene = Scene(filenames=['fake1_1ds_1.txt'],
-                      reader='fake1_1ds')
-        assert 'comp2' not in scene.available_composite_names()
+        scene = Scene(filenames=["fake1_1ds_1.txt"],
+                      reader="fake1_1ds")
+        assert "comp2" not in scene.available_composite_names()
 
     def test_available_composites_known_versus_all(self):
         """Test available_composite_ids when some datasets aren't available."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1',
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1",
                       reader_kwargs={"not_available": ["ds2", "ds3"]})
         all_comps = scene.all_composite_names()
         avail_comps = scene.available_composite_names()
@@ -127,11 +127,11 @@ class TestSceneAllAvailableDatasets:
 
     def test_available_comps_no_deps(self):
         """Test Scene available composites when composites don't have a dependency."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         all_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in all_comp_ids
+        assert make_cid(name="static_image") in all_comp_ids
         available_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in available_comp_ids
+        assert make_cid(name="static_image") in available_comp_ids
 
     def test_available_when_sensor_none_in_preloaded_dataarrays(self):
         """Test Scene available composites when existing loaded arrays have sensor set to None.
@@ -143,7 +143,7 @@ class TestSceneAllAvailableDatasets:
         """
         scene = _scene_with_data_array_none_sensor()
         available_comp_ids = scene.available_composite_ids()
-        assert make_cid(name='static_image') in available_comp_ids
+        assert make_cid(name="static_image") in available_comp_ids
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -152,13 +152,13 @@ class TestBadLoading:
 
     def test_load_str(self):
         """Test passing a string to Scene.load."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        pytest.raises(TypeError, scene.load, 'ds1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        pytest.raises(TypeError, scene.load, "ds1")
 
     def test_load_no_exist(self):
         """Test loading a dataset that doesn't exist."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        pytest.raises(KeyError, scene.load, ['im_a_dataset_that_doesnt_exist'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        pytest.raises(KeyError, scene.load, ["im_a_dataset_that_doesnt_exist"])
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -169,50 +169,50 @@ class TestLoadingReaderDatasets:
         """Test loading a dataset that doesn't exist then another load."""
         from satpy.readers.yaml_reader import FileYAMLReader
         load_mock = spy_decorator(FileYAMLReader.load)
-        with mock.patch.object(FileYAMLReader, 'load', load_mock):
+        with mock.patch.object(FileYAMLReader, "load", load_mock):
             lmock = load_mock.mock
-            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-            scene.load(['ds9_fail_load'])
+            scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+            scene.load(["ds9_fail_load"])
             loaded_ids = list(scene._datasets.keys())
             assert len(loaded_ids) == 0
             lmock.assert_called_once_with(
-                {make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))})
+                {make_dataid(name="ds9_fail_load", wavelength=(1.0, 1.1, 1.2))})
 
-            scene.load(['ds1'])
+            scene.load(["ds1"])
             loaded_ids = list(scene._datasets.keys())
             assert lmock.call_count == 2
             # most recent call should have only been ds1
             lmock.assert_called_with({
-                make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()),
+                make_dataid(name="ds1", resolution=250, calibration="reflectance", modifiers=tuple()),
             })
             assert len(loaded_ids) == 1
 
     def test_load_ds1_no_comps(self):
         """Test loading one dataset with no loaded compositors."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
+        assert loaded_ids[0] == make_dataid(name="ds1", resolution=250, calibration="reflectance", modifiers=tuple())
 
     def test_load_ds1_load_twice(self):
         """Test loading one dataset with no loaded compositors."""
         from satpy.readers.yaml_reader import FileYAMLReader
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
+        assert loaded_ids[0] == make_dataid(name="ds1", resolution=250, calibration="reflectance", modifiers=tuple())
 
         load_mock = spy_decorator(FileYAMLReader.load)
-        with mock.patch.object(FileYAMLReader, 'load', load_mock):
+        with mock.patch.object(FileYAMLReader, "load", load_mock):
             lmock = load_mock.mock
-            scene.load(['ds1'])
+            scene.load(["ds1"])
             loaded_ids = list(scene._datasets.keys())
             assert len(loaded_ids) == 1
-            assert loaded_ids[0] == make_dataid(name='ds1',
+            assert loaded_ids[0] == make_dataid(name="ds1",
                                                 resolution=250,
-                                                calibration='reflectance',
+                                                calibration="reflectance",
                                                 modifiers=tuple())
             assert not lmock.called, ("Reader.load was called again when "
                                       "loading something that's already "
@@ -220,17 +220,17 @@ class TestLoadingReaderDatasets:
 
     def test_load_ds1_unknown_modifier(self):
         """Test loading one dataset with no loaded compositors."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         pytest.raises(KeyError, scene.load,
-                      [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
+                      [make_dataid(name="ds1", modifiers=("_fake_bad_mod_",))])
 
     def test_load_ds4_cal(self):
         """Test loading a dataset that has two calibration variations."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds4'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds4"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0]['calibration'] == 'reflectance'
+        assert loaded_ids[0]["calibration"] == "reflectance"
 
     @pytest.mark.parametrize(
         ("input_filenames", "load_kwargs", "exp_resolution"),
@@ -243,37 +243,37 @@ class TestLoadingReaderDatasets:
     )
     def test_load_ds5_variations(self, input_filenames, load_kwargs, exp_resolution):
         """Test loading a dataset has multiple resolutions available."""
-        scene = Scene(filenames=input_filenames, reader='fake1')
-        scene.load(['ds5'], **load_kwargs)
+        scene = Scene(filenames=input_filenames, reader="fake1")
+        scene.load(["ds5"], **load_kwargs)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'ds5'
-        assert loaded_ids[0]['resolution'] == exp_resolution
+        assert loaded_ids[0]["name"] == "ds5"
+        assert loaded_ids[0]["resolution"] == exp_resolution
 
     def test_load_ds5_multiple_resolution_loads(self):
         """Test loading a dataset with multiple resolutions available as separate loads."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds5'], resolution=1000)
-        scene.load(['ds5'], resolution=500)
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds5"], resolution=1000)
+        scene.load(["ds5"], resolution=500)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]['name'] == 'ds5'
-        assert loaded_ids[0]['resolution'] == 500
-        assert loaded_ids[1]['name'] == 'ds5'
-        assert loaded_ids[1]['resolution'] == 1000
+        assert loaded_ids[0]["name"] == "ds5"
+        assert loaded_ids[0]["resolution"] == 500
+        assert loaded_ids[1]["name"] == "ds5"
+        assert loaded_ids[1]["resolution"] == 1000
 
     def test_load_ds6_wl(self):
         """Test loading a dataset by wavelength."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene.load([0.22])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0]['name'] == 'ds6'
+        assert loaded_ids[0]["name"] == "ds6"
 
     def test_load_ds9_fail_load(self):
         """Test loading a dataset that will fail during load."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds9_fail_load'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds9_fail_load"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 0
 
@@ -308,7 +308,7 @@ class TestLoadingComposites:
     )
     def test_single_composite_loading(self, comp_name, exp_id_or_name):
         """Test that certain composites can be loaded individually."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene.load([comp_name])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
@@ -319,33 +319,33 @@ class TestLoadingComposites:
 
     def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        comp25 = make_cid(name='comp25', resolution=1000)
-        scene[comp25] = xr.DataArray([], attrs={'name': 'comp25', 'resolution': 1000})
-        scene.load(['comp25'], resolution=500)
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        comp25 = make_cid(name="comp25", resolution=1000)
+        scene[comp25] = xr.DataArray([], attrs={"name": "comp25", "resolution": 1000})
+        scene.load(["comp25"], resolution=500)
 
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]['name'] == 'comp25'
-        assert loaded_ids[0]['resolution'] == 500
-        assert loaded_ids[1]['name'] == 'comp25'
-        assert loaded_ids[1]['resolution'] == 1000
+        assert loaded_ids[0]["name"] == "comp25"
+        assert loaded_ids[0]["resolution"] == 500
+        assert loaded_ids[1]["name"] == "comp25"
+        assert loaded_ids[1]["resolution"] == 1000
 
     def test_load_same_subcomposite(self):
         """Test loading a composite and one of it's subcomposites at the same time."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp24', 'comp25'], resolution=500)
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp24", "comp25"], resolution=500)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]['name'] == 'comp24'
-        assert loaded_ids[0]['resolution'] == 500
-        assert loaded_ids[1]['name'] == 'comp25'
-        assert loaded_ids[1]['resolution'] == 500
+        assert loaded_ids[0]["name"] == "comp24"
+        assert loaded_ids[0]["resolution"] == 500
+        assert loaded_ids[1]["name"] == "comp25"
+        assert loaded_ids[1]["resolution"] == 500
 
     def test_load_comp8(self):
         """Test loading a composite that has a non-existent prereq."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        pytest.raises(KeyError, scene.load, ['comp8'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        pytest.raises(KeyError, scene.load, ["comp8"])
 
     def test_load_comp15(self):
         """Test loading a composite whose prerequisites can't be loaded.
@@ -354,23 +354,23 @@ class TestLoadingComposites:
 
         """
         # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp15'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp15"])
         loaded_ids = list(scene._datasets.keys())
         assert not loaded_ids
 
     def test_load_comp17(self):
         """Test loading a composite that depends on a composite that won't load."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp17'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp17"])
         loaded_ids = list(scene._datasets.keys())
         assert not loaded_ids
 
     def test_load_comp18(self):
         """Test loading a composite that depends on an incompatible area modified dataset."""
         # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
-        scene.load(['comp18'])
+        scene = Scene(filenames=["fake1_1.txt", "fake1_highres_1.txt"], reader="fake1")
+        scene.load(["comp18"])
         loaded_ids = list(scene._datasets.keys())
         # depends on:
         #   ds3
@@ -379,11 +379,11 @@ class TestLoadingComposites:
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
         # for the incomp_areas modifier
         assert len(loaded_ids) == 4  # the 1 dependencies
-        assert 'ds3' in scene._datasets
-        assert make_dataid(name='ds4', calibration='reflectance',
-                           modifiers=('mod1', 'mod3')) in scene._datasets
-        assert make_dataid(name='ds5', resolution=250,
-                           modifiers=('mod1',)) in scene._datasets
+        assert "ds3" in scene._datasets
+        assert make_dataid(name="ds4", calibration="reflectance",
+                           modifiers=("mod1", "mod3")) in scene._datasets
+        assert make_dataid(name="ds5", resolution=250,
+                           modifiers=("mod1",)) in scene._datasets
 
     def test_load_comp18_2(self):
         """Test loading a composite that depends on an incompatible area modified dataset.
@@ -393,8 +393,8 @@ class TestLoadingComposites:
 
         """
         # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
-        scene.load(['comp18_2'])
+        scene = Scene(filenames=["fake1_1.txt", "fake1_highres_1.txt"], reader="fake1")
+        scene.load(["comp18_2"])
         loaded_ids = list(scene._datasets.keys())
         # depends on:
         #   ds3
@@ -403,12 +403,12 @@ class TestLoadingComposites:
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
         # and ds2 for the incomp_areas_opt modifier
         assert len(loaded_ids) == 5  # the 1 dependencies
-        assert 'ds3' in scene._datasets
-        assert 'ds2' in scene._datasets
-        assert make_dataid(name='ds4', calibration='reflectance',
-                           modifiers=('mod1', 'mod3')) in scene._datasets
-        assert make_dataid(name='ds5', resolution=250,
-                           modifiers=('mod1',)) in scene._datasets
+        assert "ds3" in scene._datasets
+        assert "ds2" in scene._datasets
+        assert make_dataid(name="ds4", calibration="reflectance",
+                           modifiers=("mod1", "mod3")) in scene._datasets
+        assert make_dataid(name="ds5", resolution=250,
+                           modifiers=("mod1",)) in scene._datasets
 
     def test_load_comp19(self):
         """Test loading a composite that shares a dep with a dependency.
@@ -421,79 +421,79 @@ class TestLoadingComposites:
         """
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene._update_dependency_tree({'comp19'}, None)
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene._update_dependency_tree({"comp19"}, None)
 
-        this_node = scene._dependency_tree['comp19']
-        shared_dep_id = make_dataid(name='ds5', modifiers=('res_change',))
+        this_node = scene._dependency_tree["comp19"]
+        shared_dep_id = make_dataid(name="ds5", modifiers=("res_change",))
         shared_dep_expected_node = scene._dependency_tree[shared_dep_id]
         # get the node for the first dep in the prereqs list of the
         # comp13 node
-        shared_dep_node = scene._dependency_tree['comp13'].data[1][0]
+        shared_dep_node = scene._dependency_tree["comp13"].data[1][0]
         shared_dep_node2 = this_node.data[1][0]
         assert shared_dep_expected_node is shared_dep_node
         assert shared_dep_expected_node is shared_dep_node2
 
-        scene.load(['comp19'])
+        scene.load(["comp19"])
 
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_cid(name='comp19')
+        assert loaded_ids[0] == make_cid(name="comp19")
 
     def test_load_multiple_comps(self):
         """Test loading multiple composites."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp1', 'comp2', 'comp3', 'comp4', 'comp5', 'comp6',
-                    'comp7', 'comp9', 'comp10'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp1", "comp2", "comp3", "comp4", "comp5", "comp6",
+                    "comp7", "comp9", "comp10"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
     def test_load_multiple_comps_separate(self):
         """Test loading multiple composites, one at a time."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp10'])
-        scene.load(['comp9'])
-        scene.load(['comp7'])
-        scene.load(['comp6'])
-        scene.load(['comp5'])
-        scene.load(['comp4'])
-        scene.load(['comp3'])
-        scene.load(['comp2'])
-        scene.load(['comp1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp10"])
+        scene.load(["comp9"])
+        scene.load(["comp7"])
+        scene.load(["comp6"])
+        scene.load(["comp5"])
+        scene.load(["comp4"])
+        scene.load(["comp3"])
+        scene.load(["comp2"])
+        scene.load(["comp1"])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
     def test_load_modified(self):
         """Test loading a modified dataset."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load([make_dsq(name="ds1", modifiers=("mod1", "mod2"))])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
+        assert loaded_ids[0]["modifiers"] == ("mod1", "mod2")
 
     def test_load_modified_with_load_kwarg(self):
         """Test loading a modified dataset using the ``Scene.load`` keyword argument."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'], modifiers=('mod1', 'mod2'))
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"], modifiers=("mod1", "mod2"))
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
+        assert loaded_ids[0]["modifiers"] == ("mod1", "mod2")
 
     def test_load_multiple_modified(self):
         """Test loading multiple modified datasets."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene.load([
-            make_dataid(name='ds1', modifiers=('mod1', 'mod2')),
-            make_dataid(name='ds2', modifiers=('mod2', 'mod1')),
+            make_dataid(name="ds1", modifiers=("mod1", "mod2")),
+            make_dataid(name="ds2", modifiers=("mod2", "mod1")),
         ])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
         for i in loaded_ids:
-            if i['name'] == 'ds1':
-                assert i['modifiers'] == ('mod1', 'mod2')
+            if i["name"] == "ds1":
+                assert i["modifiers"] == ("mod1", "mod2")
             else:
-                assert i['name'] == 'ds2'
-                assert i['modifiers'] == ('mod2', 'mod1')
+                assert i["name"] == "ds2"
+                assert i["modifiers"] == ("mod2", "mod1")
 
     def test_load_dataset_after_composite(self):
         """Test load composite followed by other datasets."""
@@ -501,15 +501,15 @@ class TestLoadingComposites:
         from satpy.tests.utils import FakeCompositor
         load_mock = spy_decorator(FileYAMLReader.load)
         comp_mock = spy_decorator(FakeCompositor.__call__)
-        with mock.patch.object(FileYAMLReader, 'load', load_mock), \
-                mock.patch.object(FakeCompositor, '__call__', comp_mock):
+        with mock.patch.object(FileYAMLReader, "load", load_mock), \
+                mock.patch.object(FakeCompositor, "__call__", comp_mock):
             lmock = load_mock.mock
-            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-            scene.load(['comp3'])
+            scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+            scene.load(["comp3"])
             assert lmock.call_count == 1
-            scene.load(['ds1'])
+            scene.load(["ds1"])
             assert lmock.call_count == 2
-            scene.load(['ds1'])
+            scene.load(["ds1"])
             # we should only load from the file twice
             assert lmock.call_count == 2
             # we should only generate the composite once
@@ -524,36 +524,36 @@ class TestLoadingComposites:
         load_mock = spy_decorator(FileYAMLReader.load)
         comp_mock = spy_decorator(FakeCompositor.__call__)
         mod_mock = spy_decorator(FakeModifier.__call__)
-        with mock.patch.object(FileYAMLReader, 'load', load_mock), \
-             mock.patch.object(FakeCompositor, '__call__', comp_mock), \
-             mock.patch.object(FakeModifier, '__call__', mod_mock):
+        with mock.patch.object(FileYAMLReader, "load", load_mock), \
+             mock.patch.object(FakeCompositor, "__call__", comp_mock), \
+             mock.patch.object(FakeModifier, "__call__", mod_mock):
             lmock = load_mock.mock
-            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-            scene.load(['comp10'])
+            scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+            scene.load(["comp10"])
             assert lmock.call_count == 1
             loaded_ids = list(scene._datasets.keys())
             assert len(loaded_ids) == 1
-            with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+            with mock.patch.object(scene, "_generate_composites_nodes_from_loaded_datasets",
                                    wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
-                scene.load(['ds1'])
+                scene.load(["ds1"])
                 assert lmock.call_count == 2
                 loaded_ids = list(scene._datasets.keys())
                 assert len(loaded_ids) == 2
                 # this is the unmodified ds1
                 assert make_dataid(
-                    name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()
+                    name="ds1", resolution=250, calibration="reflectance", modifiers=tuple()
                 ) in loaded_ids
                 # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
                 m.assert_called_once_with(set())
-            with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+            with mock.patch.object(scene, "_generate_composites_nodes_from_loaded_datasets",
                                    wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
-                scene.load(['ds1'])
+                scene.load(["ds1"])
                 assert lmock.call_count == 2
                 loaded_ids = list(scene._datasets.keys())
                 assert len(loaded_ids) == 2
                 # this is the unmodified ds1
                 assert make_dataid(
-                    name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()
+                    name="ds1", resolution=250, calibration="reflectance", modifiers=tuple()
                 ) in loaded_ids
                 m.assert_called_once_with(set())
             # we should only generate the comp10 composite once but comp2 was also generated
@@ -567,17 +567,17 @@ class TestLoadingComposites:
     def test_no_generate_comp10(self):
         """Test generating a composite after loading."""
         # it is fine that an optional prereq doesn't exist
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['comp10'], generate=False)
-        assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
-        assert 'comp10' not in scene._datasets
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp10"], generate=False)
+        assert any(ds_id["name"] == "comp10" for ds_id in scene._wishlist)
+        assert "comp10" not in scene._datasets
         # two dependencies should have been loaded
         assert len(scene._datasets) == 2
         assert len(scene.missing_datasets) == 1
 
         scene._generate_composites_from_loaded_datasets()
-        assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
-        assert 'comp10' in scene._datasets
+        assert any(ds_id["name"] == "comp10" for ds_id in scene._wishlist)
+        assert "comp10" in scene._datasets
         assert not scene.missing_datasets
 
     def test_modified_with_wl_dep(self):
@@ -592,10 +592,10 @@ class TestLoadingComposites:
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-        ds1_mod_id = make_dsq(name='ds1', modifiers=('mod_wl',))
-        ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
+        ds1_mod_id = make_dsq(name="ds1", modifiers=("mod_wl",))
+        ds3_mod_id = make_dsq(name="ds3", modifiers=("mod_wl",))
 
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene._update_dependency_tree({ds1_mod_id, ds3_mod_id}, None)
 
         ds1_mod_node = scene._dependency_tree[ds1_mod_id]
@@ -603,10 +603,10 @@ class TestLoadingComposites:
         ds1_mod_dep_node = ds1_mod_node.data[1][1]
         ds3_mod_dep_node = ds3_mod_node.data[1][1]
         # mod_wl depends on the this node:
-        ds6_modded_node = scene._dependency_tree[make_dataid(name='ds6', modifiers=('mod1',))]
+        ds6_modded_node = scene._dependency_tree[make_dataid(name="ds6", modifiers=("mod1",))]
         # this dep should be full qualified with name and wavelength
-        assert ds6_modded_node.name['name'] is not None
-        assert isinstance(ds6_modded_node.name['wavelength'], WavelengthRange)
+        assert ds6_modded_node.name["name"] is not None
+        assert isinstance(ds6_modded_node.name["wavelength"], WavelengthRange)
         # the node should be shared between everything that uses it
         assert ds1_mod_dep_node is ds3_mod_dep_node
         assert ds1_mod_dep_node is ds6_modded_node
@@ -621,25 +621,25 @@ class TestLoadingComposites:
 
     def test_load_comp11_and_23(self):
         """Test loading two composites that depend on similar wavelengths."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
-        assert make_cid(name='comp11') in avail_comps
-        assert make_cid(name='comp23') in avail_comps
+        assert make_cid(name="comp11") in avail_comps
+        assert make_cid(name="comp23") in avail_comps
         # it is fine that an optional prereq doesn't exist
-        scene.load(['comp11', 'comp23'])
-        comp11_node = scene._dependency_tree['comp11']
-        comp23_node = scene._dependency_tree['comp23']
-        assert comp11_node.data[1][-1].name['name'] == 'ds10'
-        assert comp23_node.data[1][0].name['name'] == 'ds8'
+        scene.load(["comp11", "comp23"])
+        comp11_node = scene._dependency_tree["comp11"]
+        comp23_node = scene._dependency_tree["comp23"]
+        assert comp11_node.data[1][-1].name["name"] == "ds10"
+        assert comp23_node.data[1][0].name["name"] == "ds8"
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert 'comp11' in scene
-        assert 'comp23' in scene
+        assert "comp11" in scene
+        assert "comp23" in scene
 
     def test_load_too_many(self):
         """Test dependency tree if too many reader keys match."""
-        scene = Scene(filenames=['fake3_1.txt'], reader='fake3')
+        scene = Scene(filenames=["fake3_1.txt"], reader="fake3")
         avail_comps = scene.available_composite_ids()
         # static image => 1
         assert len(avail_comps) == 1
@@ -660,8 +660,8 @@ class TestLoadingComposites:
 
 
 def _scene_with_data_array_none_sensor():
-    scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-    scene['my_data'] = _data_array_none_sensor("my_data")
+    scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+    scene["my_data"] = _data_array_none_sensor("my_data")
     return scene
 
 

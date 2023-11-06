@@ -37,8 +37,8 @@ provided through the `Scene` instantiation, eg::
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`NativeMSGFileHandler`.
 
-Example
--------
+Example:
+--------
 Here is an example how to read the data in satpy.
 
 NOTE: When loading the data, the orientation
@@ -140,9 +140,9 @@ from satpy.readers.seviri_l1b_native_hdr import (
 from satpy.readers.utils import reduce_mda
 from satpy.utils import get_legacy_chunk_size
 
-logger = logging.getLogger('native_msg')
+logger = logging.getLogger("native_msg")
 CHUNK_SIZE = get_legacy_chunk_size()
-ASCII_STARTSWITH = b'FormatName                  : NATIVE'
+ASCII_STARTSWITH = b"FormatName                  : NATIVE"
 
 
 class NativeMSGFileHandler(BaseFileHandler):
@@ -170,7 +170,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
+                 calib_mode="nominal", fill_disk=False, ext_calib_coefs=None,
                  include_raw_metadata=False, mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
@@ -199,33 +199,33 @@ class NativeMSGFileHandler(BaseFileHandler):
     @property
     def _repeat_cycle_duration(self):
         """Get repeat cycle duration from the trailer."""
-        if self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+        if self.trailer["15TRAILER"]["ImageProductionStats"]["ActualScanningSummary"]["ReducedScan"] == 1:
             return 5
         return REPEAT_CYCLE_DURATION
 
     @property
     def nominal_start_time(self):
         """Get the repeat cycle nominal start time from file header and round it to expected nominal time slot."""
-        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        tm = self.header["15_DATA_HEADER"]["ImageAcquisition"]["PlannedAcquisitionTime"]["TrueRepeatCycleStart"]
         return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Get the repeat cycle nominal end time from file header and round it to expected nominal time slot."""
-        tm = self.header['15_DATA_HEADER']['ImageAcquisition']['PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        tm = self.header["15_DATA_HEADER"]["ImageAcquisition"]["PlannedAcquisitionTime"]["PlannedRepeatCycleEnd"]
         return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
         """Get observation start time from trailer."""
-        return self.trailer['15TRAILER']['ImageProductionStats'][
-            'ActualScanningSummary']['ForwardScanStart']
+        return self.trailer["15TRAILER"]["ImageProductionStats"][
+            "ActualScanningSummary"]["ForwardScanStart"]
 
     @property
     def observation_end_time(self):
         """Get observation end time from trailer."""
-        return self.trailer['15TRAILER']['ImageProductionStats'][
-            'ActualScanningSummary']['ForwardScanEnd']
+        return self.trailer["15TRAILER"]["ImageProductionStats"][
+            "ActualScanningSummary"]["ForwardScanEnd"]
 
     @property
     def start_time(self):
@@ -240,8 +240,8 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
         pkhrec = [
-            ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
-            ('GP_PK_SH1', GSDTRecords.gp_pk_sh1)
+            ("GP_PK_HEADER", GSDTRecords.gp_pk_header),
+            ("GP_PK_SH1", GSDTRecords.gp_pk_sh1)
         ]
         pk_head_dtype = np.dtype(pkhrec)
 
@@ -264,14 +264,14 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # each pixel is 10-bits -> one line of data has 25% more bytes
         # than the number of columns suggest (10/8 = 1.25)
-        visir_rec = get_lrec(int(self.mda['number_of_columns'] * 1.25))
+        visir_rec = get_lrec(int(self.mda["number_of_columns"] * 1.25))
         number_of_visir_channels = len(
-            [s for s in self.mda['channel_list'] if not s == 'HRV'])
-        drec = [('visir', (visir_rec, number_of_visir_channels))]
+            [s for s in self.mda["channel_list"] if not s == "HRV"])
+        drec = [("visir", (visir_rec, number_of_visir_channels))]
 
-        if self.mda['available_channels']['HRV']:
-            hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
-            drec.append(('hrv', (hrv_rec, 3)))
+        if self.mda["available_channels"]["HRV"]:
+            hrv_rec = get_lrec(int(self.mda["hrv_number_of_columns"] * 1.25))
+            drec.append(("hrv", (hrv_rec, 3)))
 
         return np.dtype(drec)
 
@@ -282,51 +282,51 @@ class NativeMSGFileHandler(BaseFileHandler):
             hdr_size = self.header_type.itemsize
 
             return np.memmap(fp, dtype=data_dtype,
-                             shape=(self.mda['number_of_lines'],),
+                             shape=(self.mda["number_of_lines"],),
                              offset=hdr_size, mode="r")
 
     def _read_header(self):
         """Read the header info."""
         self.header.update(read_header(self.filename))
 
-        if '15_SECONDARY_PRODUCT_HEADER' not in self.header:
+        if "15_SECONDARY_PRODUCT_HEADER" not in self.header:
             # No archive header, that means we have a complete file
             # including all channels.
-            self.header['15_SECONDARY_PRODUCT_HEADER'] = DEFAULT_15_SECONDARY_PRODUCT_HEADER
+            self.header["15_SECONDARY_PRODUCT_HEADER"] = DEFAULT_15_SECONDARY_PRODUCT_HEADER
 
-        data15hd = self.header['15_DATA_HEADER']
-        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+        data15hd = self.header["15_DATA_HEADER"]
+        sec15hd = self.header["15_SECONDARY_PRODUCT_HEADER"]
 
         # Set the list of available channels:
-        self.mda['available_channels'] = get_available_channels(self.header)
-        self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
-                                    if self.mda['available_channels'][i]]
+        self.mda["available_channels"] = get_available_channels(self.header)
+        self.mda["channel_list"] = [i for i in CHANNEL_NAMES.values()
+                                    if self.mda["available_channels"][i]]
 
         self.platform_id = data15hd[
-            'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
-        self.mda['offset_corrected'] = data15hd['GeometricProcessing'][
-                                           'EarthModel']['TypeOfEarthModel'] == 2
+            "SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"]
+        self.mda["platform_name"] = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda["offset_corrected"] = data15hd["GeometricProcessing"][
+                                           "EarthModel"]["TypeOfEarthModel"] == 2
 
-        equator_radius = data15hd['GeometricProcessing'][
-                             'EarthModel']['EquatorialRadius'] * 1000.
+        equator_radius = data15hd["GeometricProcessing"][
+                             "EarthModel"]["EquatorialRadius"] * 1000.
         north_polar_radius = data15hd[
-                                 'GeometricProcessing']['EarthModel']['NorthPolarRadius'] * 1000.
+                                 "GeometricProcessing"]["EarthModel"]["NorthPolarRadius"] * 1000.
         south_polar_radius = data15hd[
-                                 'GeometricProcessing']['EarthModel']['SouthPolarRadius'] * 1000.
+                                 "GeometricProcessing"]["EarthModel"]["SouthPolarRadius"] * 1000.
         polar_radius = (north_polar_radius + south_polar_radius) * 0.5
-        ssp_lon = data15hd['ImageDescription'][
-            'ProjectionDescription']['LongitudeOfSSP']
+        ssp_lon = data15hd["ImageDescription"][
+            "ProjectionDescription"]["LongitudeOfSSP"]
 
-        self.mda['projection_parameters'] = {'a': equator_radius,
-                                             'b': polar_radius,
-                                             'h': 35785831.00,
-                                             'ssp_longitude': ssp_lon}
+        self.mda["projection_parameters"] = {"a": equator_radius,
+                                             "b": polar_radius,
+                                             "h": 35785831.00,
+                                             "ssp_longitude": ssp_lon}
 
-        north = int(sec15hd['NorthLineSelectedRectangle']['Value'])
-        east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
-        south = int(sec15hd['SouthLineSelectedRectangle']['Value'])
-        west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
+        north = int(sec15hd["NorthLineSelectedRectangle"]["Value"])
+        east = int(sec15hd["EastColumnSelectedRectangle"]["Value"])
+        south = int(sec15hd["SouthLineSelectedRectangle"]["Value"])
+        west = int(sec15hd["WestColumnSelectedRectangle"]["Value"])
 
         ncolumns = west - east + 1
         nrows = north - south + 1
@@ -335,9 +335,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         # the maximum, if so it is a rapid scanning service
         # or region of interest file
         if (nrows < VISIR_NUM_LINES) or (ncolumns < VISIR_NUM_COLUMNS):
-            self.mda['is_full_disk'] = False
+            self.mda["is_full_disk"] = False
         else:
-            self.mda['is_full_disk'] = True
+            self.mda["is_full_disk"] = True
 
         # If the number of columns in the file is not divisible by 4,
         # UMARF will add extra columns to the file
@@ -349,7 +349,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Check the VISIR calculated column dimension against
         # the header information
-        cols_visir_hdr = int(sec15hd['NumberColumnsVISIR']['Value'])
+        cols_visir_hdr = int(sec15hd["NumberColumnsVISIR"]["Value"])
         if cols_visir_hdr != cols_visir:
             logger.warning(
                 "Number of VISIR columns from the header is incorrect!")
@@ -358,21 +358,21 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # HRV Channel - check if the area is reduced in east west
         # direction as this affects the number of columns in the file
-        cols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'])
+        cols_hrv_hdr = int(sec15hd["NumberColumnsHRV"]["Value"])
         if ncolumns < VISIR_NUM_COLUMNS:
             cols_hrv = cols_hrv_hdr
         else:
             cols_hrv = int(cols_hrv_hdr / 2)
 
         # self.mda represents the 16bit dimensions not 10bit
-        self.mda['number_of_lines'] = int(sec15hd['NumberLinesVISIR']['Value'])
-        self.mda['number_of_columns'] = cols_visir
-        self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
-        self.mda['hrv_number_of_columns'] = cols_hrv
+        self.mda["number_of_lines"] = int(sec15hd["NumberLinesVISIR"]["Value"])
+        self.mda["number_of_columns"] = cols_visir
+        self.mda["hrv_number_of_lines"] = int(sec15hd["NumberLinesHRV"]["Value"])
+        self.mda["hrv_number_of_columns"] = cols_hrv
 
-        if '15_MAIN_PRODUCT_HEADER' not in self.header:
+        if "15_MAIN_PRODUCT_HEADER" not in self.header:
             logger.info("Quality flag check was not possible due to missing 15_MAIN_PRODUCT_HEADER.")
-        elif self.header['15_MAIN_PRODUCT_HEADER']['QQOV']['Value'] == 'NOK':
+        elif self.header["15_MAIN_PRODUCT_HEADER"]["QQOV"]["Value"] == "NOK":
             warnings.warn(
                 "The quality flag for this file indicates not OK. "
                 "Use this data with caution!",
@@ -384,7 +384,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         hdr_size = self.header_type.itemsize
         data_size = (self._get_data_dtype().itemsize *
-                     self.mda['number_of_lines'])
+                     self.mda["number_of_lines"])
 
         with open(self.filename) as fp:
             fp.seek(hdr_size + data_size)
@@ -417,27 +417,27 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         """
         pdict = dict()
-        pdict['a'] = self.mda['projection_parameters']['a']
-        pdict['b'] = self.mda['projection_parameters']['b']
-        pdict['h'] = self.mda['projection_parameters']['h']
-        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
+        pdict["a"] = self.mda["projection_parameters"]["a"]
+        pdict["b"] = self.mda["projection_parameters"]["b"]
+        pdict["h"] = self.mda["projection_parameters"]["h"]
+        pdict["ssp_lon"] = self.mda["projection_parameters"]["ssp_longitude"]
 
-        area_naming_input_dict = {'platform_name': 'msg',
-                                  'instrument_name': 'seviri',
-                                  'resolution': int(dataset_id['resolution'])
+        area_naming_input_dict = {"platform_name": "msg",
+                                  "instrument_name": "seviri",
+                                  "resolution": int(dataset_id["resolution"])
                                   }
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+                                            **get_service_mode("seviri", pdict["ssp_lon"])})
 
-        pdict['a_name'] = area_naming['area_id']
-        pdict['a_desc'] = area_naming['description']
-        pdict['p_id'] = ""
+        pdict["a_name"] = area_naming["area_id"]
+        pdict["a_desc"] = area_naming["description"]
+        pdict["p_id"] = ""
 
         area_extent = self.get_area_extent(dataset_id)
         areas = list()
-        for aex, nlines, ncolumns in zip(area_extent['area_extent'], area_extent['nlines'], area_extent['ncolumns']):
-            pdict['nlines'] = nlines
-            pdict['ncols'] = ncolumns
+        for aex, nlines, ncolumns in zip(area_extent["area_extent"], area_extent["nlines"], area_extent["ncolumns"]):
+            pdict["nlines"] = nlines
+            pdict["ncols"] = ncolumns
             areas.append(get_area_definition(pdict, aex))
 
         if len(areas) == 2:
@@ -459,80 +459,80 @@ class NativeMSGFileHandler(BaseFileHandler):
         of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
         SEVIRI-georeferencing-offset-correction>`_.
         """
-        data15hd = self.header['15_DATA_HEADER']
+        data15hd = self.header["15_DATA_HEADER"]
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-        earth_model = data15hd['GeometricProcessing']['EarthModel'][
-            'TypeOfEarthModel']
+        earth_model = data15hd["GeometricProcessing"]["EarthModel"][
+            "TypeOfEarthModel"]
         if earth_model == 2:
             ns_offset = 0
             we_offset = 0
         elif earth_model == 1:
             ns_offset = -0.5
             we_offset = 0.5
-            if dataset_id['name'] == 'HRV':
+            if dataset_id["name"] == "HRV":
                 ns_offset = -1.5
                 we_offset = 1.5
         else:
             raise NotImplementedError(
-                'Unrecognised Earth model: {}'.format(earth_model)
+                "Unrecognised Earth model: {}".format(earth_model)
             )
 
-        if dataset_id['name'] == 'HRV':
-            grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
+        if dataset_id["name"] == "HRV":
+            grid_origin = data15hd["ImageDescription"]["ReferenceGridHRV"]["GridOrigin"]
             center_point = (HRV_NUM_COLUMNS / 2) - 2
-            column_step = data15hd['ImageDescription']['ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
-            line_step = data15hd['ImageDescription']['ReferenceGridHRV']['LineDirGridStep'] * 1000.0
+            column_step = data15hd["ImageDescription"]["ReferenceGridHRV"]["ColumnDirGridStep"] * 1000.0
+            line_step = data15hd["ImageDescription"]["ReferenceGridHRV"]["LineDirGridStep"] * 1000.0
             nlines_fulldisk = HRV_NUM_LINES
             ncolumns_fulldisk = HRV_NUM_COLUMNS
         else:
-            grid_origin = data15hd['ImageDescription']['ReferenceGridVIS_IR']['GridOrigin']
+            grid_origin = data15hd["ImageDescription"]["ReferenceGridVIS_IR"]["GridOrigin"]
             center_point = VISIR_NUM_COLUMNS / 2
-            column_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['ColumnDirGridStep'] * 1000.0
-            line_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['LineDirGridStep'] * 1000.0
+            column_step = data15hd["ImageDescription"]["ReferenceGridVIS_IR"]["ColumnDirGridStep"] * 1000.0
+            line_step = data15hd["ImageDescription"]["ReferenceGridVIS_IR"]["LineDirGridStep"] * 1000.0
             nlines_fulldisk = VISIR_NUM_LINES
             ncolumns_fulldisk = VISIR_NUM_COLUMNS
 
         # Calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
-        origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
+        origins = {0: "NW", 1: "SW", 2: "SE", 3: "NE"}
         if grid_origin != 2:
-            msg = 'Grid origin not supported number: {}, {} corner'.format(
+            msg = "Grid origin not supported number: {}, {} corner".format(
                 grid_origin, origins[grid_origin]
             )
             raise NotImplementedError(msg)
 
-        aex_data = {'area_extent': [], 'nlines': [], 'ncolumns': []}
+        aex_data = {"area_extent": [], "nlines": [], "ncolumns": []}
 
         img_bounds = self.image_boundaries.get_img_bounds(dataset_id, self.is_roi())
         for south_bound, north_bound, east_bound, west_bound in zip(*img_bounds.values()):
 
             if self.fill_disk:
                 east_bound, west_bound = 1, ncolumns_fulldisk
-                if not self.mda['is_full_disk']:
+                if not self.mda["is_full_disk"]:
                     south_bound, north_bound = 1, nlines_fulldisk
 
             nlines = north_bound - south_bound + 1
             ncolumns = west_bound - east_bound + 1
 
-            area_dict = {'center_point': center_point,
-                         'east': east_bound,
-                         'west': west_bound,
-                         'south': south_bound,
-                         'north': north_bound,
-                         'column_step': column_step,
-                         'line_step': line_step,
-                         'column_offset': we_offset,
-                         'line_offset': ns_offset
+            area_dict = {"center_point": center_point,
+                         "east": east_bound,
+                         "west": west_bound,
+                         "south": south_bound,
+                         "north": north_bound,
+                         "column_step": column_step,
+                         "line_step": line_step,
+                         "column_offset": we_offset,
+                         "line_offset": ns_offset
                          }
 
             aex = calculate_area_extent(area_dict)
 
-            aex_data['area_extent'].append(aex)
-            aex_data['nlines'].append(nlines)
-            aex_data['ncolumns'].append(ncolumns)
+            aex_data["area_extent"].append(aex)
+            aex_data["nlines"].append(nlines)
+            aex_data["ncolumns"].append(ncolumns)
 
         return aex_data
 
@@ -543,28 +543,28 @@ class NativeMSGFileHandler(BaseFileHandler):
         of the SEVIRI disk. Hence, if the data does not cover the full disk, nor the standard RSS region
         in RSS mode, it's assumed to be ROI data.
         """
-        is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
+        is_rapid_scan = self.trailer["15TRAILER"]["ImageProductionStats"]["ActualScanningSummary"]["ReducedScan"]
 
         # Standard RSS data is assumed to cover the three northmost segments, thus consisting of all 3712 columns and
         # the 1392 northmost lines
-        nlines = int(self.mda['number_of_lines'])
-        ncolumns = int(self.mda['number_of_columns'])
-        north_bound = int(self.header['15_SECONDARY_PRODUCT_HEADER']['NorthLineSelectedRectangle']['Value'])
+        nlines = int(self.mda["number_of_lines"])
+        ncolumns = int(self.mda["number_of_columns"])
+        north_bound = int(self.header["15_SECONDARY_PRODUCT_HEADER"]["NorthLineSelectedRectangle"]["Value"])
 
         is_top3segments = (ncolumns == VISIR_NUM_COLUMNS and nlines == 1392 and north_bound == VISIR_NUM_LINES)
 
-        return not self.mda['is_full_disk'] and not (is_rapid_scan and is_top3segments)
+        return not self.mda["is_full_disk"] and not (is_rapid_scan and is_top3segments)
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        if dataset_id['name'] not in self.mda['channel_list']:
-            raise KeyError('Channel % s not available in the file' % dataset_id['name'])
-        elif dataset_id['name'] not in ['HRV']:
+        if dataset_id["name"] not in self.mda["channel_list"]:
+            raise KeyError("Channel % s not available in the file" % dataset_id["name"])
+        elif dataset_id["name"] not in ["HRV"]:
             data = self._get_visir_channel(dataset_id)
         else:
             data = self._get_hrv_channel()
 
-        xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
+        xarr = xr.DataArray(data, dims=["y", "x"]).where(data != 0).astype(np.float32)
 
         if xarr is None:
             return None
@@ -573,34 +573,34 @@ class NativeMSGFileHandler(BaseFileHandler):
         self._add_scanline_acq_time(dataset, dataset_id)
         self._update_attrs(dataset, dataset_info)
 
-        if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
+        if self.fill_disk and not (dataset_id["name"] != "HRV" and self.mda["is_full_disk"]):
             padder = Padder(dataset_id,
                             self.image_boundaries.get_img_bounds(dataset_id, self.is_roi()),
-                            self.mda['is_full_disk'])
+                            self.mda["is_full_disk"])
             dataset = padder.pad_data(dataset)
 
         return dataset
 
     def _get_visir_channel(self, dataset_id):
-        shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+        shape = (self.mda["number_of_lines"], self.mda["number_of_columns"])
         # Check if there is only 1 channel in the list as a change
         # is needed in the array assignment ie channel id is not present
-        if len(self.mda['channel_list']) == 1:
-            raw = self.dask_array['visir']['line_data']
+        if len(self.mda["channel_list"]) == 1:
+            raw = self.dask_array["visir"]["line_data"]
         else:
-            i = self.mda['channel_list'].index(dataset_id['name'])
-            raw = self.dask_array['visir']['line_data'][:, i, :]
+            i = self.mda["channel_list"].index(dataset_id["name"])
+            raw = self.dask_array["visir"]["line_data"][:, i, :]
         data = dec10216(raw.flatten())
         data = data.reshape(shape)
         return data
 
     def _get_hrv_channel(self):
-        shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
-        shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
+        shape = (self.mda["hrv_number_of_lines"], self.mda["hrv_number_of_columns"])
+        shape_layer = (self.mda["number_of_lines"], self.mda["hrv_number_of_columns"])
 
         data_list = []
         for i in range(3):
-            raw = self.dask_array['hrv']['line_data'][:, i, :]
+            raw = self.dask_array["hrv"]["line_data"][:, i, :]
             data = dec10216(raw.flatten())
             data = data.reshape(shape_layer)
             data_list.append(data)
@@ -610,7 +610,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = datetime.now()
-        channel_name = dataset_id['name']
+        channel_name = dataset_id["name"]
         calib = SEVIRICalibrationHandler(
             platform_id=self.platform_id,
             channel_name=channel_name,
@@ -618,7 +618,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             calib_mode=self.calib_mode,
             scan_time=self.observation_start_time
         )
-        res = calib.calibrate(data, dataset_id['calibration'])
+        res = calib.calibrate(data, dataset_id["calibration"])
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
@@ -629,20 +629,20 @@ class NativeMSGFileHandler(BaseFileHandler):
         # hence, this channel index needs to refer to full channel list
         band_idx = list(CHANNEL_NAMES.values()).index(channel_name)
 
-        coefs_nominal = self.header['15_DATA_HEADER'][
-            'RadiometricProcessing']['Level15ImageCalibration']
-        coefs_gsics = self.header['15_DATA_HEADER'][
-            'RadiometricProcessing']['MPEFCalFeedback']
-        radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
-            'Level15ImageProduction']['PlannedChanProcessing']
+        coefs_nominal = self.header["15_DATA_HEADER"][
+            "RadiometricProcessing"]["Level15ImageCalibration"]
+        coefs_gsics = self.header["15_DATA_HEADER"][
+            "RadiometricProcessing"]["MPEFCalFeedback"]
+        radiance_types = self.header["15_DATA_HEADER"]["ImageDescription"][
+            "Level15ImageProduction"]["PlannedChanProcessing"]
         return create_coef_dict(
             coefs_nominal=(
-                coefs_nominal['CalSlope'][band_idx],
-                coefs_nominal['CalOffset'][band_idx]
+                coefs_nominal["CalSlope"][band_idx],
+                coefs_nominal["CalOffset"][band_idx]
             ),
             coefs_gsics=(
-                coefs_gsics['GSICSCalCoeff'][band_idx],
-                coefs_gsics['GSICSOffsetCount'][band_idx]
+                coefs_gsics["GSICSCalCoeff"][band_idx],
+                coefs_gsics["GSICSOffsetCount"][band_idx]
             ),
             ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
             radiance_type=radiance_types[band_idx]
@@ -650,69 +650,69 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _add_scanline_acq_time(self, dataset, dataset_id):
         """Add scanline acquisition time to the given dataset."""
-        if dataset_id['name'] == 'HRV':
+        if dataset_id["name"] == "HRV":
             tline = self._get_acq_time_hrv()
         else:
             tline = self._get_acq_time_visir(dataset_id)
-        acq_time = get_cds_time(days=tline['Days'], msecs=tline['Milliseconds'])
+        acq_time = get_cds_time(days=tline["Days"], msecs=tline["Milliseconds"])
         add_scanline_acq_time(dataset, acq_time)
 
     def _get_acq_time_hrv(self):
         """Get raw acquisition time for HRV channel."""
-        tline = self.dask_array['hrv']['acq_time']
+        tline = self.dask_array["hrv"]["acq_time"]
         tline0 = tline[:, 0]
         tline1 = tline[:, 1]
         tline2 = tline[:, 2]
         return da.stack((tline0, tline1, tline2), axis=1).reshape(
-            self.mda['hrv_number_of_lines']).compute()
+            self.mda["hrv_number_of_lines"]).compute()
 
     def _get_acq_time_visir(self, dataset_id):
         """Get raw acquisition time for VIS/IR channels."""
         # Check if there is only 1 channel in the list as a change
         # is needed in the array assignment, i.e. channel id is not present
-        if len(self.mda['channel_list']) == 1:
-            return self.dask_array['visir']['acq_time'].compute()
-        i = self.mda['channel_list'].index(dataset_id['name'])
-        return self.dask_array['visir']['acq_time'][:, i].compute()
+        if len(self.mda["channel_list"]) == 1:
+            return self.dask_array["visir"]["acq_time"].compute()
+        i = self.mda["channel_list"].index(dataset_id["name"])
+        return self.dask_array["visir"]["acq_time"][:, i].compute()
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""
-        dataset.attrs['units'] = dataset_info['units']
-        dataset.attrs['wavelength'] = dataset_info['wavelength']
-        dataset.attrs['standard_name'] = dataset_info['standard_name']
-        dataset.attrs['platform_name'] = self.mda['platform_name']
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['georef_offset_corrected'] = self.mda[
-            'offset_corrected']
-        dataset.attrs['time_parameters'] = {
-            'nominal_start_time': self.nominal_start_time,
-            'nominal_end_time': self.nominal_end_time,
-            'observation_start_time': self.observation_start_time,
-            'observation_end_time': self.observation_end_time,
+        dataset.attrs["units"] = dataset_info["units"]
+        dataset.attrs["wavelength"] = dataset_info["wavelength"]
+        dataset.attrs["standard_name"] = dataset_info["standard_name"]
+        dataset.attrs["platform_name"] = self.mda["platform_name"]
+        dataset.attrs["sensor"] = "seviri"
+        dataset.attrs["georef_offset_corrected"] = self.mda[
+            "offset_corrected"]
+        dataset.attrs["time_parameters"] = {
+            "nominal_start_time": self.nominal_start_time,
+            "nominal_end_time": self.nominal_end_time,
+            "observation_start_time": self.observation_start_time,
+            "observation_end_time": self.observation_end_time,
         }
-        dataset.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        dataset.attrs["orbital_parameters"] = self._get_orbital_parameters()
         if self.include_raw_metadata:
-            dataset.attrs['raw_metadata'] = reduce_mda(
+            dataset.attrs["raw_metadata"] = reduce_mda(
                 self.header, max_size=self.mda_max_array_size
             )
 
     def _get_orbital_parameters(self):
         orbital_parameters = {
-            'projection_longitude': self.mda['projection_parameters'][
-                'ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h'],
-            'satellite_nominal_longitude': self.header['15_DATA_HEADER'][
-                'SatelliteStatus']['SatelliteDefinition'][
-                'NominalLongitude'],
-            'satellite_nominal_latitude': 0.0
+            "projection_longitude": self.mda["projection_parameters"][
+                "ssp_longitude"],
+            "projection_latitude": 0.,
+            "projection_altitude": self.mda["projection_parameters"]["h"],
+            "satellite_nominal_longitude": self.header["15_DATA_HEADER"][
+                "SatelliteStatus"]["SatelliteDefinition"][
+                "NominalLongitude"],
+            "satellite_nominal_latitude": 0.0
         }
         try:
             actual_lon, actual_lat, actual_alt = self.satpos
             orbital_parameters.update({
-                'satellite_actual_longitude': actual_lon,
-                'satellite_actual_latitude': actual_lat,
-                'satellite_actual_altitude': actual_alt
+                "satellite_actual_longitude": actual_lon,
+                "satellite_actual_latitude": actual_lat,
+                "satellite_actual_altitude": actual_alt
             })
         except NoValidOrbitParams as err:
             logger.warning(err)
@@ -726,14 +726,14 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        poly_finder = OrbitPolynomialFinder(self.header['15_DATA_HEADER'][
-                                                'SatelliteStatus']['Orbit']['OrbitPolynomial'])
+        poly_finder = OrbitPolynomialFinder(self.header["15_DATA_HEADER"][
+                                                "SatelliteStatus"]["Orbit"]["OrbitPolynomial"])
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
             time=self.observation_start_time,
-            semi_major_axis=self.mda['projection_parameters']['a'],
-            semi_minor_axis=self.mda['projection_parameters']['b']
+            semi_major_axis=self.mda["projection_parameters"]["a"],
+            semi_minor_axis=self.mda["projection_parameters"]["b"]
         )
 
 
@@ -749,13 +749,13 @@ class ImageBoundaries:
     def get_img_bounds(self, dataset_id, is_roi):
         """Get image line and column boundaries.
 
-        returns:
+        Returns:
             Dictionary with the four keys 'south_bound', 'north_bound', 'east_bound' and 'west_bound',
             each containing a list of the respective line/column numbers of the image boundaries.
 
         Lists (rather than scalars) are returned since the HRV data in FES mode contain data from two windows/areas.
         """
-        if dataset_id['name'] == 'HRV' and not is_roi:
+        if dataset_id["name"] == "HRV" and not is_roi:
             img_bounds = self._get_hrv_actual_img_bounds()
         else:
             img_bounds = self._get_selected_img_bounds(dataset_id)
@@ -766,28 +766,28 @@ class ImageBoundaries:
 
     def _get_hrv_actual_img_bounds(self):
         """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV information stored in the trailer."""
-        hrv_bounds = self._trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+        hrv_bounds = self._trailer["15TRAILER"]["ImageProductionStats"]["ActualL15CoverageHRV"]
 
-        img_bounds = {'south_bound': [], 'north_bound': [], 'east_bound': [], 'west_bound': []}
-        for hrv_window in ['Lower', 'Upper']:
-            img_bounds['south_bound'].append(hrv_bounds['%sSouthLineActual' % hrv_window])
-            img_bounds['north_bound'].append(hrv_bounds['%sNorthLineActual' % hrv_window])
-            img_bounds['east_bound'].append(hrv_bounds['%sEastColumnActual' % hrv_window])
-            img_bounds['west_bound'].append(hrv_bounds['%sWestColumnActual' % hrv_window])
+        img_bounds = {"south_bound": [], "north_bound": [], "east_bound": [], "west_bound": []}
+        for hrv_window in ["Lower", "Upper"]:
+            img_bounds["south_bound"].append(hrv_bounds["%sSouthLineActual" % hrv_window])
+            img_bounds["north_bound"].append(hrv_bounds["%sNorthLineActual" % hrv_window])
+            img_bounds["east_bound"].append(hrv_bounds["%sEastColumnActual" % hrv_window])
+            img_bounds["west_bound"].append(hrv_bounds["%sWestColumnActual" % hrv_window])
 
             # Data from the upper hrv window are only available in FES mode
-            if not self._mda['is_full_disk']:
+            if not self._mda["is_full_disk"]:
                 break
 
         return img_bounds
 
     def _get_selected_img_bounds(self, dataset_id):
         """Get VISIR and HRV (if ROI) image boundaries from the SelectedRectangle information stored in the header."""
-        sec15hd = self._header['15_SECONDARY_PRODUCT_HEADER']
-        south_bound = int(sec15hd['SouthLineSelectedRectangle']['Value'])
-        east_bound = int(sec15hd['EastColumnSelectedRectangle']['Value'])
+        sec15hd = self._header["15_SECONDARY_PRODUCT_HEADER"]
+        south_bound = int(sec15hd["SouthLineSelectedRectangle"]["Value"])
+        east_bound = int(sec15hd["EastColumnSelectedRectangle"]["Value"])
 
-        if dataset_id['name'] == 'HRV':
+        if dataset_id["name"] == "HRV":
             nlines, ncolumns = self._get_hrv_img_shape()
             south_bound = self._convert_visir_bound_to_hrv(south_bound)
             east_bound = self._convert_visir_bound_to_hrv(east_bound)
@@ -797,19 +797,19 @@ class ImageBoundaries:
         north_bound = south_bound + nlines - 1
         west_bound = east_bound + ncolumns - 1
 
-        img_bounds = {'south_bound': [south_bound], 'north_bound': [north_bound],
-                      'east_bound': [east_bound], 'west_bound': [west_bound]}
+        img_bounds = {"south_bound": [south_bound], "north_bound": [north_bound],
+                      "east_bound": [east_bound], "west_bound": [west_bound]}
 
         return img_bounds
 
     def _get_hrv_img_shape(self):
-        nlines = int(self._mda['hrv_number_of_lines'])
-        ncolumns = int(self._mda['hrv_number_of_columns'])
+        nlines = int(self._mda["hrv_number_of_lines"])
+        ncolumns = int(self._mda["hrv_number_of_columns"])
         return nlines, ncolumns
 
     def _get_visir_img_shape(self):
-        nlines = int(self._mda['number_of_lines'])
-        ncolumns = int(self._mda['number_of_columns'])
+        nlines = int(self._mda["number_of_lines"])
+        ncolumns = int(self._mda["number_of_columns"])
         return nlines, ncolumns
 
     @staticmethod
@@ -824,7 +824,7 @@ class ImageBoundaries:
         no_empty = (min(len_img_bounds) > 0)
 
         if not (same_lengths and no_empty):
-            raise ValueError('Invalid image boundaries')
+            raise ValueError("Invalid image boundaries")
 
 
 class Padder:
@@ -835,14 +835,14 @@ class Padder:
         self._img_bounds = img_bounds
         self._is_full_disk = is_full_disk
 
-        if dataset_id['name'] == 'HRV':
+        if dataset_id["name"] == "HRV":
             self._final_shape = (HRV_NUM_LINES, HRV_NUM_COLUMNS)
         else:
             self._final_shape = (VISIR_NUM_LINES, VISIR_NUM_COLUMNS)
 
     def pad_data(self, dataset):
         """Pad data to full disk with empty pixels."""
-        logger.debug('Padding data to full disk')
+        logger.debug("Padding data to full disk")
 
         data_list = []
         for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
@@ -857,7 +857,7 @@ class Padder:
         if not self._is_full_disk:
             padded_data = pad_data_vertically(padded_data, self._final_shape, south_bound, north_bound)
 
-        return xr.DataArray(padded_data, dims=('y', 'x'), attrs=dataset.attrs.copy())
+        return xr.DataArray(padded_data, dims=("y", "x"), attrs=dataset.attrs.copy())
 
     def _extract_data_to_pad(self, dataset, south_bound, north_bound):
         """Extract the data that shall be padded.
@@ -875,19 +875,19 @@ class Padder:
 
 def get_available_channels(header):
     """Get the available channels from the header information."""
-    channels_str = header['15_SECONDARY_PRODUCT_HEADER'][
-        'SelectedBandIDs']['Value']
+    channels_str = header["15_SECONDARY_PRODUCT_HEADER"][
+        "SelectedBandIDs"]["Value"]
     available_channels = {}
 
     for idx, char in zip(range(12), channels_str):
-        available_channels[CHANNEL_NAMES[idx + 1]] = (char == 'X')
+        available_channels[CHANNEL_NAMES[idx + 1]] = (char == "X")
 
     return available_channels
 
 
 def has_archive_header(filename):
     """Check whether the file includes an ASCII archive header."""
-    with open(filename, mode='rb') as istream:
+    with open(filename, mode="rb") as istream:
         return istream.read(36) == ASCII_STARTSWITH
 
 

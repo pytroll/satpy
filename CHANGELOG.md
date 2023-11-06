@@ -1,3 +1,56 @@
+## Version 0.44.0 (2023/10/17)
+
+### Issues Closed
+
+* [Issue 2593](https://github.com/pytroll/satpy/issues/2593) - FY4A REGC data resampling return all nan
+* [Issue 2591](https://github.com/pytroll/satpy/issues/2591) -  Is there a corresponding reader for S3A_SL_2_WST?
+* [Issue 2581](https://github.com/pytroll/satpy/issues/2581) - Can reader 'modis_l1b' correct MODIS Bow Tie Effect?
+* [Issue 2580](https://github.com/pytroll/satpy/issues/2580) - Does python3.8 and below seem to fail to install via the command line "conda install -c conda-forge satpy"?
+* [Issue 2571](https://github.com/pytroll/satpy/issues/2571) - Add Calibration by Meirink et al for SEVIRI ([PR 2589](https://github.com/pytroll/satpy/pull/2589) by [@pdebuyl](https://github.com/pdebuyl))
+* [Issue 2549](https://github.com/pytroll/satpy/issues/2549) - setuptools-scm-git-archive is obsolete -- use setuptools-scm >= 7 ([PR 2598](https://github.com/pytroll/satpy/pull/2598) by [@pdebuyl](https://github.com/pdebuyl))
+* [Issue 2266](https://github.com/pytroll/satpy/issues/2266) - AGRI data fails with `native` resampling`
+
+In this release 7 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2598](https://github.com/pytroll/satpy/pull/2598) - remove setuptools_scm_git_archive from requirement ([2549](https://github.com/pytroll/satpy/issues/2549), [2549](https://github.com/pytroll/satpy/issues/2549))
+* [PR 2579](https://github.com/pytroll/satpy/pull/2579) - Adapt satpy to numpy 2
+* [PR 2575](https://github.com/pytroll/satpy/pull/2575) - Remove use of deprecated setuptools_scm_git_archive build package
+
+#### Features added
+
+* [PR 2600](https://github.com/pytroll/satpy/pull/2600) - Add some global EPSG 4326 gridded lat/lon areas.
+* [PR 2589](https://github.com/pytroll/satpy/pull/2589) - Add meirink calib ([2571](https://github.com/pytroll/satpy/issues/2571))
+* [PR 2584](https://github.com/pytroll/satpy/pull/2584) - Convert AHI HSD dask chunking to be based on band resolution
+* [PR 2574](https://github.com/pytroll/satpy/pull/2574) - Rename ABI "night_microphysics_abi" composite to "night_microphysics"
+* [PR 2572](https://github.com/pytroll/satpy/pull/2572) - Add reader for GERB high-resolution HDF5 files
+* [PR 2558](https://github.com/pytroll/satpy/pull/2558) - New reader for Himawari L2 NOAA enterprise cloud products.
+* [PR 2556](https://github.com/pytroll/satpy/pull/2556) - Implement modifier for reducing signal as a function of sunz angle
+* [PR 2554](https://github.com/pytroll/satpy/pull/2554) - Implement non-linear scaling for NDVI hybrid green correction
+* [PR 2488](https://github.com/pytroll/satpy/pull/2488) - Add a blend method to create temporal RGB from MultiScene
+* [PR 2052](https://github.com/pytroll/satpy/pull/2052) - Add resolution dependent chunk sizing to 'modis_l1b' reader
+
+#### Documentation changes
+
+* [PR 2582](https://github.com/pytroll/satpy/pull/2582) - Add mastodon link
+* [PR 2517](https://github.com/pytroll/satpy/pull/2517) - Add documentation on putting text onto images
+
+#### Backward incompatible changes
+
+* [PR 2574](https://github.com/pytroll/satpy/pull/2574) - Rename ABI "night_microphysics_abi" composite to "night_microphysics"
+
+#### Clean ups
+
+* [PR 2587](https://github.com/pytroll/satpy/pull/2587) - Remove libnetcdf specific build from CI env
+* [PR 2578](https://github.com/pytroll/satpy/pull/2578) - Remove unneeded performance tracker in seviri reader
+* [PR 2575](https://github.com/pytroll/satpy/pull/2575) - Remove use of deprecated setuptools_scm_git_archive build package
+
+In this release 19 pull requests were closed.
+
+
 ## Version 0.43.0 (2023/07/03)
 
 ### Issues Closed
