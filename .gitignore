@@ -75,3 +75,4 @@ doc/source/_build/*
 satpy/version.py
 doc/source/api/*.rst
 doc/source/reader_table.rst
+doc/source/area_def_list.rst

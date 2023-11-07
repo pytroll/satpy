@@ -3,4 +3,10 @@ $(document).ready( function () {
     "paging": false,
     "dom": 'lfitp'
 } );
+
+    $('table.area-table').DataTable( {
+    "paging": true,
+    "pageLength": 15,
+    "dom": 'lfitp'
+} );
 } );
