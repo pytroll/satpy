@@ -1063,7 +1063,8 @@ class HighCloudCompositor(CloudCompositor):
     temperature (cloud opacity). In contrast to the `CloudCompositor`, the brightness temperature threshold at
     the lower end, used to identify high opaque clouds, is made a function of the latitude in order to have
     tropopause level clouds appear opaque at both high and low latitudes. This follows the Geocolor
-    implementation of high clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`).
+    implementation of high clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
+    with some adjustments to the thresholds based on recent developments and feedback from CIRA.
 
     The two brightness temperature thresholds in `transition_min` are used together with the corresponding
     latitude limits in `latitude_min` to compute a modified version of `transition_min` that is later used
@@ -1144,7 +1145,8 @@ class LowCloudCompositor(CloudCompositor):
     function of the `BTD` value itself. Two sets of thresholds are used, one set for land surface types
     (`range_land`) and another one for sea/water surface types (`range_sea`), respectively. Hence,
     this compositor requires a land-sea-mask as a prerequisite input. This follows the GeoColor
-    implementation of night-time low-level clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`).
+    implementation of night-time low-level clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
+    with some adjustments to the thresholds based on recent developments and feedback from CIRA.
 
     Please note that the spectral test and thus the output of the compositor (using the expected input data) is
     only applicable during night-time.
@@ -1165,8 +1167,6 @@ class LowCloudCompositor(CloudCompositor):
                                 difference over land surface types.
             range_sea (tuple): Threshold values used for masking low-level clouds from the brightness temperature
                                difference over sea/water.
-            latitude_min (tuple): Latitude values defining the intervals for computing latitude-dependent
-                                  transition_min values.
             transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
                                       temperature difference range.
         """
