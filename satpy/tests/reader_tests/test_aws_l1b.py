@@ -71,10 +71,10 @@ def aws_file(tmp_path_factory):
     ds["data/navigation/aws_solar_zenith_angle"] = fake_sun_zen_data
     ds["data/navigation/aws_satellite_azimuth_angle"] = fake_sat_azi_data
     ds["data/navigation/aws_satellite_zenith_angle"] = fake_sat_zen_data
-    ds['status/satellite/subsat_latitude_end'] = np.array(22.39)
-    ds['status/satellite/subsat_longitude_start'] = np.array(304.79)
-    ds['status/satellite/subsat_latitude_start'] = np.array(55.41)
-    ds['status/satellite/subsat_longitude_end'] = np.array(296.79)
+    ds["status/satellite/subsat_latitude_end"] = np.array(22.39)
+    ds["status/satellite/subsat_longitude_start"] = np.array(304.79)
+    ds["status/satellite/subsat_latitude_start"] = np.array(55.41)
+    ds["status/satellite/subsat_longitude_end"] = np.array(296.79)
 
     tmp_dir = tmp_path_factory.mktemp("aws_l1b_tests")
     filename = tmp_dir / compose(file_pattern, dict(start_time=start_time, end_time=end_time,
@@ -84,7 +84,7 @@ def aws_file(tmp_path_factory):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture()
 def aws_handler(aws_file):
     """Create an aws filehandler."""
     filename_info = parse(file_pattern, os.path.basename(aws_file))
@@ -127,7 +127,7 @@ def test_get_channel_data(aws_handler):
     assert res.attrs["platform_name"] == "AWS1"
 
 
-@pytest.mark.parametrize(["id_name", "file_key", "fake_array"],
+@pytest.mark.parametrize(("id_name", "file_key", "fake_array"),
                          [("longitude", "data/navigation/aws_lon", fake_lon_data * 1e-4),
                           ("latitude", "data/navigation/aws_lat", fake_lat_data),
                           ("solar_azimuth", "data/navigation/aws_solar_azimuth_angle", fake_sun_azi_data),

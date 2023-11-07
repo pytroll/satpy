@@ -27,11 +27,11 @@ logger = logging.getLogger(__name__)
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
-AWS_CHANNEL_NAMES_TO_NUMBER = {'1': 1, '2': 2, '3': 3, '4': 4,
-                               '5': 5, '6': 6, '7': 7, '8': 8,
-                               '9': 9, '10': 10, '11': 11, '12': 12,
-                               '13': 13, '14': 14, '15': 15, '16': 16,
-                               '17': 17, '18': 18, '19': 19}
+AWS_CHANNEL_NAMES_TO_NUMBER = {"1": 1, "2": 2, "3": 3, "4": 4,
+                               "5": 5, "6": 6, "7": 7, "8": 8,
+                               "9": 9, "10": 10, "11": 11, "12": 12,
+                               "13": 13, "14": 14, "15": 15, "16": 16,
+                               "17": 17, "18": 18, "19": 19}
 
 AWS_CHANNEL_NAMES = list(AWS_CHANNEL_NAMES_TO_NUMBER.keys())
 
@@ -66,7 +66,7 @@ class AWSL1BFile(NetCDF4FileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self['/attr/instrument']
+        return self["/attr/instrument"]
 
     @property
     def platform_name(self):
@@ -76,22 +76,22 @@ class AWSL1BFile(NetCDF4FileHandler):
     @property
     def sub_satellite_longitude_start(self):
         """Get the longitude of sub-satellite point at start of the product."""
-        return self['status/satellite/subsat_longitude_start'].data.item()
+        return self["status/satellite/subsat_longitude_start"].data.item()
 
     @property
     def sub_satellite_latitude_start(self):
         """Get the latitude of sub-satellite point at start of the product."""
-        return self['status/satellite/subsat_latitude_start'].data.item()
+        return self["status/satellite/subsat_latitude_start"].data.item()
 
     @property
     def sub_satellite_longitude_end(self):
         """Get the longitude of sub-satellite point at end of the product."""
-        return self['status/satellite/subsat_longitude_end'].data.item()
+        return self["status/satellite/subsat_longitude_end"].data.item()
 
     @property
     def sub_satellite_latitude_end(self):
         """Get the latitude of sub-satellite point at end of the product."""
-        return self['status/satellite/subsat_latitude_end'].data.item()
+        return self["status/satellite/subsat_latitude_end"].data.item()
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""
@@ -110,10 +110,10 @@ class AWSL1BFile(NetCDF4FileHandler):
 
         data_array.attrs.update(dataset_info)
 
-        data_array.attrs["orbital_parameters"] = {'sub_satellite_latitude_start': self.sub_satellite_latitude_start,
-                                                  'sub_satellite_longitude_start': self.sub_satellite_longitude_start,
-                                                  'sub_satellite_latitude_end': self.sub_satellite_latitude_end,
-                                                  'sub_satellite_longitude_end': self.sub_satellite_longitude_end}
+        data_array.attrs["orbital_parameters"] = {"sub_satellite_latitude_start": self.sub_satellite_latitude_start,
+                                                  "sub_satellite_longitude_start": self.sub_satellite_longitude_start,
+                                                  "sub_satellite_latitude_end": self.sub_satellite_latitude_end,
+                                                  "sub_satellite_longitude_end": self.sub_satellite_longitude_end}
 
         data_array.attrs["platform_name"] = self.platform_name
         data_array.attrs["sensor"] = self.sensor
@@ -122,13 +122,13 @@ class AWSL1BFile(NetCDF4FileHandler):
     def _get_channel_data(self, dataset_id, dataset_info):
         channel_data = self[dataset_info["file_key"]]
         channel_data.coords["n_channels"] = AWS_CHANNEL_NAMES
-        channel_data = channel_data.rename({'n_fovs': 'x', 'n_scans': 'y'})
+        channel_data = channel_data.rename({"n_fovs": "x", "n_scans": "y"})
         return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 
     def _get_navigation_data(self, dataset_id, dataset_info):
         geo_data = self[dataset_info["file_key"]]
         geo_data.coords["n_geo_groups"] = ["1", "2", "3", "4"]
-        geo_data = geo_data.rename({'n_fovs': 'x', 'n_scans': 'y'})
+        geo_data = geo_data.rename({"n_fovs": "x", "n_scans": "y"})
         horn = dataset_id["horn"].name
         return geo_data.sel(n_geo_groups=horn).drop_vars("n_geo_groups")
 
