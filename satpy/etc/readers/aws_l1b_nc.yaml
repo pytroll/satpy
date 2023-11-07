@@ -20,6 +20,12 @@ reader:
       enum:
         - QH
         - QV
+    horn:
+      enum:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
     calibration:
       enum:
         - brightness_temperature
@@ -28,6 +34,21 @@ reader:
       required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    resolution:
+    polarization:
+      enum:
+        - QH
+        - QV
+    horn:
+      enum:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
 
 datasets:
     '1':
@@ -41,7 +62,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '2':
@@ -55,7 +77,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '3':
@@ -69,7 +92,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '4':
@@ -83,7 +107,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '5':
@@ -97,7 +122,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '6':
@@ -111,7 +137,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '7':
@@ -125,7 +152,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '8':
@@ -139,7 +167,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_1, lat_horn_1]
+        horn: "1"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '9':
@@ -153,7 +182,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_2, lat_horn_2]
+        horn: "2"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '10':
@@ -167,7 +197,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '11':
@@ -181,7 +212,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '12':
@@ -195,7 +227,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '13':
@@ -209,7 +242,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '14':
@@ -223,7 +257,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '15':
@@ -237,7 +272,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_3, lat_horn_3]
+        horn: "3"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '16':
@@ -252,7 +288,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_4, lat_horn_4]
+        horn: "4"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '17':
@@ -267,7 +304,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_4, lat_horn_4]
+        horn: "4"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '18':
@@ -282,7 +320,8 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_4, lat_horn_4]
+        horn: "4"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
     '19':
@@ -297,238 +336,72 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        coordinates: [lon_horn_4, lat_horn_4]
+        horn: "4"
+        coordinates: [longitude, latitude]
         file_type: aws_l1b_nc
         file_key: data/calibration/aws_toa_brightness_temperature
 
 # --- Coordinates ---
 
-    lon_horn_1:
-        name: lon_horn_1
+    longitude:
+        name: longitude
         file_type: aws_l1b_nc
         standard_name: longitude
         units: degrees_east
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         file_key: data/navigation/aws_lon
 
 
-    lat_horn_1:
-        name: lat_horn_1
+    latitude:
+        name: latitude
         file_type: aws_l1b_nc
         standard_name: latitude
         units: degrees_north
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         file_key: data/navigation/aws_lat
 
-    lon_horn_2:
-        name: lon_horn_2
-        file_type: aws_l1b_nc
-        standard_name: longitude
-        units: degrees_east
-        n_horns: 1
-        file_key: data/navigation/aws_lon
-
-    lat_horn_2:
-        name: lat_horn_2
-        file_type: aws_l1b_nc
-        standard_name: latitude
-        units: degrees_north
-        n_horns: 1
-        file_key: data/navigation/aws_lat
-
-    lon_horn_3:
-        name: lon_horn_3
-        file_type: aws_l1b_nc
-        standard_name: longitude
-        units: degrees_east
-        n_horns: 2
-        file_key: data/navigation/aws_lon
-
-    lat_horn_3:
-        name: lat_horn_3
-        file_type: aws_l1b_nc
-        standard_name: latitude
-        units: degrees_north
-        n_horns: 2
-        file_key: data/navigation/aws_lat
-
-    lon_horn_4:
-        name: lon_horn_4
-        file_type: aws_l1b_nc
-        standard_name: longitude
-        units: degrees_east
-        n_horns: 3
-        file_key: data/navigation/aws_lon
-
-    lat_horn_4:
-        name: lat_horn_4
-        file_type: aws_l1b_nc
-        standard_name: latitude
-        units: degrees_north
-        n_horns: 3
-        file_key: data/navigation/aws_lat
 
 # --- Navigation data ---
 
-    solar_azimuth_horn_1:
-        name: solar_azimuth_horn_1
+    solar_azimuth:
+        name: solar_azimuth
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_solar_azimuth_angle
         standard_name: solar_azimuth_angle
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         coordinates:
-            - lon_horn_1
-            - lat_horn_1
+            - longitude
+            - latitude
 
-    solar_azimuth_horn_2:
-        name: solar_azimuth_horn_2
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        n_horns: 1
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    solar_azimuth_horn_3:
-        name: solar_azimuth_horn_3
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        n_horns: 2
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    solar_azimuth_horn_4:
-        name: solar_azimuth_horn_4
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        n_horns: 3
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    solar_zenith_horn_1:
-        name: solar_zenith_horn_1
+    solar_zenith:
+        name: solar_zenith
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_solar_zenith_angle
         standard_name: solar_zenith_angle
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         coordinates:
-            - lon_horn_1
-            - lat_horn_1
+            - longitude
+            - latitude
 
-    solar_zenith_horn_2:
-        name: solar_zenith_horn_2
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_zenith_angle
-        standard_name: solar_zenith_angle
-        n_horns: 1
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    solar_zenith_horn_3:
-        name: solar_zenith_horn_3
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_zenith_angle
-        standard_name: solar_zenith_angle
-        n_horns: 2
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    solar_zenith_horn_4:
-        name: solar_zenith_horn_4
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_solar_zenith_angle
-        standard_name: solar_zenith_angle
-        n_horns: 3
-        coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    satellite_azimuth_horn_1:
-        name: satellite_azimuth_horn_1
+    satellite_azimuth:
+        name: satellite_azimuth
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_satellite_azimuth_angle
         standard_name: satellite_azimuth_angle
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         coordinates:
-            - lon_horn_1
-            - lat_horn_1
+            - longitude
+            - latitude
 
-    satellite_azimuth_horn_2:
-        name: satellite_azimuth_horn_2
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        n_horns: 1
-        coordinates:
-            - lon_horn_2
-            - lat_horn_2
-
-    satellite_azimuth_horn_3:
-        name: satellite_azimuth_horn_3
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        n_horns: 2
-        coordinates:
-            - lon_horn_3
-            - lat_horn_3
-
-    satellite_azimuth_horn_4:
-        name: satellite_azimuth_horn_4
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        n_horns: 3
-        coordinates:
-            - lon_horn_4
-            - lat_horn_4
-
-    satellite_zenith_horn_1:
-        name: satellite_zenith_horn_1
+    satellite_zenith:
+        name: satellite_zenith
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_satellite_zenith_angle
         standard_name: satellite_zenith_angle
-        n_horns: 0
+        horn: ["1", "2", "3", "4"]
         coordinates:
-            - lon_horn_1
-            - lat_horn_1
-
-    satellite_zenith_horn_2:
-        name: satellite_zenith_horn_2
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        n_horns: 1
-        coordinates:
-            - lon_horn_2
-            - lat_horn_2
-
-    satellite_zenith_horn_3:
-        name: satellite_zenith_horn_3
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        n_horns: 2
-        coordinates:
-            - lon_horn_3
-            - lat_horn_3
-
-    satellite_zenith_horn_4:
-        name: satellite_zenith_horn_4
-        file_type: aws_l1b_nc
-        file_key: data/navigation/aws_satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        n_horns: 3
-        coordinates:
-            - lon_horn_4
-            - lat_horn_4
+            - longitude
+            - latitude
 
 
 file_types:
