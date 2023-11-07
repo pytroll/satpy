@@ -1109,6 +1109,8 @@ class HighCloudCompositor(CloudCompositor):
         `projectables` is expected to be a list or tuple with a single element:
           - index 0: Brightness temperature of a thermal infrared window channel (e.g. 10.5 microns).
         """
+        # TODO Optimize and make sure that there are no early unnecessary dask computations. Is there a way to avoid
+        # computation of the latitude array?
         if len(projectables) != 1:
             raise ValueError(f"Expected 1 dataset, got {len(projectables)}")
 
@@ -1191,6 +1193,7 @@ class LowCloudCompositor(CloudCompositor):
           - index 1. Brightness temperature of the window channel (used to filter out noise-induced false alarms).
           - index 2: Land-Sea-Mask.
         """
+        # TODO Optimize and make sure that there are no early unnecessary dask computations
         if len(projectables) != 3:
             raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
 
@@ -1200,6 +1203,8 @@ class LowCloudCompositor(CloudCompositor):
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
 
         # Avoid spurious false alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
+        # TODO Consolidate this. Should it really be set to zero and thus within the threshold range? What if the
+        #  lower threshold would be changed to -1
         btd = btd.where(bt_win >= 230, 0.0)
 
         # Call CloudCompositor for land surface pixels
