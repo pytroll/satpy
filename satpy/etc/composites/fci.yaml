@@ -130,8 +130,8 @@ composites:
      - name: ir_105
      - compositor: !!python/name:satpy.composites.StaticImageCompositor
        standard_name: land_sea_mask
-       # TODO Change filename
-       filename: "/tcenas/proj/optcalimg/strandgren/GeoColor/static_data/gshhs_land_sea_mask_3km_i.tif"
+       url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+       known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
 
   geo_color_background_with_low_clouds:
    compositor: !!python/name:satpy.composites.BackgroundCompositor
