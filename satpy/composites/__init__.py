@@ -1077,7 +1077,7 @@ class HighCloudCompositor(CloudCompositor):
                          of where abs(latitude).
     """
 
-    def __init__(self, name, transition_min=(200., 220.), transition_max=280, latitude_min=(30., 60.),
+    def __init__(self, name, transition_min=(210., 230.), transition_max=300, latitude_min=(30., 60.),
                  transition_gamma=1.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1149,7 +1149,7 @@ class LowCloudCompositor(CloudCompositor):
     """
 
     def __init__(self, name, values_land=(1,), values_sea=(0,),
-                 range_land=(1.0, 4.5),
+                 range_land=(0.0, 4.0),
                  range_sea=(0.0, 4.0),
                  transition_gamma=1.0, **kwargs):
         """Init info.
