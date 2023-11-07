@@ -210,14 +210,14 @@ class LINCFileHandler(NetCDF4FileHandler):
         # Note: the default dict assignment is need to avoid error when using the fake
         # netcdf4 file handler in mock unit tests:
         self._xarray_kwargs = getattr(self, "_xarray_kwargs", {})
-        self._xarray_kwargs['decode_times'] = False
-        self._xarray_kwargs['mask_and_scale'] = False
+        self._xarray_kwargs["decode_times"] = False
+        self._xarray_kwargs["mask_and_scale"] = False
 
         # Processing level that should be set by derived classes.
-        self.processing_level = filetype_info.get('processing_level', 'L0')
+        self.processing_level = filetype_info.get("processing_level", "L0")
 
         # This class will only provide support for the LI sensor:
-        self.sensors = {'li'}
+        self.sensors = {"li"}
 
         # Set of dataset names explicitly provided by this file handler:
         # This set is required to filter the retrieval of datasets later in the
@@ -234,19 +234,19 @@ class LINCFileHandler(NetCDF4FileHandler):
         # directly here:
         self.provided_datasets = set()
 
-        self.ds_desc = filetype_info['file_desc']
+        self.ds_desc = filetype_info["file_desc"]
         # Store the extra infos available on specific variables:
         # Write the correct product type here:
-        self.product_type = self.ds_desc['product_type']
+        self.product_type = self.ds_desc["product_type"]
         logger.debug("Product type is: %s", self.product_type)
 
-        self.variable_transforms = self.ds_desc.get('variable_transforms', {})
+        self.variable_transforms = self.ds_desc.get("variable_transforms", {})
 
         # Store the pattern for the default swath coordinates:
         # Note that we should always have this swath coordinates entry now:
-        self.swath_coordinates = self.ds_desc.get('swath_coordinates', {})
-        patterns = self.swath_coordinates.get('variable_patterns', [])
-        self.swath_coordinates['patterns'] = [re.compile(pstr) for pstr in patterns]
+        self.swath_coordinates = self.ds_desc.get("swath_coordinates", {})
+        patterns = self.swath_coordinates.get("variable_patterns", [])
+        self.swath_coordinates["patterns"] = [re.compile(pstr) for pstr in patterns]
 
         # check if the current product is in an accumulation grid
         self.prod_in_accumulation_grid = self.is_prod_in_accumulation_grid()
@@ -264,8 +264,8 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # Ordered list of transform operations supported in this file handler:
         # those transforms are applied if requested in the 'apply_transforms' method below
-        self.transform_names = ['use_rescaling', 'seconds_to_timedelta', 'milliseconds_to_timedelta',
-                                'seconds_to_datetime', 'broadcast_to', 'accumulate_index_offset']
+        self.transform_names = ["use_rescaling", "seconds_to_timedelta", "milliseconds_to_timedelta",
+                                "seconds_to_datetime", "broadcast_to", "accumulate_index_offset"]
 
         # store internal variables
         self.internal_variables = {}
@@ -276,12 +276,12 @@ class LINCFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get the end time."""
-        return self.filename_info['end_time']
+        return self.filename_info["end_time"]
 
     @property
     def sensor_names(self):
@@ -290,7 +290,7 @@ class LINCFileHandler(NetCDF4FileHandler):
 
     def is_prod_in_accumulation_grid(self):
         """Check if the current product is an accumulated product in geos grid."""
-        in_grid = self.swath_coordinates.get('projection', None) == 'mtg_geos_projection'
+        in_grid = self.swath_coordinates.get("projection", None) == "mtg_geos_projection"
         return in_grid
 
     def get_latlon_names(self):
@@ -298,14 +298,14 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         Use default 'latitude' / 'longitude' if not specified.
         """
-        lon_name = self.swath_coordinates.setdefault('longitude', 'longitude')
-        lat_name = self.swath_coordinates.setdefault('latitude', 'latitude')
+        lon_name = self.swath_coordinates.setdefault("longitude", "longitude")
+        lat_name = self.swath_coordinates.setdefault("latitude", "latitude")
         return lat_name, lon_name
 
     def get_projection_config(self):
         """Retrieve the projection configuration details."""
         # We retrieve the projection variable name directly from our swath settings:
-        proj_var = self.swath_coordinates['projection']
+        proj_var = self.swath_coordinates["projection"]
 
         geos_proj = self.get_measured_variable(proj_var, fill_value=None)
         # cast projection attributes to float/str:
@@ -317,12 +317,12 @@ class LINCFileHandler(NetCDF4FileHandler):
         sweep = str(geos_proj.attrs["sweep_angle_axis"])
 
         # use a (semi-major axis) and rf (reverse flattening) to define ellipsoid as recommended by EUM
-        proj_dict = {'a': major_axis,
-                     'lon_0': lon_0,
-                     'h': point_height,
+        proj_dict = {"a": major_axis,
+                     "lon_0": lon_0,
+                     "h": point_height,
                      "rf": inv_flattening,
-                     'proj': 'geos',
-                     'units': 'm',
+                     "proj": "geos",
+                     "units": "m",
                      "sweep": sweep}
 
         return proj_dict
@@ -330,10 +330,10 @@ class LINCFileHandler(NetCDF4FileHandler):
     def get_daskified_lon_lat(self, proj_dict):
         """Get daskified lon and lat array using map_blocks."""
         # Get our azimuth/elevation arrays,
-        azimuth = self.get_measured_variable(self.swath_coordinates['azimuth'])
+        azimuth = self.get_measured_variable(self.swath_coordinates["azimuth"])
         azimuth = self.apply_use_rescaling(azimuth)
 
-        elevation = self.get_measured_variable(self.swath_coordinates['elevation'])
+        elevation = self.get_measured_variable(self.swath_coordinates["elevation"])
         elevation = self.apply_use_rescaling(elevation)
 
         # Daskify inverse projection computation:
@@ -355,9 +355,9 @@ class LINCFileHandler(NetCDF4FileHandler):
         # Finally, we should store those arrays as internal variables for later retrieval as
         # standard datasets:
         self.internal_variables[lon_name] = xr.DataArray(
-            da.asarray(lon), dims=['y'], attrs={'standard_name': 'longitude'})
+            da.asarray(lon), dims=["y"], attrs={"standard_name": "longitude"})
         self.internal_variables[lat_name] = xr.DataArray(
-            da.asarray(lat), dims=['y'], attrs={'standard_name': 'latitude'})
+            da.asarray(lat), dims=["y"], attrs={"standard_name": "latitude"})
 
     def inverse_projection(self, azimuth, elevation, proj_dict):
         """Compute inverse projection."""
@@ -365,7 +365,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         projection = Proj(proj_dict)
 
         # Retrieve the point height from the projection config:
-        point_height = proj_dict['h']
+        point_height = proj_dict["h"]
 
         # Convert scan angles to projection coordinates by multiplying with perspective point height
         azimuth = azimuth.values * point_height
@@ -444,7 +444,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         if fill_value is not None:
             if np.isnan(fill_value):
                 fill_value = np.float32(np.nan)
-            arr = arr.where(arr != arr.attrs.get('_FillValue'), fill_value)
+            arr = arr.where(arr != arr.attrs.get("_FillValue"), fill_value)
         return arr
 
     def get_variable_search_paths(self, var_paths):
@@ -461,25 +461,25 @@ class LINCFileHandler(NetCDF4FileHandler):
         """Add a provided dataset to our internal list."""
         # Check if we have extra infos for that variable:
         # Note that if available we should use the alias name instead here:
-        vname = ds_infos["alias_name"] if 'alias_name' in ds_infos else ds_infos["variable_name"]
+        vname = ds_infos["alias_name"] if "alias_name" in ds_infos else ds_infos["variable_name"]
         self.check_variable_extra_info(ds_infos, vname)
 
         # We check here if we should include the default coordinates on that dataset:
-        if self.swath_coordinates is not None and 'coordinates' not in ds_infos:
+        if self.swath_coordinates is not None and "coordinates" not in ds_infos:
 
             # Check if the variable corresponding to this dataset will match one of the valid patterns
             # for the swath usage:
-            if any([p.search(vname) is not None for p in self.swath_coordinates['patterns']]):
+            if any([p.search(vname) is not None for p in self.swath_coordinates["patterns"]]):
 
                 # Get the target coordinate names, applying the sector name as needed:
                 lat_coord_name, lon_coord_name = self.get_coordinate_names(ds_infos)
 
                 # Ensure we do not try to add the coordinates on the coordinates themself:
-                dname = ds_infos['name']
+                dname = ds_infos["name"]
                 if dname != lat_coord_name and dname != lon_coord_name:
-                    ds_infos['coordinates'] = [lon_coord_name, lat_coord_name]
+                    ds_infos["coordinates"] = [lon_coord_name, lat_coord_name]
         self.dataset_infos.append(ds_infos)
-        self.provided_datasets.add(ds_infos['name'])
+        self.provided_datasets.add(ds_infos["name"])
 
     def check_variable_extra_info(self, ds_infos, vname):
         """Check if we have extra infos for that variable."""
@@ -492,8 +492,8 @@ class LINCFileHandler(NetCDF4FileHandler):
     def get_coordinate_names(self, ds_infos):
         """Get the target coordinate names, applying the sector name as needed."""
         lat_coord_name, lon_coord_name = self.get_latlon_names()
-        if 'sector_name' in ds_infos:
-            sname = ds_infos['sector_name']
+        if "sector_name" in ds_infos:
+            sname = ds_infos["sector_name"]
             lat_coord_name = lat_coord_name.replace("{sector_name}", sname)
             lon_coord_name = lon_coord_name.replace("{sector_name}", sname)
         return lat_coord_name, lon_coord_name
@@ -501,7 +501,7 @@ class LINCFileHandler(NetCDF4FileHandler):
     def get_dataset_infos(self, dname):
         """Retrieve the dataset infos corresponding to one of the registered datasets."""
         for dsinfos in self.dataset_infos:
-            if dsinfos['name'] == dname:
+            if dsinfos["name"] == dname:
                 return dsinfos
 
         # nothing found.
@@ -514,15 +514,15 @@ class LINCFileHandler(NetCDF4FileHandler):
         ds_name = var_name if oc_name is None else f"{var_name}_{oc_name}_sector"
 
         ds_info = {
-            'name': ds_name,
-            'variable_name': var_name,
-            'sensor': 'li',
-            'file_type': self.filetype_info['file_type']
+            "name": ds_name,
+            "variable_name": var_name,
+            "sensor": "li",
+            "file_type": self.filetype_info["file_type"]
         }
 
         # add the sector name:
         if oc_name is not None:
-            ds_info['sector_name'] = oc_name
+            ds_info["sector_name"] = oc_name
 
         self.add_provided_dataset(ds_info)
 
@@ -535,7 +535,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         self.dataset_infos = []
 
         # Assign the search paths for this product type:
-        self.search_paths = self.ds_desc.get('search_paths', [])
+        self.search_paths = self.ds_desc.get("search_paths", [])
 
         # Register our coordinates from azimuth/elevation data
         # if the product is accumulated
@@ -553,17 +553,17 @@ class LINCFileHandler(NetCDF4FileHandler):
 
     def register_variable_datasets(self):
         """Register all the available raw (i.e. not in sectors)."""
-        if 'variables' in self.ds_desc:
-            all_vars = self.ds_desc['variables']
+        if "variables" in self.ds_desc:
+            all_vars = self.ds_desc["variables"]
             # No sector to handle so we write simple datasets from the variables:
             for var_name in all_vars:
                 self.register_dataset(var_name)
 
     def register_sector_datasets(self):
         """Register all the available sector datasets."""
-        if 'sectors' in self.ds_desc:
-            sectors = self.ds_desc['sectors']
-            sector_vars = self.ds_desc['sector_variables']
+        if "sectors" in self.ds_desc:
+            sectors = self.ds_desc["sectors"]
+            sector_vars = self.ds_desc["sector_variables"]
             # We should generate the datasets per sector:
             for oc_name in sectors:
                 for var_name in sector_vars:
@@ -590,16 +590,16 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         # Check if we have the scaling elements:
         attribs = data_array.attrs
-        if 'scale_factor' in attribs or 'scaling_factor' in attribs or 'add_offset' in attribs:
+        if "scale_factor" in attribs or "scaling_factor" in attribs or "add_offset" in attribs:
             # TODO remove scaling_factor fallback after issue in NetCDF is fixed
-            scale_factor = attribs.setdefault('scale_factor', attribs.get('scaling_factor', 1))
-            add_offset = attribs.setdefault('add_offset', 0)
+            scale_factor = attribs.setdefault("scale_factor", attribs.get("scaling_factor", 1))
+            add_offset = attribs.setdefault("add_offset", 0)
 
             data_array = (data_array * scale_factor) + add_offset
 
             # rescale the valid range accordingly
-            if 'valid_range' in attribs.keys():
-                attribs['valid_range'] = attribs['valid_range'] * scale_factor + add_offset
+            if "valid_range" in attribs.keys():
+                attribs["valid_range"] = attribs["valid_range"] * scale_factor + add_offset
 
         data_array.attrs.update(attribs)
 
@@ -607,11 +607,11 @@ class LINCFileHandler(NetCDF4FileHandler):
 
     def apply_broadcast_to(self, data_array, ds_info):
         """Apply the broadcast_to transform on a given array."""
-        ref_var = self.get_transform_reference('broadcast_to', ds_info)
+        ref_var = self.get_transform_reference("broadcast_to", ds_info)
 
-        logger.debug("Broascasting %s to shape %s", ds_info['name'], ref_var.shape)
+        logger.debug("Broascasting %s to shape %s", ds_info["name"], ref_var.shape)
         new_array = da.broadcast_to(data_array, ref_var.shape)
-        dims = data_array.dims if data_array.ndim > 0 else ('y',)
+        dims = data_array.dims if data_array.ndim > 0 else ("y",)
         data_array = xr.DataArray(new_array, coords=data_array.coords, dims=dims, name=data_array.name,
                                   attrs=data_array.attrs)
         return data_array
@@ -621,42 +621,42 @@ class LINCFileHandler(NetCDF4FileHandler):
         # retrieve the __index_offset here, or create it if missing:
         # And keep track of the shared ds_info dict to reset it later in combine_info()
         self.current_ds_info = ds_info
-        offset = ds_info.setdefault('__index_offset', 0)
+        offset = ds_info.setdefault("__index_offset", 0)
 
-        ref_var = self.get_transform_reference('accumulate_index_offset', ds_info)
+        ref_var = self.get_transform_reference("accumulate_index_offset", ds_info)
 
         # Apply the current index_offset already reached on the indices we have in the current dataset:
         data_array = data_array + offset
 
         # Now update the __index_offset adding the number of elements in the reference array:
-        ds_info['__index_offset'] = offset + ref_var.size
+        ds_info["__index_offset"] = offset + ref_var.size
         logger.debug("Adding %d elements for index offset, new value is: %d",
-                     ref_var.size, ds_info['__index_offset'])
+                     ref_var.size, ds_info["__index_offset"])
 
         return data_array
 
     def apply_seconds_to_datetime(self, data_array, ds_info):
         """Apply the seconds_to_datetime transform on a given array."""
         # Retrieve the epoch timestamp:
-        epoch_ts = np.datetime64('2000-01-01T00:00:00.000000')
+        epoch_ts = np.datetime64("2000-01-01T00:00:00.000000")
 
         # And add our values as delta times in seconds:
         # note that we use a resolution of 1ns here:
-        data_array = epoch_ts + (data_array * 1e9).astype('timedelta64[ns]')
+        data_array = epoch_ts + (data_array * 1e9).astype("timedelta64[ns]")
         return data_array
 
     def apply_seconds_to_timedelta(self, data_array, _ds_info):
         """Apply the seconds_to_timedelta transform on a given array."""
         # Apply the type conversion in place in the data_array:
         # note that we use a resolution of 1ns here:
-        data_array = (data_array * 1e9).astype('timedelta64[ns]')
+        data_array = (data_array * 1e9).astype("timedelta64[ns]")
         return data_array
 
     def apply_milliseconds_to_timedelta(self, data_array, _ds_info):
         """Apply the milliseconds_to_timedelta transform on a given array."""
         # Apply the type conversion in place in the data_array:
         # note that we use a resolution of 1ns here:
-        data_array = (data_array * 1e6).astype('timedelta64[ns]')
+        data_array = (data_array * 1e6).astype("timedelta64[ns]")
         return data_array
 
     def get_transform_reference(self, transform_name, ds_info):
@@ -665,7 +665,7 @@ class LINCFileHandler(NetCDF4FileHandler):
 
         if "{sector_name}" in var_path:
             # We really expect to have a sector name for that variable:
-            var_path = var_path.replace("{sector_name}", ds_info['sector_name'])
+            var_path = var_path.replace("{sector_name}", ds_info["sector_name"])
 
         # get the variable on that path:
         ref_var = self.get_measured_variable(var_path)
@@ -679,7 +679,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         for tname in self.transform_names:
             if tname in ds_info:
                 # Retrieve the transform function:
-                transform = getattr(self, f'apply_{tname}')
+                transform = getattr(self, f"apply_{tname}")
                 # Apply the transformation on the dataset:
                 data_array = transform(data_array, ds_info)
         return data_array
@@ -690,7 +690,7 @@ class LINCFileHandler(NetCDF4FileHandler):
         This is to be able to reset our __index_offset attribute in the shared ds_info currently being updated.
         """
         if self.current_ds_info is not None:
-            del self.current_ds_info['__index_offset']
+            del self.current_ds_info["__index_offset"]
             self.current_ds_info = None
 
         return super().combine_info(all_infos)
@@ -698,10 +698,10 @@ class LINCFileHandler(NetCDF4FileHandler):
     def get_transformed_dataset(self, ds_info):
         """Retrieve a dataset with all transformations applied on it."""
         # Extract base variable name:
-        vname = ds_info['variable_name']
+        vname = ds_info["variable_name"]
 
         # Note that the sector name might be None below:
-        sname = ds_info.get('sector_name', None)
+        sname = ds_info.get("sector_name", None)
 
         # Use the sector name as prefix for the variable path if applicable:
         var_paths = vname if sname is None else f"{sname}/{vname}"
@@ -717,17 +717,17 @@ class LINCFileHandler(NetCDF4FileHandler):
         # in order to potentially support data array combination in a satpy scene:
         if data_array.ndim == 0:
             # If we have no dimension, we should force creating one here:
-            data_array = data_array.expand_dims({'y': 1})
+            data_array = data_array.expand_dims({"y": 1})
 
-        data_array = data_array.rename({data_array.dims[0]: 'y'})
+        data_array = data_array.rename({data_array.dims[0]: "y"})
 
         return data_array
 
     def update_array_attributes(self, data_array, ds_info):
         """Inject the attributes from the ds_info structure into the final data array, ignoring the internal entries."""
         # ignore some internal processing only entries:
-        ignored_attribs = ["__index_offset", "broadcast_to", 'accumulate_index_offset',
-                           'seconds_to_timedelta', 'seconds_to_datetime']
+        ignored_attribs = ["__index_offset", "broadcast_to", "accumulate_index_offset",
+                           "seconds_to_timedelta", "seconds_to_datetime"]
         for key, value in ds_info.items():
             if key not in ignored_attribs:
                 data_array.attrs[key] = value
@@ -738,13 +738,13 @@ class LINCFileHandler(NetCDF4FileHandler):
         """Get a dataset."""
         # Retrieve default infos if missing:
         if ds_info is None:
-            ds_info = self.get_dataset_infos(dataset_id['name'])
+            ds_info = self.get_dataset_infos(dataset_id["name"])
 
         # check for potential error:
         if ds_info is None:
             raise KeyError(f"No dataset registered for {dataset_id}")
 
-        ds_name = ds_info['name']
+        ds_name = ds_info["name"]
         # In case this dataset name is not explicitly provided by this file handler then we
         # should simply return None.
         if ds_name not in self.provided_datasets:

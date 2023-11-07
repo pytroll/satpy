@@ -62,7 +62,6 @@ from __future__ import annotations
 import logging
 from typing import Iterable
 
-import numpy as np
 import xarray as xr
 
 from satpy import DataID
@@ -87,28 +86,28 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={
-                                      'Columns': -1,
-                                      'Rows': row_chunks_m,
-                                      'Along_Scan_375m': -1,
-                                      'Along_Track_375m': row_chunks_i,
-                                      'Along_Scan_750m': -1,
-                                      'Along_Track_750m': row_chunks_m,
+                                      "Columns": -1,
+                                      "Rows": row_chunks_m,
+                                      "Along_Scan_375m": -1,
+                                      "Along_Track_375m": row_chunks_i,
+                                      "Along_Scan_750m": -1,
+                                      "Along_Track_750m": row_chunks_m,
                                   })
-        if 'Columns' in self.nc.dims:
-            self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
-        elif 'Along_Track_375m' in self.nc.dims:
-            self.nc = self.nc.rename({'Along_Scan_375m': 'x', 'Along_Track_375m': 'y'})
-            self.nc = self.nc.rename({'Along_Scan_750m': 'x', 'Along_Track_750m': 'y'})
+        if "Columns" in self.nc.dims:
+            self.nc = self.nc.rename({"Columns": "x", "Rows": "y"})
+        elif "Along_Track_375m" in self.nc.dims:
+            self.nc = self.nc.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
+            self.nc = self.nc.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
 
         # For some reason, no 'standard_name' is defined in some netCDF files, so
         # here we manually make the definitions.
-        if 'Latitude' in self.nc:
-            self.nc['Latitude'].attrs.update({'standard_name': 'latitude'})
-        if 'Longitude' in self.nc:
-            self.nc['Longitude'].attrs.update({'standard_name': 'longitude'})
+        if "Latitude" in self.nc:
+            self.nc["Latitude"].attrs.update({"standard_name": "latitude"})
+        if "Longitude" in self.nc:
+            self.nc["Longitude"].attrs.update({"standard_name": "longitude"})
 
-        self.algorithm_version = filename_info['platform_shortname']
-        self.sensor_name = 'viirs'
+        self.algorithm_version = filename_info["platform_shortname"]
+        self.sensor_name = "viirs"
 
     def rows_per_scans(self, data_arr: xr.DataArray) -> int:
         """Get number of array rows per instrument scan based on data resolution."""
@@ -116,7 +115,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id: DataID, info: dict) -> xr.DataArray:
         """Get the dataset."""
-        data_arr = self.nc[info['file_key']]
+        data_arr = self.nc[info["file_key"]]
         data_arr = self._mask_invalid(data_arr, info)
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
@@ -138,14 +137,10 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
-        fill_value = data_arr.encoding.get("_FillValue")
-        if fill_value is not None and not np.isnan(fill_value):
-            # xarray auto mask and scale handled this
-            return data_arr
-        yaml_fill = ds_info.get("_FillValue")
-        if yaml_fill is not None:
-            return data_arr.where(data_arr != yaml_fill)
+        # xarray auto mask and scale handled any fills from the file
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
+        if "valid_min" in data_arr.attrs and valid_range is None:
+            valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
         return data_arr
@@ -155,27 +150,27 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         flag_meanings = data_arr.attrs.get("flag_meanings", None)
         if isinstance(flag_meanings, str) and "\n" not in flag_meanings:
             # only handle CF-standard flag meanings
-            data_arr.attrs['flag_meanings'] = [flag for flag in data_arr.attrs['flag_meanings'].split(' ')]
+            data_arr.attrs["flag_meanings"] = [flag for flag in data_arr.attrs["flag_meanings"].split(" ")]
 
     @property
     def start_time(self):
         """Get first date/time when observations were recorded."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get last date/time when observations were recorded."""
-        return self.filename_info['end_time']
+        return self.filename_info["end_time"]
 
     @property
     def platform_name(self):
         """Get platform name."""
-        platform_path = self.filename_info['platform_shortname']
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'J01': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21',
-                         'J02': 'NOAA-21'}
+        platform_path = self.filename_info["platform_shortname"]
+        platform_dict = {"NPP": "Suomi-NPP",
+                         "JPSS-1": "NOAA-20",
+                         "J01": "NOAA-20",
+                         "JPSS-2": "NOAA-21",
+                         "J02": "NOAA-21"}
         return platform_dict[platform_path.upper()]
 
     def available_datasets(self, configured_datasets=None):
@@ -217,7 +212,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            if self.file_type_matches(ds_info['file_type']) is None:
+            if self.file_type_matches(ds_info["file_type"]) is None:
                 # this is not the file type for this dataset
                 yield None, ds_info
             yield file_key in self.nc, ds_info
@@ -283,18 +278,18 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
 
     def _get_veg_index_good_mask(self) -> xr.DataArray:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
-        qf1 = self.nc['QF1 Surface Reflectance']
+        qf1 = self.nc["QF1 Surface Reflectance"]
         has_sun_glint = (qf1 & 0b11000000) > 0
         is_cloudy = (qf1 & 0b00001100) > 0  # mask everything but "confident clear"
         cloud_quality = (qf1 & 0b00000011) < 0b10
 
-        qf2 = self.nc['QF2 Surface Reflectance']
+        qf2 = self.nc["QF2 Surface Reflectance"]
         has_snow_or_ice = (qf2 & 0b00100000) > 0
         has_cloud_shadow = (qf2 & 0b00001000) > 0
         water_mask = (qf2 & 0b00000111)
         has_water = (water_mask <= 0b010) | (water_mask == 0b101)  # shallow water, deep ocean, arctic
 
-        qf7 = self.nc['QF7 Surface Reflectance']
+        qf7 = self.nc["QF7 Surface Reflectance"]
         has_aerosols = (qf7 & 0b00001100) > 0b1000  # high aerosol quantity
         adjacent_to_cloud = (qf7 & 0b00000010) > 0
 

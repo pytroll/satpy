@@ -33,7 +33,7 @@ import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
-from pytest import TempPathFactory
+from pytest import TempPathFactory  # noqa: PT013
 from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 6400
@@ -128,17 +128,26 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     dim_x_375 = "Along_Scan_375m"
     i_dims = (dim_y_375, dim_x_375)
 
-    lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9}
-    lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9}
+    lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9,
+                 "valid_min": -180.0, "valid_max": 180.0}
+    lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9,
+                 "valid_min": -90.0, "valid_max": 90.0}
     sr_attrs = {"units": "unitless", "_FillValue": -9999, "scale_factor": 0.0001, "add_offset": 0.0}
 
     i_data = np.random.random_sample((I_ROWS, I_COLS)).astype(np.float32)
     m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    lon_i_data = (i_data * 360) - 180.0
+    lon_m_data = (m_data * 360) - 180.0
+    lat_i_data = (i_data * 180) - 90.0
+    lat_m_data = (m_data * 180) - 90.0
+    for geo_var in (lon_i_data, lon_m_data, lat_i_data, lat_m_data):
+        geo_var[0, 0] = -999.9
+        geo_var[0, 1] = -999.3
     data_arrs = {
-        "Longitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lon_attrs),
-        "Latitude_at_375m_resolution": xr.DataArray(i_data, dims=i_dims, attrs=lat_attrs),
-        "Longitude_at_750m_resolution": xr.DataArray(m_data, dims=m_dims, attrs=lon_attrs),
-        "Latitude_at_750m_resolution": xr.DataArray(m_data, dims=m_dims, attrs=lat_attrs),
+        "Longitude_at_375m_resolution": xr.DataArray(lon_i_data, dims=i_dims, attrs=lon_attrs),
+        "Latitude_at_375m_resolution": xr.DataArray(lat_i_data, dims=i_dims, attrs=lat_attrs),
+        "Longitude_at_750m_resolution": xr.DataArray(lon_m_data, dims=m_dims, attrs=lon_attrs),
+        "Latitude_at_750m_resolution": xr.DataArray(lat_m_data, dims=m_dims, attrs=lat_attrs),
         "375m Surface Reflectance Band I1": xr.DataArray(i_data, dims=i_dims, attrs=sr_attrs),
         "750m Surface Reflectance Band M1": xr.DataArray(m_data, dims=m_dims, attrs=sr_attrs),
     }
@@ -458,6 +467,10 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     lats = data_arr.attrs["area"].lats
     assert lons.attrs["rows_per_scan"] == exp_rps
     assert lats.attrs["rows_per_scan"] == exp_rps
+    assert lons.min() >= -180.0
+    assert lons.max() <= 180.0
+    assert lats.min() >= -90.0
+    assert lats.max() <= 90.0
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:

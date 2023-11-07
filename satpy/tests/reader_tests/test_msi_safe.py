@@ -955,7 +955,7 @@ class TestMTDXML:
     def test_xml_navigation(self):
         """Test the navigation."""
         from pyproj import CRS
-        crs = CRS('EPSG:32616')
+        crs = CRS("EPSG:32616")
 
         dsid = make_dataid(name="B01", resolution=60)
         result = self.xml_tile_fh.get_area_def(dsid)
@@ -976,7 +976,7 @@ class TestSAFEMSIL1C:
         self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml),
                                                                self.filename_info, mock.MagicMock())
 
-    @pytest.mark.parametrize("mask_saturated,calibration,expected",
+    @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
                              [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
                               (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
                               (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])

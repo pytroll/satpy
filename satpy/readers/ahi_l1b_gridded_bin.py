@@ -47,32 +47,32 @@ from satpy.utils import get_legacy_chunk_size
 CHUNK_SIZE = get_legacy_chunk_size()
 
 # Hardcoded address of the reflectance and BT look-up tables
-AHI_REMOTE_LUTS = 'http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/count2tbb_v102.tgz'
+AHI_REMOTE_LUTS = "http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/count2tbb_v102.tgz"
 
 # Full disk image sizes for each spatial resolution
-AHI_FULLDISK_SIZES = {0.005: {'x_size': 24000,
-                              'y_size': 24000},
-                      0.01: {'x_size': 12000,
-                             'y_size': 12000},
-                      0.02: {'x_size': 6000,
-                             'y_size': 6000}}
+AHI_FULLDISK_SIZES = {0.005: {"x_size": 24000,
+                              "y_size": 24000},
+                      0.01: {"x_size": 12000,
+                             "y_size": 12000},
+                      0.02: {"x_size": 6000,
+                             "y_size": 6000}}
 
 # Geographic extent of the full disk area in degrees
 AHI_FULLDISK_EXTENT = [85., -60., 205., 60.]
 
 # Resolutions of each channel type
-AHI_CHANNEL_RES = {'vis': 0.01,
-                   'ext': 0.005,
-                   'sir': 0.02,
-                   'tir': 0.02}
+AHI_CHANNEL_RES = {"vis": 0.01,
+                   "ext": 0.005,
+                   "sir": 0.02,
+                   "tir": 0.02}
 
 # List of LUT filenames
-AHI_LUT_NAMES = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
-                 'sir.01', 'sir.02', 'tir.01', 'tir.02',
-                 'tir.03', 'tir.04', 'tir.05', 'tir.06',
-                 'tir.07', 'tir.08', 'tir.09', 'tir.10']
+AHI_LUT_NAMES = ["ext.01", "vis.01", "vis.02", "vis.03",
+                 "sir.01", "sir.02", "tir.01", "tir.02",
+                 "tir.03", "tir.04", "tir.05", "tir.06",
+                 "tir.07", "tir.08", "tir.09", "tir.10"]
 
-logger = logging.getLogger('ahi_grid')
+logger = logging.getLogger("ahi_grid")
 
 
 class AHIGriddedFileHandler(BaseFileHandler):
@@ -99,19 +99,19 @@ class AHIGriddedFileHandler(BaseFileHandler):
             # But if it is, set the filename to point to unzipped temp file
             self.filename = self._unzipped
         # Get the band name, needed for finding area and dimensions
-        self.product_name = filetype_info['file_type']
-        self.areaname = filename_info['area']
-        self.sensor = 'ahi'
+        self.product_name = filetype_info["file_type"]
+        self.areaname = filename_info["area"]
+        self.sensor = "ahi"
         self.res = AHI_CHANNEL_RES[self.product_name[:3]]
-        if self.areaname == 'fld':
-            self.nlines = AHI_FULLDISK_SIZES[self.res]['y_size']
-            self.ncols = AHI_FULLDISK_SIZES[self.res]['x_size']
+        if self.areaname == "fld":
+            self.nlines = AHI_FULLDISK_SIZES[self.res]["y_size"]
+            self.ncols = AHI_FULLDISK_SIZES[self.res]["x_size"]
         else:
             raise NotImplementedError("Only full disk data is supported.")
 
         # Set up directory path for the LUTs
-        app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.2')
-        self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + '/'
+        app_dirs = AppDirs("ahi_gridded_luts", "satpy", "1.0.2")
+        self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + "/"
         self.area = None
 
     def __del__(self):
@@ -149,7 +149,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
         # Set up an connection and download
         with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
-            with open(file_name, 'wb') as out_file:
+            with open(file_name, "wb") as out_file:
                 shutil.copyfileobj(response, out_file)
 
     @staticmethod
@@ -174,14 +174,14 @@ class AHIGriddedFileHandler(BaseFileHandler):
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
         tempdir = config["tmp_dir"]
-        fname = os.path.join(tempdir, 'tmp.tgz')
+        fname = os.path.join(tempdir, "tmp.tgz")
         # Download the LUTs
         self._download_luts(fname)
 
         # The file is tarred, untar and remove the downloaded file
         self._untar_luts(fname, tempdir)
 
-        lut_dl_dir = os.path.join(tempdir, 'count2tbb_v102/')
+        lut_dl_dir = os.path.join(tempdir, "count2tbb_v102/")
 
         # Loop over the LUTs and copy to the correct location
         for lutfile in AHI_LUT_NAMES:
@@ -198,16 +198,16 @@ class AHIGriddedFileHandler(BaseFileHandler):
         This is fixed, but not defined in the file. So we must
         generate it ourselves with some assumptions.
         """
-        if self.areaname == 'fld':
+        if self.areaname == "fld":
             area_extent = AHI_FULLDISK_EXTENT
         else:
             raise NotImplementedError("Reader only supports full disk data.")
 
-        proj_param = 'EPSG:4326'
+        proj_param = "EPSG:4326"
 
-        area = geometry.AreaDefinition('gridded_himawari',
-                                       'A gridded Himawari area',
-                                       'longlat',
+        area = geometry.AreaDefinition("gridded_himawari",
+                                       "A gridded Himawari area",
+                                       "longlat",
                                        proj_param,
                                        self.ncols,
                                        self.nlines,
@@ -220,9 +220,9 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Read raw binary data from file."""
         return da.from_array(np.memmap(self.filename,
                                        offset=fp_.tell(),
-                                       dtype='>u2',
+                                       dtype=">u2",
                                        shape=(self.nlines, self.ncols),
-                                       mode='r'),
+                                       mode="r"),
                              chunks=CHUNK_SIZE)
 
     def read_band(self, key, info):
@@ -231,26 +231,26 @@ class AHIGriddedFileHandler(BaseFileHandler):
             res = self._read_data(fp_)
 
         # Calibrate
-        res = self.calibrate(res, key['calibration'])
+        res = self.calibrate(res, key["calibration"])
 
         # Update metadata
         new_info = dict(
-            units=info['units'],
-            standard_name=info['standard_name'],
-            wavelength=info['wavelength'],
-            resolution=info['resolution'],
+            units=info["units"],
+            standard_name=info["standard_name"],
+            wavelength=info["wavelength"],
+            resolution=info["resolution"],
             id=key,
-            name=key['name'],
+            name=key["name"],
             sensor=self.sensor,
         )
-        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
+        res = xr.DataArray(res, attrs=new_info, dims=["y", "x"])
         return res
 
     def calibrate(self, data, calib):
         """Calibrate the data."""
-        if calib == 'counts':
+        if calib == "counts":
             return data
-        if calib == 'reflectance' or calib == 'brightness_temperature':
+        if calib == "reflectance" or calib == "brightness_temperature":
             return self._calibrate(data)
         raise NotImplementedError("ERROR: Unsupported calibration.",
                                   "Only counts, reflectance and ",

@@ -31,8 +31,8 @@ A list of retrieval files, fnames, can be opened as follows::
 
   Scene(reader="iasi_l2_so2_bufr", filenames=fnames)
 
-Example
--------
+Example:
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -101,9 +101,9 @@ except ImportError as e:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
-logger = logging.getLogger('IASIL2SO2BUFR')
+logger = logging.getLogger("IASIL2SO2BUFR")
 CHUNK_SIZE = get_legacy_chunk_size()
-data_center_dict = {3: 'METOP-1', 4: 'METOP-2', 5: 'METOP-3'}
+data_center_dict = {3: "METOP-1", 4: "METOP-2", 5: "METOP-3"}
 
 
 class IASIL2SO2BUFR(BaseFileHandler):
@@ -115,27 +115,27 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
         start_time, end_time = self.get_start_end_date()
 
-        sc_id = self.get_attribute('satelliteIdentifier')
+        sc_id = self.get_attribute("satelliteIdentifier")
 
         self.metadata = {}
-        self.metadata['start_time'] = start_time
-        self.metadata['end_time'] = end_time
-        self.metadata['SpacecraftName'] = data_center_dict[sc_id]
+        self.metadata["start_time"] = start_time
+        self.metadata["end_time"] = end_time
+        self.metadata["SpacecraftName"] = data_center_dict[sc_id]
 
     @property
     def start_time(self):
         """Return the start time of data acqusition."""
-        return self.metadata['start_time']
+        return self.metadata["start_time"]
 
     @property
     def end_time(self):
         """Return the end time of data acquisition."""
-        return self.metadata['end_time']
+        return self.metadata["end_time"]
 
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        return '{}'.format(self.metadata['SpacecraftName'])
+        return "{}".format(self.metadata["SpacecraftName"])
 
     def get_start_end_date(self):
         """Get the first and last date from the bufr file."""
@@ -146,13 +146,13 @@ class IASIL2SO2BUFR(BaseFileHandler):
             bufr = ec.codes_bufr_new_from_file(fh)
             if bufr is None:
                 break
-            ec.codes_set(bufr, 'unpack', 1)
-            year = ec.codes_get(bufr, 'year')
-            month = ec.codes_get(bufr, 'month')
-            day = ec.codes_get(bufr, 'day')
-            hour = ec.codes_get(bufr, 'hour')
-            minute = ec.codes_get(bufr, 'minute')
-            second = ec.codes_get(bufr, 'second')
+            ec.codes_set(bufr, "unpack", 1)
+            year = ec.codes_get(bufr, "year")
+            month = ec.codes_get(bufr, "month")
+            day = ec.codes_get(bufr, "day")
+            hour = ec.codes_get(bufr, "hour")
+            minute = ec.codes_get(bufr, "minute")
+            second = ec.codes_get(bufr, "second")
 
             obs_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
 
@@ -181,7 +181,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
             bufr = ec.codes_bufr_new_from_file(fh)
             if bufr is None:
                 break
-            ec.codes_set(bufr, 'unpack', 1)
+            ec.codes_set(bufr, "unpack", 1)
             attr = ec.codes_get(bufr, key)
             ec.codes_release(bufr)
 
@@ -198,7 +198,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
                 if bufr is None:
                     break
 
-                ec.codes_set(bufr, 'unpack', 1)
+                ec.codes_set(bufr, "unpack", 1)
 
                 values = ec.codes_get_array(
                         bufr, key, float)
@@ -225,12 +225,12 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the BUFR key in dataset_info."""
-        arr = self.get_array(dataset_info['key'])
-        arr[arr == dataset_info['fill_value']] = np.nan
+        arr = self.get_array(dataset_info["key"])
+        arr[arr == dataset_info["fill_value"]] = np.nan
 
-        xarr = xr.DataArray(arr, dims=["y", "x"], name=dataset_info['name'])
-        xarr.attrs['sensor'] = 'IASI'
-        xarr.attrs['platform_name'] = self.platform_name
+        xarr = xr.DataArray(arr, dims=["y", "x"], name=dataset_info["name"])
+        xarr.attrs["sensor"] = "IASI"
+        xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs.update(dataset_info)
 
         return xarr

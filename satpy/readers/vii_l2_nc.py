@@ -43,5 +43,5 @@ class ViiL2NCFileHandler(ViiNCBaseFileHandler):
             orthorect_data = self[orthorect_data_name]
             variable += orthorect_data
         except KeyError:
-            logger.warning('Required dataset %s for orthorectification not available, skipping', orthorect_data_name)
+            logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable

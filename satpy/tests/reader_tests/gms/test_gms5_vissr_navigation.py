@@ -19,9 +19,9 @@ except ImportError as err:
 IR_NAVIGATION_REFERENCE = [
     {
         "pixel": nav.Pixel(line=686, pixel=1680),
-        'lon': 139.990380,
-        'lat': 35.047056,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 139.990380,
+        "lat": 35.047056,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397917902958,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -67,9 +67,9 @@ IR_NAVIGATION_REFERENCE = [
     },
     {
         "pixel": nav.Pixel(line=2089, pixel=1793),
-        'lon': 144.996967,
-        'lat': -34.959853,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 144.996967,
+        "lat": -34.959853,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944355762,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -119,9 +119,9 @@ IR_NAVIGATION_REFERENCE = [
 VIS_NAVIGATION_REFERENCE = [
     {
         "pixel": nav.Pixel(line=2744, pixel=6720),
-        'lon': 139.975527,
-        'lat': 35.078028,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 139.975527,
+        "lat": 35.078028,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397918405798,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -167,9 +167,9 @@ VIS_NAVIGATION_REFERENCE = [
     },
     {
         "pixel": nav.Pixel(line=8356, pixel=7172),
-        'lon': 144.980104,
-        'lat': -34.929123,
-        'nav_params': nav.PixelNavigationParameters(
+        "lon": 144.980104,
+        "lat": -34.929123,
+        "nav_params": nav.PixelNavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944858620,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
@@ -219,7 +219,7 @@ NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
 
 
 @pytest.fixture(params=[False, True], autouse=True)
-def disable_jit(request, monkeypatch):
+def _disable_jit(request, monkeypatch):
     """Run tests with jit enabled and disabled.
 
     Reason: Coverage report is only accurate with jit disabled.
@@ -234,7 +234,7 @@ class TestSinglePixelNavigation:
     """Test navigation of a single pixel."""
 
     @pytest.mark.parametrize(
-        "point,nav_params,expected",
+        ("point", "nav_params", "expected"),
         [
             (ref["pixel"], ref["nav_params"], (ref["lon"], ref["lat"]))
             for ref in NAVIGATION_REFERENCE
@@ -297,7 +297,7 @@ class TestSinglePixelNavigation:
         np.testing.assert_allclose(point, exp)
 
     @pytest.mark.parametrize(
-        "point_earth_fixed,point_geodetic_exp",
+        ("point_earth_fixed", "point_geodetic_exp"),
         [
             ([0, 0, 1], [0, 90]),
             ([0, 0, -1], [0, -90]),
@@ -328,7 +328,7 @@ class TestSinglePixelNavigation:
 class TestImageNavigation:
     """Test navigation of an entire image."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def expected(self):
         """Get expected coordinates."""
         exp = {
@@ -356,7 +356,7 @@ class TestPredictionInterpolation:
     """Test interpolation of orbit and attitude predictions."""
 
     @pytest.mark.parametrize(
-        "obs_time,expected", [(-1, np.nan), (1.5, 2.5), (5, np.nan)]
+        ("obs_time", "expected"), [(-1, np.nan), (1.5, 2.5), (5, np.nan)]
     )
     def test_interpolate_continuous(self, obs_time, expected):
         """Test interpolation of continuous variables."""
@@ -366,7 +366,7 @@ class TestPredictionInterpolation:
         np.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
-        "obs_time,expected",
+        ("obs_time", "expected"),
         [
             (-1, np.nan),
             (1.5, 0.75 * np.pi),
@@ -385,7 +385,7 @@ class TestPredictionInterpolation:
         np.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
-        "obs_time,expected",
+        ("obs_time", "expected"),
         [
             (-1, np.nan * np.ones((2, 2))),
             (1.5, [[1, 0], [0, 2]]),
@@ -417,12 +417,12 @@ class TestPredictionInterpolation:
         attitude = nav.interpolate_attitude_prediction(attitude_prediction, obs_time)
         _assert_namedtuple_close(attitude, attitude_expected)
 
-    @pytest.fixture
+    @pytest.fixture()
     def obs_time(self):
         """Get observation time."""
         return 2.5
 
-    @pytest.fixture
+    @pytest.fixture()
     def orbit_expected(self):
         """Get expected orbit."""
         return nav.Orbit(
@@ -439,7 +439,7 @@ class TestPredictionInterpolation:
             nutation_precession=1.6 * np.identity(3),
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def attitude_expected(self):
         """Get expected attitude."""
         return nav.Attitude(
@@ -449,13 +449,13 @@ class TestPredictionInterpolation:
         )
 
 
-@pytest.fixture
+@pytest.fixture()
 def sampling_angle():
     """Get sampling angle."""
     return 0.000095719995443
 
 
-@pytest.fixture
+@pytest.fixture()
 def scan_params(sampling_angle):
     """Get scanning parameters."""
     return nav.ScanningParameters(
@@ -466,7 +466,7 @@ def scan_params(sampling_angle):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def attitude_prediction():
     """Get attitude prediction."""
     return nav.AttitudePrediction(
@@ -479,7 +479,7 @@ def attitude_prediction():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def orbit_prediction():
     """Get orbit prediction."""
     return nav.OrbitPrediction(
@@ -505,7 +505,7 @@ def orbit_prediction():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def proj_params(sampling_angle):
     """Get projection parameters."""
     return nav.ProjectionParameters(
@@ -525,19 +525,19 @@ def proj_params(sampling_angle):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def static_nav_params(proj_params, scan_params):
     """Get static navigation parameters."""
     return nav.StaticNavigationParameters(proj_params, scan_params)
 
 
-@pytest.fixture
+@pytest.fixture()
 def predicted_nav_params(attitude_prediction, orbit_prediction):
     """Get predicted navigation parameters."""
     return nav.PredictedNavigationParameters(attitude_prediction, orbit_prediction)
 
 
-@pytest.fixture
+@pytest.fixture()
 def navigation_params(static_nav_params, predicted_nav_params):
     """Get image navigation parameters."""
     return nav.ImageNavigationParameters(static_nav_params, predicted_nav_params)

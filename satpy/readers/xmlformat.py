@@ -19,9 +19,8 @@
 
 from __future__ import annotations
 
-from xml.etree.ElementTree import ElementTree
-
 import numpy as np
+from defusedxml.ElementTree import parse
 
 VARIABLES: dict[str, str] = {}
 
@@ -141,8 +140,7 @@ def to_scales(val):
 
 def parse_format(xml_file):
     """Parse the xml file to create types, scaling factor types, and scales."""
-    tree = ElementTree()
-    tree.parse(xml_file)
+    tree = parse(xml_file)
     for param in tree.find("parameters"):
         VARIABLES[param.get("name")] = param.get("value")
 
@@ -204,5 +202,5 @@ class XMLFormat(object):
         return _apply_scales(array, *self.translator[array.dtype])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

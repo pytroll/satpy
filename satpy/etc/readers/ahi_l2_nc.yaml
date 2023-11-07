@@ -1,0 +1,175 @@
+reader:
+  name: ahi_l2_nc
+  short_name: AHI L2 NetCDF4
+  long_name: Himawari-8/9 AHI Level 2 products in netCDF4 format from NOAA enterprise
+  status: Beta
+  supports_fsspec: true
+  sensors: ['ahi']
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+    ahi_l2_mask:
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.HIML2NCFileHandler
+        file_patterns:
+         - '{sensor:3s}-CMSK_{version:4s}_{platform:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+    ahi_l2_type:
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.HIML2NCFileHandler
+        file_patterns:
+         - '{sensor:3s}-CPHS_{version:4s}_{platform:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+    ahi_l2_height:
+        file_reader: !!python/name:satpy.readers.ahi_l2_nc.HIML2NCFileHandler
+        file_patterns:
+         - '{sensor:3s}-CHGT_{version:4s}_{platform:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+datasets:
+  # Products from the cloud mask files
+  cloud_mask:
+    name: cloud_mask
+    file_key: CloudMask
+    file_type: [ ahi_l2_mask ]
+
+  cloud_mask_binary:
+    name: cloud_mask_binary
+    file_key: CloudMaskBinary
+    file_type: [ ahi_l2_mask ]
+
+  cloud_probability:
+    name: cloud_probability
+    file_key: CloudProbability
+    file_type: [ ahi_l2_mask ]
+
+  ice_cloud_probability:
+    name: ice_cloud_probability
+    file_key: IceCloudProbability
+    file_type: [ ahi_l2_mask ]
+
+  phase_uncertainty:
+    name: phase_uncertainty
+    file_key: PhaseUncertainty
+    file_type: [ ahi_l2_mask ]
+
+  dust_mask:
+    name: dust_mask
+    file_key: Dust_Mask
+    file_type: [ ahi_l2_mask ]
+
+  fire_mask:
+    name: fire_mask
+    file_key: Fire_Mask
+    file_type: [ ahi_l2_mask ]
+
+  smoke_mask:
+    name: smoke_mask
+    file_key: Smoke_Mask
+    file_type: [ ahi_l2_mask ]
+
+  # Products from the cloud phase / type files
+  cloud_phase:
+    name: cloud_phase
+    file_key: CloudPhase
+    file_type: [ ahi_l2_type ]
+
+  cloud_phase_flag:
+    name: cloud_phase_flag
+    file_key: CloudPhaseFlag
+    file_type: [ ahi_l2_type ]
+
+  cloud_type:
+    name: cloud_type
+    file_key: CloudType
+    file_type: [ ahi_l2_type ]
+
+  # Products from the cloud height files
+  cloud_optical_depth:
+      name: cloud_optical_depth
+      file_key: CldOptDpth
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_emissivity:
+      name: cloud_top_emissivity
+      file_key: CldTopEmss
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_pressure:
+      name: cloud_top_pressure
+      file_key: CldTopPres
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_pressure_low:
+      name: cloud_top_pressure_low
+      file_key: CldTopPresLow
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_temperature:
+      name: cloud_top_temperature
+      file_key: CldTopTemp
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_temperature_low:
+      name: cloud_top_temperature_low
+      file_key: CldTopTempLow
+      file_type: [ ahi_l2_height ]
+
+  cloud_height_quality:
+      name: cloud_height_quality
+      file_key: CloudHgtQF
+      file_type: [ ahi_l2_height ]
+
+  retrieval_cost:
+      name: retrieval_cost
+      file_key: Cost
+      file_type: [ ahi_l2_height ]
+
+  inversion_flag:
+      name: inversion_flag
+      file_key: InverFlag
+      file_type: [ ahi_l2_height ]
+
+  latitude_parallax_corrected:
+      name: latitude_parallax_corrected
+      file_key: Latitude_Pc
+      file_type: [ ahi_l2_height ]
+
+  longitude_parallax_corrected:
+      name: longitude_parallax_corrected
+      file_key: Longitude_Pc
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_pressure_error:
+      name: cloud_top_pressure_error
+      file_key: PcError
+      file_type: [ ahi_l2_height ]
+
+  processing_order:
+      name: processing_order
+      file_key: ProcOrder
+      file_type: [ ahi_l2_height ]
+
+  shadow_mask:
+      name: shadow_mask
+      file_key: Shadow_Mask
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_temperature_error:
+      name: cloud_top_temperature_error
+      file_key: TcError
+      file_type: [ ahi_l2_height ]
+
+  cloud_top_height_error:
+      name: cloud_top_height_error
+      file_key: ZcError
+      file_type: [ ahi_l2_height ]
+
+  # Datasets in all three file types
+  latitude:
+      name: latitude
+      file_key: Latitude
+      file_type: [ ahi_l2_height, ahi_l2_type, ahi_l2_mask ]
+
+  longitude:
+      name: longitude
+      file_key: Longitude
+      file_type: [ ahi_l2_height, ahi_l2_type, ahi_l2_mask ]
