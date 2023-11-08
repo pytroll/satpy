@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import dask.array as da
+import numpy as np
 import pytest
 from pyresample import geometry
 from pytest_lazyfixture import lazy_fixture
@@ -71,8 +72,12 @@ class TestModisL3:
 
         data_arr = scene[ds_name]
         assert isinstance(data_arr.data, da.Array)
-        data_arr = data_arr.compute()
+        data_arr_comp = data_arr.compute()
 
-        assert data_arr.shape == _shape_for_resolution(-999)
-        assert data_arr.attrs.get("resolution") == 0.05
-        assert data_arr.attrs.get("area") == _expected_area()
+        # Check types
+        assert data_arr_comp.dtype == data_arr.dtype
+        assert data_arr_comp.dtype == np.float32
+
+        assert data_arr_comp.shape == _shape_for_resolution(-999)
+        assert data_arr_comp.attrs.get("resolution") == 0.05
+        assert data_arr_comp.attrs.get("area") == _expected_area()
