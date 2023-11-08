@@ -229,6 +229,16 @@ def generate_imapp_filename(suffix):
     return f"t1.{now:%y%j.%H%M}.{suffix}.hdf"
 
 
+def _add_geo_metadata(h, geo_res):
+    """Add the geoinfo metadata to the fake file."""
+    if geo_res == -999 or geo_res == -9999:
+        setattr(h, 'StructMetadata.0', _create_struct_metadata_cmg(geo_res))  # noqa
+    else:
+        setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_res))  # noqa
+
+    return h
+
+
 def create_hdfeos_test_file(filename: str,
                             variable_infos: dict,
                             geo_resolution: Optional[int] = None,
@@ -254,10 +264,7 @@ def create_hdfeos_test_file(filename: str,
     if include_metadata:
         if geo_resolution is None or file_shortname is None:
             raise ValueError("'geo_resolution' and 'file_shortname' are required when including metadata.")
-        elif geo_resolution == -999 or geo_resolution == -9999:
-            setattr(h, 'StructMetadata.0', _create_struct_metadata_cmg(geo_resolution))  # noqa
-        else:
-            setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_resolution))  # noqa
+        h = _add_geo_metadata(h, geo_resolution)
         setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
         setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
 
@@ -344,16 +351,16 @@ def _create_struct_metadata_cmg(res) -> str:
         upright = "LowerRightMtrs=(180.000000,-90.000000)\n"
 
     struct_metadata_header = ("GROUP=SwathStructure\n"
-                             "END_GROUP=SwathStructure\n"
-                             "GROUP=GridStructure\n"
-                                "GROUP=GRID_1\n"
-                                    f"{gridline}\n"
-                                    "XDim=7200\n"
-                                    "YDim=3600\n"
-                                    f"{upleft}\n"
-                                    f"{upright}\n"
-                                "END_GROUP=GRID_1\n"
-                             "END_GROUP=GridStructure\nEND")
+                              "END_GROUP=SwathStructure\n"
+                              "GROUP=GridStructure\n"
+                              "GROUP=GRID_1\n"
+                              f"{gridline}\n"
+                              "XDim=7200\n"
+                              "YDim=3600\n"
+                              f"{upleft}\n"
+                              f"{upright}\n"
+                              "END_GROUP=GRID_1\n"
+                              "END_GROUP=GridStructure\nEND")
     return struct_metadata_header
 
 
