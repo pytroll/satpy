@@ -51,6 +51,9 @@ RES_TO_REPEAT_FACTOR = {
 
 
 def _shape_for_resolution(resolution: int) -> tuple[int, int]:
+    # Case of a CMG 0.05 degree file, for L3 tests
+    if resolution == -999:
+        return 3600, 7200
     assert resolution in RES_TO_REPEAT_FACTOR
     factor = RES_TO_REPEAT_FACTOR[resolution]
     if factor == 1:
@@ -252,7 +255,10 @@ def create_hdfeos_test_file(filename: str,
         if geo_resolution is None or file_shortname is None:
             raise ValueError("'geo_resolution' and 'file_shortname' are required when including metadata.")
         setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
-        setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_resolution))  # noqa
+        if geo_resolution == -999 or geo_resolution == -9999:
+            setattr(h, 'StructMetadata.0', _create_struct_metadata_cmg(geo_resolution))  # noqa
+        else:
+            setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_resolution))  # noqa
         setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
 
     for var_name, var_info in variable_infos.items():
@@ -323,6 +329,31 @@ def _create_struct_metadata(geo_resolution: int) -> str:
                              "END_GROUP=DimensionMap\n" \
                              "END_GROUP=SWATH_1\n" \
                              "END_GROUP=SwathStructure\nEND"
+    return struct_metadata_header
+
+
+def _create_struct_metadata_cmg(res) -> str:
+    # Case of a MOD09 file
+    gridline = 'GridName="MOD09CMG"\n'
+    upleft = "UpperLeftPointMtrs=(-180000000.000000,90000000.000000)\n"
+    upright = "LowerRightMtrs=(180000000.000000,-90000000.000000)\n"
+    if res == -9999:
+        # Case of a MCD43 file
+        gridline = 'GridName="MCD_CMG_BRDF_0.05Deg"\n'
+        upleft = "UpperLeftPointMtrs=(-180.000000,90.000000)\n"
+        upright = "LowerRightMtrs=(180.000000,-90.000000)\n"
+
+    struct_metadata_header = ("GROUP=SwathStructure\n"
+                             "END_GROUP=SwathStructure\n"
+                             "GROUP=GridStructure\n"
+                                "GROUP=GRID_1\n"
+                                    f"{gridline}\n"
+                                    "XDim=7200\n"
+                                    "YDim=3600\n"
+                                    f"{upleft}\n"
+                                    f"{upright}\n"
+                                "END_GROUP=GRID_1\n"
+                             "END_GROUP=GridStructure\nEND")
     return struct_metadata_header
 
 
@@ -471,6 +502,28 @@ def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
     }
 
 
+def _get_l3_refl_variable_info(var_name: str) -> dict:
+    shape = (3600, 7200)
+    data = np.zeros((shape[0], shape[1]), dtype=np.int16)
+    row_dim_name = "XDim"
+    col_dim_name = "YDim"
+    return {
+        var_name: {
+            "data": data,
+            "type": SDC.INT16,
+            "fill_value": -28672,
+            "attrs": {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                "dim_labels": [row_dim_name,
+                               col_dim_name],
+                "valid_range": (-100, 16000),
+                "scale_factor": 1e-4,
+                "add_offset": 0.,
+            },
+        },
+    }
+
+
 def _get_mask_byte1_variable_info() -> dict:
     shape = _shape_for_resolution(1000)
     data = np.zeros((shape[0], shape[1]), dtype=np.uint16)
@@ -534,6 +587,31 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_cloud_mask_variable_info("Cloud_Mask", 1000))
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD35")
+    return [full_path]
+
+
+def generate_nasa_l3_filename(prefix: str) -> str:
+    """Generate a file name that follows MODIS 09 L3 convention in a temporary directory."""
+    now = datetime.now()
+    return f"{prefix}.A{now:%Y%j}.061.{now:%Y%j%H%M%S}.hdf"
+
+
+@pytest.fixture(scope="session")
+def modis_l3_nasa_mod09_file(tmpdir_factory) -> list[str]:
+    """Create a single MOD09 L3 HDF4 file with headers."""
+    filename = generate_nasa_l3_filename("MOD09CMG")
+    full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
+    variable_infos = _get_l3_refl_variable_info("Coarse_Resolution_Surface_Reflectance_Band_2")
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=-999, file_shortname="MOD09")
+    return [full_path]
+
+@pytest.fixture(scope="session")
+def modis_l3_nasa_mod43_file(tmpdir_factory) -> list[str]:
+    """Create a single MOD09 L3 HDF4 file with headers."""
+    filename = generate_nasa_l3_filename("MCD43C1")
+    full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
+    variable_infos = _get_l3_refl_variable_info("BRDF_Albedo_Parameter1_Band2")
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=-9999, file_shortname="MCD43C1")
     return [full_path]
 
 
