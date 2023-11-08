@@ -21,12 +21,13 @@ Introduction
 ------------
 
 The ``modis_l3`` reader reads Modis L3 products in hdf-eos format.
-Since there are a multitude of different level 3 datasets not all of theses are implemented (yet).
 
+There are multiple level 3 products, including some on sinusoidal grids and some on the climate modeling grid (CMG).
+This reader supports the CMG products at present, and the sinusoidal products will be added if there is demand.
 
-Currently the reader supports:
-    - mcd43c1: BRDF/Albedo Model Parameters dataset
-    - mcd43c3: BRDF/Albedo Albedo dataset
+The reader has been tested with:
+    - MCD43c*: BRDF/Albedo data, such as parameters, albedo and nbar
+    - MOD09CMG: Surface Reflectance on climate monitoring grid.
 
 To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../reading`.
 
