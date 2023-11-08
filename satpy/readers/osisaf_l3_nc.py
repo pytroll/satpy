@@ -118,7 +118,6 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
             data = data.where(data >= valid_min, np.nan)
             data = data.where(data <= valid_max, np.nan)
 
-
         # Try to get the scale and offset for the data.
         # As above, not all datasets have these, so fall back on assuming no limits.
         scale_factor = self._get_ds_attr(var_path + "/attr/scale_factor")
@@ -127,7 +126,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
             data = (data * scale_factor + scale_offset)
 
         # Try to get the fill value for the data.
-        # If there isn"t one, assume all remaining pixels are valid.
+        # If there isn't one, assume all remaining pixels are valid.
         fill_value = self._get_ds_attr(var_path + "/attr/_FillValue")
         if fill_value is not None:
             data = data.where(data != fill_value, np.nan)
