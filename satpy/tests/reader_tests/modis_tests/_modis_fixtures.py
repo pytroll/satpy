@@ -596,23 +596,33 @@ def generate_nasa_l3_filename(prefix: str) -> str:
     return f"{prefix}.A{now:%Y%j}.061.{now:%Y%j%H%M%S}.hdf"
 
 
+def modis_l3_file(tmpdir_factory, f_prefix, var_name, geo_res, f_short):
+    """Create a MODIS L3 file of the desired type."""
+    filename = generate_nasa_l3_filename(f_prefix)
+    full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
+    variable_infos = _get_l3_refl_variable_info(var_name)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=geo_res, file_shortname=f_short)
+    return [full_path]
+
+
 @pytest.fixture(scope="session")
 def modis_l3_nasa_mod09_file(tmpdir_factory) -> list[str]:
     """Create a single MOD09 L3 HDF4 file with headers."""
-    filename = generate_nasa_l3_filename("MOD09CMG")
-    full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
-    variable_infos = _get_l3_refl_variable_info("Coarse_Resolution_Surface_Reflectance_Band_2")
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=-999, file_shortname="MOD09")
-    return [full_path]
+    return modis_l3_file(tmpdir_factory,
+                         "MOD09CMG",
+                         "Coarse_Resolution_Surface_Reflectance_Band_2",
+                         -999,
+                         "MOD09")
+
 
 @pytest.fixture(scope="session")
 def modis_l3_nasa_mod43_file(tmpdir_factory) -> list[str]:
-    """Create a single MOD09 L3 HDF4 file with headers."""
-    filename = generate_nasa_l3_filename("MCD43C1")
-    full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
-    variable_infos = _get_l3_refl_variable_info("BRDF_Albedo_Parameter1_Band2")
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=-9999, file_shortname="MCD43C1")
-    return [full_path]
+    """Create a single MVCD43 L3 HDF4 file with headers."""
+    return modis_l3_file(tmpdir_factory,
+                         "MCD43C1",
+                         "BRDF_Albedo_Parameter1_Band2",
+                         -9999,
+                         "MCD43C1")
 
 
 @pytest.fixture(scope="session")
