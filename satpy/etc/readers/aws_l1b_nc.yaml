@@ -6,7 +6,7 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [aws,]
   status: Beta
-  default_channels: []
+  supports_fsspec: false
 
   data_identification_keys:
     name:
