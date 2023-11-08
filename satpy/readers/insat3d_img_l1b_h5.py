@@ -173,7 +173,12 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         lines = shape[-2]
         cols = shape[-1]
 
-        fov = self.datatree.attrs["Field_of_View(degrees)"]
+        # From empirical analysis, hardcoding the view of view to 18 degrees
+        # produces better geolocation results.
+        # Uncommenting the line below will use the fov from the file instead,
+        # this line is kept for reference.
+        #fov = self.datatree.attrs["Field_of_View(degrees)"]
+        fov = 18
         cfac = 2 ** 16 / (fov / cols)
         lfac = 2 ** 16 / (fov / lines)
 
