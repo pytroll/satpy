@@ -254,11 +254,11 @@ def create_hdfeos_test_file(filename: str,
     if include_metadata:
         if geo_resolution is None or file_shortname is None:
             raise ValueError("'geo_resolution' and 'file_shortname' are required when including metadata.")
-        setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
-        if geo_resolution == -999 or geo_resolution == -9999:
+        elif geo_resolution == -999 or geo_resolution == -9999:
             setattr(h, 'StructMetadata.0', _create_struct_metadata_cmg(geo_resolution))  # noqa
         else:
             setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_resolution))  # noqa
+        setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
         setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
 
     for var_name, var_info in variable_infos.items():

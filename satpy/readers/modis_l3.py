@@ -46,22 +46,31 @@ CHUNK_SIZE = get_legacy_chunk_size()
 class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     """File handler for MODIS HDF-EOS Level 3 CMG gridded files."""
 
-    def _sort_grid(self):
-        """Get the grid properties."""
+    def _get_res(self):
+        """Compute the resolution from the file metadata."""
         gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
         if "CMG" not in gridname:
             raise ValueError("Only CMG grids are supported")
 
-        # Get the grid resolution
+        # Get the grid resolution from the grid name
         pos = gridname.rfind("_") + 1
         pos2 = gridname.rfind("Deg")
 
         # Some products don't have resolution listed.
         if pos < 0 or pos2 < 0:
-            resolution = 360. / self.ncols
+            self.resolution = 360. / self.ncols
         else:
-            resolution = float(gridname[pos:pos2])
+            self.resolution = float(gridname[pos:pos2])
 
+
+
+    def _sort_grid(self):
+        """Get the grid properties."""
+
+        # First, get the grid resolution
+        self._get_res()
+
+        # Now compute the data extent
         upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
         lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
 
@@ -71,9 +80,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             upperleft = tuple(val / 1e6 for val in upperleft)
             lowerright = tuple(val / 1e6 for val in lowerright)
 
-        area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
-
-        return resolution, area_extent
+        self.area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
 
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
@@ -85,7 +92,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
 
         # Get the grid name and other projection info
-        self.resolution, self.area_extent = self._sort_grid()
+        self._sort_grid()
 
 
     def available_datasets(self, configured_datasets=None):
