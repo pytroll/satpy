@@ -1,0 +1,107 @@
+reader:
+  name: osisaf_nc
+  short_name: OSI-SAF netCDF
+  long_name: OSI-SAF data in netCDF4 format
+  description: >
+    A reader for OSI-SAF data in netCDF4 format.
+    References:
+
+    - Dataset descriptions: https://osi-saf.eumetsat.int/documentation/products-documentation
+
+  status: Beta
+  supports_fsspec: true
+  sensors: [osisaf]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    osi_sea_ice_conc:
+        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+        file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sea_ice_edge:
+        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+        file_patterns: ['ice_edge_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sea_ice_emis:
+        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+        file_patterns: ['ice_emis_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sea_ice_type:
+        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+        file_patterns: ['ice_type_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+
+datasets:
+  # Shared between various file types
+  status_flag:
+    name: status_flag
+    file_type: [osi_sea_ice_conc, osi_sea_ice_edge, osi_sea_ice_type]
+
+  orbit_num_amsr:
+    name: orbit_num_amsr
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  orbit_num_ascat:
+    name: orbit_num_ascat
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  orbit_num_ssmis:
+    name: orbit_num_ssmis
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  param_used:
+    name: param_used
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  uncertainty:
+    name: uncertainty
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+
+  # Sea ice concentration datasets
+  algorithm_uncertainty:
+    name: algorithm_uncertainty
+    file_type: osi_sea_ice_conc
+  confidence_level:
+    name: confidence_level
+    file_type: osi_sea_ice_conc
+  ice_conc:
+    name: ice_conc
+    file_type: osi_sea_ice_conc
+  ice_conc_unfiltered:
+    name: ice_conc_unfiltered
+    file_type: osi_sea_ice_conc
+  masks:
+    name: masks
+    file_type: osi_sea_ice_conc
+  smearing_uncertainty:
+    name: smearing_uncertainty
+    file_type: osi_sea_ice_conc
+  total_uncertainty:
+    name: total_uncertainty
+    file_type: osi_sea_ice_conc
+
+  # Ice edge product
+  ice_edge:
+    name: ice_edge
+    file_type: osi_sea_ice_edge
+
+  # Ice type product
+  ice_type:
+    name: ice_type
+    file_type: osi_sea_ice_type
+
+  # Ice emis product
+  e:
+    name: e
+    file_type: osi_sea_ice_emis
+  ev:
+    name: ev
+    file_type: osi_sea_ice_emis
+  flag:
+    name: flag
+    file_type: osi_sea_ice_emis
+  R:
+    name: R
+    file_type: osi_sea_ice_emis
+  S:
+    name: S
+    file_type: osi_sea_ice_emis
+  teff:
+    name: teff
+    file_type: osi_sea_ice_emis
+  u:
+    name: u
+    file_type: osi_sea_ice_emis
