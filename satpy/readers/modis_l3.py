@@ -61,10 +61,21 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         # Get the grid resolution
         pos = gridname.rfind("_") + 1
         pos2 = gridname.rfind("Deg")
-        self.resolution = float(gridname[pos:pos2])
+
+        # Some products don't have resolution listed.
+        if pos < 0 or pos2 < 0:
+            self.resolution = 360. / self.ncols
+        else:
+            self.resolution = float(gridname[pos:pos2])
 
         upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
         lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
+
+        # For some reason, a few of the CMG products multiply their
+        # decimal degree extents by one million. This fixes it.
+        if lowerright[0] > 1e6:
+            upperleft = tuple(val / 1e6 for val in upperleft)
+            lowerright = tuple(val / 1e6 for val in lowerright)
 
         self.area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
 
