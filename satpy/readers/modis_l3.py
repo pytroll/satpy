@@ -46,15 +46,8 @@ CHUNK_SIZE = get_legacy_chunk_size()
 class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     """File handler for MODIS HDF-EOS Level 3 CMG gridded files."""
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Init the file handler."""
-        super().__init__(filename, filename_info, filetype_info, **kwargs)
-
-        # Initialise number of rows and columns
-        self.nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
-        self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
-
-        # Get the grid name and other projection info
+    def _sort_grid(self):
+        """Get the grid properties."""
         gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
         if "CMG" not in gridname:
             raise ValueError("Only CMG grids are supported")
@@ -65,9 +58,9 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
         # Some products don't have resolution listed.
         if pos < 0 or pos2 < 0:
-            self.resolution = 360. / self.ncols
+            resolution = 360. / self.ncols
         else:
-            self.resolution = float(gridname[pos:pos2])
+            resolution = float(gridname[pos:pos2])
 
         upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
         lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
@@ -78,7 +71,21 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             upperleft = tuple(val / 1e6 for val in upperleft)
             lowerright = tuple(val / 1e6 for val in lowerright)
 
-        self.area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
+        area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
+
+        return resolution, area_extent
+
+
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+
+        # Initialise number of rows and columns
+        self.nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
+        self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
+
+        # Get the grid name and other projection info
+        self.resolution, self.area_extent = self._sort_grid()
 
 
     def available_datasets(self, configured_datasets=None):
