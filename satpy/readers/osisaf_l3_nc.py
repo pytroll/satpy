@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 class OSISAFL3NCFileHandler(NetCDF4FileHandler):
     """Reader for the OSISAF l3 netCDF format."""
 
-
     @staticmethod
     def _parse_datetime(datestr):
         return datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
@@ -77,11 +76,12 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, area_id):
         """Override abstract baseclass method"""
-
         if self.filename_info["grid"] == "ease":
-            return self._get_ease_grid()
+            self.area_def = self._get_ease_grid()
+            return self.area_def
         elif self.filename_info["grid"] == "polstere" or self.filename_info["grid"] == "stere":
-            return self._get_polar_stereographic_grid()
+            self.area_def = self._get_polar_stereographic_grid()
+            return self.area_def
         else:
             raise ValueError(f"Unknown grid type: {self.filename_info['grid']}")
 
