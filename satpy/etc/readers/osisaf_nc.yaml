@@ -16,17 +16,26 @@ reader:
 
 file_types:
     osi_sea_ice_conc:
-        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
-        file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
     osi_sea_ice_edge:
-        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
-        file_patterns: ['ice_edge_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_edge_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
     osi_sea_ice_emis:
-        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
-        file_patterns: ['ice_emis_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_emis_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
     osi_sea_ice_type:
-        file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
-        file_patterns: ['ice_type_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_type_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sst:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['{start_time:%Y%m%d%H%M%S}-{processing_center}-L3C_GHRSST-SSTskin-{sensor}_{platform_name}-v{version}.nc']
+    osi_radflux_stere:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['osisaf_radiative_flux_24h_hl_{grid}-050_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_radflux_grid:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['{start_time:%Y%m%d%H%M%S}-OSISAF-RADFLX-{time_period}-{platform_name}.nc']
 
 datasets:
   # Shared between various file types
@@ -105,3 +114,67 @@ datasets:
   u:
     name: u
     file_type: osi_sea_ice_emis
+
+  # SST product
+  ist_dtime:
+    name: ist_dtime
+    file_type: osi_sst
+  ist_quality_level:
+    name: ist_quality_level
+    file_type: osi_sst
+  l2p_flags:
+    name: l2p_flags
+    file_type: osi_sst
+  landmask:
+    name: landmask
+    file_type: osi_sst
+  or_number_of_pixels:
+    name: or_number_of_pixels
+    file_type: osi_sst
+  or_number_of_pixels_ist:
+    name: or_number_of_pixels_ist
+    file_type: osi_sst
+  probability_of_ice:
+    name: probability_of_ice
+    file_type: osi_sst
+  probability_of_water:
+    name: probability_of_water
+    file_type: osi_sst
+  quality_level:
+    name: quality_level
+    file_type: osi_sst
+  sea_ice_fraction:
+    name: sea_ice_fraction
+    file_type: osi_sst
+  sea_surface_temperature:
+    name: sea_surface_temperature
+    file_type: osi_sst
+  sses_bias:
+    name: sses_bias
+    file_type: osi_sst
+  sses_standard_deviation:
+    name: sses_standard_deviation
+    file_type: osi_sst
+  sst_dtime:
+    name: sst_dtime
+    file_type: osi_sst
+  surface_temperature:
+    name: surface_temperature
+    file_type: osi_sst
+  tempflag:
+    name: tempflag
+    file_type: osi_sst
+
+  # Radiative flux product
+  dli:
+    name: dli
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  dli_confidence_level:
+    name: dli_confidence_level
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  ssi:
+    name: ssi
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  ssi_confidence_level:
+    name: ssi_confidence_level
+    file_type: [osi_radflux_stere, osi_radflux_grid]
