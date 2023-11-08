@@ -37,10 +37,8 @@ import logging
 from pyresample import geometry
 
 from satpy.readers.hdfeos_base import HDFEOSGeoReader
-from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
-CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
@@ -61,6 +59,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             self.resolution = 360. / self.ncols
         else:
             self.resolution = float(gridname[pos:pos2])
+
     def _sort_grid(self):
         """Get the grid properties."""
 
@@ -77,7 +76,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             upperleft = tuple(val / 1e6 for val in upperleft)
             lowerright = tuple(val / 1e6 for val in lowerright)
 
-        self.area_extent = (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
+        return (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
 
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
@@ -89,7 +88,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
 
         # Get the grid name and other projection info
-        self._sort_grid()
+        self.area_extent = self._sort_grid()
 
 
     def available_datasets(self, configured_datasets=None):
