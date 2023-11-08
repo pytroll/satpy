@@ -62,7 +62,6 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
     def _sort_grid(self):
         """Get the grid properties."""
-
         # First, get the grid resolution
         self._get_res()
 
