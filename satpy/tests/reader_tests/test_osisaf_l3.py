@@ -168,19 +168,17 @@ class OSISAFL3ReaderTests:
             data_vars["Polar_Stereographic_Grid"] = stere_ds
             data_vars["ice_conc"] = self.conc
             data_vars["total_uncertainty"] = self.uncert
+            self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
         elif tester == "sst":
             data_vars["Polar_Stereographic_Grid"] = stere_ds
             data_vars["surface_temperature"] = self.sst
+            self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
         elif tester == "flux_stere":
             data_vars["Polar_Stereographic_Grid"] = stere_ds_noproj
             data_vars["ssi"] = self.ssi
-        elif tester == "flux_geo":
-            data_vars["ssi"] = self.ssi_geo
-        if tester == "ice" or tester == "sst":
-            self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
-        elif tester == "flux_stere":
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_flux)
         elif tester == "flux_geo":
+            data_vars["ssi"] = self.ssi_geo
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_geo)
 
     def test_instantiate_single_netcdf_file(self, tmp_path):

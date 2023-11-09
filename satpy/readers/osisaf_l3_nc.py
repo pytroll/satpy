@@ -106,24 +106,33 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         return area_def
 
 
+    def _get_finfo_grid(self):
+        """Get grid in case of filename info being used."""
+        if self.filename_info["grid"] == "ease":
+            self.area_def = self._get_ease_grid()
+            return self.area_def
+        elif self.filename_info["grid"] == "polstere" or self.filename_info["grid"] == "stere":
+            self.area_def = self._get_polar_stereographic_grid()
+            return self.area_def
+        else:
+            raise ValueError(f"Unknown grid type: {self.filename_info['grid']}")
+
+    def _get_ftype_grid(self):
+        """Get grid in case of filetype info being used."""
+        if self.filetype_info["file_type"] == "osi_radflux_grid":
+            self.area_def = self._get_geographic_grid()
+            return self.area_def
+        elif self.filetype_info["file_type"] == "osi_sst":
+            self.area_def = self._get_polar_stereographic_grid()
+            return self.area_def
+
     def get_area_def(self, area_id):
         """Override abstract baseclass method"""
         if "grid" in self.filename_info:
-            if self.filename_info["grid"] == "ease":
-                self.area_def = self._get_ease_grid()
-                return self.area_def
-            elif self.filename_info["grid"] == "polstere" or self.filename_info["grid"] == "stere":
-                self.area_def = self._get_polar_stereographic_grid()
-                return self.area_def
-            else:
-                raise ValueError(f"Unknown grid type: {self.filename_info['grid']}")
+            return self._get_finfo_grid()
         else:
-            if self.filetype_info["file_type"] == "osi_radflux_grid":
-                self.area_def = self._get_geographic_grid()
-                return self.area_def
-            elif self.filetype_info["file_type"] == "osi_sst":
-                self.area_def = self._get_polar_stereographic_grid()
-                return self.area_def
+            return self._get_ftype_grid()
+
 
     def _get_ds_attr(self, a_name):
         """Get a dataset attribute and check it's valid."""
@@ -132,23 +141,28 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         except KeyError:
             return None
 
-    def get_dataset(self, dataset_id, ds_info):
-        """Load a dataset."""
-        logger.debug(f"Reading {dataset_id['name']} from {self.filename}")
-        var_path = ds_info.get("file_key", f"{dataset_id['name']}")
-
-        shape = self[var_path + "/shape"]
-        if shape[0] == 1:
-            # Remove the time dimension from dataset
-            data = self[var_path][0]
-        else:
-            data = self[var_path]
+    def _get_ds_units(self, ds_info, var_path):
+        """Find the units of the datasets."""
 
         file_units = ds_info.get("file_units")
         if file_units is None:
             file_units = self._get_ds_attr(var_path + "/attr/units")
             if file_units is None:
                 file_units = 1
+        return file_units
+
+    def get_dataset(self, dataset_id, ds_info):
+        """Load a dataset."""
+        logger.debug(f"Reading {dataset_id['name']} from {self.filename}")
+        var_path = ds_info.get("file_key", f"{dataset_id['name']}")
+
+        shape = self[var_path + "/shape"]
+        data = self[var_path]
+        if shape[0] == 1:
+            # Remove the time dimension from dataset
+            data = data[0]
+
+        file_units = self._get_ds_units(ds_info, var_path)
 
         # Try to get the valid limits for the data.
         # Not all datasets have these, so fall back on assuming no limits.
