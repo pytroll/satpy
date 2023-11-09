@@ -86,99 +86,67 @@ class OSISAFL3ReaderTests:
 
     def setup_method(self, tester="ice"):
         """Create a fake dataset."""
-        self.base_data = np.array(([-999, 1215, 1125, 11056, 9500], [200, 1, -999, 4215, 5756]))
-        self.base_data_ssi = np.array(([-999.99, 121.5, 11.25, 110.56, 950.0], [200, 1, -999.99, 42.15, 5.756]))
-        self.base_data_sst = np.array(([-32768, 273.2, 194.2, 220.78, 301.], [-32768, -32768, 273.22, 254.34, 204.21]))
-        self.base_data_ssi_geo = np.array(([-32768, 121.5, 11.25, 110.56, 950.0], [200, 1, -32768, 42.15, 5.756]))
-        self.base_data = np.expand_dims(self.base_data, axis=0)
-        self.base_data_ssi = np.expand_dims(self.base_data_ssi, axis=0)
-        self.base_data_sst = np.expand_dims(self.base_data_sst, axis=0)
-        self.unc_data = np.array(([0, 1, 2, 3, 4], [4, 3, 2, 1, 0]))
-        self.yc_data = np.array(([-10, -5, 0, 5, 10], [-10, -5, 0, 5, 10]))
-        self.xc_data = np.array(([-5, -5, -5, -5, -5], [5, 5, 5, 5, 5]))
-        self.time_data = np.array([1.])
+        base_data = np.array(([-999, 1215, 1125, 11056, 9500], [200, 1, -999, 4215, 5756]))
+        base_data_ssi = np.array(([-999.99, 121.5, 11.25, 110.56, 950.0], [200, 1, -999.99, 42.15, 5.756]))
+        base_data_sst = np.array(([-32768, 273.2, 194.2, 220.78, 301.], [-32768, -32768, 273.22, 254.34, 204.21]))
+        base_data_ssi_geo = np.array(([-32768, 121.5, 11.25, 110.56, 950.0], [200, 1, -32768, 42.15, 5.756]))
+        base_data = np.expand_dims(base_data, axis=0)
+        base_data_ssi = np.expand_dims(base_data_ssi, axis=0)
+        base_data_sst = np.expand_dims(base_data_sst, axis=0)
+        unc_data = np.array(([0, 1, 2, 3, 4], [4, 3, 2, 1, 0]))
+        yc_data = np.array(([-10, -5, 0, 5, 10], [-10, -5, 0, 5, 10]))
+        xc_data = np.array(([-5, -5, -5, -5, -5], [5, 5, 5, 5, 5]))
+        time_data = np.array([1.])
         self.scl = 1.
         self.add = 0.
 
-        self.lat_data = np.array(([-68, -69, -70, -71, -72], [-68, -69, -70, -71, -72]))
-        self.lon_data = np.array(([-60, -60, -60, -60, -60], [-65, -65, -65, -65, -65]))
-        self.xc = xr.DataArray(
-            self.xc_data,
-            dims=("yc", "xc"),
-            attrs={"standard_name": "projection_x_coordinate", "units": "km"}
-        )
-        self.yc = xr.DataArray(
-            self.yc_data,
-            dims=("yc", "xc"),
-            attrs={"standard_name": "projection_y_coordinate", "units": "km"}
-        )
-        self.time = xr.DataArray(
-            self.time_data,
-            dims="time",
-            attrs={"standard_name": "projection_y_coordinate", "units": "km"}
-        )
-        self.lat = xr.DataArray(
-            self.lat_data,
-            dims=("yc", "xc"),
-            attrs={"standard_name": "latitude", "units": "degrees_north"}
-        )
-        self.lon = xr.DataArray(
-            self.lon_data,
-            dims=("yc", "xc"),
-            attrs={"standard_name": "longitude", "units": "degrees_east"}
-        )
-        self.conc = xr.DataArray(
-            self.base_data,
-            dims=("time", "yc", "xc"),
-            attrs={"scale_factor": 0.01, "add_offset": 0., "_FillValue": -999, "units": "%",
-                   "valid_min": 0, "valid_max": 10000, "standard_name": "sea_ice_area_fraction"}
-        )
-        self.uncert = xr.DataArray(
-            self.unc_data,
-            dims=("yc", "xc"),
-            attrs={"scale_factor": 0.01, "add_offset": 0., "_FillValue": -999,
-                   "valid_min": 0, "valid_max": 10000, "standard_name": "total_uncertainty"}
-        )
-        self.ssi_geo = xr.DataArray(
-            self.base_data_ssi_geo,
-            dims=("lat", "lon"),
-            attrs={"scale_factor": 0.1, "add_offset": 0., "_FillValue": 32768,
-                   "valid_min": 0., "valid_max": 1000., "standard_name": "surface_downwelling_shortwave_flux_in_air"}
-        )
-        self.ssi = xr.DataArray(
-            self.base_data_ssi,
-            dims=("time", "yc", "xc"),
-            attrs={"_FillValue": -999.99, "units": "W m-2",
-                   "valid_min": 0., "valid_max": 1000., "standard_name": "surface_downwelling_shortwave_flux_in_air"}
-        )
-        self.sst = xr.DataArray(
-            self.base_data_sst,
-            dims=("time", "yc", "xc"),
-            attrs={"scale_factor": 0.01, "add_offset": 273.15, "_FillValue": -32768, "units": "K",
-                   "valid_min": -8000., "valid_max": 5000., "standard_name": "sea_ice_surface_temperature"}
-        )
-        data_vars = {
-            "xc": self.xc,
-            "yc": self.yc,
-            "time": self.time,
-            "lat": self.lat,
-            "lon": self.lon, }
+        lat_data = np.array(([-68, -69, -70, -71, -72], [-68, -69, -70, -71, -72]))
+        lon_data = np.array(([-60, -60, -60, -60, -60], [-65, -65, -65, -65, -65]))
+
+        xc = xr.DataArray(xc_data, dims=("yc", "xc"),
+                          attrs={"standard_name": "projection_x_coordinate", "units": "km"})
+        yc = xr.DataArray(yc_data, dims=("yc", "xc"),
+                          attrs={"standard_name": "projection_y_coordinate", "units": "km"})
+        time = xr.DataArray(time_data, dims="time",
+                            attrs={"standard_name": "projection_y_coordinate", "units": "km"})
+        lat = xr.DataArray(lat_data, dims=("yc", "xc"),
+                           attrs={"standard_name": "latitude", "units": "degrees_north"})
+        lon = xr.DataArray(lon_data, dims=("yc", "xc"),
+                           attrs={"standard_name": "longitude", "units": "degrees_east"})
+        conc = xr.DataArray(base_data, dims=("time", "yc", "xc"),
+                            attrs={"scale_factor": 0.01, "add_offset": 0., "_FillValue": -999, "units": "%",
+                                   "valid_min": 0, "valid_max": 10000, "standard_name": "sea_ice_area_fraction"})
+        uncert = xr.DataArray(unc_data, dims=("yc", "xc"),
+                              attrs={"scale_factor": 0.01, "add_offset": 0., "_FillValue": -999, "valid_min": 0,
+                                     "valid_max": 10000, "standard_name": "total_uncertainty"})
+        ssi_geo = xr.DataArray(base_data_ssi_geo, dims=("lat", "lon"),
+                               attrs={"scale_factor": 0.1, "add_offset": 0., "_FillValue": 32768, "valid_min": 0.,
+                                      "valid_max": 1000., "standard_name": "surface_downwelling_shortwave_flux_in_air"})
+        ssi = xr.DataArray(base_data_ssi, dims=("time", "yc", "xc"),
+                           attrs={"_FillValue": -999.99, "units": "W m-2", "valid_min": 0., "valid_max": 1000.,
+                                  "standard_name": "surface_downwelling_shortwave_flux_in_air"})
+        sst = xr.DataArray(base_data_sst, dims=("time", "yc", "xc"),
+                           attrs={"scale_factor": 0.01, "add_offset": 273.15, "_FillValue": -32768, "units": "K",
+                                  "valid_min": -8000., "valid_max": 5000.,
+                                  "standard_name": "sea_ice_surface_temperature"})
+        data_vars = {"xc": xc, "yc": yc, "time": time, "lat": lat, "lon": lon}
+
         if tester == "ice":
             data_vars["Lambert_Azimuthal_Grid"] = ease_ds
             data_vars["Polar_Stereographic_Grid"] = stere_ds
-            data_vars["ice_conc"] = self.conc
-            data_vars["total_uncertainty"] = self.uncert
+            data_vars["ice_conc"] = conc
+            data_vars["total_uncertainty"] = uncert
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
         elif tester == "sst":
             data_vars["Polar_Stereographic_Grid"] = stere_ds
-            data_vars["surface_temperature"] = self.sst
+            data_vars["surface_temperature"] = sst
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
         elif tester == "flux_stere":
             data_vars["Polar_Stereographic_Grid"] = stere_ds_noproj
-            data_vars["ssi"] = self.ssi
+            data_vars["ssi"] = ssi
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_flux)
         elif tester == "flux_geo":
-            data_vars["ssi"] = self.ssi_geo
+            data_vars["ssi"] = ssi_geo
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_geo)
 
     def test_instantiate_single_netcdf_file(self, tmp_path):
@@ -268,7 +236,6 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
         np.testing.assert_allclose(area_def.area_extent,
                                    (-2185821.7955, 1019265.4426, -1702157.4538, 982741.0642))
 
-
     def test_get_area_def_ease(self, tmp_path):
         """Test getting the area definition for the EASE grid."""
         tmp_filepath = tmp_path / "fake_dataset.nc"
@@ -339,7 +306,6 @@ class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
         self.fillv = -32768
         self.maxv = 1000
         self.scl = 10
-
 
     def test_get_area_def_grid(self, tmp_path):
         """Test getting the area definition for the lat/lon grid."""
