@@ -108,20 +108,22 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, area_id):
         """Override abstract baseclass method"""
-        if self.filetype_info["file_type"] == "osi_radflux_grid":
-            self.area_def = self._get_geographic_grid()
-            return self.area_def
-        elif self.filetype_info["file_type"] == "osi_sst":
-            self.area_def = self._get_polar_stereographic_grid()
-            return self.area_def
-        elif self.filename_info["grid"] == "ease":
-            self.area_def = self._get_ease_grid()
-            return self.area_def
-        elif self.filename_info["grid"] == "polstere" or self.filename_info["grid"] == "stere":
-            self.area_def = self._get_polar_stereographic_grid()
-            return self.area_def
+        if "grid" in self.filename_info:
+            if self.filename_info["grid"] == "ease":
+                self.area_def = self._get_ease_grid()
+                return self.area_def
+            elif self.filename_info["grid"] == "polstere" or self.filename_info["grid"] == "stere":
+                self.area_def = self._get_polar_stereographic_grid()
+                return self.area_def
+            else:
+                raise ValueError(f"Unknown grid type: {self.filename_info['grid']}")
         else:
-            raise ValueError(f"Unknown grid type: {self.filename_info['grid']}")
+            if self.filetype_info["file_type"] == "osi_radflux_grid":
+                self.area_def = self._get_geographic_grid()
+                return self.area_def
+            elif self.filetype_info["file_type"] == "osi_sst":
+                self.area_def = self._get_polar_stereographic_grid()
+                return self.area_def
 
     def _get_ds_attr(self, a_name):
         """Get a dataset attribute and check it's valid."""

@@ -88,13 +88,17 @@ class OSISAFL3ReaderTests:
         """Create a fake dataset."""
         self.base_data = np.array(([-999, 1215, 1125, 11056, 9500], [200, 1, -999, 4215, 5756]))
         self.base_data_ssi = np.array(([-999.99, 121.5, 11.25, 110.56, 950.0], [200, 1, -999.99, 42.15, 5.756]))
+        self.base_data_sst = np.array(([-32768, 273.2, 194.2, 220.78, 301.], [-32768, -32768, 273.22, 254.34, 204.21]))
         self.base_data_ssi_geo = np.array(([-32768, 121.5, 11.25, 110.56, 950.0], [200, 1, -32768, 42.15, 5.756]))
         self.base_data = np.expand_dims(self.base_data, axis=0)
         self.base_data_ssi = np.expand_dims(self.base_data_ssi, axis=0)
+        self.base_data_sst = np.expand_dims(self.base_data_sst, axis=0)
         self.unc_data = np.array(([0, 1, 2, 3, 4], [4, 3, 2, 1, 0]))
         self.yc_data = np.array(([-10, -5, 0, 5, 10], [-10, -5, 0, 5, 10]))
         self.xc_data = np.array(([-5, -5, -5, -5, -5], [5, 5, 5, 5, 5]))
         self.time_data = np.array([1.])
+        self.scl = 1.
+        self.add = 0.
 
         self.lat_data = np.array(([-68, -69, -70, -71, -72], [-68, -69, -70, -71, -72]))
         self.lon_data = np.array(([-60, -60, -60, -60, -60], [-65, -65, -65, -65, -65]))
@@ -138,7 +142,7 @@ class OSISAFL3ReaderTests:
         self.ssi_geo = xr.DataArray(
             self.base_data_ssi_geo,
             dims=("lat", "lon"),
-            attrs={"scale_factor": 0.1, "add_offset": 0., "_FillValue": 32768, "units": "W m-2",
+            attrs={"scale_factor": 0.1, "add_offset": 0., "_FillValue": 32768,
                    "valid_min": 0., "valid_max": 1000., "standard_name": "surface_downwelling_shortwave_flux_in_air"}
         )
         self.ssi = xr.DataArray(
@@ -147,13 +151,12 @@ class OSISAFL3ReaderTests:
             attrs={"_FillValue": -999.99, "units": "W m-2",
                    "valid_min": 0., "valid_max": 1000., "standard_name": "surface_downwelling_shortwave_flux_in_air"}
         )
-        self.uncert = xr.DataArray(
-            self.unc_data,
-            dims=("yc", "xc"),
-            attrs={"scale_factor": 0.01, "add_offset": 0., "_FillValue": -999,
-                   "valid_min": 0, "valid_max": 10000, "standard_name": "total_uncertainty"}
+        self.sst = xr.DataArray(
+            self.base_data_sst,
+            dims=("time", "yc", "xc"),
+            attrs={"scale_factor": 0.01, "add_offset": 273.15, "_FillValue": -32768, "units": "K",
+                   "valid_min": -8000., "valid_max": 5000., "standard_name": "sea_ice_surface_temperature"}
         )
-
         data_vars = {
             "xc": self.xc,
             "yc": self.yc,
@@ -165,13 +168,15 @@ class OSISAFL3ReaderTests:
             data_vars["Polar_Stereographic_Grid"] = stere_ds
             data_vars["ice_conc"] = self.conc
             data_vars["total_uncertainty"] = self.uncert
+        elif tester == "sst":
+            data_vars["Polar_Stereographic_Grid"] = stere_ds
+            data_vars["surface_temperature"] = self.sst
         elif tester == "flux_stere":
             data_vars["Polar_Stereographic_Grid"] = stere_ds_noproj
             data_vars["ssi"] = self.ssi
         elif tester == "flux_geo":
             data_vars["ssi"] = self.ssi_geo
-
-        if tester == "ice":
+        if tester == "ice" or tester == "sst":
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_ice)
         elif tester == "flux_stere":
             self.fake_dataset = xr.Dataset(data_vars=data_vars, attrs=attrs_flux)
@@ -198,10 +203,10 @@ class OSISAFL3ReaderTests:
         assert res.shape[1] == 5
 
         # Test values are correct
-        test_ds = self.fake_dataset[self.varname][0].values
+        test_ds = self.fake_dataset[self.varname].values.squeeze()
         test_ds = np.where(test_ds == self.fillv, np.nan, test_ds)
         test_ds = np.where(test_ds > self.maxv, np.nan, test_ds)
-        test_ds = test_ds / self.scl
+        test_ds = test_ds / self.scl + self.add
         np.testing.assert_allclose(res.values, test_ds)
 
         with pytest.raises(KeyError):
@@ -218,14 +223,60 @@ class OSISAFL3ReaderTests:
         assert test.start_time == self.good_start_time
         assert test.end_time == self.good_stop_time
 
-    def test_get_area_def_ease(self, tmp_path):
-        """Test getting the area definition for the EASE grid."""
-        filename_info = {"grid": "ease"}
-        filetype_info = {"file_type": "osi_sea_ice_conc"}
+    def test_get_area_def_bad(self, tmp_path):
+        """Test getting the area definition for the polar stereographic grid."""
+        filename_info = {"grid": "turnips"}
         tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
-        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), filename_info, filetype_info)
+        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), filename_info, self.filetype_info)
+        with pytest.raises(ValueError, match="Unknown grid type: turnips"):
+            test.get_area_def(None)
+
+
+class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
+    """Test OSI-SAF level 3 netCDF reader ice files."""
+
+    def setup_method(self):
+        super().setup_method(tester="ice")
+        self.filename_info = {"grid": "ease"}
+        self.filetype_info = {"file_type": "osi_sea_ice_conc"}
+        self.good_start_time = datetime(2022, 12, 15, 0, 0, 0)
+        self.good_stop_time = datetime(2022, 12, 16, 0, 0, 0)
+        self.varname = "ice_conc"
+        self.stdname = "sea_ice_area_fraction"
+        self.fillv = -999
+        self.maxv = 10000
+        self.scl = 100
+
+    def test_get_area_def_stere(self, tmp_path):
+        """Test getting the area definition for the polar stereographic grid."""
+        self.filename_info = {"grid": "stere"}
+        tmp_filepath = tmp_path / "fake_dataset.nc"
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), self.filename_info, self.filetype_info)
+
+        area_def = test.get_area_def(None)
+        assert area_def.description == "osisaf_polar_stereographic"
+        assert area_def.proj_dict["a"] == 6378273.0
+        assert area_def.proj_dict["lat_0"] == -90
+        assert area_def.proj_dict["lat_ts"] == -70
+        assert area_def.proj_dict["lon_0"] == 0
+        assert area_def.proj_dict["proj"] == "stere"
+
+        assert area_def.width == 5
+        assert area_def.height == 2
+        np.testing.assert_allclose(area_def.area_extent,
+                                   (-2185821.7955, 1019265.4426, -1702157.4538, 982741.0642))
+
+
+    def test_get_area_def_ease(self, tmp_path):
+        """Test getting the area definition for the EASE grid."""
+        tmp_filepath = tmp_path / "fake_dataset.nc"
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), {"grid": "ease"}, self.filetype_info)
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_lambert_azimuthal_equal_area"
@@ -238,6 +289,22 @@ class OSISAFL3ReaderTests:
         assert area_def.height == 2
         np.testing.assert_allclose(area_def.area_extent,
                                    (-2203574.302335, 1027543.572492, -1726299.781982, 996679.643829))
+
+
+class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
+    """Test OSI-SAF level 3 netCDF reader flux files on stereographic grid."""
+
+    def setup_method(self):
+        super().setup_method(tester="flux_stere")
+        self.filename_info = {"grid": "polstere"}
+        self.filetype_info = {"file_type": "osi_radflux_stere"}
+        self.good_start_time = datetime(2023, 10, 10, 0, 0, 0)
+        self.good_stop_time = datetime(2023, 10, 10, 23, 59, 59)
+        self.varname = "ssi"
+        self.stdname = "surface_downwelling_shortwave_flux_in_air"
+        self.fillv = -999.99
+        self.maxv = 1000
+        self.scl = 1
 
     def test_get_area_def_stere(self, tmp_path):
         """Test getting the area definition for the polar stereographic grid."""
@@ -259,44 +326,75 @@ class OSISAFL3ReaderTests:
         np.testing.assert_allclose(area_def.area_extent,
                                    (-2185821.7955, 1019265.4426, -1702157.4538, 982741.0642))
 
-    def test_get_area_def_bad(self, tmp_path):
+
+class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
+    """Test OSI-SAF level 3 netCDF reader flux files on lat/lon grid (GEO sensors)."""
+
+    def setup_method(self):
+        super().setup_method(tester="flux_geo")
+        self.filename_info = {}
+        self.filetype_info = {"file_type": "osi_radflux_grid"}
+        self.good_start_time = datetime(2022, 12, 28, 18, 30, 0)
+        self.good_stop_time = datetime(2022, 12, 28, 19, 30, 0)
+        self.varname = "ssi"
+        self.stdname = "surface_downwelling_shortwave_flux_in_air"
+        self.fillv = -32768
+        self.maxv = 1000
+        self.scl = 10
+
+
+    def test_get_area_def_grid(self, tmp_path):
+        """Test getting the area definition for the lat/lon grid."""
+        tmp_filepath = tmp_path / "fake_dataset.nc"
+        self.filename_info = {}
+        self.filetype_info = {"file_type": "osi_radflux_grid"}
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), self.filename_info, self.filetype_info)
+
+        area_def = test.get_area_def(None)
+        assert area_def.description == "osisaf_geographic_area"
+        assert area_def.proj_dict["datum"] == "WGS84"
+        assert area_def.proj_dict["proj"] == "longlat"
+
+        assert area_def.width == 5
+        assert area_def.height == 2
+        np.testing.assert_allclose(area_def.area_extent,
+                                   (-65, -68, -60, -72))
+
+
+class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
+    """Test OSI-SAF level 3 netCDF reader surface temperature files."""
+
+    def setup_method(self):
+        super().setup_method(tester="sst")
+        self.filename_info = {}
+        self.filetype_info = {"file_type": "osi_sst"}
+        self.good_start_time = datetime(2022, 12, 15, 0, 0, 0)
+        self.good_stop_time = datetime(2022, 12, 16, 0, 0, 0)
+        self.varname = "surface_temperature"
+        self.stdname = "sea_ice_surface_temperature"
+        self.fillv = -32768
+        self.maxv = 1000
+        self.scl = 100
+        self.add = 273.15
+
+    def test_get_area_def_stere(self, tmp_path):
         """Test getting the area definition for the polar stereographic grid."""
-        filename_info = {"grid": "turnips"}
         tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
-        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), filename_info, self.filetype_info)
-        with pytest.raises(ValueError, match="Unknown grid type: turnips"):
-            test.get_area_def(None)
+        test = OSISAFL3NCFileHandler(os.fspath(tmp_filepath), self.filename_info, self.filetype_info)
 
+        area_def = test.get_area_def(None)
+        assert area_def.description == "osisaf_polar_stereographic"
+        assert area_def.proj_dict["a"] == 6378273.0
+        assert area_def.proj_dict["lat_0"] == -90
+        assert area_def.proj_dict["lat_ts"] == -70
+        assert area_def.proj_dict["lon_0"] == 0
+        assert area_def.proj_dict["proj"] == "stere"
 
-class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
-    """Test OSI-SAF level 3 netCDF reader ice files."""
-
-    def setup_method(self):
-        super().setup_method(tester="ice")
-        self.filename_info = {"grid": "ease"}
-        self.filetype_info = {"file_type": "osi_sea_ice_conc"}
-        self.good_start_time = datetime(2023, 10, 10, 0, 0, 0)
-        self.good_stop_time = datetime(2023, 10, 10, 23, 59, 59)
-        self.varname = "ice_conc"
-        self.stdname = "sea_ice_area_fraction"
-        self.fillv = -999
-        self.maxv = 10000
-        self.scl = 100
-
-
-class TestOSISAFL3ReaderFlux(OSISAFL3ReaderTests):
-    """Test OSI-SAF level 3 netCDF reader flux files."""
-
-    def setup_method(self):
-        super().setup_method(tester="flux_stere")
-        self.filename_info = {}
-        self.filetype_info = {"file_type": "osi_radflux_stere"}
-        self.good_start_time = datetime(2023, 10, 10, 0, 0, 0)
-        self.good_stop_time = datetime(2023, 10, 10, 23, 59, 59)
-        self.varname = "ssi"
-        self.stdname = "surface_downwelling_shortwave_flux_in_air"
-        self.fillv = -999.99
-        self.maxv = 1000
-        self.scl = 1
+        assert area_def.width == 5
+        assert area_def.height == 2
+        np.testing.assert_allclose(area_def.area_extent,
+                                   (-2185821.7955, 1019265.4426, -1702157.4538, 982741.0642))
