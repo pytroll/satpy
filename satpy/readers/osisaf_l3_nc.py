@@ -111,7 +111,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
             return self.area_def
 
     def get_area_def(self, area_id):
-        """Override abstract baseclass method"""
+        """Get the area definition, which varies depending on file type and structure."""
         if "grid" in self.filename_info:
             return self._get_finfo_grid()
         else:
