@@ -106,7 +106,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         if self.filetype_info["file_type"] == "osi_radflux_grid":
             self.area_def = self._get_geographic_grid()
             return self.area_def
-        elif self.filetype_info["file_type"] == "osi_sst":
+        elif self.filetype_info["file_type"] in ["osi_sst", "osi_sea_ice_conc"]:
             self.area_def = self._get_polar_stereographic_grid()
             return self.area_def
 

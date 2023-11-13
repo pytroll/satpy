@@ -17,7 +17,8 @@ reader:
 file_types:
     osi_sea_ice_conc:
       file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
-      file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+      file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc',
+                      'S-OSI_-{product_centre}_-{sensor}-GL_{hemisphere:2s}_CONCn__-{start_time:%Y%m%d%H%M}Z.nc']
     osi_sea_ice_edge:
       file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
       file_patterns: ['ice_edge_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
@@ -42,7 +43,6 @@ datasets:
   status_flag:
     name: status_flag
     file_type: [osi_sea_ice_conc, osi_sea_ice_edge, osi_sea_ice_type]
-
   orbit_num_amsr:
     name: orbit_num_amsr
     file_type: [osi_sea_ice_edge, osi_sea_ice_type]
