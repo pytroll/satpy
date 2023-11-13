@@ -196,13 +196,12 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     @staticmethod
     def _parse_datetime(datestr):
-        try:
-            return datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
+        for dt_format in ("%Y-%m-%d %H:%M:%S","%Y%m%dT%H%M%SZ", "%Y-%m-%dT%H:%M:%SZ"):
             try:
-                return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
+                return datetime.strptime(datestr, dt_format)
             except ValueError:
-                return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%SZ")
+                continue
+        raise ValueError(f"Unsupported date format: {datestr}")
 
     @property
     def start_time(self):
