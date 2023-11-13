@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2023 Satpy developers
 #
 # This file is part of satpy.
@@ -20,8 +18,6 @@
 import logging
 from datetime import datetime
 
-import numpy as np
-
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
@@ -29,18 +25,6 @@ logger = logging.getLogger(__name__)
 
 class OSISAFL3NCFileHandler(NetCDF4FileHandler):
     """Reader for the OSISAF l3 netCDF format."""
-
-    @staticmethod
-    def _parse_datetime(datestr):
-        try:
-            return datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            try:
-                return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
-            except ValueError:
-                return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%SZ")
-
-
     def _get_ease_grid(self):
         """Set up the EASE grid."""
         from pyresample import create_area_def
@@ -169,14 +153,14 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         valid_min = self._get_ds_attr(var_path + "/attr/valid_min")
         valid_max = self._get_ds_attr(var_path + "/attr/valid_max")
         if valid_min is not None and valid_max is not None:
-            data = data.where(data >= valid_min, np.nan)
-            data = data.where(data <= valid_max, np.nan)
+            data = data.where(data >= valid_min)
+            data = data.where(data <= valid_max)
 
         # Try to get the fill value for the data.
         # If there isn't one, assume all remaining pixels are valid.
         fill_value = self._get_ds_attr(var_path + "/attr/_FillValue")
         if fill_value is not None:
-            data = data.where(data != fill_value, np.nan)
+            data = data.where(data != fill_value)
 
         # Try to get the scale and offset for the data.
         # As above, not all datasets have these, so fall back on assuming no limits.
@@ -217,6 +201,15 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         except KeyError:
             return self["/attr/platform"]
 
+    @staticmethod
+    def _parse_datetime(datestr):
+        try:
+            return datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            try:
+                return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
+            except ValueError:
+                return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def start_time(self):
