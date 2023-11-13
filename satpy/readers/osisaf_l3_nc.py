@@ -118,19 +118,12 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
             return self._get_ftype_grid()
 
 
-    def _get_ds_attr(self, a_name):
-        """Get a dataset attribute and check it's valid."""
-        try:
-            return self[a_name]
-        except KeyError:
-            return None
-
     def _get_ds_units(self, ds_info, var_path):
         """Find the units of the datasets."""
 
         file_units = ds_info.get("file_units")
         if file_units is None:
-            file_units = self._get_ds_attr(var_path + "/attr/units")
+            file_units = self.get(var_path + "/attr/units")
             if file_units is None:
                 file_units = 1
         return file_units
@@ -150,22 +143,22 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
         # Try to get the valid limits for the data.
         # Not all datasets have these, so fall back on assuming no limits.
-        valid_min = self._get_ds_attr(var_path + "/attr/valid_min")
-        valid_max = self._get_ds_attr(var_path + "/attr/valid_max")
+        valid_min = self.get(var_path + "/attr/valid_min")
+        valid_max = self.get(var_path + "/attr/valid_max")
         if valid_min is not None and valid_max is not None:
             data = data.where(data >= valid_min)
             data = data.where(data <= valid_max)
 
         # Try to get the fill value for the data.
         # If there isn't one, assume all remaining pixels are valid.
-        fill_value = self._get_ds_attr(var_path + "/attr/_FillValue")
+        fill_value = self.get(var_path + "/attr/_FillValue")
         if fill_value is not None:
             data = data.where(data != fill_value)
 
         # Try to get the scale and offset for the data.
         # As above, not all datasets have these, so fall back on assuming no limits.
-        scale_factor = self._get_ds_attr(var_path + "/attr/scale_factor")
-        scale_offset = self._get_ds_attr(var_path + "/attr/add_offset")
+        scale_factor = self.get(var_path + "/attr/scale_factor")
+        scale_offset = self.get(var_path + "/attr/add_offset")
         if scale_offset is not None and scale_factor is not None:
             data = (data * scale_factor + scale_offset)
 
@@ -213,22 +206,22 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     @property
     def start_time(self):
-        start_t = self._get_ds_attr("/attr/start_date")
+        start_t = self.get("/attr/start_date")
         if start_t is None:
-            start_t = self._get_ds_attr("/attr/start_time")
+            start_t = self.get("/attr/start_time")
         if start_t is None:
-            start_t = self._get_ds_attr("/attr/time_coverage_start")
+            start_t = self.get("/attr/time_coverage_start")
         if start_t is None:
             raise ValueError("Unknown start time attribute.")
         return self._parse_datetime(start_t)
 
     @property
     def end_time(self):
-        end_t = self._get_ds_attr("/attr/stop_date")
+        end_t = self.get("/attr/stop_date")
         if end_t is None:
-            end_t = self._get_ds_attr("/attr/stop_time")
+            end_t = self.get("/attr/stop_time")
         if end_t is None:
-            end_t = self._get_ds_attr("/attr/time_coverage_end")
+            end_t = self.get("/attr/time_coverage_end")
         if end_t is None:
             raise ValueError("Unknown stop time attribute.")
         return self._parse_datetime(end_t)
