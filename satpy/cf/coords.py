@@ -100,6 +100,11 @@ def set_cf_time_info(dataarray, epoch):
         - the time coordinate has size 1
 
     """
+    from satpy.cf import EPOCH
+
+    if epoch is None:
+        epoch = EPOCH
+
     dataarray["time"].encoding["units"] = epoch
     dataarray["time"].attrs["standard_name"] = "time"
     dataarray["time"].attrs.pop("bounds", None)

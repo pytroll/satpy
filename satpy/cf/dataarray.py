@@ -89,11 +89,6 @@ def make_cf_dataarray(dataarray,
         CF-compliant xr.DataArray.
 
     """
-    from satpy.cf import EPOCH
-
-    if epoch is None:
-        epoch = EPOCH
-
     dataarray = _preprocess_dataarray_name(dataarray=dataarray,
                                            numeric_name_prefix=numeric_name_prefix,
                                            include_orig_name=include_orig_name)

@@ -52,7 +52,9 @@ class TestCollectCfDataset:
                                         attrs={"name": "var2", "long_name": "variable 2"})]
 
         # Collect datasets
-        ds = _collect_cf_dataset(list_dataarrays, include_lonlats=True)
+        ds = _collect_cf_dataset(list_dataarrays,
+                                 include_lonlats=True,
+                                 )
 
         # Test results
         assert len(ds.keys()) == 3
