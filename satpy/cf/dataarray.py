@@ -19,7 +19,6 @@
 import logging
 import warnings
 
-from satpy.cf import EPOCH
 from satpy.cf.attrs import preprocess_datarray_attrs
 from satpy.cf.coords import add_xy_coords_attrs, set_cf_time_info
 
@@ -70,7 +69,7 @@ def make_cf_dataarray(dataarray,
         The data array to be made CF-compliant.
     epoch : str, optional
         Reference time for encoding of time coordinates.
-        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
+        If None, the default reference time is defined using `from satpy.cf import EPOCH`
     flatten_attrs : bool, optional
         If True, flatten dict-type attributes.
         The default is False.
@@ -90,6 +89,8 @@ def make_cf_dataarray(dataarray,
         CF-compliant xr.DataArray.
 
     """
+    from satpy.cf import EPOCH
+
     if epoch is None:
         epoch = EPOCH
 

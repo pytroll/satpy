@@ -22,7 +22,6 @@ from collections import defaultdict
 
 import xarray as xr
 
-from satpy.cf import EPOCH
 from satpy.writers.cf_writer import CF_DTYPES, CF_VERSION
 
 logger = logging.getLogger(__name__)
@@ -228,6 +227,7 @@ def collect_cf_datasets(list_dataarrays,
     header_attrs : dict
         Global attributes to be attached to the xr.Dataset / netCDF4.
     """
+    from satpy.cf import EPOCH
     from satpy.cf.attrs import preprocess_header_attrs
     from satpy.cf.coords import add_time_bounds_dimension
 
