@@ -57,7 +57,7 @@ def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name
 
 
 def make_cf_dataarray(dataarray,
-                      epoch=EPOCH,
+                      epoch=None,
                       flatten_attrs=False,
                       exclude_attrs=None,
                       include_orig_name=True,
@@ -70,6 +70,7 @@ def make_cf_dataarray(dataarray,
         The data array to be made CF-compliant.
     epoch : str, optional
         Reference time for encoding of time coordinates.
+        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
     flatten_attrs : bool, optional
         If True, flatten dict-type attributes.
         The default is False.
@@ -89,6 +90,9 @@ def make_cf_dataarray(dataarray,
         CF-compliant xr.DataArray.
 
     """
+    if epoch is None:
+        epoch = EPOCH
+
     dataarray = _preprocess_dataarray_name(dataarray=dataarray,
                                            numeric_name_prefix=numeric_name_prefix,
                                            include_orig_name=include_orig_name)

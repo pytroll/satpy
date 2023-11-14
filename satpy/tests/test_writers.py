@@ -874,9 +874,8 @@ def test_group_results_by_output_file(tmp_path):
     """
     from pyresample import create_area_def
 
+    from satpy.tests.utils import make_fake_scene
     from satpy.writers import group_results_by_output_file
-
-    from .utils import make_fake_scene
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(

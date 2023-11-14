@@ -90,11 +90,7 @@ def to_xarray(scn,
         A CF-compliant xr.Dataset
 
     """
-    from satpy.cf import EPOCH
     from satpy.cf.datasets import collect_cf_datasets
-
-    if epoch is None:
-        epoch = EPOCH
 
     # Get list of DataArrays
     if datasets is None:

@@ -61,13 +61,14 @@ def _get_groups(groups, list_datarrays):
 
 
 def _collect_cf_dataset(list_dataarrays,
-                        epoch=EPOCH,
-                        flatten_attrs=False,
-                        exclude_attrs=None,
-                        include_lonlats=True,
-                        pretty=False,
-                        include_orig_name=True,
-                        numeric_name_prefix="CHANNEL_"):
+                        epoch,
+                        flatten_attrs,
+                        exclude_attrs,
+                        include_lonlats,
+                        pretty,
+                        include_orig_name,
+                        numeric_name_prefix,
+                        ):
     """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Dataset.
 
     Parameters
@@ -77,19 +78,18 @@ def _collect_cf_dataset(list_dataarrays,
     epoch : str
         Reference time for encoding the time coordinates (if available).
         Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
-    flatten_attrs : bool, optional
+    flatten_attrs : bool
         If True, flatten dict-type attributes.
-    exclude_attrs : list, optional
+    exclude_attrs : list
         List of xr.DataArray attribute names to be excluded.
-    include_lonlats : bool, optional
+    include_lonlats : bool
         If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
         If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
-    pretty : bool, optional
+    pretty : bool
         Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-    include_orig_name : bool, optional
+    include_orig_name : bool
         Include the original dataset name as a variable attribute in the xr.Dataset.
-    numeric_name_prefix : str, optional
+    numeric_name_prefix : str
         Prefix to add the each variable with name starting with a digit.
         Use '' or None to leave this out.
 
@@ -180,7 +180,7 @@ def collect_cf_datasets(list_dataarrays,
                         flatten_attrs=False,
                         pretty=True,
                         include_lonlats=True,
-                        epoch=EPOCH,
+                        epoch=None,
                         include_orig_name=True,
                         numeric_name_prefix="CHANNEL_",
                         groups=None):
@@ -230,6 +230,9 @@ def collect_cf_datasets(list_dataarrays,
     """
     from satpy.cf.attrs import preprocess_header_attrs
     from satpy.cf.coords import add_time_bounds_dimension
+
+    if epoch is None:
+        epoch = EPOCH
 
     if not list_dataarrays:
         raise RuntimeError("None of the requested datasets have been "

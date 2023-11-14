@@ -188,7 +188,7 @@ def check_unique_projection_coords(dict_dataarrays):
             token_x = tokenize(dataarray["x"].data)
             unique_x.add(token_x)
     if len(unique_x) > 1 or len(unique_y) > 1:
-        raise ValueError("Datasets to be saved in one file (or one group) must have identical projection coordinates. "
+        raise ValueError("Datasets to be saved in one file (or one group) must have identical projection coordinates."
                          "Please group them by area or save them in separate files.")
 
 

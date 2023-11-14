@@ -114,5 +114,3 @@ class TestCfDataArray:
         arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=("y",),
                            coords={"y": [0, 1, 2, 3], "acq_time": ("y", [0, 1, 2, 3])})
         _ = make_cf_dataarray(arr)
-
-    # _handle_dataarray_name

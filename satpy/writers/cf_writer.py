@@ -162,7 +162,7 @@ import numpy as np
 import xarray as xr
 from packaging.version import Version
 
-from satpy.cf import EPOCH
+from satpy.cf import EPOCH  # noqa: F401 (for backward compatibility)
 from satpy.writers import Writer
 
 logger = logging.getLogger(__name__)
@@ -232,7 +232,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=None,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
                       include_orig_name=True, numeric_name_prefix="CHANNEL_", **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
@@ -256,6 +256,7 @@ class CFWriter(Writer):
                 preference for 'netcdf4'.
             epoch (str):
                 Reference time for encoding of time coordinates.
+                If None, the default reference time is defined using `from satpy.cf import EPOCH`
             flatten_attrs (bool):
                 If True, flatten dict-type attributes.
             exclude_attrs (list):
@@ -326,23 +327,24 @@ class CFWriter(Writer):
         return written
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None,
+    def da2cf(dataarray, epoch=None, flatten_attrs=False, exclude_attrs=None,
               include_orig_name=True, numeric_name_prefix="CHANNEL_"):
         """Convert the dataarray to something cf-compatible.
 
         Args:
             dataarray (xr.DataArray):
-                The data array to be converted
+                The data array to be converted.
             epoch (str):
-                Reference time for encoding of time coordinates
+                Reference time for encoding of time coordinates.
+                If None, the default reference time is defined using `from satpy.cf import EPOCH`
             flatten_attrs (bool):
-                If True, flatten dict-type attributes
+                If True, flatten dict-type attributes.
             exclude_attrs (list):
-                List of dataset attributes to be excluded
+                List of dataset attributes to be excluded.
             include_orig_name (bool):
-                Include the original dataset name in the netcdf variable attributes
+                Include the original dataset name in the netcdf variable attributes.
             numeric_name_prefix (str):
-                Prepend dataset name with this if starting with a digit
+                Prepend dataset name with this if starting with a digit.
         """
         from satpy.cf.dataarray import make_cf_dataarray
         warnings.warn("CFWriter.da2cf is deprecated."

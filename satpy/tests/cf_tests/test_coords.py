@@ -228,5 +228,3 @@ class TestCFcoords:
         assert has_projection_coords(datasets)
         datasets["lat"].attrs["standard_name"] = "dummy"
         assert not has_projection_coords(datasets)
-
-    # add_xy_coords_attrs
