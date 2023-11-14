@@ -36,19 +36,20 @@ def get_us_midlatitude_cyclone_abi(base_dir=None, method=None, force=False):
     Total size: ~110MB
 
     """
-    base_dir = base_dir or config.get('demo_data_dir', '.')
+    base_dir = base_dir or config.get("demo_data_dir", ".")
     if method is None:
-        method = 'gcsfs'
-    if method not in ['gcsfs']:
+        method = "gcsfs"
+    if method not in ["gcsfs"]:
         raise NotImplementedError("Demo data download method '{}' not "
                                   "implemented yet.".format(method))
 
     from ._google_cloud_platform import get_bucket_files
-    patterns = ['gs://gcp-public-data-goes-16/ABI-L1b-RadC/2019/073/00/*s20190730002*.nc']
-    subdir = os.path.join(base_dir, 'abi_l1b', '20190314_us_midlatitude_cyclone')
+    patterns = ["gs://gcp-public-data-goes-16/ABI-L1b-RadC/2019/073/00/*s20190730002*.nc"]
+    subdir = os.path.join(base_dir, "abi_l1b", "20190314_us_midlatitude_cyclone")
     os.makedirs(subdir, exist_ok=True)
     filenames = get_bucket_files(patterns, subdir, force=force)
-    assert len(filenames) == 16, "Not all files could be downloaded"
+    if len(filenames) != 16:
+        raise RuntimeError("Not all files could be downloaded")
     return filenames
 
 
@@ -76,12 +77,12 @@ def get_hurricane_florence_abi(base_dir=None, method=None, force=False,
     Total size (240 frames, all channels): ~3.5GB
 
     """
-    base_dir = base_dir or config.get('demo_data_dir', '.')
+    base_dir = base_dir or config.get("demo_data_dir", ".")
     if channels is None:
         channels = range(1, 17)
     if method is None:
-        method = 'gcsfs'
-    if method not in ['gcsfs']:
+        method = "gcsfs"
+    if method not in ["gcsfs"]:
         raise NotImplementedError("Demo data download method '{}' not "
                                   "implemented yet.".format(method))
     if isinstance(num_frames, (int, float)):
@@ -96,16 +97,17 @@ def get_hurricane_florence_abi(base_dir=None, method=None, force=False,
         # patterns += ['gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/1[3456]/'
         #              '*C{:02d}*s20182541[3456]*.nc'.format(channel)]
         patterns += [(
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/13/*RadM1*C{:02d}*s201825413*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/14/*RadM1*C{:02d}*s201825414*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/15/*RadM1*C{:02d}*s201825415*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/16/*RadM1*C{:02d}*s201825416*.nc'.format(channel),
+            "gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/13/*RadM1*C{:02d}*s201825413*.nc".format(channel),
+            "gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/14/*RadM1*C{:02d}*s201825414*.nc".format(channel),
+            "gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/15/*RadM1*C{:02d}*s201825415*.nc".format(channel),
+            "gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/16/*RadM1*C{:02d}*s201825416*.nc".format(channel),
         )]
-    subdir = os.path.join(base_dir, 'abi_l1b', '20180911_hurricane_florence_abi_l1b')
+    subdir = os.path.join(base_dir, "abi_l1b", "20180911_hurricane_florence_abi_l1b")
     os.makedirs(subdir, exist_ok=True)
     filenames = get_bucket_files(patterns, subdir, force=force, pattern_slice=frame_slice)
 
     actual_slice = frame_slice.indices(240)  # 240 max frames
     num_frames = int((actual_slice[1] - actual_slice[0]) / actual_slice[2])
-    assert len(filenames) == len(channels) * num_frames, "Not all files could be downloaded"
+    if len(filenames) != len(channels) * num_frames:
+        raise RuntimeError("Not all files could be downloaded")
     return filenames

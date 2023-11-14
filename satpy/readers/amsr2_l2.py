@@ -25,7 +25,7 @@ class AMSR2L2FileHandler(AMSR2L1BFileHandler):
 
     def mask_dataset(self, ds_info, data):
         """Mask data with the fill value."""
-        fill_value = ds_info.get('fill_value', 65535)
+        fill_value = ds_info.get("fill_value", 65535)
         return data.where(data != fill_value)
 
     def scale_dataset(self, var_path, data):
@@ -34,14 +34,14 @@ class AMSR2L2FileHandler(AMSR2L1BFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get output data and metadata of specified dataset."""
-        var_path = ds_info['file_key']
+        var_path = ds_info["file_key"]
 
         data = self[var_path].squeeze()
         data = self.mask_dataset(ds_info, data)
         data = self.scale_dataset(var_path, data)
 
-        if ds_info.get('name') == "ssw":
-            data = data.rename({'dim_0': 'y', 'dim_1': 'x'})
+        if ds_info.get("name") == "ssw":
+            data = data.rename({"dim_0": "y", "dim_1": "x"})
         metadata = self.get_metadata(ds_id, ds_info)
         data.attrs.update(metadata)
         return data

@@ -36,8 +36,8 @@ class TestViiUtils(unittest.TestCase):
     def test_constants(self):
         """Test the constant values."""
         # Test the value of the constants
-        self.assertEqual(satpy.readers.vii_utils.C1, C1)
-        self.assertEqual(satpy.readers.vii_utils.C2, C2)
-        self.assertEqual(satpy.readers.vii_utils.TIE_POINTS_FACTOR, TIE_POINTS_FACTOR)
-        self.assertEqual(satpy.readers.vii_utils.SCAN_ALT_TIE_POINTS, SCAN_ALT_TIE_POINTS)
-        self.assertEqual(satpy.readers.vii_utils.MEAN_EARTH_RADIUS, MEAN_EARTH_RADIUS)
+        assert satpy.readers.vii_utils.C1 == C1
+        assert satpy.readers.vii_utils.C2 == C2
+        assert satpy.readers.vii_utils.TIE_POINTS_FACTOR == TIE_POINTS_FACTOR
+        assert satpy.readers.vii_utils.SCAN_ALT_TIE_POINTS == SCAN_ALT_TIE_POINTS
+        assert satpy.readers.vii_utils.MEAN_EARTH_RADIUS == MEAN_EARTH_RADIUS

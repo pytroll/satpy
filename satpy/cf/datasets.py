@@ -32,13 +32,13 @@ def _get_extra_ds(dataarray, keys=None):
     """Get the ancillary_variables DataArrays associated to a dataset."""
     dict_datarrays = {}
     # Retrieve ancillary variable datarrays
-    for ancillary_dataarray in dataarray.attrs.get('ancillary_variables', []):
+    for ancillary_dataarray in dataarray.attrs.get("ancillary_variables", []):
         ancillary_variable = ancillary_dataarray.name
         if keys and ancillary_variable not in keys:
             keys.append(ancillary_variable)
             dict_datarrays.update(_get_extra_ds(ancillary_dataarray, keys=keys))
     # Add input dataarray
-    dict_datarrays[dataarray.attrs['name']] = dataarray
+    dict_datarrays[dataarray.attrs["name"]] = dataarray
     return dict_datarrays
 
 
@@ -54,7 +54,7 @@ def _get_groups(groups, list_datarrays):
         grouped_dataarrays = defaultdict(list)
         for datarray in list_datarrays:
             for group_name, group_members in groups.items():
-                if datarray.attrs['name'] in group_members:
+                if datarray.attrs["name"] in group_members:
                     grouped_dataarrays[group_name].append(datarray)
                     break
     return grouped_dataarrays
@@ -67,7 +67,7 @@ def _collect_cf_dataset(list_dataarrays,
                         include_lonlats=True,
                         pretty=False,
                         include_orig_name=True,
-                        numeric_name_prefix='CHANNEL_'):
+                        numeric_name_prefix="CHANNEL_"):
     """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Dataset.
 
     Parameters
@@ -124,7 +124,7 @@ def _collect_cf_dataset(list_dataarrays,
         dataarray_type = dataarray.dtype
         if dataarray_type not in CF_DTYPES:
             warnings.warn(
-                f'dtype {dataarray_type} not compatible with {CF_VERSION}.',
+                f"dtype {dataarray_type} not compatible with {CF_VERSION}.",
                 stacklevel=3
             )
         # Deep copy the datarray since adding/modifying attributes and coordinates
@@ -182,7 +182,7 @@ def collect_cf_datasets(list_dataarrays,
                         include_lonlats=True,
                         epoch=EPOCH,
                         include_orig_name=True,
-                        numeric_name_prefix='CHANNEL_',
+                        numeric_name_prefix="CHANNEL_",
                         groups=None):
     """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Datasets.
 
@@ -250,7 +250,7 @@ def collect_cf_datasets(list_dataarrays,
     # If not grouped, add CF conventions.
     # - If 'Conventions' key already present, do not overwrite !
     if "Conventions" not in header_attrs and not is_grouped:
-        header_attrs['Conventions'] = CF_VERSION
+        header_attrs["Conventions"] = CF_VERSION
 
     # Create dictionary of group xr.Datasets
     # --> If no groups (groups=None) --> group_name=None
@@ -269,7 +269,7 @@ def collect_cf_datasets(list_dataarrays,
         if not is_grouped:
             ds.attrs = header_attrs
 
-        if 'time' in ds:
+        if "time" in ds:
             ds = add_time_bounds_dimension(ds, time="time")
 
         grouped_datasets[group_name] = ds

@@ -28,11 +28,11 @@ def test_preprocess_dataarray_name():
     from satpy.cf.dataarray import _preprocess_dataarray_name
 
     scn = Scene()
-    scn['1'] = xr.DataArray([1, 2, 3])
-    dataarray = scn['1']
+    scn["1"] = xr.DataArray([1, 2, 3])
+    dataarray = scn["1"]
     # If numeric_name_prefix is a string, test add the original_name attributes
     out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix="TEST", include_orig_name=True)
-    assert out_da.attrs['original_name'] == '1'
+    assert out_da.attrs["original_name"] == "1"
 
     # If numeric_name_prefix is empty string, False or None, test do not add original_name attributes
     out_da = _preprocess_dataarray_name(dataarray, numeric_name_prefix="", include_orig_name=True)
@@ -75,44 +75,44 @@ class TestCfDataArray:
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = get_test_attrs()
-        attrs['area'] = 'some_area'
-        attrs['prerequisites'] = [make_dsq(name='hej')]
-        attrs['_satpy_id_name'] = 'myname'
+        attrs["area"] = "some_area"
+        attrs["prerequisites"] = [make_dsq(name="hej")]
+        attrs["_satpy_id_name"] = "myname"
 
         # Adjust expected attributes
         expected_prereq = ("DataQuery(name='hej')")
-        update = {'prerequisites': [expected_prereq], 'long_name': attrs['name']}
+        update = {"prerequisites": [expected_prereq], "long_name": attrs["name"]}
 
         attrs_expected.update(update)
         attrs_expected_flat.update(update)
 
-        attrs_expected.pop('name')
-        attrs_expected_flat.pop('name')
+        attrs_expected.pop("name")
+        attrs_expected_flat.pop("name")
 
         # Create test data array
-        arr = xr.DataArray(np.array([[1, 2], [3, 4]]), attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [1, 2], 'acq_time': ('y', [3, 4])})
+        arr = xr.DataArray(np.array([[1, 2], [3, 4]]), attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [1, 2], "acq_time": ("y", [3, 4])})
 
         # Test conversion to something cf-compliant
         res = make_cf_dataarray(arr)
-        np.testing.assert_array_equal(res['x'], arr['x'])
-        np.testing.assert_array_equal(res['y'], arr['y'])
-        np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
-        assert res['x'].attrs == {'units': 'm', 'standard_name': 'projection_x_coordinate'}
-        assert res['y'].attrs == {'units': 'm', 'standard_name': 'projection_y_coordinate'}
+        np.testing.assert_array_equal(res["x"], arr["x"])
+        np.testing.assert_array_equal(res["y"], arr["y"])
+        np.testing.assert_array_equal(res["acq_time"], arr["acq_time"])
+        assert res["x"].attrs == {"units": "m", "standard_name": "projection_x_coordinate"}
+        assert res["y"].attrs == {"units": "m", "standard_name": "projection_y_coordinate"}
         assert_dict_array_equality(res.attrs, attrs_expected)
 
         # Test attribute kwargs
-        res_flat = make_cf_dataarray(arr, flatten_attrs=True, exclude_attrs=['int'])
-        attrs_expected_flat.pop('int')
+        res_flat = make_cf_dataarray(arr, flatten_attrs=True, exclude_attrs=["int"])
+        attrs_expected_flat.pop("int")
         assert_dict_array_equality(res_flat.attrs, attrs_expected_flat)
 
     def test_make_cf_dataarray_one_dimensional_array(self):
         """Test the conversion of an 1d DataArray to a CF-compatible DataArray."""
         from satpy.cf.dataarray import make_cf_dataarray
 
-        arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=('y',),
-                           coords={'y': [0, 1, 2, 3], 'acq_time': ('y', [0, 1, 2, 3])})
+        arr = xr.DataArray(np.array([1, 2, 3, 4]), attrs={}, dims=("y",),
+                           coords={"y": [0, 1, 2, 3], "acq_time": ("y", [0, 1, 2, 3])})
         _ = make_cf_dataarray(arr)
 
     # _handle_dataarray_name

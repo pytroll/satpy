@@ -84,8 +84,8 @@ Here is an exmaple of the content of the start/end time and ``time_parameters`` 
                      }
 
 
-Example
--------
+Example:
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -252,33 +252,33 @@ from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, im
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
-logger = logging.getLogger('hrit_msg')
+logger = logging.getLogger("hrit_msg")
 
 # MSG implementation:
-key_header = np.dtype([('key_number', 'u1'),
-                       ('seed', '>f8')])
+key_header = np.dtype([("key_number", "u1"),
+                       ("seed", ">f8")])
 
-segment_identification = np.dtype([('GP_SC_ID', '>i2'),
-                                   ('spectral_channel_id', '>i1'),
-                                   ('segment_sequence_number', '>u2'),
-                                   ('planned_start_segment_number', '>u2'),
-                                   ('planned_end_segment_number', '>u2'),
-                                   ('data_field_representation', '>i1')])
+segment_identification = np.dtype([("GP_SC_ID", ">i2"),
+                                   ("spectral_channel_id", ">i1"),
+                                   ("segment_sequence_number", ">u2"),
+                                   ("planned_start_segment_number", ">u2"),
+                                   ("planned_end_segment_number", ">u2"),
+                                   ("data_field_representation", ">i1")])
 
-image_segment_line_quality = np.dtype([('line_number_in_grid', '>i4'),
-                                       ('line_mean_acquisition',
-                                        [('days', '>u2'),
-                                         ('milliseconds', '>u4')]),
-                                       ('line_validity', 'u1'),
-                                       ('line_radiometric_quality', 'u1'),
-                                       ('line_geometric_quality', 'u1')])
+image_segment_line_quality = np.dtype([("line_number_in_grid", ">i4"),
+                                       ("line_mean_acquisition",
+                                        [("days", ">u2"),
+                                         ("milliseconds", ">u4")]),
+                                       ("line_validity", "u1"),
+                                       ("line_radiometric_quality", "u1"),
+                                       ("line_geometric_quality", "u1")])
 
 msg_variable_length_headers = {
-    image_segment_line_quality: 'image_segment_line_quality'}
+    image_segment_line_quality: "image_segment_line_quality"}
 
-msg_text_headers = {image_data_function: 'image_data_function',
-                    annotation_header: 'annotation_header',
-                    ancillary_text: 'ancillary_text'}
+msg_text_headers = {image_data_function: "image_data_function",
+                    annotation_header: "annotation_header",
+                    ancillary_text: "ancillary_text"}
 
 msg_hdr_map = base_hdr_map.copy()
 msg_hdr_map.update({7: key_header,
@@ -287,23 +287,23 @@ msg_hdr_map.update({7: key_header,
                     })
 
 
-orbit_coef = np.dtype([('StartTime', time_cds_short),
-                       ('EndTime', time_cds_short),
-                       ('X', '>f8', (8, )),
-                       ('Y', '>f8', (8, )),
-                       ('Z', '>f8', (8, )),
-                       ('VX', '>f8', (8, )),
-                       ('VY', '>f8', (8, )),
-                       ('VZ', '>f8', (8, ))])
+orbit_coef = np.dtype([("StartTime", time_cds_short),
+                       ("EndTime", time_cds_short),
+                       ("X", ">f8", (8, )),
+                       ("Y", ">f8", (8, )),
+                       ("Z", ">f8", (8, )),
+                       ("VX", ">f8", (8, )),
+                       ("VY", ">f8", (8, )),
+                       ("VZ", ">f8", (8, ))])
 
-attitude_coef = np.dtype([('StartTime', time_cds_short),
-                          ('EndTime', time_cds_short),
-                          ('XofSpinAxis', '>f8', (8, )),
-                          ('YofSpinAxis', '>f8', (8, )),
-                          ('ZofSpinAxis', '>f8', (8, ))])
+attitude_coef = np.dtype([("StartTime", time_cds_short),
+                          ("EndTime", time_cds_short),
+                          ("XofSpinAxis", ">f8", (8, )),
+                          ("YofSpinAxis", ">f8", (8, )),
+                          ("ZofSpinAxis", ">f8", (8, ))])
 
-cuc_time = np.dtype([('coarse', 'u1', (4, )),
-                     ('fine', 'u1', (3, ))])
+cuc_time = np.dtype([("coarse", "u1", (4, )),
+                     ("fine", "u1", (3, ))])
 
 
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
@@ -328,7 +328,7 @@ class HRITMSGPrologueEpilogueBase(HRITFileHandler):
 class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT prologue reader."""
 
-    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+    def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
@@ -340,22 +340,22 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         self.prologue = {}
         self.read_prologue()
 
-        service = filename_info['service']
-        if service == '':
-            self.mda['service'] = '0DEG'
+        service = filename_info["service"]
+        if service == "":
+            self.mda["service"] = "0DEG"
         else:
-            self.mda['service'] = service
+            self.mda["service"] = service
 
     def read_prologue(self):
         """Read the prologue metadata."""
         with utils.generic_open(self.filename, mode="rb") as fp_:
-            fp_.seek(self.mda['total_header_length'])
+            fp_.seek(self.mda["total_header_length"])
             data = np.frombuffer(fp_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
             self.prologue.update(recarray2dict(data))
             try:
                 impf = np.frombuffer(fp_.read(impf_configuration.itemsize), dtype=impf_configuration, count=1)[0]
             except ValueError:
-                logger.info('No IMPF configuration field found in prologue.')
+                logger.info("No IMPF configuration field found in prologue.")
             else:
                 self.prologue.update(recarray2dict(impf))
 
@@ -368,8 +368,8 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         a, b = self.get_earth_radii()
-        poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
-            'Orbit']['OrbitPolynomial'])
+        poly_finder = OrbitPolynomialFinder(self.prologue["SatelliteStatus"][
+            "Orbit"]["OrbitPolynomial"])
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.observation_start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
@@ -385,10 +385,10 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             Equatorial radius, polar radius [m]
 
         """
-        earth_model = self.prologue['GeometricProcessing']['EarthModel']
-        a = earth_model['EquatorialRadius'] * 1000
-        b = (earth_model['NorthPolarRadius'] +
-             earth_model['SouthPolarRadius']) / 2.0 * 1000
+        earth_model = self.prologue["GeometricProcessing"]["EarthModel"]
+        a = earth_model["EquatorialRadius"] * 1000
+        b = (earth_model["NorthPolarRadius"] +
+             earth_model["SouthPolarRadius"]) / 2.0 * 1000
         return a, b
 
     def reduce(self, max_size):
@@ -399,7 +399,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT epilogue reader."""
 
-    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+    def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
@@ -411,16 +411,16 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
         self.epilogue = {}
         self.read_epilogue()
 
-        service = filename_info['service']
-        if service == '':
-            self.mda['service'] = '0DEG'
+        service = filename_info["service"]
+        if service == "":
+            self.mda["service"] = "0DEG"
         else:
-            self.mda['service'] = service
+            self.mda["service"] = service
 
     def read_epilogue(self):
         """Read the epilogue metadata."""
         with utils.generic_open(self.filename, mode="rb") as fp_:
-            fp_.seek(self.mda['total_header_length'])
+            fp_.seek(self.mda["total_header_length"])
             data = np.frombuffer(fp_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
@@ -454,7 +454,7 @@ class HRITMSGFileHandler(HRITFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue, calib_mode='nominal',
+                 prologue, epilogue, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=100, fill_hrv=True,
                  mask_bad_quality_scan_lines=True):
@@ -480,27 +480,27 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _get_header(self):
         """Read the header info, and fill the metadata dictionary."""
-        earth_model = self.prologue['GeometricProcessing']['EarthModel']
-        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
+        earth_model = self.prologue["GeometricProcessing"]["EarthModel"]
+        self.mda["offset_corrected"] = earth_model["TypeOfEarthModel"] == 2
 
         # Projection
         a, b = self.prologue_.get_earth_radii()
-        self.mda['projection_parameters']['a'] = a
-        self.mda['projection_parameters']['b'] = b
-        ssp = self.prologue['ImageDescription'][
-            'ProjectionDescription']['LongitudeOfSSP']
-        self.mda['projection_parameters']['SSP_longitude'] = ssp
-        self.mda['projection_parameters']['SSP_latitude'] = 0.0
+        self.mda["projection_parameters"]["a"] = a
+        self.mda["projection_parameters"]["b"] = b
+        ssp = self.prologue["ImageDescription"][
+            "ProjectionDescription"]["LongitudeOfSSP"]
+        self.mda["projection_parameters"]["SSP_longitude"] = ssp
+        self.mda["projection_parameters"]["SSP_latitude"] = 0.0
 
         # Orbital parameters
-        self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
-            'SatelliteDefinition']['NominalLongitude']
-        self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda["orbital_parameters"]["satellite_nominal_longitude"] = self.prologue["SatelliteStatus"][
+            "SatelliteDefinition"]["NominalLongitude"]
+        self.mda["orbital_parameters"]["satellite_nominal_latitude"] = 0.0
         try:
             actual_lon, actual_lat, actual_alt = self.prologue_.satpos
-            self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
-            self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
-            self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
+            self.mda["orbital_parameters"]["satellite_actual_longitude"] = actual_lon
+            self.mda["orbital_parameters"]["satellite_actual_latitude"] = actual_lat
+            self.mda["orbital_parameters"]["satellite_actual_altitude"] = actual_alt
         except NoValidOrbitParams as err:
             logger.warning(err)
 
@@ -508,46 +508,46 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteId"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
-        self.mda['platform_name'] = self.platform_name
-        service = self._filename_info['service']
-        if service == '':
-            self.mda['service'] = '0DEG'
+        self.mda["platform_name"] = self.platform_name
+        service = self._filename_info["service"]
+        if service == "":
+            self.mda["service"] = "0DEG"
         else:
-            self.mda['service'] = service
-        self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
+            self.mda["service"] = service
+        self.channel_name = CHANNEL_NAMES[self.mda["spectral_channel_id"]]
 
     @property
     def _repeat_cycle_duration(self):
         """Get repeat cycle duration from epilogue."""
-        if self.epilogue['ImageProductionStats']['ActualScanningSummary']['ReducedScan'] == 1:
+        if self.epilogue["ImageProductionStats"]["ActualScanningSummary"]["ReducedScan"] == 1:
             return 5
         return REPEAT_CYCLE_DURATION
 
     @property
     def nominal_start_time(self):
         """Get the start time and round it according to scan law."""
-        tm = self.prologue['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        tm = self.prologue["ImageAcquisition"][
+            "PlannedAcquisitionTime"]["TrueRepeatCycleStart"]
         return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Get the end time and round it according to scan law."""
-        tm = self.prologue['ImageAcquisition'][
-            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+        tm = self.prologue["ImageAcquisition"][
+            "PlannedAcquisitionTime"]["PlannedRepeatCycleEnd"]
         return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return self.epilogue['ImageProductionStats'][
-            'ActualScanningSummary']['ForwardScanStart']
+        return self.epilogue["ImageProductionStats"][
+            "ActualScanningSummary"]["ForwardScanStart"]
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return self.epilogue['ImageProductionStats'][
-            'ActualScanningSummary']['ForwardScanEnd']
+        return self.epilogue["ImageProductionStats"][
+            "ActualScanningSummary"]["ForwardScanEnd"]
 
     @property
     def start_time(self):
@@ -572,7 +572,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         """
         aex = get_area_extent(pdict)
 
-        if not self.mda['offset_corrected']:
+        if not self.mda["offset_corrected"]:
             # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
             # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed, and you
             # dragged the image to S-E until coastlines and data area aligned correctly.
@@ -589,80 +589,80 @@ class HRITMSGFileHandler(HRITFileHandler):
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
         # Common parameters for both HRV and other channels
-        nlines = int(self.mda['number_of_lines'])
-        loff = np.float32(self.mda['loff'])
+        nlines = int(self.mda["number_of_lines"])
+        loff = np.float32(self.mda["loff"])
         pdict = dict()
-        pdict['cfac'] = np.int32(self.mda['cfac'])
-        pdict['lfac'] = np.int32(self.mda['lfac'])
-        pdict['coff'] = np.float32(self.mda['coff'])
+        pdict["cfac"] = np.int32(self.mda["cfac"])
+        pdict["lfac"] = np.int32(self.mda["lfac"])
+        pdict["coff"] = np.float32(self.mda["coff"])
 
-        pdict['a'] = self.mda['projection_parameters']['a']
-        pdict['b'] = self.mda['projection_parameters']['b']
-        pdict['h'] = self.mda['projection_parameters']['h']
-        pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
+        pdict["a"] = self.mda["projection_parameters"]["a"]
+        pdict["b"] = self.mda["projection_parameters"]["b"]
+        pdict["h"] = self.mda["projection_parameters"]["h"]
+        pdict["ssp_lon"] = self.mda["projection_parameters"]["SSP_longitude"]
 
-        pdict['nlines'] = nlines
-        pdict['ncols'] = int(self.mda['number_of_columns'])
-        if (self.prologue['ImageDescription']['Level15ImageProduction']
-                         ['ImageProcDirection'] == 0):
-            pdict['scandir'] = 'N2S'
+        pdict["nlines"] = nlines
+        pdict["ncols"] = int(self.mda["number_of_columns"])
+        if (self.prologue["ImageDescription"]["Level15ImageProduction"]
+                         ["ImageProcDirection"] == 0):
+            pdict["scandir"] = "N2S"
         else:
-            pdict['scandir'] = 'S2N'
+            pdict["scandir"] = "S2N"
 
-        area_naming_input_dict = {'platform_name': 'msg',
-                                  'instrument_name': 'seviri',
-                                  'resolution': int(dsid['resolution'])
+        area_naming_input_dict = {"platform_name": "msg",
+                                  "instrument_name": "seviri",
+                                  "resolution": int(dsid["resolution"])
                                   }
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+                                            **get_service_mode("seviri", pdict["ssp_lon"])})
 
         # Compute area definition for non-HRV channels:
-        if dsid['name'] != 'HRV':
-            pdict['loff'] = loff - nlines
+        if dsid["name"] != "HRV":
+            pdict["loff"] = loff - nlines
             aex = self._get_area_extent(pdict)
-            pdict['a_name'] = area_naming['area_id']
-            pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = ""
+            pdict["a_name"] = area_naming["area_id"]
+            pdict["a_desc"] = area_naming["description"]
+            pdict["p_id"] = ""
             area = get_area_definition(pdict, aex)
             self.area = area
             return self.area
 
-        segment_number = self.mda['segment_sequence_number']
+        segment_number = self.mda["segment_sequence_number"]
 
         current_first_line = ((segment_number -
-                               self.mda['planned_start_segment_number'])
-                              * pdict['nlines'])
+                               self.mda["planned_start_segment_number"])
+                              * pdict["nlines"])
 
         # Or, if we are processing HRV:
-        pdict['a_name'] = area_naming['area_id']
-        pdict['p_id'] = ""
-        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
+        pdict["a_name"] = area_naming["area_id"]
+        pdict["p_id"] = ""
+        bounds = self.epilogue["ImageProductionStats"]["ActualL15CoverageHRV"].copy()
         if self.fill_hrv:
-            bounds['UpperEastColumnActual'] = 1
-            bounds['UpperWestColumnActual'] = HRV_NUM_COLUMNS
-            bounds['LowerEastColumnActual'] = 1
-            bounds['LowerWestColumnActual'] = HRV_NUM_COLUMNS
-            pdict['ncols'] = HRV_NUM_COLUMNS
+            bounds["UpperEastColumnActual"] = 1
+            bounds["UpperWestColumnActual"] = HRV_NUM_COLUMNS
+            bounds["LowerEastColumnActual"] = 1
+            bounds["LowerWestColumnActual"] = HRV_NUM_COLUMNS
+            pdict["ncols"] = HRV_NUM_COLUMNS
 
         upper_south_line = bounds[
-            'LowerNorthLineActual'] - current_first_line - 1
-        upper_south_line = min(max(upper_south_line, 0), pdict['nlines'])
-        lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
-        upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
+            "LowerNorthLineActual"] - current_first_line - 1
+        upper_south_line = min(max(upper_south_line, 0), pdict["nlines"])
+        lower_coff = (5566 - bounds["LowerEastColumnActual"] + 1)
+        upper_coff = (5566 - bounds["UpperEastColumnActual"] + 1)
 
         # First we look at the lower window
-        pdict['nlines'] = upper_south_line
-        pdict['loff'] = loff - upper_south_line
-        pdict['coff'] = lower_coff
-        pdict['a_desc'] = area_naming['description']
+        pdict["nlines"] = upper_south_line
+        pdict["loff"] = loff - upper_south_line
+        pdict["coff"] = lower_coff
+        pdict["a_desc"] = area_naming["description"]
         lower_area_extent = self._get_area_extent(pdict)
         lower_area = get_area_definition(pdict, lower_area_extent)
 
         # Now the upper window
-        pdict['nlines'] = nlines - upper_south_line
-        pdict['loff'] = loff - pdict['nlines'] - upper_south_line
-        pdict['coff'] = upper_coff
-        pdict['a_desc'] = area_naming['description']
+        pdict["nlines"] = nlines - upper_south_line
+        pdict["loff"] = loff - pdict["nlines"] - upper_south_line
+        pdict["coff"] = upper_coff
+        pdict["a_desc"] = area_naming["description"]
         upper_area_extent = self._get_area_extent(pdict)
         upper_area = get_area_definition(pdict, upper_area_extent)
 
@@ -674,13 +674,13 @@ class HRITMSGFileHandler(HRITFileHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key['calibration'])
+        res = self.calibrate(res, key["calibration"])
 
-        is_calibration = key['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        is_calibration = key["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
         if is_calibration and self.mask_bad_quality_scan_lines:  # noqa: E129
             res = self._mask_bad_quality(res)
 
-        if key['name'] == 'HRV' and self.fill_hrv:
+        if key["name"] == "HRV" and self.fill_hrv:
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
         self._add_scanline_acq_time(res)
@@ -688,17 +688,17 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def pad_hrv_data(self, res):
         """Add empty pixels around the HRV."""
-        logger.debug('Padding HRV data to full disk')
-        nlines = int(self.mda['number_of_lines'])
+        logger.debug("Padding HRV data to full disk")
+        nlines = int(self.mda["number_of_lines"])
 
-        segment_number = self.mda['segment_sequence_number']
+        segment_number = self.mda["segment_sequence_number"]
 
         current_first_line = (segment_number
-                              - self.mda['planned_start_segment_number']) * nlines
-        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+                              - self.mda["planned_start_segment_number"]) * nlines
+        bounds = self.epilogue["ImageProductionStats"]["ActualL15CoverageHRV"]
 
         upper_south_line = bounds[
-          'LowerNorthLineActual'] - current_first_line - 1
+          "LowerNorthLineActual"] - current_first_line - 1
         upper_south_line = min(max(upper_south_line, 0), nlines)
 
         data_list = list()
@@ -706,18 +706,18 @@ class HRITMSGFileHandler(HRITFileHandler):
             # we have some of the lower window
             data_lower = pad_data_horizontally(res[:upper_south_line, :].data,
                                                (upper_south_line, HRV_NUM_COLUMNS),
-                                               bounds['LowerEastColumnActual'],
-                                               bounds['LowerWestColumnActual'])
+                                               bounds["LowerEastColumnActual"],
+                                               bounds["LowerWestColumnActual"])
             data_list.append(data_lower)
 
         if upper_south_line < nlines:
             # we have some of the upper window
             data_upper = pad_data_horizontally(res[upper_south_line:, :].data,
                                                (nlines - upper_south_line, HRV_NUM_COLUMNS),
-                                               bounds['UpperEastColumnActual'],
-                                               bounds['UpperWestColumnActual'])
+                                               bounds["UpperEastColumnActual"],
+                                               bounds["UpperWestColumnActual"])
             data_list.append(data_upper)
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'), attrs=res.attrs.copy())
+        return xr.DataArray(da.vstack(data_list), dims=("y", "x"), attrs=res.attrs.copy())
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -733,9 +733,9 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
-        line_validity = self.mda['image_segment_line_quality']['line_validity']
-        line_radiometric_quality = self.mda['image_segment_line_quality']['line_radiometric_quality']
-        line_geometric_quality = self.mda['image_segment_line_quality']['line_geometric_quality']
+        line_validity = self.mda["image_segment_line_quality"]["line_validity"]
+        line_radiometric_quality = self.mda["image_segment_line_quality"]["line_radiometric_quality"]
+        line_geometric_quality = self.mda["image_segment_line_quality"]["line_geometric_quality"]
         data = mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality)
         return data
 
@@ -743,7 +743,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Compile raw metadata to be included in the dataset attributes."""
         # Metadata from segment header (excluding items which vary among the different segments)
         raw_mda = copy.deepcopy(self.mda)
-        for key in ('image_segment_line_quality', 'segment_sequence_number', 'annotation_header', 'loff'):
+        for key in ("image_segment_line_quality", "segment_sequence_number", "annotation_header", "loff"):
             raw_mda.pop(key, None)
 
         # Metadata from prologue and epilogue (large arrays removed)
@@ -754,50 +754,50 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _add_scanline_acq_time(self, dataset):
         """Add scanline acquisition time to the given dataset."""
-        tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
-        acq_time = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        tline = self.mda["image_segment_line_quality"]["line_mean_acquisition"]
+        acq_time = get_cds_time(days=tline["days"], msecs=tline["milliseconds"])
         add_scanline_acq_time(dataset, acq_time)
 
     def _update_attrs(self, res, info):
         """Update dataset attributes."""
-        res.attrs['units'] = info['units']
-        res.attrs['wavelength'] = info['wavelength']
-        res.attrs['standard_name'] = info['standard_name']
-        res.attrs['platform_name'] = self.platform_name
-        res.attrs['sensor'] = 'seviri'
-        res.attrs['nominal_start_time'] = self.nominal_start_time,
-        res.attrs['nominal_end_time'] = self.nominal_end_time,
-        res.attrs['time_parameters'] = {
-            'nominal_start_time': self.nominal_start_time,
-            'nominal_end_time': self.nominal_end_time,
-            'observation_start_time': self.observation_start_time,
-            'observation_end_time': self.observation_end_time,
+        res.attrs["units"] = info["units"]
+        res.attrs["wavelength"] = info["wavelength"]
+        res.attrs["standard_name"] = info["standard_name"]
+        res.attrs["platform_name"] = self.platform_name
+        res.attrs["sensor"] = "seviri"
+        res.attrs["nominal_start_time"] = self.nominal_start_time,
+        res.attrs["nominal_end_time"] = self.nominal_end_time,
+        res.attrs["time_parameters"] = {
+            "nominal_start_time": self.nominal_start_time,
+            "nominal_end_time": self.nominal_end_time,
+            "observation_start_time": self.observation_start_time,
+            "observation_end_time": self.observation_end_time,
             }
-        res.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
-            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
-            'projection_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
-        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+        res.attrs["orbital_parameters"] = {
+            "projection_longitude": self.mda["projection_parameters"]["SSP_longitude"],
+            "projection_latitude": self.mda["projection_parameters"]["SSP_latitude"],
+            "projection_altitude": self.mda["projection_parameters"]["h"]}
+        res.attrs["orbital_parameters"].update(self.mda["orbital_parameters"])
+        res.attrs["georef_offset_corrected"] = self.mda["offset_corrected"]
         if self.include_raw_metadata:
-            res.attrs['raw_metadata'] = self._get_raw_mda()
+            res.attrs["raw_metadata"] = self._get_raw_mda()
 
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
-        band_idx = self.mda['spectral_channel_id'] - 1
+        band_idx = self.mda["spectral_channel_id"] - 1
         coefs_nominal = self.prologue["RadiometricProcessing"][
             "Level15ImageCalibration"]
-        coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
-        radiance_types = self.prologue['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing']
+        coefs_gsics = self.prologue["RadiometricProcessing"]["MPEFCalFeedback"]
+        radiance_types = self.prologue["ImageDescription"][
+                "Level15ImageProduction"]["PlannedChanProcessing"]
         return create_coef_dict(
             coefs_nominal=(
-                coefs_nominal['CalSlope'][band_idx],
-                coefs_nominal['CalOffset'][band_idx]
+                coefs_nominal["CalSlope"][band_idx],
+                coefs_nominal["CalOffset"][band_idx]
             ),
             coefs_gsics=(
-                coefs_gsics['GSICSCalCoeff'][band_idx],
-                coefs_gsics['GSICSOffsetCount'][band_idx]
+                coefs_gsics["GSICSCalCoeff"][band_idx],
+                coefs_gsics["GSICSOffsetCount"][band_idx]
             ),
             ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
             radiance_type=radiance_types[band_idx]
@@ -808,7 +808,7 @@ def pad_data(data, final_size, east_bound, west_bound):
     """Pad the data given east and west bounds and the desired size."""
     nlines = final_size[0]
     if west_bound - east_bound != data.shape[1] - 1:
-        raise IndexError('East and west bounds do not match data shape')
+        raise IndexError("East and west bounds do not match data shape")
     padding_east = da.zeros((nlines, east_bound - 1),
                             dtype=data.dtype, chunks=CHUNK_SIZE)
     padding_west = da.zeros((nlines, (final_size[1] - west_bound)),

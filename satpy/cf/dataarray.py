@@ -32,7 +32,7 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
             new_name = numeric_name_prefix + original_name
         else:
             warnings.warn(
-                f'Invalid NetCDF dataset name: {original_name} starts with a digit.',
+                f"Invalid NetCDF dataset name: {original_name} starts with a digit.",
                 stacklevel=5
             )
             new_name = original_name  # occurs when numeric_name_prefix = '', None or False
@@ -45,13 +45,13 @@ def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name
     """Change the DataArray name by prepending numeric_name_prefix if the name is a digit."""
     original_name = None
     dataarray = dataarray.copy()
-    if 'name' in dataarray.attrs:
-        original_name = dataarray.attrs.pop('name')
+    if "name" in dataarray.attrs:
+        original_name = dataarray.attrs.pop("name")
         original_name, new_name = _handle_dataarray_name(original_name, numeric_name_prefix)
         dataarray = dataarray.rename(new_name)
 
     if include_orig_name and numeric_name_prefix and original_name and original_name != new_name:
-        dataarray.attrs['original_name'] = original_name
+        dataarray.attrs["original_name"] = original_name
 
     return dataarray
 
@@ -61,7 +61,7 @@ def make_cf_dataarray(dataarray,
                       flatten_attrs=False,
                       exclude_attrs=None,
                       include_orig_name=True,
-                      numeric_name_prefix='CHANNEL_'):
+                      numeric_name_prefix="CHANNEL_"):
     """Make the xr.DataArray CF-compliant.
 
     Parameters
@@ -96,6 +96,6 @@ def make_cf_dataarray(dataarray,
                                           flatten_attrs=flatten_attrs,
                                           exclude_attrs=exclude_attrs)
     dataarray = add_xy_coords_attrs(dataarray)
-    if 'time' in dataarray.coords:
+    if "time" in dataarray.coords:
         dataarray = set_cf_time_info(dataarray, epoch=epoch)
     return dataarray

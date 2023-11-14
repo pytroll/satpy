@@ -25,8 +25,8 @@ def add_xy_coords_attrs(dataarray):
         dataarray = _add_xy_projected_coords_attrs(dataarray)
     else:
         dataarray = _add_xy_geographic_coords_attrs(dataarray)
-    if 'crs' in dataarray.coords:
-        dataarray = dataarray.drop_vars('crs')
+    if "crs" in dataarray.coords:
+        dataarray = dataarray.drop_vars("crs")
     return dataarray
 
 
@@ -67,25 +67,25 @@ def _try_get_units_from_coords(dataarray):
                 return dataarray.coords[c].attrs["units"]
 
 
-def _add_xy_projected_coords_attrs(dataarray, x='x', y='y'):
+def _add_xy_projected_coords_attrs(dataarray, x="x", y="y"):
     """Add relevant attributes to x, y coordinates of a projected CRS."""
     if x in dataarray.coords:
-        dataarray[x].attrs['standard_name'] = 'projection_x_coordinate'
-        dataarray[x].attrs['units'] = 'm'
+        dataarray[x].attrs["standard_name"] = "projection_x_coordinate"
+        dataarray[x].attrs["units"] = "m"
     if y in dataarray.coords:
-        dataarray[y].attrs['standard_name'] = 'projection_y_coordinate'
-        dataarray[y].attrs['units'] = 'm'
+        dataarray[y].attrs["standard_name"] = "projection_y_coordinate"
+        dataarray[y].attrs["units"] = "m"
     return dataarray
 
 
-def _add_xy_geographic_coords_attrs(dataarray, x='x', y='y'):
+def _add_xy_geographic_coords_attrs(dataarray, x="x", y="y"):
     """Add relevant attributes to x, y coordinates of a geographic CRS."""
     if x in dataarray.coords:
-        dataarray[x].attrs['standard_name'] = 'longitude'
-        dataarray[x].attrs['units'] = 'degrees_east'
+        dataarray[x].attrs["standard_name"] = "longitude"
+        dataarray[x].attrs["units"] = "degrees_east"
     if y in dataarray.coords:
-        dataarray[y].attrs['standard_name'] = 'latitude'
-        dataarray[y].attrs['units'] = 'degrees_north'
+        dataarray[y].attrs["standard_name"] = "latitude"
+        dataarray[y].attrs["units"] = "degrees_north"
     return dataarray
 
 
@@ -100,19 +100,19 @@ def set_cf_time_info(dataarray, epoch):
         - the time coordinate has size 1
 
     """
-    dataarray['time'].encoding['units'] = epoch
-    dataarray['time'].attrs['standard_name'] = 'time'
-    dataarray['time'].attrs.pop('bounds', None)
+    dataarray["time"].encoding["units"] = epoch
+    dataarray["time"].attrs["standard_name"] = "time"
+    dataarray["time"].attrs.pop("bounds", None)
 
-    if 'time' not in dataarray.dims and dataarray["time"].size not in dataarray.shape:
-        dataarray = dataarray.expand_dims('time')
+    if "time" not in dataarray.dims and dataarray["time"].size not in dataarray.shape:
+        dataarray = dataarray.expand_dims("time")
 
     return dataarray
 
 
 def _is_lon_or_lat_dataarray(dataarray):
     """Check if the DataArray represents the latitude or longitude coordinate."""
-    if 'standard_name' in dataarray.attrs and dataarray.attrs['standard_name'] in ['longitude', 'latitude']:
+    if "standard_name" in dataarray.attrs and dataarray.attrs["standard_name"] in ["longitude", "latitude"]:
         return True
     return False
 
@@ -170,7 +170,7 @@ def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
                 )
             for name, dataarray in dict_dataarrays.items():
                 if coord_name in dataarray.coords:
-                    rename = {coord_name: '{}_{}'.format(name, coord_name)}
+                    rename = {coord_name: "{}_{}".format(name, coord_name)}
                     new_dict_dataarrays[name] = new_dict_dataarrays[name].rename(rename)
 
     return new_dict_dataarrays
@@ -181,15 +181,15 @@ def check_unique_projection_coords(dict_dataarrays):
     unique_x = set()
     unique_y = set()
     for dataarray in dict_dataarrays.values():
-        if 'y' in dataarray.dims:
-            token_y = tokenize(dataarray['y'].data)
+        if "y" in dataarray.dims:
+            token_y = tokenize(dataarray["y"].data)
             unique_y.add(token_y)
-        if 'x' in dataarray.dims:
-            token_x = tokenize(dataarray['x'].data)
+        if "x" in dataarray.dims:
+            token_x = tokenize(dataarray["x"].data)
             unique_x.add(token_x)
     if len(unique_x) > 1 or len(unique_y) > 1:
-        raise ValueError('Datasets to be saved in one file (or one group) must have identical projection coordinates. '
-                         'Please group them by area or save them in separate files.')
+        raise ValueError("Datasets to be saved in one file (or one group) must have identical projection coordinates. "
+                         "Please group them by area or save them in separate files.")
 
 
 def add_coordinates_attrs_coords(dict_dataarrays):
@@ -220,15 +220,15 @@ def add_coordinates_attrs_coords(dict_dataarrays):
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        dataarray.attrs.pop('coordinates', None)
+        dataarray.attrs.pop("coordinates", None)
     return dict_dataarrays
 
 
 def _get_coordinates_list(dataarray):
     """Return a list with the coordinates names specified in the 'coordinates' attribute."""
-    declared_coordinates = dataarray.attrs.get('coordinates', [])
+    declared_coordinates = dataarray.attrs.get("coordinates", [])
     if isinstance(declared_coordinates, str):
-        declared_coordinates = declared_coordinates.split(' ')
+        declared_coordinates = declared_coordinates.split(" ")
     return declared_coordinates
 
 
@@ -244,9 +244,9 @@ def add_time_bounds_dimension(ds, time="time"):
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    ds['time_bnds'] = xr.DataArray([[np.datetime64(start_time),
+    ds["time_bnds"] = xr.DataArray([[np.datetime64(start_time),
                                      np.datetime64(end_time)]],
-                                   dims=['time', 'bnds_1d'])
-    ds[time].attrs['bounds'] = "time_bnds"
-    ds[time].attrs['standard_name'] = "time"
+                                   dims=["time", "bnds_1d"])
+    ds[time].attrs["bounds"] = "time_bnds"
+    ds[time].attrs["standard_name"] = "time"
     return ds

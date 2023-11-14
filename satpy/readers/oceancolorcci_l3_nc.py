@@ -46,48 +46,48 @@ class OCCCIFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return self._parse_datetime(self['/attr/time_coverage_start'])
+        return self._parse_datetime(self["/attr/time_coverage_start"])
 
     @property
     def end_time(self):
         """Get the end time."""
-        return self._parse_datetime(self['/attr/time_coverage_end'])
+        return self._parse_datetime(self["/attr/time_coverage_end"])
 
     @property
     def composite_period(self):
         """Determine composite period from filename information."""
-        comp1 = self.filename_info['composite_period_1']
-        comp2 = self.filename_info['composite_period_2']
-        if comp2 == 'MONTHLY' and comp1 == "1M":
-            return 'monthly'
-        elif comp1 == '1D':
-            return 'daily'
-        elif comp1 == '5D':
-            return '5-day'
-        elif comp1 == '8D':
-            return '8-day'
+        comp1 = self.filename_info["composite_period_1"]
+        comp2 = self.filename_info["composite_period_2"]
+        if comp2 == "MONTHLY" and comp1 == "1M":
+            return "monthly"
+        elif comp1 == "1D":
+            return "daily"
+        elif comp1 == "5D":
+            return "5-day"
+        elif comp1 == "8D":
+            return "8-day"
         else:
             raise ValueError(f"Unknown data compositing period: {comp1}_{comp2}")
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""
-        dataset.attrs.update(self[dataset_info['nc_key']].attrs)
+        dataset.attrs.update(self[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
-        dataset.attrs['sensor'] = 'merged'
-        dataset.attrs['composite_period'] = self.composite_period
+        dataset.attrs["sensor"] = "merged"
+        dataset.attrs["composite_period"] = self.composite_period
         # remove attributes from original file which don't apply anymore
         dataset.attrs.pop("nc_key")
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        dataset = da.squeeze(self[ds_info['nc_key']])
-        if '_FillValue' in dataset.attrs:
-            dataset.data = da.where(dataset.data == dataset.attrs['_FillValue'], np.nan, dataset.data)
+        dataset = da.squeeze(self[ds_info["nc_key"]])
+        if "_FillValue" in dataset.attrs:
+            dataset.data = da.where(dataset.data == dataset.attrs["_FillValue"], np.nan, dataset.data)
         self._update_attrs(dataset, ds_info)
-        if 'lat' in dataset.dims:
-            dataset = dataset.rename({'lat': 'y'})
-        if 'lon' in dataset.dims:
-            dataset = dataset.rename({'lon': 'x'})
+        if "lat" in dataset.dims:
+            dataset = dataset.rename({"lat": "y"})
+        if "lon" in dataset.dims:
+            dataset = dataset.rename({"lon": "x"})
         return dataset
 
     def get_area_def(self, dsid):
@@ -96,23 +96,23 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         There is no area definition in the file itself, so we have to compute it
         from the metadata, which specifies the area extent and pixel resolution.
         """
-        proj_param = 'EPSG:4326'
+        proj_param = "EPSG:4326"
 
-        lon_res = float(self['/attr/geospatial_lon_resolution'])
-        lat_res = float(self['/attr/geospatial_lat_resolution'])
+        lon_res = float(self["/attr/geospatial_lon_resolution"])
+        lat_res = float(self["/attr/geospatial_lat_resolution"])
 
-        min_lon = self['/attr/geospatial_lon_min']
-        max_lon = self['/attr/geospatial_lon_max']
-        min_lat = self['/attr/geospatial_lat_min']
-        max_lat = self['/attr/geospatial_lat_max']
+        min_lon = self["/attr/geospatial_lon_min"]
+        max_lon = self["/attr/geospatial_lon_max"]
+        min_lat = self["/attr/geospatial_lat_min"]
+        max_lat = self["/attr/geospatial_lat_max"]
 
         area_extent = (min_lon, min_lat, max_lon, max_lat)
         lon_size = np.round((max_lon - min_lon) / lon_res).astype(int)
         lat_size = np.round((max_lat - min_lat) / lat_res).astype(int)
 
-        area = geometry.AreaDefinition('gridded_occci',
-                                       'Full globe gridded area',
-                                       'longlat',
+        area = geometry.AreaDefinition("gridded_occci",
+                                       "Full globe gridded area",
+                                       "longlat",
                                        proj_param,
                                        lon_size,
                                        lat_size,

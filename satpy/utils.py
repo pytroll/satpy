@@ -132,12 +132,12 @@ def logging_on(level=logging.WARNING):
         console = logging.StreamHandler()
         console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
                                                " %(name)s] %(message)s",
-                                               '%Y-%m-%d %H:%M:%S'))
+                                               "%Y-%m-%d %H:%M:%S"))
         console.setLevel(level)
-        logging.getLogger('').addHandler(console)
+        logging.getLogger("").addHandler(console)
         _is_logging_on = True
 
-    log = logging.getLogger('')
+    log = logging.getLogger("")
     log.setLevel(level)
     for h in log.handlers:
         h.setLevel(level)
@@ -145,13 +145,13 @@ def logging_on(level=logging.WARNING):
 
 def logging_off():
     """Turn logging off."""
-    logging.getLogger('').handlers = [logging.NullHandler()]
+    logging.getLogger("").handlers = [logging.NullHandler()]
 
 
 def get_logger(name):
     """Return logger with null handler added if needed."""
-    if not hasattr(logging.Logger, 'trace'):
-        logging.addLevelName(TRACE_LEVEL, 'TRACE')
+    if not hasattr(logging.Logger, "trace"):
+        logging.addLevelName(TRACE_LEVEL, "TRACE")
 
         def trace(self, message, *args, **kwargs):
             if self.isEnabledFor(TRACE_LEVEL):
@@ -167,7 +167,7 @@ def get_logger(name):
 def in_ipynb():
     """Check if we are in a jupyter notebook."""
     try:
-        return 'ZMQ' in get_ipython().__class__.__name__
+        return "ZMQ" in get_ipython().__class__.__name__
     except NameError:
         return False
 
@@ -245,20 +245,20 @@ def proj_units_to_meters(proj_str):
     proj_parts = proj_str.split()
     new_parts = []
     for itm in proj_parts:
-        key, val = itm.split('=')
-        key = key.strip('+')
-        if key in ['a', 'b', 'h']:
+        key, val = itm.split("=")
+        key = key.strip("+")
+        if key in ["a", "b", "h"]:
             val = float(val)
             if val < 6e6:
                 val *= 1000.
-                val = '%.3f' % val
+                val = "%.3f" % val
 
-        if key == 'units' and val == 'km':
+        if key == "units" and val == "km":
             continue
 
-        new_parts.append('+%s=%s' % (key, val))
+        new_parts.append("+%s=%s" % (key, val))
 
-    return ' '.join(new_parts)
+    return " ".join(new_parts)
 
 
 def _get_sunz_corr_li_and_shibata(cos_zen):
@@ -373,9 +373,9 @@ def _get_sat_altitude(data_arr, key_prefixes):
     try:
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
-        alt = orb_params['projection_altitude']
+        alt = orb_params["projection_altitude"]
         warnings.warn(
-            'Actual satellite altitude not available, using projection altitude instead.',
+            "Actual satellite altitude not available, using projection altitude instead.",
             stacklevel=3
         )
     return alt
@@ -389,10 +389,10 @@ def _get_sat_lonlat(data_arr, key_prefixes):
         lon = _get_first_available_item(orb_params, lon_keys)
         lat = _get_first_available_item(orb_params, lat_keys)
     except KeyError:
-        lon = orb_params['projection_longitude']
-        lat = orb_params['projection_latitude']
+        lon = orb_params["projection_longitude"]
+        lat = orb_params["projection_latitude"]
         warnings.warn(
-            'Actual satellite lon/lat not available, using projection center instead.',
+            "Actual satellite lon/lat not available, using projection center instead.",
             stacklevel=3
         )
     return lon, lat
@@ -456,21 +456,21 @@ def _check_yaml_configs(configs, key):
     diagnostic = {}
     for i in configs:
         for fname in i:
-            msg = 'ok'
+            msg = "ok"
             res = None
-            with open(fname, 'r', encoding='utf-8') as stream:
+            with open(fname, "r", encoding="utf-8") as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     res = yaml.load(stream, Loader=BaseLoader)
-                    if err.context == 'while constructing a Python object':
+                    if err.context == "while constructing a Python object":
                         msg = err.problem
                     else:
-                        msg = 'error'
+                        msg = "error"
                 finally:
                     try:
-                        diagnostic[res[key]['name']] = msg
+                        diagnostic[res[key]["name"]] = msg
                     except (KeyError, TypeError):
                         # this object doesn't have a 'name'
                         pass
@@ -483,7 +483,7 @@ def _check_import(module_names):
     for module_name in module_names:
         try:
             __import__(module_name)
-            res = 'ok'
+            res = "ok"
         except ImportError as err:
             res = str(err)
         diagnostics[module_name] = res
@@ -505,24 +505,24 @@ def check_satpy(readers=None, writers=None, extras=None):
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
 
-    print('Readers')
-    print('=======')
-    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
-        print(reader + ': ', res)
-    print()
+    print("Readers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
+        print(reader + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
-    print('Writers')
-    print('=======')
-    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
-        print(writer + ': ', res)
-    print()
+    print("Writers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
+        print(writer + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
-    print('Extras')
-    print('======')
-    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    print("Extras")  # noqa: T201
+    print("======")  # noqa: T201
+    module_names = extras if extras is not None else ("cartopy", "geoviews")
     for module_name, res in sorted(_check_import(module_names).items()):
-        print(module_name + ': ', res)
-    print()
+        print(module_name + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
 
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
@@ -576,6 +576,25 @@ def ignore_invalid_float_warnings():
         yield
 
 
+@contextlib.contextmanager
+def ignore_pyproj_proj_warnings():
+    """Wrap operations that we know will produce a PROJ.4 precision warning.
+
+    Only to be used internally to Pyresample when we have no other choice but
+    to use PROJ.4 strings/dicts. For example, serialization to YAML or other
+    human-readable formats or testing the methods that produce the PROJ.4
+    versions of the CRS.
+
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            "You will likely lose important projection information",
+            UserWarning,
+        )
+        yield
+
+
 def get_chunk_size_limit(dtype=float):
     """Compute the chunk size limit in bytes given *dtype* (float by default).
 
@@ -621,7 +640,7 @@ def get_legacy_chunk_size():
 
 def _get_pytroll_chunk_size():
     try:
-        chunk_size = int(os.environ['PYTROLL_CHUNK_SIZE'])
+        chunk_size = int(os.environ["PYTROLL_CHUNK_SIZE"])
         warnings.warn(
             "The PYTROLL_CHUNK_SIZE environment variable is pending deprecation. "
             "You can use the dask config setting `array.chunk-size` (or the DASK_ARRAY__CHUNK_SIZE environment"
@@ -747,7 +766,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
             fs_files.append(f)
         elif isinstance(f, pathlib.Path):
             local_files.append(f)
-        elif urlparse(f).scheme in ('', 'file') or "\\" in f:
+        elif urlparse(f).scheme in ("", "file") or "\\" in f:
             local_files.append(f)
         else:
             remote_files.append(f)
@@ -788,7 +807,7 @@ def _get_storage_dictionary_options(reader_kwargs):
             # set base storage options if there are any
             storage_opt_dict[reader_name] = shared_storage_options.copy()
         if isinstance(rkwargs, dict) and "storage_options" in rkwargs:
-            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop('storage_options'))
+            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop("storage_options"))
     return storage_opt_dict
 
 

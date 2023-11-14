@@ -180,36 +180,36 @@ except ImportError:
 
 # Ensure that either netCDF4 or h5netcdf is available to avoid silent failure
 if netCDF4 is None and h5netcdf is None:
-    raise ImportError('Ensure that the netCDF4 or h5netcdf package is installed.')
+    raise ImportError("Ensure that the netCDF4 or h5netcdf package is installed.")
 
 
-CF_VERSION = 'CF-1.7'
+CF_VERSION = "CF-1.7"
 
 
 # Numpy datatypes compatible with all netCDF4 backends. ``np.str_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
-NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
-              np.dtype('int16'), np.dtype('uint16'),
-              np.dtype('int32'), np.dtype('uint32'),
-              np.dtype('int64'), np.dtype('uint64'),
-              np.dtype('float32'), np.dtype('float64'),
+NC4_DTYPES = [np.dtype("int8"), np.dtype("uint8"),
+              np.dtype("int16"), np.dtype("uint16"),
+              np.dtype("int32"), np.dtype("uint32"),
+              np.dtype("int64"), np.dtype("uint64"),
+              np.dtype("float32"), np.dtype("float64"),
               np.bytes_]
 
 # Unsigned and int64 isn't CF 1.7 compatible
 # Note: Unsigned and int64 are CF 1.9 compatible
-CF_DTYPES = [np.dtype('int8'),
-             np.dtype('int16'),
-             np.dtype('int32'),
-             np.dtype('float32'),
-             np.dtype('float64'),
+CF_DTYPES = [np.dtype("int8"),
+             np.dtype("int16"),
+             np.dtype("int32"),
+             np.dtype("float32"),
+             np.dtype("float64"),
              np.bytes_]
 
 
 def _sanitize_writer_kwargs(writer_kwargs):
     """Remove satpy-specific kwargs."""
     writer_kwargs = copy.deepcopy(writer_kwargs)
-    satpy_kwargs = ['overlay', 'decorate', 'config_files']
+    satpy_kwargs = ["overlay", "decorate", "config_files"]
     for kwarg in satpy_kwargs:
         writer_kwargs.pop(kwarg, None)
     return writer_kwargs
@@ -219,9 +219,9 @@ def _initialize_root_netcdf(filename, engine, header_attrs, to_netcdf_kwargs):
     """Initialize root empty netCDF."""
     root = xr.Dataset({}, attrs=header_attrs)
     init_nc_kwargs = to_netcdf_kwargs.copy()
-    init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
-    init_nc_kwargs.pop('unlimited_dims', None)
-    written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+    init_nc_kwargs.pop("encoding", None)  # No variables to be encoded at this point
+    init_nc_kwargs.pop("unlimited_dims", None)
+    written = [root.to_netcdf(filename, engine=engine, mode="w", **init_nc_kwargs)]
     return written
 
 
@@ -234,7 +234,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      include_orig_name=True, numeric_name_prefix="CHANNEL_", **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -273,7 +273,7 @@ class CFWriter(Writer):
         from satpy.cf.datasets import collect_cf_datasets
         from satpy.cf.encoding import update_encoding
 
-        logger.info('Saving datasets to NetCDF4/CF.')
+        logger.info("Saving datasets to NetCDF4/CF.")
         _check_backend_versions()
 
         # Define netCDF filename if not provided
@@ -327,7 +327,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None,
-              include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+              include_orig_name=True, numeric_name_prefix="CHANNEL_"):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -345,8 +345,8 @@ class CFWriter(Writer):
                 Prepend dataset name with this if starting with a digit
         """
         from satpy.cf.dataarray import make_cf_dataarray
-        warnings.warn('CFWriter.da2cf is deprecated.'
-                      'Use satpy.cf.dataarray.make_cf_dataarray instead.',
+        warnings.warn("CFWriter.da2cf is deprecated."
+                      "Use satpy.cf.dataarray.make_cf_dataarray instead.",
                       DeprecationWarning, stacklevel=3)
         return make_cf_dataarray(dataarray=dataarray,
                                  epoch=epoch,
@@ -360,8 +360,8 @@ class CFWriter(Writer):
         """Update encoding info (deprecated)."""
         from satpy.cf.encoding import update_encoding
 
-        warnings.warn('CFWriter.update_encoding is deprecated. '
-                      'Use satpy.cf.encoding.update_encoding instead.',
+        warnings.warn("CFWriter.update_encoding is deprecated. "
+                      "Use satpy.cf.encoding.update_encoding instead.",
                       DeprecationWarning, stacklevel=3)
         return update_encoding(dataset, to_netcdf_kwargs)
 

@@ -32,10 +32,10 @@ class TestCollectCfDataset:
         from satpy.cf.datasets import _collect_cf_dataset
 
         geos = AreaDefinition(
-            area_id='geos',
-            description='geos',
-            proj_id='geos',
-            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            area_id="geos",
+            description="geos",
+            proj_id="geos",
+            projection={"proj": "geos", "h": 35785831., "a": 6378169., "b": 6356583.8},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
 
@@ -46,26 +46,26 @@ class TestCollectCfDataset:
         time = [1, 2]
         tstart = datetime.datetime(2019, 4, 1, 12, 0)
         tend = datetime.datetime(2019, 4, 1, 12, 15)
-        list_dataarrays = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                        attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
-                           xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                        attrs={'name': 'var2', 'long_name': 'variable 2'})]
+        list_dataarrays = [xr.DataArray(data=data, dims=("y", "x"), coords={"y": y, "x": x, "acq_time": ("y", time)},
+                                        attrs={"name": "var1", "start_time": tstart, "end_time": tend, "area": geos}),
+                           xr.DataArray(data=data, dims=("y", "x"), coords={"y": y, "x": x, "acq_time": ("y", time)},
+                                        attrs={"name": "var2", "long_name": "variable 2"})]
 
         # Collect datasets
         ds = _collect_cf_dataset(list_dataarrays, include_lonlats=True)
 
         # Test results
         assert len(ds.keys()) == 3
-        assert set(ds.keys()) == {'var1', 'var2', 'geos'}
+        assert set(ds.keys()) == {"var1", "var2", "geos"}
 
-        da_var1 = ds['var1']
-        da_var2 = ds['var2']
-        assert da_var1.name == 'var1'
-        assert da_var1.attrs['grid_mapping'] == 'geos'
-        assert da_var1.attrs['long_name'] == 'var1'
+        da_var1 = ds["var1"]
+        da_var2 = ds["var2"]
+        assert da_var1.name == "var1"
+        assert da_var1.attrs["grid_mapping"] == "geos"
+        assert da_var1.attrs["long_name"] == "var1"
         # variable 2
-        assert 'grid_mapping' not in da_var2.attrs
-        assert da_var2.attrs['long_name'] == 'variable 2'
+        assert "grid_mapping" not in da_var2.attrs
+        assert da_var2.attrs["long_name"] == "variable 2"
 
     def test_collect_cf_dataset_with_latitude_named_lat(self):
         """Test collecting CF datasets with latitude named lat."""
@@ -75,37 +75,37 @@ class TestCollectCfDataset:
         y = [1, 2]
         x = [1, 2]
         geos = AreaDefinition(
-            area_id='geos',
-            description='geos',
-            proj_id='geos',
-            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            area_id="geos",
+            description="geos",
+            proj_id="geos",
+            projection={"proj": "geos", "h": 35785831., "a": 6378169., "b": 6356583.8},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
         datasets = {
-            'var1': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'var2': xr.DataArray(data=data,
-                                 dims=('y', 'x'),
-                                 coords={'y': y, 'x': x}),
-            'lat': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x}),
-            'lon': xr.DataArray(data=data,
-                                dims=('y', 'x'),
-                                coords={'y': y, 'x': x})}
-        datasets['lat'].attrs['standard_name'] = 'latitude'
-        datasets['var1'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['standard_name'] = 'dummy'
-        datasets['var2'].attrs['area'] = geos
-        datasets['var1'].attrs['area'] = geos
-        datasets['lat'].attrs['name'] = 'lat'
-        datasets['var1'].attrs['name'] = 'var1'
-        datasets['var2'].attrs['name'] = 'var2'
-        datasets['lon'].attrs['name'] = 'lon'
+            "var1": xr.DataArray(data=data,
+                                 dims=("y", "x"),
+                                 coords={"y": y, "x": x}),
+            "var2": xr.DataArray(data=data,
+                                 dims=("y", "x"),
+                                 coords={"y": y, "x": x}),
+            "lat": xr.DataArray(data=data,
+                                dims=("y", "x"),
+                                coords={"y": y, "x": x}),
+            "lon": xr.DataArray(data=data,
+                                dims=("y", "x"),
+                                coords={"y": y, "x": x})}
+        datasets["lat"].attrs["standard_name"] = "latitude"
+        datasets["var1"].attrs["standard_name"] = "dummy"
+        datasets["var2"].attrs["standard_name"] = "dummy"
+        datasets["var2"].attrs["area"] = geos
+        datasets["var1"].attrs["area"] = geos
+        datasets["lat"].attrs["name"] = "lat"
+        datasets["var1"].attrs["name"] = "var1"
+        datasets["var2"].attrs["name"] = "var2"
+        datasets["lon"].attrs["name"] = "lon"
 
         datasets_list = [datasets[key] for key in datasets.keys()]
-        datasets_list_no_latlon = [datasets[key] for key in ['var1', 'var2']]
+        datasets_list_no_latlon = [datasets[key] for key in ["var1", "var2"]]
 
         # Collect datasets
         ds = _collect_cf_dataset(datasets_list, include_lonlats=True)
@@ -113,13 +113,13 @@ class TestCollectCfDataset:
 
         # Test results
         assert len(ds.keys()) == 5
-        assert set(ds.keys()) == {'var1', 'var2', 'lon', 'lat', 'geos'}
+        assert set(ds.keys()) == {"var1", "var2", "lon", "lat", "geos"}
         with pytest.raises(KeyError):
-            ds['var1'].attrs["latitude"]
+            ds["var1"].attrs["latitude"]
         with pytest.raises(KeyError):
-            ds['var1'].attrs["longitude"]
-        assert ds2['var1']['latitude'].attrs['name'] == 'latitude'
-        assert ds2['var1']['longitude'].attrs['name'] == 'longitude'
+            ds["var1"].attrs["longitude"]
+        assert ds2["var1"]["latitude"].attrs["name"] == "latitude"
+        assert ds2["var1"]["longitude"].attrs["name"] == "longitude"
 
     def test_geographic_area_coords_attrs(self):
         """Test correct storage for area with lon/lat units."""

@@ -33,54 +33,54 @@ from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFE
 class TestSAFEGRD(unittest.TestCase):
     """Test the SAFE GRD file handler."""
 
-    @mock.patch('rasterio.open')
+    @mock.patch("rasterio.open")
     def setUp(self, mocked_rio_open):
         """Set up the test case."""
         from satpy.readers.sar_c_safe import SAFEGRD
-        filename_info = {'mission_id': 'S1A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0,
-                         'polarization': 'vv'}
-        filetype_info = 'bla'
+        filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": 0, "end_time": 0,
+                         "polarization": "vv"}
+        filetype_info = "bla"
         self.noisefh = mock.MagicMock()
-        self.noisefh.get_noise_correction.return_value = xr.DataArray(np.zeros((2, 2)), dims=['y', 'x'])
+        self.noisefh.get_noise_correction.return_value = xr.DataArray(np.zeros((2, 2)), dims=["y", "x"])
         self.calfh = mock.MagicMock()
         self.calfh.get_calibration_constant.return_value = 1
-        self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)), dims=['y', 'x'])
+        self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)), dims=["y", "x"])
         self.annotationfh = mock.MagicMock()
 
-        self.test_fh = SAFEGRD('S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/'
-                               's1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff',
+        self.test_fh = SAFEGRD("S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/"
+                               "s1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff",
                                filename_info, filetype_info, self.calfh, self.noisefh, self.annotationfh)
         self.mocked_rio_open = mocked_rio_open
 
     def test_instantiate(self):
         """Test initialization of file handlers."""
-        assert self.test_fh._polarization == 'vv'
+        assert self.test_fh._polarization == "vv"
         assert self.test_fh.calibration == self.calfh
         assert self.test_fh.noise == self.noisefh
         self.mocked_rio_open.assert_called()
 
-    @mock.patch('xarray.open_dataset')
+    @mock.patch("xarray.open_dataset")
     def test_read_calibrated_natural(self, mocked_xarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
         mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
                                                                                                         [2, 3]])),
-                                                                                dims=['y', 'x'])
+                                                                                dims=["y", "x"])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                  calibration=calibration, quantity='natural'), info=dict())
+                                                  calibration=calibration, quantity="natural"), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
 
-    @mock.patch('xarray.open_dataset')
+    @mock.patch("xarray.open_dataset")
     def test_read_calibrated_dB(self, mocked_xarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
         mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
                                                                                                         [2, 3]])),
-                                                                                dims=['y', 'x'])
+                                                                                dims=["y", "x"])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                  calibration=calibration, quantity='dB'), info=dict())
+                                                  calibration=calibration, quantity="dB"), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])
 
     def test_read_lon_lats(self):
@@ -109,7 +109,7 @@ class TestSAFEGRD(unittest.TestCase):
                 FakeGCP(15, 0, 0, 3, 0),
                 ]
 
-        crs = dict(init='epsg:4326')
+        crs = dict(init="epsg:4326")
 
         self.mocked_rio_open.return_value.gcps = [gcps, crs]
         self.mocked_rio_open.return_value.shape = [16, 16]

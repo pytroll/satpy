@@ -18,8 +18,6 @@
 import logging
 import warnings
 
-import dask.array as da
-
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -149,7 +147,7 @@ class NDVIHybridGreen(SpectralBlender):
     def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
         """Initialize class and set the NDVI limits, blending fraction limits and strength."""
         if strength <= 0.0:
-            raise ValueError(f"Expected stength greater than 0.0, got {strength}.")
+            raise ValueError(f"Expected strength greater than 0.0, got {strength}.")
 
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
@@ -166,8 +164,7 @@ class NDVIHybridGreen(SpectralBlender):
 
         ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
 
-        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
-        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour

@@ -77,19 +77,19 @@ class NIRReflectance(ModifierBase):
         da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
         da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
-        logger.info('Getting reflective part of %s', _nir.attrs['name'])
+        logger.info("Getting reflective part of %s", _nir.attrs["name"])
         reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
 
         proj = self._create_modified_dataarray(reflectance, base_dataarray=_nir)
-        proj.attrs['units'] = '%'
+        proj.attrs["units"] = "%"
         return proj
 
     @staticmethod
     def _get_tb13_4_from_optionals(optional_datasets):
         tb13_4 = None
         for dataset in optional_datasets:
-            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
-            if (dataset.attrs.get('units') == 'K' and
+            wavelengths = dataset.attrs.get("wavelength", [100., 0, 0])
+            if (dataset.attrs.get("units") == "K" and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset.data
         return tb13_4
@@ -108,14 +108,14 @@ class NIRReflectance(ModifierBase):
                 raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
             _nir = projectables[0]
             lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
-            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
+            sun_zenith = sun_zenith_angle(_nir.attrs["start_time"], lons, lats)
         return sun_zenith
 
     def _create_modified_dataarray(self, reflectance, base_dataarray):
         proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
                             coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
-        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
-        proj.attrs['sun_zenith_masking_limit'] = self.masking_limit
+        proj.attrs["sun_zenith_threshold"] = self.sun_zenith_threshold
+        proj.attrs["sun_zenith_masking_limit"] = self.masking_limit
         self.apply_modifier_info(base_dataarray, proj)
         return proj
 
@@ -130,7 +130,7 @@ class NIRReflectance(ModifierBase):
             logger.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
 
-        reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+        reflectance_3x_calculator = Calculator(metadata["platform_name"], metadata["sensor"], metadata["name"],
                                                sunz_threshold=self.sun_zenith_threshold,
                                                masking_limit=self.masking_limit)
         return reflectance_3x_calculator
@@ -169,11 +169,11 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
         da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
-        logger.info('Getting emissive part of %s', _nir.attrs['name'])
+        logger.info("Getting emissive part of %s", _nir.attrs["name"])
         emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
 
         proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
-        proj.attrs['units'] = 'K'
+        proj.attrs["units"] = "K"
         return proj
 
     def _get_emissivity_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):

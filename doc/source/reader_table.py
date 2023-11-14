@@ -28,6 +28,7 @@ def rst_table_row(columns=None):
 
     Args:
         columns (list[str]): Content of each column.
+
     Returns:
         str
     """
@@ -48,6 +49,7 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
         width (optional[list[int]]): Width of each column as a list. If not specified
             defaults to auto and will therefore determined by the backend
             (see <https://docutils.sourceforge.io/docs/ref/rst/directives.html#table>)
+
     Returns:
         str
     """

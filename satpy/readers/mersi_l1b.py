@@ -44,25 +44,25 @@ class MERSIL1B(HDF5FileHandler):
         time = self[time_attr]  # "18:27:39.720"
         # cuts off microseconds because of unknown meaning
         # is .720 == 720 microseconds or 720000 microseconds
-        return datetime.strptime(date + " " + time.split('.')[0], "%Y-%m-%d %H:%M:%S")
+        return datetime.strptime(date + " " + time.split(".")[0], "%Y-%m-%d %H:%M:%S")
 
     @property
     def start_time(self):
         """Time for first observation."""
-        return self._strptime('/attr/Observing Beginning Date', '/attr/Observing Beginning Time')
+        return self._strptime("/attr/Observing Beginning Date", "/attr/Observing Beginning Time")
 
     @property
     def end_time(self):
         """Time for final observation."""
-        return self._strptime('/attr/Observing Ending Date', '/attr/Observing Ending Time')
+        return self._strptime("/attr/Observing Ending Date", "/attr/Observing Ending Time")
 
     @property
     def sensor_name(self):
         """Map sensor name to Satpy 'standard' sensor names."""
-        file_sensor = self['/attr/Sensor Identification Code']
+        file_sensor = self["/attr/Sensor Identification Code"]
         sensor = {
-            'MERSI': 'mersi-2',
-            'MERSI LL': 'mersi-ll',
+            "MERSI": "mersi-2",
+            "MERSI LL": "mersi-ll",
         }.get(file_sensor, file_sensor)
         return sensor
 
@@ -76,8 +76,8 @@ class MERSIL1B(HDF5FileHandler):
 
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
-        slope = coeffs.attrs.pop('Slope', None)
-        intercept = coeffs.attrs.pop('Intercept', None)
+        slope = coeffs.attrs.pop("Slope", None)
+        intercept = coeffs.attrs.pop("Intercept", None)
         if slope is not None:
             slope, intercept = self._get_single_slope_intercept(
                 slope, intercept, cal_index)
@@ -86,37 +86,37 @@ class MERSIL1B(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
-        file_key = ds_info.get('file_key', dataset_id['name'])
-        band_index = ds_info.get('band_index')
+        file_key = ds_info.get("file_key", dataset_id["name"])
+        band_index = ds_info.get("band_index")
         data = self[file_key]
         if band_index is not None:
             data = data[band_index]
         if data.ndim >= 2:
-            data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
+            data = data.rename({data.dims[-2]: "y", data.dims[-1]: "x"})
         attrs = data.attrs.copy()  # avoid contaminating other band loading
         attrs.update(ds_info)
-        if 'rows_per_scan' in self.filetype_info:
-            attrs.setdefault('rows_per_scan', self.filetype_info['rows_per_scan'])
+        if "rows_per_scan" in self.filetype_info:
+            attrs.setdefault("rows_per_scan", self.filetype_info["rows_per_scan"])
 
         data = self._mask_data(data, dataset_id, attrs)
 
-        slope = attrs.pop('Slope', None)
-        intercept = attrs.pop('Intercept', None)
-        if slope is not None and dataset_id.get('calibration') != 'counts':
+        slope = attrs.pop("Slope", None)
+        intercept = attrs.pop("Intercept", None)
+        if slope is not None and dataset_id.get("calibration") != "counts":
             if band_index is not None:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
             data = data * slope + intercept
 
-        if dataset_id.get('calibration') == "reflectance":
-            coeffs = self._get_coefficients(ds_info['calibration_key'],
-                                            ds_info['calibration_index'])
+        if dataset_id.get("calibration") == "reflectance":
+            coeffs = self._get_coefficients(ds_info["calibration_key"],
+                                            ds_info["calibration_index"])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
-        elif dataset_id.get('calibration') == "brightness_temperature":
-            calibration_index = ds_info['calibration_index']
+        elif dataset_id.get("calibration") == "brightness_temperature":
+            calibration_index = ds_info["calibration_index"]
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
-            wave_number = 1. / (dataset_id['wavelength'][1] / 1e6)
+            wave_number = 1. / (dataset_id["wavelength"][1] / 1e6)
 
             data = self._get_bt_dataset(data, calibration_index, wave_number)
 
@@ -125,29 +125,29 @@ class MERSIL1B(HDF5FileHandler):
         for key, val in attrs.items():
             # python 3 only
             if bytes is not str and isinstance(val, bytes):
-                data.attrs[key] = val.decode('utf8')
+                data.attrs[key] = val.decode("utf8")
 
         data.attrs.update({
-            'platform_name': self['/attr/Satellite Name'],
-            'sensor': self.sensor_name,
+            "platform_name": self["/attr/Satellite Name"],
+            "sensor": self.sensor_name,
         })
 
         return data
 
     def _mask_data(self, data, dataset_id, attrs):
         """Mask the data using fill_value and valid_range attributes."""
-        fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
-        valid_range = attrs.pop('valid_range', None)
-        if dataset_id.get('calibration') == 'counts':
+        fill_value = attrs.pop("FillValue", np.nan)  # covered by valid_range
+        valid_range = attrs.pop("valid_range", None)
+        if dataset_id.get("calibration") == "counts":
             # preserve integer type of counts if possible
-            attrs['_FillValue'] = fill_value
-            new_fill = fill_value
+            attrs["_FillValue"] = fill_value
+            new_fill = data.dtype.type(fill_value)
         else:
             new_fill = np.nan
         if valid_range is not None:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
-            if dataset_id['name'] in ['24', '25'] and valid_range[1] == 4095:
+            if dataset_id["name"] in ["24", "25"] and valid_range[1] == 4095:
                 valid_range[1] = 25000
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
@@ -184,13 +184,13 @@ class MERSIL1B(HDF5FileHandler):
         data = data.where(data != 0)
 
         # additional corrections from the file
-        if self.sensor_name == 'mersi-2':
-            corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
-            corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
-        elif self.sensor_name == 'mersi-ll':
+        if self.sensor_name == "mersi-2":
+            corr_coeff_a = float(self["/attr/TBB_Trans_Coefficient_A"][calibration_index])
+            corr_coeff_b = float(self["/attr/TBB_Trans_Coefficient_B"][calibration_index])
+        elif self.sensor_name == "mersi-ll":
             # MERSI-LL stores these coefficients differently
             try:
-                coeffs = self['/attr/TBB_Trans_Coefficient']
+                coeffs = self["/attr/TBB_Trans_Coefficient"]
                 corr_coeff_a = coeffs[calibration_index]
                 corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
             except KeyError:

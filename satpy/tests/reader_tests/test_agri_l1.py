@@ -34,18 +34,18 @@ CHANNELS_BY_RESOLUTION = {500: ["C02"],
                           1000: ["C01", "C02", "C03"],
                           2000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07"],
                           4000: ALL_BAND_NAMES,
-                          'GEO': 'solar_azimuth_angle'
+                          "GEO": "solar_azimuth_angle"
                           }
 
 RESOLUTION_LIST = [500, 1000, 2000, 4000]
 
-AREA_EXTENTS_BY_RESOLUTION = {'FY4A': {
+AREA_EXTENTS_BY_RESOLUTION = {"FY4A": {
     500: (-5496021.008869, 5495021.005046, -5493520.999312, 5496021.008869),
     1000: (-5496021.076004, 5494021.068334, -5491021.05683, 5496021.076004),
     2000: (-5496021.210274, 5492021.194837, -5486021.171682, 5496021.210274),
     4000: (-5496021.210274, 5488021.1794, -5476021.13309, 5496021.210274)
 },
-    'FY4B': {
+    "FY4B": {
         500: (-5496021.008869, 5495021.005046, -5493520.999312, 5496021.008869),
         1000: (-5496021.076004, 5494021.068334, -5491021.05683, 5496021.076004),
         2000: (-5496021.210274, 5492021.194837, -5486021.171682, 5496021.210274),
@@ -58,61 +58,61 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def make_test_data(self, cwl, ch, prefix, dims, file_type):
         """Make test data."""
-        if prefix == 'CAL':
+        if prefix == "CAL":
             data = xr.DataArray(
                 da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
                 attrs={
-                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                    'FillValue': np.array(-65535.0),
-                    'units': 'NUL',
-                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                    'band_names': 'band{}(band number is range from 1 to 14)'
-                    .format(ch).encode('utf-8'),
-                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                    'valid_range': np.array([0, 1.5]),
+                    "Slope": np.array(1.), "Intercept": np.array(0.),
+                    "FillValue": np.array(-65535.0),
+                    "units": "NUL",
+                    "center_wavelength": "{}um".format(cwl).encode("utf-8"),
+                    "band_names": "band{}(band number is range from 1 to 14)"
+                    .format(ch).encode("utf-8"),
+                    "long_name": "Calibration table of {}um Channel".format(cwl).encode("utf-8"),
+                    "valid_range": np.array([0, 1.5]),
                 },
-                dims='_const')
+                dims="_const")
 
-        elif prefix == 'NOM':
+        elif prefix == "NOM":
             data = xr.DataArray(
                 da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
                               [dim for dim in dims]),
                 attrs={
-                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                    'FillValue': np.array(65535),
-                    'units': 'DN',
-                    'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                    'band_names': 'band{}(band number is range from 1 to 14)'
-                    .format(ch).encode('utf-8'),
-                    'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                    'valid_range': np.array([0, 4095]),
+                    "Slope": np.array(1.), "Intercept": np.array(0.),
+                    "FillValue": np.array(65535),
+                    "units": "DN",
+                    "center_wavelength": "{}um".format(cwl).encode("utf-8"),
+                    "band_names": "band{}(band number is range from 1 to 14)"
+                    .format(ch).encode("utf-8"),
+                    "long_name": "Calibration table of {}um Channel".format(cwl).encode("utf-8"),
+                    "valid_range": np.array([0, 4095]),
                 },
-                dims=('_RegLength', '_RegWidth'))
+                dims=("_RegLength", "_RegWidth"))
 
-        elif prefix == 'GEO':
+        elif prefix == "GEO":
             data = xr.DataArray(
                 da.from_array(np.arange(0., 360., 36., dtype=np.float32).reshape((2, 5)),
                               [dim for dim in dims]),
                 attrs={
-                    'Slope': np.array(1.), 'Intercept': np.array(0.),
-                    'FillValue': np.array(65535.),
-                    'units': 'NUL',
-                    'band_names': 'NUL',
-                    'valid_range': np.array([0., 360.]),
+                    "Slope": np.array(1.), "Intercept": np.array(0.),
+                    "FillValue": np.array(65535.),
+                    "units": "NUL",
+                    "band_names": "NUL",
+                    "valid_range": np.array([0., 360.]),
                 },
-                dims=('_RegLength', '_RegWidth'))
+                dims=("_RegLength", "_RegWidth"))
 
-        elif prefix == 'COEF':
-            if file_type == '500':
+        elif prefix == "COEF":
+            if file_type == "500":
                 data = self._create_coeff_array(1)
 
-            elif file_type == '1000':
+            elif file_type == "1000":
                 data = self._create_coeff_array(3)
 
-            elif file_type == '2000':
+            elif file_type == "2000":
                 data = self._create_coeff_array(7)
 
-            elif file_type == '4000':
+            elif file_type == "4000":
                 data = self._create_coeff_array(14)
 
         return data
@@ -122,14 +122,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             da.from_array((np.arange(nb_channels * 2).reshape((nb_channels, 2)) + 1.) /
                           np.array([1E4, 1E2]), [nb_channels, 2]),
             attrs={
-                'Slope': 1., 'Intercept': 0.,
-                'FillValue': 0,
-                'units': 'NUL',
-                'band_names': 'NUL',
-                'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                'valid_range': [-500, 500],
+                "Slope": 1., "Intercept": 0.,
+                "FillValue": 0,
+                "units": "NUL",
+                "band_names": "NUL",
+                "long_name": b"Calibration coefficient (SCALE and OFFSET)",
+                "valid_range": [-500, 500],
             },
-            dims=('_num_channel', '_coefs'))
+            dims=("_num_channel", "_coefs"))
         return data
 
     def _create_channel_data(self, chs, cwls, file_type):
@@ -137,17 +137,17 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         dim_1 = 5
         data = {}
         for index, _cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+            data["CALChannel" + "%02d" % chs[index]] = self.make_test_data(cwls[index], chs[index], "CAL",
                                                                            [dim_0, dim_1], file_type)
-            data['Calibration/CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+            data["Calibration/CALChannel" + "%02d" % chs[index]] = self.make_test_data(cwls[index], chs[index], "CAL",
                                                                                        [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+            data["NOMChannel" + "%02d" % chs[index]] = self.make_test_data(cwls[index], chs[index], "NOM",
                                                                            [dim_0, dim_1], file_type)
-            data['Data/NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+            data["Data/NOMChannel" + "%02d" % chs[index]] = self.make_test_data(cwls[index], chs[index], "NOM",
                                                                                 [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+            data["CALIBRATION_COEF(SCALE+OFFSET)"] = self.make_test_data(cwls[index], chs[index], "COEF",
                                                                          [dim_0, dim_1], file_type)
-            data['Calibration/CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+            data["Calibration/CALIBRATION_COEF(SCALE+OFFSET)"] = self.make_test_data(cwls[index], chs[index], "COEF",
                                                                                      [dim_0, dim_1], file_type)
         return data
 
@@ -182,45 +182,45 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     def _get_geo_data(self, file_type):
         dim_0 = 2
         dim_1 = 5
-        data = {'NOMSunAzimuth': self.make_test_data('NUL', 'NUL', 'GEO',
+        data = {"NOMSunAzimuth": self.make_test_data("NUL", "NUL", "GEO",
                                                      [dim_0, dim_1], file_type),
-                'Navigation/NOMSunAzimuth': self.make_test_data('NUL', 'NUL', 'GEO',
+                "Navigation/NOMSunAzimuth": self.make_test_data("NUL", "NUL", "GEO",
                                                                 [dim_0, dim_1], file_type)}
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         global_attrs = {
-            '/attr/NOMCenterLat': np.array(0.0),
-            '/attr/NOMCenterLon': np.array(104.7),
-            '/attr/NOMSatHeight': np.array(42164140.0),
-            '/attr/dEA': np.array(6378.14),
-            '/attr/dObRecFlat': np.array(298.257223563),
-            '/attr/OBIType': 'REGC',
-            '/attr/RegLength': np.array(2.0),
-            '/attr/RegWidth': np.array(5.0),
-            '/attr/Begin Line Number': np.array(0),
-            '/attr/End Line Number': np.array(1),
-            '/attr/Begin Pixel Number': np.array(0),
-            '/attr/End Pixel Number': np.array(1),
-            '/attr/Observing Beginning Date': '2019-06-03', '/attr/Observing Beginning Time': '00:30:01.807',
-            '/attr/Observing Ending Date': '2019-06-03', '/attr/Observing Ending Time': '00:34:07.572',
-            '/attr/Satellite Name': 'FY4A', '/attr/Sensor Identification Code': 'AGRI', '/attr/Sensor Name': 'AGRI',
+            "/attr/NOMCenterLat": np.array(0.0),
+            "/attr/NOMCenterLon": np.array(104.7),
+            "/attr/NOMSatHeight": np.array(42164140.0),
+            "/attr/dEA": np.array(6378.14),
+            "/attr/dObRecFlat": np.array(298.257223563),
+            "/attr/OBIType": "REGC",
+            "/attr/RegLength": np.array(2.0),
+            "/attr/RegWidth": np.array(5.0),
+            "/attr/Begin Line Number": np.array(0),
+            "/attr/End Line Number": np.array(1),
+            "/attr/Begin Pixel Number": np.array(0),
+            "/attr/End Pixel Number": np.array(1),
+            "/attr/Observing Beginning Date": "2019-06-03", "/attr/Observing Beginning Time": "00:30:01.807",
+            "/attr/Observing Ending Date": "2019-06-03", "/attr/Observing Ending Time": "00:34:07.572",
+            "/attr/Satellite Name": "FY4A", "/attr/Sensor Identification Code": "AGRI", "/attr/Sensor Name": "AGRI",
         }
 
         data = {}
-        if self.filetype_info['file_type'] == 'agri_l1_0500m':
-            data = self._get_500m_data('500')
-        elif self.filetype_info['file_type'] == 'agri_l1_1000m':
-            data = self._get_1km_data('1000')
-        elif self.filetype_info['file_type'] == 'agri_l1_2000m':
-            data = self._get_2km_data('2000')
-            global_attrs['/attr/Observing Beginning Time'] = '00:30:01'
-            global_attrs['/attr/Observing Ending Time'] = '00:34:07'
-        elif self.filetype_info['file_type'] == 'agri_l1_4000m':
-            data = self._get_4km_data('4000')
-        elif self.filetype_info['file_type'] == 'agri_l1_4000m_geo':
-            data = self._get_geo_data('4000')
+        if self.filetype_info["file_type"] == "agri_l1_0500m":
+            data = self._get_500m_data("500")
+        elif self.filetype_info["file_type"] == "agri_l1_1000m":
+            data = self._get_1km_data("1000")
+        elif self.filetype_info["file_type"] == "agri_l1_2000m":
+            data = self._get_2km_data("2000")
+            global_attrs["/attr/Observing Beginning Time"] = "00:30:01"
+            global_attrs["/attr/Observing Ending Time"] = "00:34:07"
+        elif self.filetype_info["file_type"] == "agri_l1_4000m":
+            data = self._get_4km_data("4000")
+        elif self.filetype_info["file_type"] == "agri_l1_4000m_geo":
+            data = self._get_geo_data("4000")
 
         test_content = {}
         test_content.update(global_attrs)
@@ -231,7 +231,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 def _create_filenames_from_resolutions(satname, *resolutions):
     """Create filenames from the given resolutions."""
-    if 'GEO' in resolutions:
+    if "GEO" in resolutions:
         return [f"{satname}-_AGRI--_N_REGC_1047E_L1-_GEO-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF"]
     pattern = (f"{satname}-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
                "{resolution:04d}M_V0001.HDF")
@@ -248,13 +248,13 @@ class Test_HDF_AGRI_L1_cal:
         from satpy._config import config_search_paths
         from satpy.readers.agri_l1 import HDF_AGRI_L1
         from satpy.readers.fy4_base import FY4Base
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.fy4 = mock.patch.object(FY4Base, '__bases__', (FakeHDF5FileHandler2,))
+        self.fy4 = mock.patch.object(FY4Base, "__bases__", (FakeHDF5FileHandler2,))
         self.p = mock.patch.object(HDF_AGRI_L1.__class__, (self.fy4,))
         self.fake_handler = self.fy4.start()
         self.p.is_local = True
-        self.satname = 'FY4A'
+        self.satname = "FY4A"
 
         self.expected = {
             1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
@@ -313,12 +313,12 @@ class Test_HDF_AGRI_L1_cal:
         res = reader.load(band_names)
 
         # check whether the data type of orbital_parameters is float
-        orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
+        orbital_parameters = res[band_names[0]].attrs["orbital_parameters"]
         for attr in orbital_parameters:
             assert isinstance(orbital_parameters[attr], float)
-        assert orbital_parameters['satellite_nominal_latitude'] == 0.
-        assert orbital_parameters['satellite_nominal_longitude'] == 104.7
-        assert orbital_parameters['satellite_nominal_altitude'] == 42164140.0
+        assert orbital_parameters["satellite_nominal_latitude"] == 0.
+        assert orbital_parameters["satellite_nominal_longitude"] == 104.7
+        assert orbital_parameters["satellite_nominal_altitude"] == 42164140.0
 
     @staticmethod
     def _check_keys_for_dsq(available_datasets, resolution_to_test):
@@ -329,7 +329,7 @@ class Test_HDF_AGRI_L1_cal:
         for band_name in band_names:
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
-            if band_name < 'C07':
+            if band_name < "C07":
                 assert len(res) == 2
             else:
                 assert len(res) == 3
@@ -342,23 +342,23 @@ class Test_HDF_AGRI_L1_cal:
         ds_ids = []
         band_names = CHANNELS_BY_RESOLUTION[4000]
         for band_name in band_names:
-            ds_ids.append(make_dsq(name=band_name, calibration='counts'))
+            ds_ids.append(make_dsq(name=band_name, calibration="counts"))
         res = reader.load(ds_ids)
         assert len(res) == 14
 
         for band_name in band_names:
             assert res[band_name].shape == (2, 5)
-            assert res[band_name].attrs['calibration'] == "counts"
+            assert res[band_name].attrs["calibration"] == "counts"
             assert res[band_name].dtype == np.uint16
-            assert res[band_name].attrs['units'] == "1"
+            assert res[band_name].attrs["units"] == "1"
 
-    @pytest.mark.parametrize("satname", ['FY4A', 'FY4B'])
+    @pytest.mark.parametrize("satname", ["FY4A", "FY4B"])
     def test_agri_geo(self, satname):
         """Test loading data for angles."""
         from satpy.tests.utils import make_dsq
         self.satname = satname
-        reader = self._create_reader_for_resolutions('GEO')
-        band_name = 'solar_azimuth_angle'
+        reader = self._create_reader_for_resolutions("GEO")
+        band_name = "solar_azimuth_angle"
         ds_ids = [make_dsq(name=band_name)]
         res = reader.load(ds_ids)
         assert len(res) == 1
@@ -381,7 +381,7 @@ class Test_HDF_AGRI_L1_cal:
         return reader
 
     @pytest.mark.parametrize("resolution_to_test", RESOLUTION_LIST)
-    @pytest.mark.parametrize("satname", ['FY4A', 'FY4B'])
+    @pytest.mark.parametrize("satname", ["FY4A", "FY4B"])
     def test_agri_for_one_resolution(self, resolution_to_test, satname):
         """Test loading data when only one resolution is available."""
         self.satname = satname
@@ -394,26 +394,26 @@ class Test_HDF_AGRI_L1_cal:
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
         for band_name in band_names:
-            np.testing.assert_allclose(res[band_name].attrs['area'].area_extent,
+            np.testing.assert_allclose(res[band_name].attrs["area"].area_extent,
                                        AREA_EXTENTS_BY_RESOLUTION[satname][resolution_to_test])
 
     def _check_calibration_and_units(self, band_names, result):
         for index, band_name in enumerate(band_names):
-            assert result[band_name].attrs['sensor'].islower()
+            assert result[band_name].attrs["sensor"].islower()
             assert result[band_name].shape == (2, 5)
             np.testing.assert_allclose(result[band_name].values, self.expected[index + 1], equal_nan=True)
             self._check_units(band_name, result)
 
     @staticmethod
     def _check_units(band_name, result):
-        if band_name < 'C07':
-            assert result[band_name].attrs['calibration'] == "reflectance"
+        if band_name < "C07":
+            assert result[band_name].attrs["calibration"] == "reflectance"
         else:
-            assert result[band_name].attrs['calibration'] == 'brightness_temperature'
-        if band_name < 'C07':
-            assert result[band_name].attrs['units'] == "%"
+            assert result[band_name].attrs["calibration"] == "brightness_temperature"
+        if band_name < "C07":
+            assert result[band_name].attrs["units"] == "%"
         else:
-            assert result[band_name].attrs['units'] == "K"
+            assert result[band_name].attrs["units"] == "K"
 
     @staticmethod
     def _assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test):
@@ -430,7 +430,7 @@ class Test_HDF_AGRI_L1_cal:
 
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
-            if band_name < 'C07':
+            if band_name < "C07":
                 assert len(res) == 2
             else:
                 assert len(res) == 3

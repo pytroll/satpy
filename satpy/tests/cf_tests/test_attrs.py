@@ -35,10 +35,10 @@ class TestCFAttributeEncoding:
         assert_dict_array_equality(expected, encoded)
 
         # Test decoding of json-encoded attributes
-        raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
-                            'flag': 'true',
-                            'dict': {'a': 1, 'b': [1, 2, 3]}}
-        assert json.loads(encoded['raw_metadata']) == raw_md_roundtrip
-        assert json.loads(encoded['array_3d']) == [[[1, 2], [3, 4]], [[1, 2], [3, 4]]]
-        assert json.loads(encoded['nested_dict']) == {"l1": {"l2": {"l3": [1, 2, 3]}}}
-        assert json.loads(encoded['nested_list']) == ["1", ["2", [3]]]
+        raw_md_roundtrip = {"recarray": [[0, 0], [0, 0], [0, 0]],
+                            "flag": "true",
+                            "dict": {"a": 1, "b": [1, 2, 3]}}
+        assert json.loads(encoded["raw_metadata"]) == raw_md_roundtrip
+        assert json.loads(encoded["array_3d"]) == [[[1, 2], [3, 4]], [[1, 2], [3, 4]]]
+        assert json.loads(encoded["nested_dict"]) == {"l1": {"l2": {"l3": [1, 2, 3]}}}
+        assert json.loads(encoded["nested_list"]) == ["1", ["2", [3]]]

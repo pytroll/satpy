@@ -28,20 +28,20 @@ logger = logging.getLogger(__name__)
 def _add_lonlat_coords(dataarray):
     """Add 'longitude' and 'latitude' coordinates to DataArray."""
     dataarray = dataarray.copy()
-    area = dataarray.attrs['area']
-    ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
-    chunks = getattr(dataarray.isel(**ignore_dims), 'chunks', None)
+    area = dataarray.attrs["area"]
+    ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ["x", "y"]}
+    chunks = getattr(dataarray.isel(**ignore_dims), "chunks", None)
     lons, lats = area.get_lonlats(chunks=chunks)
-    dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
-                                          attrs={'name': "longitude",
-                                                 'standard_name': "longitude",
-                                                 'units': 'degrees_east'},
-                                          name='longitude')
-    dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
-                                         attrs={'name': "latitude",
-                                                'standard_name': "latitude",
-                                                'units': 'degrees_north'},
-                                         name='latitude')
+    dataarray["longitude"] = xr.DataArray(lons, dims=["y", "x"],
+                                          attrs={"name": "longitude",
+                                                 "standard_name": "longitude",
+                                                 "units": "degrees_east"},
+                                          name="longitude")
+    dataarray["latitude"] = xr.DataArray(lats, dims=["y", "x"],
+                                         attrs={"name": "latitude",
+                                                "standard_name": "latitude",
+                                                "units": "degrees_north"},
+                                         name="latitude")
     return dataarray
 
 
@@ -49,7 +49,7 @@ def _create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     import pyproj
 
-    if Version(pyproj.__version__) < Version('2.4.1'):
+    if Version(pyproj.__version__) < Version("2.4.1"):
         # technically 2.2, but important bug fixes in 2.4.1
         raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
     # let pyproj do the heavily lifting (pyproj 2.0+ required)
@@ -60,18 +60,18 @@ def _create_grid_mapping(area):
 def _add_grid_mapping(dataarray):
     """Convert an area to at CF grid mapping."""
     dataarray = dataarray.copy()
-    area = dataarray.attrs['area']
+    area = dataarray.attrs["area"]
     gmapping_var_name, attrs = _create_grid_mapping(area)
-    dataarray.attrs['grid_mapping'] = gmapping_var_name
+    dataarray.attrs["grid_mapping"] = gmapping_var_name
     return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
 def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or include_lonlats):
+    if not got_lonlats and (isinstance(dataarray.attrs["area"], SwathDefinition) or include_lonlats):
         dataarray = _add_lonlat_coords(dataarray)
-    if isinstance(dataarray.attrs['area'], AreaDefinition):
+    if isinstance(dataarray.attrs["area"], AreaDefinition):
         dataarray, gmapping = _add_grid_mapping(dataarray)
         res.append(gmapping)
     res.append(dataarray)

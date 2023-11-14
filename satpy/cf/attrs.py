@@ -87,7 +87,7 @@ def _encode_object(obj):
                 # Boolean arrays are not supported, convert to array of strings.
                 return [s.lower() for s in obj.astype(str)]
             return obj.tolist()
-    raise ValueError('Unable to encode')
+    raise ValueError("Unable to encode")
 
 
 def _encode_python_objects(obj):
@@ -136,10 +136,10 @@ def _encode_nc_attrs(attrs):
 
 def _add_ancillary_variables_attrs(dataarray):
     """Replace ancillary_variables DataArray with a list of their name."""
-    list_ancillary_variable_names = [da_ancillary.attrs['name']
-                                     for da_ancillary in dataarray.attrs.get('ancillary_variables', [])]
+    list_ancillary_variable_names = [da_ancillary.attrs["name"]
+                                     for da_ancillary in dataarray.attrs.get("ancillary_variables", [])]
     if list_ancillary_variable_names:
-        dataarray.attrs['ancillary_variables'] = ' '.join(list_ancillary_variable_names)
+        dataarray.attrs["ancillary_variables"] = " ".join(list_ancillary_variable_names)
     else:
         dataarray.attrs.pop("ancillary_variables", None)
     return dataarray
@@ -156,17 +156,17 @@ def _drop_exclude_attrs(dataarray, exclude_attrs):
 
 def _remove_satpy_attrs(new_data):
     """Remove _satpy attribute."""
-    satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+    satpy_attrs = [key for key in new_data.attrs if key.startswith("_satpy")]
     for satpy_attr in satpy_attrs:
         new_data.attrs.pop(satpy_attr)
-    new_data.attrs.pop('_last_resampler', None)
+    new_data.attrs.pop("_last_resampler", None)
     return new_data
 
 
 def _format_prerequisites_attrs(dataarray):
     """Reformat prerequisites attribute value to string."""
-    if 'prerequisites' in dataarray.attrs:
-        dataarray.attrs['prerequisites'] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs['prerequisites']]
+    if "prerequisites" in dataarray.attrs:
+        dataarray.attrs["prerequisites"] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs["prerequisites"]]
     return dataarray
 
 
@@ -187,8 +187,8 @@ def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
     dataarray = _remove_none_attrs(dataarray)
     _ = dataarray.attrs.pop("area", None)
 
-    if 'long_name' not in dataarray.attrs and 'standard_name' not in dataarray.attrs:
-        dataarray.attrs['long_name'] = dataarray.name
+    if "long_name" not in dataarray.attrs and "standard_name" not in dataarray.attrs:
+        dataarray.attrs["long_name"] = dataarray.name
 
     if flatten_attrs:
         dataarray.attrs = flatten_dict(dataarray.attrs)
@@ -200,13 +200,13 @@ def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
 
 def _add_history(attrs):
     """Add 'history' attribute to dictionary."""
-    _history_create = 'Created by pytroll/satpy on {}'.format(datetime.datetime.utcnow())
-    if 'history' in attrs:
-        if isinstance(attrs['history'], list):
-            attrs['history'] = ''.join(attrs['history'])
-        attrs['history'] += '\n' + _history_create
+    _history_create = "Created by pytroll/satpy on {}".format(datetime.datetime.utcnow())
+    if "history" in attrs:
+        if isinstance(attrs["history"], list):
+            attrs["history"] = "".join(attrs["history"])
+        attrs["history"] += "\n" + _history_create
     else:
-        attrs['history'] = _history_create
+        attrs["history"] = _history_create
     return attrs
 
 

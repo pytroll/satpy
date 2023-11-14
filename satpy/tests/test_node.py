@@ -62,7 +62,7 @@ class TestCompositorNode(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.name = 'hej'
+        self.name = "hej"
         self.fake = FakeCompositor(self.name)
         self.c_node = CompositorNode(self.fake)
 
