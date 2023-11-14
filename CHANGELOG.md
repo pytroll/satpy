@@ -1143,7 +1143,7 @@ In this release 6 issues were closed.
 * [PR 1606](https://github.com/pytroll/satpy/pull/1606) - Make FSFile hashable again ([1605](https://github.com/pytroll/satpy/issues/1605), [1604](https://github.com/pytroll/satpy/issues/1604))
 * [PR 1603](https://github.com/pytroll/satpy/pull/1603) - Update slstr_l2.yaml
 * [PR 1600](https://github.com/pytroll/satpy/pull/1600) - When setting `upper_right_corner` make sure that all dataset coordinates are flipped
-* [PR 1588](https://github.com/pytroll/satpy/pull/1588) - Bugfix of add_coordinates_attrs_coords ([1493](https://github.com/pytroll/satpy/issues/1493))
+* [PR 1588](https://github.com/pytroll/satpy/pull/1588) - Bugfix of link_coords ([1493](https://github.com/pytroll/satpy/issues/1493))
 
 #### Features added
 
