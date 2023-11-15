@@ -49,30 +49,8 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
-        # Initialise number of rows and columns
-        self.nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
-        self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
-
-        # Get the grid name and other projection info
-        self.area_extent = self._sort_grid()
-
-
-    def _sort_grid(self):
-        """Get the grid properties."""
-        # First, get the grid resolution
-        self._get_res()
-
-        # Now compute the data extent
-        upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
-        lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
-
-        # For some reason, a few of the CMG products multiply their
-        # decimal degree extents by one million. This fixes it.
-        if lowerright[0] > 1e6 or upperleft[0] > 1e6:
-            upperleft = tuple(val / 1e6 for val in upperleft)
-            lowerright = tuple(val / 1e6 for val in lowerright)
-
-        return upperleft[0], lowerright[1], lowerright[0], upperleft[1]
+        # Get the grid resolution, name and other projection info
+        self.resolution = self._get_res()
 
 
     def _get_res(self):
@@ -85,11 +63,12 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         pos = gridname.rfind("_") + 1
         pos2 = gridname.rfind("Deg")
 
+        # Initialise number of rows and columns
         # Some products don't have resolution listed.
         if pos < 0 or pos2 < 0:
-            self.resolution = 360. / self.ncols
+            return 360. / self.metadata["GridStructure"]["GRID_1"]["XDim"]
         else:
-            self.resolution = float(gridname[pos:pos2])
+            return float(gridname[pos:pos2])
 
 
     def available_datasets(self, configured_datasets=None):
@@ -104,7 +83,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             file_key = ds_info.get("file_key", ds_info["name"])
             # we must add all variables here even if another file handler has
             # claimed the variable. It could be another instance of this file
-            # type and we don't want to add that variable dynamically if the
+            # type, and we don't want to add that variable dynamically if the
             # other file handler defined it by the YAML definition.
             handled_var_names.add(file_key)
             if is_avail is not None:
@@ -122,11 +101,9 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
-
         for var_name in self.sd.datasets().keys():
             if var_name in handled_var_names:
-                # skip variables that YAML had configured, but allow lon/lats
-                # to be reprocessed due to our dynamic coordinate naming
+                # skip variables that YAML had configured
                 continue
             common = {"file_type": "modis_l3_cmg_hdf",
                       "resolution": self.resolution,
@@ -141,6 +118,20 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
         return dataset
 
+    def _get_area_extent(self):
+        """Get the grid properties."""
+
+        # Now compute the data extent
+        upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
+        lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
+
+        # For some reason, a few of the CMG products multiply their
+        # decimal degree extents by one million. This fixes it.
+        if lowerright[0] > 1e6 or upperleft[0] > 1e6:
+            upperleft = tuple(val / 1e6 for val in upperleft)
+            lowerright = tuple(val / 1e6 for val in lowerright)
+
+        return upperleft[0], lowerright[1], lowerright[0], upperleft[1]
 
     def get_area_def(self, dsid):
         """Get the area definition.
@@ -150,12 +141,17 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         """
         proj_param = "EPSG:4326"
 
+        # Get the size of the dataset
+        nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
+        ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
+
+        # Construct the area definition
         area = geometry.AreaDefinition("gridded_modis",
                                        "A gridded L3 MODIS area",
                                        "longlat",
                                        proj_param,
-                                       self.ncols,
-                                       self.nrows,
-                                       self.area_extent)
+                                       ncols,
+                                       nrows,
+                                       self._get_area_extent())
 
         return area

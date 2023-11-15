@@ -63,6 +63,29 @@ class TestModisL3:
         assert len(available_datasets) > 0
         assert loadable in available_datasets
 
+        from satpy.readers.modis_l3 import ModisL3GriddedHDFFileHandler
+        fh = ModisL3GriddedHDFFileHandler(filename[0], {}, {"file_type": "modis_l3_cmg_hdf"})
+        configured_datasets = [[None, {"name": "none_ds", "file_type": "modis_l3_cmg_hdf"}],
+                               [True, {"name": "true_ds", "file_type": "modis_l3_cmg_hdf"}],
+                               [False, {"name": "false_ds", "file_type": "modis_l3_cmg_hdf"}],
+                               [None, {"name": "other_ds", "file_type": "modis_l2_random"}]]
+        for status, mda in fh.available_datasets(configured_datasets):
+            if mda["name"] == "none_ds":
+                assert mda["file_type"] == "modis_l3_cmg_hdf"
+                assert status is False
+            elif mda["name"] == "true_ds":
+                assert mda["file_type"] == "modis_l3_cmg_hdf"
+                assert status
+            elif mda["name"] == "false_ds":
+                assert mda["file_type"] == "modis_l3_cmg_hdf"
+                assert status is False
+            elif mda["name"] == "other_ds":
+                assert mda["file_type"] == "modis_l2_random"
+                assert status is None
+            elif mda["name"] == loadable:
+                assert mda["file_type"] == "modis_l3_cmg_hdf"
+                assert status
+
     def test_load_l3_dataset(self, modis_l3_nasa_mod09_file):
         """Load and check an L2 variable."""
         scene = Scene(reader="modis_l3", filenames=modis_l3_nasa_mod09_file)
