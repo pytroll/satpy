@@ -44,33 +44,6 @@ logger = logging.getLogger(__name__)
 
 class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     """File handler for MODIS HDF-EOS Level 3 CMG gridded files."""
-
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Init the file handler."""
-        super().__init__(filename, filename_info, filetype_info, **kwargs)
-
-        # Get the grid resolution, name and other projection info
-        self.resolution = self._get_res()
-
-
-    def _get_res(self):
-        """Compute the resolution from the file metadata."""
-        gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
-        if "CMG" not in gridname:
-            raise ValueError("Only CMG grids are supported")
-
-        # Get the grid resolution from the grid name
-        pos = gridname.rfind("_") + 1
-        pos2 = gridname.rfind("Deg")
-
-        # Initialise number of rows and columns
-        # Some products don't have resolution listed.
-        if pos < 0 or pos2 < 0:
-            return 360. / self.metadata["GridStructure"]["GRID_1"]["XDim"]
-        else:
-            return float(gridname[pos:pos2])
-
-
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
 
@@ -101,14 +74,33 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
+        res = self._get_res()
         for var_name in self.sd.datasets().keys():
             if var_name in handled_var_names:
                 # skip variables that YAML had configured
                 continue
             common = {"file_type": "modis_l3_cmg_hdf",
-                      "resolution": self.resolution,
+                      "resolution": res,
                       "name": var_name}
             yield True, common
+
+
+    def _get_res(self):
+        """Compute the resolution from the file metadata."""
+        gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
+        if "CMG" not in gridname:
+            raise ValueError("Only CMG grids are supported")
+
+        # Get the grid resolution from the grid name
+        pos = gridname.rfind("_") + 1
+        pos2 = gridname.rfind("Deg")
+
+        # Initialise number of rows and columns
+        # Some products don't have resolution listed.
+        if pos < 0 or pos2 < 0:
+            return 360. / self.metadata["GridStructure"]["GRID_1"]["XDim"]
+        else:
+            return float(gridname[pos:pos2])
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""

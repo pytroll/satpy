@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -227,9 +228,9 @@ def generate_imapp_filename(suffix):
 
 def create_hdfeos_test_file(filename: str,
                             variable_infos: dict,
-                            struct_meta: str = "",
-                            core_meta: str = "",
-                            archive_meta: str = "",
+                            struct_meta: Optional[str] = None,
+                            core_meta: Optional[str] = None,
+                            archive_meta: Optional[str] = None,
                             ) -> None:
     """Create a fake MODIS L1b HDF4 file with headers.
 
@@ -244,11 +245,11 @@ def create_hdfeos_test_file(filename: str,
     """
     h = SD(filename, SDC.WRITE | SDC.CREATE)
 
-    if struct_meta != "":
+    if struct_meta:
         setattr(h, "StructMetadata.0", struct_meta)
-    if core_meta != "":
+    if core_meta:
         setattr(h, "CoreMetadata.0", core_meta)
-    if archive_meta != "":
+    if archive_meta:
         setattr(h, "ArchiveMetadata.0", archive_meta)
 
     for var_name, var_info in variable_infos.items():
