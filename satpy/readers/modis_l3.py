@@ -127,6 +127,5 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
                                        self.ncols,
                                        self.nrows,
                                        self.area_extent)
-        self.area = area
 
-        return self.area
+        return area
