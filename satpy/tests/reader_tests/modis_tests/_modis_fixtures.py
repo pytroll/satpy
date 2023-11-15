@@ -365,7 +365,9 @@ def _create_struct_metadata_cmg(res) -> str:
 
 
 def _create_header_metadata() -> str:
-    archive_metadata_header = "GROUP = ARCHIVEDMETADATA\nEND_GROUP = ARCHIVEDMETADATA\nEND"
+    archive_metadata_header = ("GROUP = ARCHIVEDMETADATA\n"
+                               'TEST_URL = "http://modis.gsfc.nasa.gov/?some_val=100"\n'
+                               "END_GROUP = ARCHIVEDMETADATA\nEND")
     return archive_metadata_header
 
 
