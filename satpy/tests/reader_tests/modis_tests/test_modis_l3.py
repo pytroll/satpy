@@ -53,7 +53,7 @@ class TestModisL3:
         ("loadable", "filename"),
         [
             ("Coarse_Resolution_Surface_Reflectance_Band_2", lazy_fixture("modis_l3_nasa_mod09_file")),
-            ("BRDF_Albedo_Parameter1_Band2",lazy_fixture("modis_l3_nasa_mod43_file")),
+            ("BRDF_Albedo_Parameter1_Band2", lazy_fixture("modis_l3_nasa_mod43_file")),
         ]
     )
     def test_scene_available_datasets(self, loadable, filename):
