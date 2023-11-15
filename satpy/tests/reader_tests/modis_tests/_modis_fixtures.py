@@ -249,7 +249,7 @@ def create_hdfeos_test_file(filename: str,
     if metadata_dict is not None and metadata_dict != {}:
         # Check if we're dealing with an L3 file
         if "l3_type" not in metadata_dict.keys():
-            if "file_shortname" not in metadata_dict["file_shortname"].keys():
+            if "file_shortname" not in metadata_dict.keys():
                 raise ValueError("'file_shortname' is required when including metadata.")
             # For L1 and L2 files we need to know the resolution
             if "geo_resolution" not in metadata_dict.keys():
