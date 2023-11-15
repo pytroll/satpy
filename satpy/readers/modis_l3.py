@@ -44,21 +44,17 @@ logger = logging.getLogger(__name__)
 class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     """File handler for MODIS HDF-EOS Level 3 CMG gridded files."""
 
-    def _get_res(self):
-        """Compute the resolution from the file metadata."""
-        gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
-        if "CMG" not in gridname:
-            raise ValueError("Only CMG grids are supported")
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
 
-        # Get the grid resolution from the grid name
-        pos = gridname.rfind("_") + 1
-        pos2 = gridname.rfind("Deg")
+        # Initialise number of rows and columns
+        self.nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
+        self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
 
-        # Some products don't have resolution listed.
-        if pos < 0 or pos2 < 0:
-            self.resolution = 360. / self.ncols
-        else:
-            self.resolution = float(gridname[pos:pos2])
+        # Get the grid name and other projection info
+        self.area_extent = self._sort_grid()
+
 
     def _sort_grid(self):
         """Get the grid properties."""
@@ -75,19 +71,24 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
             upperleft = tuple(val / 1e6 for val in upperleft)
             lowerright = tuple(val / 1e6 for val in lowerright)
 
-        return (upperleft[0], lowerright[1], lowerright[0], upperleft[1])
+        return upperleft[0], lowerright[1], lowerright[0], upperleft[1]
 
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Init the file handler."""
-        super().__init__(filename, filename_info, filetype_info, **kwargs)
+    def _get_res(self):
+        """Compute the resolution from the file metadata."""
+        gridname = self.metadata["GridStructure"]["GRID_1"]["GridName"]
+        if "CMG" not in gridname:
+            raise ValueError("Only CMG grids are supported")
 
-        # Initialise number of rows and columns
-        self.nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
-        self.ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
+        # Get the grid resolution from the grid name
+        pos = gridname.rfind("_") + 1
+        pos2 = gridname.rfind("Deg")
 
-        # Get the grid name and other projection info
-        self.area_extent = self._sort_grid()
+        # Some products don't have resolution listed.
+        if pos < 0 or pos2 < 0:
+            self.resolution = 360. / self.ncols
+        else:
+            self.resolution = float(gridname[pos:pos2])
 
 
     def available_datasets(self, configured_datasets=None):
