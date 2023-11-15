@@ -51,9 +51,6 @@ RES_TO_REPEAT_FACTOR = {
 
 
 def _shape_for_resolution(resolution: int) -> tuple[int, int]:
-    # Case of a CMG 0.05 degree file, for L3 tests
-    if resolution == -999:
-        return 3600, 7200
     assert resolution in RES_TO_REPEAT_FACTOR
     factor = RES_TO_REPEAT_FACTOR[resolution]
     if factor == 1:
@@ -229,21 +226,9 @@ def generate_imapp_filename(suffix):
     return f"t1.{now:%y%j.%H%M}.{suffix}.hdf"
 
 
-def _add_geo_metadata(h, geo_res):
-    """Add the geoinfo metadata to the fake file."""
-    if geo_res == -999 or geo_res == -9999:
-        setattr(h, 'StructMetadata.0', _create_struct_metadata_cmg(geo_res))  # noqa
-    else:
-        setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_res))  # noqa
-
-    return h
-
-
 def create_hdfeos_test_file(filename: str,
                             variable_infos: dict,
-                            geo_resolution: Optional[int] = None,
-                            file_shortname: Optional[str] = None,
-                            include_metadata: bool = True):
+                            metadata_dict: Optional[dict] = {}):
     """Create a fake MODIS L1b HDF4 file with headers.
 
     Args:
@@ -256,17 +241,27 @@ def create_hdfeos_test_file(filename: str,
         file_shortname: Short name of the file to be stored in global metadata
             attributes. Only used if ``include_metadata`` is ``True``
             (default).
-        include_metadata: Include global metadata attributes (default: True).
+        metadata_dict: A dictionary of metadata to be added to the file.
 
     """
     h = SD(filename, SDC.WRITE | SDC.CREATE)
 
-    if include_metadata:
-        if geo_resolution is None or file_shortname is None:
-            raise ValueError("'geo_resolution' and 'file_shortname' are required when including metadata.")
-        h = _add_geo_metadata(h, geo_resolution)
-        setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
-        setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
+    if metadata_dict is not None and metadata_dict != {}:
+        # Check if we're dealing with an L3 file
+        if "l3_type" not in metadata_dict.keys():
+            if "file_shortname" not in metadata_dict["file_shortname"].keys():
+                raise ValueError("'file_shortname' is required when including metadata.")
+            # For L1 and L2 files we need to know the resolution
+            if "geo_resolution" not in metadata_dict.keys():
+                raise ValueError("'geo_resolution' is required when including L1/L2 metadata.")
+            setattr(h, "StructMetadata.0", _create_struct_metadata(metadata_dict["geo_resolution"]))
+            setattr(h, "CoreMetadata.0", _create_core_metadata(metadata_dict["file_shortname"]))  # noqa
+        else:
+            # For an L3 file, we just call the relevant metadata creator
+            setattr(h, "StructMetadata.0", _create_struct_metadata_cmg(metadata_dict["l3_type"]))
+            setattr(h, "CoreMetadata.0", _create_core_metadata(metadata_dict["l3_type"]))  # noqa
+
+        setattr(h, "ArchiveMetadata.0", _create_header_metadata())  # noqa
 
     for var_name, var_info in variable_infos.items():
         _add_variable_to_file(h, var_name, var_info)
@@ -339,13 +334,14 @@ def _create_struct_metadata(geo_resolution: int) -> str:
     return struct_metadata_header
 
 
-def _create_struct_metadata_cmg(res) -> str:
+def _create_struct_metadata_cmg(ftype: str) -> str:
     # Case of a MOD09 file
-    gridline = 'GridName="MOD09CMG"\n'
-    upleft = "UpperLeftPointMtrs=(-180000000.000000,90000000.000000)\n"
-    upright = "LowerRightMtrs=(180000000.000000,-90000000.000000)\n"
-    if res == -9999:
-        # Case of a MCD43 file
+    if ftype == "MOD09":
+        gridline = 'GridName="MOD09CMG"\n'
+        upleft = "UpperLeftPointMtrs=(-180000000.000000,90000000.000000)\n"
+        upright = "LowerRightMtrs=(180000000.000000,-90000000.000000)\n"
+    # Case of a MCD43 file
+    elif ftype == "MCD43C1":
         gridline = 'GridName="MCD_CMG_BRDF_0.05Deg"\n'
         upleft = "UpperLeftPointMtrs=(-180.000000,90.000000)\n"
         upright = "LowerRightMtrs=(180.000000,-90.000000)\n"
@@ -381,7 +377,7 @@ def modis_l1b_nasa_mod021km_file(tmpdir_factory) -> list[str]:
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
     variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD021KM")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 5000, "file_shortname": "MOD021KM"})
     return [full_path]
 
 
@@ -395,7 +391,7 @@ def modis_l1b_imapp_1000m_file(tmpdir_factory) -> list[str]:
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
     variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD021KM")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 5000, "file_shortname": "MOD021KM"})
     return [full_path]
 
 
@@ -406,7 +402,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_500_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02HKM")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 1000, "file_shortname": "MOD02HKM"})
     return [full_path]
 
 
@@ -417,7 +413,7 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_250_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02QKM")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 1000, "file_shortname": "MOD02QKM"})
     return [full_path]
 
 
@@ -427,7 +423,7 @@ def modis_l1b_nasa_mod03_file(tmpdir_factory) -> list[str]:
     filename = generate_nasa_l1b_filename("MOD03")
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 1000, "file_shortname": "MOD03"})
     return [full_path]
 
 
@@ -437,7 +433,7 @@ def modis_l1b_imapp_geo_file(tmpdir_factory) -> list[str]:
     filename = generate_imapp_filename("geo")
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 1000, "file_shortname": "MOD03"})
     return [full_path]
 
 
@@ -595,7 +591,7 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_cloud_mask_variable_info("Cloud_Mask", 1000))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD35")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 5000, "file_shortname": "MOD35"})
     return [full_path]
 
 
@@ -605,12 +601,12 @@ def generate_nasa_l3_filename(prefix: str) -> str:
     return f"{prefix}.A{now:%Y%j}.061.{now:%Y%j%H%M%S}.hdf"
 
 
-def modis_l3_file(tmpdir_factory, f_prefix, var_name, geo_res, f_short):
+def modis_l3_file(tmpdir_factory, f_prefix, var_name, f_short):
     """Create a MODIS L3 file of the desired type."""
     filename = generate_nasa_l3_filename(f_prefix)
     full_path = str(tmpdir_factory.mktemp("modis_l3").join(filename))
     variable_infos = _get_l3_refl_variable_info(var_name)
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=geo_res, file_shortname=f_short)
+    create_hdfeos_test_file(full_path, variable_infos, {"l3_type": f_short})
     return [full_path]
 
 
@@ -620,7 +616,6 @@ def modis_l3_nasa_mod09_file(tmpdir_factory) -> list[str]:
     return modis_l3_file(tmpdir_factory,
                          "MOD09CMG",
                          "Coarse_Resolution_Surface_Reflectance_Band_2",
-                         -999,
                          "MOD09")
 
 
@@ -630,7 +625,6 @@ def modis_l3_nasa_mod43_file(tmpdir_factory) -> list[str]:
     return modis_l3_file(tmpdir_factory,
                          "MCD43C1",
                          "BRDF_Albedo_Parameter1_Band2",
-                         -9999,
                          "MCD43C1")
 
 
@@ -647,7 +641,7 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_basic_variable_info("Surface_Pressure", 5000))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD06")
+    create_hdfeos_test_file(full_path, variable_infos, {"geo_resolution": 5000, "file_shortname": "MOD06"})
     return [full_path]
 
 
@@ -658,7 +652,7 @@ def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=False)
     variable_infos.update(_get_basic_variable_info("Snow_Mask", 1000))
-    create_hdfeos_test_file(full_path, variable_infos, include_metadata=False)
+    create_hdfeos_test_file(full_path, variable_infos, {})
     return [full_path]
 
 
@@ -675,7 +669,7 @@ def modis_l2_imapp_mask_byte1_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=False)
     variable_infos.update(_get_mask_byte1_variable_info())
-    create_hdfeos_test_file(full_path, variable_infos, include_metadata=False)
+    create_hdfeos_test_file(full_path, variable_infos, {})
     return [full_path]
 
 

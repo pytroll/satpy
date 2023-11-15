@@ -27,8 +27,6 @@ from pytest_lazyfixture import lazy_fixture
 
 from satpy import Scene, available_readers
 
-from ._modis_fixtures import _shape_for_resolution
-
 
 def _expected_area():
     proj_param = "EPSG:4326"
@@ -101,6 +99,6 @@ class TestModisL3:
         assert data_arr_comp.dtype == data_arr.dtype
         assert data_arr_comp.dtype == np.float32
 
-        assert data_arr_comp.shape == _shape_for_resolution(-999)
+        assert data_arr_comp.shape == (3600, 7200)
         assert data_arr_comp.attrs.get("resolution") == 0.05
         assert data_arr_comp.attrs.get("area") == _expected_area()
