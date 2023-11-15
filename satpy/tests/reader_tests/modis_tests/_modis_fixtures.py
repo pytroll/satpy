@@ -228,7 +228,7 @@ def generate_imapp_filename(suffix):
 
 def create_hdfeos_test_file(filename: str,
                             variable_infos: dict,
-                            metadata_dict: Optional[dict] = {}):
+                            metadata_dict: Optional[dict] = None):
     """Create a fake MODIS L1b HDF4 file with headers.
 
     Args:
