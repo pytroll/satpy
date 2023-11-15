@@ -49,26 +49,6 @@ resolutions = {"Q": 250,
                "L": 1000}
 
 
-def interpolate(arr, sampling, full_shape):
-    """Interpolate the angles and navigation."""
-    # TODO: daskify this!
-    # TODO: do it in cartesian coordinates ! pbs at date line and poles
-    # possible
-    tie_x = np.arange(0, arr.shape[0] * sampling, sampling)
-    tie_y = np.arange(0, arr.shape[1] * sampling, sampling)
-    full_x = np.arange(0, full_shape[0])
-    full_y = np.arange(0, full_shape[1])
-
-
-    from scipy.interpolate import RectBivariateSpline
-    spl = RectBivariateSpline(
-        tie_x, tie_y, arr)
-
-    values = spl(full_x, full_y)
-
-    return da.from_array(values, chunks=(1000, 1000))
-
-
 class HDF5SGLI(BaseFileHandler):
     """File handler for the SGLI l1b data."""
 
@@ -103,20 +83,13 @@ class HDF5SGLI(BaseFileHandler):
         file_key = info["file_key"]
         h5dataset = self.h5file[file_key]
 
-        # resampling_interval = h5dataset.attrs.get('Resampling_interval', 1)
-        # if resampling_interval != 1:
-        #     logger.debug('Interpolating %s.', key["name"])
-        #     full_shape = (self.h5file['Image_data'].attrs['Number_of_lines'],
-        #                   self.h5file['Image_data'].attrs['Number_of_pixels'])
-        #     dataset = interpolate(h5dataset, resampling_interval, full_shape)
-        # else:
-        #     dataset = da.from_array(h5dataset[:].astype('<u2'), chunks=h5dataset.chunks)
         chunks = normalize_chunks(("auto", "auto"), h5dataset.shape, previous_chunks=h5dataset.chunks, dtype=np.float32)
         dataset = da.from_array(h5dataset, chunks=chunks)
         attrs = h5dataset.attrs
 
         dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
         with xr.set_options(keep_attrs=True):
+            # TODO add ir and polarized channels
             if key["name"][:2] in ["VN", "SW", "P1", "P2"]:
                 dataset = self.get_visible_dataset(key, h5dataset, dataset)
             elif key["name"][:-2] in ["longitude", "latitude"]:
@@ -127,7 +100,27 @@ class HDF5SGLI(BaseFileHandler):
                         dataset = new_lons
                     else:
                         dataset = new_lats
-                    dataset = xr.DataArray(da.from_array(dataset, chunks="auto"), attrs=attrs)
+                    dataset = xr.DataArray(dataset, attrs=attrs)
+                return dataset
+            elif key["name"] in ["satellite_azimuth_angle", "satellite_zenith_angle"]:
+                resampling_interval = attrs["Resampling_interval"]
+                if resampling_interval != 1:
+                    new_azi, new_zen = self.interpolate_sensor_angles(resampling_interval)
+                    if "azimuth" in key["name"]:
+                        dataset = new_azi
+                    else:
+                        dataset = new_zen
+                    dataset = xr.DataArray(dataset, attrs=attrs)
+                return dataset
+            elif key["name"] in ["solar_azimuth_angle", "solar_zenith_angle"]:
+                resampling_interval = attrs["Resampling_interval"]
+                if resampling_interval != 1:
+                    new_azi, new_zen = self.interpolate_solar_angles(resampling_interval)
+                    if "azimuth" in key["name"]:
+                        dataset = new_azi
+                    else:
+                        dataset = new_zen
+                    dataset = xr.DataArray(dataset, attrs=attrs)
                 return dataset
             else:
                 raise NotImplementedError()
@@ -139,20 +132,38 @@ class HDF5SGLI(BaseFileHandler):
     def interpolate_lons_lats(self, resampling_interval):
         lons = self.h5file["Geometry_data/Longitude"]
         lats = self.h5file["Geometry_data/Latitude"]
+        return self.interpolate_spherical(lons, lats, resampling_interval)
+
+    def interpolate_sensor_angles(self, resampling_interval):
+        azi = self.h5file["Geometry_data/Sensor_azimuth"]
+        zen = self.h5file["Geometry_data/Sensor_zenith"]
+        return self.interpolate_angles(azi, zen, resampling_interval)
+
+    def interpolate_solar_angles(self, resampling_interval):
+        azi = self.h5file["Geometry_data/Solar_azimuth"]
+        zen = self.h5file["Geometry_data/Solar_zenith"]
+        return self.interpolate_angles(azi, zen, resampling_interval)
+
+    def interpolate_angles(self, azi, zen, resampling_interval):
+        azi = azi * azi.attrs["Slope"] + azi.attrs["Offset"]
+        zen = zen * zen.attrs["Slope"] + zen.attrs["Offset"]
+        zen = zen[:] - 90
+        new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)
+        return new_azi, new_zen + 90
+
+    def interpolate_spherical(self, azimuthal_angle, polar_angle, resampling_interval):
+        from geotiepoints.geointerpolator import GeoGridInterpolator
 
         full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"],
-                                  self.h5file["Image_data"].attrs["Number_of_pixels"])
+                      self.h5file["Image_data"].attrs["Number_of_pixels"])
 
-        tie_x = np.arange(0, lons.shape[0] * resampling_interval, resampling_interval)
-        tie_y = np.arange(0, lons.shape[1] * resampling_interval, resampling_interval)
-        full_x = np.arange(0, full_shape[0])
-        full_y = np.arange(0, full_shape[1])
+        tie_lines = np.arange(0, polar_angle.shape[0] * resampling_interval, resampling_interval)
+        tie_cols = np.arange(0, polar_angle.shape[1] * resampling_interval, resampling_interval)
 
-        from geotiepoints import SatelliteInterpolator
-        interpolator = SatelliteInterpolator((lons, lats), (tie_x, tie_y), (full_x, full_y), 2, 2,
-                                             chunk_size=(1000, 500))
-        new_lons, new_lats = interpolator.interpolate()
-        return new_lons,new_lats
+        interpolator = GeoGridInterpolator((tie_lines, tie_cols), azimuthal_angle, polar_angle, method="slinear")
+        new_azi, new_pol = interpolator.interpolate_to_shape(full_shape, chunks="auto")
+        return new_azi, new_pol
+
 
     def get_visible_dataset(self, key, h5dataset, dataset):
 

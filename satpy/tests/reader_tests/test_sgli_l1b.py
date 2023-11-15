@@ -15,14 +15,15 @@ START_TIME = datetime.now()
 END_TIME = START_TIME + timedelta(minutes=5)
 FULL_KM_ARRAY = np.arange(1955 * 1250, dtype=np.uint16).reshape((1955, 1250))
 MASK = 16383
-LON_LAT_ARRAY = np.arange(197 * 126, dtype=np.uint16).reshape((197, 126))
+LON_LAT_ARRAY = np.arange(197 * 126, dtype=np.float32).reshape((197, 126))
+AZI_ARRAY = np.random.randint(-180 * 100, 180 * 100, size=(197, 126), dtype=np.int16)
+ZEN_ARRAY = np.random.randint(0, 180 * 100, size=(197, 126), dtype=np.int16)
 
 
-def test_open_dataset():
+def test_open_dataset(sgli_file):
     """Test open_dataset function."""
     from satpy.readers.sgli_l1b import SGLIBackend
-    filename = "/home/a001673/data/satellite/gcom-c/GC1SG1_202002231142M25511_1BSG_VNRDL_1008.h5"
-    res = open_dataset(filename, engine=SGLIBackend, chunks={})
+    res = open_dataset(sgli_file, engine=SGLIBackend, chunks={})
     assert isinstance(res, Dataset)
     data_array = res["Lt_VN01"]
     assert isinstance(data_array, DataArray)
@@ -57,6 +58,28 @@ def sgli_file(tmp_path_factory):
         longitude.attrs["Resampling_interval"] = 10
         latitude = geometry_data.create_dataset("Latitude", data=LON_LAT_ARRAY, chunks=(47, 63))
         latitude.attrs["Resampling_interval"] = 10
+
+        angles_slope = np.array([0.01], dtype=np.float32)
+        angles_offset = np.array([0], dtype=np.float32)
+
+        azimuth = geometry_data.create_dataset("Sensor_azimuth", data=AZI_ARRAY, chunks=(47, 63))
+        azimuth.attrs["Resampling_interval"] = 10
+        azimuth.attrs["Slope"] = angles_slope
+        azimuth.attrs["Offset"] = angles_offset
+        zenith = geometry_data.create_dataset("Sensor_zenith", data=ZEN_ARRAY, chunks=(47, 63))
+        zenith.attrs["Resampling_interval"] = 10
+        zenith.attrs["Slope"] = angles_slope
+        zenith.attrs["Offset"] = angles_offset
+
+        sazimuth = geometry_data.create_dataset("Solar_azimuth", data=AZI_ARRAY, chunks=(47, 63))
+        sazimuth.attrs["Resampling_interval"] = 10
+        sazimuth.attrs["Slope"] = angles_slope
+        sazimuth.attrs["Offset"] = angles_offset
+        szenith = geometry_data.create_dataset("Solar_zenith", data=ZEN_ARRAY, chunks=(47, 63))
+        szenith.attrs["Resampling_interval"] = 10
+        szenith.attrs["Slope"] = angles_slope
+        szenith.attrs["Offset"] = angles_offset
+
     return filename
 
 def test_start_time(sgli_file):
@@ -118,3 +141,21 @@ def test_loading_lon_lat(sgli_file):
     assert res.shape == (1955, 1250)
     assert res.chunks is not None
     assert res.dtype == np.float32
+
+def test_loading_sensor_angles(sgli_file):
+    handler = HDF5SGLI(sgli_file, {"resolution": "L"}, {})
+    did = dict(name="satellite_zenith_angle", resolution=1000, polarization=None)
+    res = handler.get_dataset(did, {"file_key": "Geometry_data/Sensor_zenith"})
+    assert res.shape == (1955, 1250)
+    assert res.chunks is not None
+    assert res.dtype == np.float32
+    assert res.min() >= 0
+
+def test_loading_solar_angles(sgli_file):
+    handler = HDF5SGLI(sgli_file, {"resolution": "L"}, {})
+    did = dict(name="solar_azimuth_angle", resolution=1000, polarization=None)
+    res = handler.get_dataset(did, {"file_key": "Geometry_data/Sensor_zenith"})
+    assert res.shape == (1955, 1250)
+    assert res.chunks is not None
+    assert res.dtype == np.float32
+    assert res.max() <= 180
