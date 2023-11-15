@@ -93,12 +93,11 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-        logger.debug("Available_datasets begin...")
-
-        ds_dict = self.sd.datasets()
 
         yield from super().available_datasets(configured_datasets)
         common = {"file_type": "mcd43_cmg_hdf", "resolution": self.resolution}
+        ds_dict = self.sd.datasets()
+
         for key in ds_dict.keys():
             if "/" in key:  # not a dataset
                 continue
