@@ -68,7 +68,7 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
         # For some reason, a few of the CMG products multiply their
         # decimal degree extents by one million. This fixes it.
-        if lowerright[0] > 1e6:
+        if lowerright[0] > 1e6 or upperleft[0] > 1e6:
             upperleft = tuple(val / 1e6 for val in upperleft)
             lowerright = tuple(val / 1e6 for val in lowerright)
 
