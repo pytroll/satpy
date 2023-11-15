@@ -20,7 +20,7 @@
 Introduction
 ------------
 
-The ``modis_l3`` reader reads Modis L3 products in hdf-eos format.
+The ``modis_l3`` reader reads MODIS L3 products in HDF-EOS format.
 
 There are multiple level 3 products, including some on sinusoidal grids and some on the climate modeling grid (CMG).
 This reader supports the CMG products at present, and the sinusoidal products will be added if there is demand.
