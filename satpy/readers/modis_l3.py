@@ -98,8 +98,6 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
         # Initialise set of variable names to carry through code
         handled_var_names = set()
 
-        yield from super().available_datasets(configured_datasets)
-
         ds_dict = self.sd.datasets()
 
         for is_avail, ds_info in (configured_datasets or []):
