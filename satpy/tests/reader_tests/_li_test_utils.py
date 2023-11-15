@@ -370,13 +370,13 @@ def l2_lfl_schema(settings=None):
                 "default_data": lambda: np.random.uniform(stime, etime, nobs)
             },
             "l1b_geolocation_warning": {
-                "format": "u8",
+                "format": "i1",
                 "shape": ("flashes",),
                 "long_name": "L1b geolocation warning",
                 "default_data": lambda: -127
             },
             "l1b_radiometric_warning": {
-                "format": "u8",
+                "format": "i1",
                 "shape": ("flashes",),
                 "long_name": "L1b radiometric warning",
                 "default_data": lambda: -127

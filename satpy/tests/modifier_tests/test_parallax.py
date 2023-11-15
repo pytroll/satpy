@@ -30,6 +30,7 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 import satpy.resample
+from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.writers import get_enhanced_image
 
 # NOTE:
@@ -438,6 +439,7 @@ class TestParallaxCorrectionClass:
         corrector = ParallaxCorrection(area)
         corrector(sc["CTH_constant"])
 
+    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_correct_area_no_orbital_parameters(self, caplog, fake_tle):
         """Test ParallaxCorrection when CTH has no orbital parameters.
 
@@ -761,6 +763,7 @@ class TestParallaxCorrectionSceneLoad:
                 "area": area})
         return sc
 
+    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_double_load(self, fake_scene, conf_file, fake_tle):
         """Test that loading corrected and uncorrected works correctly.
 
@@ -790,6 +793,7 @@ class TestParallaxCorrectionSceneLoad:
             sccc.return_value = [os.fspath(conf_file)]
             fake_scene.load(["parallax_corrected_VIS006"])
 
+    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_enhanced_image(self, fake_scene, conf_file, fake_tle):
         """Test that image enhancement is the same."""
         with unittest.mock.patch(

@@ -620,9 +620,12 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # file data type to allow for extra fill values
         num_fills = 0
 
-    if is_unsigned or unsigned_in_signed:
+    if is_unsigned:
         # max value
         fills = [2 ** file_bit_depth - 1]
+    elif unsigned_in_signed:
+        # max unsigned value is -1 as a signed int
+        fills = [-1]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
