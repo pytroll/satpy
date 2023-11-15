@@ -9,7 +9,7 @@ reader:
   sensors: [modis]
 
 file_types:
-  mcd43_cmg_hdf:
+  modis_l3_cmg_hdf:
     file_patterns:
     - 'MCD43C{prod_type}.A{start_time:%Y%j}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D09CMG.A{start_time:%Y%j}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'

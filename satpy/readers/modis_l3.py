@@ -33,6 +33,7 @@ To get a list of the available datasets for a given file refer to the "Load data
 
 """
 import logging
+from typing import Iterable
 
 from pyresample import geometry
 
@@ -94,14 +95,44 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
 
+        # Initialise set of variable names to carry through code
+        handled_var_names = set()
+
         yield from super().available_datasets(configured_datasets)
-        common = {"file_type": "mcd43_cmg_hdf", "resolution": self.resolution}
+
         ds_dict = self.sd.datasets()
 
-        for key in ds_dict.keys():
-            if "/" in key:  # not a dataset
+        for is_avail, ds_info in (configured_datasets or []):
+            file_key = ds_info.get("file_key", ds_info["name"])
+            # we must add all variables here even if another file handler has
+            # claimed the variable. It could be another instance of this file
+            # type and we don't want to add that variable dynamically if the
+            # other file handler defined it by the YAML definition.
+            handled_var_names.add(file_key)
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
                 continue
-            yield True, {"name": key} | common
+            if self.file_type_matches(ds_info["file_type"]) is None:
+                # this is not the file type for this dataset
+                yield None, ds_info
+            yield file_key in ds_dict.keys(), ds_info
+
+        yield from self._dynamic_variables_from_file(handled_var_names)
+
+    def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
+
+        for var_name in self.sd.datasets().keys():
+            if var_name in handled_var_names:
+                # skip variables that YAML had configured, but allow lon/lats
+                # to be reprocessed due to our dynamic coordinate naming
+                continue
+            common = {"file_type": "modis_l3_cmg_hdf",
+                      "resolution": self.resolution,
+                      "name": var_name}
+            yield True, common
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
