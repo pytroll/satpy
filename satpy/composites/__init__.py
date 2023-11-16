@@ -869,7 +869,7 @@ def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
 
 
 def _get_weight_mask_for_single_side_product(data_a, data_b):
-    if isinstance(data_a, int):
+    if data_b.shape:
         return ~da.isnan(data_b)
     return ~da.isnan(data_a)
 

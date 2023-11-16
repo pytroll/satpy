@@ -490,7 +490,6 @@ class TestDayNightCompositor(unittest.TestCase):
             res = comp((self.data_b,))
             res = res.compute()
         expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        # FIXME: with the current changes the np.nan becomes 0.0 instead, why?!
         expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
