@@ -594,26 +594,6 @@ class TestComputeWriterResults(unittest.TestCase):
         compute_writer_results([res])
         assert os.path.isfile(fname)
 
-# FIXME: This reader needs more information than exist at the moment
-#    def test_mitiff(self):
-#        """Test writing to mitiff file"""
-#        fname = os.path.join(self.base_dir, 'mitiff.tif')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='mitiff')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
-
-# FIXME: This reader needs more information than exist at the moment
-#    def test_cf(self):
-#        """Test writing to NetCDF4 file"""
-#        fname = os.path.join(self.base_dir, 'cf.nc')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='cf')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
-
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
         from satpy.writers import compute_writer_results
