@@ -67,9 +67,11 @@ def _add_grid_mapping(dataarray):
 def area2cf(dataarray, include_lonlats=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if not got_lonlats and (isinstance(dataarray.attrs["area"], SwathDefinition) or include_lonlats):
+    include_lonlats = include_lonlats or isinstance(dataarray.attrs["area"], SwathDefinition)
+    is_area_def = isinstance(dataarray.attrs["area"], AreaDefinition)
+    if not got_lonlats and include_lonlats:
         dataarray = _add_lonlat_coords(dataarray)
-    if isinstance(dataarray.attrs["area"], AreaDefinition):
+    if is_area_def:
         dataarray, gmapping = _add_grid_mapping(dataarray)
         res.append(gmapping)
     res.append(dataarray)

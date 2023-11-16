@@ -41,15 +41,16 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
 def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name):
     """Change the DataArray name by prepending numeric_name_prefix if the name is a digit."""
     original_name = None
+    named_has_changed = False
     dataarray = dataarray.copy()
     if "name" in dataarray.attrs:
         original_name = dataarray.attrs.pop("name")
         original_name, new_name = _handle_dataarray_name(original_name, numeric_name_prefix)
         dataarray = dataarray.rename(new_name)
+        named_has_changed = original_name != new_name
 
-    if include_orig_name and numeric_name_prefix and original_name and original_name != new_name:
+    if named_has_changed and include_orig_name:
         dataarray.attrs["original_name"] = original_name
-
     return dataarray
 
 

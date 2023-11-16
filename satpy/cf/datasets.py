@@ -16,7 +16,6 @@
 """Utility to generate a CF-compliant Datasets."""
 import logging
 import warnings
-from collections import defaultdict
 
 import xarray as xr
 
@@ -39,6 +38,11 @@ def _get_extra_ds(dataarray, keys=None):
     return dict_datarrays
 
 
+def _get_group_dataarrays(group_members, list_dataarrays):
+    """Yield DataArrays that are part of a specific group."""
+    return [da for da in list_dataarrays if da.attrs["name"] in group_members]
+
+
 def _get_groups(groups, list_datarrays):
     """Return a dictionary with the list of xr.DataArray associated to each group.
 
@@ -46,15 +50,10 @@ def _get_groups(groups, list_datarrays):
     Else, collect the DataArrays associated to each group.
     """
     if groups is None:
-        grouped_dataarrays = {None: list_datarrays}
-    else:
-        grouped_dataarrays = defaultdict(list)
-        for datarray in list_datarrays:
-            for group_name, group_members in groups.items():
-                if datarray.attrs["name"] in group_members:
-                    grouped_dataarrays[group_name].append(datarray)
-                    break
-    return grouped_dataarrays
+        return {None: list_datarrays}
+
+    return {group_name: _get_group_dataarrays(group_members, list_datarrays)
+            for group_name, group_members in groups.items()}
 
 
 def _collect_cf_dataset(list_dataarrays,

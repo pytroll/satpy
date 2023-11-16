@@ -59,8 +59,24 @@ class AttributeEncoder(json.JSONEncoder):
             return tuple(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-
         return str(obj)
+
+
+def _encode_numpy_array(obj):
+    """Encode numpy array as a netCDF4 serializable datatype."""
+    from satpy.writers.cf_writer import NC4_DTYPES
+
+    # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
+    is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
+    if is_plain_1d:
+        if obj.dtype in NC4_DTYPES:
+            return obj
+        elif obj.dtype == np.bool_:
+            # Boolean arrays are not supported, convert to array of strings.
+            return [s.lower() for s in obj.astype(str)]
+        return obj.tolist()
+    else:
+        raise ValueError("Only a 1D numpy array can be encoded as netCDF attribute.")
 
 
 def _encode_object(obj):
@@ -69,23 +85,22 @@ def _encode_object(obj):
     Raises:
         ValueError if no such datatype could be found
     """
-    from satpy.writers.cf_writer import NC4_DTYPES
-
     if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
         return obj
     elif isinstance(obj, (float, str, np.integer, np.floating)):
         return obj
     elif isinstance(obj, np.ndarray):
-        # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
-        is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
-        if is_plain_1d:
-            if obj.dtype in NC4_DTYPES:
-                return obj
-            elif obj.dtype == np.bool_:
-                # Boolean arrays are not supported, convert to array of strings.
-                return [s.lower() for s in obj.astype(str)]
-            return obj.tolist()
+        return _encode_numpy_array(obj)
     raise ValueError("Unable to encode")
+
+
+def _try_decode_object(obj):
+    """Try to decode byte string"""
+    try:
+        decoded = obj.decode()
+    except AttributeError:
+        decoded = obj
+    return decoded
 
 
 def _encode_python_objects(obj):
@@ -98,11 +113,7 @@ def _encode_python_objects(obj):
     try:
         dump = _encode_object(obj)
     except ValueError:
-        try:
-            # Decode byte-strings
-            decoded = obj.decode()
-        except AttributeError:
-            decoded = obj
+        decoded = _try_decode_object(obj)
         dump = json.dumps(decoded, cls=AttributeEncoder).strip('"')
     return dump
 

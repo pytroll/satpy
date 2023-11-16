@@ -46,12 +46,26 @@ def _is_projected(dataarray):
     return True
 
 
+def _is_area(dataarray):
+     if isinstance(dataarray.attrs["area"], AreaDefinition):
+        return True
+     else:
+        return False
+
+
+def _is_swath(dataarray):
+     if isinstance(dataarray.attrs["area"], SwathDefinition):
+        return True
+     else:
+        return False
+
+
 def _try_to_get_crs(dataarray):
     """Try to get a CRS from attributes."""
     if "area" in dataarray.attrs:
-        if isinstance(dataarray.attrs["area"], AreaDefinition):
+        if _is_area(dataarray):
             return dataarray.attrs["area"].crs
-        if not isinstance(dataarray.attrs["area"], SwathDefinition):
+        if not _is_swath(dataarray):
             logger.warning(
                 f"Could not tell CRS from area of type {type(dataarray.attrs['area']).__name__:s}. "
                 "Assuming projected CRS.")
@@ -116,9 +130,7 @@ def set_cf_time_info(dataarray, epoch):
 
 def _is_lon_or_lat_dataarray(dataarray):
     """Check if the DataArray represents the latitude or longitude coordinate."""
-    if "standard_name" in dataarray.attrs and dataarray.attrs["standard_name"] in ["longitude", "latitude"]:
-        return True
-    return False
+    return dataarray.attrs.get("standard_name", "") in ("longitude", "latitude")
 
 
 def has_projection_coords(dict_datarrays):
@@ -127,6 +139,35 @@ def has_projection_coords(dict_datarrays):
         if _is_lon_or_lat_dataarray(dataarray):
             return True
     return False
+
+
+def _get_is_nondimensional_coords_dict(dict_dataarrays):
+    tokens = defaultdict(set)
+    for dataarray in dict_dataarrays.values():
+        for coord_name in dataarray.coords:
+            if not _is_lon_or_lat_dataarray(dataarray[coord_name]) and coord_name not in dataarray.dims:
+                tokens[coord_name].add(tokenize(dataarray[coord_name].data))
+    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
+    return coords_unique
+
+
+def _warn_if_pretty_but_not_unique(pretty, coord_name):
+    """Warn if coordinates cannot be pretty-formatted due to non-uniqueness."""
+    if pretty:
+        warnings.warn(
+            f'Cannot pretty-format "{coord_name}" coordinates because they are '
+            'not identical among the given datasets',
+            stacklevel=2
+        )
+
+
+def _rename_coords(dict_dataarrays, coord_name):
+    """Rename coordinates in the datasets."""
+    for name, dataarray in dict_dataarrays.items():
+        if coord_name in dataarray.coords:
+            rename = {coord_name: f"{name}_{coord_name}"}
+            dict_dataarrays[name] = dataarray.rename(rename)
+    return dict_dataarrays
 
 
 def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
@@ -155,28 +196,14 @@ def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
     """
     # Determine which non-dimensional coordinates are unique
     # - coords_unique has structure: {coord_name: True/False}
-    tokens = defaultdict(set)
-    for dataarray in dict_dataarrays.values():
-        for coord_name in dataarray.coords:
-            if not _is_lon_or_lat_dataarray(dataarray[coord_name]) and coord_name not in dataarray.dims:
-                tokens[coord_name].add(tokenize(dataarray[coord_name].data))
-    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
+    is_coords_unique_dict = _get_is_nondimensional_coords_dict(dict_dataarrays)
 
     # Prepend dataset name, if not unique or no pretty-format desired
     new_dict_dataarrays = dict_dataarrays.copy()
-    for coord_name, unique in coords_unique.items():
+    for coord_name, unique in is_coords_unique_dict.items():
         if not pretty or not unique:
-            if pretty:
-                warnings.warn(
-                    'Cannot pretty-format "{}" coordinates because they are '
-                    'not identical among the given datasets'.format(coord_name),
-                    stacklevel=2
-                )
-            for name, dataarray in dict_dataarrays.items():
-                if coord_name in dataarray.coords:
-                    rename = {coord_name: "{}_{}".format(name, coord_name)}
-                    new_dict_dataarrays[name] = new_dict_dataarrays[name].rename(rename)
-
+            _warn_if_pretty_but_not_unique(pretty, coord_name)
+            new_dict_dataarrays = _rename_coords(new_dict_dataarrays, coord_name)
     return new_dict_dataarrays
 
 
@@ -196,6 +223,7 @@ def check_unique_projection_coords(dict_dataarrays):
                          "Please group them by area or save them in separate files.")
 
 
+
 def add_coordinates_attrs_coords(dict_dataarrays):
     """Add to DataArrays the coordinates specified in the 'coordinates' attribute.
 
@@ -208,23 +236,39 @@ def add_coordinates_attrs_coords(dict_dataarrays):
     In the final call to `xr.Dataset.to_netcdf()` all coordinate relations will be resolved
     and the `coordinates` attributes be set automatically.
     """
-    for da_name, dataarray in dict_dataarrays.items():
-        declared_coordinates = _get_coordinates_list(dataarray)
-        for coord in declared_coordinates:
-            if coord not in dataarray.coords:
-                try:
-                    dimensions_not_in_data = list(set(dict_dataarrays[coord].dims) - set(dataarray.dims))
-                    dataarray[coord] = dict_dataarrays[coord].squeeze(dimensions_not_in_data, drop=True)
-                except KeyError:
-                    warnings.warn(
-                        'Coordinate "{}" referenced by dataarray {} does not '
-                        'exist, dropping reference.'.format(coord, da_name),
-                        stacklevel=2
-                    )
-                    continue
-
+    for dataarray_name in dict_dataarrays.keys():
+        dict_dataarrays = _add_declared_coordinates(dict_dataarrays,
+                                                    dataarray_name=dataarray_name)
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        dataarray.attrs.pop("coordinates", None)
+        dict_dataarrays[dataarray_name].attrs.pop("coordinates", None)
+    return dict_dataarrays
+
+
+def _add_declared_coordinates(dict_dataarrays, dataarray_name):
+    """Add declared coordinates to the dataarray if they exist."""
+    dataarray = dict_dataarrays[dataarray_name]
+    declared_coordinates = _get_coordinates_list(dataarray)
+    for coord in declared_coordinates:
+        if coord not in dataarray.coords:
+            dict_dataarrays = _try_add_coordinate(dict_dataarrays,
+                                                  dataarray_name=dataarray_name,
+                                                  coord=coord)
+    return dict_dataarrays
+
+
+def _try_add_coordinate(dict_dataarrays, dataarray_name, coord):
+    """Try to add a coordinate to the dataarray, warn if not possible."""
+    try:
+        dataarray_dims = set(dict_dataarrays[dataarray_name].dims)
+        coordinate_dims = set(dict_dataarrays[coord].dims)
+        dimensions_to_squeeze = list(coordinate_dims - dataarray_dims)
+        dict_dataarrays[dataarray_name][coord] = dict_dataarrays[coord].squeeze(dimensions_to_squeeze, drop=True)
+    except KeyError:
+        warnings.warn(
+            f'Coordinate "{coord}" referenced by dataarray {dataarray_name} does not '
+            'exist, dropping reference.',
+            stacklevel=2
+        )
     return dict_dataarrays
 
 
