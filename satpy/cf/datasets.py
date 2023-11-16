@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
@@ -69,39 +67,24 @@ def _collect_cf_dataset(list_dataarrays,
                         numeric_name_prefix="CHANNEL_"):
     """Process a list of xr.DataArray and return a dictionary with CF-compliant xr.Dataset.
 
-    Parameters
-    ----------
-    list_dataarrays : list
-        List of DataArrays to make CF compliant and merge into a xr.Dataset.
-    epoch : str
-        Reference time for encoding the time coordinates (if available).
-        Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is defined using `from satpy.cf import EPOCH`
-    flatten_attrs : bool, optional
-    flatten_attrs : bool
-        If True, flatten dict-type attributes.
-    exclude_attrs : list, optional
-    exclude_attrs : list
-        List of xr.DataArray attribute names to be excluded.
-    include_lonlats : bool, optional
-    include_lonlats : bool
-        If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
-        If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
-    pretty : bool, optional
-    pretty : bool
-        Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-    include_orig_name : bool, optional
-    include_orig_name : bool
-        Include the original dataset name as a variable attribute in the xr.Dataset.
-    numeric_name_prefix : str, optional
-    numeric_name_prefix : str
-        Prefix to add the each variable with name starting with a digit.
-        Use '' or None to leave this out.
+    Args:
+        list_dataarrays (list): List of DataArrays to make CF compliant and merge into an xr.Dataset.
+        epoch (str, optional): Reference time for encoding the time coordinates.
+            Example format: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also for a
+            satpy.Scene defined on an AreaDefinition.
+            If the 'area' attribute is a SwathDefinition, it always includes latitude and longitude coordinates.
+        pretty (bool, optional): Don't modify coordinate names, if possible.
+            Makes the file prettier, but possibly less consistent.
+        include_orig_name (bool, optional): Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+            Use '' or None to leave this out.
 
-    Returns
-    -------
-    ds : xr.Dataset
-        A partially CF-compliant xr.Dataset
+    Returns:
+        xr.Dataset: A partially CF-compliant xr.Dataset.
     """
     from satpy.cf.area import area2cf
     from satpy.cf.coords import (
@@ -194,44 +177,30 @@ def collect_cf_datasets(list_dataarrays,
     If the xr.DataArrays does not share the same dimensions, it creates a collection
     of xr.Datasets sharing the same dimensions.
 
-    Parameters
-    ----------
-    list_dataarrays (list):
-        List of DataArrays to make CF compliant and merge into groups of xr.Datasets.
-    header_attrs: (dict):
-        Global attributes of the output xr.Dataset.
-    epoch (str):
-        Reference time for encoding the time coordinates (if available).
-        Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is retrieved using `from satpy.cf import EPOCH`
-    flatten_attrs (bool):
-        If True, flatten dict-type attributes.
-    exclude_attrs (list):
-        List of xr.DataArray attribute names to be excluded.
-    include_lonlats (bool):
-        If True, it includes 'latitude' and 'longitude' coordinates also for satpy scene defined on an AreaDefinition.
-        If the 'area' attribute is a SwathDefinition, it always include latitude and longitude coordinates.
-    pretty (bool):
-        Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-    include_orig_name (bool).
-        Include the original dataset name as a variable attribute in the xr.Dataset.
-    numeric_name_prefix (str):
-        Prefix to add the each variable with name starting with a digit.
-        Use '' or None to leave this out.
-    groups (dict):
-        Group datasets according to the given assignment:
+    Args:
+        list_dataarrays (list): List of DataArrays to make CF compliant and merge into groups of xr.Datasets.
+        header_attrs (dict): Global attributes of the output xr.Dataset.
+        epoch (str, optional): Reference time for encoding the time coordinates.
+            Example format: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is retrieved using `from satpy.cf import EPOCH`.
+        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also
+            for a satpy.Scene defined on an AreaDefinition.
+            If the 'area' attribute is a SwathDefinition, it always includes latitude and longitude coordinates.
+        pretty (bool, optional): Don't modify coordinate names, if possible.
+            Makes the file prettier, but possibly less consistent.
+        include_orig_name (bool, optional): Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+            Use '' or None to leave this out.
+        groups (dict, optional): Group datasets according to the given assignment:
+            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`.
+            Used to create grouped netCDFs using the CF_Writer. If None, no groups will be created.
 
-            `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`
-
-        It is used to create grouped netCDFs using the CF_Writer.
-        If None (the default), no groups will be created.
-
-    Returns
-    -------
-    grouped_datasets : dict
-        A dictionary of CF-compliant xr.Dataset: {group_name: xr.Dataset}
-    header_attrs : dict
-        Global attributes to be attached to the xr.Dataset / netCDF4.
+    Returns:
+        tuple: A tuple containing:
+            - grouped_datasets (dict): A dictionary of CF-compliant xr.Dataset: {group_name: xr.Dataset}.
+            - header_attrs (dict): Global attributes to be attached to the xr.Dataset / netCDF4.
     """
     from satpy.cf.attrs import preprocess_header_attrs
     from satpy.cf.coords import add_time_bounds_dimension

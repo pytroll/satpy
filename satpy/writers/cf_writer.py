@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
@@ -240,36 +238,27 @@ class CFWriter(Writer):
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
 
         Args:
-            datasets (list):
-                List of xr.DataArray to be saved.
-            filename (str):
-                Output file
-            groups (dict):
-                Group datasets according to the given assignment: `{'group_name': ['dataset1', 'dataset2', ...]}`.
-                Group name `None` corresponds to the root of the file, i.e. no group will be created.
+            datasets (list): List of xr.DataArray to be saved.
+            filename (str): Output file.
+            groups (dict): Group datasets according to the given assignment:
+                `{'group_name': ['dataset1', 'dataset2', ...]}`.
+                The group name `None` corresponds to the root of the file, i.e., no group will be created.
                 Warning: The results will not be fully CF compliant!
-            header_attrs:
-                Global attributes to be included.
-            engine (str):
-                Module to be used for writing netCDF files. Follows xarray's
-                :meth:`~xarray.Dataset.to_netcdf` engine choices with a
-                preference for 'netcdf4'.
-            epoch (str):
-                Reference time for encoding of time coordinates.
-                If None, the default reference time is defined using `from satpy.cf import EPOCH`
-            flatten_attrs (bool):
-                If True, flatten dict-type attributes.
-            exclude_attrs (list):
-                List of dataset attributes to be excluded.
-            include_lonlats (bool):
-                Always include latitude and longitude coordinates, even for datasets with area definition.
-            pretty (bool):
-                Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-            include_orig_name (bool).
-                Include the original dataset name as a variable attribute in the final netCDF.
-            numeric_name_prefix (str):
-                Prefix to add the each variable with name starting with a digit. Use '' or None to leave this out.
-
+            header_attrs: Global attributes to be included.
+            engine (str, optional): Module to be used for writing netCDF files. Follows xarray's
+                :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
+            epoch (str, optional): Reference time for encoding of time coordinates.
+                If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+            flatten_attrs (bool, optional): If True, flatten dict-type attributes.
+            exclude_attrs (list, optional): List of dataset attributes to be excluded.
+            include_lonlats (bool, optional): Always include latitude and longitude coordinates,
+                even for datasets with area definition.
+            pretty (bool, optional): Don't modify coordinate names, if possible.
+                Makes the file prettier, but possibly less consistent.
+            include_orig_name (bool, optional): Include the original dataset name as a variable
+                attribute in the final netCDF.
+            numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+                Use '' or None to leave this out.
         """
         from satpy.cf.datasets import collect_cf_datasets
         from satpy.cf.encoding import update_encoding

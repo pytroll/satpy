@@ -52,42 +52,32 @@ def to_xarray(scn,
     If Scene DataArrays are on different areas, currently it fails, although
     in future we might return a DataTree object, grouped by area.
 
-    Parameters
-    ----------
-    scn: satpy.Scene
-        Satpy Scene.
-    datasets (iterable):
-        List of Satpy Scene datasets to include in the output xr.Dataset.
-        Elements can be string name, a wavelength as a number, a DataID,
-        or DataQuery object.
-        If None (the default), it include all loaded Scene datasets.
-    header_attrs:
-        Global attributes of the output xr.Dataset.
-    epoch (str):
-        Reference time for encoding the time coordinates (if available).
-        Example format: "seconds since 1970-01-01 00:00:00".
-        If None, the default reference time is defined using "from satpy.cf import EPOCH"
-    flatten_attrs (bool):
-        If True, flatten dict-type attributes.
-    exclude_attrs (list):
-        List of xr.DataArray attribute names to be excluded.
-    include_lonlats (bool):
-        If True, it includes 'latitude' and 'longitude' coordinates.
-        If the 'area' attribute is a SwathDefinition, it always includes
-        latitude and longitude coordinates.
-    pretty (bool):
-        Don't modify coordinate names, if possible. Makes the file prettier,
-        but possibly less consistent.
-    include_orig_name (bool).
-        Include the original dataset name as a variable attribute in the xr.Dataset.
-    numeric_name_prefix (str):
-        Prefix to add the each variable with name starting with a digit.
-        Use '' or None to leave this out.
+    Args:
+        scn (satpy.Scene): Satpy Scene.
+        datasets (iterable, optional): List of Satpy Scene datasets to include in
+            the output xr.Dataset. Elements can be string name, a wavelength as a
+            number, a DataID, or DataQuery object. If None (the default), it
+            includes all loaded Scene datasets.
+        header_attrs: Global attributes of the output xr.Dataset.
+        epoch (str, optional): Reference time for encoding the time coordinates
+            (if available). Format example: "seconds since 1970-01-01 00:00:00".
+            If None, the default reference time is retrieved using
+            "from satpy.cf_writer import EPOCH".
+        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, optional): List of xr.DataArray attribute names to
+            be excluded.
+        include_lonlats (bool, optional): If True, includes 'latitude' and
+            'longitude' coordinates. If the 'area' attribute is a SwathDefinition,
+            it always includes latitude and longitude coordinates.
+        pretty (bool, optional): Don't modify coordinate names, if possible. Makes
+            the file prettier, but possibly less consistent.
+        include_orig_name (bool, optional): Include the original dataset name as a
+            variable attribute in the xr.Dataset.
+        numeric_name_prefix (str, optional): Prefix to add to each variable with
+            name starting with a digit. Use '' or None to leave this out.
 
     Returns:
-    -------
-    ds, xr.Dataset
-        A CF-compliant xr.Dataset
+        xr.Dataset: A CF-compliant xr.Dataset
 
     """
     from satpy.cf.datasets import collect_cf_datasets

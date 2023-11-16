@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Set CF-compliant spatial and temporal coordinates."""
 
 import logging

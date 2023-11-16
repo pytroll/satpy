@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
@@ -63,31 +61,19 @@ def make_cf_dataarray(dataarray,
                       numeric_name_prefix="CHANNEL_"):
     """Make the xr.DataArray CF-compliant.
 
-    Parameters
-    ----------
-    dataarray : xr.DataArray
-        The data array to be made CF-compliant.
-    epoch : str, optional
-        Reference time for encoding of time coordinates.
-        If None, the default reference time is defined using `from satpy.cf import EPOCH`
-    flatten_attrs : bool, optional
-        If True, flatten dict-type attributes.
-        The default is False.
-    exclude_attrs : list, optional
-        List of dataset attributes to be excluded.
-        The default is None.
-    include_orig_name : bool, optional
-        Include the original dataset name in the netcdf variable attributes.
-        The default is True.
-    numeric_name_prefix : TYPE, optional
-        Prepend dataset name with this if starting with a digit.
-        The default is ``"CHANNEL_"``.
+    Args:
+        dataarray (xr.DataArray): The data array to be made CF-compliant.
+        epoch (str, optional): Reference time for encoding of time coordinates.
+            If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+        flatten_attrs (bool, optional): If True, flatten dict-type attributes. Defaults to False.
+        exclude_attrs (list, optional): List of dataset attributes to be excluded. Defaults to None.
+        include_orig_name (bool, optional): Include the original dataset name in the netcdf variable attributes.
+            Defaults to True.
+        numeric_name_prefix (str, optional): Prepend dataset name with this if starting with a digit.
+            Defaults to "CHANNEL_".
 
-    Returns
-    -------
-    new_data : xr.DataArray
-        CF-compliant xr.DataArray.
-
+    Returns:
+        xr.DataArray: A CF-compliant xr.DataArray.
     """
     dataarray = _preprocess_dataarray_name(dataarray=dataarray,
                                            numeric_name_prefix=numeric_name_prefix,
