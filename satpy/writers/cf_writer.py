@@ -335,16 +335,16 @@ class CFWriter(Writer):
             numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit.
         """
-        from satpy.cf.dataarray import make_cf_dataarray
+        from satpy.cf.data_array import make_cf_data_array
         warnings.warn("CFWriter.da2cf is deprecated."
-                      "Use satpy.cf.dataarray.make_cf_dataarray instead.",
+                      "Use satpy.cf.dataarray.make_cf_data_array instead.",
                       DeprecationWarning, stacklevel=3)
-        return make_cf_dataarray(dataarray=dataarray,
-                                 epoch=epoch,
-                                 flatten_attrs=flatten_attrs,
-                                 exclude_attrs=exclude_attrs,
-                                 include_orig_name=include_orig_name,
-                                 numeric_name_prefix=numeric_name_prefix)
+        return make_cf_data_array(dataarray=dataarray,
+                                  epoch=epoch,
+                                  flatten_attrs=flatten_attrs,
+                                  exclude_attrs=exclude_attrs,
+                                  include_orig_name=include_orig_name,
+                                  numeric_name_prefix=numeric_name_prefix)
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):

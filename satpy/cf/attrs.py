@@ -145,66 +145,66 @@ def _encode_nc_attrs(attrs):
     return OrderedDict(encoded_attrs)
 
 
-def preprocess_datarray_attrs(
-        dataarray: xr.DataArray,
+def preprocess_attrs(
+        data_arr: xr.DataArray,
         flatten_attrs: bool,
         exclude_attrs: list[str] | None
 ) -> xr.DataArray:
     """Preprocess DataArray attributes to be written into CF-compliant netCDF/Zarr."""
-    _drop_attrs(dataarray, exclude_attrs)
-    _add_ancillary_variables_attrs(dataarray)
-    _format_prerequisites_attrs(dataarray)
+    _drop_attrs(data_arr, exclude_attrs)
+    _add_ancillary_variables_attrs(data_arr)
+    _format_prerequisites_attrs(data_arr)
 
-    if "long_name" not in dataarray.attrs and "standard_name" not in dataarray.attrs:
-        dataarray.attrs["long_name"] = dataarray.name
+    if "long_name" not in data_arr.attrs and "standard_name" not in data_arr.attrs:
+        data_arr.attrs["long_name"] = data_arr.name
 
     if flatten_attrs:
-        dataarray.attrs = flatten_dict(dataarray.attrs)
+        data_arr.attrs = flatten_dict(data_arr.attrs)
 
-    dataarray.attrs = _encode_nc_attrs(dataarray.attrs)
+    data_arr.attrs = _encode_nc_attrs(data_arr.attrs)
 
-    return dataarray
+    return data_arr
 
 
 def _drop_attrs(
-        dataarray: xr.DataArray,
+        data_arr: xr.DataArray,
         user_excluded_attrs: list[str] | None
 ) -> None:
     """Remove undesirable attributes."""
     attrs_to_drop = (
-        (user_excluded_attrs or []) +
-        _get_satpy_attrs(dataarray) +
-        _get_none_attrs(dataarray) +
-        ["area"]
+            (user_excluded_attrs or []) +
+            _get_satpy_attrs(data_arr) +
+            _get_none_attrs(data_arr) +
+            ["area"]
     )
     for key in attrs_to_drop:
-        dataarray.attrs.pop(key, None)
+        data_arr.attrs.pop(key, None)
 
 
-def _get_satpy_attrs(new_data):
+def _get_satpy_attrs(data_arr: xr.DataArray) -> list[str]:
     """Remove _satpy attribute."""
-    return [key for key in new_data.attrs if key.startswith("_satpy")] + ["_last_resampler"]
+    return [key for key in data_arr.attrs if key.startswith("_satpy")] + ["_last_resampler"]
 
 
-def _get_none_attrs(dataarray):
+def _get_none_attrs(data_arr: xr.DataArray) -> list[str]:
     """Remove attribute keys with None value."""
-    return [attr_name for attr_name, attr_val in dataarray.attrs.items() if attr_val is None]
+    return [attr_name for attr_name, attr_val in data_arr.attrs.items() if attr_val is None]
 
 
-def _add_ancillary_variables_attrs(dataarray: xr.DataArray) -> None:
+def _add_ancillary_variables_attrs(data_arr: xr.DataArray) -> None:
     """Replace ancillary_variables DataArray with a list of their name."""
     list_ancillary_variable_names = [da_ancillary.attrs["name"]
-                                     for da_ancillary in dataarray.attrs.get("ancillary_variables", [])]
+                                     for da_ancillary in data_arr.attrs.get("ancillary_variables", [])]
     if list_ancillary_variable_names:
-        dataarray.attrs["ancillary_variables"] = " ".join(list_ancillary_variable_names)
+        data_arr.attrs["ancillary_variables"] = " ".join(list_ancillary_variable_names)
     else:
-        dataarray.attrs.pop("ancillary_variables", None)
+        data_arr.attrs.pop("ancillary_variables", None)
 
 
-def _format_prerequisites_attrs(dataarray: xr.DataArray) -> None:
+def _format_prerequisites_attrs(data_arr: xr.DataArray) -> None:
     """Reformat prerequisites attribute value to string."""
-    if "prerequisites" in dataarray.attrs:
-        dataarray.attrs["prerequisites"] = [np.bytes_(str(prereq)) for prereq in dataarray.attrs["prerequisites"]]
+    if "prerequisites" in data_arr.attrs:
+        data_arr.attrs["prerequisites"] = [np.bytes_(str(prereq)) for prereq in data_arr.attrs["prerequisites"]]
 
 
 def _add_history(attrs):

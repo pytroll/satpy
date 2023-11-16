@@ -1,4 +1,5 @@
 """Set CF-compliant spatial and temporal coordinates."""
+from __future__ import annotations
 
 import logging
 import warnings
@@ -8,6 +9,7 @@ from contextlib import suppress
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
+from pyproj import CRS
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
 logger = logging.getLogger(__name__)
@@ -16,27 +18,27 @@ logger = logging.getLogger(__name__)
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
 
-def add_xy_coords_attrs(dataarray):
+def add_xy_coords_attrs(data_arr: xr.DataArray) -> xr.DataArray:
     """Add relevant attributes to x, y coordinates."""
     # If there are no coords, return dataarray
-    if not dataarray.coords.keys() & {"x", "y", "crs"}:
-        return dataarray
+    if not data_arr.coords.keys() & {"x", "y", "crs"}:
+        return data_arr
     # If projected area
-    if _is_projected(dataarray):
-        dataarray = _add_xy_projected_coords_attrs(dataarray)
+    if _is_projected(data_arr):
+        data_arr = _add_xy_projected_coords_attrs(data_arr)
     else:
-        dataarray = _add_xy_geographic_coords_attrs(dataarray)
-    if "crs" in dataarray.coords:
-        dataarray = dataarray.drop_vars("crs")
-    return dataarray
+        data_arr = _add_xy_geographic_coords_attrs(data_arr)
+    if "crs" in data_arr.coords:
+        data_arr = data_arr.drop_vars("crs")
+    return data_arr
 
 
-def _is_projected(dataarray):
+def _is_projected(data_arr: xr.DataArray) -> bool:
     """Guess whether data are projected or not."""
-    crs = _try_to_get_crs(dataarray)
+    crs = _try_to_get_crs(data_arr)
     if crs:
         return crs.is_projected
-    units = _try_get_units_from_coords(dataarray)
+    units = _try_get_units_from_coords(data_arr)
     if units:
         if units.endswith("m"):
             return True
@@ -46,65 +48,60 @@ def _is_projected(dataarray):
     return True
 
 
-def _is_area(dataarray):
-     if isinstance(dataarray.attrs["area"], AreaDefinition):
-        return True
-     else:
-        return False
+def _is_area(data_arr: xr.DataArray) -> bool:
+     return isinstance(data_arr.attrs["area"], AreaDefinition)
 
 
-def _is_swath(dataarray):
-     if isinstance(dataarray.attrs["area"], SwathDefinition):
-        return True
-     else:
-        return False
+def _is_swath(data_arr: xr.DataArray) -> bool:
+     return isinstance(data_arr.attrs["area"], SwathDefinition)
 
 
-def _try_to_get_crs(dataarray):
+def _try_to_get_crs(data_arr: xr.DataArray) -> CRS:
     """Try to get a CRS from attributes."""
-    if "area" in dataarray.attrs:
-        if _is_area(dataarray):
-            return dataarray.attrs["area"].crs
-        if not _is_swath(dataarray):
+    if "area" in data_arr.attrs:
+        if _is_area(data_arr):
+            return data_arr.attrs["area"].crs
+        if not _is_swath(data_arr):
             logger.warning(
-                f"Could not tell CRS from area of type {type(dataarray.attrs['area']).__name__:s}. "
+                f"Could not tell CRS from area of type {type(data_arr.attrs['area']).__name__:s}. "
                 "Assuming projected CRS.")
-    if "crs" in dataarray.coords:
-        return dataarray.coords["crs"].item()
+    if "crs" in data_arr.coords:
+        return data_arr.coords["crs"].item()
 
 
-def _try_get_units_from_coords(dataarray):
+def _try_get_units_from_coords(data_arr: xr.DataArray) -> str | None:
     """Try to retrieve coordinate x/y units."""
     for c in ["x", "y"]:
         with suppress(KeyError):
             # If the data has only 1 dimension, it has only one of x or y coords
-            if "units" in dataarray.coords[c].attrs:
-                return dataarray.coords[c].attrs["units"]
+            if "units" in data_arr.coords[c].attrs:
+                return data_arr.coords[c].attrs["units"]
+    return None
 
 
-def _add_xy_projected_coords_attrs(dataarray, x="x", y="y"):
+def _add_xy_projected_coords_attrs(data_arr: xr.DataArray, x: str = "x", y: str = "y") -> xr.DataArray:
     """Add relevant attributes to x, y coordinates of a projected CRS."""
-    if x in dataarray.coords:
-        dataarray[x].attrs["standard_name"] = "projection_x_coordinate"
-        dataarray[x].attrs["units"] = "m"
-    if y in dataarray.coords:
-        dataarray[y].attrs["standard_name"] = "projection_y_coordinate"
-        dataarray[y].attrs["units"] = "m"
-    return dataarray
+    if x in data_arr.coords:
+        data_arr[x].attrs["standard_name"] = "projection_x_coordinate"
+        data_arr[x].attrs["units"] = "m"
+    if y in data_arr.coords:
+        data_arr[y].attrs["standard_name"] = "projection_y_coordinate"
+        data_arr[y].attrs["units"] = "m"
+    return data_arr
 
 
-def _add_xy_geographic_coords_attrs(dataarray, x="x", y="y"):
+def _add_xy_geographic_coords_attrs(data_arr: xr.DataArray, x: str = "x", y: str = "y") -> xr.DataArray:
     """Add relevant attributes to x, y coordinates of a geographic CRS."""
-    if x in dataarray.coords:
-        dataarray[x].attrs["standard_name"] = "longitude"
-        dataarray[x].attrs["units"] = "degrees_east"
-    if y in dataarray.coords:
-        dataarray[y].attrs["standard_name"] = "latitude"
-        dataarray[y].attrs["units"] = "degrees_north"
-    return dataarray
+    if x in data_arr.coords:
+        data_arr[x].attrs["standard_name"] = "longitude"
+        data_arr[x].attrs["units"] = "degrees_east"
+    if y in data_arr.coords:
+        data_arr[y].attrs["standard_name"] = "latitude"
+        data_arr[y].attrs["units"] = "degrees_north"
+    return data_arr
 
 
-def set_cf_time_info(dataarray, epoch):
+def set_cf_time_info(data_arr: xr.DataArray, epoch: str | None) -> xr.DataArray:
     """Set CF time attributes and encoding.
 
     It expand the DataArray with a time dimension if does not yet exists.
@@ -118,37 +115,33 @@ def set_cf_time_info(dataarray, epoch):
     if epoch is None:
         epoch = EPOCH
 
-    dataarray["time"].encoding["units"] = epoch
-    dataarray["time"].attrs["standard_name"] = "time"
-    dataarray["time"].attrs.pop("bounds", None)
+    data_arr["time"].encoding["units"] = epoch
+    data_arr["time"].attrs["standard_name"] = "time"
+    data_arr["time"].attrs.pop("bounds", None)
 
-    if "time" not in dataarray.dims and dataarray["time"].size not in dataarray.shape:
-        dataarray = dataarray.expand_dims("time")
+    if "time" not in data_arr.dims and data_arr["time"].size not in data_arr.shape:
+        data_arr = data_arr.expand_dims("time")
 
-    return dataarray
-
-
-def _is_lon_or_lat_dataarray(dataarray):
-    """Check if the DataArray represents the latitude or longitude coordinate."""
-    return dataarray.attrs.get("standard_name", "") in ("longitude", "latitude")
+    return data_arr
 
 
-def has_projection_coords(dict_datarrays):
+def has_projection_coords(data_arrays: dict[str, xr.DataArray]) -> bool:
     """Check if DataArray collection has a "longitude" or "latitude" DataArray."""
-    for dataarray in dict_datarrays.values():
-        if _is_lon_or_lat_dataarray(dataarray):
-            return True
-    return False
+    return any(_is_lon_or_lat_dataarray(data_arr) for data_arr in data_arrays.values())
 
 
-def _get_is_nondimensional_coords_dict(dict_dataarrays):
+def _is_lon_or_lat_dataarray(data_arr: xr.DataArray) -> bool:
+    """Check if the DataArray represents the latitude or longitude coordinate."""
+    return data_arr.attrs.get("standard_name", "") in ("longitude", "latitude")
+
+
+def _get_is_nondimensional_coords_dict(data_arrays: dict[str, xr.DataArray]) -> dict[str, bool]:
     tokens = defaultdict(set)
-    for dataarray in dict_dataarrays.values():
-        for coord_name in dataarray.coords:
-            if not _is_lon_or_lat_dataarray(dataarray[coord_name]) and coord_name not in dataarray.dims:
-                tokens[coord_name].add(tokenize(dataarray[coord_name].data))
-    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
-    return coords_unique
+    for data_arr in data_arrays.values():
+        for coord_name in data_arr.coords:
+            if not _is_lon_or_lat_dataarray(data_arr[coord_name]) and coord_name not in data_arr.dims:
+                tokens[coord_name].add(tokenize(data_arr[coord_name].data))
+    return dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
 
 def _warn_if_pretty_but_not_unique(pretty, coord_name):
@@ -161,16 +154,19 @@ def _warn_if_pretty_but_not_unique(pretty, coord_name):
         )
 
 
-def _rename_coords(dict_dataarrays, coord_name):
+def _rename_coords(data_arrays: dict[str, xr.DataArray], coord_name: str) -> dict[str, xr.DataArray]:
     """Rename coordinates in the datasets."""
-    for name, dataarray in dict_dataarrays.items():
+    for name, dataarray in data_arrays.items():
         if coord_name in dataarray.coords:
             rename = {coord_name: f"{name}_{coord_name}"}
-            dict_dataarrays[name] = dataarray.rename(rename)
-    return dict_dataarrays
+            data_arrays[name] = dataarray.rename(rename)
+    return data_arrays
 
 
-def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
+def ensure_unique_nondimensional_coords(
+        data_arrays: dict[str, xr.DataArray],
+        pretty: bool = False
+) -> dict[str, xr.DataArray]:
     """Make non-dimensional coordinates unique among all datasets.
 
     Non-dimensional coordinates, such as scanline timestamps,
@@ -185,9 +181,9 @@ def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
     this is not applied to latitude and longitude.
 
     Args:
-        datas (dict):
+        datas:
             Dictionary of (dataset name, dataset)
-        pretty (bool):
+        pretty:
             Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
 
     Returns:
@@ -196,10 +192,10 @@ def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
     """
     # Determine which non-dimensional coordinates are unique
     # - coords_unique has structure: {coord_name: True/False}
-    is_coords_unique_dict = _get_is_nondimensional_coords_dict(dict_dataarrays)
+    is_coords_unique_dict = _get_is_nondimensional_coords_dict(data_arrays)
 
     # Prepend dataset name, if not unique or no pretty-format desired
-    new_dict_dataarrays = dict_dataarrays.copy()
+    new_dict_dataarrays = data_arrays.copy()
     for coord_name, unique in is_coords_unique_dict.items():
         if not pretty or not unique:
             _warn_if_pretty_but_not_unique(pretty, coord_name)
@@ -207,11 +203,11 @@ def ensure_unique_nondimensional_coords(dict_dataarrays, pretty=False):
     return new_dict_dataarrays
 
 
-def check_unique_projection_coords(dict_dataarrays):
+def check_unique_projection_coords(data_arrays: dict[str, xr.DataArray]) -> None:
     """Check that all datasets share the same projection coordinates x/y."""
     unique_x = set()
     unique_y = set()
-    for dataarray in dict_dataarrays.values():
+    for dataarray in data_arrays.values():
         if "y" in dataarray.dims:
             token_y = tokenize(dataarray["y"].data)
             unique_y.add(token_y)
@@ -223,8 +219,7 @@ def check_unique_projection_coords(dict_dataarrays):
                          "Please group them by area or save them in separate files.")
 
 
-
-def add_coordinates_attrs_coords(dict_dataarrays):
+def add_coordinates_attrs_coords(data_arrays: dict[str, xr.DataArray]) -> dict[str, xr.DataArray]:
     """Add to DataArrays the coordinates specified in the 'coordinates' attribute.
 
     It deal with the 'coordinates' attributes indicating lat/lon coords
@@ -236,51 +231,55 @@ def add_coordinates_attrs_coords(dict_dataarrays):
     In the final call to `xr.Dataset.to_netcdf()` all coordinate relations will be resolved
     and the `coordinates` attributes be set automatically.
     """
-    for dataarray_name in dict_dataarrays.keys():
-        dict_dataarrays = _add_declared_coordinates(dict_dataarrays,
-                                                    dataarray_name=dataarray_name)
+    for dataarray_name in data_arrays.keys():
+        data_arrays = _add_declared_coordinates(data_arrays,
+                                                dataarray_name=dataarray_name)
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        dict_dataarrays[dataarray_name].attrs.pop("coordinates", None)
-    return dict_dataarrays
+        data_arrays[dataarray_name].attrs.pop("coordinates", None)
+    return data_arrays
 
 
-def _add_declared_coordinates(dict_dataarrays, dataarray_name):
+def _add_declared_coordinates(data_arrays: dict[str, xr.DataArray], dataarray_name: str) -> dict[str, xr.DataArray]:
     """Add declared coordinates to the dataarray if they exist."""
-    dataarray = dict_dataarrays[dataarray_name]
+    dataarray = data_arrays[dataarray_name]
     declared_coordinates = _get_coordinates_list(dataarray)
     for coord in declared_coordinates:
         if coord not in dataarray.coords:
-            dict_dataarrays = _try_add_coordinate(dict_dataarrays,
-                                                  dataarray_name=dataarray_name,
-                                                  coord=coord)
-    return dict_dataarrays
+            data_arrays = _try_add_coordinate(data_arrays,
+                                              dataarray_name=dataarray_name,
+                                              coord=coord)
+    return data_arrays
 
 
-def _try_add_coordinate(dict_dataarrays, dataarray_name, coord):
+def _try_add_coordinate(
+        data_arrays: dict[str, xr.DataArray],
+        dataarray_name: str,
+        coord: str
+) -> dict[str, xr.DataArray]:
     """Try to add a coordinate to the dataarray, warn if not possible."""
     try:
-        dataarray_dims = set(dict_dataarrays[dataarray_name].dims)
-        coordinate_dims = set(dict_dataarrays[coord].dims)
+        dataarray_dims = set(data_arrays[dataarray_name].dims)
+        coordinate_dims = set(data_arrays[coord].dims)
         dimensions_to_squeeze = list(coordinate_dims - dataarray_dims)
-        dict_dataarrays[dataarray_name][coord] = dict_dataarrays[coord].squeeze(dimensions_to_squeeze, drop=True)
+        data_arrays[dataarray_name][coord] = data_arrays[coord].squeeze(dimensions_to_squeeze, drop=True)
     except KeyError:
         warnings.warn(
             f'Coordinate "{coord}" referenced by dataarray {dataarray_name} does not '
             'exist, dropping reference.',
             stacklevel=2
         )
-    return dict_dataarrays
+    return data_arrays
 
 
-def _get_coordinates_list(dataarray):
+def _get_coordinates_list(data_arr: xr.DataArray) -> list[str]:
     """Return a list with the coordinates names specified in the 'coordinates' attribute."""
-    declared_coordinates = dataarray.attrs.get("coordinates", [])
+    declared_coordinates = data_arr.attrs.get("coordinates", [])
     if isinstance(declared_coordinates, str):
         declared_coordinates = declared_coordinates.split(" ")
     return declared_coordinates
 
 
-def add_time_bounds_dimension(ds, time="time"):
+def add_time_bounds_dimension(ds: xr.Dataset, time: str = "time") -> xr.Dataset:
     """Add time bound dimension to xr.Dataset."""
     start_times = []
     end_times = []

@@ -17,13 +17,13 @@
 import logging
 import warnings
 
-from satpy.cf.attrs import preprocess_datarray_attrs
+from satpy.cf.attrs import preprocess_attrs
 from satpy.cf.coords import add_xy_coords_attrs, set_cf_time_info
 
 logger = logging.getLogger(__name__)
 
 
-def _handle_dataarray_name(original_name, numeric_name_prefix):
+def _handle_data_array_name(original_name, numeric_name_prefix):
     if original_name[0].isdigit():
         if numeric_name_prefix:
             new_name = numeric_name_prefix + original_name
@@ -38,14 +38,14 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
     return original_name, new_name
 
 
-def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name):
+def _preprocess_data_array_name(dataarray, numeric_name_prefix, include_orig_name):
     """Change the DataArray name by prepending numeric_name_prefix if the name is a digit."""
     original_name = None
     named_has_changed = False
     dataarray = dataarray.copy()
     if "name" in dataarray.attrs:
         original_name = dataarray.attrs.pop("name")
-        original_name, new_name = _handle_dataarray_name(original_name, numeric_name_prefix)
+        original_name, new_name = _handle_data_array_name(original_name, numeric_name_prefix)
         dataarray = dataarray.rename(new_name)
         named_has_changed = original_name != new_name
 
@@ -54,12 +54,12 @@ def _preprocess_dataarray_name(dataarray, numeric_name_prefix, include_orig_name
     return dataarray
 
 
-def make_cf_dataarray(dataarray,
-                      epoch=None,
-                      flatten_attrs=False,
-                      exclude_attrs=None,
-                      include_orig_name=True,
-                      numeric_name_prefix="CHANNEL_"):
+def make_cf_data_array(dataarray,
+                       epoch=None,
+                       flatten_attrs=False,
+                       exclude_attrs=None,
+                       include_orig_name=True,
+                       numeric_name_prefix="CHANNEL_"):
     """Make the xr.DataArray CF-compliant.
 
     Args:
@@ -76,12 +76,12 @@ def make_cf_dataarray(dataarray,
     Returns:
         xr.DataArray: A CF-compliant xr.DataArray.
     """
-    dataarray = _preprocess_dataarray_name(dataarray=dataarray,
-                                           numeric_name_prefix=numeric_name_prefix,
-                                           include_orig_name=include_orig_name)
-    dataarray = preprocess_datarray_attrs(dataarray=dataarray,
-                                          flatten_attrs=flatten_attrs,
-                                          exclude_attrs=exclude_attrs)
+    dataarray = _preprocess_data_array_name(dataarray=dataarray,
+                                            numeric_name_prefix=numeric_name_prefix,
+                                            include_orig_name=include_orig_name)
+    dataarray = preprocess_attrs(data_arr=dataarray,
+                                 flatten_attrs=flatten_attrs,
+                                 exclude_attrs=exclude_attrs)
     dataarray = add_xy_coords_attrs(dataarray)
     if "time" in dataarray.coords:
         dataarray = set_cf_time_info(dataarray, epoch=epoch)

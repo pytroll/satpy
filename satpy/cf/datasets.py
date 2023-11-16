@@ -92,7 +92,7 @@ def _collect_cf_dataset(list_dataarrays,
         ensure_unique_nondimensional_coords,
         has_projection_coords,
     )
-    from satpy.cf.dataarray import make_cf_dataarray
+    from satpy.cf.data_array import make_cf_data_array
 
     # Create dictionary of input datarrays
     # --> Since keys=None, it doesn't never retrieve ancillary variables !!!
@@ -134,12 +134,12 @@ def _collect_cf_dataset(list_dataarrays,
         # --> NOTE: If the input list_dataarrays have different pyresample areas with the same name
         #           area information can be lost here !!!
         for new_dataarray in list_new_dataarrays:
-            new_dataarray = make_cf_dataarray(new_dataarray,
-                                              epoch=epoch,
-                                              flatten_attrs=flatten_attrs,
-                                              exclude_attrs=exclude_attrs,
-                                              include_orig_name=include_orig_name,
-                                              numeric_name_prefix=numeric_name_prefix)
+            new_dataarray = make_cf_data_array(new_dataarray,
+                                               epoch=epoch,
+                                               flatten_attrs=flatten_attrs,
+                                               exclude_attrs=exclude_attrs,
+                                               include_orig_name=include_orig_name,
+                                               numeric_name_prefix=numeric_name_prefix)
             dict_cf_dataarrays[new_dataarray.name] = new_dataarray
 
     # Check all DataArrays have same projection coordinates
