@@ -68,15 +68,14 @@ def _encode_numpy_array(obj):
 
     # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
     is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
-    if is_plain_1d:
-        if obj.dtype in NC4_DTYPES:
-            return obj
-        elif obj.dtype == np.bool_:
-            # Boolean arrays are not supported, convert to array of strings.
-            return [s.lower() for s in obj.astype(str)]
-        return obj.tolist()
-    else:
+    if not is_plain_1d:
         raise ValueError("Only a 1D numpy array can be encoded as netCDF attribute.")
+    if obj.dtype in NC4_DTYPES:
+        return obj
+    if obj.dtype == np.bool_:
+        # Boolean arrays are not supported, convert to array of strings.
+        return [s.lower() for s in obj.astype(str)]
+    return obj.tolist()
 
 
 def _encode_object(obj):
@@ -85,9 +84,9 @@ def _encode_object(obj):
     Raises:
         ValueError if no such datatype could be found
     """
-    if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
-        return obj
-    elif isinstance(obj, (float, str, np.integer, np.floating)):
+    is_nonbool_int = isinstance(obj, int) and not isinstance(obj, (bool, np.bool_))
+    is_encode_type = isinstance(obj, (float, str, np.integer, np.floating))
+    if is_nonbool_int or is_encode_type:
         return obj
     elif isinstance(obj, np.ndarray):
         return _encode_numpy_array(obj)
@@ -194,10 +193,10 @@ def preprocess_datarray_attrs(dataarray, flatten_attrs, exclude_attrs):
     dataarray = _drop_exclude_attrs(dataarray, exclude_attrs)
     dataarray = _format_prerequisites_attrs(dataarray)
     dataarray = _remove_none_attrs(dataarray)
-    _ = dataarray.attrs.pop("area", None)
+    dataarray.attrs.pop("area", None)
 
     if "long_name" not in dataarray.attrs and "standard_name" not in dataarray.attrs:
-        dataarray.attrs["long_name"] = dataarray.name
+        dataarray.attrs["long_name"] = dataarray.attrs["name"]
 
     if flatten_attrs:
         dataarray.attrs = flatten_dict(dataarray.attrs)
