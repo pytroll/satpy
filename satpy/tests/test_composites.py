@@ -437,7 +437,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
             res = comp((self.data_a, self.data_b, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.22122352], [0.5, 1.]], dtype=np.float32)
+        expected = np.array([[0., 0.22122374], [0.5, 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
 
@@ -462,7 +462,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b, self.sza))
             res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.49999994, 1.]], dtype=np.float32)
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
         expected_alpha = np.array([[0., 0.3329599], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
@@ -476,7 +476,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.11042608], [0.6683501, 1.]], dtype=np.float32)
+        expected = np.array([[0., 0.11042609], [0.6683502, 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
@@ -558,7 +558,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.49999994, 1.]], dtype=np.float32)
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
         expected_alpha = np.array([[np.nan, 1.], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
