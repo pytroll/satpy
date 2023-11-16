@@ -148,7 +148,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     @classmethod
     def _split_line(cls, line, lines):
-        key, val = line.split("=")
+        key, val = line.split("=", maxsplit=1)
         key = key.strip()
         val = val.strip()
         try:
