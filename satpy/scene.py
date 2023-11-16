@@ -1128,7 +1128,7 @@ class Scene:
         epoch (str):
             Reference time for encoding the time coordinates (if available).
             Example format: "seconds since 1970-01-01 00:00:00".
-            If None, the default reference time is defined using "from satpy.cf import EPOCH"
+            If None, the default reference time is defined using "from satpy.cf.coords import EPOCH"
         flatten_attrs (bool):
             If True, flatten dict-type attributes.
         exclude_attrs (list):

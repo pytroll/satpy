@@ -64,7 +64,7 @@ def make_cf_dataarray(dataarray,
     Args:
         dataarray (xr.DataArray): The data array to be made CF-compliant.
         epoch (str, optional): Reference time for encoding of time coordinates.
-            If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+            If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
         flatten_attrs (bool, optional): If True, flatten dict-type attributes. Defaults to False.
         exclude_attrs (list, optional): List of dataset attributes to be excluded. Defaults to None.
         include_orig_name (bool, optional): Include the original dataset name in the netcdf variable attributes.

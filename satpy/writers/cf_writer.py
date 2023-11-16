@@ -160,7 +160,7 @@ import numpy as np
 import xarray as xr
 from packaging.version import Version
 
-from satpy.cf import EPOCH  # noqa: F401 (for backward compatibility)
+from satpy.cf.coords import EPOCH  # noqa: F401 (for backward compatibility)
 from satpy.writers import Writer
 
 logger = logging.getLogger(__name__)
@@ -248,7 +248,7 @@ class CFWriter(Writer):
             engine (str, optional): Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
             epoch (str, optional): Reference time for encoding of time coordinates.
-                If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+                If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
             flatten_attrs (bool, optional): If True, flatten dict-type attributes.
             exclude_attrs (list, optional): List of dataset attributes to be excluded.
             include_lonlats (bool, optional): Always include latitude and longitude coordinates,
@@ -325,7 +325,7 @@ class CFWriter(Writer):
                 The data array to be converted.
             epoch (str):
                 Reference time for encoding of time coordinates.
-                If None, the default reference time is defined using `from satpy.cf import EPOCH`
+                If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`
             flatten_attrs (bool):
                 If True, flatten dict-type attributes.
             exclude_attrs (list):

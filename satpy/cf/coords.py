@@ -13,6 +13,9 @@ from pyresample.geometry import AreaDefinition, SwathDefinition
 logger = logging.getLogger(__name__)
 
 
+EPOCH = u"seconds since 1970-01-01 00:00:00"
+
+
 def add_xy_coords_attrs(dataarray):
     """Add relevant attributes to x, y coordinates."""
     # If there are no coords, return dataarray
@@ -98,8 +101,6 @@ def set_cf_time_info(dataarray, epoch):
         - the time coordinate has size 1
 
     """
-    from satpy.cf import EPOCH
-
     if epoch is None:
         epoch = EPOCH
 

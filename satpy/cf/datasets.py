@@ -71,7 +71,7 @@ def _collect_cf_dataset(list_dataarrays,
         list_dataarrays (list): List of DataArrays to make CF compliant and merge into an xr.Dataset.
         epoch (str, optional): Reference time for encoding the time coordinates.
             Example format: "seconds since 1970-01-01 00:00:00".
-            If None, the default reference time is defined using `from satpy.cf import EPOCH`.
+            If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
         flatten_attrs (bool, optional): If True, flatten dict-type attributes.
         exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
         include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also for a
@@ -182,7 +182,7 @@ def collect_cf_datasets(list_dataarrays,
         header_attrs (dict): Global attributes of the output xr.Dataset.
         epoch (str, optional): Reference time for encoding the time coordinates.
             Example format: "seconds since 1970-01-01 00:00:00".
-            If None, the default reference time is retrieved using `from satpy.cf import EPOCH`.
+            If None, the default reference time is retrieved using `from satpy.cf.coords import EPOCH`.
         flatten_attrs (bool, optional): If True, flatten dict-type attributes.
         exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
         include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also
