@@ -489,7 +489,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.49999994, 1.]], dtype=np.float32)
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
         # FIXME: with the current changes the np.nan becomes 0.0 instead, why?!
         expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
