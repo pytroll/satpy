@@ -372,7 +372,10 @@ class NcNWCSAF(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        return read_nwcsaf_time(self.nc.attrs["time_coverage_start"])
+        try:
+            return read_nwcsaf_time(self.nc.attrs["nominal_product_time"])
+        except KeyError:
+            return read_nwcsaf_time(self.nc.attrs["time_coverage_start"])
 
     @property
     def end_time(self):
