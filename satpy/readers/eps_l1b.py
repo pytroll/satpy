@@ -316,16 +316,14 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def _get_angle_dataarray(self, key):
         """Get an angle dataarray."""
-        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-        if key["name"] == "solar_zenith_angle":
-            dataset = create_xarray(sun_zen)
-        elif key["name"] == "solar_azimuth_angle":
-            dataset = create_xarray(sun_azi)
-        if key["name"] == "satellite_zenith_angle":
-            dataset = create_xarray(sat_zen)
-        elif key["name"] == "satellite_azimuth_angle":
-            dataset = create_xarray(sat_azi)
-        return dataset
+        arr_index = {
+            "solar_azimuth_angle": 0,
+            "solar_zenith_angle": 1,
+            "satellite_azimuth_angle": 2,
+            "satellite_zenith_angle": 3,
+        }[key["name"]
+        data = self.get_full_angles()[arr_index]
+        return create_xarray(data)
 
     @cached_property
     def three_a_mask(self):
