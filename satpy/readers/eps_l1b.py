@@ -301,7 +301,7 @@ class EPSAVHRRFile(BaseFileHandler):
             dataset = self._get_calibrated_dataarray(key)
         elif key['name'] == "cloud_flags":
             array = self["CLOUD_INFORMATION"]
-            dataset = create_xarray(array)              
+            dataset = create_xarray(array)
         else:
             logger.info("Can't load channel in eps_l1b: " + str(key["name"]))
             return

@@ -89,7 +89,7 @@ datasets:
             - latitude
         file_type: avhrr_eps
 
-      
+
     latitude:
         name: latitude
         resolution: 1050
@@ -137,8 +137,8 @@ datasets:
         sensor: avhrr-3
         resolution: 1050
         coordinates: [longitude, latitude]
-        file_type: avhrr_eps 
-        
+        file_type: avhrr_eps
+
 file_types:
     avhrr_eps:
         file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile
