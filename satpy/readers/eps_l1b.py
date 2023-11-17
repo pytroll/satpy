@@ -287,22 +287,9 @@ class EPSAVHRRFile(BaseFileHandler):
         if self.sections is None:
             self._read_all()
 
-        if key["name"] in ["longitude", "latitude"]:
-            lons, lats = self.get_full_lonlats()
-            if key["name"] == "longitude":
-                dataset = create_xarray(lons)
-            else:
-                dataset = create_xarray(lats)
-
-        elif key["name"] in ["solar_zenith_angle", "solar_azimuth_angle",
-                             "satellite_zenith_angle", "satellite_azimuth_angle"]:
-            dataset = self._get_angle_dataarray(key)
-        elif key["name"] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-            dataset = self._get_calibrated_dataarray(key)
-        elif key['name'] == "cloud_flags":
-            array = self["CLOUD_INFORMATION"]
-            dataset = create_xarray(array)
-        else:
+        try:
+            dataset = self._get_data_array(key)
+        except KeyError:
             logger.info("Can't load channel in eps_l1b: " + str(key["name"]))
             return
 
@@ -314,6 +301,22 @@ class EPSAVHRRFile(BaseFileHandler):
         dataset.attrs.update(key.to_dict())
         return dataset
 
+    def _get_data_array(self, key):
+        name = key["name"]
+        if name in ["longitude", "latitude"]:
+            data = self.get_full_lonlats()[int(name == "latitude")]
+            dataset = create_xarray(data)
+        elif name in ["solar_zenith_angle", "solar_azimuth_angle", "satellite_zenith_angle", "satellite_azimuth_angle"]:
+            dataset = self._get_angle_dataarray(key)
+        elif name in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
+            dataset = self._get_calibrated_dataarray(key)
+        elif name == "cloud_flags":
+            array = self["CLOUD_INFORMATION"]
+            dataset = create_xarray(array)
+        else:
+            raise KeyError(f"Unknown channel: {name}")
+        return dataset
+
     def _get_angle_dataarray(self, key):
         """Get an angle dataarray."""
         arr_index = {
@@ -321,7 +324,7 @@ class EPSAVHRRFile(BaseFileHandler):
             "solar_zenith_angle": 1,
             "satellite_azimuth_angle": 2,
             "satellite_zenith_angle": 3,
-        }[key["name"]
+        }[key["name"]]
         data = self.get_full_angles()[arr_index]
         return create_xarray(data)
 
