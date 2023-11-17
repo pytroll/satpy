@@ -22,7 +22,7 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
-from satpy.cf.area import area2cf
+from satpy.cf.area import _add_grid_mapping, area2cf
 
 
 @pytest.fixture()
@@ -68,14 +68,12 @@ class TestCFArea:
         assert "latitude" in res[0].coords
         assert "grid_mapping" not in res[0].attrs
 
-    def test_add_grid_mapping(self):
-        """Test the conversion from pyresample area object to CF grid mapping."""
-        from satpy.cf.area import _add_grid_mapping
+    def test_add_grid_mapping_cf_repr(self, input_data_arr):
+        """Test the conversion from pyresample area object to CF grid mapping.
 
-        ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=("y", "x"), coords={"y": [1, 2], "x": [3, 4]},
-                               attrs={"name": "var1"})
+        Projection has a corresponding CF representation (e.g. geos).
 
-        # a) Projection has a corresponding CF representation (e.g. geos)
+        """
         a = 6378169.
         b = 6356583.8
         h = 35785831.
@@ -97,9 +95,8 @@ class TestCFArea:
                                             # 'sweep_angle_axis': None,
                                             })
 
-        ds = ds_base.copy()
-        ds.attrs["area"] = geos
-        new_ds, grid_mapping = _add_grid_mapping(ds)
+        input_data_arr.attrs["area"] = geos
+        new_ds, grid_mapping = _add_grid_mapping(input_data_arr)
         if "sweep_angle_axis" in grid_mapping.attrs:
             # older versions of pyproj might not include this
             assert grid_mapping.attrs["sweep_angle_axis"] == "y"
@@ -107,9 +104,14 @@ class TestCFArea:
         assert new_ds.attrs["grid_mapping"] == "geos"
         _gm_matches(grid_mapping, geos_expected)
         # should not have been modified
-        assert "grid_mapping" not in ds.attrs
+        assert "grid_mapping" not in input_data_arr.attrs
 
-        # b) Projection does not have a corresponding CF representation (COSMO)
+    def test_add_grid_mapping_no_cf_repr(self, input_data_arr):
+        """Test the conversion from pyresample area object to CF grid mapping.
+
+        Projection does not have a corresponding CF representation (e.g. COSMO).
+
+        """
         cosmo7 = AreaDefinition(
             area_id="cosmo7",
             description="cosmo7",
@@ -119,11 +121,9 @@ class TestCFArea:
             width=597, height=510,
             area_extent=[-1812933, -1003565, 814056, 1243448]
         )
+        input_data_arr.attrs["area"] = cosmo7
 
-        ds = ds_base.copy()
-        ds.attrs["area"] = cosmo7
-
-        new_ds, grid_mapping = _add_grid_mapping(ds)
+        new_ds, grid_mapping = _add_grid_mapping(input_data_arr)
         assert "crs_wkt" in grid_mapping.attrs
         wkt = grid_mapping.attrs["crs_wkt"]
         assert 'ELLIPSOID["WGS 84"' in wkt
@@ -133,7 +133,12 @@ class TestCFArea:
         assert 'PARAMETER["o_lon_p",-5.465' in wkt
         assert new_ds.attrs["grid_mapping"] == "cosmo7"
 
-        # c) Projection Transverse Mercator
+    def test_add_grid_mapping_transverse_mercator(self, input_data_arr):
+        """Test the conversion from pyresample area object to CF grid mapping.
+
+        Projection is transverse mercator.
+
+        """
         lat_0 = 36.5
         lon_0 = 15.0
 
@@ -154,13 +159,17 @@ class TestCFArea:
                                              "false_northing": 0.,
                                              })
 
-        ds = ds_base.copy()
-        ds.attrs["area"] = tmerc
-        new_ds, grid_mapping = _add_grid_mapping(ds)
+        input_data_arr.attrs["area"] = tmerc
+        new_ds, grid_mapping = _add_grid_mapping(input_data_arr)
         assert new_ds.attrs["grid_mapping"] == "tmerc"
         _gm_matches(grid_mapping, tmerc_expected)
 
-        # d) Projection that has a representation but no explicit a/b
+    def test_add_grid_mapping_cf_repr_no_ab(self, input_data_arr):
+        """Test the conversion from pyresample area object to CF grid mapping.
+
+        Projection has a corresponding CF representation but no explicit a/b.
+
+        """
         h = 35785831.
         geos = AreaDefinition(
             area_id="geos",
@@ -175,19 +184,24 @@ class TestCFArea:
                                             "latitude_of_projection_origin": 0,
                                             "longitude_of_projection_origin": 0,
                                             "grid_mapping_name": "geostationary",
+                                            "reference_ellipsoid_name": "WGS 84",
                                             # 'semi_major_axis': 6378137.0,
                                             # 'semi_minor_axis': 6356752.314,
                                             # 'sweep_angle_axis': None,
                                             })
 
-        ds = ds_base.copy()
-        ds.attrs["area"] = geos
-        new_ds, grid_mapping = _add_grid_mapping(ds)
+        input_data_arr.attrs["area"] = geos
+        new_ds, grid_mapping = _add_grid_mapping(input_data_arr)
 
         assert new_ds.attrs["grid_mapping"] == "geos"
         _gm_matches(grid_mapping, geos_expected)
 
-        # e) oblique Mercator
+    def test_add_grid_mapping_oblique_mercator(self, input_data_arr):
+        """Test the conversion from pyresample area object to CF grid mapping.
+
+        Projection is oblique mercator.
+
+        """
         area = AreaDefinition(
             area_id="omerc_otf",
             description="On-the-fly omerc area",
@@ -211,37 +225,11 @@ class TestCFArea:
                       "reference_ellipsoid_name": "WGS 84"}
         omerc_expected = xr.DataArray(data=0, attrs=omerc_dict)
 
-        ds = ds_base.copy()
-        ds.attrs["area"] = area
-        new_ds, grid_mapping = _add_grid_mapping(ds)
+        input_data_arr.attrs["area"] = area
+        new_ds, grid_mapping = _add_grid_mapping(input_data_arr)
 
         assert new_ds.attrs["grid_mapping"] == "omerc_otf"
         _gm_matches(grid_mapping, omerc_expected)
-
-        # f) Projection that has a representation but no explicit a/b
-        h = 35785831.
-        geos = AreaDefinition(
-            area_id="geos",
-            description="geos",
-            proj_id="geos",
-            projection={"proj": "geos", "h": h, "datum": "WGS84", "ellps": "GRS80",
-                        "lat_0": 0, "lon_0": 0},
-            width=2, height=2,
-            area_extent=[-1, -1, 1, 1])
-        geos_expected = xr.DataArray(data=0,
-                                     attrs={"perspective_point_height": h,
-                                            "latitude_of_projection_origin": 0,
-                                            "longitude_of_projection_origin": 0,
-                                            "grid_mapping_name": "geostationary",
-                                            "reference_ellipsoid_name": "WGS 84",
-                                            })
-
-        ds = ds_base.copy()
-        ds.attrs["area"] = geos
-        new_ds, grid_mapping = _add_grid_mapping(ds)
-
-        assert new_ds.attrs["grid_mapping"] == "geos"
-        _gm_matches(grid_mapping, geos_expected)
 
     @pytest.mark.parametrize("dims", [("y", "x"), ("bands", "y", "x")])
     def test_add_lonlat_coords(self, dims):
