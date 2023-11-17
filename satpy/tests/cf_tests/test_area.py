@@ -18,6 +18,7 @@
 """Tests for the CF Area."""
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
@@ -71,7 +72,7 @@ class TestCFArea:
         assert "latitude" in res[0].coords
         assert "grid_mapping" not in res[0].attrs
 
-    def test__add_grid_mapping(self):
+    def test_add_grid_mapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
         from satpy.cf.area import _add_grid_mapping
 
@@ -255,7 +256,8 @@ class TestCFArea:
         assert new_ds.attrs["grid_mapping"] == "geos"
         _gm_matches(grid_mapping, geos_expected)
 
-    def test__add_lonlat_coords(self):
+    @pytest.mark.parametrize("dims", [("y", "x"), ("bands", "y", "x")])
+    def test_add_lonlat_coords(self, dims):
         """Test the conversion from areas to lon/lat."""
         from satpy.cf.area import _add_lonlat_coords
 
@@ -268,35 +270,19 @@ class TestCFArea:
             [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
         )
         lons_ref, lats_ref = area.get_lonlats()
-        dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=("y", "x"), attrs={"area": area})
+        if len(dims) == 2:
+            data_arr = xr.DataArray(data=[[1, 2], [3, 4]], dims=dims, attrs={"area": area})
+        else:
+            data_arr = xr.DataArray(
+                data=da.from_array(np.arange(3 * 10 * 10).reshape(3, 10, 10), chunks=(1, 5, 5)),
+                dims=("bands", "y", "x"),
+                attrs={"area": area},
+            )
 
-        res = _add_lonlat_coords(dataarray)
-
-        # original should be unmodified
-        assert "longitude" not in dataarray.coords
-        assert set(res.coords) == {"longitude", "latitude"}
-        lat = res["latitude"]
-        lon = res["longitude"]
-        np.testing.assert_array_equal(lat.data, lats_ref)
-        np.testing.assert_array_equal(lon.data, lons_ref)
-        assert {"name": "latitude", "standard_name": "latitude", "units": "degrees_north"}.items() <= lat.attrs.items()
-        assert {"name": "longitude", "standard_name": "longitude", "units": "degrees_east"}.items() <= lon.attrs.items()
-
-        area = AreaDefinition(
-            "seviri",
-            "Native SEVIRI grid",
-            "geos",
-            "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
-            10, 10,
-            [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
-        )
-        lons_ref, lats_ref = area.get_lonlats()
-        dataarray = xr.DataArray(data=da.from_array(np.arange(3 * 10 * 10).reshape(3, 10, 10), chunks=(1, 5, 5)),
-                                 dims=("bands", "y", "x"), attrs={"area": area})
-        res = _add_lonlat_coords(dataarray)
+        res = _add_lonlat_coords(data_arr)
 
         # original should be unmodified
-        assert "longitude" not in dataarray.coords
+        assert "longitude" not in data_arr.coords
         assert set(res.coords) == {"longitude", "latitude"}
         lat = res["latitude"]
         lon = res["longitude"]
