@@ -71,7 +71,7 @@ def make_cf_data_array(dataarray,
         include_orig_name (bool, optional): Include the original dataset name in the netcdf variable attributes.
             Defaults to True.
         numeric_name_prefix (str, optional): Prepend dataset name with this if starting with a digit.
-            Defaults to "CHANNEL_".
+            Defaults to ``"CHANNEL_"``.
 
     Returns:
         xr.DataArray: A CF-compliant xr.DataArray.
