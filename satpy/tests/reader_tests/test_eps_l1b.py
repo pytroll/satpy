@@ -152,6 +152,15 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "solar_zenith_angle"
 
+    def test_clould_flags(self):
+        """Test getting the cloud flags."""
+        did = make_dataid(name="cloud_flags")
+        res = self.fh.get_dataset(did, {})
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs["platform_name"] == "Metop-C"
+        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["name"] == "cloud_flags"
+
     @mock.patch("satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__")
     def test_get_full_angles_twice(self, mock__getitem__):
         """Test get full angles twice."""
