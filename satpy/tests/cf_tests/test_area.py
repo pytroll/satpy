@@ -22,18 +22,25 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
+from satpy.cf.area import area2cf
+
+
+@pytest.fixture()
+def input_data_arr() -> xr.DataArray:
+    return xr.DataArray(
+        data=[[1, 2], [3, 4]],
+        dims=("y", "x"),
+        coords={"y": [1, 2], "x": [3, 4]},
+        attrs={"name": "var1"},
+    )
+
 
 class TestCFArea:
     """Test case for CF Area."""
 
-    def test_area2cf(self):
+    @pytest.mark.parametrize("include_lonlats", [False, True])
+    def test_area2cf_geos_area_nolonlats(self, input_data_arr, include_lonlats):
         """Test the conversion of an area to CF standards."""
-        from satpy.cf.area import area2cf
-
-        ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=("y", "x"), coords={"y": [1, 2], "x": [3, 4]},
-                               attrs={"name": "var1"})
-
-        # a) Area Definition and strict=False
         geos = AreaDefinition(
             area_id="geos",
             description="geos",
@@ -41,32 +48,21 @@ class TestCFArea:
             projection={"proj": "geos", "h": 35785831., "a": 6378169., "b": 6356583.8},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
-        ds = ds_base.copy(deep=True)
-        ds.attrs["area"] = geos
+        input_data_arr.attrs["area"] = geos
 
-        res = area2cf(ds, include_lonlats=False)
+        res = area2cf(input_data_arr, include_lonlats=include_lonlats)
         assert len(res) == 2
         assert res[0].size == 1  # grid mapping variable
         assert res[0].name == res[1].attrs["grid_mapping"]
+        if include_lonlats:
+            assert "longitude" in res[1].coords
+            assert "latitude" in res[1].coords
 
-        # b) Area Definition and include_lonlats=False
-        ds = ds_base.copy(deep=True)
-        ds.attrs["area"] = geos
-        res = area2cf(ds, include_lonlats=True)
-        # same as above
-        assert len(res) == 2
-        assert res[0].size == 1  # grid mapping variable
-        assert res[0].name == res[1].attrs["grid_mapping"]
-        # but now also have the lon/lats
-        assert "longitude" in res[1].coords
-        assert "latitude" in res[1].coords
-
-        # c) Swath Definition
+    def test_area2cf_swath(self, input_data_arr):
         swath = SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
-        ds = ds_base.copy(deep=True)
-        ds.attrs["area"] = swath
+        input_data_arr.attrs["area"] = swath
 
-        res = area2cf(ds, include_lonlats=False)
+        res = area2cf(input_data_arr, include_lonlats=False)
         assert len(res) == 1
         assert "longitude" in res[0].coords
         assert "latitude" in res[0].coords
@@ -75,15 +71,6 @@ class TestCFArea:
     def test_add_grid_mapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
         from satpy.cf.area import _add_grid_mapping
-
-        def _gm_matches(gmapping, expected):
-            """Assert that all keys in ``expected`` match the values in ``gmapping``."""
-            for attr_key, attr_val in expected.attrs.items():
-                test_val = gmapping.attrs[attr_key]
-                if attr_val is None or isinstance(attr_val, str):
-                    assert test_val == attr_val
-                else:
-                    np.testing.assert_almost_equal(test_val, attr_val, decimal=3)
 
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=("y", "x"), coords={"y": [1, 2], "x": [3, 4]},
                                attrs={"name": "var1"})
@@ -261,12 +248,13 @@ class TestCFArea:
         """Test the conversion from areas to lon/lat."""
         from satpy.cf.area import _add_lonlat_coords
 
+        width, height = (2, 2) if len(dims) == 2 else (10, 10)
         area = AreaDefinition(
             "seviri",
             "Native SEVIRI grid",
             "geos",
             "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
-            2, 2,
+            width, height,
             [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
         )
         lons_ref, lats_ref = area.get_lonlats()
@@ -290,3 +278,13 @@ class TestCFArea:
         np.testing.assert_array_equal(lon.data, lons_ref)
         assert {"name": "latitude", "standard_name": "latitude", "units": "degrees_north"}.items() <= lat.attrs.items()
         assert {"name": "longitude", "standard_name": "longitude", "units": "degrees_east"}.items() <= lon.attrs.items()
+
+
+def _gm_matches(gmapping, expected):
+    """Assert that all keys in ``expected`` match the values in ``gmapping``."""
+    for attr_key, attr_val in expected.attrs.items():
+        test_val = gmapping.attrs[attr_key]
+        if attr_val is None or isinstance(attr_val, str):
+            assert test_val == attr_val
+        else:
+            np.testing.assert_almost_equal(test_val, attr_val, decimal=3)
