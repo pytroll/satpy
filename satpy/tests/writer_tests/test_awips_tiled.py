@@ -495,9 +495,10 @@ class TestAWIPSTiledWriter:
             "_FillValue": 1,
         })
 
-        w.save_datasets([ds1, ds2, ds3, dqf], sector_id="TEST", source_name="TESTS",
-                        tile_count=(3, 3), template="glm_l2_rad{}".format(sector.lower()),
-                        **extra_kwargs)
+        with pytest.warns(UserWarning, match="Production location attribute "):
+            w.save_datasets([ds1, ds2, ds3, dqf], sector_id="TEST", source_name="TESTS",
+                            tile_count=(3, 3), template="glm_l2_rad{}".format(sector.lower()),
+                            **extra_kwargs)
         fn_glob = self._get_glm_glob_filename(extra_kwargs)
         all_files = glob(os.path.join(str(tmp_path), fn_glob))
         assert len(all_files) == 9

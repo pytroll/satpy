@@ -65,7 +65,7 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
         if counts is None:
             rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
             rad_data = (rad_data + 1.) / 0.5
-            rad_data = rad_data.astype(np.int16)
+            rad_data = rad_data.astype(np.uint16)
             counts = xr.DataArray(
                 da.from_array(rad_data, chunks="auto"),
                 dims=("y", "x"),
