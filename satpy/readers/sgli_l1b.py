@@ -48,6 +48,10 @@ resolutions = {"Q": 250,
                "K": 1000,
                "L": 1000}
 
+polarization_keys = {0: "0",
+                     -60: "m60",
+                     60: "60"}
+
 
 class HDF5SGLI(BaseFileHandler):
     """File handler for the SGLI l1b data."""
@@ -75,12 +79,9 @@ class HDF5SGLI(BaseFileHandler):
         if key["resolution"] != self.resolution:
             return
 
-        # if key["polarization"] is not None:
-        #     pols = {0: '0', -60: 'm60', 60: 'p60'}
-        #     file_key = info['file_key'].format(pol=pols[key["polarization"]])
-        # else:
-        #     file_key = info['file_key']
         file_key = info["file_key"]
+        if key["name"].startswith("P"):
+            file_key = file_key.format(polarization=polarization_keys[key["polarization"]])
         h5dataset = self.h5file[file_key]
 
         chunks = normalize_chunks(("auto", "auto"), h5dataset.shape, previous_chunks=h5dataset.chunks, dtype=np.float32)
@@ -89,19 +90,19 @@ class HDF5SGLI(BaseFileHandler):
 
         dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
         with xr.set_options(keep_attrs=True):
-            # TODO add ir and polarized channels
-            if key["name"][:2] in ["VN", "SW", "P1", "P2"]:
-                dataset = self.get_visible_dataset(key, h5dataset, dataset)
-            elif key["name"][:-2] in ["longitude", "latitude"]:
+            if key["name"].startswith(("VN", "SW", "P")):
+                dataset = self.get_visible_dataset(key, dataset)
+            elif key["name"].startswith("TI"):
+                dataset = self.get_ir_dataset(key, dataset)
+            elif key["name"].startswith(("longitude", "latitude")):
                 resampling_interval = attrs["Resampling_interval"]
                 if resampling_interval != 1:
                     new_lons, new_lats = self.interpolate_lons_lats(resampling_interval)
-                    if key["name"][:-2] == "longitude":
+                    if key["name"].startswith("longitude"):
                         dataset = new_lons
                     else:
                         dataset = new_lats
-                    dataset = xr.DataArray(dataset, attrs=attrs)
-                return dataset
+                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
             elif key["name"] in ["satellite_azimuth_angle", "satellite_zenith_angle"]:
                 resampling_interval = attrs["Resampling_interval"]
                 if resampling_interval != 1:
@@ -110,8 +111,7 @@ class HDF5SGLI(BaseFileHandler):
                         dataset = new_azi
                     else:
                         dataset = new_zen
-                    dataset = xr.DataArray(dataset, attrs=attrs)
-                return dataset
+                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
             elif key["name"] in ["solar_azimuth_angle", "solar_zenith_angle"]:
                 resampling_interval = attrs["Resampling_interval"]
                 if resampling_interval != 1:
@@ -120,13 +120,14 @@ class HDF5SGLI(BaseFileHandler):
                         dataset = new_azi
                     else:
                         dataset = new_zen
-                    dataset = xr.DataArray(dataset, attrs=attrs)
-                return dataset
+                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
             else:
                 raise NotImplementedError()
 
         dataset.attrs["platform_name"] = "GCOM-C1"
-
+        dataset.attrs["sensor"] = "sgli"
+        dataset.attrs["units"] = info["units"]
+        dataset.attrs["standard_name"] = info["standard_name"]
         return dataset
 
     def interpolate_lons_lats(self, resampling_interval):
@@ -145,11 +146,17 @@ class HDF5SGLI(BaseFileHandler):
         return self.interpolate_angles(azi, zen, resampling_interval)
 
     def interpolate_angles(self, azi, zen, resampling_interval):
-        azi = azi * azi.attrs["Slope"] + azi.attrs["Offset"]
-        zen = zen * zen.attrs["Slope"] + zen.attrs["Offset"]
+        azi = self.scale_array(azi)
+        zen = self.scale_array(zen)
         zen = zen[:] - 90
         new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)
         return new_azi, new_zen + 90
+
+    def scale_array(self, array):
+        try:
+            return array * array.attrs["Slope"] + array.attrs["Offset"]
+        except KeyError:
+            return array
 
     def interpolate_spherical(self, azimuthal_angle, polar_angle, resampling_interval):
         from geotiepoints.geointerpolator import GeoGridInterpolator
@@ -165,10 +172,9 @@ class HDF5SGLI(BaseFileHandler):
         return new_azi, new_pol
 
 
-    def get_visible_dataset(self, key, h5dataset, dataset):
-
+    def get_visible_dataset(self, key, dataset):
         dataset = self.mask_to_14_bits(dataset)
-        dataset = self.calibrate(dataset, key["calibration"])
+        dataset = self.calibrate_vis(dataset, key["calibration"])
             #dataset.attrs.update(info)
             #dataset = self._mask_and_scale(dataset, h5dataset, key)
 
@@ -180,7 +186,7 @@ class HDF5SGLI(BaseFileHandler):
         return dataset & dataset.attrs["Mask"].item()
 
 
-    def calibrate(self, dataset, calibration):
+    def calibrate_vis(self, dataset, calibration):
         attrs = dataset.attrs
         if calibration == "counts":
             return dataset
@@ -198,34 +204,23 @@ class HDF5SGLI(BaseFileHandler):
         saturation = int(mask_vals[1].split(b":")[0].strip())
         return missing, saturation
 
-    # def _mask_and_scale(self, dataset, h5dataset, key):
-    #     with xr.set_options(keep_attrs=True):
-    #         if 'Mask' in h5dataset.attrs:
-    #             mask_value = h5dataset.attrs['Mask'].item()
-    #             dataset = dataset & mask_value
-    #         if 'Bit00(LSB)-13' in h5dataset.attrs:
-    #             mask_info = h5dataset.attrs['Bit00(LSB)-13'].item()
-    #             mask_vals = mask_info.split(b'\n')[1:]
-    #             missing = int(mask_vals[0].split(b':')[0].strip())
-    #             saturation = int(mask_vals[1].split(b':')[0].strip())
-    #             dataset = dataset.where(dataset < min(missing, saturation))
-    #         if 'Maximum_valid_DN' in h5dataset.attrs:
-    #             # dataset = dataset.where(dataset <= h5dataset.attrs['Maximum_valid_DN'].item())
-    #             pass
-    #         if key["name"][:2] in ['VN', 'SW', 'P1', 'P2']:
-    #             if key["calibration"] == 'counts':
-    #                 pass
-    #             if key["calibration"] == 'radiance':
-    #                 dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
-    #             if key["calibration"] == 'reflectance':
-    #                 # dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
-    #                 # dataset *= np.pi / h5dataset.attrs['Band_weighted_TOA_solar_irradiance'] * 100
-    #                 # equivalent to the two lines above
-    #                 dataset = (dataset * h5dataset.attrs['Slope_reflectance']
-    #                            + h5dataset.attrs['Offset_reflectance']) * 100
-    #         else:
-    #             dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
-    #     return dataset
+    def get_ir_dataset(self, key, dataset):
+        dataset = self.mask_to_14_bits(dataset)
+        dataset = self.calibrate_ir(dataset, key["calibration"])
+        return dataset
+
+    def calibrate_ir(self, dataset, calibration):
+        attrs = dataset.attrs
+        if calibration == "counts":
+            return dataset
+        elif calibration in ["radiance", "brightness_temperature"]:
+            calibrated = dataset * attrs["Slope"] + attrs["Offset"]
+            if calibration == "brightness_temperature":
+                raise NotImplementedError("Cannot calibrate to brightness temperatures.")
+                # from pyspectral.radiance_tb_conversion import radiance2tb
+                # calibrated = radiance2tb(calibrated, attrs["Center_wavelength"] * 1e-9)
+        missing, _ = self.get_missing_and_saturated(attrs)
+        return calibrated.where(dataset < missing)
 
 
 class H5Array(BackendArray):
