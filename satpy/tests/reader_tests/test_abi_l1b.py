@@ -389,8 +389,8 @@ class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
             def to_dict(self):
                 return self
 
-        with self.assertRaises(ValueError, msg="Did not detect invalid cal"):
-            did = FakeDataID(name="C05", calibration="invalid", modifiers=())
+        did = FakeDataID(name="C05", calibration="invalid", modifiers=())
+        with pytest.raises(ValueError, match="Unknown calibration 'invalid'"):
             self.reader.get_dataset(did, {})
 
 

@@ -23,7 +23,7 @@ from unittest import mock
 import dask.array as da
 import numpy as np
 import xarray as xr
-from pytest import approx  # noqa: PT013
+from pytest import approx, raises  # noqa: PT013
 
 
 class FakeDataset(object):
@@ -198,13 +198,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
         from satpy.tests.utils import make_dataid
-        with self.assertRaises(ValueError):
-            ds_id = make_dataid(name="VI006", calibration="_bad_")
-            ds_info = {"file_key": "image_pixel_values",
-                       "standard_name": "toa_outgoing_radiance_per_unit_wavelength",
-                       "units": "W m-2 um-1 sr-1",
-                       }
-            self.reader.get_dataset(ds_id, ds_info)
+        with raises(ValueError, match="_bad_ invalid value for .*"):
+            _ = make_dataid(name="VI006", calibration="_bad_")
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef):
