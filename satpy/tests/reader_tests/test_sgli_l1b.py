@@ -33,6 +33,7 @@ def test_open_dataset(sgli_vn_file):
 
 @pytest.fixture(scope="session")
 def sgli_vn_file(tmp_path_factory):
+    """Create a stub VN file."""
     filename = tmp_path_factory.mktemp("data") / "test_vn_file.h5"
     with h5py.File(filename, "w") as h5f:
         global_attributes = h5f.create_group("Global_attributes")
@@ -60,6 +61,7 @@ def sgli_vn_file(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def sgli_ir_file(tmp_path_factory):
+    """Create a stub IR file."""
     filename = tmp_path_factory.mktemp("data") / "test_ir_file.h5"
     with h5py.File(filename, "w") as h5f:
         global_attributes = h5f.create_group("Global_attributes")
@@ -96,6 +98,7 @@ def sgli_ir_file(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def sgli_pol_file(tmp_path_factory):
+    """Create a POL stub file."""
     filename = tmp_path_factory.mktemp("data") / "test_pol_file.h5"
     with h5py.File(filename, "w") as h5f:
         global_attributes = h5f.create_group("Global_attributes")
@@ -145,6 +148,7 @@ def sgli_pol_file(tmp_path_factory):
         return filename
 
 def add_downsampled_geometry_data(h5f):
+    """Add downsampled geometry data to an h5py file instance."""
     geometry_data = h5f.create_group("Geometry_data")
     longitude = geometry_data.create_dataset("Longitude", data=LON_LAT_ARRAY, chunks=(47, 63))
     longitude.attrs["Resampling_interval"] = 10
@@ -174,17 +178,20 @@ def add_downsampled_geometry_data(h5f):
 
 
 def test_start_time(sgli_vn_file):
+    """Test that the start time is extracted."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     microseconds = START_TIME.microsecond % 1000
     assert handler.start_time == START_TIME - timedelta(microseconds=microseconds)
 
 
 def test_end_time(sgli_vn_file):
+    """Test that the end time is extracted."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     microseconds = END_TIME.microsecond % 1000
     assert handler.end_time == END_TIME - timedelta(microseconds=microseconds)
 
 def test_get_dataset_counts(sgli_vn_file):
+    """Test that counts can be extracted from a file."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="counts")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
@@ -195,15 +202,18 @@ def test_get_dataset_counts(sgli_vn_file):
     assert res.attrs["sensor"] == "sgli"
 
 def test_get_vn_dataset_reflectances(sgli_vn_file):
+    """Test that the vn datasets can be calibrated to reflectances."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="reflectance")
-    res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
+    res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "%",
                                     "standard_name": ""})
     assert np.allclose(res[0, :] / 100, FULL_KM_ARRAY[0, :] * 5e-5 - 0.05)
     assert res.dtype == np.float32
     assert res.dims == ("y", "x")
+    assert res.units == "%"
 
 def test_get_vn_dataset_radiance(sgli_vn_file):
+    """Test that datasets can be calibrated to radiance."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="radiance")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
@@ -212,6 +222,7 @@ def test_get_vn_dataset_radiance(sgli_vn_file):
     assert res.dtype == np.float32
 
 def test_channel_is_masked(sgli_vn_file):
+    """Test that channels are masked for no-data."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="counts")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
@@ -219,6 +230,7 @@ def test_channel_is_masked(sgli_vn_file):
     assert res.max() == MASK
 
 def test_missing_values_are_masked(sgli_vn_file):
+    """Check that missing values are masked."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="radiance")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
@@ -226,6 +238,7 @@ def test_missing_values_are_masked(sgli_vn_file):
     assert np.isnan(res).sum() == 149
 
 def test_channel_is_chunked(sgli_vn_file):
+    """Test that the channel data is chunked."""
     with dask.config.set({"array.chunk-size": "1MiB"}):
         handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
         did = dict(name="VN1", resolution=1000, polarization=None, calibration="counts")
@@ -234,6 +247,7 @@ def test_channel_is_chunked(sgli_vn_file):
         assert res.chunks[0][0] > 116
 
 def test_loading_lon_lat(sgli_vn_file):
+    """Test that loading lons and lats works."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="longitude_v", resolution=1000, polarization=None)
     res = handler.get_dataset(did, {"file_key": "Geometry_data/Longitude", "units": "",
@@ -244,6 +258,7 @@ def test_loading_lon_lat(sgli_vn_file):
     assert res.dims == ("y", "x")
 
 def test_loading_sensor_angles(sgli_vn_file):
+    """Test loading the satellite angles."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="satellite_zenith_angle", resolution=1000, polarization=None)
     res = handler.get_dataset(did, {"file_key": "Geometry_data/Sensor_zenith", "units": "",
@@ -254,6 +269,7 @@ def test_loading_sensor_angles(sgli_vn_file):
     assert res.min() >= 0
 
 def test_loading_solar_angles(sgli_vn_file):
+    """Test loading sun angles."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="solar_azimuth_angle", resolution=1000, polarization=None)
     res = handler.get_dataset(did, {"file_key": "Geometry_data/Sensor_zenith", "units": "",
@@ -264,6 +280,7 @@ def test_loading_solar_angles(sgli_vn_file):
     assert res.max() <= 180
 
 def test_get_sw_dataset_reflectances(sgli_ir_file):
+    """Test getting SW dataset reflectances."""
     handler = HDF5SGLI(sgli_ir_file, {"resolution": "L"}, {})
     did = dict(name="SW1", resolution=1000, polarization=None, calibration="reflectance")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_SW01", "units": "",
@@ -272,6 +289,7 @@ def test_get_sw_dataset_reflectances(sgli_ir_file):
     assert res.dtype == np.float32
 
 def test_get_ti_dataset_radiance(sgli_ir_file):
+    """Test getting thermal IR radiances."""
     handler = HDF5SGLI(sgli_ir_file, {"resolution": "L"}, {})
     did = dict(name="TI1", resolution=1000, polarization=None, calibration="radiance")
     res = handler.get_dataset(did, {"file_key": "Image_data/Lt_TI01", "units": "",
@@ -280,6 +298,7 @@ def test_get_ti_dataset_radiance(sgli_ir_file):
     assert res.dtype == np.float32
 
 def test_get_ti_dataset_bt(sgli_ir_file):
+    """Test getting brightness temperatures for IR channels."""
     handler = HDF5SGLI(sgli_ir_file, {"resolution": "L"}, {})
     did = dict(name="TI1", resolution=1000, polarization=None, calibration="brightness_temperature")
     with pytest.raises(NotImplementedError):
@@ -287,6 +306,7 @@ def test_get_ti_dataset_bt(sgli_ir_file):
                                     "standard_name": "toa_brightness_temperature"})
 
 def test_get_ti_lon_lats(sgli_ir_file):
+    """Test getting the lons and lats for IR channels."""
     handler = HDF5SGLI(sgli_ir_file, {"resolution": "L"}, {})
     did = dict(name="longitude_ir", resolution=1000, polarization=None)
     res = handler.get_dataset(did, {"file_key": "Geometry_data/Longitude", "units": "",

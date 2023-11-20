@@ -75,10 +75,9 @@ class HDF5SGLI(BaseFileHandler):
         return datetime.strptime(the_time.decode("ascii"), "%Y%m%d %H:%M:%S.%f")
 
     def get_dataset(self, key, info):
-        """Get the dataset."""
+        """Get the dataset from the file."""
         if key["resolution"] != self.resolution:
             return
-
         file_key = info["file_key"]
         if key["name"].startswith("P"):
             file_key = file_key.format(polarization=polarization_keys[key["polarization"]])
@@ -95,32 +94,9 @@ class HDF5SGLI(BaseFileHandler):
             elif key["name"].startswith("TI"):
                 dataset = self.get_ir_dataset(key, dataset)
             elif key["name"].startswith(("longitude", "latitude")):
-                resampling_interval = attrs["Resampling_interval"]
-                if resampling_interval != 1:
-                    new_lons, new_lats = self.interpolate_lons_lats(resampling_interval)
-                    if key["name"].startswith("longitude"):
-                        dataset = new_lons
-                    else:
-                        dataset = new_lats
-                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
-            elif key["name"] in ["satellite_azimuth_angle", "satellite_zenith_angle"]:
-                resampling_interval = attrs["Resampling_interval"]
-                if resampling_interval != 1:
-                    new_azi, new_zen = self.interpolate_sensor_angles(resampling_interval)
-                    if "azimuth" in key["name"]:
-                        dataset = new_azi
-                    else:
-                        dataset = new_zen
-                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
-            elif key["name"] in ["solar_azimuth_angle", "solar_zenith_angle"]:
-                resampling_interval = attrs["Resampling_interval"]
-                if resampling_interval != 1:
-                    new_azi, new_zen = self.interpolate_solar_angles(resampling_interval)
-                    if "azimuth" in key["name"]:
-                        dataset = new_azi
-                    else:
-                        dataset = new_zen
-                    dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
+                dataset = self.get_lon_lats(key)
+            elif "angle" in key["name"]:
+                dataset = self.get_angles(key)
             else:
                 raise NotImplementedError()
 
@@ -130,35 +106,72 @@ class HDF5SGLI(BaseFileHandler):
         dataset.attrs["standard_name"] = info["standard_name"]
         return dataset
 
-    def interpolate_lons_lats(self, resampling_interval):
+    def get_visible_dataset(self, key, dataset):
+        """Produce a DataArray with a visible channel data in it."""
+        dataset = self.mask_to_14_bits(dataset)
+        dataset = self.calibrate_vis(dataset, key["calibration"])
+        return dataset
+
+    def mask_to_14_bits(self, dataset):
+        """Mask data to 14 bits."""
+        return dataset & dataset.attrs["Mask"].item()
+
+    def calibrate_vis(self, dataset, calibration):
+        """Calibrate visible data."""
+        attrs = dataset.attrs
+        if calibration == "counts":
+            return dataset
+        if calibration == "reflectance":
+            calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
+        elif calibration == "radiance":
+            calibrated = dataset * attrs["Slope"] + attrs["Offset"]
+        missing, _ = self.get_missing_and_saturated(attrs)
+        return calibrated.where(dataset < missing)
+
+    def get_missing_and_saturated(self, attrs):
+        """Get the missing and saturation values."""
+        missing_and_saturated = attrs["Bit00(LSB)-13"].item()
+        mask_vals = missing_and_saturated.split(b"\n")[1:]
+        missing = int(mask_vals[0].split(b":")[0].strip())
+        saturation = int(mask_vals[1].split(b":")[0].strip())
+        return missing, saturation
+
+    def get_ir_dataset(self, key, dataset):
+        """Produce a DataArray with an IR channel data in it."""
+        dataset = self.mask_to_14_bits(dataset)
+        dataset = self.calibrate_ir(dataset, key["calibration"])
+        return dataset
+
+    def calibrate_ir(self, dataset, calibration):
+        """Calibrate IR channel."""
+        attrs = dataset.attrs
+        if calibration == "counts":
+            return dataset
+        elif calibration in ["radiance", "brightness_temperature"]:
+            calibrated = dataset * attrs["Slope"] + attrs["Offset"]
+            if calibration == "brightness_temperature":
+                raise NotImplementedError("Cannot calibrate to brightness temperatures.")
+                # from pyspectral.radiance_tb_conversion import radiance2tb
+                # calibrated = radiance2tb(calibrated, attrs["Center_wavelength"] * 1e-9)
+        missing, _ = self.get_missing_and_saturated(attrs)
+        return calibrated.where(dataset < missing)
+
+    def get_lon_lats(self, key):
+        """Get lon/lats from the file."""
         lons = self.h5file["Geometry_data/Longitude"]
         lats = self.h5file["Geometry_data/Latitude"]
-        return self.interpolate_spherical(lons, lats, resampling_interval)
-
-    def interpolate_sensor_angles(self, resampling_interval):
-        azi = self.h5file["Geometry_data/Sensor_azimuth"]
-        zen = self.h5file["Geometry_data/Sensor_zenith"]
-        return self.interpolate_angles(azi, zen, resampling_interval)
-
-    def interpolate_solar_angles(self, resampling_interval):
-        azi = self.h5file["Geometry_data/Solar_azimuth"]
-        zen = self.h5file["Geometry_data/Solar_zenith"]
-        return self.interpolate_angles(azi, zen, resampling_interval)
-
-    def interpolate_angles(self, azi, zen, resampling_interval):
-        azi = self.scale_array(azi)
-        zen = self.scale_array(zen)
-        zen = zen[:] - 90
-        new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)
-        return new_azi, new_zen + 90
-
-    def scale_array(self, array):
-        try:
-            return array * array.attrs["Slope"] + array.attrs["Offset"]
-        except KeyError:
-            return array
+        attrs = lons.attrs
+        resampling_interval = attrs["Resampling_interval"]
+        if resampling_interval != 1:
+            lons, lats = self.interpolate_spherical(lons, lats, resampling_interval)
+        if key["name"].startswith("longitude"):
+            dataset = lons
+        else:
+            dataset = lats
+        return xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
 
     def interpolate_spherical(self, azimuthal_angle, polar_angle, resampling_interval):
+        """Interpolate spherical coordinates."""
         from geotiepoints.geointerpolator import GeoGridInterpolator
 
         full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"],
@@ -171,56 +184,52 @@ class HDF5SGLI(BaseFileHandler):
         new_azi, new_pol = interpolator.interpolate_to_shape(full_shape, chunks="auto")
         return new_azi, new_pol
 
-
-    def get_visible_dataset(self, key, dataset):
-        dataset = self.mask_to_14_bits(dataset)
-        dataset = self.calibrate_vis(dataset, key["calibration"])
-            #dataset.attrs.update(info)
-            #dataset = self._mask_and_scale(dataset, h5dataset, key)
-
-            #
+    def get_angles(self, key):
+        """Get angles from the file."""
+        if "solar" in key["name"]:
+            azi, zen, attrs = self.get_solar_angles()
+        elif "satellite" in key["name"]:
+            azi, zen, attrs = self.get_sensor_angles()
+        if "azimuth" in key["name"]:
+            dataset = azi
+        else:
+            dataset = zen
+        dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
         return dataset
 
-    def mask_to_14_bits(self, dataset):
-        """Mask data to 14 bits."""
-        return dataset & dataset.attrs["Mask"].item()
+    def get_solar_angles(self):
+        """Get the solar angles."""
+        azi = self.h5file["Geometry_data/Solar_azimuth"]
+        zen = self.h5file["Geometry_data/Solar_zenith"]
+        attrs = zen.attrs
+        azi = self.scale_array(azi)
+        zen = self.scale_array(zen)
+        return *self.get_full_angles(azi, zen, attrs), attrs
 
+    def get_sensor_angles(self):
+        """Get the solar angles."""
+        azi = self.h5file["Geometry_data/Sensor_azimuth"]
+        zen = self.h5file["Geometry_data/Sensor_zenith"]
+        attrs = zen.attrs
+        azi = self.scale_array(azi)
+        zen = self.scale_array(zen)
+        return *self.get_full_angles(azi, zen, attrs), attrs
 
-    def calibrate_vis(self, dataset, calibration):
-        attrs = dataset.attrs
-        if calibration == "counts":
-            return dataset
-        if calibration == "reflectance":
-            calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
-        elif calibration == "radiance":
-            calibrated = dataset * attrs["Slope"] + attrs["Offset"]
-        missing, _ = self.get_missing_and_saturated(attrs)
-        return calibrated.where(dataset < missing)
+    def scale_array(self, array):
+        """Scale an array with its attributes `Slope` and `Offset` if available."""
+        try:
+            return array * array.attrs["Slope"] + array.attrs["Offset"]
+        except KeyError:
+            return array
 
-    def get_missing_and_saturated(self, attrs):
-        missing_and_saturated = attrs["Bit00(LSB)-13"].item()
-        mask_vals = missing_and_saturated.split(b"\n")[1:]
-        missing = int(mask_vals[0].split(b":")[0].strip())
-        saturation = int(mask_vals[1].split(b":")[0].strip())
-        return missing, saturation
-
-    def get_ir_dataset(self, key, dataset):
-        dataset = self.mask_to_14_bits(dataset)
-        dataset = self.calibrate_ir(dataset, key["calibration"])
-        return dataset
-
-    def calibrate_ir(self, dataset, calibration):
-        attrs = dataset.attrs
-        if calibration == "counts":
-            return dataset
-        elif calibration in ["radiance", "brightness_temperature"]:
-            calibrated = dataset * attrs["Slope"] + attrs["Offset"]
-            if calibration == "brightness_temperature":
-                raise NotImplementedError("Cannot calibrate to brightness temperatures.")
-                # from pyspectral.radiance_tb_conversion import radiance2tb
-                # calibrated = radiance2tb(calibrated, attrs["Center_wavelength"] * 1e-9)
-        missing, _ = self.get_missing_and_saturated(attrs)
-        return calibrated.where(dataset < missing)
+    def get_full_angles(self, azi, zen, attrs):
+        """Interpolate angle arrays."""
+        resampling_interval = attrs["Resampling_interval"]
+        if resampling_interval != 1:
+            zen = zen[:] - 90
+            new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)
+            return new_azi, new_zen + 90
+        return azi, zen
 
 
 class H5Array(BackendArray):
