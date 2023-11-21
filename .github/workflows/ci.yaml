@@ -75,8 +75,9 @@ jobs:
           matplotlib \
           numpy \
           pandas \
-          scipy; \
-          python -m pip install --no-deps --upgrade --no-build-isolation git+https://github.com/storpipfugl/pykdtree; \
+          scipy
+          python -m pip install --no-deps --upgrade --no-build-isolation -vv git+https://github.com/storpipfugl/pykdtree
+          python -c "from pykdtree.kdtree import KDTree"
           python -m pip install \
           --no-deps --upgrade \
           git+https://github.com/dask/dask \
@@ -86,7 +87,7 @@ jobs:
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
           git+https://github.com/pydata/xarray \
-          git+https://github.com/astropy/astropy;
+          git+https://github.com/astropy/astropy
           LD_PRELOAD=$(python -c "import sys; print(sys.prefix)")/lib/libstdc++.so
           echo "LD_PRELOAD=${LD_PRELOAD}" >> $GITHUB_ENV
 
