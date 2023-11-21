@@ -540,7 +540,7 @@ class FiduceoMviriBase(BaseFileHandler):
         "IR": "count_ir"
     }
 
-    def __init__(self, filename, filename_info, filetype_info,
+    def __init__(self, filename, filename_info, filetype_info,  # noqa: D417
                  mask_bad_quality=False):
         """Initialize the file handler.
 

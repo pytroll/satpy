@@ -39,7 +39,7 @@ def rst_table_row(columns=None):
     return row
 
 
-def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
+def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):  # noqa: D417
     """Create header for rst table.
 
     Args:

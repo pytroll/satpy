@@ -111,7 +111,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     return list(_filter_groups(groups, missing=missing))
 
 
-def _assign_files_to_readers(files_to_sort, reader_names,
+def _assign_files_to_readers(files_to_sort, reader_names,  # noqa: D417
                              reader_kwargs):
     """Assign files to readers.
 
@@ -190,7 +190,7 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     return file_keys
 
 
-def _get_sorted_file_groups(all_file_keys, time_threshold):
+def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     """Get sorted file groups.
 
     Get a list of dictionaries, where each list item consists of a dictionary
@@ -673,7 +673,7 @@ class FSFile(os.PathLike):
 
     """
 
-    def __init__(self, file, fs=None):
+    def __init__(self, file, fs=None):  # noqa: D417
         """Initialise the FSFile instance.
 
         Args:

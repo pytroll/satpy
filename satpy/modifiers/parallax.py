@@ -265,7 +265,7 @@ class ParallaxCorrection:
         self.debug_mode = debug_mode
         self.diagnostics = {}
 
-    def __call__(self, cth_dataset, **kwargs):
+    def __call__(self, cth_dataset, **kwargs):  # noqa: D417
         """Apply parallax correction to dataset.
 
         Args:

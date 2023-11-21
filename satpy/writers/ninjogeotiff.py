@@ -103,7 +103,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     scale_offset_tag_names = ("ninjo_Gradient", "ninjo_AxisIntercept")
 
-    def save_image(
+    def save_image(  # noqa: D417
             self, image, filename=None, fill_value=None,
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,

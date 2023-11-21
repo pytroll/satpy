@@ -131,7 +131,7 @@ def using_map_blocks(func):
     return on_dask_array(wrapper)
 
 
-def piecewise_linear_stretch(
+def piecewise_linear_stretch(  # noqa: D417
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
@@ -229,7 +229,7 @@ def _cira_stretch(band_data):
     return band_data
 
 
-def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
+def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):  # noqa: D417
     """Stretch method based on the Reinhard algorithm, using luminance.
 
     Args:
@@ -293,7 +293,7 @@ def _lookup_table(band_data, luts=None, index=-1):
     return lut[band_data]
 
 
-def colorize(img, **kwargs):
+def colorize(img, **kwargs):  # noqa: D417
     """Colorize the given image.
 
     Args:
@@ -365,7 +365,7 @@ def _merge_colormaps(kwargs, img=None):
     return full_cmap
 
 
-def create_colormap(palette, img=None):
+def create_colormap(palette, img=None):  # noqa: D417
     """Create colormap of the given numpy file, color vector, or colormap.
 
     Args:
@@ -525,7 +525,7 @@ def _three_d_effect_delayed(band_data, kernel, mode):
     return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
 
 
-def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):  # noqa: D417
     """Scale data linearly in two separate regions.
 
     This enhancement scales the input data linearly by splitting the data
