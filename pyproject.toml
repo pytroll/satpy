@@ -16,8 +16,9 @@ line_length = 120
 [tool.ruff]
 # See https://docs.astral.sh/ruff/rules/
 # In the future, add "A", "B", "S", "N", "D"
-select = ["E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
+select = ["D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
 line-length = 120
+ignore = ["D417"]
 
 [tool.ruff.per-file-ignores]
 "satpy/tests/*" = ["S101"]  # assert allowed in tests
