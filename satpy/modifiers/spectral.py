@@ -107,7 +107,7 @@ class NIRReflectance(ModifierBase):
             if sun_zenith_angle is None:
                 raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
             _nir = projectables[0]
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks, dtype=_nir.dtype)
             sun_zenith = sun_zenith_angle(_nir.attrs["start_time"], lons, lats)
         return sun_zenith
 
