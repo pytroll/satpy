@@ -112,7 +112,7 @@ class CompositeBase:
         self.attrs = kwargs
 
     @property
-    def id(self):
+    def id(self):  # noqa: A003
         """Return the DataID of the object."""
         try:
             return self.attrs["_satpy_id"]

@@ -196,7 +196,7 @@ class GACLACFile(BaseFileHandler):
 
         return res
 
-    def slice(self, data, times):
+    def slice(self, data, times):  # noqa: A003
         """Select user-defined scanlines and/or strip invalid coordinates.
 
         Furthermore, update scanline timestamps.

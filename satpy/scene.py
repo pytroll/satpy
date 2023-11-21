@@ -660,7 +660,7 @@ class Scene:
             else:
                 replace_anc(new_ds, pres)
 
-    def slice(self, key):
+    def slice(self, key):  # noqa: A003
         """Slice Scene by dataset index.
 
         .. note::

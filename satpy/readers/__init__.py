@@ -705,7 +705,7 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
-    def open(self, *args, **kwargs):
+    def open(self, *args, **kwargs):  # noqa: A003
         """Open the file.
 
         This is read-only.
