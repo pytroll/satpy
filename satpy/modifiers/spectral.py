@@ -75,7 +75,7 @@ class NIRReflectance(ModifierBase):
         da_nir = _nir.data
         da_tb11 = _tb11.data
         da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(_nir, optional_datasets, _nir.dtype)
 
         logger.info("Getting reflective part of %s", _nir.attrs["name"])
         reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
@@ -95,7 +95,7 @@ class NIRReflectance(ModifierBase):
         return tb13_4
 
     @staticmethod
-    def _get_sun_zenith_from_provided_data(projectables, optional_datasets):
+    def _get_sun_zenith_from_provided_data(_nir, optional_datasets, dtype):
         """Get the sunz from available data or compute it if unavailable."""
         sun_zenith = None
 
@@ -106,8 +106,7 @@ class NIRReflectance(ModifierBase):
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
-            _nir = projectables[0]
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks, dtype=_nir.dtype)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks, dtype=dtype)
             sun_zenith = sun_zenith_angle(_nir.attrs["start_time"], lons, lats)
         return sun_zenith
 
