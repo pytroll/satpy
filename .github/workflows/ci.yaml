@@ -76,7 +76,8 @@ jobs:
           numpy \
           pandas \
           scipy
-          python -m pip install --no-deps --upgrade --no-build-isolation -vv git+https://github.com/storpipfugl/pykdtree
+          mamba remove --force-remove -y pykdtree
+          python -m pip install --no-deps --upgrade --no-build-isolation -vvv git+https://github.com/storpipfugl/pykdtree
           python -c "from pykdtree.kdtree import KDTree"
           python -m pip install \
           --no-deps --upgrade \
