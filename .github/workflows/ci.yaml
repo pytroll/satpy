@@ -82,6 +82,7 @@ jobs:
           git+https://github.com/storpipfugl/pykdtree \
           git+https://github.com/pytroll/pyresample \
           git+https://github.com/pytroll/trollimage \
+          git+https://github.com/fhs/pyhdf \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
           git+https://github.com/zarr-developers/zarr \
