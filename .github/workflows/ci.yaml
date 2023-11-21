@@ -79,7 +79,8 @@ jobs:
           mamba remove --force-remove -y pykdtree pyresample
           python -m pip install --no-deps --upgrade --no-build-isolation -vvv \
           git+https://github.com/storpipfugl/pykdtree \
-          git+https://github.com/pytroll/pyresample
+          git+https://github.com/pytroll/pyresample \
+          versioneer
           python -m pip install \
           --no-deps --upgrade \
           git+https://github.com/dask/dask \
