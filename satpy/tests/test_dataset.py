@@ -54,7 +54,8 @@ class TestDataID(unittest.TestCase):
         """Test that modifiers are a tuple."""
         from satpy.dataset.dataid import DataID
         from satpy.dataset.dataid import default_id_keys_config as dikc
-        self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
+        with pytest.raises(TypeError):
+            DataID(dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""

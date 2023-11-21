@@ -215,6 +215,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             if self.file_type_matches(ds_info["file_type"]) is None:
                 # this is not the file type for this dataset
                 yield None, ds_info
+                continue
             yield file_key in self.nc, ds_info
 
         yield from self._dynamic_variables_from_file(handled_var_names)

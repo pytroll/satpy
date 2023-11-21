@@ -23,6 +23,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 from xarray import DataArray
 
 from satpy.readers.electrol_hrit import (
@@ -211,8 +212,8 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
                                        dtype=np.uint16).reshape(5, 5))
 
         # Test that calibration fails if given a silly mode
-        self.assertRaises(NotImplementedError, fh.calibrate, counts,
-                          "nonsense")
+        with pytest.raises(NotImplementedError):
+            fh.calibrate(counts, "nonsense")
 
         # Test that 'counts' calibration returns identical values to input
         out = fh.calibrate(counts, "counts")

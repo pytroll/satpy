@@ -28,6 +28,8 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import pytest
+
 from satpy.tests.multiscene_tests.test_utils import (
     _create_test_area,
     _create_test_dataset,
@@ -248,7 +250,7 @@ class TestMultiSceneSave(unittest.TestCase):
         with mock.patch("satpy.multiscene._multiscene.Scene.save_datasets") as save_datasets:
             save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
             # force order of datasets by specifying them
-            with self.assertRaises(NotImplementedError):
+            with pytest.raises(NotImplementedError):
                 mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=["ds1", "ds2", "ds3"],
                                    writer="geotiff")
 
