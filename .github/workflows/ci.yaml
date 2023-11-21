@@ -88,6 +88,7 @@ jobs:
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
           git+https://github.com/pydata/xarray \
+          git+https://github.com/shapely/shapely \
           git+https://github.com/astropy/astropy
           LD_PRELOAD=$(python -c "import sys; print(sys.prefix)")/lib/libstdc++.so
           echo "LD_PRELOAD=${LD_PRELOAD}" >> $GITHUB_ENV
