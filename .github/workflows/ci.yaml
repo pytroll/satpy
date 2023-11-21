@@ -78,7 +78,7 @@ jobs:
           pandas \
           scipy
           mamba remove --force-remove -y pykdtree pyresample trollimage pyhdf netcdf4 h5py
-          python -m pip install --upgrade --no-deps --pre git+https://github.com/h5py/h5py
+          python -m pip install --upgrade --no-deps --pre git+https://github.com/takluyver/h5py@cython-3
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
           git+https://github.com/storpipfugl/pykdtree \
           git+https://github.com/pytroll/pyresample \
