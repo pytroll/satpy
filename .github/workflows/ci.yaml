@@ -68,6 +68,7 @@ jobs:
         # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
         # may break the conda-forge libraries trying to use newer glibc versions
         run: |
+          python -m pip install versioneer
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
@@ -79,8 +80,7 @@ jobs:
           mamba remove --force-remove -y pykdtree pyresample
           python -m pip install --no-deps --upgrade --no-build-isolation -vvv \
           git+https://github.com/storpipfugl/pykdtree \
-          git+https://github.com/pytroll/pyresample \
-          versioneer
+          git+https://github.com/pytroll/pyresample
           python -m pip install \
           --no-deps --upgrade \
           git+https://github.com/dask/dask \
