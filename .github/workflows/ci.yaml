@@ -77,10 +77,11 @@ jobs:
           numpy \
           pandas \
           scipy
-          mamba remove --force-remove -y pykdtree pyresample
+          mamba remove --force-remove -y pykdtree pyresample trollimage
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
           git+https://github.com/storpipfugl/pykdtree \
           git+https://github.com/pytroll/pyresample \
+          git+https://github.com/pytroll/trollimage \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
           git+https://github.com/zarr-developers/zarr \
