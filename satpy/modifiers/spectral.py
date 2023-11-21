@@ -162,16 +162,16 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
     def _get_emissivity_as_dataarray(self, projectables, optional_datasets):
         """Get the emissivity as a dataarray."""
-        _nir, _tb11 = projectables
-        da_nir = _nir.data
+        nir, _tb11 = projectables
+        da_nir = nir.data
         da_tb11 = _tb11.data
         da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(nir, optional_datasets, nir.dtype)
 
-        logger.info("Getting emissive part of %s", _nir.attrs["name"])
-        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+        logger.info("Getting emissive part of %s", nir.attrs["name"])
+        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
 
-        proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
+        proj = self._create_modified_dataarray(emissivity, base_dataarray=nir)
         proj.attrs["units"] = "K"
         return proj
 
