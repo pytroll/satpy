@@ -327,7 +327,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_deprecated_passing_config_files(self):
         """Test that we get an exception when config files are passed to inti."""
-        self.assertRaises(ValueError, yr.FileYAMLReader, "/path/to/some/file.yaml")
+        with pytest.raises(ValueError,
+                           match="Passing config files to create a Reader is deprecated.*"):
+            yr.FileYAMLReader("/path/to/some/file.yaml")
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
@@ -409,15 +411,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Check start and end time behaviours."""
         self.reader.file_handlers = {}
 
-        def get_start_time():
-            return self.reader.start_time
+        with pytest.raises(RuntimeError):
+            self.reader.start_time
 
-        self.assertRaises(RuntimeError, get_start_time)
-
-        def get_end_time():
-            return self.reader.end_time
-
-        self.assertRaises(RuntimeError, get_end_time)
+        with pytest.raises(RuntimeError):
+            self.reader.end_time
 
         fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
                      datetime(1999, 12, 31, 0, 0))
@@ -780,7 +778,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check wrong input
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="Target orientation for Dataset unknown_name not recognized.*"):
             _ = reader._load_dataset_with_area(dsid, coords, "wronginput")
 
         # check native orientation, nothing should change
@@ -1043,11 +1041,11 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
         # Failure is True
         mss.return_value = [0, 0, 0, True, 0]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
 
         # Setup input, and output of mocked functions

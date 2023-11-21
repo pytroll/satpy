@@ -215,10 +215,12 @@ class TestHelpers(unittest.TestCase):
 
         # multi-element array
         npbytes = np.array([npbytes, npbytes])
-        self.assertRaises(ValueError, hf.np2str, npbytes)
+        with pytest.raises(ValueError, match="Array is not a string type or is larger than 1"):
+            hf.np2str(npbytes)
 
         # non-array
-        self.assertRaises(ValueError, hf.np2str, 5)
+        with pytest.raises(ValueError, match="Array is not a string type or is larger than 1"):
+            hf.np2str(5)
 
     def test_get_earth_radius(self):
         """Test earth radius computation."""
@@ -419,7 +421,7 @@ class TestHelpers(unittest.TestCase):
         assert offset == 0.0
 
         # Check that incorrect dict keys throw an error
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             hf.get_user_calibration_factors("IR108", radcor_dict)
 
 

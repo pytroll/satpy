@@ -23,6 +23,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
@@ -488,7 +489,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
         assert res["wvc_lon"].attrs["L2B_Number_WVC_cells"] == 10
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             assert res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"] == 10
 
     def test_reading_attrs_nsoas(self):
@@ -502,7 +503,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         reader.create_filehandlers(files)
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             assert res["wvc_lon"].attrs["L2B_Number_WVC_cells"] == 10
         assert res["wvc_lon"].attrs["L2B_Expected_WVC_Cells"] == 10
 

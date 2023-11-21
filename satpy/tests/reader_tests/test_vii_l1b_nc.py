@@ -29,6 +29,7 @@ import uuid
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
@@ -147,7 +148,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         assert np.all(return_variable == variable)
 
         # invalid calibration: raises a ValueError
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="Unknown calibration invalid for dataset test"):
             self.reader._perform_calibration(variable,
                                              {"calibration": "invalid", "name": "test"})
 
