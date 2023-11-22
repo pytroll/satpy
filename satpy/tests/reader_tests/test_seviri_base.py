@@ -98,7 +98,7 @@ class SeviriBaseTest(unittest.TestCase):
         east_bound = 5
         west_bound = 10
         final_size = (1, 20)
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             pad_data_horizontally(data, final_size, east_bound, west_bound)
 
     def test_pad_data_vertically_bad_shape(self):
@@ -107,7 +107,7 @@ class SeviriBaseTest(unittest.TestCase):
         south_bound = 5
         north_bound = 10
         final_size = (20, 1)
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             pad_data_vertically(data, final_size, south_bound, north_bound)
 
     def observation_start_time(self):

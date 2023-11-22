@@ -78,7 +78,8 @@ class TestMatchDataArrays(unittest.TestCase):
         ds2 = self._get_test_ds()
         del ds2.attrs["area"]
         comp = CompositeBase("test_comp")
-        self.assertRaises(ValueError, comp.match_data_arrays, (ds1, ds2))
+        with pytest.raises(ValueError, match="Missing 'area' attribute"):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
@@ -94,7 +95,8 @@ class TestMatchDataArrays(unittest.TestCase):
             100, 50,
             (-30037508.34, -20018754.17, 10037508.34, 18754.17))
         comp = CompositeBase("test_comp")
-        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
+        with pytest.raises(IncompatibleAreas):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
@@ -118,7 +120,8 @@ class TestMatchDataArrays(unittest.TestCase):
         ds1 = self._get_test_ds(shape=(50, 100), dims=("x", "y"))
         ds2 = self._get_test_ds(shape=(3, 50, 100), dims=("bands", "y", "x"))
         comp = CompositeBase("test_comp")
-        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
+        with pytest.raises(IncompatibleAreas):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_nondimensional_coords(self):
         """Test the removal of non-dimensional coordinates when compositing."""
@@ -351,9 +354,11 @@ class TestDifferenceCompositor(unittest.TestCase):
         from satpy.composites import DifferenceCompositor, IncompatibleAreas
         comp = DifferenceCompositor(name="diff")
         # too many arguments
-        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds2_big))
+        with pytest.raises(ValueError, match="Expected 2 datasets, got 3"):
+            comp((self.ds1, self.ds2, self.ds2_big))
         # different resolution
-        self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
+        with pytest.raises(IncompatibleAreas):
+            comp((self.ds1, self.ds2_big))
 
 
 @pytest.fixture()
@@ -1051,8 +1056,8 @@ class TestGenericCompositor(unittest.TestCase):
         assert res.shape[0] == num_bands
         assert res.bands[0] == "L"
         assert res.bands[1] == "A"
-        self.assertRaises(IncompatibleAreas, self.comp._concat_datasets,
-                          [self.all_valid, self.wrong_shape], "LA")
+        with pytest.raises(IncompatibleAreas):
+            self.comp._concat_datasets([self.all_valid, self.wrong_shape], "LA")
 
     def test_get_sensors(self):
         """Test getting sensors from the dataset attributes."""
@@ -1099,8 +1104,8 @@ class TestGenericCompositor(unittest.TestCase):
         match_data_arrays.reset_mock()
         # When areas are incompatible, masking shouldn't happen
         match_data_arrays.side_effect = IncompatibleAreas()
-        self.assertRaises(IncompatibleAreas,
-                          self.comp, [self.all_valid, self.wrong_shape])
+        with pytest.raises(IncompatibleAreas):
+            self.comp([self.all_valid, self.wrong_shape])
         match_data_arrays.assert_called_once()
 
     def test_call(self):
@@ -1217,7 +1222,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         from satpy.composites import StaticImageCompositor
 
         # No filename given raises ValueError
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="StaticImageCompositor needs a .*"):
             StaticImageCompositor("name")
 
         # No area defined
@@ -1281,7 +1286,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         # Non-georeferenced image, no area given
         img.attrs.pop("area")
         comp = StaticImageCompositor("name", filename="/foo.tif")
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             comp()
 
         # Non-georeferenced image, area given
