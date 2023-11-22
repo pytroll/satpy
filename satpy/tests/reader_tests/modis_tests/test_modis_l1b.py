@@ -77,6 +77,10 @@ def _load_and_check_geolocation(scene, resolution, exp_res, exp_shape, has_res,
         assert lat_arr.shape == exp_shape
         # compute lon/lat at the same time to avoid wasted computation
         lon_vals, lat_vals = dask.compute(lon_arr, lat_arr)
+        assert lon_arr.dtype == lat_arr.dtype
+        assert lon_arr.dtype == np.float32
+        assert lon_vals.dtype == lon_arr.dtype
+        assert lat_vals.dtype == lat_arr.dtype
         np.testing.assert_array_less(lon_vals, 0)
         np.testing.assert_array_less(0, lat_vals)
         check_callback(lon_arr)

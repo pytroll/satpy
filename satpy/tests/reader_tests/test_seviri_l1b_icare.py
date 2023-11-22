@@ -22,6 +22,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 
 from satpy.readers import load_reader
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
@@ -193,13 +194,13 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                 plat, sens = _run_target()
                 assert plat == sat
 
-            with self.assertRaises(NameError):
-                file_data["/attr/Sensors"] = "BADSAT/NOSENSE"
+            file_data["/attr/Sensors"] = "BADSAT/NOSENSE"
+            with pytest.raises(NameError):
                 plat, sens = _run_target()
 
     def test_bad_bandname(self):
         """Check reader raises an error if a band bandname is passed."""
-        with self.assertRaises(NameError):
+        with pytest.raises(NameError):
             self.p.target(mock.MagicMock(),
                           mock.MagicMock(),
                           mock.MagicMock())._get_dsname({"name": "badband"})

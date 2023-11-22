@@ -44,10 +44,12 @@ class TestHRITDecompress(unittest.TestCase):
         old_env = os.environ.get("XRIT_DECOMPRESS_PATH", None)
 
         os.environ["XRIT_DECOMPRESS_PATH"] = "/path/to/my/bin"
-        self.assertRaises(IOError, get_xritdecompress_cmd)
+        with pytest.raises(IOError, match=".* does not exist!"):
+            get_xritdecompress_cmd()
 
         os.environ["XRIT_DECOMPRESS_PATH"] = gettempdir()
-        self.assertRaises(IOError, get_xritdecompress_cmd)
+        with pytest.raises(IOError, match=".* is a directory!.*"):
+            get_xritdecompress_cmd()
 
         with NamedTemporaryFile() as fd:
             os.environ["XRIT_DECOMPRESS_PATH"] = fd.name

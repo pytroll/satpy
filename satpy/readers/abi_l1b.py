@@ -49,6 +49,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         # For raw cal, don't apply scale and offset, return raw file counts
         if key["calibration"] == "counts":
             radiances = self.nc["Rad"].copy()
+            radiances = self._adjust_coords(radiances, "Rad")
         else:
             radiances = self["Rad"]
 
@@ -59,12 +60,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
             "radiance": self._rad_calibrate,
             "counts": self._raw_calibrate,
         }
-
-        try:
-            func = cal_dictionary[key["calibration"]]
-            res = func(radiances)
-        except KeyError:
-            raise ValueError("Unknown calibration '{}'".format(key["calibration"]))
+        func = cal_dictionary[key["calibration"]]
+        res = func(radiances)
 
         # convert to satpy standard units
         if res.attrs["units"] == "1" and key["calibration"] != "counts":
@@ -136,11 +133,11 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
         solar_irradiance = self["esun"]
-        esd = self["earth_sun_distance_anomaly_in_AU"].astype(float)
+        esd = self["earth_sun_distance_anomaly_in_AU"]
 
         factor = np.pi * esd * esd / solar_irradiance
 
-        res = data * factor
+        res = data * np.float32(factor)
         res.attrs = data.attrs
         res.attrs["units"] = "1"
         res.attrs["long_name"] = "Bidirectional Reflectance"
@@ -166,7 +163,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         if self.clip_negative_radiances:
             min_rad = self._get_minimum_radiance(data)
-            data = data.clip(min=min_rad)
+            data = data.clip(min=data.dtype.type(min_rad))
 
         res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs

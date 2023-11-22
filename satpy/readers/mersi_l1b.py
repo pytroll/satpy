@@ -141,7 +141,7 @@ class MERSIL1B(HDF5FileHandler):
         if dataset_id.get("calibration") == "counts":
             # preserve integer type of counts if possible
             attrs["_FillValue"] = fill_value
-            new_fill = fill_value
+            new_fill = data.dtype.type(fill_value)
         else:
             new_fill = np.nan
         if valid_range is not None:

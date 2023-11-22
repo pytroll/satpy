@@ -444,13 +444,15 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         args = dict(key=make_dataid(name="00_7",
                                     calibration="brightness_temperature"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate VIS channel to 2"):
+            self.reader.get_dataset(**args)
 
         # IR -> Reflectance
         args = dict(key=make_dataid(name="10_7",
                                     calibration="reflectance"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate IR channel to 1"):
+            self.reader.get_dataset(**args)
 
         # Unsupported calibration
         with pytest.raises(ValueError, match="invalid invalid value for <enum 'calibration'>"):

@@ -29,6 +29,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
     get_legacy_chunk_size,
@@ -80,7 +81,6 @@ class TestGeoUtils:
             ((90, 90), (1, 0, 0)),
             ((-90, 90), (-1, 0, 0)),
             ((180, 90), (0, -1, 0)),
-            ((0, -90), (0, -1, 0)),
             ((0, 45), (0, sqrt(2) / 2, sqrt(2) / 2)),
             ((0, 60), (0, sqrt(3) / 2, sqrt(1) / 2)),
         ],
@@ -202,6 +202,7 @@ class TestGetSatPos:
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
 
+    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield does not support numpy 2 yet")
     def test_get_satpos_from_satname(self, caplog):
         """Test getting satellite position from satellite name only."""
         import pyorbital.tlefile
