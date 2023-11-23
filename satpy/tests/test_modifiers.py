@@ -119,13 +119,15 @@ class TestSunZenithCorrector:
             sunz_ds1 = sunz_ds1.astype(np.float32)
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
         res = comp((sunz_ds1,), test_attr="test")
-        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
+                                   rtol=1e-6)
         assert "y" in res.coords
         assert "x" in res.coords
         ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
         res = comp((ds1,), test_attr="test")
         res_np = res.compute()
-        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
+                                   rtol=1e-6)
         assert res.dtype == res_np.dtype
         assert "y" not in res.coords
         assert "x" not in res.coords

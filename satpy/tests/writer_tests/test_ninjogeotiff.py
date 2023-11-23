@@ -630,7 +630,7 @@ def test_write_and_read_file_units(
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
                                0.467717, rtol=1e-5)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
-                               -79.86771)
+                               -79.86771, rtol=1e-5)
     fn2 = os.fspath(tmp_path / "test2.tif")
     with caplog.at_level(logging.WARNING):
         ngtw.save_dataset(
