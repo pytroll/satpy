@@ -79,8 +79,8 @@ class NIRReflectance(ModifierBase):
         return proj
 
     def _get_nir_inputs(self, projectables, optional_datasets):
-        nir, _tb11 = projectables
-        da_tb11 = _tb11.data
+        nir, tb11 = projectables
+        da_tb11 = tb11.data
         da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
         da_sun_zenith = self._get_sun_zenith_from_provided_data(nir, optional_datasets, nir.dtype)
         return (nir, da_tb11, da_tb13_4, da_sun_zenith)
