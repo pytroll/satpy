@@ -319,14 +319,14 @@ class TestSceneResampling:
             assert not slice_data.called
             assert not get_area_slices.called
             scene.resample(target_area)
-            assert slice_data.called_once
-            assert get_area_slices.called_once
+            slice_data.assert_called_once
+            get_area_slices.assert_called_once
             scene.resample(target_area, reduce_data=True)
             # 2 times for each dataset
             # once for default (reduce_data=True)
             # once for kwarg forced to `True`
             assert slice_data.call_count == 2 * 3
-            assert get_area_slices.called_once
+            get_area_slices.assert_called_once
 
     def test_resample_ancillary(self):
         """Test that the Scene reducing data does not affect final output."""
