@@ -25,6 +25,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers.ahi_l1b_gridded_bin import AHI_LUT_NAMES, AHIGriddedFileHandler
@@ -90,9 +91,9 @@ class TestAHIGriddedArea(unittest.TestCase):
         """Ensure an error is raised for an usupported area."""
         tmp_fh = self.make_fh("ext.01")
         tmp_fh.areaname = "scanning"
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             tmp_fh.get_area_def(None)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.make_fh("ext.01", area="scanning")
 
 
@@ -141,12 +142,12 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
         np.testing.assert_allclose(refl_out, out_data)
 
         # Check that exception is raised if bad calibration is passed
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.fh.calibrate(in_data, "lasers")
 
         # Check that exception is raised if no file is present
         np_loadtxt.side_effect = FileNotFoundError
-        with self.assertRaises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             self.fh.calibrate(in_data, "reflectance")
 
 

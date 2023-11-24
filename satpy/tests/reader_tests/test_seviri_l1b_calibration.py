@@ -130,7 +130,7 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
                                         CHANNEL_NAME, CAL_TYPE2)
         xr.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, CAL_TYPEBAD)
 
     def test_vis_calibrate(self):

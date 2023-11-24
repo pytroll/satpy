@@ -100,11 +100,11 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def _parse_datetime(self, datestr, timestr):
-        try:
-            datetime_str = datestr + timestr
-        except TypeError:
-            datetime_str = (str(datestr.data.compute().astype(str)) +
-                            str(timestr.data.compute().astype(str)))
+        if not isinstance(datestr, str):
+            datestr = str(datestr.data.compute().astype(str))
+        if not isinstance(timestr, str):
+            timestr = str(timestr.data.compute().astype(str))
+        datetime_str = datestr + timestr
 
         time_val = datetime.strptime(datetime_str, "%Y%m%d%H%M%S.%fZ")
         if abs(time_val - NO_DATE) < EPSILON_TIME:

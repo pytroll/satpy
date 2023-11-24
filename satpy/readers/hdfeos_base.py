@@ -148,7 +148,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     @classmethod
     def _split_line(cls, line, lines):
-        key, val = line.split("=")
+        key, val = line.split("=", maxsplit=1)
         key = key.strip()
         val = val.strip()
         try:
@@ -285,7 +285,8 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         if is_category and np.issubdtype(data_arr.dtype, np.integer):
             # no need to mask, the fill value is already what it needs to be
             return None, None
-        new_fill = np.nan
+        fill_type = data_arr.dtype.type if np.issubdtype(data_arr.dtype, np.floating) else np.float32
+        new_fill = fill_type(np.nan)
         data_arr.attrs.pop("_FillValue", None)
         good_mask = data_arr != fill_value
         return good_mask, new_fill

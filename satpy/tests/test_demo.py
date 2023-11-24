@@ -27,6 +27,8 @@ import unittest
 from collections import defaultdict
 from unittest import mock
 
+import pytest
+
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
@@ -89,9 +91,11 @@ class TestDemo(unittest.TestCase):
         gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
         gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
         # expected 16 files, got 2
-        self.assertRaises(RuntimeError, get_us_midlatitude_cyclone_abi)
+        with pytest.raises(RuntimeError):
+            get_us_midlatitude_cyclone_abi()
         # unknown access method
-        self.assertRaises(NotImplementedError, get_us_midlatitude_cyclone_abi, method="unknown")
+        with pytest.raises(NotImplementedError):
+            get_us_midlatitude_cyclone_abi(method="unknown")
 
         gcsfs_inst.glob.return_value = ["a.nc"] * 16
         filenames = get_us_midlatitude_cyclone_abi()
@@ -109,8 +113,10 @@ class TestDemo(unittest.TestCase):
         # only return 5 results total
         gcsfs_inst.glob.side_effect = _GlobHelper([5, 0])
         # expected 16 files * 10 frames, got 16 * 5
-        self.assertRaises(RuntimeError, get_hurricane_florence_abi)
-        self.assertRaises(NotImplementedError, get_hurricane_florence_abi, method="unknown")
+        with pytest.raises(RuntimeError):
+            get_hurricane_florence_abi()
+        with pytest.raises(NotImplementedError):
+            get_hurricane_florence_abi(method="unknown")
 
         gcsfs_inst.glob.side_effect = _GlobHelper([int(240 / 16), 0, 0, 0] * 16)
         filenames = get_hurricane_florence_abi()
@@ -157,7 +163,8 @@ class TestGCPUtils(unittest.TestCase):
         gcsfs_inst.glob.side_effect = None  # reset mock side effect
 
         gcsfs_inst.glob.return_value = ["a.nc", "b.nc"]
-        self.assertRaises(OSError, get_bucket_files, "*.nc", "does_not_exist")
+        with pytest.raises(OSError, match="Directory does not exist: does_not_exist"):
+            get_bucket_files("*.nc", "does_not_exist")
 
         open("a.nc", "w").close()  # touch the file
         gcsfs_inst.get.reset_mock()
@@ -176,13 +183,15 @@ class TestGCPUtils(unittest.TestCase):
         # if we don't get any results then we expect an exception
         gcsfs_inst.get.reset_mock()
         gcsfs_inst.glob.return_value = []
-        self.assertRaises(OSError, get_bucket_files, "*.nc", ".")
+        with pytest.raises(OSError, match="No files could be found or downloaded."):
+            get_bucket_files("*.nc", ".")
 
     @mock.patch("satpy.demo._google_cloud_platform.gcsfs", None)
     def test_no_gcsfs(self):
         """Test that 'gcsfs' is required."""
         from satpy.demo._google_cloud_platform import get_bucket_files
-        self.assertRaises(RuntimeError, get_bucket_files, "*.nc", ".")
+        with pytest.raises(RuntimeError):
+            get_bucket_files("*.nc", ".")
 
 
 class TestAHIDemoDownload:

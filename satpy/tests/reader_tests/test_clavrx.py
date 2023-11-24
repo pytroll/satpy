@@ -23,6 +23,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
@@ -347,7 +348,8 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 "clavrx_H08_20180806_1800.level2.hdf",
             ])
             r.create_filehandlers(loadables)
-        self.assertRaises(IOError, r.load, ["variable1", "variable2", "variable3"])
+        with pytest.raises(IOError, match="Could not find navigation donor for"):
+            r.load(["variable1", "variable2", "variable3"])
 
     def test_load_all_old_donor(self):
         """Test loading all test datasets with old donor."""

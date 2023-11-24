@@ -180,7 +180,7 @@ class TestGACLACFile(GACLACFilePatcher):
         # Test exception if all data is masked
         reader.mask = [1]
         fh.reader = None
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="All data is masked out"):
             fh.read_raw_data()
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs")

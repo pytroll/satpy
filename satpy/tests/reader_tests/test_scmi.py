@@ -21,6 +21,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -273,4 +274,5 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
                 "grid_mapping_name": "fake",
             }
         )
-        self.assertRaises(ValueError, reader.get_area_def, None)
+        with pytest.raises(ValueError, match="Can't handle projection 'fake'"):
+            reader.get_area_def(None)

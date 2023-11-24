@@ -273,7 +273,7 @@ class TestNIRReflectance(unittest.TestCase):
 
         # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
         # we must used the area from the final result DataArray
-        res.attrs["area"].get_lonlats.assert_called()
+        res.attrs["area"].get_lonlats.assert_called_with(chunks=((2,), (2,)), dtype=self.nir.dtype)
         sza.assert_called_with(self.start_time, self.lons, self.lats)
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()
