@@ -316,17 +316,18 @@ class TestSceneResampling:
             ds_walker.return_value = test_order
             slice_data.side_effect = orig_slice_data
             scene.resample(target_area, reduce_data=False)
-            assert not slice_data.called
-            assert not get_area_slices.called
+            slice_data.assert_not_called()
+            get_area_slices.assert_not_called()
             scene.resample(target_area)
-            slice_data.assert_called_once()
-            get_area_slices.assert_called_once()
+            assert slice_data.call_count == 3
+            assert get_area_slices.call_count == 2
             scene.resample(target_area, reduce_data=True)
             # 2 times for each dataset
             # once for default (reduce_data=True)
             # once for kwarg forced to `True`
             assert slice_data.call_count == 2 * 3
-            get_area_slices.assert_called_once()
+            # reductions are cached, no additional reductions in second call
+            assert get_area_slices.call_count == 2
 
     def test_resample_ancillary(self):
         """Test that the Scene reducing data does not affect final output."""
