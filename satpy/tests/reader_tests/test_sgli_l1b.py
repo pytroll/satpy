@@ -210,16 +210,18 @@ def test_get_vn_dataset_reflectances(sgli_vn_file):
     assert np.allclose(res[0, :] / 100, FULL_KM_ARRAY[0, :] * 5e-5 - 0.05)
     assert res.dtype == np.float32
     assert res.dims == ("y", "x")
-    assert res.units == "%"
+    assert res.attrs["units"] == "%"
 
 def test_get_vn_dataset_radiance(sgli_vn_file):
     """Test that datasets can be calibrated to radiance."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     did = dict(name="VN1", resolution=1000, polarization=None, calibration="radiance")
-    res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "",
-                                    "standard_name": ""})
+    res = handler.get_dataset(did, {"file_key": "Image_data/Lt_VN01", "units": "W m-2 um-1 sr-1",
+                                    "standard_name": "toa_outgoing_radiance_per_unit_wavelength"})
     assert np.allclose(res[0, :], FULL_KM_ARRAY[0, :] * np.float32(0.02) - 25)
     assert res.dtype == np.float32
+    assert res.attrs["units"] == "W m-2 um-1 sr-1"
+    assert res.attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
 
 def test_channel_is_masked(sgli_vn_file):
     """Test that channels are masked for no-data."""
