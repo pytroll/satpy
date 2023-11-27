@@ -403,6 +403,9 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     """
     chunks = _geo_chunks_from_data_arr(data_arr)
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
+    if lons.dtype != data_arr.dtype and np.issubdtype(data_arr.dtype, np.floating):
+        lons = lons.astype(data_arr.dtype)
+        lats = lats.astype(data_arr.dtype)
     cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
     return _geo_dask_to_data_array(cos_sza)
 
