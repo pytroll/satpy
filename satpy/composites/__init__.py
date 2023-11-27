@@ -713,9 +713,7 @@ class DayNightCompositor(GenericCompositor):
         datasets = self.match_data_arrays(datasets)
         # At least one composite is requested.
         foreground_data = datasets[0]
-
         weights = self._get_coszen_blending_weights(datasets)
-
         # Apply enhancements to the foreground data
         foreground_data = enhance2dataset(foreground_data)
 
@@ -759,7 +757,6 @@ class DayNightCompositor(GenericCompositor):
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
-
         return coszen.clip(0, 1)
 
     def _get_data_for_single_side_product(
@@ -786,8 +783,8 @@ class DayNightCompositor(GenericCompositor):
 
     def _get_day_night_data_for_single_side_product(self, foreground_data):
         if "day" in self.day_night:
-            return foreground_data, 0
-        return 0, foreground_data
+            return foreground_data, foreground_data.dtype.type(0)
+        return foreground_data.dtype.type(0), foreground_data
 
     def _get_data_for_combined_product(self, day_data, night_data):
         # Apply enhancements also to night-side data
@@ -848,15 +845,16 @@ class DayNightCompositor(GenericCompositor):
 def _get_band_names(day_data, night_data):
     try:
         bands = day_data["bands"]
-    except TypeError:
+    except (IndexError, TypeError):
         bands = night_data["bands"]
     return bands
 
 
 def _get_single_band_data(data, band):
-    if isinstance(data, int):
+    try:
+        return data.sel(bands=band)
+    except AttributeError:
         return data
-    return data.sel(bands=band)
 
 
 def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
@@ -871,7 +869,7 @@ def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
 
 
 def _get_weight_mask_for_single_side_product(data_a, data_b):
-    if isinstance(data_a, int):
+    if data_b.shape:
         return ~da.isnan(data_b)
     return ~da.isnan(data_a)
 
@@ -894,7 +892,8 @@ def add_alpha_bands(data):
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes["y"],
                               data.sizes["x"]),
-                             chunks=new_data[0].chunks)
+                             chunks=new_data[0].chunks,
+                             dtype=data.dtype)
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
         new_data.append(alpha)
