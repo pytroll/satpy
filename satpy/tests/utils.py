@@ -407,3 +407,34 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
                 )
             except TypeError:
                 assert attrs[key] == attrs_exp[key], err_msg
+
+
+def xfail_skyfield_unstable_numpy2():
+    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
+    try:
+        import skyfield
+
+        # known numpy incompatibility:
+        from skyfield import timelib  # noqa
+    except ImportError:
+        skyfield = None
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return skyfield is None and is_np2 and is_unstable_ci
+
+
+def xfail_h5py_unstable_numpy2():
+    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
+    from packaging import version
+    try:
+        import h5py
+        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
+    except ImportError:
+        is_broken_h5py = True
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return is_broken_h5py and is_np2 and is_unstable_ci
