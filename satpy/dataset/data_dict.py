@@ -51,7 +51,7 @@ def get_best_dataset_key(key, choices):
         return [choice for choice, distance in zip(sorted_choices, distances) if distance == distances[0]]
 
 
-def get_key(key, key_container, num_results=1, best=True, query=None,
+def get_key(key, key_container, num_results=1, best=True, query=None,  # noqa: D417
             **kwargs):
     """Get the fully-specified key best matching the provided key.
 
@@ -139,7 +139,7 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def get_key(self, match_key, num_results=1, best=True, **dfilter):
+    def get_key(self, match_key, num_results=1, best=True, **dfilter):  # noqa: D417
         """Get multiple fully-specified keys that match the provided query.
 
         Args:

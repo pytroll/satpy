@@ -330,13 +330,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         fv = attrs.pop(
             "FillValue",
-            default_fillvals.get(data.dtype.str[1:], np.nan))
-        vr = attrs.get("valid_range", [-np.inf, np.inf])
+            default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
+        vr = attrs.get("valid_range", [np.float32(-np.inf), np.float32(np.inf)])
         if key["calibration"] == "counts":
             attrs["_FillValue"] = fv
             nfv = data.dtype.type(fv)
         else:
-            nfv = np.nan
+            nfv = np.float32(np.nan)
         data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
         res = self.calibrate(data, key)
@@ -632,16 +632,15 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
         # using the method from PUG section Converting from Effective Radiance to Brightness Temperature for IR Channels
-
         measured = self.get_channel_measured_group_path(key["name"])
 
-        vc = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_wavenumber")
+        vc = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_wavenumber").astype(np.float32)
 
-        a = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_a")
-        b = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_b")
+        a = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_a").astype(np.float32)
+        b = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_b").astype(np.float32)
 
-        c1 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c1")
-        c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2")
+        c1 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c1").astype(np.float32)
+        c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2").astype(np.float32)
 
         for v in (vc, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
@@ -652,26 +651,27 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
                         measured))
-                return radiance * np.nan
+                return radiance * np.float32(np.nan)
 
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
+        denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
 
         res = nom / denom - b / a
+
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
         """VIS channel calibration."""
         measured = self.get_channel_measured_group_path(key["name"])
 
-        cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance")
+        cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
 
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return radiance * np.nan
+            return radiance * np.float32(np.nan)
 
         sun_earth_distance = np.mean(
             self.get_and_cache_npxr("state/celestial/earth_sun_distance")) / 149597870.7  # [AU]
@@ -683,7 +683,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                         "".format(sun_earth_distance))
             sun_earth_distance = 1
 
-        res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
+        res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
 
 

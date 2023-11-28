@@ -40,7 +40,8 @@ class TestWritersModule(unittest.TestCase):
         # 1D
         from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=["y"])
-        self.assertRaises(ValueError, to_image, p)
+        with pytest.raises(ValueError, match="Need at least a 2D array to make an image."):
+            to_image(p)
 
     @mock.patch("satpy.writers.XRImage")
     def test_to_image_2d(self, mock_geoimage):
@@ -113,8 +114,8 @@ class TestEnhancer(unittest.TestCase):
     def test_init_nonexistent_enh_file(self):
         """Test Enhancer init with a nonexistent enhancement configuration file."""
         from satpy.writers import Enhancer
-        self.assertRaises(
-            ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
+        with pytest.raises(ValueError, match="YAML file doesn't exist or string is not YAML dict:.*"):
+            Enhancer(enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
 class _BaseCustomEnhancementConfigTests:

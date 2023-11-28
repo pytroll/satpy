@@ -43,7 +43,7 @@ class NIRReflectance(ModifierBase):
     TERMINATOR_LIMIT = 85.0
     MASKING_LIMIT = 88.0
 
-    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,  # noqa: D417
                  masking_limit=MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
@@ -67,22 +67,23 @@ class NIRReflectance(ModifierBase):
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
         projectables = self.match_data_arrays(projectables)
-        return self._get_reflectance_as_dataarray(projectables, optional_datasets)
+        inputs = self._get_nir_inputs(projectables, optional_datasets)
+        return self._get_reflectance_as_dataarray(*inputs)
 
-    def _get_reflectance_as_dataarray(self, projectables, optional_datasets):
+    def _get_reflectance_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the reflectance as a dataarray."""
-        _nir, _tb11 = projectables
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
-
-        logger.info("Getting reflective part of %s", _nir.attrs["name"])
-        reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
-
-        proj = self._create_modified_dataarray(reflectance, base_dataarray=_nir)
+        logger.info("Getting reflective part of %s", nir.attrs["name"])
+        reflectance = self._get_reflectance_as_dask(nir.data, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
+        proj = self._create_modified_dataarray(reflectance, base_dataarray=nir)
         proj.attrs["units"] = "%"
         return proj
+
+    def _get_nir_inputs(self, projectables, optional_datasets):
+        nir, tb11 = projectables
+        da_tb11 = tb11.data
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(nir, optional_datasets, nir.dtype)
+        return (nir, da_tb11, da_tb13_4, da_sun_zenith)
 
     @staticmethod
     def _get_tb13_4_from_optionals(optional_datasets):
@@ -95,7 +96,7 @@ class NIRReflectance(ModifierBase):
         return tb13_4
 
     @staticmethod
-    def _get_sun_zenith_from_provided_data(projectables, optional_datasets):
+    def _get_sun_zenith_from_provided_data(nir, optional_datasets, dtype):
         """Get the sunz from available data or compute it if unavailable."""
         sun_zenith = None
 
@@ -106,9 +107,8 @@ class NIRReflectance(ModifierBase):
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
-            _nir = projectables[0]
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
-            sun_zenith = sun_zenith_angle(_nir.attrs["start_time"], lons, lats)
+            lons, lats = nir.attrs["area"].get_lonlats(chunks=nir.data.chunks, dtype=dtype)
+            sun_zenith = sun_zenith_angle(nir.attrs["start_time"], lons, lats)
         return sun_zenith
 
     def _create_modified_dataarray(self, reflectance, base_dataarray):
@@ -139,7 +139,7 @@ class NIRReflectance(ModifierBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
     """Get the emissive part of NIR bands."""
 
-    def __init__(self, sunz_threshold=None, **kwargs):
+    def __init__(self, sunz_threshold=None, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -159,20 +159,16 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
         """
         projectables = self.match_data_arrays(projectables)
-        return self._get_emissivity_as_dataarray(projectables, optional_datasets)
+        inputs = self._get_nir_inputs(projectables, optional_datasets)
+        return self._get_emissivity_as_dataarray(*inputs)
 
-    def _get_emissivity_as_dataarray(self, projectables, optional_datasets):
+    def _get_emissivity_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the emissivity as a dataarray."""
-        _nir, _tb11 = projectables
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
-        logger.info("Getting emissive part of %s", _nir.attrs["name"])
-        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+        logger.info("Getting emissive part of %s", nir.attrs["name"])
+        emissivity = self._get_emissivity_as_dask(nir.data, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
 
-        proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
+        proj = self._create_modified_dataarray(emissivity, base_dataarray=nir)
         proj.attrs["units"] = "K"
         return proj
 

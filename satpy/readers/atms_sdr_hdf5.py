@@ -15,8 +15,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Reader for the ATMS SDR format.
+"""Reader for the ATMS SDR format.
 
 A reader for Advanced Technology Microwave Sounder (ATMS) SDR data as it
 e.g. comes out of the CSPP package for processing Direct Readout data.

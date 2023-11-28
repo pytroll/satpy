@@ -112,7 +112,7 @@ class CompositeBase:
         self.attrs = kwargs
 
     @property
-    def id(self):
+    def id(self):  # noqa: A003
         """Return the DataID of the object."""
         try:
             return self.attrs["_satpy_id"]
@@ -343,7 +343,7 @@ class CategoricalDataCompositor(CompositeBase):
         res = [[20, 40, 30], [50, 30, 10]]
     """
 
-    def __init__(self, name, lut=None, **kwargs):
+    def __init__(self, name, lut=None, **kwargs):  # noqa: D417
         """Get look-up-table used to recategorize data.
 
         Args:
@@ -381,7 +381,7 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: "L", 2: "LA", 3: "RGB", 4: "RGBA"}
 
-    def __init__(self, name, common_channel_mask=True, **kwargs):
+    def __init__(self, name, common_channel_mask=True, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -679,7 +679,7 @@ class DayNightCompositor(GenericCompositor):
     of the image (night or day). See the documentation below for more details.
     """
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -713,9 +713,7 @@ class DayNightCompositor(GenericCompositor):
         datasets = self.match_data_arrays(datasets)
         # At least one composite is requested.
         foreground_data = datasets[0]
-
         weights = self._get_coszen_blending_weights(datasets)
-
         # Apply enhancements to the foreground data
         foreground_data = enhance2dataset(foreground_data)
 
@@ -759,7 +757,6 @@ class DayNightCompositor(GenericCompositor):
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
-
         return coszen.clip(0, 1)
 
     def _get_data_for_single_side_product(
@@ -786,8 +783,8 @@ class DayNightCompositor(GenericCompositor):
 
     def _get_day_night_data_for_single_side_product(self, foreground_data):
         if "day" in self.day_night:
-            return foreground_data, 0
-        return 0, foreground_data
+            return foreground_data, foreground_data.dtype.type(0)
+        return foreground_data.dtype.type(0), foreground_data
 
     def _get_data_for_combined_product(self, day_data, night_data):
         # Apply enhancements also to night-side data
@@ -848,15 +845,16 @@ class DayNightCompositor(GenericCompositor):
 def _get_band_names(day_data, night_data):
     try:
         bands = day_data["bands"]
-    except TypeError:
+    except (IndexError, TypeError):
         bands = night_data["bands"]
     return bands
 
 
 def _get_single_band_data(data, band):
-    if isinstance(data, int):
+    try:
+        return data.sel(bands=band)
+    except AttributeError:
         return data
-    return data.sel(bands=band)
 
 
 def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
@@ -871,7 +869,7 @@ def _get_single_channel(data: xr.DataArray) -> xr.DataArray:
 
 
 def _get_weight_mask_for_single_side_product(data_a, data_b):
-    if isinstance(data_a, int):
+    if data_b.shape:
         return ~da.isnan(data_b)
     return ~da.isnan(data_a)
 
@@ -894,7 +892,8 @@ def add_alpha_bands(data):
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes["y"],
                               data.sizes["x"]),
-                             chunks=new_data[0].chunks)
+                             chunks=new_data[0].chunks,
+                             dtype=data.dtype)
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
         new_data.append(alpha)
@@ -1014,7 +1013,7 @@ class RealisticColors(GenericCompositor):
 class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
-    def __init__(self, name, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,  # noqa: D417
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1357,7 +1356,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     """
 
-    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
+    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,  # noqa: D417
                  **kwargs):
         """Collect custom configuration values.
 
@@ -1735,7 +1734,7 @@ def _get_flag_value(mask, val):
 class LongitudeMaskingCompositor(SingleBandCompositor):
     """Masks areas outside defined longitudes."""
 
-    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:

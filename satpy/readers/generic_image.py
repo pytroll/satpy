@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Reader for generic image (e.g. gif, png, jpg, tif, geotiff, ...).
+"""Reader for generic image (e.g. gif, png, jpg, tif, geotiff, ...).
 
 Returns a dataset without calibration.  Includes coordinates if
 available in the file (eg. geotiff).

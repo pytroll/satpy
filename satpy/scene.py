@@ -660,7 +660,7 @@ class Scene:
             else:
                 replace_anc(new_ds, pres)
 
-    def slice(self, key):
+    def slice(self, key):  # noqa: A003
         """Slice Scene by dataset index.
 
         .. note::
@@ -1384,7 +1384,7 @@ class Scene:
             LOG.debug("Unloading dataset: %r", ds_id)
             del self._datasets[ds_id]
 
-    def load(self, wishlist, calibration="*", resolution="*",
+    def load(self, wishlist, calibration="*", resolution="*",  # noqa: D417
              polarization="*", level="*", modifiers="*", generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.

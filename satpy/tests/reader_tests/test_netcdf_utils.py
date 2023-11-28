@@ -21,6 +21,7 @@ import os
 import unittest
 
 import numpy as np
+import pytest
 
 try:
     from satpy.readers.netcdf_utils import NetCDF4FileHandler
@@ -232,7 +233,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
-        with self.assertRaises(IOError):
+        with pytest.raises(IOError, match=".*No such file or directory.*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
     def test_get_and_cache_npxr_is_xr(self):

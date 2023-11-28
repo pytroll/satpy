@@ -42,7 +42,7 @@ class SimulatedRed(GenericCompositor):
 
     """
 
-    def __init__(self, name, fractions=(1.0, 0.13, 0.87), **kwargs):
+    def __init__(self, name, fractions=(1.0, 0.13, 0.87), **kwargs):  # noqa: D417
         """Initialize fractions for input channels.
 
         Args:
