@@ -178,7 +178,6 @@ class OSISAFL3ReaderTests:
 
     def test_get_start_and_end_times(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
-
         tmp_filepath = tmp_path / "fake_dataset.nc"
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
@@ -202,6 +201,7 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
     """Test OSI-SAF level 3 netCDF reader ice files."""
 
     def setup_method(self):
+        """Set up the tests."""
         super().setup_method(tester="ice")
         self.filename_info = {"grid": "ease"}
         self.filetype_info = {"file_type": "osi_sea_ice_conc"}
@@ -258,6 +258,7 @@ class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
     """Test OSI-SAF level 3 netCDF reader flux files on stereographic grid."""
 
     def setup_method(self):
+        """Set up the tests."""
         super().setup_method(tester="flux_stere")
         self.filename_info = {"grid": "polstere"}
         self.filetype_info = {"file_type": "osi_radflux_stere"}
@@ -294,6 +295,7 @@ class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
     """Test OSI-SAF level 3 netCDF reader flux files on lat/lon grid (GEO sensors)."""
 
     def setup_method(self):
+        """Set up the tests."""
         super().setup_method(tester="flux_geo")
         self.filename_info = {}
         self.filetype_info = {"file_type": "osi_radflux_grid"}
@@ -329,6 +331,7 @@ class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
     """Test OSI-SAF level 3 netCDF reader surface temperature files."""
 
     def setup_method(self):
+        """Set up the tests."""
         super().setup_method(tester="sst")
         self.filename_info = {}
         self.filetype_info = {"file_type": "osi_sst"}

@@ -120,7 +120,6 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     def _get_ds_units(self, ds_info, var_path):
         """Find the units of the datasets."""
-
         file_units = ds_info.get("file_units")
         if file_units is None:
             file_units = self.get(var_path + "/attr/units")
@@ -205,6 +204,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         poss_names = ["/attr/start_date", "/attr/start_time", "/attr/time_coverage_start"]
         for name in poss_names:
             start_t = self.get(name)
@@ -216,6 +216,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     @property
     def end_time(self):
+        """Get the end time."""
         poss_names = ["/attr/stop_date", "/attr/stop_time", "/attr/time_coverage_end"]
         for name in poss_names:
             end_t = self.get(name)
