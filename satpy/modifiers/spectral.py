@@ -164,7 +164,6 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
     def _get_emissivity_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the emissivity as a dataarray."""
-
         logger.info("Getting emissive part of %s", nir.attrs["name"])
         emissivity = self._get_emissivity_as_dask(nir.data, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
 

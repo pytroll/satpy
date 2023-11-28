@@ -181,7 +181,7 @@ def ensure_unique_nondimensional_coords(
     this is not applied to latitude and longitude.
 
     Args:
-        datas:
+        data_arrays:
             Dictionary of (dataset name, dataset)
         pretty:
             Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.

@@ -97,7 +97,7 @@ def _encode_object(obj):
 
 
 def _try_decode_object(obj):
-    """Try to decode byte string"""
+    """Try to decode byte string."""
     try:
         decoded = obj.decode()
     except AttributeError:

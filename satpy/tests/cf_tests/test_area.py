@@ -27,6 +27,7 @@ from satpy.cf.area import _add_grid_mapping, area2cf
 
 @pytest.fixture()
 def input_data_arr() -> xr.DataArray:
+    """Create a data array."""
     return xr.DataArray(
         data=[[1, 2], [3, 4]],
         dims=("y", "x"),
@@ -59,6 +60,7 @@ class TestCFArea:
             assert "latitude" in res[1].coords
 
     def test_area2cf_swath(self, input_data_arr):
+        """Test area2cf for swath definitions."""
         swath = SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
         input_data_arr.attrs["area"] = swath
 
