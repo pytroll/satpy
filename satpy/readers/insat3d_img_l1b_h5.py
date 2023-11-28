@@ -187,7 +187,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         a = 6378137.0
         b = 6356752.314245
 
-        nom_cen_pos = self.datatree.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"][1]
+        subsatellite_longitude = self.datatree.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"][1]
 
         pdict = {
             "cfac": cfac,
@@ -200,7 +200,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
             "a": a,
             "b": b,
             "h": h,
-            "ssp_lon": nom_cen_pos,
+            "ssp_lon": subsatellite_longitude,
             "a_name": "insat3d82",
             "a_desc": "insat3d82",
             "p_id": "geosmsg"
