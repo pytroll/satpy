@@ -44,9 +44,9 @@ class TestPillowWriter(unittest.TestCase):
         import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
-            dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime.utcnow()}
+            dims=("y", "x"),
+            attrs={"name": "test",
+                   "start_time": datetime.utcnow()}
         )
         return [ds1]
 
@@ -72,6 +72,6 @@ class TestPillowWriter(unittest.TestCase):
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
         for r__ in res:
-            self.assertIsInstance(r__, Delayed)
+            assert isinstance(r__, Delayed)
             r__.compute()
         compute_writer_results(res)

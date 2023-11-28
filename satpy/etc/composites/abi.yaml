@@ -537,7 +537,7 @@ composites:
           - name: C13
     standard_name: snow
 
-  night_microphysics_abi:
+  night_microphysics:
     description: >
       Nighttime Microphysics RGB, for GOESR: NASA, NOAA
     references:
@@ -553,6 +553,22 @@ composites:
           - name: C13
           - name: C07
       - name: C13
+    standard_name: night_microphysics
+
+  night_microphysics_eum:
+    description: >
+      Nighttime Microphysics RGB following the EUMETSAT recipe
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C15
+          - name: C14
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C14
+          - name: C07
+      - name: C14
     standard_name: night_microphysics
 
   fire_temperature_awips:
@@ -601,7 +617,8 @@ composites:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/visir.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -617,7 +634,8 @@ composites:
     description: >
       SEVIRI Day Microphysics RGB, for EUMETSAT
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/ahi.yaml
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -645,8 +663,8 @@ composites:
     description: >
       EUMETSAT Cloud Phase RGB product
     references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
-      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C05
@@ -703,3 +721,34 @@ composites:
     prerequisites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 77.
+    lim_high: 88.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+      - name: green_nocorr
+      - name: C01
+    standard_name: true_color_reproduction_color_stretch

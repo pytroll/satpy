@@ -29,7 +29,7 @@ def download_typhoon_surigae_ahi(base_dir=None,
     This scene shows the Typhoon Surigae.
     """
     import s3fs
-    base_dir = base_dir or config.get('demo_data_dir', '.')
+    base_dir = base_dir or config.get("demo_data_dir", ".")
     channel_resolution = {1: 10,
                           2: 10,
                           3: 5,
@@ -40,7 +40,7 @@ def download_typhoon_surigae_ahi(base_dir=None,
         for segment in segments:
             data_files.append(f"HS_H08_20210417_0500_B{channel:02d}_FLDK_R{resolution:02d}_S{segment:02d}10.DAT.bz2")
 
-    subdir = os.path.join(base_dir, 'ahi_hsd', '20210417_0500_typhoon_surigae')
+    subdir = os.path.join(base_dir, "ahi_hsd", "20210417_0500_typhoon_surigae")
     os.makedirs(subdir, exist_ok=True)
     fs = s3fs.S3FileSystem(anon=True)
 
@@ -50,7 +50,7 @@ def download_typhoon_surigae_ahi(base_dir=None,
         result.append(destination_filename)
         if os.path.exists(destination_filename):
             continue
-        to_get = 'noaa-himawari8/AHI-L1b-FLDK/2021/04/17/0500/' + filename
+        to_get = "noaa-himawari8/AHI-L1b-FLDK/2021/04/17/0500/" + filename
         fs.get_file(to_get, destination_filename)
 
     return result

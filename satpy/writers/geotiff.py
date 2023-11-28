@@ -110,7 +110,7 @@ class GeoTIFFWriter(ImageWriter):
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
-        super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
+        super().__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
         self.dtype = self.info.get("dtype") if dtype is None else dtype
         self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
@@ -131,7 +131,7 @@ class GeoTIFFWriter(ImageWriter):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ['dtype', 'tags']:
+        for kw in ["dtype", "tags"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
@@ -159,9 +159,7 @@ class GeoTIFFWriter(ImageWriter):
     ):
         """Save the image to the given ``filename`` in geotiff_ format.
 
-        Note for faster output and reduced memory usage the ``rasterio``
-        library must be installed. This writer currently falls back to
-        using ``gdal`` directly, but that will be deprecated in the future.
+        Note this writer requires the ``rasterio`` library to be installed.
 
         Args:
             img (xarray.DataArray): Data to save to geotiff.
@@ -248,7 +246,7 @@ class GeoTIFFWriter(ImageWriter):
         gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
-            fill_value = self.info.get('fill_value')
+            fill_value = self.info.get("fill_value")
 
         dtype = dtype if dtype is not None else self.dtype
         if dtype is None and self.enhancer is not False:
@@ -270,14 +268,14 @@ class GeoTIFFWriter(ImageWriter):
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
             from satpy.enhancements import create_colormap
-            cmap = create_colormap({'colors': img.palette})
+            cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
         if tags is None:
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat='tif', driver=driver,
+        return img.save(filename, fformat="tif", driver=driver,
                         fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,

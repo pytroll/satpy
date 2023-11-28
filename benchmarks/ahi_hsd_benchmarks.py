@@ -33,7 +33,7 @@ class HimawariHSD(GeoBenchmarks):
     timeout = 600
     data_files: list[str] = []
     subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
-    reader = 'ahi_hsd'
+    reader = "ahi_hsd"
 
     def setup_cache(self):
         """Fetch the data files."""
@@ -41,15 +41,15 @@ class HimawariHSD(GeoBenchmarks):
             from satpy.demo import download_typhoon_surigae_ahi
             download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
         except ImportError:
-            assert len(get_filenames(self.subdir)) == 4
+            assert len(get_filenames(self.subdir)) == 4  # nosec
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_type="rayleigh_only")
 
     def setup(self):
         """Set up the benchmarks."""
-        import satpy
+        import dask.config
         self.data_files = get_filenames(self.subdir)
-        satpy.CHUNK_SIZE = 2048
+        dask.config.set({"array.chunk-size": "32MiB"})
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""

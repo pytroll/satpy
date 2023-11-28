@@ -35,25 +35,24 @@ L1B format description for the files read here:
 """
 
 import logging
-import xml.etree.ElementTree as ET
 
 import dask.array as da
+import defusedxml.ElementTree as ET
 import numpy as np
-import rioxarray
+import xarray as xr
 from pyresample import geometry
-from xarray import DataArray
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
-
-PLATFORMS = {'S2A': "Sentinel-2A",
-             'S2B': "Sentinel-2B",
-             'S2C': "Sentinel-2C",
-             'S2D': "Sentinel-2D"}
+PLATFORMS = {"S2A": "Sentinel-2A",
+             "S2B": "Sentinel-2B",
+             "S2C": "Sentinel-2C",
+             "S2D": "Sentinel-2D"}
 
 
 class SAFEMSIL1C(BaseFileHandler):
@@ -64,27 +63,27 @@ class SAFEMSIL1C(BaseFileHandler):
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
-        self._start_time = filename_info['observation_time']
-        self._end_time = filename_info['observation_time']
-        self._channel = filename_info['band_name']
+        self._start_time = filename_info["observation_time"]
+        self._end_time = filename_info["observation_time"]
+        self._channel = filename_info["band_name"]
         self._tile_mda = tile_mda
         self._mda = mda
-        self.platform_name = PLATFORMS[filename_info['fmission_id']]
+        self.platform_name = PLATFORMS[filename_info["fmission_id"]]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._channel != key['name']:
+        if self._channel != key["name"]:
             return
 
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
         proj = self._read_from_file(key)
         proj.attrs = info.copy()
-        proj.attrs['units'] = '%'
-        proj.attrs['platform_name'] = self.platform_name
+        proj.attrs["units"] = "%"
+        proj.attrs["platform_name"] = self.platform_name
         return proj
 
     def _read_from_file(self, key):
-        proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
+        proj = xr.open_dataset(self.filename, engine="rasterio", chunks=CHUNK_SIZE)["band_data"]
         proj = proj.squeeze("band")
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
@@ -103,7 +102,7 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area def."""
-        if self._channel != dsid['name']:
+        if self._channel != dsid["name"]:
             return
         return self._tile_mda.get_area_def(dsid)
 
@@ -114,11 +113,11 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info)
-        self._start_time = filename_info['observation_time']
-        self._end_time = filename_info['observation_time']
+        self._start_time = filename_info["observation_time"]
+        self._end_time = filename_info["observation_time"]
         self.root = ET.parse(self.filename)
-        self.tile = filename_info['dtile_number']
-        self.platform_name = PLATFORMS[filename_info['fmission_id']]
+        self.tile = filename_info["dtile_number"]
+        self.platform_name = PLATFORMS[filename_info["fmission_id"]]
         self.mask_saturated = mask_saturated
         import bottleneck  # noqa
         import geotiepoints  # noqa
@@ -139,7 +138,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
-        quantification = int(self.root.find('.//QUANTIFICATION_VALUE').text)
+        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
 
@@ -164,14 +163,14 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def band_indices(self):
         """Get the band indices from the metadata."""
-        spectral_info = self.root.findall('.//Spectral_Information')
+        spectral_info = self.root.findall(".//Spectral_Information")
         band_indices = {spec.attrib["physicalBand"]: int(spec.attrib["bandId"]) for spec in spectral_info}
         return band_indices
 
     @cached_property
     def band_offsets(self):
         """Get the band offsets from the metadata."""
-        offsets = self.root.find('.//Radiometric_Offset_List')
+        offsets = self.root.find(".//Radiometric_Offset_List")
         if offsets is not None:
             band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
         else:
@@ -181,7 +180,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def special_values(self):
         """Get the special values from the metadata."""
-        special_values = self.root.findall('.//Special_Values')
+        special_values = self.root.findall(".//Special_Values")
         special_values_dict = {value[0].text: float(value[1].text) for value in special_values}
         return special_values_dict
 
@@ -215,11 +214,11 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
 def _fill_swath_edges(angles):
     """Fill gaps at edges of swath."""
-    darr = DataArray(angles, dims=['y', 'x'])
-    darr = darr.bfill('x')
-    darr = darr.ffill('x')
-    darr = darr.bfill('y')
-    darr = darr.ffill('y')
+    darr = xr.DataArray(angles, dims=["y", "x"])
+    darr = darr.bfill("x")
+    darr = darr.ffill("x")
+    darr = darr.bfill("y")
+    darr = darr.ffill("y")
     angles = darr.data
     return angles
 
@@ -230,12 +229,12 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info, mask_saturated)
-        self.geocoding = self.root.find('.//Tile_Geocoding')
+        self.geocoding = self.root.find(".//Tile_Geocoding")
 
     def get_area_def(self, dsid):
         """Get the area definition of the dataset."""
-        area_extent = self._area_extent(dsid['resolution'])
-        cols, rows = self._shape(dsid['resolution'])
+        area_extent = self._area_extent(dsid["resolution"])
+        cols, rows = self._shape(dsid["resolution"])
         area = geometry.AreaDefinition(
             self.tile,
             "On-the-fly area",
@@ -250,16 +249,16 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     def projection(self):
         """Get the geographic projection."""
         from pyproj import CRS
-        epsg = self.geocoding.find('HORIZONTAL_CS_CODE').text
+        epsg = self.geocoding.find("HORIZONTAL_CS_CODE").text
         return CRS(epsg)
 
     def _area_extent(self, resolution):
         cols, rows = self._shape(resolution)
-        geoposition = self.geocoding.find(f'Geoposition[@resolution="{resolution}"]')
-        ulx = float(geoposition.find('ULX').text)
-        uly = float(geoposition.find('ULY').text)
-        xdim = float(geoposition.find('XDIM').text)
-        ydim = float(geoposition.find('YDIM').text)
+        geoposition = self.geocoding.find('Geoposition[@resolution="' + str(resolution) + '"]')
+        ulx = float(geoposition.find("ULX").text)
+        uly = float(geoposition.find("ULY").text)
+        xdim = float(geoposition.find("XDIM").text)
+        ydim = float(geoposition.find("YDIM").text)
         area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
         return area_extent
 
@@ -293,30 +292,30 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
 
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
-        angles = self.root.find('.//Tile_Angles')
-        if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
+        angles = self.root.find(".//Tile_Angles")
+        if key["name"] in ["solar_zenith_angle", "solar_azimuth_angle"]:
             angles = self._get_solar_angles(angles, info)
-        elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+        elif key["name"] in ["satellite_zenith_angle", "satellite_azimuth_angle"]:
             angles = self._get_satellite_angles(angles, info)
         else:
             angles = None
         return angles
 
     def _get_solar_angles(self, angles, info):
-        angles = self._get_values_from_tag(angles, info['xml_tag'])
+        angles = self._get_values_from_tag(angles, info["xml_tag"])
         return angles
 
     @staticmethod
     def _get_values_from_tag(xml_tree, xml_tag):
-        elts = xml_tree.findall(xml_tag + '/Values_List/VALUES')
+        elts = xml_tree.findall(xml_tag + "/Values_List/VALUES")
         return np.array([[val for val in elt.text.split()] for elt in elts],
                         dtype=np.float64)
 
     def _get_satellite_angles(self, angles, info):
         arrays = []
-        elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
+        elts = angles.findall(info["xml_tag"] + '[@bandId="1"]')
         for elt in elts:
-            arrays.append(self._get_values_from_tag(elt, info['xml_item']))
+            arrays.append(self._get_values_from_tag(elt, info["xml_item"]))
         angles = np.nanmean(np.dstack(arrays), -1)
         return angles
 
@@ -328,10 +327,10 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
 
         angles = _fill_swath_edges(angles)
 
-        res = self.interpolate_angles(angles, key['resolution'])
+        res = self.interpolate_angles(angles, key["resolution"])
 
-        proj = DataArray(res, dims=['y', 'x'])
+        proj = xr.DataArray(res, dims=["y", "x"])
         proj.attrs = info.copy()
-        proj.attrs['units'] = 'degrees'
-        proj.attrs['platform_name'] = self.platform_name
+        proj.attrs["units"] = "degrees"
+        proj.attrs["platform_name"] = self.platform_name
         return proj

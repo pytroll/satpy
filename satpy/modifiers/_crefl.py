@@ -53,8 +53,12 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
         """
         if dem_filename is not None:
-            warnings.warn("'dem_filename' for 'ReflectanceCorrector' is "
-                          "deprecated. Use 'url' instead.", DeprecationWarning)
+            warnings.warn(
+                "'dem_filename' for 'ReflectanceCorrector' is "
+                "deprecated. Use 'url' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
 
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
         self.dem_sds = dem_sds
@@ -66,7 +70,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         if not self.url:
             return
         reg_files = self.register_data_files([{
-            'url': self.url, 'known_hash': self.known_hash}
+            "url": self.url, "known_hash": self.known_hash}
         ])
         return reg_files[0]
 

@@ -9,68 +9,73 @@ reader:
   sensors: [modis]
 
 file_types:
+  mod05_hdf:
+    file_patterns:
+    - "M{platform_indicator:1s}D05_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf"
+    - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod05.hdf"
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod35_hdf:
     file_patterns:
-    - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
-    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod35.hdf'
+    - "M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf"
+    - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod35.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod06_hdf:
     file_patterns:
-    - 'M{platform_indicator:1s}D06_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
-    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod06.hdf'
+    - "M{platform_indicator:1s}D06_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf"
+    - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod06.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod06ct_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod06ct.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod06ct.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   modis_l2_product:
     file_patterns:
-      - 'M{platform_indicator:1s}D{product:2s}_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+      - "M{platform_indicator:1s}D{product:2s}_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   hdf_eos_geo:
     file_patterns:
-      - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
-      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
-      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
-      - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+      - "M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf"
+      - "M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf"
+      - "M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf"
+      - "M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf"
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf"
     file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader
   icecon_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.icecon.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.icecon.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   inversion_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.inversion.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.inversion.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   ist_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.ist.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.ist.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mask_byte1_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mask_byte1.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mask_byte1.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod07_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod07.hdf'
-      - 'M{platform_indicator:1s}D07_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod07.hdf"
+      - "M{platform_indicator:1s}D07_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod28_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod28.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod28.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   modlst_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.modlst.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.modlst.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   ndvi_1000m_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.ndvi.1000m.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.ndvi.1000m.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   snowmask_hdf:
     file_patterns:
-      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.snowmask.hdf'
+      - "{platform_indicator:1s}1.{start_time:%y%j.%H%M}.snowmask.hdf"
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
 
 datasets:
@@ -78,9 +83,9 @@ datasets:
     name: longitude
     resolution:
       5000:
-        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf]
+        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, modis_l2_product]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, mod05_hdf, modis_l2_product]
       500:
         file_type: hdf_eos_geo
       250:
@@ -93,9 +98,9 @@ datasets:
     resolution:
       5000:
         # For EUM reduced (thinned) files
-        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf]
+        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, modis_l2_product]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, mod05_hdf, modis_l2_product]
       500:
         file_type: hdf_eos_geo
       250:
@@ -146,6 +151,59 @@ datasets:
     file_key: Quality_Assurance
     file_type: mod35_hdf
     coordinates: [longitude, latitude]
+
+##########################
+#Datasets in file mod05_l2
+##########################
+  scan_start_time:
+    name: scan_start_time
+    long_name: TAI time at start of scan replicated across the swath
+    units: seconds since 1993-1-1 00:00:00.0 0
+    file_type: [mod05_hdf, mod06_hdf]
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Scan_Start_Time
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    long_name: Sensor Zenith Angle, Cell to Sensor
+    units: degree
+    file_type: [mod05_hdf, mod06_hdf]
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Sensor_Zenith
+
+  water_vapor_correction_factor:
+    name: water_vapor_correction_factor
+    long_name: Aerosol Correction Factor for Water Vapor - Near Infrared Retrieval
+    units: "1"
+    file_type: mod05_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Water_Vapor_Correction_Factor
+
+  water_vapor_near_infrared:
+    name: water_vapor_near_infrared
+    long_name: Total Column Precipitable Water Vapor - Near Infrared Retrieval
+    units: cm
+    file_type: mod05_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Water_Vapor_Near_Infrared
+
+  water_vapor_infrared:
+    name: water_vapor_infrared
+    long_name: Total Column Precipitable Water Vapor - Infrared Retrieval
+    units: cm
+    file_type: mod05_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Water_Vapor_Infrared
 
 ##########################
 #Datasets in file mod06_l2

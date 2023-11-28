@@ -35,16 +35,18 @@ import rasterio
 import xarray as xr
 from pyresample import utils
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
 
-BANDS = {1: ['L'],
-         2: ['L', 'A'],
-         3: ['R', 'G', 'B'],
-         4: ['R', 'G', 'B', 'A']}
+CHUNK_SIZE = get_legacy_chunk_size()
 
-NODATA_HANDLING_FILLVALUE = 'fill_value'
-NODATA_HANDLING_NANMASK = 'nan_mask'
+BANDS = {1: ["L"],
+         2: ["L", "A"],
+         3: ["R", "G", "B"],
+         4: ["R", "G", "B", "A"]}
+
+NODATA_HANDLING_FILLVALUE = "fill_value"
+NODATA_HANDLING_NANMASK = "nan_mask"
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +60,10 @@ class GenericImageFileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
         self.finfo = filename_info
         try:
-            self.finfo['end_time'] = self.finfo['start_time']
+            self.finfo["end_time"] = self.finfo["start_time"]
         except KeyError:
             pass
-        self.finfo['filename'] = self.filename
+        self.finfo["filename"] = self.filename
         self.file_content = {}
         self.area = None
         self.dataset_name = None
@@ -69,23 +71,32 @@ class GenericImageFileHandler(BaseFileHandler):
 
     def read(self):
         """Read the image."""
-        dataset = rasterio.open(self.finfo['filename'])
+        dataset = rasterio.open(self.finfo["filename"])
 
         # Create area definition
-        if hasattr(dataset, 'crs') and dataset.crs is not None:
+        if hasattr(dataset, "crs") and dataset.crs is not None:
             self.area = utils.get_area_def_from_raster(dataset)
 
-        data = xr.open_rasterio(dataset, chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
+        data = xr.open_dataset(self.finfo["filename"], engine="rasterio",
+                               chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}, mask_and_scale=False)["band_data"]
+        if hasattr(dataset, "nodatavals"):
+            # The nodata values for the raster bands
+            # copied from https://github.com/pydata/xarray/blob/v2023.03.0/xarray/backends/rasterio_.py#L322-L326
+            nodatavals = tuple(
+                np.nan if nodataval is None else nodataval for nodataval in dataset.nodatavals
+            )
+            data.attrs["nodatavals"] = nodatavals
+
         attrs = data.attrs.copy()
 
         # Rename to Satpy convention
-        data = data.rename({'band': 'bands'})
+        data = data.rename({"band": "bands"})
 
         # Rename bands to [R, G, B, A], or a subset of those
-        data['bands'] = BANDS[data.bands.size]
+        data["bands"] = BANDS[data.bands.size]
 
         data.attrs = attrs
-        self.dataset_name = 'image'
+        self.dataset_name = "image"
         self.file_content[self.dataset_name] = data
 
     def get_area_def(self, dsid):
@@ -97,16 +108,16 @@ class GenericImageFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Return start time."""
-        return self.finfo['start_time']
+        return self.finfo["start_time"]
 
     @property
     def end_time(self):
         """Return end time."""
-        return self.finfo['end_time']
+        return self.finfo["end_time"]
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-        ds_name = self.dataset_name if self.dataset_name else key['name']
+        ds_name = self.dataset_name if self.dataset_name else key["name"]
         logger.debug("Reading '%s.'", ds_name)
         data = self.file_content[ds_name]
 
@@ -138,8 +149,8 @@ def _mask_image_data(data, info):
                                 for i in range(data.shape[0])])
         data.data = masked_data
         data = data.sel(bands=BANDS[data.bands.size - 1])
-    elif hasattr(data, 'nodatavals') and data.nodatavals:
-        data = _handle_nodatavals(data, info.get('nodata_handling', NODATA_HANDLING_FILLVALUE))
+    elif hasattr(data, "nodatavals") and data.nodatavals:
+        data = _handle_nodatavals(data, info.get("nodata_handling", NODATA_HANDLING_FILLVALUE))
     return data
 
 
@@ -151,7 +162,7 @@ def _handle_nodatavals(data, nodata_handling):
         masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
                                 for i, nodataval in enumerate(data.nodatavals)])
         data.data = masked_data
-        data.attrs['_FillValue'] = np.nan
+        data.attrs["_FillValue"] = np.nan
     elif nodata_handling == NODATA_HANDLING_FILLVALUE:
         # keep data as it is but set _FillValue attribute to provided
         # nodatavalue (first one as it has to be the same for all bands at least
@@ -159,5 +170,5 @@ def _handle_nodatavals(data, nodata_handling):
         fill_value = data.nodatavals[0]
         if np.issubdtype(data.dtype, np.integer):
             fill_value = int(fill_value)
-        data.attrs['_FillValue'] = fill_value
+        data.attrs["_FillValue"] = fill_value
     return data

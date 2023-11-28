@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -27,7 +25,11 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.enhancements import create_colormap
+from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands, using_map_blocks
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 
 def run_and_check_enhancement(func, data, expected, **kwargs):
@@ -44,7 +46,17 @@ def run_and_check_enhancement(func, data, expected, **kwargs):
     new_keys = set(img.data.attrs.keys()) - {"enhancement_history"}
     assert old_keys == new_keys
 
-    np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
+    res_data_arr = img.data
+    assert isinstance(res_data_arr, xr.DataArray)
+    assert isinstance(res_data_arr.data, da.Array)
+    res_data = res_data_arr.data.compute()  # mimics what xrimage geotiff writing does
+    assert not isinstance(res_data, da.Array)
+    np.testing.assert_allclose(res_data, expected, atol=1.e-6, rtol=0)
+
+
+def identical_decorator(func):
+    """Decorate but do nothing."""
+    return func
 
 
 class TestEnhancementStretch:
@@ -58,11 +70,38 @@ class TestEnhancementStretch:
         crefl_data /= 5.605
         crefl_data[0, 0] = np.nan  # one bad value for testing
         crefl_data[0, 1] = 0.
-        self.ch1 = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
-        self.ch2 = xr.DataArray(crefl_data, dims=('y', 'x'), attrs={'test': 'test'})
+        self.ch1 = xr.DataArray(da.from_array(data, chunks=2), dims=("y", "x"), attrs={"test": "test"})
+        self.ch2 = xr.DataArray(da.from_array(crefl_data, chunks=2), dims=("y", "x"), attrs={"test": "test"})
         rgb_data = np.stack([data, data, data])
-        self.rgb = xr.DataArray(rgb_data, dims=('bands', 'y', 'x'),
-                                coords={'bands': ['R', 'G', 'B']})
+        self.rgb = xr.DataArray(da.from_array(rgb_data, chunks=(3, 2, 2)),
+                                dims=("bands", "y", "x"),
+                                coords={"bands": ["R", "G", "B"]})
+
+    @pytest.mark.parametrize(
+        ("decorator", "exp_call_cls"),
+        [
+            (identical_decorator, xr.DataArray),
+            (on_dask_array, da.Array),
+            (using_map_blocks, np.ndarray),
+        ],
+    )
+    @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
+    def test_apply_enhancement(self, input_data_name, decorator, exp_call_cls):
+        """Test the 'apply_enhancement' utility function."""
+
+        def _enh_func(img):
+            def _calc_func(data):
+                assert isinstance(data, exp_call_cls)
+                return data
+
+            decorated_func = decorator(_calc_func)
+            return decorated_func(img.data)
+
+        in_data = getattr(self, input_data_name)
+        exp_data = in_data.values
+        if "bands" not in in_data.coords:
+            exp_data = exp_data[np.newaxis, :, :]
+        run_and_check_enhancement(_enh_func, in_data, exp_data)
 
     def test_cira_stretch(self):
         """Test applying the cira_stretch."""
@@ -110,19 +149,13 @@ class TestEnhancementStretch:
         from trollimage.colormap import brbg
 
         from satpy.enhancements import colorize
-        expected = np.array([[
-            [np.nan, 3.29409498e-01, 3.29409498e-01,
-             4.35952940e-06, 4.35952940e-06],
-            [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
-             4.35952940e-06, 4.35952940e-06]],
-            [[np.nan, 1.88249866e-01, 1.88249866e-01,
-              2.35302110e-01, 2.35302110e-01],
-             [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
-              2.35302110e-01, 2.35302110e-01]],
-            [[np.nan, 1.96102817e-02, 1.96102817e-02,
-              1.88238767e-01, 1.88238767e-01],
-             [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
-              1.88238767e-01, 1.88238767e-01]]])
+        expected = np.array([
+            [[np.nan, 3.29411723e-01, 3.29411723e-01, 3.21825881e-08, 3.21825881e-08],
+             [3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08]],
+            [[np.nan, 1.88235327e-01, 1.88235327e-01, 2.35294109e-01, 2.35294109e-01],
+             [2.35294109e-01, 2.35294109e-01, 2.35294109e-01, 2.35294109e-01, 2.35294109e-01]],
+            [[np.nan, 1.96078164e-02, 1.96078164e-02, 1.88235281e-01, 1.88235281e-01],
+             [1.88235281e-01, 1.88235281e-01, 1.88235281e-01, 1.88235281e-01, 1.88235281e-01]]])
         run_and_check_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
@@ -140,15 +173,6 @@ class TestEnhancementStretch:
             [np.nan, np.nan, -389.5, -294.5, 826.5],
             [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
         run_and_check_enhancement(three_d_effect, self.ch1, expected)
-
-    def test_crefl_scaling(self):
-        """Test the crefl_scaling enhancement function."""
-        from satpy.enhancements import crefl_scaling
-        expected = np.array([[
-            [np.nan, 0., 0., 0.44378, 0.631734],
-            [0.737562, 0.825041, 0.912521, 1., 1.]]])
-        run_and_check_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
-                                  sc=[0., 90., 140., 175., 255.])
 
     def test_piecewise_linear_stretch(self):
         """Test the piecewise_linear_stretch enhancement function."""
@@ -184,20 +208,20 @@ class TestEnhancementStretch:
 
         create_colormap_mock = mock.Mock(wraps=create_colormap)
         cmap1 = Colormap((1, (1., 1., 1.)))
-        kwargs = {'palettes': cmap1}
+        kwargs = {"palettes": cmap1}
 
-        with mock.patch('satpy.enhancements.create_colormap', create_colormap_mock):
+        with mock.patch("satpy.enhancements.create_colormap", create_colormap_mock):
             res = mcp(kwargs)
         assert res is cmap1
         create_colormap_mock.assert_not_called()
         create_colormap_mock.reset_mock()
         ret_map.reset_mock()
 
-        cmap1 = {'colors': 'blues', 'min_value': 0,
-                 'max_value': 1}
-        kwargs = {'palettes': [cmap1]}
-        with mock.patch('satpy.enhancements.create_colormap', create_colormap_mock),\
-                mock.patch('trollimage.colormap.blues', ret_map):
+        cmap1 = {"colors": "blues", "min_value": 0,
+                 "max_value": 1}
+        kwargs = {"palettes": [cmap1]}
+        with mock.patch("satpy.enhancements.create_colormap", create_colormap_mock), \
+                mock.patch("trollimage.colormap.blues", ret_map):
             _ = mcp(kwargs)
         create_colormap_mock.assert_called_once()
         ret_map.reverse.assert_not_called()
@@ -205,18 +229,18 @@ class TestEnhancementStretch:
         create_colormap_mock.reset_mock()
         ret_map.reset_mock()
 
-        cmap2 = {'colors': 'blues', 'min_value': 2,
-                 'max_value': 3, 'reverse': True}
-        kwargs = {'palettes': [cmap2]}
-        with mock.patch('trollimage.colormap.blues', ret_map):
+        cmap2 = {"colors": "blues", "min_value": 2,
+                 "max_value": 3, "reverse": True}
+        kwargs = {"palettes": [cmap2]}
+        with mock.patch("trollimage.colormap.blues", ret_map):
             _ = mcp(kwargs)
         ret_map.reverse.assert_called_once()
         ret_map.set_range.assert_called_with(2, 3)
         create_colormap_mock.reset_mock()
         ret_map.reset_mock()
 
-        kwargs = {'palettes': [cmap1, cmap2]}
-        with mock.patch('trollimage.colormap.blues', ret_map):
+        kwargs = {"palettes": [cmap1, cmap2]}
+        with mock.patch("trollimage.colormap.blues", ret_map):
             _ = mcp(kwargs)
         ret_map.__add__.assert_called_once()
 
@@ -318,7 +342,7 @@ class TestColormapLoading:
         with closed_named_temp_file(suffix=".npy") as cmap_filename:
             cmap_data = _generate_cmap_test_data(None, "VRGB")
             np.save(cmap_filename, cmap_data)
-            cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': "RGBA"})
+            cmap = create_colormap({"filename": cmap_filename, "colormap_mode": "RGBA"})
             assert cmap.colors.shape[0] == 4
             assert cmap.colors.shape[1] == 4  # RGBA
             np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
@@ -341,15 +365,15 @@ class TestColormapLoading:
             cmap_data = _generate_cmap_test_data(None, real_mode)
             _write_cmap_to_file(cmap_filename, cmap_data)
             # Force colormap_mode VRGBA to RGBA and we should see an exception
-            with pytest.raises(ValueError):
-                create_colormap({'filename': cmap_filename, 'colormap_mode': forced_mode})
+            with pytest.raises(ValueError, match="Unexpected colormap shape for mode .*"):
+                create_colormap({"filename": cmap_filename, "colormap_mode": forced_mode})
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
         from satpy.enhancements import create_colormap
 
         # create the colormap file on disk
-        with closed_named_temp_file(suffix='.npy') as cmap_filename:
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
             np.save(cmap_filename, np.array([
                 [0],
                 [64],
@@ -357,8 +381,8 @@ class TestColormapLoading:
                 [255],
             ]))
 
-            with pytest.raises(ValueError):
-                create_colormap({'filename': cmap_filename})
+            with pytest.raises(ValueError, match="Unexpected colormap shape for mode 'None'"):
+                create_colormap({"filename": cmap_filename})
 
     def test_cmap_from_config_path(self, tmp_path):
         """Test loading a colormap relative to a config path."""
@@ -372,7 +396,7 @@ class TestColormapLoading:
         np.save(cmap_filename, cmap_data)
         with satpy.config.set(config_path=[tmp_path]):
             rel_cmap_filename = os.path.join("colormaps", "my_colormap.npy")
-            cmap = create_colormap({'filename': rel_cmap_filename, 'colormap_mode': "RGBA"})
+            cmap = create_colormap({"filename": rel_cmap_filename, "colormap_mode": "RGBA"})
             assert cmap.colors.shape[0] == 4
             assert cmap.colors.shape[1] == 4  # RGBA
             np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
@@ -383,7 +407,7 @@ class TestColormapLoading:
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
         from satpy.enhancements import create_colormap
-        cmap = create_colormap({'colors': 'pubu'})
+        cmap = create_colormap({"colors": "pubu"})
         from trollimage.colormap import pubu
         np.testing.assert_equal(cmap.colors, pubu.colors)
         np.testing.assert_equal(cmap.values, pubu.values)
@@ -391,7 +415,7 @@ class TestColormapLoading:
     def test_cmap_no_colormap(self):
         """Test that being unable to create a colormap raises an error."""
         from satpy.enhancements import create_colormap
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown colormap format: .*"):
             create_colormap({})
 
     def test_cmap_list(self):
@@ -404,16 +428,252 @@ class TestColormapLoading:
             [1, 1, 1],
         ]
         values = [2, 4, 6, 8]
-        cmap = create_colormap({'colors': colors, 'color_scale': 1})
+        cmap = create_colormap({"colors": colors, "color_scale": 1})
         assert cmap.colors.shape[0] == 4
         np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
         assert cmap.values.shape[0] == 4
         assert cmap.values[0] == 0
         assert cmap.values[-1] == 1.0
 
-        cmap = create_colormap({'colors': colors, 'color_scale': 1, 'values': values})
+        cmap = create_colormap({"colors": colors, "color_scale": 1, "values": values})
         assert cmap.colors.shape[0] == 4
         np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
         assert cmap.values.shape[0] == 4
         assert cmap.values[0] == 2
         assert cmap.values[-1] == 8
+
+
+def test_on_separate_bands():
+    """Test the `on_separate_bands` decorator."""
+
+    def func(array, index, gain=2):
+        return xr.DataArray(np.ones(array.shape, dtype=array.dtype) * index * gain,
+                            coords=array.coords, dims=array.dims, attrs=array.attrs)
+
+    separate_func = on_separate_bands(func)
+    arr = xr.DataArray(np.zeros((3, 10, 10)), dims=["bands", "y", "x"], coords={"bands": ["R", "G", "B"]})
+    assert separate_func(arr).shape == arr.shape
+    assert all(separate_func(arr, gain=1).values[:, 0, 0] == [0, 1, 2])
+
+
+def test_using_map_blocks():
+    """Test the `using_map_blocks` decorator."""
+
+    def func(np_array, block_info=None):
+        value = block_info[0]["chunk-location"][-1]
+        return np.ones(np_array.shape) * value
+
+    map_blocked_func = using_map_blocks(func)
+    arr = xr.DataArray(da.zeros((3, 10, 10), dtype=int, chunks=5), dims=["bands", "y", "x"])
+    res = map_blocked_func(arr)
+    assert res.shape == arr.shape
+    assert res[0, 0, 0].compute() != res[0, 9, 9].compute()
+
+
+def test_on_dask_array():
+    """Test the `on_dask_array` decorator."""
+
+    def func(dask_array):
+        if not isinstance(dask_array, da.core.Array):
+            pytest.fail("Array is not a dask array")
+        return dask_array
+
+    dask_func = on_dask_array(func)
+    arr = xr.DataArray(da.zeros((3, 10, 10), dtype=int, chunks=5), dims=["bands", "y", "x"])
+    res = dask_func(arr)
+    assert res.shape == arr.shape
+
+
+@pytest.fixture()
+def fake_area():
+    """Return a fake 2×2 area."""
+    from pyresample.geometry import create_area_def
+    return create_area_def("wingertsberg", 4087, area_extent=[-2_000, -2_000, 2_000, 2_000], shape=(2, 2))
+
+
+_nwcsaf_geo_props = {
+    "cma_geo": ("geo", "cma", None, "cma_pal", None, "cloudmask", "CMA", "uint8"),
+    "cma_pps": ("pps", "cma", None, "cma_pal", None, "cloudmask", "CMA", "uint8"),
+    "cma_extended_pps": ("pps", "cma_extended", None, "cma_extended_pal", None,
+                         "cloudmask_extended", "CMA", "uint8"),
+    "cmaprob_pps": ("pps", "cmaprob", None, "cmaprob_pal", None, "cloudmask_probability",
+                    "CMAPROB", "uint8"),
+    "ct_geo": ("geo", "ct", None, "ct_pal", None, "cloudtype", "CT", "uint8"),
+    "ct_pps": ("pps", "ct", None, "ct_pal", None, "cloudtype", "CT", "uint8"),
+    "ctth_alti_geo": ("geo", "ctth_alti", None, "ctth_alti_pal", None, "cloud_top_height",
+                      "CTTH", "float64"),
+    "ctth_alti_pps": ("pps", "ctth_alti", None, "ctth_alti_pal", "ctth_status_flag",
+                      "cloud_top_height", "CTTH", "float64"),
+    "ctth_pres_geo": ("geo", "ctth_pres", None, "ctth_pres_pal", None, "cloud_top_pressure",
+                      "CTTH", "float64"),
+    "ctth_pres_pps": ("pps", "ctth_pres", None, "ctth_pres_pal", None, "cloud_top_pressure",
+                      "CTTH", "float64"),
+    "ctth_tempe_geo": ("geo", "ctth_tempe", None, "ctth_tempe_pal", None, "cloud_top_temperature",
+                       "CTTH", "float64"),
+    "ctth_tempe_pps": ("pps", "ctth_tempe", None, "ctth_tempe_pal", None, "cloud_top_temperature",
+                       "CTTH", "float64"),
+    "cmic_phase_geo": ("geo", "cmic_phase", None, "cmic_phase_pal", None, "cloud_top_phase",
+                       "CMIC", "uint8"),
+    "cmic_phase_pps": ("pps", "cmic_phase", None, "cmic_phase_pal", "cmic_status_flag", "cloud_top_phase",
+                       "CMIC", "uint8"),
+    "cmic_reff_geo": ("geo", "cmic_reff", None, "cmic_reff_pal", None, "cloud_drop_effective_radius",
+                      "CMIC", "float64"),
+    "cmic_reff_pps": ("pps", "cmic_reff", "cmic_cre", "cmic_cre_pal", "cmic_status_flag",
+                      "cloud_drop_effective_radius", "CMIC", "float64"),
+    "cmic_cot_geo": ("geo", "cmic_cot", None, "cmic_cot_pal", None, "cloud_optical_thickness",
+                     "CMIC", "float64"),
+    "cmic_cot_pps": ("pps", "cmic_cot", None, "cmic_cot_pal", None, "cloud_optical_thickness",
+                     "CMIC", "float64"),
+    "cmic_cwp_pps": ("pps", "cmic_cwp", None, "cmic_cwp_pal", None, "cloud_water_path",
+                     "CMIC", "float64"),
+    "cmic_lwp_geo": ("geo", "cmic_lwp", None, "cmic_lwp_pal", None, "cloud_liquid_water_path",
+                     "CMIC", "float64"),
+    "cmic_lwp_pps": ("pps", "cmic_lwp", None, "cmic_lwp_pal", None, "liquid_water_path",
+                     "CMIC", "float64"),
+    "cmic_iwp_geo": ("geo", "cmic_iwp", None, "cmic_iwp_pal", None, "cloud_ice_water_path",
+                     "CMIC", "float64"),
+    "cmic_iwp_pps": ("pps", "cmic_iwp", None, "cmic_iwp_pal", None, "ice_water_path",
+                     "CMIC", "float64"),
+    "pc": ("geo", "pc", None, "pc_pal", None, "precipitation_probability", "PC", "uint8"),
+    "crr": ("geo", "crr", None, "crr_pal", None, "convective_rain_rate", "CRR", "uint8"),
+    "crr_accum": ("geo", "crr_accum", None, "crr_pal", None,
+                  "convective_precipitation_hourly_accumulation", "CRR", "uint8"),
+    "ishai_tpw": ("geo", "ishai_tpw", None, "ishai_tpw_pal", None, "total_precipitable_water",
+                  "iSHAI", "float64"),
+    "ishai_shw": ("geo", "ishai_shw", None, "ishai_shw_pal", None, "showalter_index",
+                  "iSHAI", "float64"),
+    "ishai_li": ("geo", "ishai_li", None, "ishai_li_pal", None, "lifted_index",
+                 "iSHAI", "float64"),
+    "ci_prob30": ("geo", "ci_prob30", None, "ci_pal", None, "convection_initiation_prob30",
+                  "CI", "float64"),
+    "ci_prob60": ("geo", "ci_prob60", None, "ci_pal", None, "convection_initiation_prob60",
+                  "CI", "float64"),
+    "ci_prob90": ("geo", "ci_prob90", None, "ci_pal", None, "convection_initiation_prob90",
+                  "CI", "float64"),
+    "asii_turb_trop_prob": ("geo", "asii_turb_trop_prob", None, "asii_turb_prob_pal", None,
+                            "asii_prob", "ASII-NG", "float64"),
+    "MapCellCatType": ("geo", "MapCellCatType", None, "MapCellCatType_pal", None,
+                       "rdt_cell_type", "RDT-CW", "uint8"),
+}
+
+
+@pytest.mark.parametrize(
+    "data",
+    ["cma_geo", "cma_pps", "cma_extended_pps", "cmaprob_pps", "ct_geo",
+     "ct_pps", "ctth_alti_geo", "ctth_alti_pps", "ctth_pres_geo",
+     "ctth_pres_pps", "ctth_tempe_geo", "ctth_tempe_pps",
+     "cmic_phase_geo", "cmic_phase_pps", "cmic_reff_geo",
+     "cmic_reff_pps", "cmic_cot_geo", "cmic_cot_pps", "cmic_cwp_pps",
+     "cmic_lwp_geo", "cmic_lwp_pps", "cmic_iwp_geo", "cmic_iwp_pps",
+     "pc", "crr", "crr_accum", "ishai_tpw", "ishai_shw", "ishai_li",
+     "ci_prob30", "ci_prob60", "ci_prob90", "asii_turb_trop_prob",
+     "MapCellCatType"]
+)
+def test_nwcsaf_comps(fake_area, tmp_path, data):
+    """Test loading NWCSAF composites."""
+    from satpy import Scene
+    from satpy.writers import get_enhanced_image
+    (flavour, dvname, altname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
+    rng = (0, 100) if dtp == "uint8" else (-100, 1000)
+    if flavour == "geo":
+        fn = f"S_NWC_{filelabel:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
+        reader = "nwcsaf-geo"
+        id_ = {"satellite_identifier": "MSG4"}
+    else:
+        fn = f"S_NWC_{filelabel:s}_noaa20_00000_20230301T1200213Z_20230301T1201458Z.nc"
+        reader = "nwcsaf-pps_nc"
+        id_ = {"platform": "NOAA-20"}
+    fk = tmp_path / fn
+    # create a minimally fake netCDF file, otherwise satpy won't load the
+    # composite
+    ds = xr.Dataset(
+        coords={"nx": [0], "ny": [0]},
+        attrs={
+            "source": "satpy unit test",
+            "time_coverage_start": "0001-01-01T00:00:00Z",
+            "time_coverage_end": "0001-01-01T01:00:00Z",
+        }
+    )
+    ds.attrs.update(id_)
+    ds.to_netcdf(fk)
+    sc = Scene(filenames=[os.fspath(fk)], reader=[reader])
+    sc[palettename] = xr.DataArray(
+        da.tile(da.arange(256), [3, 1]).T,
+        dims=("pal02_colors", "pal_RGB"))
+    fake_alti = da.linspace(rng[0], rng[1], 4, chunks=2, dtype=dtp).reshape(2, 2)
+    ancvars = [sc[palettename]]
+    if statusname is not None:
+        sc[statusname] = xr.DataArray(
+            da.zeros(shape=(2, 2), dtype="uint8"),
+            attrs={
+                "area": fake_area,
+                "_FillValue": 123},
+            dims=("y", "x"))
+        ancvars.append(sc[statusname])
+    sc[dvname] = xr.DataArray(
+        fake_alti,
+        dims=("y", "x"),
+        attrs={
+            "area": fake_area,
+            "scaled_FillValue": 123,
+            "ancillary_variables": ancvars,
+            "valid_range": rng})
+
+    def _fake_get_varname(info, info_type="file_key"):
+        return altname or dvname
+
+    with mock.patch("satpy.readers.nwcsaf_nc.NcNWCSAF._get_varname_in_file") as srnN_:
+        srnN_.side_effect = _fake_get_varname
+        sc.load([comp])
+    im = get_enhanced_image(sc[comp])
+    if flavour == "geo":
+        assert im.mode == "P"
+        np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
+        if dtp == "float64":
+            np.testing.assert_allclose(
+                im.data.sel(bands="P"),
+                ((fake_alti - rng[0]) * (255 / np.ptp(rng))).round())
+        else:
+            np.testing.assert_allclose(im.data.sel(bands="P"), fake_alti)
+
+
+class TestTCREnhancement:
+    """Test the AHI enhancement functions."""
+
+    def setup_method(self):
+        """Create test data."""
+        data = da.arange(-100, 1000, 110).reshape(2, 5)
+        rgb_data = np.stack([data, data, data])
+        self.rgb = xr.DataArray(rgb_data, dims=("bands", "y", "x"),
+                                coords={"bands": ["R", "G", "B"]},
+                                attrs={"platform_name": "Himawari-8"})
+
+    def test_jma_true_color_reproduction(self):
+        """Test the jma_true_color_reproduction enhancement."""
+        from trollimage.xrimage import XRImage
+
+        from satpy.enhancements import jma_true_color_reproduction
+
+        expected = [[[-109.93, 10.993, 131.916, 252.839, 373.762],
+                     [494.685, 615.608, 736.531, 857.454, 978.377]],
+
+                    [[-97.73, 9.773, 117.276, 224.779, 332.282],
+                     [439.785, 547.288, 654.791, 762.294, 869.797]],
+
+                    [[-93.29, 9.329, 111.948, 214.567, 317.186],
+                     [419.805, 522.424, 625.043, 727.662, 830.281]]]
+
+        img = XRImage(self.rgb)
+        jma_true_color_reproduction(img)
+
+        np.testing.assert_almost_equal(img.data.compute(), expected)
+
+        self.rgb.attrs["platform_name"] = None
+        img = XRImage(self.rgb)
+        with pytest.raises(ValueError, match="Missing platform name."):
+            jma_true_color_reproduction(img)
+
+        self.rgb.attrs["platform_name"] = "Fakesat"
+        img = XRImage(self.rgb)
+        with pytest.raises(KeyError, match="No conversion matrix found for platform Fakesat"):
+            jma_true_color_reproduction(img)

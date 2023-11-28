@@ -169,8 +169,8 @@ enhancements:
           min_in: 163.0
           max_in: 330.0
 
-  # EumetSat cloud phase and cloud type RGB recipes
-  # http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  # EUMETSAT cloud phase and cloud type RGB recipes
+  # https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
   cloud_phase:
     standard_name: cloud_phase
     operations:
@@ -235,3 +235,41 @@ enhancements:
                 min_value: 0.0,
                 max_value: 1.0,
                }
+
+  # L2 low cloud/fog products
+  mvfr_prob:
+    name: MVFR_Fog_Prob
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: 0
+          max_stretch: 100
+  ifr_prob:
+    name: IFR_Fog_Prob
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: 0
+          max_stretch: 100
+  lifr_prob:
+    name: LIFR_Fog_Prob
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: 0
+          max_stretch: 100
+  fog_depth:
+    name: Fog_Depth
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: 0
+          max_stretch: 500

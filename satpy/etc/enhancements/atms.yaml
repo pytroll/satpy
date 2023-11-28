@@ -1,0 +1,27 @@
+enhancements:
+
+  mw183_humidity:
+    standard_name: mw183_humidity
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [255.0, 255.0, 255.0]
+        max_stretch: [230.0, 230.0, 240.0]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: 1.2}
+
+  mw183_humidity_surface:
+    standard_name: mw183_humidity_surface
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [260.0, 260.0, 255.0]
+        max_stretch: [180.0, 200.0, 230.0]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: 1.2}

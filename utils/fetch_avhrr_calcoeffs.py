@@ -53,32 +53,32 @@ URLS = {
 
 def get_page(url):
     """Retrieve the given page."""
-    return urllib2.urlopen(url).read()
+    return urllib2.urlopen(url).read()  # nosec
 
 
 def get_coeffs(page):
     """Parse coefficients from the page."""
     coeffs = {}
-    coeffs['datetime'] = []
-    coeffs['slope1'] = []
-    coeffs['intercept1'] = []
-    coeffs['slope2'] = []
-    coeffs['intercept2'] = []
+    coeffs["datetime"] = []
+    coeffs["slope1"] = []
+    coeffs["intercept1"] = []
+    coeffs["slope2"] = []
+    coeffs["intercept2"] = []
 
     slope1_idx, intercept1_idx, slope2_idx, intercept2_idx = \
         None, None, None, None
 
     date_idx = 0
-    for row in page.lower().split('\n'):
+    for row in page.lower().split("\n"):
         row = row.split()
         if len(row) == 0:
             continue
-        if row[0] == 'update':
+        if row[0] == "update":
             # Get the column indices from the header line
-            slope1_idx = row.index('slope_lo')
-            intercept1_idx = row.index('int_lo')
-            slope2_idx = row.index('slope_hi')
-            intercept2_idx = row.index('int_hi')
+            slope1_idx = row.index("slope_lo")
+            intercept1_idx = row.index("int_lo")
+            slope2_idx = row.index("slope_hi")
+            intercept2_idx = row.index("int_hi")
             continue
 
         if slope1_idx is None:
@@ -94,11 +94,11 @@ def get_coeffs(page):
         except ValueError:
             continue
 
-        coeffs['datetime'].append([dat.year, dat.month, dat.day])
-        coeffs['slope1'].append(float(row[slope1_idx]))
-        coeffs['intercept1'].append(float(row[intercept1_idx]))
-        coeffs['slope2'].append(float(row[slope2_idx]))
-        coeffs['intercept2'].append(float(row[intercept2_idx]))
+        coeffs["datetime"].append([dat.year, dat.month, dat.day])
+        coeffs["slope1"].append(float(row[slope1_idx]))
+        coeffs["intercept1"].append(float(row[intercept1_idx]))
+        coeffs["slope2"].append(float(row[slope2_idx]))
+        coeffs["intercept2"].append(float(row[intercept2_idx]))
 
     return coeffs
 
@@ -119,19 +119,19 @@ def get_all_coeffs():
     return coeffs
 
 
-def save_coeffs(coeffs, out_dir=''):
+def save_coeffs(coeffs, out_dir=""):
     """Save calibration coefficients to HDF5 files."""
     for platform in coeffs.keys():
         fname = os.path.join(out_dir, "%s_calibration_data.h5" % platform)
-        fid = h5py.File(fname, 'w')
+        fid = h5py.File(fname, "w")
 
         for chan in coeffs[platform].keys():
             fid.create_group(chan)
-            fid[chan]['datetime'] = coeffs[platform][chan]['datetime']
-            fid[chan]['slope1'] = coeffs[platform][chan]['slope1']
-            fid[chan]['intercept1'] = coeffs[platform][chan]['intercept1']
-            fid[chan]['slope2'] = coeffs[platform][chan]['slope2']
-            fid[chan]['intercept2'] = coeffs[platform][chan]['intercept2']
+            fid[chan]["datetime"] = coeffs[platform][chan]["datetime"]
+            fid[chan]["slope1"] = coeffs[platform][chan]["slope1"]
+            fid[chan]["intercept1"] = coeffs[platform][chan]["intercept1"]
+            fid[chan]["slope2"] = coeffs[platform][chan]["slope2"]
+            fid[chan]["intercept2"] = coeffs[platform][chan]["intercept2"]
 
         fid.close()
         print("Calibration coefficients saved for %s" % platform)
