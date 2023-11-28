@@ -177,7 +177,7 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):  # noqa: D417
+    def __init__(self, correction_limit=80., max_sza=90, strength=1.3, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
