@@ -158,7 +158,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                                                        "solar_azimuth_angle", "sensor_azimuth_angle"]
                 assert ["virr_geoxx", "virr_l1b"] == attributes["file_type"]
                 assert ("longitude", "latitude") == attributes["coordinates"]
-            assert band_values[dataset["name"]] == round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6)
+            np.testing.assert_allclose(band_values[dataset["name"]], ds[ds.shape[0] // 2][ds.shape[1] // 2], rtol=1e-6)
             assert "valid_range" not in ds.attrs
 
     def test_fy3b_file(self):
