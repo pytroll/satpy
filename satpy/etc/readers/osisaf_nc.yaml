@@ -1,0 +1,180 @@
+reader:
+  name: osisaf_nc
+  short_name: OSI-SAF netCDF
+  long_name: OSI-SAF data in netCDF4 format
+  description: >
+    A reader for OSI-SAF data in netCDF4 format.
+    References:
+
+    - Dataset descriptions: https://osi-saf.eumetsat.int/documentation/products-documentation
+
+  status: Beta
+  supports_fsspec: true
+  sensors: [osisaf]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    osi_sea_ice_conc:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_conc_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc',
+                      'S-OSI_-{product_centre}_-{sensor}-GL_{hemisphere:2s}_CONCn__-{start_time:%Y%m%d%H%M}Z.nc']
+    osi_sea_ice_edge:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_edge_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sea_ice_emis:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_emis_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sea_ice_type:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['ice_type_{hemisphere:2s}_{grid}-{resolution:3s}_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_sst:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['{start_time:%Y%m%d%H%M%S}-{processing_center}-L3C_GHRSST-SSTskin-{sensor}_{platform_name}-v{version}.nc']
+    osi_radflux_stere:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['osisaf_radiative_flux_24h_hl_{grid}-050_{sensor}_{start_time:%Y%m%d%H%M}.nc']
+    osi_radflux_grid:
+      file_reader: !!python/name:satpy.readers.osisaf_l3_nc.OSISAFL3NCFileHandler
+      file_patterns: ['{start_time:%Y%m%d%H%M%S}-OSISAF-RADFLX-{time_period}-{platform_name}.nc']
+
+datasets:
+  # Shared between various file types
+  status_flag:
+    name: status_flag
+    file_type: [osi_sea_ice_conc, osi_sea_ice_edge, osi_sea_ice_type]
+  orbit_num_amsr:
+    name: orbit_num_amsr
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  orbit_num_ascat:
+    name: orbit_num_ascat
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  orbit_num_ssmis:
+    name: orbit_num_ssmis
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  param_used:
+    name: param_used
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+  uncertainty:
+    name: uncertainty
+    file_type: [osi_sea_ice_edge, osi_sea_ice_type]
+
+  # Sea ice concentration datasets
+  algorithm_uncertainty:
+    name: algorithm_uncertainty
+    file_type: osi_sea_ice_conc
+  confidence_level:
+    name: confidence_level
+    file_type: osi_sea_ice_conc
+  ice_conc:
+    name: ice_conc
+    file_type: osi_sea_ice_conc
+  ice_conc_unfiltered:
+    name: ice_conc_unfiltered
+    file_type: osi_sea_ice_conc
+  masks:
+    name: masks
+    file_type: osi_sea_ice_conc
+  smearing_uncertainty:
+    name: smearing_uncertainty
+    file_type: osi_sea_ice_conc
+  total_uncertainty:
+    name: total_uncertainty
+    file_type: osi_sea_ice_conc
+
+  # Ice edge product
+  ice_edge:
+    name: ice_edge
+    file_type: osi_sea_ice_edge
+
+  # Ice type product
+  ice_type:
+    name: ice_type
+    file_type: osi_sea_ice_type
+
+  # Ice emis product
+  e:
+    name: e
+    file_type: osi_sea_ice_emis
+  ev:
+    name: ev
+    file_type: osi_sea_ice_emis
+  flag:
+    name: flag
+    file_type: osi_sea_ice_emis
+  R:
+    name: R
+    file_type: osi_sea_ice_emis
+  S:
+    name: S
+    file_type: osi_sea_ice_emis
+  teff:
+    name: teff
+    file_type: osi_sea_ice_emis
+  u:
+    name: u
+    file_type: osi_sea_ice_emis
+
+  # SST product
+  ist_dtime:
+    name: ist_dtime
+    file_type: osi_sst
+  ist_quality_level:
+    name: ist_quality_level
+    file_type: osi_sst
+  l2p_flags:
+    name: l2p_flags
+    file_type: osi_sst
+  landmask:
+    name: landmask
+    file_type: osi_sst
+  or_number_of_pixels:
+    name: or_number_of_pixels
+    file_type: osi_sst
+  or_number_of_pixels_ist:
+    name: or_number_of_pixels_ist
+    file_type: osi_sst
+  probability_of_ice:
+    name: probability_of_ice
+    file_type: osi_sst
+  probability_of_water:
+    name: probability_of_water
+    file_type: osi_sst
+  quality_level:
+    name: quality_level
+    file_type: osi_sst
+  sea_ice_fraction:
+    name: sea_ice_fraction
+    file_type: osi_sst
+  sea_surface_temperature:
+    name: sea_surface_temperature
+    file_type: osi_sst
+  sses_bias:
+    name: sses_bias
+    file_type: osi_sst
+  sses_standard_deviation:
+    name: sses_standard_deviation
+    file_type: osi_sst
+  sst_dtime:
+    name: sst_dtime
+    file_type: osi_sst
+  surface_temperature:
+    name: surface_temperature
+    file_type: osi_sst
+  tempflag:
+    name: tempflag
+    file_type: osi_sst
+
+  # Radiative flux product
+  dli:
+    name: dli
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  dli_confidence_level:
+    name: dli_confidence_level
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  ssi:
+    name: ssi
+    file_type: [osi_radflux_stere, osi_radflux_grid]
+  ssi_confidence_level:
+    name: ssi_confidence_level
+    file_type: [osi_radflux_stere, osi_radflux_grid]
