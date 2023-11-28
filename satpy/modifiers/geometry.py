@@ -177,14 +177,14 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):  # noqa: D417
+    def __init__(self, correction_limit=80., max_sza=90, strength=1.3, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
-            correction_limit (float): Solar zenith angle in degrees where to start the signal reduction. Default 60.
+            correction_limit (float): Solar zenith angle in degrees where to start the signal reduction.
             max_sza (float): Maximum solar zenith angle in degrees where to apply the signal reduction. Beyond
-                             this solar zenith angle the signal will become zero. Default 90.
-            strength (float): The strength of the non-linear signal reduction. Default 1.5
+                             this solar zenith angle the signal will become zero.
+            strength (float): The strength of the non-linear signal reduction.
 
         """
         self.correction_limit = correction_limit
@@ -194,7 +194,8 @@ class SunZenithReducer(SunZenithCorrectorBase):
             raise ValueError("`max_sza` must be defined when using the SunZenithReducer.")
 
     def _apply_correction(self, proj, coszen):
-        logger.debug("Apply sun-zenith signal reduction")
+        logger.debug(f"Applying sun-zenith signal reduction with correction_limit {self.correction_limit} deg,"
+                     f" strength {self.strength}, and max_sza {self.max_sza} deg.")
         res = proj.copy()
         sunz = np.rad2deg(np.arccos(coszen.data))
         res.data = sunzen_reduction(proj.data, sunz,
