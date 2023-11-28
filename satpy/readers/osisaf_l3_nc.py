@@ -205,22 +205,22 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
 
     @property
     def start_time(self):
-        start_t = self.get("/attr/start_date")
-        if start_t is None:
-            start_t = self.get("/attr/start_time")
-        if start_t is None:
-            start_t = self.get("/attr/time_coverage_start")
+        poss_names = ["/attr/start_date", "/attr/start_time", "/attr/time_coverage_start"]
+        for name in poss_names:
+            start_t = self.get(name)
+            if start_t is not None:
+                break
         if start_t is None:
             raise ValueError("Unknown start time attribute.")
         return self._parse_datetime(start_t)
 
     @property
     def end_time(self):
-        end_t = self.get("/attr/stop_date")
-        if end_t is None:
-            end_t = self.get("/attr/stop_time")
-        if end_t is None:
-            end_t = self.get("/attr/time_coverage_end")
+        poss_names = ["/attr/stop_date", "/attr/stop_time", "/attr/time_coverage_end"]
+        for name in poss_names:
+            end_t = self.get(name)
+            if end_t is not None:
+                break
         if end_t is None:
             raise ValueError("Unknown stop time attribute.")
         return self._parse_datetime(end_t)
