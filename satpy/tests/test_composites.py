@@ -401,7 +401,7 @@ class TestDayNightCompositor(unittest.TestCase):
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
-        a = np.zeros((3, 2, 2), dtype=np.float64)
+        a = np.zeros((3, 2, 2), dtype=np.float32)
         a[:, 0, 0] = 0.1
         a[:, 0, 1] = 0.2
         a[:, 1, 0] = 0.3
@@ -409,7 +409,7 @@ class TestDayNightCompositor(unittest.TestCase):
         a = da.from_array(a, a.shape)
         self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
-        b = np.zeros((3, 2, 2), dtype=np.float64)
+        b = np.zeros((3, 2, 2), dtype=np.float32)
         b[:, 0, 0] = np.nan
         b[:, 0, 1] = 0.25
         b[:, 1, 0] = 0.50
@@ -418,7 +418,7 @@ class TestDayNightCompositor(unittest.TestCase):
         self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
 
-        sza = np.array([[80., 86.], [94., 100.]])
+        sza = np.array([[80., 86.], [94., 100.]], dtype=np.float32)
         sza = da.from_array(sza, sza.shape)
         self.sza = xr.DataArray(sza, dims=("y", "x"))
 
@@ -442,8 +442,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
             res = comp((self.data_a, self.data_b, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.22122352], [0.5, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+        expected = np.array([[0., 0.22122374], [0.5, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
+        np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
 
     def test_daynight_area(self):
         """Test compositor both day and night portions when SZA data is not provided."""
@@ -453,7 +454,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
             res = comp((self.data_a, self.data_b))
             res = res.compute()
-        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel)
 
@@ -465,8 +467,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b, self.sza))
             res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[0., 0.33296056], [1., 1.]])
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[0., 0.3329599], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
@@ -478,7 +481,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.11042631], [0.66835017, 1.]])
+        expected = np.array([[0., 0.11042609], [0.6683502, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
 
@@ -490,8 +494,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
@@ -503,7 +508,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_b,))
             res = res.compute()
-        expected = np.array([[np.nan, 0.], [0., 0.]])
+        expected = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
 
@@ -515,8 +521,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        expected_alpha = np.array([[1., 0.66703944], [0., 0.]])
+        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[1., 0.6670401], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
@@ -528,7 +535,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected_channel_data = np.array([[0., 0.22122352], [0., 0.]])
+        expected_channel_data = np.array([[0., 0.22122373], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel_data)
         assert "A" not in res.bands
@@ -541,8 +549,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_a,))
             res = res.compute()
-        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        expected_alpha = np.array([[1., 1.], [1., 1.]])
+        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[1., 1.], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
@@ -554,8 +563,9 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[np.nan, 1.], [1., 1.]])
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 1.], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
@@ -567,7 +577,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
             res = comp((self.data_a,))
             res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
 

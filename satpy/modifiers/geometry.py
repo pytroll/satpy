@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
-    def __init__(self, max_sza=95.0, **kwargs):
+    def __init__(self, max_sza=95.0, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -96,7 +96,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=88., **kwargs):
+    def __init__(self, correction_limit=88., **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -142,7 +142,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=88., **kwargs):
+    def __init__(self, correction_limit=88., **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -177,7 +177,7 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     """
 
-    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):
+    def __init__(self, correction_limit=55., max_sza=90, strength=1.5, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:

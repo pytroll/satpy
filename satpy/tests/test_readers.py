@@ -637,7 +637,7 @@ class TestYAMLFiles:
         from satpy import available_readers
         from satpy._config import glob_config
 
-        def patched_import_error(name, globals=None, locals=None, fromlist=(), level=0):
+        def patched_import_error(name, globals=None, locals=None, fromlist=(), level=0):  # noqa: A002
             if name in ("netcdf4", ):
                 raise ImportError(f"Mocked import error {name}")
             return real_import(name, globals=globals, locals=locals, fromlist=fromlist, level=level)

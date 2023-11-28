@@ -46,7 +46,6 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
     """File handler for MODIS HDF-EOS Level 3 CMG gridded files."""
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-
         # Initialise set of variable names to carry through code
         handled_var_names = set()
 
@@ -112,7 +111,6 @@ class ModisL3GriddedHDFFileHandler(HDFEOSGeoReader):
 
     def _get_area_extent(self):
         """Get the grid properties."""
-
         # Now compute the data extent
         upperleft = self.metadata["GridStructure"]["GRID_1"]["UpperLeftPointMtrs"]
         lowerright = self.metadata["GridStructure"]["GRID_1"]["LowerRightMtrs"]
