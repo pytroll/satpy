@@ -43,7 +43,7 @@ class NIRReflectance(ModifierBase):
     TERMINATOR_LIMIT = 85.0
     MASKING_LIMIT = 88.0
 
-    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,  # noqa: D417
                  masking_limit=MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
@@ -139,7 +139,7 @@ class NIRReflectance(ModifierBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
     """Get the emissive part of NIR bands."""
 
-    def __init__(self, sunz_threshold=None, **kwargs):
+    def __init__(self, sunz_threshold=None, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:

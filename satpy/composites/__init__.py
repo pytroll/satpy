@@ -112,7 +112,7 @@ class CompositeBase:
         self.attrs = kwargs
 
     @property
-    def id(self):
+    def id(self):  # noqa: A003
         """Return the DataID of the object."""
         try:
             return self.attrs["_satpy_id"]
@@ -343,7 +343,7 @@ class CategoricalDataCompositor(CompositeBase):
         res = [[20, 40, 30], [50, 30, 10]]
     """
 
-    def __init__(self, name, lut=None, **kwargs):
+    def __init__(self, name, lut=None, **kwargs):  # noqa: D417
         """Get look-up-table used to recategorize data.
 
         Args:
@@ -381,7 +381,7 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: "L", 2: "LA", 3: "RGB", 4: "RGBA"}
 
-    def __init__(self, name, common_channel_mask=True, **kwargs):
+    def __init__(self, name, common_channel_mask=True, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -679,7 +679,7 @@ class DayNightCompositor(GenericCompositor):
     of the image (night or day). See the documentation below for more details.
     """
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -1013,7 +1013,7 @@ class RealisticColors(GenericCompositor):
 class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
-    def __init__(self, name, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,  # noqa: D417
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1356,7 +1356,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     """
 
-    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
+    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,  # noqa: D417
                  **kwargs):
         """Collect custom configuration values.
 
@@ -1734,7 +1734,7 @@ def _get_flag_value(mask, val):
 class LongitudeMaskingCompositor(SingleBandCompositor):
     """Masks areas outside defined longitudes."""
 
-    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:

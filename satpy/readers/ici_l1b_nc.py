@@ -176,8 +176,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         latitude,
         n_samples,
     ):
-        """
-        Perform the interpolation of geographic coordinates from tie points to pixel points.
+        """Perform the interpolation of geographic coordinates from tie points to pixel points.
 
         Args:
             longitude: xarray DataArray containing the longitude dataset to
@@ -229,8 +228,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         zenith,
         n_samples,
     ):
-        """
-        Perform the interpolation of angular coordinates from tie points to pixel points.
+        """Perform the interpolation of angular coordinates from tie points to pixel points.
 
         Args:
             azimuth: xarray DataArray containing the azimuth angle dataset to
