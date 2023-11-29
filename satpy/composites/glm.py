@@ -43,7 +43,7 @@ class HighlightCompositor(GenericCompositor):
 
     """
 
-    def __init__(self, name, min_highlight=0.0, max_highlight=10.0,
+    def __init__(self, name, min_highlight=0.0, max_highlight=10.0,  # noqa: D417
                  max_factor=(0.8, 0.8, -0.8, 0), **kwargs):
         """Initialize composite with highlight factor options.
 

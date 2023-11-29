@@ -18,6 +18,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 import dask.array as da
@@ -407,6 +408,27 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
                 )
             except TypeError:
                 assert attrs[key] == attrs_exp[key], err_msg
+
+
+def assert_dict_array_equality(d1, d2):
+    """Check that dicts containing arrays are equal."""
+    assert set(d1.keys()) == set(d2.keys())
+    for key, val1 in d1.items():
+        val2 = d2[key]
+        compare_func = _compare_numpy_array if isinstance(val1, np.ndarray) else _compare_nonarray
+        compare_func(val1, val2)
+
+
+def _compare_numpy_array(val1: np.ndarray, val2: np.ndarray) -> None:
+    np.testing.assert_array_equal(val1, val2)
+    assert val1.dtype == val2.dtype
+
+
+def _compare_nonarray(val1: Any, val2: Any) -> None:
+    assert val1 == val2
+    if isinstance(val1, (np.floating, np.integer, np.bool_)):
+        assert isinstance(val2, np.generic)
+        assert val1.dtype == val2.dtype
 
 
 def xfail_skyfield_unstable_numpy2():

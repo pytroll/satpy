@@ -173,7 +173,12 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         lines = shape[-2]
         cols = shape[-1]
 
-        fov = self.datatree.attrs["Field_of_View(degrees)"]
+        # From empirical analysis, hardcoding the view of view to 18 degrees
+        # produces better geolocation results.
+        # Uncommenting the line below will use the fov from the file instead,
+        # this line is kept for reference.
+        #fov = self.datatree.attrs["Field_of_View(degrees)"]
+        fov = 18
         cfac = 2 ** 16 / (fov / cols)
         lfac = 2 ** 16 / (fov / lines)
 
@@ -181,6 +186,8 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         # WGS 84
         a = 6378137.0
         b = 6356752.314245
+
+        subsatellite_longitude = self.datatree.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"][1]
 
         pdict = {
             "cfac": cfac,
@@ -193,7 +200,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
             "a": a,
             "b": b,
             "h": h,
-            "ssp_lon": 82.0,
+            "ssp_lon": subsatellite_longitude,
             "a_name": "insat3d82",
             "a_desc": "insat3d82",
             "p_id": "geosmsg"

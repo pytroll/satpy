@@ -89,6 +89,7 @@ def _create_test_netcdf(filename, resolution=742):
 
 @pytest.fixture(scope="session")
 def cf_scene():
+    """Create a cf scene."""
     tstart = datetime(2019, 4, 1, 12, 0)
     tend = datetime(2019, 4, 1, 12, 15)
     data_visir = np.array([[1, 2], [3, 4]])
@@ -214,6 +215,7 @@ def cf_scene():
 
 @pytest.fixture()
 def nc_filename(tmp_path):
+    """Create an nc filename for viirs m band."""
     now = datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-mband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
@@ -221,6 +223,7 @@ def nc_filename(tmp_path):
 
 @pytest.fixture()
 def nc_filename_i(tmp_path):
+    """Create an nc filename for viirs i band."""
     now = datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)

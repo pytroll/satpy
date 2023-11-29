@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Median(ModifierBase):
     """Apply a median filter to the band."""
 
-    def __init__(self, median_filter_params, **kwargs):
+    def __init__(self, median_filter_params, **kwargs):  # noqa: D417
         """Create the instance.
 
         Args:

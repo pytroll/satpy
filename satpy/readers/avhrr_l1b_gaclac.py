@@ -60,7 +60,7 @@ ANGLES = ("sensor_zenith_angle", "sensor_azimuth_angle", "solar_zenith_angle",
 class GACLACFile(BaseFileHandler):
     """Reader for GAC and LAC data."""
 
-    def __init__(self, filename, filename_info, filetype_info,
+    def __init__(self, filename, filename_info, filetype_info,  # noqa: D417
                  start_line=None, end_line=None, strip_invalid_coords=True,
                  interpolate_coords=True, **reader_kwargs):
         """Init the file handler.
@@ -196,7 +196,7 @@ class GACLACFile(BaseFileHandler):
 
         return res
 
-    def slice(self, data, times):
+    def slice(self, data, times):  # noqa: A003
         """Select user-defined scanlines and/or strip invalid coordinates.
 
         Furthermore, update scanline timestamps.
