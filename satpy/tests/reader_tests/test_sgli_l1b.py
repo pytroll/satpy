@@ -249,7 +249,7 @@ def test_channel_is_chunked(sgli_vn_file):
                                     "standard_name": ""})
         assert res.chunks[0][0] > 116
 
-@pytest.mark.skipif(sys.version_info <= (3, 9))
+@pytest.mark.skipif(sys.version_info <= (3, 9), reason="Python 3.10 or higher needed for geotiepoints")
 def test_loading_lon_lat(sgli_vn_file):
     """Test that loading lons and lats works."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
@@ -261,7 +261,7 @@ def test_loading_lon_lat(sgli_vn_file):
     assert res.dtype == np.float32
     assert res.dims == ("y", "x")
 
-@pytest.mark.skipif(sys.version_info <= (3, 9))
+@pytest.mark.skipif(sys.version_info <= (3, 9), reason="Python 3.10 or higher needed for geotiepoints")
 def test_loading_sensor_angles(sgli_vn_file):
     """Test loading the satellite angles."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
@@ -273,7 +273,7 @@ def test_loading_sensor_angles(sgli_vn_file):
     assert res.dtype == np.float32
     assert res.min() >= 0
 
-@pytest.mark.skipif(sys.version_info <= (3, 9))
+@pytest.mark.skipif(sys.version_info <= (3, 9), reason="Python 3.10 or higher needed for geotiepoints")
 def test_loading_solar_angles(sgli_vn_file):
     """Test loading sun angles."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
@@ -311,7 +311,7 @@ def test_get_ti_dataset_bt(sgli_ir_file):
         _ = handler.get_dataset(did, {"file_key": "Image_data/Lt_TI01", "units": "K",
                                     "standard_name": "toa_brightness_temperature"})
 
-@pytest.mark.skipif(sys.version_info <= (3, 9))
+@pytest.mark.skipif(sys.version_info <= (3, 9), reason="Python 3.10 or higher needed for geotiepoints")
 def test_get_ti_lon_lats(sgli_ir_file):
     """Test getting the lons and lats for IR channels."""
     handler = HDF5SGLI(sgli_ir_file, {"resolution": "L"}, {})
