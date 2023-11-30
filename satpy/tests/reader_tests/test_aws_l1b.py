@@ -111,9 +111,12 @@ def test_get_channel_data(aws_handler):
     did = dict(name="1")
     dataset_info = dict(file_key="data/calibration/aws_toa_brightness_temperature")
     expected = fake_data.isel(n_channels=0)
+    # mask no_data value
     expected = expected.where(expected != -2147483648)
+    # mask outside the valid range
     expected = expected.where(expected <= 700000)
     expected = expected.where(expected >= 0)
+    # "calibrate"
     expected = expected * 0.001
     res = aws_handler.get_dataset(did, dataset_info)
     np.testing.assert_allclose(res, expected)

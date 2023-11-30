@@ -27,13 +27,7 @@ logger = logging.getLogger(__name__)
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
-AWS_CHANNEL_NAMES_TO_NUMBER = {"1": 1, "2": 2, "3": 3, "4": 4,
-                               "5": 5, "6": 6, "7": 7, "8": 8,
-                               "9": 9, "10": 10, "11": 11, "12": 12,
-                               "13": 13, "14": 14, "15": 15, "16": 16,
-                               "17": 17, "18": 18, "19": 19}
-
-AWS_CHANNEL_NAMES = list(AWS_CHANNEL_NAMES_TO_NUMBER.keys())
+AWS_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
 
 
 class AWSL1BFile(NetCDF4FileHandler):
@@ -153,19 +147,3 @@ def mask_and_scale(data_array):
         data_array.attrs.pop("scale_factor")
         data_array.attrs.pop("add_offset")
     return data_array
-
-#
-#     def _get_quality_attributes(self):
-#         """Get quality attributes."""
-#         quality_group = self['quality']
-#         quality_dict = {}
-#         for key in quality_group:
-#             # Add the values (as Numpy array) of each variable in the group
-#             # where possible
-#             try:
-#                 quality_dict[key] = quality_group[key].values
-#             except ValueError:
-#                 quality_dict[key] = None
-#
-#         quality_dict.update(quality_group.attrs)
-#         return quality_dict
