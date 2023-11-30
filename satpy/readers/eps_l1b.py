@@ -81,10 +81,10 @@ def read_records(filename):
             grh = np.fromfile(fdes, grh_dtype, 1)
             if grh.size == 0:
                 break
-            rec_class = record_class[int(grh["record_class"])]
+            rec_class = record_class[int(grh["record_class"].squeeze())]
             sub_class = grh["RECORD_SUBCLASS"][0]
 
-            expected_size = int(grh["RECORD_SIZE"])
+            expected_size = int(grh["RECORD_SIZE"].squeeze())
             bare_size = expected_size - grh_dtype.itemsize
             try:
                 the_type = form.dtype((rec_class, sub_class))
@@ -144,7 +144,8 @@ class EPSAVHRRFile(BaseFileHandler):
     sensors = {"AVHR": "avhrr-3"}
 
     units = {"reflectance": "%",
-             "brightness_temperature": "K"}
+             "brightness_temperature": "K",
+             "radiance":  "W m^-2 sr^-1"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
