@@ -273,10 +273,16 @@ class BaseFileHandler:
         Example 2 - Add dynamic datasets from the file::
 
             def available_datasets(self, configured_datasets=None):
-                "Add information to configured datasets."
+                "Add datasets dynamically determined from the file."
                 # pass along existing datasets
                 for is_avail, ds_info in (configured_datasets or []):
-                    yield is_avail, ds_info
+                    if is_avail is not None:
+                        # some other file handler said it has this dataset
+                        # we don't know any more information than the previous
+                        # file handler so let's yield early
+                        yield is_avail, ds_info
+                        continue
+                    yield self.file_type_matches(ds_info["file_type"]), ds_info
 
                 # get dynamic variables known to this file (that we created)
                 for var_name, val in self.dynamic_variables.items():

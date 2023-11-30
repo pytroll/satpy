@@ -154,7 +154,8 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         Notes:
              Currently only adds 2D datasets and does not decode bit encoded information.
         """
-        # pass along existing datasets
+        # pass along yaml configured (handled) datasets and collect their file keys to check against dynamically
+        # collected variables later on.
         handled = set()
         for is_avail, ds_info in (configured_datasets or []):
             file_key = ds_info.get("file_key", ds_info["name"])
@@ -167,7 +168,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         res_dict = {5416: 250, 2708: 500, 1354: 1000, 270: 5000, 135: 10000}
 
-        # get dynamic variables known to this file (that we created)
+        # get variables from file dynamically and only add those which are not already configured in yaml
         for var_name, val in self.sd.datasets().items():
             if var_name in handled:
                 continue
