@@ -46,7 +46,7 @@ def sgli_vn_file(tmp_path_factory):
 
     return filename
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sgli_ir_file(tmp_path_factory):
     """Create a stub IR file."""
     filename = tmp_path_factory.mktemp("data") / "test_ir_file.h5"
@@ -83,7 +83,7 @@ def sgli_ir_file(tmp_path_factory):
 
     return filename
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sgli_pol_file(tmp_path_factory):
     """Create a POL stub file."""
     filename = tmp_path_factory.mktemp("data") / "test_pol_file.h5"
@@ -187,6 +187,14 @@ def test_get_dataset_counts(sgli_vn_file):
     assert res.dtype == np.uint16
     assert res.attrs["platform_name"] == "GCOM-C1"
     assert res.attrs["sensor"] == "sgli"
+
+def test_get_dataset_for_unknown_channel(sgli_vn_file):
+    """Test that counts can be extracted from a file."""
+    handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
+    did = dict(name="VIN", resolution=1000, polarization=None, calibration="counts")
+    with pytest.raises(KeyError):
+        handler.get_dataset(did, {"file_key": "Image_data/Lt_VIN01", "units": "",
+                                        "standard_name": ""})
 
 def test_get_vn_dataset_reflectances(sgli_vn_file):
     """Test that the vn datasets can be calibrated to reflectances."""

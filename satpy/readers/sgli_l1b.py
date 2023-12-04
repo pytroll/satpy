@@ -85,6 +85,16 @@ class HDF5SGLI(BaseFileHandler):
         attrs = h5dataset.attrs
 
         dataset = xr.DataArray(dataset, attrs=attrs, dims=["y", "x"])
+        dataset = self.prepare_dataset(key, dataset)
+
+        dataset.attrs["platform_name"] = "GCOM-C1"
+        dataset.attrs["sensor"] = "sgli"
+        dataset.attrs["units"] = info["units"]
+        dataset.attrs["standard_name"] = info["standard_name"]
+        return dataset
+
+    def prepare_dataset(self, key, dataset):
+        """Prepare the dataset according to key."""
         with xr.set_options(keep_attrs=True):
             if key["name"].startswith(("VN", "SW", "P")):
                 dataset = self.get_visible_dataset(key, dataset)
@@ -95,12 +105,7 @@ class HDF5SGLI(BaseFileHandler):
             elif "angle" in key["name"]:
                 dataset = self.get_angles(key)
             else:
-                raise NotImplementedError()
-
-        dataset.attrs["platform_name"] = "GCOM-C1"
-        dataset.attrs["sensor"] = "sgli"
-        dataset.attrs["units"] = info["units"]
-        dataset.attrs["standard_name"] = info["standard_name"]
+                raise KeyError(f"Unrecognized dataset {key['name']}")
         return dataset
 
     def get_visible_dataset(self, key, dataset):
