@@ -55,11 +55,23 @@ data_center_dict = {55: {'ssp': 'E0415', 'name': 'MSG1'}, 56:  {'ssp': 'E0455', 
                     57: {'ssp': 'E0095', 'name': 'MSG3'}, 70: {'ssp': 'E0000', 'name': 'MSG4'},
                     71: {'ssp': 'E0000', 'name': 'MTGi1'}}
 
+# This is the size number of pixels making a segment
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
                  'seviri_l2_bufr_amv': None,
                  'fci_l2_bufr_asr': 32, 'fci_l2_bufr_amv': None}
+
+# This is the physical size of the segment, in meters
+resolution_dict = {'seviri_l2_bufr_asr': 48000, 'seviri_l2_bufr_cla': 48000,
+                 'seviri_l2_bufr_csr': 48000, 'seviri_l2_bufr_gii': 9000,
+                 'seviri_l2_bufr_thu': 48000, 'seviri_l2_bufr_toz': 9000,
+                 'seviri_l2_bufr_amv': None,
+                 'fci_l2_bufr_asr': 32000, 'fci_l2_bufr_amv': None}
+
+# List of variables that are returned by eccodes as array, but we want as single value
+deprecate_to_single_value = ['satelliteIdentifier']
+
 
 # Need to set this in order to get consistent array sizes from eccodes
 os.environ['ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS'] = "1"
@@ -105,15 +117,9 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         else:
             # Product was retrieved from the EUMETSAT Data Center
             # get all attributes in one call
-            attr = self.get_attributes(['typicalDate', 'typicalTime'])
+            attr = self.get_attributes(['typicalDate', 'typicalTime','satelliteIdentifier'])
             timeStr = attr['typicalDate']+attr['typicalTime']
-
-            darr = self.get_array('satelliteIdentifier')
-            arr = da.where(darr != BUFR_FILL_VALUE, darr, darr).compute()
-            if (arr.ndim > 0):
-                sc_id = int(arr[0])
-            else:
-                sc_id = int(arr)
+            sc_id = int( attr['satelliteIdentifier'])
 
             self.bufr_header = {}
             self.bufr_header['NominalTime'] = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
@@ -128,22 +134,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         if self.seg_size:
             # make this keyword not usable for non-grided products
             self.with_adef = with_area_definition
-
-            darr = self.get_array('segmentSizeAtNadirInXDirection')
-            # This key may not exists in some files
-            # This is specifically a "dirty" fox for the unit tests because the template used doesn't
-            # contain that key so initializing the object would fail without thic check
-            # but 'real' EUM BUFR files shall all have it
-            if darr is None:
-                self.resolution = None
-            else:
-                arr = da.where(darr != BUFR_FILL_VALUE, darr, darr).compute()
-                self.resolution = arr[0]
-
-            # Note: There a difference between resolution and seg_size as from the seg_size_dict
-            # in the bufr files segmentSizeAtNadirInXDirection is encoded in meters so it's indeed
-            # the physical size of the segment while seg_size is the number of pixel lines / cols
-            # but because FCI pixel size is 1km they look very similar, modulo 1000
+            self.resolution = resolution_dict[self.filetype]
         else:
             self.with_adef = False
             self.resolution = None
@@ -152,11 +143,6 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
     def start_time(self):
         """Return the repeat cycle start time."""
         return self.bufr_header['NominalTime']
-
-    # @property
-    # def end_time(self):
-    #     """Return the repeat cycle end time."""
-    #     return self.start_time + timedelta(minutes=15)
 
     @property
     def platform_name(self):
@@ -205,9 +191,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         fh = open(self.filename, "rb")
 
         # initialize output
-        attr = {}
-        for k in keys:
-            attr[k] = None
+        attr = dict()
 
         while True:
             # get handle for message
@@ -217,9 +201,16 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             ec.codes_set(bufr, 'unpack', 1)
             for k in keys:
                 try:
-                    value = ec.codes_get(bufr, k)
+                    if k in deprecate_to_single_value:
+                      # Extract satelliteIdentifier single value. The satelliteIdentifier attribute is returned as an
+                      # array becasue the environment variable ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS is set to 1.
+                      value = ec.codes_get_array(bufr, k)[0]
+                    else:
+                      value = ec.codes_get(bufr, k)
                     attr[k] = value
+
                 except BaseException:
+                    attr[k] = None
                     logging.warning(f'Failed to read key {k} from message')
 
             ec.codes_release(bufr)

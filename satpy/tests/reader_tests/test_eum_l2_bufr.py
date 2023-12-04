@@ -115,14 +115,14 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'file_type': 'seviri_l2_bufr_asr',
                 'key': '#1#brightnessTemperature',
                 'resolution': 48000},
-             'ASRBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455': {
+             'AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455': {
                 'platform_name': 'MSG2',
                 'spacecraft_number': '9',
                 'RectificationLongitude': 'E0455',
                 'area': AREA_DEF_MSG_IODC,
                 'ssp_lon': 45.5,
-                'seg_size': 16,
-                'file_type': 'seviri_l2_bufr_asr',
+                'seg_size': None,
+                'file_type': 'seviri_l2_bufr_amv',
                 'key': '#1#brightnessTemperature',
                 'resolution': 48000},
              'MSG2-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr': {
@@ -144,20 +144,28 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'seg_size': 32,
                 'file_type': 'fci_l2_bufr_asr',
                 'key': '#1#brightnessTemperature',
+                'resolution': 32000},
+             'W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin': {
+                'platform_name': 'MTGi1',
+                'spacecraft_number': '24',
+                'RectificationLongitude': 'E0000',
+                'area': AREA_DEF_FCI_FES,
+                'ssp_lon': 0.0,
+                'seg_size': None,
+                'file_type': 'fci_l2_bufr_amv',
+                'key': '#1#brightnessTemperature',
                 'resolution': 32000}
           }
 
-TEST_FILES = []
-for name, _dict_ in TEST_DATA.items():
-    TEST_FILES.append(name)
 
+TEST_FILES = list(TEST_DATA.keys())
 
 class L2BufrData:
-    """Mock SEVIRI L2 BUFR data."""
+    """Mock L2 BUFR data."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def __init__(self, filename, with_adef=False, rect_lon='default'):
-        """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
+        """Initialize by mocking test data for testing the L2 BUFR reader."""
         import eccodes as ec
 
         from satpy.readers.eum_l2_bufr import EumetsatL2BufrFileHandler
@@ -167,10 +175,10 @@ class L2BufrData:
         # 55 id corresponds to METEOSAT 8`
         ec.codes_set(self.buf1, 'satelliteIdentifier', 47 + int(TEST_DATA[filename]['spacecraft_number']))
         ec.codes_set_array(self.buf1, '#1#latitude', LAT)
-        ec.codes_set_array(self.buf1, '#1#latitude', LAT)
+        #ec.codes_set_array(self.buf1, '#1#latitude', LAT)
         ec.codes_set_array(self.buf1, '#1#longitude', LON)
-        ec.codes_set_array(self.buf1, '#1#longitude', LON)
-        ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
+       # ec.codes_set_array(self.buf1, '#1#longitude', LON)
+        ec.codes_set_array(self.buf1, TEST_DATA[filename]['key'], DATA)
 
         self.m = mock.mock_open()
 
@@ -289,6 +297,10 @@ class TestL2BufrReader:
         np.testing.assert_array_equal(z.values, x1)
 
     def test_data_with_area_definition(self, input_file):
+        if TEST_DATA[input_file]['seg_size'] is None:
+          # Skip this test
+          return
+
         """Test data loaded with AreaDefinition."""
         bufr_obj = L2BufrData(input_file, with_adef=True)
         _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)  # We need to load the lat/lon data in order to
@@ -312,6 +324,10 @@ class TestL2BufrReader:
         # Removed assert dedicated to products with seg_size=3 (covered by GII test case)
 
     def test_data_with_rect_lon(self, input_file):
+        if TEST_DATA[input_file]['seg_size'] is None:
+          # Skip this test
+          return
+
         """Test data loaded with AreaDefinition and user defined rectification longitude."""
         bufr_obj = L2BufrData(input_file, with_adef=True)
         np.testing.assert_equal(bufr_obj.fh.ssp_lon, int(TEST_DATA[input_file]['RectificationLongitude'][1:])/10)
@@ -325,19 +341,19 @@ class TestL2BufrReader:
 
 
 class AMVBufrData:
-    """Mock SEVIRI L2 AMV BUFR data."""
+    """Mock L2 AMV BUFR data."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def __init__(self, filename):
-        """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
+        """Initialize by mocking test data for testing the L2 BUFR reader."""
         from satpy.readers.eum_l2_bufr import EumetsatL2BufrFileHandler
 
         with mock.patch('satpy.readers.eum_l2_bufr.np.fromfile'):
             FILENAME_INFO = {'start_time': '20191112000000',
-                             'spacecraft': 'MSG3',
+                             'spacecraft': TEST_DATA[filename]['platform_name'],
                              'server': 'TESTSERVER'}
             self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO,
-                                filetype_info={'file_type': 'seviri_l2_bufr_amv'},
+                                filetype_info={'file_type': TEST_DATA[filename]['file_type']},
                                 with_area_definition=True)
 
 
@@ -347,5 +363,8 @@ class TestAMVBufrReader:
     @staticmethod
     def test_amv_with_area_def():
         """Test that AMV data can not be loaded with an area definition."""
-        bufr_obj = AMVBufrData('AMVBUFRProd_20231023044500Z_00_OMPEFS03_MET10_FES_E0000')
+        bufr_obj = AMVBufrData('AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455')
+        assert bufr_obj.fh.with_adef is False
+
+        bufr_obj = AMVBufrData('W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin')
         assert bufr_obj.fh.with_adef is False
