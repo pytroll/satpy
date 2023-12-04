@@ -1308,7 +1308,6 @@ datasets:
   radiance_min:
     name: radiance_min
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: radiance_min
     long_name: TOA min Radiance
@@ -1321,7 +1320,6 @@ datasets:
   radiance_max:
     name: radiance_max
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: radiance_max
     long_name: TOA max Radiance
@@ -1334,7 +1332,6 @@ datasets:
   radiance_mean:
     name: radiance_mean
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: radiance_mean
     long_name: TOA mean Radiance
@@ -2067,7 +2064,7 @@ datasets:
   radiance_std:
     name: radiance_std
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: radiance_std
     long_name: TOA Radiance standard deviation over None pixels for None channel
@@ -2080,7 +2077,7 @@ datasets:
   radiance_quality:
     name: radiance_quality
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: radiance_quality
     long_name: TOA Radiance Quality
@@ -2092,7 +2089,7 @@ datasets:
   reflectance_min:
     name: reflectance_min
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: reflectance_min
     long_name: TOA min Reflectance
@@ -2105,7 +2102,7 @@ datasets:
   reflectance_max:
     name: reflectance_max
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: reflectance_max
     long_name: TOA max Reflectance
@@ -2118,7 +2115,7 @@ datasets:
   reflectance_mean:
     name: reflectance_mean
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: reflectance_mean
     long_name: TOA mean Reflectance
@@ -2491,7 +2488,7 @@ datasets:
   reflectance_std:
     name: reflectance_std
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: reflectance_std
     long_name: TOA Reflectance standard deviation
@@ -2504,7 +2501,7 @@ datasets:
   reflectance_quality:
     name: reflectance_quality
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: reflectance_quality
     long_name: TOA Reflectance Quality
@@ -2516,7 +2513,7 @@ datasets:
   bt_min:
     name: bt_min
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: bt_min
     long_name: TOA min Brightess Temperature
@@ -2529,7 +2526,7 @@ datasets:
   bt_max:
     name: bt_max
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: bt_max
     long_name: TOA max Brightess Temperature
@@ -2542,7 +2539,7 @@ datasets:
   bt_mean:
     name: bt_mean
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: bt_mean
     long_name: TOA mean Brightess Temperature
@@ -2915,7 +2912,7 @@ datasets:
   bt_std:
     name: bt_std
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: bt_std
     long_name: TOA Brightess Temperature standard deviation
@@ -2928,7 +2925,7 @@ datasets:
   bt_quality:
     name: bt_quality
     resolution: 32000
-    wavelength: []
+    wavelength: [0,0,0]
     file_type: nc_fci_asr
     file_key: bt_quality
     long_name: TOA Brightess Temperature Quality
