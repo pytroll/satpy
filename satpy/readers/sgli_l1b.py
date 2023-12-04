@@ -35,9 +35,6 @@ import h5py
 import numpy as np
 import xarray as xr
 from dask.array.core import normalize_chunks
-from xarray import Dataset, Variable
-from xarray.backends import BackendArray, BackendEntrypoint
-from xarray.core import indexing
 
 # from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -230,37 +227,3 @@ class HDF5SGLI(BaseFileHandler):
             new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)
             return new_azi, new_zen + 90
         return azi, zen
-
-
-class H5Array(BackendArray):
-    """An Hdf5-based array."""
-
-    def __init__(self, array):
-        """Initialize the array."""
-        self.shape = array.shape
-        self.dtype = array.dtype
-        self.array = array
-
-    def __getitem__(self, key):
-        """Get a slice of the array."""
-        return indexing.explicit_indexing_adapter(
-            key, self.shape, indexing.IndexingSupport.BASIC, self._getitem
-        )
-
-    def _getitem(self, key):
-        return self.array[key]
-
-
-class SGLIBackend(BackendEntrypoint):
-    """The SGLI backend."""
-
-    def open_dataset(self, filename, *, drop_variables=None):
-        """Open the dataset."""
-        ds = Dataset()
-        h5f = h5py.File(filename)
-        h5_arr = h5f["Image_data"]["Lt_VN01"]
-        chunks = dict(zip(("y", "x"), h5_arr.chunks))
-        ds["Lt_VN01"] = Variable(["y", "x"],
-                                 indexing.LazilyIndexedArray(H5Array(h5_arr)),
-                                 encoding={"preferred_chunks": chunks})
-        return ds

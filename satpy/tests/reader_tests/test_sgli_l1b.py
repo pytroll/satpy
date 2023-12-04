@@ -3,12 +3,9 @@ import sys
 from datetime import datetime, timedelta
 
 import dask
-import dask.array as da
 import h5py
 import numpy as np
 import pytest
-from dask.array.core import normalize_chunks
-from xarray import DataArray, Dataset, open_dataset
 
 from satpy.readers.sgli_l1b import HDF5SGLI
 
@@ -21,18 +18,7 @@ AZI_ARRAY = np.random.randint(-180 * 100, 180 * 100, size=(197, 126), dtype=np.i
 ZEN_ARRAY = np.random.randint(0, 180 * 100, size=(197, 126), dtype=np.int16)
 
 
-def test_open_dataset(sgli_vn_file):
-    """Test open_dataset function."""
-    from satpy.readers.sgli_l1b import SGLIBackend
-    res = open_dataset(sgli_vn_file, engine=SGLIBackend, chunks={})
-    assert isinstance(res, Dataset)
-    data_array = res["Lt_VN01"]
-    assert isinstance(data_array, DataArray)
-    assert isinstance(data_array.data, da.Array)
-    assert data_array.chunks == normalize_chunks((116, 157), data_array.shape)
-
-
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sgli_vn_file(tmp_path_factory):
     """Create a stub VN file."""
     filename = tmp_path_factory.mktemp("data") / "test_vn_file.h5"
