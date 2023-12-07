@@ -422,7 +422,7 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents, sector_crs,
+    def __init__(self, area_definition, extents, sector_crs,  # noqa: D417
                  cell_size=(2000000, 2000000),
                  num_subtiles=None, use_sector_reference=False):
         """Initialize tile information for later generation.
@@ -1501,7 +1501,7 @@ class AWIPSTiledWriter(Writer):
         return ds_info
 
     # TODO: Add additional untiled variable support
-    def save_datasets(self, datasets, sector_id=None,
+    def save_datasets(self, datasets, sector_id=None,  # noqa: D417
                       source_name=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,

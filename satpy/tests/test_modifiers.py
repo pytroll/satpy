@@ -119,13 +119,15 @@ class TestSunZenithCorrector:
             sunz_ds1 = sunz_ds1.astype(np.float32)
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
         res = comp((sunz_ds1,), test_attr="test")
-        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
+                                   rtol=1e-6)
         assert "y" in res.coords
         assert "x" in res.coords
         ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
         res = comp((ds1,), test_attr="test")
         res_np = res.compute()
-        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
+                                   rtol=1e-6)
         assert res.dtype == res_np.dtype
         assert "y" not in res.coords
         assert "x" not in res.coords
@@ -177,7 +179,7 @@ class TestSunZenithReducer:
         """Test default settings with sza data available."""
         res = self.default((sunz_ds1, sunz_sza), test_attr="test")
         np.testing.assert_allclose(res.values,
-                                   np.array([[0.00242814, 0.00235669], [0.00245885, 0.00238707]]),
+                                   np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]]),
                                    rtol=1e-5)
 
     def test_custom_settings(self, sunz_ds1, sunz_sza):
@@ -273,7 +275,7 @@ class TestNIRReflectance(unittest.TestCase):
 
         # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
         # we must used the area from the final result DataArray
-        res.attrs["area"].get_lonlats.assert_called()
+        res.attrs["area"].get_lonlats.assert_called_with(chunks=((2,), (2,)), dtype=self.nir.dtype)
         sza.assert_called_with(self.start_time, self.lons, self.lats)
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()

@@ -595,26 +595,6 @@ class TestComputeWriterResults(unittest.TestCase):
         compute_writer_results([res])
         assert os.path.isfile(fname)
 
-# FIXME: This reader needs more information than exist at the moment
-#    def test_mitiff(self):
-#        """Test writing to mitiff file"""
-#        fname = os.path.join(self.base_dir, 'mitiff.tif')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='mitiff')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
-
-# FIXME: This reader needs more information than exist at the moment
-#    def test_cf(self):
-#        """Test writing to NetCDF4 file"""
-#        fname = os.path.join(self.base_dir, 'cf.nc')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='cf')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
-
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
         from satpy.writers import compute_writer_results
@@ -875,9 +855,8 @@ def test_group_results_by_output_file(tmp_path):
     """
     from pyresample import create_area_def
 
+    from satpy.tests.utils import make_fake_scene
     from satpy.writers import group_results_by_output_file
-
-    from .utils import make_fake_scene
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(

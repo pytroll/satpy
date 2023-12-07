@@ -49,7 +49,7 @@ def fake_tle():
         line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
 
 
-def _get_fake_areas(center, sizes, resolution, code=4326):
+def _get_fake_areas(center, sizes, resolution, code=4326):  # noqa: D417
     """Get multiple square areas with the same center.
 
     Returns multiple square areas centered at the same location

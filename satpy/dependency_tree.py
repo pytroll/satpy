@@ -327,7 +327,7 @@ class DependencyTree(Tree):
             LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node
 
-    def _find_reader_node(self, dataset_key, query):
+    def _find_reader_node(self, dataset_key, query):  # noqa: D417
         """Attempt to find a `DataID` in the available readers.
 
         Args:
@@ -517,7 +517,7 @@ class DependencyTree(Tree):
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _create_required_subtrees(self, parent, prereqs, query=None):
+    def _create_required_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine required prerequisite Nodes for a composite.
 
         Args:
@@ -531,7 +531,7 @@ class DependencyTree(Tree):
             raise MissingDependencies(unknown_datasets)
         return prereq_nodes
 
-    def _create_optional_subtrees(self, parent, prereqs, query=None):
+    def _create_optional_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine optional prerequisite Nodes for a composite.
 
         Args:
@@ -549,7 +549,7 @@ class DependencyTree(Tree):
 
         return prereq_nodes
 
-    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):
+    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine prerequisite Nodes for a composite.
 
         Args:

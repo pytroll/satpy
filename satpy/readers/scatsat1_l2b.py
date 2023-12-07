@@ -26,8 +26,10 @@ from satpy.readers.file_handlers import BaseFileHandler
 
 
 class SCATSAT1L2BFileHandler(BaseFileHandler):
+    """File handler for ScatSat level 2 files, as distributed by Eumetsat in HDF5 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the file handler."""
         super(SCATSAT1L2BFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.h5f = h5py.File(self.filename, "r")
         h5data = self.h5f["science_data"]
@@ -44,6 +46,7 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         self.longitude_scale = float(h5data.attrs["Longitude Scale"])
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         h5data = self.h5f["science_data"]
         stdname = info.get("standard_name")
 

@@ -46,7 +46,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             auto_maskandscale=auto_maskandscale, xarray_kwargs=xarray_kwargs)
         self.prefix = filetype_info.get("variable_prefix")
 
-    def get_dataset(self, dsid, dsinfo):
+    def get_dataset(self, dsid, dsinfo):  # noqa: D417
         """Get requested data as DataArray.
 
         Args:
