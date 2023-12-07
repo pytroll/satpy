@@ -1195,3 +1195,20 @@ enhancements:
          stretch: crude
          min_stretch: [0,0,0]
          max_stretch: [1,1,1]
+
+  fire_power_masked_alpha_col:
+    standard_name: fire_power_masked_alpha_col
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - { colors: ylorrd, min_value: 0, max_value: 250, reverse: true}
+
+  multi_fires:
+    standard_name: multi_fires
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: crude
