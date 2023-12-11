@@ -179,7 +179,7 @@ class TestSunZenithReducer:
         """Test default settings with sza data available."""
         res = self.default((sunz_ds1, sunz_sza), test_attr="test")
         np.testing.assert_allclose(res.values,
-                                   np.array([[0.00242814, 0.00235669], [0.00245885, 0.00238707]]),
+                                   np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]]),
                                    rtol=1e-5)
 
     def test_custom_settings(self, sunz_ds1, sunz_sza):

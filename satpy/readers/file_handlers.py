@@ -25,7 +25,7 @@ from satpy.dataset import combine_metadata
 from satpy.readers import open_file_or_filename
 
 
-def open_dataset(filename, *args, **kwargs):
+def open_dataset(filename, *args, **kwargs):  # noqa: D417
     """Open a file with xarray.
 
     Args:

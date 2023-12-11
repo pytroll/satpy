@@ -185,7 +185,7 @@ def split_desired_other(fhs, prime_geo, second_geo):
 class VIIRSSDRReader(FileYAMLReader):
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
-    def __init__(self, config_files, use_tc=None, **kwargs):
+    def __init__(self, config_files, use_tc=None, **kwargs):  # noqa: D417
         """Initialize file reader and adjust geolocation preferences.
 
         Args:

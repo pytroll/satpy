@@ -20,6 +20,7 @@ from sphinx.util.nodes import split_explicit_title
 
 
 def doi_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
+    """Create a doi role."""
     if options is None:
         options = {}
     if content is None:
@@ -34,6 +35,7 @@ def doi_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
 
 
 def arxiv_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
+    """Create an arxive role."""
     if options is None:
         options = {}
     if content is None:
@@ -48,6 +50,7 @@ def arxiv_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
 
 
 def setup_link_role(app):
+    """Set up the role link."""
     app.add_role("doi", doi_role, override=True)
     app.add_role("DOI", doi_role, override=True)
     app.add_role("arXiv", arxiv_role, override=True)
@@ -55,5 +58,6 @@ def setup_link_role(app):
 
 
 def setup(app):
+    """Set up the app."""
     app.connect("builder-inited", setup_link_role)
     return {"version": "0.1", "parallel_read_safe": True}

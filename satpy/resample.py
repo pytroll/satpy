@@ -823,7 +823,7 @@ class BucketResamplerBase(PRBaseResampler):
         """Call the resampling."""
         raise NotImplementedError("Use the sub-classes")
 
-    def resample(self, data, **kwargs):
+    def resample(self, data, **kwargs):  # noqa: D417
         """Resample `data` by calling `precompute` and `compute` methods.
 
         Args:
@@ -899,7 +899,7 @@ class BucketAvg(BucketResamplerBase):
 
     """
 
-    def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
+    def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):  # noqa: D417
         """Call the resampling.
 
         Args:
