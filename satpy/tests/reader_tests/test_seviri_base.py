@@ -95,7 +95,7 @@ class SeviriBaseTest(unittest.TestCase):
         expected = np.datetime64("2016-03-03 12:00:00.000")
         res = get_cds_time(days=days, msecs=msecs)
         np.testing.assert_equal(res, expected)
-        assert ".000000000" in res.__repr__()
+        assert res.dtype == np.dtype("datetime64[ns]")
 
     def test_pad_data_horizontally_bad_shape(self):
         """Test the error handling for the horizontal hrv padding."""
