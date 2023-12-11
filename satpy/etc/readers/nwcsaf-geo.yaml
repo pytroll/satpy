@@ -77,6 +77,11 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_cma
 
+  cma_quality:
+    name: cma_quality
+    resolution: 3000
+    file_type: nc_nwcsaf_cma
+
   cma_pal:
     name: cma_pal
     resolution: 3000
@@ -126,6 +131,11 @@ datasets:
 
   ct:
     name: ct
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_status_flag:
+    name: ct_status_flag
     resolution: 3000
     file_type: nc_nwcsaf_ct
 
