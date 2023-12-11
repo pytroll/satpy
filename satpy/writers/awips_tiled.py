@@ -630,7 +630,13 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    # NOTE: AWIPS is buggy and does not properly handle both
+    #   halves an integers data space. The below code limits
+    #   unsigned integers to the positive half and this seems
+    #   to work better with current AWIPS.
+    mx = (vmax - vmin) / (2 ** (bit_depth - 1) - 1 - num_fills)
+    # NOTE: This is what the line should look like if AWIPS wasn't buggy:
+    # mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
