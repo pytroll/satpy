@@ -66,7 +66,7 @@ import sys
 
 from pyproj import Proj
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name",
@@ -126,7 +126,7 @@ if __name__ == '__main__':
         " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
-    print('### ' + proj4_string)
+    print("### " + proj4_string)
     print()
     print(name + ":")
     print("  description: " + name)
@@ -146,14 +146,14 @@ if __name__ == '__main__':
         sys.exit(0)
     from PIL import Image
     from pycoast import ContourWriterAGG
-    img = Image.new('RGB', (xsize, ysize))
+    img = Image.new("RGB", (xsize, ysize))
 
     area_def = (proj4_string, area_extent)
     cw = ContourWriterAGG(args.shapes)
 
     cw.add_coastlines(img, (proj4_string, area_extent),
-                      resolution='l', width=0.5)
+                      resolution="l", width=0.5)
 
-    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline='white', outline_opacity=175,
-                width=1.0, minor_outline='white', minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
+    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline="white", outline_opacity=175,
+                width=1.0, minor_outline="white", minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
     img.show()

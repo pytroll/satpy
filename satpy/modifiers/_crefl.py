@@ -35,7 +35,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
     """
 
-    def __init__(self, *args, dem_filename=None, dem_sds="averaged elevation",
+    def __init__(self, *args, dem_filename=None, dem_sds="averaged elevation",  # noqa: D417
                  url=None, known_hash=None, **kwargs):
         """Initialize the compositor with values from the user or from the configuration file.
 
@@ -70,7 +70,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         if not self.url:
             return
         reg_files = self.register_data_files([{
-            'url': self.url, 'known_hash': self.known_hash}
+            "url": self.url, "known_hash": self.known_hash}
         ])
         return reg_files[0]
 

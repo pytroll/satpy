@@ -18,6 +18,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 import dask.array as da
@@ -69,7 +70,7 @@ def spy_decorator(method_to_decorate):
 
 
 def convert_file_content_to_data_array(file_content, attrs=tuple(),
-                                       dims=('z', 'y', 'x')):
+                                       dims=("z", "y", "x")):
     """Help old reader tests that still use numpy arrays.
 
     A lot of old reader tests still use numpy arrays and depend on the
@@ -98,8 +99,8 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
     for key, val in file_content.items():
         da_attrs = {}
         for a in attrs:
-            if key + '/attr/' + a in file_content:
-                da_attrs[a] = file_content[key + '/attr/' + a]
+            if key + "/attr/" + a in file_content:
+                da_attrs[a] = file_content[key + "/attr/" + a]
 
         if isinstance(val, np.ndarray):
             val = da.from_array(val, chunks=4096)
@@ -120,14 +121,14 @@ def _filter_datasets(all_ds, names_or_ids):
     str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
     id_filter = [ds_id for ds_id in names_or_ids if not isinstance(ds_id, str)]
     for ds_id in all_ds:
-        if ds_id in id_filter or ds_id['name'] in str_filter:
+        if ds_id in id_filter or ds_id["name"] in str_filter:
             yield ds_id
 
 
 def _swath_def_of_data_arrays(rows, cols):
     return SwathDefinition(
-        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
-        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
+        DataArray(da.zeros((rows, cols)), dims=("y", "x")),
+        DataArray(da.zeros((rows, cols)), dims=("y", "x")),
     )
 
 
@@ -136,14 +137,14 @@ class FakeModifier(ModifierBase):
 
     def _handle_res_change(self, datasets, info):
         # assume this is used on the 500m version of ds5
-        info['resolution'] = 250
+        info["resolution"] = 250
         rep_data_arr = datasets[0]
-        y_size = rep_data_arr.sizes['y']
-        x_size = rep_data_arr.sizes['x']
+        y_size = rep_data_arr.sizes["y"]
+        x_size = rep_data_arr.sizes["x"]
         data = da.zeros((y_size * 2, x_size * 2))
-        if isinstance(rep_data_arr.attrs['area'], SwathDefinition):
+        if isinstance(rep_data_arr.attrs["area"], SwathDefinition):
             area = _swath_def_of_data_arrays(y_size * 2, x_size * 2)
-            info['area'] = area
+            info["area"] = area
         else:
             raise NotImplementedError("'res_change' modifier can't handle "
                                       "AreaDefinition changes yet.")
@@ -151,20 +152,20 @@ class FakeModifier(ModifierBase):
 
     def __call__(self, datasets, optional_datasets=None, **kwargs):
         """Modify provided data depending on the modifier name and input data."""
-        if self.attrs['optional_prerequisites']:
-            for opt_dep in self.attrs['optional_prerequisites']:
-                opt_dep_name = opt_dep if isinstance(opt_dep, str) else opt_dep.get('name', '')
-                if 'NOPE' in opt_dep_name or 'fail' in opt_dep_name:
+        if self.attrs["optional_prerequisites"]:
+            for opt_dep in self.attrs["optional_prerequisites"]:
+                opt_dep_name = opt_dep if isinstance(opt_dep, str) else opt_dep.get("name", "")
+                if "NOPE" in opt_dep_name or "fail" in opt_dep_name:
                     continue
-                assert (optional_datasets is not None and
-                        len(optional_datasets))
-        resolution = datasets[0].attrs.get('resolution')
-        mod_name = self.attrs['modifiers'][-1]
+                assert optional_datasets is not None
+                assert len(optional_datasets)
+        resolution = datasets[0].attrs.get("resolution")
+        mod_name = self.attrs["modifiers"][-1]
         data = datasets[0].data
         i = datasets[0].attrs.copy()
-        if mod_name == 'res_change' and resolution is not None:
+        if mod_name == "res_change" and resolution is not None:
             data = self._handle_res_change(datasets, i)
-        elif 'incomp_areas' in mod_name:
+        elif "incomp_areas" in mod_name:
             raise IncompatibleAreas(
                 "Test modifier 'incomp_areas' always raises IncompatibleAreas")
         self.apply_modifier_info(datasets[0].attrs, i)
@@ -184,27 +185,27 @@ class FakeCompositor(GenericCompositor):
         if nonprojectables:
             self.match_data_arrays(nonprojectables)
         info = self.attrs.copy()
-        if self.attrs['name'] in ('comp14', 'comp26'):
+        if self.attrs["name"] in ("comp14", "comp26"):
             # used as a test when composites update the dataset id with
             # information from prereqs
-            info['resolution'] = 555
-        if self.attrs['name'] in ('comp24', 'comp25'):
+            info["resolution"] = 555
+        if self.attrs["name"] in ("comp24", "comp25"):
             # other composites that copy the resolution from inputs
-            info['resolution'] = projectables[0].attrs.get('resolution')
-        if len(projectables) != len(self.attrs['prerequisites']):
+            info["resolution"] = projectables[0].attrs.get("resolution")
+        if len(projectables) != len(self.attrs["prerequisites"]):
             raise ValueError("Not enough prerequisite datasets passed")
 
         info.update(kwargs)
         if projectables:
-            info['area'] = projectables[0].attrs['area']
+            info["area"] = projectables[0].attrs["area"]
             dim_sizes = projectables[0].sizes
         else:
             # static_image
-            dim_sizes = {'y': 4, 'x': 5}
-        return DataArray(data=da.zeros((dim_sizes['y'], dim_sizes['x'], 3)),
+            dim_sizes = {"y": 4, "x": 5}
+        return DataArray(data=da.zeros((dim_sizes["y"], dim_sizes["x"], 3)),
                          attrs=info,
-                         dims=['y', 'x', 'bands'],
-                         coords={'bands': ['R', 'G', 'B']})
+                         dims=["y", "x", "bands"],
+                         coords={"bands": ["R", "G", "B"]})
 
 
 class FakeFileHandler(BaseFileHandler):
@@ -228,21 +229,21 @@ class FakeFileHandler(BaseFileHandler):
     @property
     def sensor_names(self):
         """Get sensor name from filetype configuration."""
-        sensor = self.filetype_info.get('sensor', 'fake_sensor')
+        sensor = self.filetype_info.get("sensor", "fake_sensor")
         return {sensor}
 
     def get_dataset(self, data_id: DataID, ds_info: dict):
         """Get fake DataArray for testing."""
-        if data_id['name'] == 'ds9_fail_load':
+        if data_id["name"] == "ds9_fail_load":
             raise KeyError("Can't load '{}' because it is supposed to "
-                           "fail.".format(data_id['name']))
+                           "fail.".format(data_id["name"]))
         attrs = data_id.to_dict()
         attrs.update(ds_info)
-        attrs['sensor'] = self.filetype_info.get('sensor', 'fake_sensor')
-        attrs['platform_name'] = 'fake_platform'
-        attrs['start_time'] = self.start_time
-        attrs['end_time'] = self.end_time
-        res = attrs.get('resolution', 250)
+        attrs["sensor"] = self.filetype_info.get("sensor", "fake_sensor")
+        attrs["platform_name"] = "fake_platform"
+        attrs["start_time"] = self.start_time
+        attrs["end_time"] = self.end_time
+        res = attrs.get("resolution", 250)
         rows = cols = {
             250: 20,
             500: 10,
@@ -250,7 +251,7 @@ class FakeFileHandler(BaseFileHandler):
         }.get(res, 5)
         return DataArray(data=da.zeros((rows, cols)),
                          attrs=attrs,
-                         dims=['y', 'x'])
+                         dims=["y", "x"])
 
     def available_datasets(self, configured_datasets=None):
         """Report YAML datasets available unless 'not_available' is specified during creation."""
@@ -262,7 +263,7 @@ class FakeFileHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            ft_matches = self.file_type_matches(ds_info['file_type'])
+            ft_matches = self.file_type_matches(ds_info["file_type"])
             if not ft_matches:
                 yield None, ds_info
                 continue
@@ -407,3 +408,55 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
                 )
             except TypeError:
                 assert attrs[key] == attrs_exp[key], err_msg
+
+
+def assert_dict_array_equality(d1, d2):
+    """Check that dicts containing arrays are equal."""
+    assert set(d1.keys()) == set(d2.keys())
+    for key, val1 in d1.items():
+        val2 = d2[key]
+        compare_func = _compare_numpy_array if isinstance(val1, np.ndarray) else _compare_nonarray
+        compare_func(val1, val2)
+
+
+def _compare_numpy_array(val1: np.ndarray, val2: np.ndarray) -> None:
+    np.testing.assert_array_equal(val1, val2)
+    assert val1.dtype == val2.dtype
+
+
+def _compare_nonarray(val1: Any, val2: Any) -> None:
+    assert val1 == val2
+    if isinstance(val1, (np.floating, np.integer, np.bool_)):
+        assert isinstance(val2, np.generic)
+        assert val1.dtype == val2.dtype
+
+
+def xfail_skyfield_unstable_numpy2():
+    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
+    try:
+        import skyfield
+
+        # known numpy incompatibility:
+        from skyfield import timelib  # noqa
+    except ImportError:
+        skyfield = None
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return skyfield is None and is_np2 and is_unstable_ci
+
+
+def xfail_h5py_unstable_numpy2():
+    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
+    from packaging import version
+    try:
+        import h5py
+        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
+    except ImportError:
+        is_broken_h5py = True
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return is_broken_h5py and is_np2 and is_unstable_ci

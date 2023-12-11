@@ -105,13 +105,15 @@ composites:
 
   ndvi_hybrid_green:
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
     prerequisites:
     - name: B02
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     - name: B04
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, sunz_reduced]
     standard_name: toa_bidirectional_reflectance
 
   airmass:
@@ -275,10 +277,10 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     - name: ndvi_hybrid_green
     - name: B01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     high_resolution_band: red
     standard_name: true_color
 

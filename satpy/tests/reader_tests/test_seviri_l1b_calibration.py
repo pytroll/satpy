@@ -53,7 +53,7 @@ OFFSET = -10.456819486590666
 CAL_TYPE1 = 1
 CAL_TYPE2 = 2
 CAL_TYPEBAD = -1
-CHANNEL_NAME = 'IR_108'
+CHANNEL_NAME = "IR_108"
 PLATFORM_ID = 323  # Met-10
 
 TBS_OUTPUT1 = xr.DataArray(
@@ -117,20 +117,20 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
         """Test the conversion from counts to radiances."""
         result = self.algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
         xr.testing.assert_allclose(result, RADIANCES_OUTPUT)
-        self.assertEqual(result.dtype, np.float32)
+        assert result.dtype == np.float32
 
     def test_ir_calibrate(self):
         """Test conversion from radiance to brightness temperature."""
         result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
                                         CHANNEL_NAME, CAL_TYPE1)
         xr.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
-        self.assertEqual(result.dtype, np.float32)
+        assert result.dtype == np.float32
 
         result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
                                         CHANNEL_NAME, CAL_TYPE2)
         xr.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, CAL_TYPEBAD)
 
     def test_vis_calibrate(self):
@@ -138,8 +138,8 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
         result = self.algo.vis_calibrate(VIS008_RADIANCE,
                                          VIS008_SOLAR_IRRADIANCE)
         xr.testing.assert_allclose(result, VIS008_REFLECTANCE)
-        self.assertTrue(result.sun_earth_distance_correction_applied)
-        self.assertEqual(result.dtype, np.float32)
+        assert result.sun_earth_distance_correction_applied
+        assert result.dtype == np.float32
 
 
 class TestSeviriCalibrationHandler:
@@ -147,33 +147,33 @@ class TestSeviriCalibrationHandler:
 
     def test_init(self):
         """Test initialization of the calibration handler."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid calibration mode: INVALID. Choose one of (.*)"):
             SEVIRICalibrationHandler(
                 platform_id=None,
                 channel_name=None,
                 coefs=None,
-                calib_mode='invalid',
+                calib_mode="invalid",
                 scan_time=None
             )
 
-    def _get_calibration_handler(self, calib_mode='NOMINAL', ext_coefs=None):
+    def _get_calibration_handler(self, calib_mode="NOMINAL", ext_coefs=None):
         """Provide a calibration handler."""
         return SEVIRICalibrationHandler(
             platform_id=324,
-            channel_name='IR_108',
+            channel_name="IR_108",
             coefs={
-                'coefs': {
-                    'NOMINAL': {
-                        'gain': 10,
-                        'offset': -1
+                "coefs": {
+                    "NOMINAL": {
+                        "gain": 10,
+                        "offset": -1
                     },
-                    'GSICS': {
-                        'gain': 20,
-                        'offset': -2
+                    "GSICS": {
+                        "gain": 20,
+                        "offset": -2
                     },
-                    'EXTERNAL': ext_coefs or {}
+                    "EXTERNAL": ext_coefs or {}
                 },
-                'radiance_type': 1
+                "radiance_type": 1
             },
             calib_mode=calib_mode,
             scan_time=None
@@ -182,16 +182,16 @@ class TestSeviriCalibrationHandler:
     def test_calibrate_exceptions(self):
         """Test exceptions raised by the calibration handler."""
         calib = self._get_calibration_handler()
-        with pytest.raises(ValueError):
-            calib.calibrate(None, 'invalid')
+        with pytest.raises(ValueError, match="Invalid calibration invalid for channel IR_108"):
+            calib.calibrate(None, "invalid")
 
     @pytest.mark.parametrize(
-        ('calib_mode', 'ext_coefs', 'expected'),
+        ("calib_mode", "ext_coefs", "expected"),
         [
-            ('NOMINAL', {}, (10, -1)),
-            ('GSICS', {}, (20, -40)),
-            ('GSICS', {'gain': 30, 'offset': -3}, (30, -3)),
-            ('NOMINAL', {'gain': 30, 'offset': -3}, (30, -3))
+            ("NOMINAL", {}, (10, -1)),
+            ("GSICS", {}, (20, -40)),
+            ("GSICS", {"gain": 30, "offset": -3}, (30, -3)),
+            ("NOMINAL", {"gain": 30, "offset": -3}, (30, -3))
         ]
     )
     def test_get_gain_offset(self, calib_mode, ext_coefs, expected):
@@ -214,145 +214,145 @@ class TestFileHandlerCalibrationBase:
     radiance_types = 2 * np.ones(12)
     scan_time = datetime(2020, 1, 1)
     external_coefs = {
-        'VIS006': {'gain': 10, 'offset': -10},
-        'IR_108': {'gain': 20, 'offset': -20},
-        'HRV': {'gain': 5, 'offset': -5}
+        "VIS006": {"gain": 10, "offset": -10},
+        "IR_108": {"gain": 20, "offset": -20},
+        "HRV": {"gain": 5, "offset": -5}
     }
-    spectral_channel_ids = {'VIS006': 1, 'IR_108': 9, 'HRV': 12}
+    spectral_channel_ids = {"VIS006": 1, "IR_108": 9, "HRV": 12}
     expected = {
-        'VIS006': {
-            'counts': {
-                'NOMINAL': xr.DataArray(
+        "VIS006": {
+            "counts": {
+                "NOMINAL": xr.DataArray(
                     [[0, 10],
                      [100, 255]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'radiance': {
-                'NOMINAL': xr.DataArray(
+            "radiance": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 9],
                      [99, 254]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'GSICS': xr.DataArray(
+                "GSICS": xr.DataArray(
                     [[np.nan, 9],
                      [99, 254]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 90],
                      [990, 2540]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'reflectance': {
-                'NOMINAL': xr.DataArray(
+            "reflectance": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 41.88985],
                      [460.7884, 1182.2247]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 418.89853],
                      [4607.8843, 11822.249]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             }
         },
-        'IR_108': {
-            'counts': {
-                'NOMINAL': xr.DataArray(
+        "IR_108": {
+            "counts": {
+                "NOMINAL": xr.DataArray(
                     [[0, 10],
                      [100, 255]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'radiance': {
-                'NOMINAL': xr.DataArray(
+            "radiance": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 81],
                      [891, 2286]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'GSICS': xr.DataArray(
+                "GSICS": xr.DataArray(
                     [[np.nan, 8.19],
                      [89.19, 228.69]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 180],
                      [1980, 5080]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'brightness_temperature': {
-                'NOMINAL': xr.DataArray(
+            "brightness_temperature": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 279.82318],
                      [543.2585, 812.77167]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'GSICS': xr.DataArray(
+                "GSICS": xr.DataArray(
                     [[np.nan, 189.20985],
                      [285.53293, 356.06668]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 335.14236],
                      [758.6249, 1262.7567]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
             }
         },
-        'HRV': {
-            'counts': {
-                'NOMINAL': xr.DataArray(
+        "HRV": {
+            "counts": {
+                "NOMINAL": xr.DataArray(
                     [[0, 10],
                      [100, 255]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'radiance': {
-                'NOMINAL': xr.DataArray(
+            "radiance": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 108],
                      [1188, 3048]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'GSICS': xr.DataArray(
+                "GSICS": xr.DataArray(
                     [[np.nan, 108],
                      [1188, 3048]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 45],
                      [495, 1270]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             },
-            'reflectance': {
-                'NOMINAL': xr.DataArray(
+            "reflectance": {
+                "NOMINAL": xr.DataArray(
                     [[np.nan, 415.26767],
                      [4567.944, 11719.775]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 ),
-                'EXTERNAL': xr.DataArray(
+                "EXTERNAL": xr.DataArray(
                     [[np.nan, 173.02817],
                      [1903.31, 4883.2397]],
-                    dims=('y', 'x')
+                    dims=("y", "x")
                 )
             }
         }
     }
 
-    @pytest.fixture(name='counts')
+    @pytest.fixture(name="counts")
     def counts(self):
         """Provide fake image counts."""
         return xr.DataArray(
             [[0, 10],
              [100, 255]],
-            dims=('y', 'x')
+            dims=("y", "x")
         )
 
     def _get_expected(
             self, channel, calibration, calib_mode, use_ext_coefs
     ):
         if use_ext_coefs:
-            return self.expected[channel][calibration]['EXTERNAL']
+            return self.expected[channel][calibration]["EXTERNAL"]
         return self.expected[channel][calibration][calib_mode]

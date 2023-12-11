@@ -45,33 +45,33 @@ VALUES_PER_SCAN_LINE = 120
 # Epoch for the dates
 EPOCH = dt.datetime(2000, 1, 1)
 
-SHORT_NAMES = {'M01': 'Metop-B',
-               'M02': 'Metop-A',
-               'M03': 'Metop-C'}
+SHORT_NAMES = {"M01": "Metop-B",
+               "M02": "Metop-A",
+               "M03": "Metop-C"}
 
-DSET_NAMES = {'ozone_mixing_ratio': 'O',
-              'ozone_mixing_ratio_quality': 'QO',
-              'pressure': 'P',
-              'pressure_quality': 'QP',
-              'temperature': 'T',
-              'temperature_quality': 'QT',
-              'water_mixing_ratio': 'W',
-              'water_mixing_ratio_quality': 'QW',
-              'water_total_column': 'WC',
-              'ozone_total_column': 'OC',
-              'surface_skin_temperature': 'Ts',
-              'surface_skin_temperature_quality': 'QTs',
-              'emissivity': 'E',
-              'emissivity_quality': 'QE'}
+DSET_NAMES = {"ozone_mixing_ratio": "O",
+              "ozone_mixing_ratio_quality": "QO",
+              "pressure": "P",
+              "pressure_quality": "QP",
+              "temperature": "T",
+              "temperature_quality": "QT",
+              "water_mixing_ratio": "W",
+              "water_mixing_ratio_quality": "QW",
+              "water_total_column": "WC",
+              "ozone_total_column": "OC",
+              "surface_skin_temperature": "Ts",
+              "surface_skin_temperature_quality": "QTs",
+              "emissivity": "E",
+              "emissivity_quality": "QE"}
 
-GEO_NAMES = {'latitude': 'Latitude',
-             'longitude': 'Longitude',
-             'satellite_azimuth_angle': 'SatAzimuth',
-             'satellite_zenith_angle': 'SatZenith',
-             'sensing_time': {'day': 'SensingTime_day',
-                              'msec': 'SensingTime_msec'},
-             'solar_azimuth_angle': 'SunAzimuth',
-             'solar_zenith_angle': 'SunZenith'}
+GEO_NAMES = {"latitude": "Latitude",
+             "longitude": "Longitude",
+             "satellite_azimuth_angle": "SatAzimuth",
+             "satellite_zenith_angle": "SatZenith",
+             "sensing_time": {"day": "SensingTime_day",
+                              "msec": "SensingTime_msec"},
+             "solar_azimuth_angle": "SunAzimuth",
+             "solar_zenith_angle": "SunZenith"}
 
 
 LOGGER = logging.getLogger(__name__)
@@ -88,51 +88,51 @@ class IASIL2HDF5(BaseFileHandler):
         self.finfo = filename_info
         self.lons = None
         self.lats = None
-        self.sensor = 'iasi'
+        self.sensor = "iasi"
 
         self.mda = {}
-        short_name = filename_info['platform_id']
-        self.mda['platform_name'] = SHORT_NAMES.get(short_name, short_name)
-        self.mda['sensor'] = 'iasi'
+        short_name = filename_info["platform_id"]
+        self.mda["platform_name"] = SHORT_NAMES.get(short_name, short_name)
+        self.mda["sensor"] = "iasi"
 
     @property
     def start_time(self):
         """Get the start time."""
-        return self.finfo['start_time']
+        return self.finfo["start_time"]
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = dt.datetime.combine(self.start_time.date(),
-                                       self.finfo['end_time'].time())
+                                       self.finfo["end_time"].time())
         if end_time < self.start_time:
             end_time += dt.timedelta(days=1)
         return end_time
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        with h5py.File(self.filename, 'r') as fid:
-            LOGGER.debug('Reading %s.', key['name'])
-            if key['name'] in DSET_NAMES:
+        with h5py.File(self.filename, "r") as fid:
+            LOGGER.debug("Reading %s.", key["name"])
+            if key["name"] in DSET_NAMES:
                 m_data = read_dataset(fid, key)
             else:
                 m_data = read_geo(fid, key)
         m_data.attrs.update(info)
-        m_data.attrs['sensor'] = self.sensor
+        m_data.attrs["sensor"] = self.sensor
 
         return m_data
 
 
 def read_dataset(fid, key):
     """Read dataset."""
-    dsid = DSET_NAMES[key['name']]
+    dsid = DSET_NAMES[key["name"]]
     dset = fid["/PWLR/" + dsid]
     if dset.ndim == 3:
-        dims = ['y', 'x', 'level']
+        dims = ["y", "x", "level"]
     else:
-        dims = ['y', 'x']
+        dims = ["y", "x"]
     data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
-                        name=key['name'], dims=dims).astype(np.float32)
+                        name=key["name"], dims=dims).astype(np.float32)
     data = xr.where(data > 1e30, np.nan, data)
 
     dset_attrs = dict(dset.attrs)
@@ -143,9 +143,9 @@ def read_dataset(fid, key):
 
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
-    dsid = GEO_NAMES[key['name']]
+    dsid = GEO_NAMES[key["name"]]
     add_epoch = False
-    if "time" in key['name']:
+    if "time" in key["name"]:
         days = fid["/L1C/" + dsid["day"]][()]
         msecs = fid["/L1C/" + dsid["msec"]][()]
         data = _form_datetimes(days, msecs)
@@ -155,10 +155,10 @@ def read_geo(fid, key):
         data = fid["/L1C/" + dsid][()]
         dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key['name'], dims=['y', 'x']).astype(dtype)
+                        name=key["name"], dims=["y", "x"]).astype(dtype)
 
     if add_epoch:
-        data.attrs['sensing_time_epoch'] = EPOCH
+        data.attrs["sensing_time_epoch"] = EPOCH
 
     return data
 
