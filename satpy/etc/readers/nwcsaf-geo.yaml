@@ -689,11 +689,13 @@ datasets:
     file_type: nc_nwcsaf_rdt
 
 # ----ASII products in multiple files ------------
+  # until v2018
   asii_turb_trop_prob:
     name: asii_turb_trop_prob
     resolution: 3000
     file_type: [nc_nwcsaf_asii_tf, nc_nwcsaf_asii]
 
+  # until v2018
   asii_turb_prob_pal:
     name: asii_turb_prob_pal
     resolution: 3000
@@ -701,6 +703,24 @@ datasets:
 
 # ----ASII-TF product ------------
 
+  # v2021 onwards
+  asiitf_prob:
+    name: asiitf_prob
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_tf
+
+  # v2021 onwards
+  asiitf_prob_pal:
+    name: asiitf_prob_pal
+    file_type: nc_nwcsaf_asii_tf
+
+  # v2021 onwards
+  asiitf_status_flag:
+    name: asiitf_status_flag
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_tf
+
+  # until v2018
   asii_turb_prob_status_flag:
     name: asii_turb_trop_prob_status_flag
     resolution: 3000
@@ -718,11 +738,30 @@ datasets:
 
 # ----ASII-GW product ------------
 
+  # v2021 onwards
+  asiigw_wv_prob:
+    name: asiigw_wv_prob
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  # v2021 onwards
+  asiigw_status_flag:
+    name: asiigw_status_flag
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  # v2021 onwards
+  asiigw_wv_prob_pal:
+    name: asiigw_wv_prob_pal
+    file_type: nc_nwcsaf_asii_gw
+
+  # until v2018
   asii_turb_wave_prob:
     name: asii_turb_wave_prob
     resolution: 3000
     file_type: nc_nwcsaf_asii_gw
 
+  # until v2018
   asii_turb_wave_prob_status_flag:
     name: asii_turb_wave_prob_status_flag
     resolution: 3000
