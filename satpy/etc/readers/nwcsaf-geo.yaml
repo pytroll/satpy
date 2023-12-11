@@ -380,7 +380,7 @@ datasets:
     file_type: nc_nwcsaf_crr-ph
 
   crrph_pal:
-    name: crrph_intensity_pal
+    name: crrph_pal
     resolution: 3000
     file_type: nc_nwcsaf_crr-ph
 
@@ -400,7 +400,7 @@ datasets:
     file_type: nc_nwcsaf_crr-ph
 
   crrph_status_flag:
-    name: crrph_status
+    name: crrph_status_flag
     resolution: 3000
     file_type: nc_nwcsaf_crr-ph
 
