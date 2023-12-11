@@ -566,9 +566,9 @@ def _should_use_compression_keyword():
     # xarray currently ignores the "compression" keyword, see
     # https://github.com/pydata/xarray/issues/7388. There's already an open
     # PR, so we assume that this will be fixed in the next minor release
-    # (current release is 2023.12). If not, tests will fail and remind us.
+    # (current release is 2023.02). If not, tests will fail and remind us.
     versions = _get_backend_versions()
     return (
         versions["libnetcdf"] >= Version("4.9.0") and
-        versions["xarray"] >= Version("2024.02")
+        versions["xarray"] >= Version("2023.12")
     )
