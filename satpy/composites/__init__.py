@@ -204,7 +204,7 @@ class CompositeBase:
                     if coord not in ds.dims and
                     any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
-                new_arrays.append(ds.drop(drop))
+                new_arrays.append(ds.drop_vars(drop))
             else:
                 new_arrays.append(ds)
 
