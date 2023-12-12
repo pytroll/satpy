@@ -48,7 +48,6 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
     """
     import dask.array as da
     from pyresample.geometry import AreaDefinition, SwathDefinition
-    from pyresample.utils import proj4_str_to_dict
     from xarray import DataArray
     ds1 = DataArray(da.zeros(input_shape, chunks=85),
                     dims=input_dims,
@@ -62,16 +61,16 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
 
     input_proj_str = ("+proj=geos +lon_0=-95.0 +h=35786023.0 +a=6378137.0 "
                       "+b=6356752.31414 +sweep=x +units=m +no_defs")
+    crs = CRS(input_proj_str)
     source = AreaDefinition(
         "test_target",
         "test_target",
         "test_target",
-        proj4_str_to_dict(input_proj_str),
+        crs,
         input_shape[1],  # width
         input_shape[0],  # height
         (-1000., -1500., 1000., 1500.))
     ds1.attrs["area"] = source
-    crs = CRS.from_string(input_proj_str)
     ds1 = ds1.assign_coords(crs=crs)
 
     ds2 = ds1.copy()
@@ -95,7 +94,7 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
         "test_target",
         "test_target",
         "test_target",
-        proj4_str_to_dict(output_proj_str),
+        CRS(output_proj_str),
         output_shape[1],  # width
         output_shape[0],  # height
         (-1000., -1500., 1000., 1500.),
