@@ -534,9 +534,9 @@ class TestFciL2NCAMVFileHandler(unittest.TestCase):
             qi = nc.createVariable("product_quality", np.int8)
             qi[:] = 99.
 
-            test_dataset = nc.createVariable("test_one_layer", np.float32,
+            test_dataset = nc.createVariable("test_dataset", np.float32,
                                                   dimensions="number_of_winds")
-            test_dataset[:] = np.ones((50000))
+            test_dataset[:] = np.ones(50000)
             test_dataset.test_attr = "attr"
             test_dataset.units = "test_units"
 
@@ -581,8 +581,7 @@ class TestFciL2NCAMVFileHandler(unittest.TestCase):
                                        "file_key": "test_dataset",
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
-
-        np.testing.assert_allclose(dataset.values, np.ones((50000)))
+        np.testing.assert_allclose(dataset.values, np.ones(50000))
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["units"] == "test_units"
         assert dataset.attrs["fill_value"] == -999
