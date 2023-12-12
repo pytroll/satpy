@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.composites.spectral import GreenCorrector, HybridGreen, NDVIHybridGreen, SpectralBlender
+from satpy.composites.spectral import HybridGreen, NDVIHybridGreen, SpectralBlender
 from satpy.tests.utils import CustomScheduler
 
 
@@ -63,18 +63,6 @@ class TestSpectralComposites:
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
         assert res.attrs["name"] == "hybrid_green"
-        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
-        data = res.compute()
-        np.testing.assert_allclose(data, 0.23)
-
-    def test_green_corrector(self):
-        """Test the deprecated class for green corrections."""
-        comp = GreenCorrector("blended_channel", fractions=(0.85, 0.15), prerequisites=(0.51, 0.85),
-                              standard_name="toa_bidirectional_reflectance")
-        res = comp((self.c01, self.c03))
-        assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array)
-        assert res.attrs["name"] == "blended_channel"
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.compute()
         np.testing.assert_allclose(data, 0.23)
