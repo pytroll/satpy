@@ -18,9 +18,9 @@
 import logging
 from contextlib import suppress
 
+import netCDF4
 import numpy as np
 import xarray as xr
-import netCDF4
 from pyresample import geometry
 
 from satpy._compat import cached_property
@@ -92,22 +92,29 @@ class FciL2CommonFunctions(object):
             variable = variable.rename({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
+        if "unit" in variable.attrs:
+            # Need to convert this attribute to the expected satpy entry
+            variable.attrs.update({"units": variable.attrs["unit"]})
+            del variable.attrs["unit"]
+
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
-        
-        if ('import_enum_information' in dataset_info):
-            if (dataset_info['import_enum_information']):
-                netCDF4_dataset = netCDF4.Dataset(self.filename, 'r')
-                # This currently assumes a flat netCDF file
-                enum = netCDF4_dataset.variables[dataset_info['file_key']].datatype.enum_dict
+
+        import_enum_information = dataset_info.get("import_enum_information", False)
+        if (import_enum_information):
+            netCDF4_dataset = netCDF4.Dataset(self.filename, "r")
+            # This currently assumes a flat netCDF file
+            dataType=netCDF4_dataset.variables[dataset_info["file_key"]].datatype
+            if (hasattr(dataType,"enum_dict")):
+                enum = dataType.enum_dict
                 flag_values = []
                 flag_meanings = []
                 for item in enumerate(enum):
                     flag_values.append(item[0])
                     flag_meanings.append(item[1])
-                
-                variable.attrs['flag_values'] = flag_values
-                variable.attrs['flag_meanings'] = flag_meanings
+
+                variable.attrs["flag_values"] = flag_values
+                variable.attrs["flag_meanings"] = flag_meanings
                 netCDF4_dataset.close()
 
         return variable

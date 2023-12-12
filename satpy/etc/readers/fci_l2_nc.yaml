@@ -1194,7 +1194,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 15
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Opaqueness undetected','Opaqueness detected']
     standard_name: status_flag
 
   cloud_test_cmrt1:
@@ -1214,7 +1214,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 17
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Clear unchanged','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmrt3:
@@ -1224,7 +1224,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 18
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Clear unchanged','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmrt4:
@@ -1234,7 +1234,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 19
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Clear unchanged','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmrt5:
@@ -1244,7 +1244,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 20
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Cloud undetected','Cloud unchanged']
     standard_name: status_flag
 
   cloud_test_dust:
@@ -1254,7 +1254,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 21
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Dust undetected','Dust detected']
     standard_name: status_flag
 
   cloud_test_ash:
@@ -1264,7 +1264,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 22
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Ash undetected','Ash detected']
     standard_name: status_flag
 
   cloud_test_dust_ash:
@@ -1274,7 +1274,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 23
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Dust detected','Ash detected']
     standard_name: status_flag
 
   cloud_test_cmrt6:
@@ -1285,24 +1285,6 @@ datasets:
     fill_value: -127
     standard_name: status_flag
     import_enum_information: True
-
-  product_quality_clmtest:
-    name: product_quality_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness_clmtest:
-    name: product_completeness_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness_clmtest:
-    name: product_timeliness_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_timeliness
-    standard_name: product_timeliness
 
   # ASR
   radiance_min:
