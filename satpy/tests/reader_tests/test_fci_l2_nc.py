@@ -29,7 +29,7 @@ import pytest
 from netCDF4 import Dataset
 from pyresample import geometry
 
-from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler
+from satpy.readers.fci_l2_nc import FciL2NCAMVFileHandler, FciL2NCFileHandler, FciL2NCSegmentFileHandler
 from satpy.tests.utils import make_dataid
 
 AREA_DEF = geometry.AreaDefinition(
@@ -507,3 +507,82 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 })
 
         assert dataset.values == 0
+
+class TestFciL2NCAMVFileHandler(unittest.TestCase):
+    """Test the FciL2NCFileHandler reader."""
+
+    def setUp(self):
+        """Set up the test by creating a test file and opening it with the reader."""
+        # Easiest way to test the reader is to create a test netCDF file on the fly
+        # Create unique filenames to prevent race conditions when tests are run in parallel
+        self.test_file = str(uuid.uuid4()) + ".nc"
+        with Dataset(self.test_file, "w") as nc:
+            # Create dimensions
+            nc.createDimension("number_of_winds", 50000)
+
+            # add global attributes
+            nc.data_source = "test_data_source"
+            nc.platform = "test_platform"
+
+            # Add datasets
+            latitude = nc.createVariable("latitude", np.float32, dimensions=("number_of_winds",))
+            latitude[:] = np.arange(50000)
+
+            longitude = nc.createVariable("y", np.float32, dimensions=("number_of_winds",))
+            longitude[:] = np.arange(50000)
+
+            qi = nc.createVariable("product_quality", np.int8)
+            qi[:] = 99.
+
+            test_dataset = nc.createVariable("test_one_layer", np.float32,
+                                                  dimensions="number_of_winds")
+            test_dataset[:] = np.ones((50000))
+            test_dataset.test_attr = "attr"
+            test_dataset.units = "test_units"
+
+            mtg_geos_projection = nc.createVariable("mtg_geos_projection", int, dimensions=())
+            mtg_geos_projection.longitude_of_projection_origin = 0.0
+            mtg_geos_projection.semi_major_axis = 6378137.
+            mtg_geos_projection.inverse_flattening = 298.257223563
+            mtg_geos_projection.perspective_point_height = 35786400.
+
+        self.fh = FciL2NCAMVFileHandler(filename=self.test_file,
+                                        filename_info={"channel":"test_channel"},
+                                        filetype_info={})
+
+    def tearDown(self):
+        """Remove the previously created test file."""
+        # First delete the file handler, forcing the file to be closed if still open
+        del self.fh
+        # Then we can safely remove the file from the system
+        with suppress(OSError):
+            os.remove(self.test_file)
+
+    def test_all_basic(self):
+        """Test all basic functionalities."""
+        assert self.fh.spacecraft_name == "test_platform"
+        assert self.fh.sensor_name == "test_data_source"
+        assert self.fh.ssp_lon == 0.0
+
+        global_attributes = self.fh._get_global_attributes()
+        expected_global_attributes = {
+            "filename": self.test_file,
+            "spacecraft_name": "test_platform",
+            "sensor": "test_data_source",
+            "platform_name": "test_platform",
+            "channel": "test_channel"
+        }
+        assert global_attributes == expected_global_attributes
+
+    def test_dataset(self):
+        """Test the correct execution of the get_dataset function with a valid file_key."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_dataset", resolution=2000),
+                                      {"name": "test_dataset",
+                                       "file_key": "test_dataset",
+                                       "fill_value": -999,
+                                       "file_type": "test_file_type"})
+
+        np.testing.assert_allclose(dataset.values, np.ones((50000)))
+        assert dataset.attrs["test_attr"] == "attr"
+        assert dataset.attrs["units"] == "test_units"
+        assert dataset.attrs["fill_value"] == -999
