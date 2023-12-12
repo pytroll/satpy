@@ -585,3 +585,12 @@ class TestFciL2NCAMVFileHandler(unittest.TestCase):
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["units"] == "test_units"
         assert dataset.attrs["fill_value"] == -999
+
+    def test_dataset_with_invalid_filekey(self):
+         """Test the correct execution of the get_dataset function with an invalid file_key."""
+         invalid_dataset = self.fh.get_dataset(make_dataid(name="test_invalid", resolution=2000),
+                                               {"name": "test_invalid",
+                                                "file_key": "test_invalid",
+                                                "fill_value": -999,
+                                                "file_type": "test_file_type"})
+         assert invalid_dataset is None
