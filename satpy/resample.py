@@ -154,7 +154,7 @@ import zarr
 from packaging import version
 from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
 from pyresample.geometry import SwathDefinition
-from pyresample.gradient import GradientSearchResampler
+from pyresample.gradient import create_gradient_search_resampler
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
 from satpy._config import config_search_paths, get_config_path
@@ -1009,7 +1009,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
-              "gradient_search": GradientSearchResampler,
+              "gradient_search": create_gradient_search_resampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
