@@ -61,10 +61,10 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("1970-01-01 00:30"),
-                    np.datetime64("1970-01-01 00:30"),
-                    np.datetime64("1970-01-01 02:30"),
-                    np.datetime64("1970-01-01 02:30")]
+acq_time_vis_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 vis_counts_exp = xr.DataArray(
     np.array(
         [[0., 17., 34., 51.],
@@ -124,8 +124,8 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30"),
-                      np.datetime64("1970-01-01 02:30")]
+acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                      np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
         [[0, 85],
@@ -277,7 +277,8 @@ def fixture_fake_dataset():
             dtype=np.uint8
         )
     )
-    time = np.arange(4).astype("datetime64[h]").reshape(2, 2)
+    time = np.arange(4) * 60 * 60 * 1e9
+    time = time.astype("datetime64[ns]").reshape(2, 2)
     ds = xr.Dataset(
         data_vars={
             "count_vis": (("y", "x"), count_vis),
