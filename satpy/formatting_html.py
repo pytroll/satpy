@@ -60,7 +60,7 @@ body.vscode-dark {
   padding: 0 !important;
   display: grid;
   grid-template-columns: 20px 20px 150px auto 20px 20px;
-  width: 1000px;
+  width: 900px;
 }
 
 .satpy-section-name {
@@ -434,6 +434,7 @@ def collapsible_section_satpy(name, inline_details="", details="", n_items=None,
       n_items (int): Number of items in this section.
       enabled (boolean): Is collapsing enabled. Default True.
       collapsed (boolean): Is the section collapsed on first show. Default False.
+      icon (str): Name of the icon to use for the section.
 
     Returns:
       str: Html div structure for collapsible section.
@@ -537,7 +538,7 @@ def resolution_section(projection, datasets):
             )
 
     for res, ds in by_resolution.items():
-        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in ds if i.attrs.get('area') is not None}
+        ds_dict = {i.attrs["name"]: i.rename(i.attrs["name"]) for i in ds if i.attrs.get("area") is not None}
         dss = xr.merge(ds_dict.values(), compat="override")
         html += xarray_dataset_repr(dss, "Resolution (x/y): {}".format(res))
 
@@ -553,7 +554,7 @@ def scene_repr(scene):
     Returns:
         str: Html str
 
-    TODO:
+    Todo:
         - streamline loading and combining of css styles. Move _load_static_files function into pyresample
         - display combined numer of datasets, area name, projection, extent, sensor, start/end time after object type?
         - drop "unecessary" attributes from the datasets?
@@ -603,11 +604,12 @@ def xarray_dataset_repr(dataset, ds_name):
                                       max_items_collapse=15, expand_option_name="display_expand_data_vars")
 
     ds_list = ("<div class='satpy-scene-section-datasets'>"
-               "<div class='xr-wrap' style='display:none'>"
+               # "<div class='xr-wrap' style='display:none'>"
                f"<ul class='xr-sections'>"
                f"<li class='xr-section-item'>{data_variables}</li>"
-               "</ul></div>"
+               "</ul>"
                "</div>"
+               # "</div>"
                )
 
     return ds_list
