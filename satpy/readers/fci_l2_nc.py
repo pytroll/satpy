@@ -419,25 +419,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
                 "number_of_winds": CHUNK_SIZE
             }
         )
-    @property
-    def spacecraft_name(self):
-        """Get spacecraft name."""
-        try:
-            return self.nc.attrs["platform"]
-        except KeyError:
-            # TODO if the platform attribute is not valid, return a default value
-            logger.warning("Spacecraft name cannot be obtained from file content, use default value instead")
-            return "MTI1"
-
-    @property
-    def sensor_name(self):
-        """Get instrument name."""
-        try:
-            return self.nc.attrs["data_source"]
-        except KeyError:
-            # TODO if the data_source attribute is not valid, return a default value
-            logger.warning("Sensor cannot be obtained from file content, use default value instead")
-            return "FCI"
 
     def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets.
