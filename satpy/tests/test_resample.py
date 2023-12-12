@@ -247,8 +247,12 @@ class TestNativeResampler:
         into that chunk size.
 
         """
+        from satpy.utils import PerformanceWarning
+
         d_arr = da.zeros((6, 20), chunks=3)
-        new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
+        with pytest.warns(PerformanceWarning, match=text):
+            new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
         assert new_data.shape == (3, 10)
 
     def test_expand_reduce_numpy(self):
