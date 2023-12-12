@@ -1169,7 +1169,20 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     field which will be used if ``expected_segments`` is not defined. This
     will default to 1 segment.
 
+    This reader uses an optional ``preload`` keyword argument that can be
+    passed to :meth:`Scene.__init__`.  This argument is intended for near real
+    time processing.  When only one segment has arrived, the user can create a
+    scene using this one segment and ``preload=True``, and Satpy will populate
+    a scene based on all expected segments with dask delayed objects.  When
+    computing the dask graphs, satpy will process each segment as soon as it
+    comes in, strongly reducing the timeliness for processing a full disc
+    image.  As of Satpy 0.47, this feature is experimental.  Use at own risk.
     """
+
+    def __init__(self, *args, **kwargs):
+        """Initialise object."""
+        self.preload = kwargs.pop("preload", False)
+        super().__init__(*args, **kwargs)
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each.
@@ -1331,6 +1344,17 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
 
         return new_height_proj_coord, new_height_px
+
+    def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
+        for (i, fh) in enumerate(super()._new_filehandler_instances(
+                filetype_info, filename_items, fh_kwargs=fh_kwargs)):
+            yield fh
+        if self.preload:
+            if i < fh.filetype_info["expected_segments"]:
+                yield from self._new_preloaded_filehandler_instances()
+
+    def _new_preloaded_filehandler_instances(self):
+        raise NotImplementedError("Pre-loading not implemented yet")
 
 
 def _stack_area_defs(area_def_dict):
