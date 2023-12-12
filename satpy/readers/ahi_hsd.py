@@ -419,12 +419,12 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"][0]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"].item()))
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"][0]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
 
     @property
     def nominal_start_time(self):
