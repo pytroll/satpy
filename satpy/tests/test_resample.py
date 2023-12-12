@@ -581,16 +581,9 @@ class TestBucketAvg(unittest.TestCase):
         res = self._compute_mocked_bucket_avg(data, return_data=data[0, :, :], fill_value=2)
         assert res.shape == (3, 5, 5)
 
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
         data = da.ones((5,))
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            skipna=True)
 
         self._compute_mocked_bucket_avg(data, fill_value=2, skipna=False)
         self.bucket.resampler.get_average.assert_called_once_with(
@@ -603,35 +596,6 @@ class TestBucketAvg(unittest.TestCase):
             data,
             fill_value=2,
             skipna=True)
-
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", False)
-    def test_compute_and_not_use_skipna_handling(self):
-        """Test bucket resampler computation and not use skipna handling."""
-        data = da.ones((5,))
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=True)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=False)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, skipna=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
 
     @mock.patch("pyresample.bucket.BucketResampler")
     def test_resample(self, pyresample_bucket):
@@ -712,15 +676,9 @@ class TestBucketSum(unittest.TestCase):
         res = self._compute_mocked_bucket_sum(data, return_data=data[0, :, :])
         assert res.shape == (3, 5, 5)
 
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
         data = da.ones((5,))
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            skipna=True)
 
         self._compute_mocked_bucket_sum(data, skipna=False)
         self.bucket.resampler.get_sum.assert_called_once_with(
@@ -731,32 +689,6 @@ class TestBucketSum(unittest.TestCase):
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
             skipna=True)
-
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", False)
-    def test_compute_and_not_use_skipna_handling(self):
-        """Test bucket resampler computation and not use skipna handling."""
-        data = da.ones((5,))
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=True)
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=False)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_sum(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_sum(data, fill_value=2, skipna=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
 
 
 class TestBucketCount(unittest.TestCase):
