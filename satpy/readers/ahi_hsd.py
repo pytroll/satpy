@@ -419,12 +419,12 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"].item()))
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
 
     @property
     def nominal_start_time(self):
@@ -498,8 +498,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict["h"] = float(self.proj_info["distance_from_earth_center"] * 1000 - pdict["a"])
         pdict["b"] = float(self.proj_info["earth_polar_radius"] * 1000)
         pdict["ssp_lon"] = float(self.proj_info["sub_lon"])
-        pdict["nlines"] = int(self.data_info["number_of_lines"])
-        pdict["ncols"] = int(self.data_info["number_of_columns"])
+        pdict["nlines"] = int(self.data_info["number_of_lines"].item())
+        pdict["ncols"] = int(self.data_info["number_of_columns"].item())
         pdict["scandir"] = "N2S"
 
         pdict["loff"] = pdict["loff"] + (self.segment_number * pdict["nlines"])
@@ -528,19 +528,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         fpos = 0
         header["block1"] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block1"]["blocklength"])
+        fpos = fpos + int(header["block1"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block1")
         fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block2"]["blocklength"])
+        fpos = fpos + int(header["block2"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block2")
         fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block3"]["blocklength"])
+        fpos = fpos + int(header["block3"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block3")
         fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block4"]["blocklength"])
+        fpos = fpos + int(header["block4"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block4")
         fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
@@ -553,7 +553,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block5"]["blocklength"])
+        fpos = fpos + int(header["block5"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block5")
         fp_.seek(fpos, 0)
 
@@ -561,12 +561,12 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block6"]["blocklength"])
+        fpos = fpos + int(header["block6"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block6")
         fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block7"]["blocklength"])
+        fpos = fpos + int(header["block7"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block7")
         fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
@@ -576,7 +576,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         corrections = []
         for _i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=_NAVIGATION_CORRECTION_SUBINFO_TYPE, count=1))
-        fpos = fpos + int(header["block8"]["blocklength"])
+        fpos = fpos + int(header["block8"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block8")
         fp_.seek(fpos, 0)
         header["navigation_corrections"] = corrections
@@ -591,7 +591,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                dtype=_OBSERVATION_LINE_TIME_INFO_TYPE,
                                                count=1))
         header["observation_time_information"] = lines_and_times
-        fpos = fpos + int(header["block9"]["blocklength"])
+        fpos = fpos + int(header["block9"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block9")
         fp_.seek(fpos, 0)
 
@@ -604,12 +604,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         for _i in range(num_err_info_data):
             err_info_data.append(np.fromfile(fp_, dtype=_ERROR_LINE_INFO_TYPE, count=1))
         header["error_information_data"] = err_info_data
-        fpos = fpos + int(header["block10"]["blocklength"])
+        fpos = fpos + int(header["block10"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block10")
         fp_.seek(fpos, 0)
 
         header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
-        fpos = fpos + int(header["block11"]["blocklength"])
+        fpos = fpos + int(header["block11"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block11")
         fp_.seek(fpos, 0)
 
@@ -617,8 +617,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _read_data(self, fp_, header, resolution):
         """Read data block."""
-        nlines = int(header["block2"]["number_of_lines"][0])
-        ncols = int(header["block2"]["number_of_columns"][0])
+        nlines = int(header["block2"]["number_of_lines"].item())
+        ncols = int(header["block2"]["number_of_columns"].item())
         chunks = normalize_low_res_chunks(
             ("auto", "auto"),
             (nlines, ncols),
