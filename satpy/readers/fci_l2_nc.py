@@ -401,3 +401,84 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent = tuple([ll_x, ll_y, ur_x, ur_y])
 
         return area_extent
+
+class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
+    """Reader class for FCI L2 AMV products in NetCDF4 format."""
+    def __init__(self, filename, filename_info, filetype_info):
+        """Open the NetCDF file with xarray and prepare for dataset reading."""
+        super().__init__(filename, filename_info, filetype_info)
+
+        # Use xarray's default netcdf4 engine to open the file
+        self.nc = xr.open_dataset(
+            self.filename,
+            decode_cf=True,
+            mask_and_scale=True,
+            chunks={
+                "number_of_images": CHUNK_SIZE,
+                # 'number_of_height_estimates': CHUNK_SIZE,
+                "number_of_winds": CHUNK_SIZE
+            }
+        )
+    @property
+    def spacecraft_name(self):
+        """Get spacecraft name."""
+        try:
+            return self.nc.attrs["platform"]
+        except KeyError:
+            # TODO if the platform attribute is not valid, return a default value
+            logger.warning("Spacecraft name cannot be obtained from file content, use default value instead")
+            return "MTI1"
+
+    @property
+    def sensor_name(self):
+        """Get instrument name."""
+        try:
+            return self.nc.attrs["data_source"]
+        except KeyError:
+            # TODO if the data_source attribute is not valid, return a default value
+            logger.warning("Sensor cannot be obtained from file content, use default value instead")
+            return "FCI"
+
+    def _get_global_attributes(self):
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        Returns:
+            dict: A dictionary of global attributes.
+                filename: name of the product file
+                spacecraft_name: name of the spacecraft
+                sensor: name of sensor
+                platform_name: name of the platform
+
+        """
+        attributes = {
+            "filename": self.filename,
+            "spacecraft_name": self._spacecraft_name,
+            "sensor": self._sensor_name,
+            "platform_name": self._spacecraft_name,
+            "channel":self.filename_info["channel"]
+        }
+        return attributes
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using the file_key in dataset_info."""
+        var_key = dataset_info["file_key"]
+        logger.debug("Reading in file to get dataset with key %s.", var_key)
+
+        try:
+            variable = self.nc[var_key]
+        except KeyError:
+            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
+            return None
+
+        # Manage the attributes of the dataset
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+
+        return variable
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except AttributeError:
+            pass
