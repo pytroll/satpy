@@ -452,9 +452,9 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": self._spacecraft_name,
-            "sensor": self._sensor_name,
-            "platform_name": self._spacecraft_name,
+            "spacecraft_name": self.spacecraft_name,
+            "sensor": self.sensor_name,
+            "platform_name": self.spacecraft_name,
             "channel":self.filename_info["channel"]
         }
         return attributes
