@@ -475,10 +475,3 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
         variable.attrs.update(self._get_global_attributes())
 
         return variable
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except AttributeError:
-            pass
