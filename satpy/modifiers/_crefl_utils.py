@@ -282,7 +282,7 @@ def run_crefl(refl,
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
 
     """
-    runner_cls = _runner_class_for_sensor(refl.attrs['sensor'])
+    runner_cls = _runner_class_for_sensor(refl.attrs["sensor"])
     runner = runner_cls(refl)
     corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
     return corr_refl
@@ -318,7 +318,7 @@ class _CREFLRunner:
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
         raise NotImplementedError()
 
-    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
+    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array | float:
         """Get digital elevation map data for our granule with ocean fill value set to 0."""
         if avg_elevation is None:
             LOG.debug("No average elevation information provided in CREFL")
@@ -326,7 +326,7 @@ class _CREFLRunner:
             height = 0.
         else:
             LOG.debug("Using average elevation information provided to CREFL")
-            lon, lat = self._refl.attrs['area'].get_lonlats(chunks=self._refl.chunks)
+            lon, lat = self._refl.attrs["area"].get_lonlats(chunks=self._refl.chunks)
             height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
                                    chunks=lon.chunks, dtype=avg_elevation.dtype)
         return height

@@ -33,9 +33,9 @@ LOG = logging.getLogger(__name__)
 
 
 ROWS_PER_SCAN = {
-    'modis': 10,
-    'viirs': 16,
-    'avhrr': None,
+    "modis": 10,
+    "viirs": 16,
+    "avhrr": None,
 }
 
 
@@ -45,7 +45,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
     @property
     def platform_name(self):
         """Get satellite name for this file's data."""
-        res = self['/attr/platform']
+        res = self["/attr/platform"]
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         return res
@@ -53,7 +53,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Get instrument name for this file's data."""
-        res = self['/attr/sensor']
+        res = self["/attr/sensor"]
         if isinstance(res, np.ndarray):
             res = str(res.astype(str))
         return res.lower()
@@ -69,12 +69,12 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             tuple: (rows, cols)
 
         """
-        var_path = ds_info.get('file_key', '{}'.format(ds_id['name']))
-        if var_path + '/shape' not in self:
+        var_path = ds_info.get("file_key", "{}".format(ds_id["name"]))
+        if var_path + "/shape" not in self:
             # loading a scalar value
             shape = 1
         else:
-            shape = self[var_path + '/shape']
+            shape = self[var_path + "/shape"]
             if len(shape) == 3:
                 if shape[0] != 1:
                     raise ValueError("Not sure how to load 3D Dataset with more than 1 time")
@@ -88,49 +88,49 @@ class ACSPOFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get first observation time of data."""
-        return self._parse_datetime(self['/attr/time_coverage_start'])
+        return self._parse_datetime(self["/attr/time_coverage_start"])
 
     @property
     def end_time(self):
         """Get final observation time of data."""
-        return self._parse_datetime(self['/attr/time_coverage_end'])
+        return self._parse_datetime(self["/attr/time_coverage_end"])
 
     def get_metadata(self, dataset_id, ds_info):
         """Collect various metadata about the specified dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         shape = self.get_shape(dataset_id, ds_info)
-        units = self[var_path + '/attr/units']
-        info = getattr(self[var_path], 'attrs', {})
-        standard_name = self[var_path + '/attr/standard_name']
-        resolution = float(self['/attr/spatial_resolution'].split(' ')[0])
+        units = self[var_path + "/attr/units"]
+        info = getattr(self[var_path], "attrs", {})
+        standard_name = self[var_path + "/attr/standard_name"]
+        resolution = float(self["/attr/spatial_resolution"].split(" ")[0])
         rows_per_scan = ROWS_PER_SCAN.get(self.sensor_name) or 0
         info.update(dataset_id.to_dict())
         info.update({
-            'shape': shape,
-            'units': units,
-            'platform_name': self.platform_name,
-            'sensor': self.sensor_name,
-            'standard_name': standard_name,
-            'resolution': resolution,
-            'rows_per_scan': rows_per_scan,
-            'long_name': self.get(var_path + '/attr/long_name'),
-            'comment': self.get(var_path + '/attr/comment'),
+            "shape": shape,
+            "units": units,
+            "platform_name": self.platform_name,
+            "sensor": self.sensor_name,
+            "standard_name": standard_name,
+            "resolution": resolution,
+            "rows_per_scan": rows_per_scan,
+            "long_name": self.get(var_path + "/attr/long_name"),
+            "comment": self.get(var_path + "/attr/comment"),
         })
         return info
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata from file on disk."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        shape = metadata['shape']
-        file_shape = self[var_path + '/shape']
-        metadata['shape'] = shape
+        shape = metadata["shape"]
+        file_shape = self[var_path + "/shape"]
+        metadata["shape"] = shape
 
-        valid_min = self[var_path + '/attr/valid_min']
-        valid_max = self[var_path + '/attr/valid_max']
+        valid_min = self[var_path + "/attr/valid_min"]
+        valid_max = self[var_path + "/attr/valid_max"]
         # no need to check fill value since we are using valid min/max
-        scale_factor = self.get(var_path + '/attr/scale_factor')
-        add_offset = self.get(var_path + '/attr/add_offset')
+        scale_factor = self.get(var_path + "/attr/scale_factor")
+        add_offset = self.get(var_path + "/attr/add_offset")
 
         data = self[var_path]
         data = data.rename({"ni": "x", "nj": "y"})
@@ -141,15 +141,15 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         if scale_factor is not None:
             data = data * scale_factor + add_offset
 
-        if ds_info.get('cloud_clear', False):
+        if ds_info.get("cloud_clear", False):
             # clear-sky if bit 15-16 are 00
-            clear_sky_mask = (self['l2p_flags'][0] & 0b1100000000000000) != 0
+            clear_sky_mask = (self["l2p_flags"][0] & 0b1100000000000000) != 0
             clear_sky_mask = clear_sky_mask.rename({"ni": "x", "nj": "y"})
             data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
         # Remove these attributes since they are no longer valid and can cause invalid value filling.
-        data.attrs.pop('_FillValue', None)
-        data.attrs.pop('valid_max', None)
-        data.attrs.pop('valid_min', None)
+        data.attrs.pop("_FillValue", None)
+        data.attrs.pop("valid_max", None)
+        data.attrs.pop("valid_min", None)
         return data

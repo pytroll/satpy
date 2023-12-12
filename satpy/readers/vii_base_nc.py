@@ -46,14 +46,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
 
         # Saves the orthorectification flag
-        self.orthorect = orthorect and filetype_info.get('orthorect', True)
+        self.orthorect = orthorect and filetype_info.get("orthorect", True)
 
         # Saves the interpolation flag
-        self.interpolate = filetype_info.get('interpolate', True)
+        self.interpolate = filetype_info.get("interpolate", True)
 
         try:
-            longitude = self[filetype_info['cached_longitude']]
-            latitude = self[filetype_info['cached_latitude']]
+            longitude = self[filetype_info["cached_longitude"]]
+            latitude = self[filetype_info["cached_latitude"]]
 
             if self.interpolate:
                 self.longitude, self.latitude = self._perform_geo_interpolation(longitude, latitude)
@@ -66,22 +66,22 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
     def _standardize_dims(self, variable):
         """Standardize dims to y, x."""
-        if 'num_pixels' in variable.dims:
-            variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
-        if 'num_points_act' in variable.dims:
-            variable = variable.rename({'num_points_act': 'x', 'num_points_alt': 'y'})
-        if variable.dims[0] == 'x':
-            variable = variable.transpose('y', 'x')
+        if "num_pixels" in variable.dims:
+            variable = variable.rename({"num_pixels": "x", "num_lines": "y"})
+        if "num_points_act" in variable.dims:
+            variable = variable.rename({"num_points_act": "x", "num_points_alt": "y"})
+        if variable.dims[0] == "x":
+            variable = variable.transpose("y", "x")
         return variable
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        logger.debug('Reading in file to get dataset with key %s.', var_key)
+        var_key = dataset_info["file_key"]
+        logger.debug("Reading in file to get dataset with key %s.", var_key)
 
-        if var_key == 'cached_longitude' and self.longitude is not None:
+        if var_key == "cached_longitude" and self.longitude is not None:
             variable = self.longitude.copy()
-        elif var_key == 'cached_latitude' and self.latitude is not None:
+        elif var_key == "cached_latitude" and self.latitude is not None:
             variable = self.latitude.copy()
         else:
             try:
@@ -91,21 +91,21 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
                 return None
 
             # If the dataset is marked for interpolation, perform the interpolation from tie points to pixels
-            if dataset_info.get('interpolate', False) and self.interpolate:
+            if dataset_info.get("interpolate", False) and self.interpolate:
                 variable = self._perform_interpolation(variable)
 
             # Perform the calibration if required
-            if dataset_info.get('calibration') is not None:
+            if dataset_info.get("calibration") is not None:
                 variable = self._perform_calibration(variable, dataset_info)
 
         # Perform the orthorectification if required
         if self.orthorect:
-            orthorect_data_name = dataset_info.get('orthorect_data', None)
+            orthorect_data_name = dataset_info.get("orthorect_data", None)
             if orthorect_data_name is not None:
                 variable = self._perform_orthorectification(variable, orthorect_data_name)
 
         # Manage the attributes of the dataset
-        variable.attrs.setdefault('units', None)
+        variable.attrs.setdefault("units", None)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
@@ -130,8 +130,8 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             TIE_POINTS_FACTOR
         )[0]
         new_variable = interpolated_values.rename(
-            num_tie_points_act='num_pixels',
-            num_tie_points_alt='num_lines'
+            num_tie_points_act="num_pixels",
+            num_tie_points_alt="num_lines"
         )
         new_variable.name = variable.name
         new_variable.attrs = variable.attrs
@@ -157,14 +157,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             TIE_POINTS_FACTOR
         )
         new_longitude = interpolated_longitude.rename(
-            num_tie_points_act='num_pixels',
-            num_tie_points_alt='num_lines'
+            num_tie_points_act="num_pixels",
+            num_tie_points_alt="num_lines"
         )
         new_longitude.name = longitude.name
         new_longitude.attrs = longitude.attrs
         new_latitude = interpolated_latitude.rename(
-            num_tie_points_act='num_pixels',
-            num_tie_points_alt='num_lines'
+            num_tie_points_act="num_pixels",
+            num_tie_points_alt="num_lines"
         )
         new_latitude.name = latitude.name
         new_latitude.attrs = latitude.attrs
@@ -181,20 +181,20 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets."""
         attributes = {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
-            'filename_start_time': self.filename_info['sensing_start_time'],
-            'filename_end_time': self.filename_info['sensing_end_time'],
-            'platform_name': self.spacecraft_name,
+            "filename": self.filename,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "spacecraft_name": self.spacecraft_name,
+            "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor,
+            "filename_start_time": self.filename_info["sensing_start_time"],
+            "filename_end_time": self.filename_info["sensing_end_time"],
+            "platform_name": self.spacecraft_name,
         }
 
         # Add a "quality_group" item to the dictionary with all the variables and attributes
         # which are found in the 'quality' group of the VII product
-        quality_group = self['quality']
+        quality_group = self["quality"]
         quality_dict = {}
         for key in quality_group:
             # Add the values (as Numpy array) of each variable in the group where possible
@@ -205,7 +205,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         # Add the attributes of the quality group
         quality_dict.update(quality_group.attrs)
 
-        attributes['quality_group'] = quality_dict
+        attributes["quality_group"] = quality_dict
 
         return attributes
 
@@ -213,29 +213,29 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     def start_time(self):
         """Get observation start time."""
         try:
-            start_time = datetime.strptime(self['/attr/sensing_start_time_utc'], '%Y%m%d%H%M%S.%f')
+            start_time = datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y%m%d%H%M%S.%f")
         except ValueError:
-            start_time = datetime.strptime(self['/attr/sensing_start_time_utc'], '%Y-%m-%d %H:%M:%S.%f')
+            start_time = datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
         return start_time
 
     @property
     def end_time(self):
         """Get observation end time."""
         try:
-            end_time = datetime.strptime(self['/attr/sensing_end_time_utc'], '%Y%m%d%H%M%S.%f')
+            end_time = datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y%m%d%H%M%S.%f")
         except ValueError:
-            end_time = datetime.strptime(self['/attr/sensing_end_time_utc'], '%Y-%m-%d %H:%M:%S.%f')
+            end_time = datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
         return end_time
 
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self['/attr/spacecraft']
+        return self["/attr/spacecraft"]
 
     @property
     def sensor(self):
         """Return sensor."""
-        return self['/attr/instrument']
+        return self["/attr/instrument"]
 
     @property
     def ssp_lon(self):

@@ -20,7 +20,6 @@ file_types:
     expected_segments: 40
     required_netcdf_variables:
     - attr/platform
-    - data/mtg_geos_projection
     - data/{channel_name}/measured/start_position_row
     - data/{channel_name}/measured/end_position_row
     - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
@@ -35,17 +34,10 @@ file_types:
     - data/{channel_name}/measured/y
     - data/{channel_name}/measured/pixel_quality
     - data/{channel_name}/measured/index_map
-    - data/mtg_geos_projection/attr/inverse_flattening
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/semi_major_axis
+    - data/mtg_geos_projection
     - data/swath_direction
     - data/swath_number
     - index
-    - state/celestial/earth_sun_distance
     - state/celestial/earth_sun_distance
     - state/celestial/subsolar_latitude
     - state/celestial/subsolar_longitude
@@ -78,7 +70,6 @@ file_types:
     expected_segments: 40
     required_netcdf_variables:
     - attr/platform
-    - data/mtg_geos_projection
     - data/{channel_name}/measured/start_position_row
     - data/{channel_name}/measured/end_position_row
     - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
@@ -93,17 +84,10 @@ file_types:
     - data/{channel_name}/measured/y
     - data/{channel_name}/measured/pixel_quality
     - data/{channel_name}/measured/index_map
-    - data/mtg_geos_projection/attr/inverse_flattening
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/semi_major_axis
+    - data/mtg_geos_projection
     - data/swath_direction
     - data/swath_number
     - index
-    - state/celestial/earth_sun_distance
     - state/celestial/earth_sun_distance
     - state/celestial/subsolar_latitude
     - state/celestial/subsolar_longitude

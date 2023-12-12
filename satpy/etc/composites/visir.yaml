@@ -16,6 +16,11 @@ modifiers:
     optional_prerequisites:
       - solar_zenith_angle
 
+  sunz_reduced:
+    modifier: !!python/name:satpy.modifiers.SunZenithReducer
+    optional_prerequisites:
+    - solar_zenith_angle
+
   co2_corrected:
     modifier: !!python/name:satpy.modifiers.CO2Corrector
     prerequisites:

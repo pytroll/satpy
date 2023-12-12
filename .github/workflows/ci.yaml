@@ -11,31 +11,9 @@ env:
   CACHE_NUMBER: 0
 
 jobs:
-  lint:
-    name: lint and style checks
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 flake8-docstrings flake8-debugger flake8-bugbear pytest
-      - name: Install Satpy
-        run: |
-          pip install -e .
-      - name: Run linting
-        run: |
-          flake8 satpy/
-
   test:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
-    needs: [lint]
     strategy:
       fail-fast: true
       matrix:
@@ -58,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-variant: Mambaforge
           miniforge-version: latest
@@ -86,9 +64,11 @@ jobs:
       - name: Install unstable dependencies
         if: matrix.experimental == true
         shell: bash -l {0}
+        # Install pykdtree with --no-build-isolation so it builds with numpy 2.0
         # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
         # may break the conda-forge libraries trying to use newer glibc versions
         run: |
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
@@ -96,9 +76,16 @@ jobs:
           matplotlib \
           numpy \
           pandas \
-          scipy; \
-          python -m pip install \
-          --no-deps --upgrade \
+          scipy
+          mamba remove --force-remove -y pykdtree pyresample trollimage pyhdf netcdf4 h5py
+          python -m pip install --upgrade --no-deps --pre --no-build-isolation \
+          git+https://github.com/storpipfugl/pykdtree \
+          git+https://github.com/pytroll/pyresample \
+          git+https://github.com/pytroll/trollimage \
+          git+https://github.com/fhs/pyhdf \
+          git+https://github.com/h5py/h5py \
+          git+https://github.com/h5netcdf/h5netcdf \
+          git+https://github.com/Unidata/netcdf4-python \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
           git+https://github.com/zarr-developers/zarr \
@@ -106,7 +93,8 @@ jobs:
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
           git+https://github.com/pydata/xarray \
-          git+https://github.com/astropy/astropy;
+          git+https://github.com/shapely/shapely \
+          git+https://github.com/astropy/astropy
           LD_PRELOAD=$(python -c "import sys; print(sys.prefix)")/lib/libstdc++.so
           echo "LD_PRELOAD=${LD_PRELOAD}" >> $GITHUB_ENV
 

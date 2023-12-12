@@ -23,6 +23,7 @@ from unittest import mock
 import dask.array as da
 import numpy as np
 import xarray as xr
+from pytest import approx, raises  # noqa: PT013
 
 
 class FakeDataset(object):
@@ -56,7 +57,7 @@ class FakeDataset(object):
 class TestAMIL1bNetCDFBase(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
-    @mock.patch('satpy.readers.ami_l1b.xr')
+    @mock.patch("satpy.readers.ami_l1b.xr")
     def setUp(self, xr_, counts=None):
         """Create a fake dataset using the given counts data."""
         from satpy.readers.ami_l1b import AMIL1bNetCDF
@@ -64,37 +65,37 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
         if counts is None:
             rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
             rad_data = (rad_data + 1.) / 0.5
-            rad_data = rad_data.astype(np.int16)
+            rad_data = rad_data.astype(np.uint16)
             counts = xr.DataArray(
-                da.from_array(rad_data, chunks='auto'),
-                dims=('y', 'x'),
+                da.from_array(rad_data, chunks="auto"),
+                dims=("y", "x"),
                 attrs={
-                    'channel_name': "VI006",
-                    'detector_side': 2,
-                    'number_of_total_pixels': 484000000,
-                    'number_of_error_pixels': 113892451,
-                    'max_pixel_value': 32768,
-                    'min_pixel_value': 6,
-                    'average_pixel_value': 8228.98770845248,
-                    'stddev_pixel_value': 13621.130386551,
-                    'number_of_total_bits_per_pixel': 16,
-                    'number_of_data_quality_flag_bits_per_pixel': 2,
-                    'number_of_valid_bits_per_pixel': 12,
-                    'data_quality_flag_meaning':
+                    "channel_name": "VI006",
+                    "detector_side": 2,
+                    "number_of_total_pixels": 484000000,
+                    "number_of_error_pixels": 113892451,
+                    "max_pixel_value": 32768,
+                    "min_pixel_value": 6,
+                    "average_pixel_value": 8228.98770845248,
+                    "stddev_pixel_value": 13621.130386551,
+                    "number_of_total_bits_per_pixel": 16,
+                    "number_of_data_quality_flag_bits_per_pixel": 2,
+                    "number_of_valid_bits_per_pixel": 12,
+                    "data_quality_flag_meaning":
                         "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
-                    'ground_sample_distance_ew': 1.4e-05,
-                    'ground_sample_distance_ns': 1.4e-05,
+                    "ground_sample_distance_ew": 1.4e-05,
+                    "ground_sample_distance_ns": 1.4e-05,
                 }
             )
         sc_position = xr.DataArray(0., attrs={
-            'sc_position_center_pixel': [-26113466.1974016, 33100139.1630508, 3943.75470244799],
+            "sc_position_center_pixel": [-26113466.1974016, 33100139.1630508, 3943.75470244799],
         })
         xr_.open_dataset.return_value = FakeDataset(
             {
-                'image_pixel_values': counts,
-                'sc_position': sc_position,
-                'gsics_coeff_intercept': [0.1859369],
-                'gsics_coeff_slope': [0.9967594],
+                "image_pixel_values": counts,
+                "sc_position": sc_position,
+                "gsics_coeff_intercept": [0.1859369],
+                "gsics_coeff_slope": [0.9967594],
             },
             {
                 "satellite_name": "GK-2A",
@@ -125,9 +126,9 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
             }
         )
 
-        self.reader = AMIL1bNetCDF('filename',
-                                   {'platform_shortname': 'gk2a'},
-                                   {'file_type': 'ir087'},)
+        self.reader = AMIL1bNetCDF("filename",
+                                   {"platform_shortname": "gk2a"},
+                                   {"file_type": "ir087"},)
 
 
 class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
@@ -136,129 +137,122 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
     def _check_orbital_parameters(self, orb_params):
         """Check that orbital parameters match expected values."""
         exp_params = {
-            'projection_altitude': 35785863.0,
-            'projection_latitude': 0.0,
-            'projection_longitude': 128.2,
-            'satellite_actual_altitude': 35782654.56070405,
-            'satellite_actual_latitude': 0.005364927,
-            'satellite_actual_longitude': 128.2707,
+            "projection_altitude": 35785863.0,
+            "projection_latitude": 0.0,
+            "projection_longitude": 128.2,
+            "satellite_actual_altitude": 35782654.56070405,
+            "satellite_actual_latitude": 0.005364927,
+            "satellite_actual_longitude": 128.2707,
         }
         for key, val in exp_params.items():
-            self.assertAlmostEqual(val, orb_params[key], places=3)
+            assert val == approx(orb_params[key], abs=1e-3)
 
     def test_filename_grouping(self):
         """Test that filenames are grouped properly."""
         from satpy.readers import group_files
         filenames = [
-            'gk2a_ami_le1b_ir087_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_ir096_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_ir105_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_ir112_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_ir123_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_ir133_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_nr013_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_nr016_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_sw038_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_vi004_fd010ge_201909300300.nc',
-            'gk2a_ami_le1b_vi005_fd010ge_201909300300.nc',
-            'gk2a_ami_le1b_vi006_fd005ge_201909300300.nc',
-            'gk2a_ami_le1b_vi008_fd010ge_201909300300.nc',
-            'gk2a_ami_le1b_wv063_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_wv069_fd020ge_201909300300.nc',
-            'gk2a_ami_le1b_wv073_fd020ge_201909300300.nc']
-        groups = group_files(filenames, reader='ami_l1b')
-        self.assertEqual(len(groups), 1)
-        self.assertEqual(len(groups[0]['ami_l1b']), 16)
+            "gk2a_ami_le1b_ir087_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_ir096_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_ir105_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_ir112_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_ir123_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_ir133_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_nr013_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_nr016_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_sw038_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_vi004_fd010ge_201909300300.nc",
+            "gk2a_ami_le1b_vi005_fd010ge_201909300300.nc",
+            "gk2a_ami_le1b_vi006_fd005ge_201909300300.nc",
+            "gk2a_ami_le1b_vi008_fd010ge_201909300300.nc",
+            "gk2a_ami_le1b_wv063_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_wv069_fd020ge_201909300300.nc",
+            "gk2a_ami_le1b_wv073_fd020ge_201909300300.nc"]
+        groups = group_files(filenames, reader="ami_l1b")
+        assert len(groups) == 1
+        assert len(groups[0]["ami_l1b"]) == 16
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        self.assertEqual(self.reader.start_time,
-                         datetime(2019, 9, 30, 3, 0, 31, 957882))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2019, 9, 30, 3, 9, 35, 606133))
+        assert self.reader.start_time == datetime(2019, 9, 30, 3, 0, 31, 957882)
+        assert self.reader.end_time == datetime(2019, 9, 30, 3, 9, 35, 606133)
 
     def test_get_dataset(self):
         """Test gettting radiance data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name='VI006', calibration='radiance')
+        key = make_dataid(name="VI006", calibration="radiance")
         res = self.reader.get_dataset(key, {
-            'file_key': 'image_pixel_values',
-            'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
-            'units': 'W m-2 um-1 sr-1',
+            "file_key": "image_pixel_values",
+            "standard_name": "toa_outgoing_radiance_per_unit_wavelength",
+            "units": "W m-2 um-1 sr-1",
         })
-        exp = {'calibration': 'radiance',
-               'modifiers': (),
-               'platform_name': 'GEO-KOMPSAT-2A',
-               'sensor': 'ami',
-               'units': 'W m-2 um-1 sr-1'}
+        exp = {"calibration": "radiance",
+               "modifiers": (),
+               "platform_name": "GEO-KOMPSAT-2A",
+               "sensor": "ami",
+               "units": "W m-2 um-1 sr-1"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
-        self._check_orbital_parameters(res.attrs['orbital_parameters'])
+            assert val == res.attrs[key]
+        self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
         from satpy.tests.utils import make_dataid
-        with self.assertRaises(ValueError):
-            ds_id = make_dataid(name='VI006', calibration='_bad_')
-            ds_info = {'file_key': 'image_pixel_values',
-                       'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
-                       'units': 'W m-2 um-1 sr-1',
-                       }
-            self.reader.get_dataset(ds_id, ds_info)
+        with raises(ValueError, match="_bad_ invalid value for .*"):
+            _ = make_dataid(name="VI006", calibration="_bad_")
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        exp = {'a': 6378137.0, 'b': 6356752.3, 'h': 35785863.0,
-               'lon_0': 128.2, 'proj': 'geos', 'units': 'm'}
+        exp = {"a": 6378137.0, "b": 6356752.3, "h": 35785863.0,
+               "lon_0": 128.2, "proj": "geos", "units": "m"}
         for key, val in exp.items():
-            self.assertIn(key, call_args[3])
-            self.assertAlmostEqual(val, call_args[3][key])
-        self.assertEqual(call_args[4], self.reader.nc.attrs['number_of_columns'])
-        self.assertEqual(call_args[5], self.reader.nc.attrs['number_of_lines'])
+            assert key in call_args[3]
+            assert val == approx(call_args[3][key])
+        assert call_args[4] == self.reader.nc.attrs["number_of_columns"]
+        assert call_args[5] == self.reader.nc.attrs["number_of_lines"]
         np.testing.assert_allclose(call_args[6],
                                    [-5511022.902, -5511022.902, 5511022.902, 5511022.902])
 
     def test_get_dataset_vis(self):
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name='VI006', calibration='reflectance')
+        key = make_dataid(name="VI006", calibration="reflectance")
         res = self.reader.get_dataset(key, {
-            'file_key': 'image_pixel_values',
-            'standard_name': 'toa_bidirectional_reflectance',
-            'units': '%',
+            "file_key": "image_pixel_values",
+            "standard_name": "toa_bidirectional_reflectance",
+            "units": "%",
         })
-        exp = {'calibration': 'reflectance',
-               'modifiers': (),
-               'platform_name': 'GEO-KOMPSAT-2A',
-               'sensor': 'ami',
-               'units': '%'}
+        exp = {"calibration": "reflectance",
+               "modifiers": (),
+               "platform_name": "GEO-KOMPSAT-2A",
+               "sensor": "ami",
+               "units": "%"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
-        self._check_orbital_parameters(res.attrs['orbital_parameters'])
+            assert val == res.attrs[key]
+        self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
     def test_get_dataset_counts(self):
         """Test get counts data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name='VI006', calibration='counts')
+        key = make_dataid(name="VI006", calibration="counts")
         res = self.reader.get_dataset(key, {
-            'file_key': 'image_pixel_values',
-            'standard_name': 'counts',
-            'units': '1',
+            "file_key": "image_pixel_values",
+            "standard_name": "counts",
+            "units": "1",
         })
-        exp = {'calibration': 'counts',
-               'modifiers': (),
-               'platform_name': 'GEO-KOMPSAT-2A',
-               'sensor': 'ami',
-               'units': '1'}
+        exp = {"calibration": "counts",
+               "modifiers": (),
+               "platform_name": "GEO-KOMPSAT-2A",
+               "sensor": "ami",
+               "units": "1"}
         for key, val in exp.items():
-            self.assertEqual(val, res.attrs[key])
-        self._check_orbital_parameters(res.attrs['orbital_parameters'])
+            assert val == res.attrs[key]
+        self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
 
 class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
@@ -270,53 +264,53 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         count_data = (np.arange(10).reshape((2, 5))) + 7000
         count_data = count_data.astype(np.uint16)
         count = xr.DataArray(
-            da.from_array(count_data, chunks='auto'),
-            dims=('y', 'x'),
+            da.from_array(count_data, chunks="auto"),
+            dims=("y", "x"),
             attrs={
-                'channel_name': "IR087",
-                'detector_side': 2,
-                'number_of_total_pixels': 484000000,
-                'number_of_error_pixels': 113892451,
-                'max_pixel_value': 32768,
-                'min_pixel_value': 6,
-                'average_pixel_value': 8228.98770845248,
-                'stddev_pixel_value': 13621.130386551,
-                'number_of_total_bits_per_pixel': 16,
-                'number_of_data_quality_flag_bits_per_pixel': 2,
-                'number_of_valid_bits_per_pixel': 13,
-                'data_quality_flag_meaning':
+                "channel_name": "IR087",
+                "detector_side": 2,
+                "number_of_total_pixels": 484000000,
+                "number_of_error_pixels": 113892451,
+                "max_pixel_value": 32768,
+                "min_pixel_value": 6,
+                "average_pixel_value": 8228.98770845248,
+                "stddev_pixel_value": 13621.130386551,
+                "number_of_total_bits_per_pixel": 16,
+                "number_of_data_quality_flag_bits_per_pixel": 2,
+                "number_of_valid_bits_per_pixel": 13,
+                "data_quality_flag_meaning":
                     "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
-                'ground_sample_distance_ew': 1.4e-05,
-                'ground_sample_distance_ns': 1.4e-05,
+                "ground_sample_distance_ew": 1.4e-05,
+                "ground_sample_distance_ns": 1.4e-05,
             }
         )
-        self.ds_id = make_dataid(name='IR087', wavelength=[8.415, 8.59, 8.765],
-                                 calibration='brightness_temperature')
+        self.ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
+                                 calibration="brightness_temperature")
         self.ds_info = {
-            'file_key': 'image_pixel_values',
-            'wavelength': [8.415, 8.59, 8.765],
-            'standard_name': 'toa_brightness_temperature',
-            'units': 'K',
+            "file_key": "image_pixel_values",
+            "wavelength": [8.415, 8.59, 8.765],
+            "standard_name": "toa_brightness_temperature",
+            "units": "K",
         }
         super(TestAMIL1bNetCDFIRCal, self).setUp(counts=count)
 
     def test_default_calibrate(self):
         """Test default (pyspectral) IR calibration."""
         from satpy.readers.ami_l1b import rad2temp
-        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+        with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
             res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_called_once()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_infile_calibrate(self):
         """Test IR calibration using in-file coefficients."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = 'FILE'
-        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+        self.reader.calib_mode = "FILE"
+        with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
             res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
@@ -324,34 +318,34 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_gsics_radiance_corr(self):
         """Test IR radiance adjustment using in-file GSICS coefs."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = 'GSICS'
+        self.reader.calib_mode = "GSICS"
         expected = np.array([[238.036797, 238.007106, 237.977396, 237.947668, 237.91792],
                              [237.888154, 237.85837, 237.828566, 237.798743, 237.768902]])
-        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+        with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
             res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
     def test_user_radiance_corr(self):
         """Test IR radiance adjustment using user-supplied coefs."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = 'FILE'
-        self.reader.user_calibration = {'IR087': {'slope': 0.99669,
-                                                  'offset': 0.16907}}
+        self.reader.calib_mode = "FILE"
+        self.reader.user_calibration = {"IR087": {"slope": 0.99669,
+                                                  "offset": 0.16907}}
         expected = np.array([[238.073713, 238.044043, 238.014354, 237.984647, 237.954921],
                              [237.925176, 237.895413, 237.865631, 237.835829, 237.806009]])
-        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+        with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
             res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
-        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+        assert res.attrs["standard_name"] == "toa_brightness_temperature"

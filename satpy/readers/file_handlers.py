@@ -25,7 +25,7 @@ from satpy.dataset import combine_metadata
 from satpy.readers import open_file_or_filename
 
 
-def open_dataset(filename, *args, **kwargs):
+def open_dataset(filename, *args, **kwargs):  # noqa: D417
     """Open a file with xarray.
 
     Args:
@@ -112,16 +112,16 @@ class BaseFileHandler:
         """
         combined_info = combine_metadata(*all_infos)
 
-        new_dict = self._combine(all_infos, min, 'start_time', 'start_orbit')
-        new_dict.update(self._combine(all_infos, max, 'end_time', 'end_orbit'))
+        new_dict = self._combine(all_infos, min, "start_time", "start_orbit")
+        new_dict.update(self._combine(all_infos, max, "end_time", "end_orbit"))
         new_dict.update(self._combine_orbital_parameters(all_infos))
         new_dict.update(self._combine_time_parameters(all_infos))
 
         try:
-            area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
-                                   lats=np.ma.vstack([info['area'].lats for info in all_infos]))
-            area.name = '_'.join([info['area'].name for info in all_infos])
-            combined_info['area'] = area
+            area = SwathDefinition(lons=np.ma.vstack([info["area"].lons for info in all_infos]),
+                                   lats=np.ma.vstack([info["area"].lats for info in all_infos]))
+            area.name = "_".join([info["area"].name for info in all_infos])
+            combined_info["area"] = area
         except KeyError:
             pass
 
@@ -129,7 +129,7 @@ class BaseFileHandler:
         return new_dict
 
     def _combine_orbital_parameters(self, all_infos):
-        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
+        orb_params = [info.get("orbital_parameters", {}) for info in all_infos]
         if not all(orb_params):
             return {}
         # Collect all available keys
@@ -138,15 +138,15 @@ class BaseFileHandler:
             orb_params_comb.update(d)
 
         # Average known keys
-        keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
-                'satellite_nominal_longitude', 'satellite_nominal_latitude',
-                'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
-                'nadir_longitude', 'nadir_latitude']
+        keys = ["projection_longitude", "projection_latitude", "projection_altitude",
+                "satellite_nominal_longitude", "satellite_nominal_latitude",
+                "satellite_actual_longitude", "satellite_actual_latitude", "satellite_actual_altitude",
+                "nadir_longitude", "nadir_latitude"]
         orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
-        return {'orbital_parameters': orb_params_comb}
+        return {"orbital_parameters": orb_params_comb}
 
     def _combine_time_parameters(self, all_infos):
-        time_params = [info.get('time_parameters', {}) for info in all_infos]
+        time_params = [info.get("time_parameters", {}) for info in all_infos]
         if not all(time_params):
             return {}
         # Collect all available keys
@@ -155,26 +155,26 @@ class BaseFileHandler:
             time_params_comb.update(d)
 
         start_keys = (
-            'nominal_start_time',
-            'observation_start_time',
+            "nominal_start_time",
+            "observation_start_time",
         )
         end_keys = (
-            'nominal_end_time',
-            'observation_end_time',
+            "nominal_end_time",
+            "observation_end_time",
         )
         time_params_comb.update(self._combine(time_params, min, *start_keys))
         time_params_comb.update(self._combine(time_params, max, *end_keys))
-        return {'time_parameters': time_params_comb}
+        return {"time_parameters": time_params_comb}
 
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def sensor_names(self):
@@ -197,7 +197,7 @@ class BaseFileHandler:
         """
         if not isinstance(ds_ftype, (list, tuple)):
             ds_ftype = [ds_ftype]
-        if self.filetype_info['file_type'] in ds_ftype:
+        if self.filetype_info["file_type"] in ds_ftype:
             return True
         return None
 
@@ -295,4 +295,4 @@ class BaseFileHandler:
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+            yield self.file_type_matches(ds_info["file_type"]), ds_info

@@ -64,7 +64,7 @@ class GeoBenchmarks:
                                   area=None, filenames=None):
         """Save a composite to disk as geotiff."""
         lscn = self.load_and_resample(composite, resampler, area, filenames)
-        lscn.save_dataset(composite, filename='test.tif', tiled=True)
+        lscn.save_dataset(composite, filename="test.tif", tiled=True)
 
     def compute_channel(self, channel, filenames=None):
         """Load and compute one channel."""

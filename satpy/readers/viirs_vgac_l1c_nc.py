@@ -37,9 +37,9 @@ class VGACFileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
 
         self.engine = "h5netcdf"
-        self._start_time = filename_info['start_time']
+        self._start_time = filename_info["start_time"]
         self._end_time = None
-        self.sensor = 'viirs'
+        self.sensor = "viirs"
         self.filename_info = filename_info
 
     def calibrate(self, data, yaml_info, file_key, nc):
@@ -75,11 +75,11 @@ class VGACFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", yaml_info['name'])
+        logger.debug("Getting data for: %s", yaml_info["name"])
         nc = xr.open_dataset(self.filename, engine=self.engine, decode_times=False,
-                             chunks={'y': CHUNK_SIZE, 'x': 800})
-        name = yaml_info.get('nc_store_name', yaml_info['name'])
-        file_key = yaml_info.get('nc_key', name)
+                             chunks={"y": CHUNK_SIZE, "x": 800})
+        name = yaml_info.get("nc_store_name", yaml_info["name"])
+        file_key = yaml_info.get("nc_key", name)
         data = nc[file_key]
         data = self.calibrate(data, yaml_info, file_key, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets

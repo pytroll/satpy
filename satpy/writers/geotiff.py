@@ -131,13 +131,13 @@ class GeoTIFFWriter(ImageWriter):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ['dtype', 'tags']:
+        for kw in ["dtype", "tags"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
         return init_kwargs, kwargs
 
-    def save_image(
+    def save_image(  # noqa: D417
             self,
             img: XRImage,
             filename: Optional[str] = None,
@@ -246,7 +246,7 @@ class GeoTIFFWriter(ImageWriter):
         gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
-            fill_value = self.info.get('fill_value')
+            fill_value = self.info.get("fill_value")
 
         dtype = dtype if dtype is not None else self.dtype
         if dtype is None and self.enhancer is not False:
@@ -268,14 +268,14 @@ class GeoTIFFWriter(ImageWriter):
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
             from satpy.enhancements import create_colormap
-            cmap = create_colormap({'colors': img.palette})
+            cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
         if tags is None:
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat='tif', driver=driver,
+        return img.save(filename, fformat="tif", driver=driver,
                         fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,

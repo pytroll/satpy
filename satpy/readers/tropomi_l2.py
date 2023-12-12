@@ -40,7 +40,7 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
-DATE_FMT = '%Y-%m-%dT%H:%M:%SZ'
+DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 CHUNK_SIZE = get_legacy_chunk_size()
 
 
@@ -50,32 +50,32 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def platform_shortname(self):
         """Get platform shortname."""
-        return self.filename_info['platform_shortname']
+        return self.filename_info["platform_shortname"]
 
     @property
     def time_coverage_start(self):
         """Get time_coverage_start."""
-        return datetime.strptime(self['/attr/time_coverage_start'], DATE_FMT)
+        return datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT)
 
     @property
     def time_coverage_end(self):
         """Get time_coverage_end."""
-        return datetime.strptime(self['/attr/time_coverage_end'], DATE_FMT)
+        return datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT)
 
     @property
     def sensor(self):
         """Get sensor."""
-        res = self['/attr/sensor']
+        res = self["/attr/sensor"]
         if isinstance(res, np.ndarray):
             return str(res.astype(str)).lower()
         return res.lower()
@@ -93,7 +93,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         lat_shape = None
         for var_name, _val in self.file_content.items():
             # Could probably avoid this hardcoding, will think on it
-            if (var_name == 'PRODUCT/latitude'):
+            if (var_name == "PRODUCT/latitude"):
                 lat_shape = self[var_name + "/shape"]
                 break
 
@@ -102,19 +102,19 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         # if bounds exists, we can assemble them later
-        bounds_exist = 'latitude_bounds' in self and 'longitude_bounds' in self
+        bounds_exist = "latitude_bounds" in self and "longitude_bounds" in self
         for is_avail, ds_info in (configured_datasets or []):
 
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
 
-            var_name = ds_info.get('file_key', ds_info['name'])
+            var_name = ds_info.get("file_key", ds_info["name"])
             # logger.debug("Evaluating previously configured variable: %s", var_name)
-            matches = self.file_type_matches(ds_info['file_type'])
+            matches = self.file_type_matches(ds_info["file_type"])
             # we can confidently say that we can provide this dataset and can
             # provide more info
-            assembled = var_name in ['assembled_lat_bounds', 'assembled_lon_bounds']
+            assembled = var_name in ["assembled_lat_bounds", "assembled_lon_bounds"]
             if (matches and var_name in self) or (assembled and bounds_exist):
                 logger.debug("Handling previously configured variable: %s", var_name)
                 if not assembled:
@@ -150,20 +150,20 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                         logger.debug("Already handled, skipping: %s", var_name)
                         continue
                     handled_variables.add(var_name)
-                    last_index_separator = var_name.rindex('/')
+                    last_index_separator = var_name.rindex("/")
                     last_index_separator = last_index_separator + 1
                     var_name_no_path = var_name[last_index_separator:]
                     logger.debug("Using short name of: %s", var_name_no_path)
                     # Create new ds_info object
-                    if var_name_no_path in ['latitude_bounds', 'longitude_bounds']:
+                    if var_name_no_path in ["latitude_bounds", "longitude_bounds"]:
                         coordinates = []
                     else:
-                        coordinates = ['longitude', 'latitude']
+                        coordinates = ["longitude", "latitude"]
                     new_info = {
-                        'name': var_name_no_path,
-                        'file_key': var_name,
-                        'coordinates': coordinates,
-                        'file_type': self.filetype_info['file_type'],
+                        "name": var_name_no_path,
+                        "file_key": var_name,
+                        "coordinates": coordinates,
+                        "file_type": self.filetype_info["file_type"],
                     }
                     yield True, new_info
 
@@ -173,12 +173,12 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(ds_info)
         metadata.update({
-            'platform_shortname': self.platform_shortname,
-            'sensor': self.sensor,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'time_coverage_start': self.time_coverage_start,
-            'time_coverage_end': self.time_coverage_end,
+            "platform_shortname": self.platform_shortname,
+            "sensor": self.sensor,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "time_coverage_start": self.time_coverage_start,
+            "time_coverage_end": self.time_coverage_end,
         })
 
         return metadata
@@ -186,10 +186,10 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     def _rename_dims(self, data_arr):
         """Normalize dimension names with the rest of Satpy."""
         dims_dict = {}
-        if 'ground_pixel' in data_arr.dims:
-            dims_dict['ground_pixel'] = 'x'
-        if 'scanline' in data_arr.dims:
-            dims_dict['scanline'] = 'y'
+        if "ground_pixel" in data_arr.dims:
+            dims_dict["ground_pixel"] = "x"
+        if "scanline" in data_arr.dims:
+            dims_dict["scanline"] = "y"
         return data_arr.rename(dims_dict)
 
     def prepare_geo(self, bounds_data):
@@ -220,18 +220,18 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # Convert to DataArray
         dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
         dest = xr.DataArray(dask_dest,
-                            dims=('y_bounds', 'x_bounds'),
+                            dims=("y_bounds", "x_bounds"),
                             attrs=bounds_data.attrs
                             )
         return dest
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", ds_id['name'])
-        file_key = ds_info.get('file_key', ds_id['name'])
+        logger.debug("Getting data for: %s", ds_id["name"])
+        file_key = ds_info.get("file_key", ds_id["name"])
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
-        fill_value = data.attrs.get('_FillValue', np.float32(np.nan))
+        fill_value = data.attrs.get("_FillValue", np.float32(np.nan))
         data = data.squeeze()
 
         # preserve integer data types if possible
@@ -239,11 +239,11 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             new_fill = fill_value
         else:
             new_fill = np.float32(np.nan)
-            data.attrs.pop('_FillValue', None)
+            data.attrs.pop("_FillValue", None)
         good_mask = data != fill_value
 
-        scale_factor = data.attrs.get('scale_factor')
-        add_offset = data.attrs.get('add_offset')
+        scale_factor = data.attrs.get("scale_factor")
+        add_offset = data.attrs.get("add_offset")
         if scale_factor is not None:
             data = data * scale_factor + add_offset
 
@@ -251,11 +251,11 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         data = self._rename_dims(data)
 
         # drop coords whose units are not meters
-        drop_list = ['y', 'x', 'layer', 'vertices']
+        drop_list = ["y", "x", "layer", "vertices"]
         coords_exist = [coord for coord in drop_list if coord in data.coords]
         if coords_exist:
             data = data.drop_vars(coords_exist)
 
-        if ds_id['name'] in ['assembled_lat_bounds', 'assembled_lon_bounds']:
+        if ds_id["name"] in ["assembled_lat_bounds", "assembled_lon_bounds"]:
             data = self.prepare_geo(data)
         return data

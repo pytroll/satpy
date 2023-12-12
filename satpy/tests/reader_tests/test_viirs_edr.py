@@ -33,7 +33,7 @@ import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
-from pytest import TempPathFactory
+from pytest import TempPathFactory  # noqa: PT013
 from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 6400
@@ -283,6 +283,33 @@ def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
         attrs={}
     )
     return ds
+
+
+def test_available_datasets(aod_file):
+    """Test that available datasets doesn't claim non-filetype datasets.
+
+    For example, if a YAML-configured dataset's file type is not loaded
+    then the available status is `None` and should remain `None`. This
+    means no file type knows what to do with this dataset. If it is
+    `False` then that means that a file type knows of the dataset, but
+    that the variable is not available in the file. In the below test
+    this isn't the case so the YAML-configured dataset should be
+    provided once and have a `None` availability.
+
+    """
+    from satpy.readers.viirs_edr import VIIRSJRRFileHandler
+    file_handler = VIIRSJRRFileHandler(
+        aod_file,
+        {"platform_shortname": "npp"},
+        {"file_type": "jrr_aod"},
+    )
+    fake_yaml_datasets = [
+        (None, {"file_key": "fake", "file_type": "fake_file", "name": "fake"}),
+    ]
+    available_datasets = list(file_handler.available_datasets(configured_datasets=fake_yaml_datasets))
+    fake_availables = [avail_tuple for avail_tuple in available_datasets if avail_tuple[1]["name"] == "fake"]
+    assert len(fake_availables) == 1
+    assert fake_availables[0][0] is None
 
 
 class TestVIIRSJRRReader:
