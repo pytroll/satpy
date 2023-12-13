@@ -337,8 +337,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             "wavelength": "wavelength",
             "standard_name": "standard_name"
         }
-        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01"),
-                                      np.datetime64("1958-01-02 00:00:02")])
+        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01").astype("datetime64[ns]"),
+                                      np.datetime64("1958-01-02 00:00:02").astype("datetime64[ns]")])
         expected = expected[::-1]  # reader flips data upside down
         if mask_bad_quality_scan_lines:
             expected = file_handler._mask_bad_quality(expected, dataset_info)
