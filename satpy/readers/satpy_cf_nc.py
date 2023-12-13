@@ -313,7 +313,12 @@ class SatpyCFFileHandler(BaseFileHandler):
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         if "orbital_parameters" in data.attrs:
             data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
-
+        if "time_parameters" in data.attrs:
+            time_params = _str2dict(data.attrs["time_parameters"])
+            from dateutil.parser import isoparse
+            for key, val in time_params.items():
+                time_params[key] = isoparse(val)
+            data.attrs["time_parameters"] = time_params
         return data
 
     def get_area_def(self, dataset_id):
