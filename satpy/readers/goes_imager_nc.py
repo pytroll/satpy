@@ -620,7 +620,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         self.platform_name = self._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
         self.platform_shortname = self.platform_name.replace("-", "").lower()
-        self.gvar_channel = int(self.nc["bands"].values)
+        self.gvar_channel = int(self.nc["bands"].item())
         self.sector = self._get_sector(channel=self.gvar_channel,
                                        nlines=self.nlines,
                                        ncols=self.ncols)
@@ -731,9 +731,9 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     def start_time(self):
         """Start timestamp of the dataset."""
         dt = self.nc["time"].dt
-        return datetime(year=int(dt.year), month=int(dt.month), day=int(dt.day),
-                        hour=int(dt.hour), minute=int(dt.minute),
-                        second=int(dt.second), microsecond=int(dt.microsecond))
+        return datetime(year=int(dt.year.item()), month=int(dt.month.item()), day=int(dt.day.item()),
+                        hour=int(dt.hour.item()), minute=int(dt.minute.item()),
+                        second=int(dt.second.item()), microsecond=int(dt.microsecond.item()))
 
     @property
     def end_time(self):
