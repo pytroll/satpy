@@ -508,10 +508,10 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
 
         assert dataset.values == 0
 
-class TestFciL2NCAMVFileHandler(unittest.TestCase):
+class TestFciL2NCAMVFileHandler:
     """Test the FciL2NCFileHandler reader."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # Create unique filenames to prevent race conditions when tests are run in parallel
