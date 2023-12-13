@@ -316,7 +316,10 @@ class SatpyCFFileHandler(BaseFileHandler):
 
     def _decode_dict_type_attrs(self, data):
         for key in ["orbital_parameters", "time_parameters"]:
-            data.attrs[key] = _str2dict(data.attrs[key])
+            try:
+                data.attrs[key] = _str2dict(data.attrs[key])
+            except KeyError:
+                continue
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
