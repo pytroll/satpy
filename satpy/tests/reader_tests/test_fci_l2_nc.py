@@ -509,7 +509,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         assert dataset.values == 0
 
 class TestFciL2NCAMVFileHandler:
-    """Test the FciL2NCFileHandler reader."""
+    """Test the FciL2NCAMVFileHandler reader."""
 
     def setup_method(self):
         """Set up the test by creating a test file and opening it with the reader."""
@@ -548,7 +548,8 @@ class TestFciL2NCAMVFileHandler:
 
         self.fh = FciL2NCAMVFileHandler(filename=self.test_file,
                                         filename_info={"channel":"test_channel"},
-                                        filetype_info={})
+                                        filetype_info={}
+                                        )
 
     def tearDown(self):
         """Remove the previously created test file."""
