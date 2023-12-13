@@ -36,11 +36,11 @@ from pyresample.geometry import AreaDefinition
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SENSOR = {"NOAA-19": "avhrr-3",
           "NOAA-18": "avhrr-3",
