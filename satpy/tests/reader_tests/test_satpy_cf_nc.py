@@ -147,6 +147,10 @@ def cf_scene():
                                   "nadir_longitude": 1,
                                   "nadir_latitude": 1,
                                   "only_in_1": False
+                              },
+                              "time_parameters": {
+                                  "nominal_start_time": tstart,
+                                  "nominal_end_time": tend
                               }
                           })
 
@@ -388,18 +392,17 @@ class TestCFReader:
         np.testing.assert_array_equal(scn_["1"].data, cf_scene["1"].data)
         np.testing.assert_array_equal(scn_["1"].coords["lon"], cf_scene["lon"].data)  # lon loded as coord
 
-    def test_orbital_parameters(self, cf_scene, nc_filename):
-        """Test that the orbital parameters in attributes are handled correctly."""
+    def test_decoding_of_dict_type_attributes(self, cf_scene, nc_filename):
+        """Test decoding of dict type attributes."""
         cf_scene.save_datasets(writer="cf",
                                filename=nc_filename)
         scn_ = Scene(reader="satpy_cf_nc",
                      filenames=[nc_filename])
         scn_.load(["image0"])
-        orig_attrs = cf_scene["image0"].attrs["orbital_parameters"]
-        new_attrs = scn_["image0"].attrs["orbital_parameters"]
-        assert isinstance(new_attrs, dict)
-        for key in orig_attrs:
-            assert orig_attrs[key] == new_attrs[key]
+        for attr_name in ["orbital_parameters", "time_parameters"]:
+            orig_attrs = cf_scene["image0"].attrs[attr_name]
+            new_attrs = scn_["image0"].attrs[attr_name]
+            assert new_attrs == orig_attrs
 
     def test_write_and_read_from_two_files(self, nc_filename, nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
