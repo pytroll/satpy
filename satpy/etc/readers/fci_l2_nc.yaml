@@ -1292,8 +1292,8 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_min
-    long_name: TOA Radiance segment min
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment min
+    standard_name: toa_outgoing_radiance
     cell_method: area:minimum
     coordinates:
     - longitude
@@ -1304,8 +1304,8 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_max
-    long_name: TOA Radiance segment max
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment max
+    standard_name: toa_outgoing_radiance
     cell_method: area:maximum
     coordinates:
     - longitude
@@ -1316,8 +1316,8 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_mean
-    long_name: TOA Radiance segment mean
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1331,8 +1331,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 0
     category_id: 0
-    long_name: TOA Radiance segment mean at 0.4um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.4um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1346,8 +1346,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 0
     category_id: 1
-    long_name: TOA Radiance segment mean at 0.4um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.4um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1361,8 +1361,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 0
     category_id: 2
-    long_name: TOA Radiance segment mean at 0.4um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.4um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1376,8 +1376,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 1
     category_id: 0
-    long_name: TOA Radiance segment mean at 0.5um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.5um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1391,8 +1391,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 1
     category_id: 1
-    long_name: TOA Radiance segment mean at 0.5um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.5um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1406,8 +1406,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 1
     category_id: 2
-    long_name: TOA Radiance segment mean at 0.5um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.5um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1421,8 +1421,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 2
     category_id: 0
-    long_name: TOA Radiance segment mean at 0.6um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.6um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1436,8 +1436,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 2
     category_id: 1
-    long_name: TOA Radiance segment mean at 0.6um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.6um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1451,8 +1451,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 2
     category_id: 2
-    long_name: TOA Radiance segment mean at 0.6um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.6um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1466,8 +1466,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 3
     category_id: 0
-    long_name: TOA Radiance segment mean at 0.9um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1481,8 +1481,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 3
     category_id: 1
-    long_name: TOA Radiance segment mean at 0.9um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1496,8 +1496,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 3
     category_id: 2
-    long_name: TOA Radiance segment mean at 0.9um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1511,8 +1511,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 4
     category_id: 0
-    long_name: TOA Radiance segment mean at 0.9um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1526,8 +1526,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 4
     category_id: 1
-    long_name: TOA Radiance segment mean at 0.9um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1541,8 +1541,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 4
     category_id: 2
-    long_name: TOA Radiance segment mean at 0.9um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1556,8 +1556,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 5
     category_id: 0
-    long_name: TOA Radiance segment mean at 1.4um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.4um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1571,8 +1571,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 5
     category_id: 1
-    long_name: TOA Radiance segment mean at 1.4um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.4um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1586,8 +1586,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 5
     category_id: 2
-    long_name: TOA Radiance segment mean at 1.4um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.4um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1601,8 +1601,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 6
     category_id: 0
-    long_name: TOA Radiance segment mean at 1.6um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.6um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1616,8 +1616,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 6
     category_id: 1
-    long_name: TOA Radiance segment mean at 1.6um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.6um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1631,8 +1631,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 6
     category_id: 2
-    long_name: TOA Radiance segment mean at 1.6um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 1.6um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1646,8 +1646,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 7
     category_id: 0
-    long_name: TOA Radiance segment mean at 2.2um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 2.2um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1661,8 +1661,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 7
     category_id: 1
-    long_name: TOA Radiance segment mean at 2.2um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 2.2um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1676,8 +1676,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 7
     category_id: 2
-    long_name: TOA Radiance segment mean at 2.2um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 2.2um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1691,8 +1691,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 8
     category_id: 0
-    long_name: TOA Radiance segment mean at 3.8um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 3.8um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1706,8 +1706,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 8
     category_id: 1
-    long_name: TOA Radiance segment mean at 3.8um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 3.8um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1721,8 +1721,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 8
     category_id: 2
-    long_name: TOA Radiance segment mean at 3.8um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 3.8um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1736,8 +1736,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 9
     category_id: 0
-    long_name: TOA Radiance segment mean at 6.3um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 6.3um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1751,8 +1751,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 9
     category_id: 1
-    long_name: TOA Radiance segment mean at 6.3um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 6.3um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1766,8 +1766,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 9
     category_id: 2
-    long_name: TOA Radiance segment mean at 6.3um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 6.3um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1781,8 +1781,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 10
     category_id: 0
-    long_name: TOA Radiance segment mean at 7.3um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 7.3um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1796,8 +1796,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 10
     category_id: 1
-    long_name: TOA Radiance segment mean at 7.3um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 7.3um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1811,8 +1811,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 10
     category_id: 2
-    long_name: TOA Radiance segment mean at 7.3um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 7.3um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1826,8 +1826,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 11
     category_id: 0
-    long_name: TOA Radiance segment mean at 8.7um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 8.7um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1841,8 +1841,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 11
     category_id: 1
-    long_name: TOA Radiance segment mean at 8.7um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 8.7um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1856,8 +1856,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 11
     category_id: 2
-    long_name: TOA Radiance segment mean at 8.7um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 8.7um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1871,8 +1871,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 12
     category_id: 0
-    long_name: TOA Radiance segment mean at 9.7um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 9.7um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1886,8 +1886,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 12
     category_id: 1
-    long_name: TOA Radiance segment mean at 9.7um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 9.7um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1901,8 +1901,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 12
     category_id: 2
-    long_name: TOA Radiance segment mean at 9.7um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 9.7um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1916,8 +1916,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 13
     category_id: 0
-    long_name: TOA Radiance segment mean at 10.5um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 10.5um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1931,8 +1931,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 13
     category_id: 1
-    long_name: TOA Radiance segment mean at 10.5um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 10.5um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1946,8 +1946,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 13
     category_id: 2
-    long_name: TOA Radiance segment mean at 10.5um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 10.5um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1961,8 +1961,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 14
     category_id: 0
-    long_name: TOA Radiance segment mean at 12.3um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 12.3um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1976,8 +1976,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 14
     category_id: 1
-    long_name: TOA Radiance segment mean at 12.3um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 12.3um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1991,8 +1991,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 14
     category_id: 2
-    long_name: TOA Radiance segment mean at 12.3um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 12.3um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2006,8 +2006,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 15
     category_id: 0
-    long_name: TOA Radiance segment mean at 13.3um (all pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 13.3um (all pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2021,8 +2021,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 15
     category_id: 1
-    long_name: TOA Radiance segment mean at 13.3um (clear pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 13.3um (clear pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2036,8 +2036,8 @@ datasets:
     file_key: radiance_mean
     channel_id: 15
     category_id: 2
-    long_name: TOA Radiance segment mean at 13.3um (cloudy pixels)
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance segment mean at 13.3um (cloudy pixels)
+    standard_name: toa_outgoing_radiance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2046,11 +2046,10 @@ datasets:
   radiance_std:
     name: radiance_std
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: radiance_std
-    long_name: TOA Radiance standard deviation
-    standard_name: toa_radiance
+    long_name: TOA Outgoing Radiance standard deviation
+    standard_name: toa_outgoing_radiance
     cell_method: area:standard_deviation
     coordinates:
     - longitude
@@ -2059,7 +2058,6 @@ datasets:
   radiance_quality:
     name: radiance_quality
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: radiance_quality
     long_name: TOA Radiance % confidence
@@ -2071,11 +2069,10 @@ datasets:
   reflectance_min:
     name: reflectance_min
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: reflectance_min
-    long_name: TOA Reflectance segment min
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment min
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:minimum
     coordinates:
     - longitude
@@ -2084,11 +2081,10 @@ datasets:
   reflectance_max:
     name: reflectance_max
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: reflectance_max
-    long_name: TOA Reflectance segment max
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment max
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:maximum
     coordinates:
     - longitude
@@ -2097,11 +2093,10 @@ datasets:
   reflectance_mean:
     name: reflectance_mean
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: reflectance_mean
-    long_name: TOA Reflectance segment mean
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2115,8 +2110,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 0
-    long_name: TOA Reflectance segment mean at 0.4um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2130,8 +2125,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 1
-    long_name: TOA Reflectance segment mean at 0.4um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2145,8 +2140,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 2
-    long_name: TOA Reflectance segment mean at 0.4um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2160,8 +2155,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 0
-    long_name: TOA Reflectance segment mean at 0.5um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2175,8 +2170,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 1
-    long_name: TOA Reflectance segment mean at 0.5um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2190,8 +2185,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 2
-    long_name: TOA Reflectance segment mean at 0.5um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2205,8 +2200,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 0
-    long_name: TOA Reflectance segment mean at 0.6um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2220,8 +2215,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 1
-    long_name: TOA Reflectance segment mean at 0.6um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2235,8 +2230,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 2
-    long_name: TOA Reflectance segment mean at 0.6um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2250,8 +2245,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 0
-    long_name: TOA Reflectance segment mean at 0.9um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2265,8 +2260,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 1
-    long_name: TOA Reflectance segment mean at 0.9um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2280,8 +2275,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 2
-    long_name: TOA Reflectance segment mean at 0.9um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2295,8 +2290,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 0
-    long_name: TOA Reflectance segment mean at 0.9um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2310,8 +2305,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 1
-    long_name: TOA Reflectance segment mean at 0.9um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2325,8 +2320,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 2
-    long_name: TOA Reflectance segment mean at 0.9um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2340,8 +2335,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 0
-    long_name: TOA Reflectance segment mean at 1.4um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2355,8 +2350,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 1
-    long_name: TOA Reflectance segment mean at 1.4um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2370,8 +2365,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 2
-    long_name: TOA Reflectance segment mean at 1.4um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2385,8 +2380,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 0
-    long_name: TOA Reflectance segment mean at 1.6um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2400,8 +2395,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 1
-    long_name: TOA Reflectance segment mean at 1.6um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2415,8 +2410,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 2
-    long_name: TOA Reflectance segment mean at 1.6um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2430,8 +2425,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 0
-    long_name: TOA Reflectance segment mean at 2.2um (all pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (all pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2445,8 +2440,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 1
-    long_name: TOA Reflectance segment mean at 2.2um (clear pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2460,8 +2455,8 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 2
-    long_name: TOA Reflectance segment mean at 2.2um (cloudy pixels)
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
     coordinates:
     - longitude
@@ -2470,11 +2465,10 @@ datasets:
   reflectance_std:
     name: reflectance_std
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: reflectance_std
-    long_name: TOA Reflectance standard deviation
-    standard_name: toa_reflectance
+    long_name: TOA Bidirectional Reflectance standard deviation
+    standard_name: toa_bidirectional_reflectance
     cell_method: area:standard_deviation
     coordinates:
     - longitude
@@ -2483,10 +2477,9 @@ datasets:
   reflectance_quality:
     name: reflectance_quality
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: reflectance_quality
-    long_name: TOA Reflectance % confidence
+    long_name: TOA Bidirectional Reflectance % confidence
     standard_name: reflectance_quality
     coordinates:
     - longitude
@@ -2495,7 +2488,6 @@ datasets:
   bt_min:
     name: bt_min
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_min
     long_name: TOA Brightess Temperature segment min
@@ -2508,7 +2500,6 @@ datasets:
   bt_max:
     name: bt_max
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_max
     long_name: TOA Brightess Temperature segment max
@@ -2521,7 +2512,6 @@ datasets:
   bt_mean:
     name: bt_mean
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_mean
     long_name: TOA Brightess Temperature segment mean
@@ -2894,7 +2884,6 @@ datasets:
   bt_std:
     name: bt_std
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_std
     long_name: TOA Brightess Temperature standard deviation
@@ -2907,7 +2896,6 @@ datasets:
   bt_quality:
     name: bt_quality
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_quality
     long_name: TOA Brightess Temperature % confidence
