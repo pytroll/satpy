@@ -1087,7 +1087,7 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
 
         # Set proper dimension names
         data = data.rename({"xc": "x", "yc": "y"})
-        data = data.drop("time")
+        data = data.drop_vars("time")
 
         # Update metadata
         self._update_metadata(data, ds_info=info)

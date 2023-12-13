@@ -100,8 +100,8 @@ class HIML2NCFileHandler(BaseFileHandler):
         # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
         variable = variable.rename({"Rows": "y", "Columns": "x"})
 
-        variable = variable.drop("Latitude")
-        variable = variable.drop("Longitude")
+        variable = variable.drop_vars("Latitude")
+        variable = variable.drop_vars("Longitude")
 
         variable.attrs.update(key.to_dict())
         return variable
