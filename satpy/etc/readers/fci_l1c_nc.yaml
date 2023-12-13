@@ -66,6 +66,11 @@ file_types:
         - ir_105
         - ir_123
         - ir_133
+    segment_tag: count_in_repeat_cycle
+    time_tags:
+      - processing_time
+      - start_time
+      - end_time
   fci_l1c_hrfi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
     file_patterns:

@@ -21,6 +21,7 @@ import glob
 import itertools
 import logging
 import os
+import pathlib
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
@@ -1176,7 +1177,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     a scene based on all expected segments with dask delayed objects.  When
     computing the dask graphs, satpy will process each segment as soon as it
     comes in, strongly reducing the timeliness for processing a full disc
-    image.  As of Satpy 0.47, this feature is experimental.  Use at own risk.
+    image in near real time.  This feature is experimental.  Use at your own
+    risk.
+
+    .. versionadded: 0.46
     """
 
     def __init__(self, *args, **kwargs):
@@ -1352,9 +1356,13 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         if self.preload is True, also for predicted files that don't exist,
         as a glob pattern.
         """
+        i = -1
         for (i, fh) in enumerate(super()._new_filehandler_instances(
                 filetype_info, filename_items, fh_kwargs=fh_kwargs)):
             yield fh
+        if i == -1:
+            raise ValueError("Failed to create initial filehandler. "
+                             "Cannot predict remaining files.")
         if self.preload:
             if i < fh.filetype_info["expected_segments"]:
                 yield from self._new_preloaded_filehandler_instances(
@@ -1383,8 +1391,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         for filenames or glob patterns for all files that we expect to make up
         a scene in the end.
         """
-        for i in range(fh.filename_info["count_in_repeat_cycle"]+1,
-                       fh.filetype_info["expected_segments"]):
+        for i in range(fh.filename_info[filetype_info["segment_tag"]]+1,
+                       fh.filetype_info["expected_segments"]+1):
             yield self._predict_filename(fh, i)
 
     def _select_pattern(self, filename):
@@ -1393,20 +1401,29 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         Given a filename for a yamlreader with multiple file patterns,
         return the matching file pattern.
         """
-        # FIXME: this should test to match the filename
-        return self.file_patterns[0]
+        for pattern in self.file_patterns:
+            if _match_filenames([filename], pattern):
+                return pattern
+        else:
+            raise ValueError("Cannot predict filenames, because the "
+                             "initial file doesn't appear to meet any defined "
+                             "pattern.")
 
     def _predict_filename(self, fh, i):
         """Predict filename or glob pattern.
 
         Given a filehandler for an extant file, predict what the filename or
         glob pattern will be for segment i.
+
+        Returns filename pattern and filename info dict.
         """
         pat = self._select_pattern(fh.filename)
         p = Parser(pat)
         new_info = _predict_filename_info(fh, i)
         new_filename = p.compose(new_info)
+        basedir = pathlib.Path(fh.filename).parent
         new_filename = new_filename.replace("000000", "??????")
+        new_filename = os.fspath(basedir / new_filename)
         return (new_filename, new_info)
 
 

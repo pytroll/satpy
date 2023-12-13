@@ -1524,31 +1524,113 @@ class TestGEOVariableSegmentYAMLReader:
         assert (new_empty_segment == empty_segment[0,0]).all()
 
 
-def test_predict_filename_info(tmp_path):
-    """Test prediction of filename info."""
-    from satpy.readers.yaml_reader import _predict_filename_info
+_fake_filetype_info = {
+        "file_reader": BaseFileHandler,
+        "file_patterns": [
+            "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc",
+            "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc"],
+        "expected_segments": 5,
+        "time_tags": ["start_time", "end_time"],
+        "segment_tag": "segment"}
 
-    fake_filename = os.fspath(tmp_path / "M9G-a-21000101100000-21000101100100-0001.nc")
+
+def _get_fake_handler(parent, filename):
+    fake_filename = os.fspath(parent / filename)
     fake_filename_info = {
             "platform": "M9G",
             "start_time": datetime(2100, 1, 1, 10, 0, 0),
             "end_time": datetime(2100, 1, 1, 10, 1, 0),
             "segment": 1}
-    fake_filetype_info = {
-            "file_reader": BaseFileHandler,
-            "file_patterns": [
-                "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%m%d%H%M%S}-{segment:>04d}",
-                "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%H%m%d%H%M%S}-{segment:>04d}"],
-            "expected_segments": 5,
-            "time_tags": ["start_time", "end_time"],
-            "segment_tag": "segment"}
     fakehandler = BaseFileHandler(
             fake_filename,
             fake_filename_info,
-            fake_filetype_info)
-    info = _predict_filename_info(fakehandler, 3)
+            _fake_filetype_info)
+    return fakehandler
+
+
+def test_predict_filename_info(tmp_path):
+    """Test prediction of filename info."""
+    from satpy.readers.yaml_reader import _predict_filename_info
+
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-a-21000101100000-21000101100100-0001.nc")
+    info = _predict_filename_info(fh, 3)
     assert info == {
             "platform": "M9G",
             "start_time": datetime(2100, 1, 1, 0, 0, ),
             "end_time": datetime(2100, 1, 1, 0, 0, ),
             "segment": 3}
+
+
+@pytest.fixture()
+def fake_gsyreader():
+    """Create a fake GeoSegmentYAMLReader."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+    return GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "alicudi"},
+             "file_types": {
+                 "m9g": _fake_filetype_info}}, preload=True)
+
+
+def test_predict_filename(tmp_path, fake_gsyreader):
+    """Test predicting a filename."""
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-a-21000101100000-21000101100100-0001.nc")
+    newname = fake_gsyreader._predict_filename(fh, 4)
+    assert newname[0] == os.fspath(tmp_path / "M9G-a-21000101??????-21000101??????-0004.nc")
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-b-21000101100000-21000101100100-0001.nc")
+    newname = fake_gsyreader._predict_filename(fh, 4)
+    assert newname[0] == os.fspath(tmp_path / "M9G-b-21000101??????-21000101??????-0004.nc")
+
+
+def test_select_pattern(fake_gsyreader):
+    """Test selecting the appropriate pattern."""
+    assert fake_gsyreader._select_pattern(
+            "M9G-a-21000101100000-21000101100100-0001.nc") == (
+            "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc")
+    assert fake_gsyreader._select_pattern(
+            "M9G-b-21000101100000-21000101100100-0001.nc") == (
+            "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc")
+    with pytest.raises(ValueError, match="Cannot predict filenames"):
+        fake_gsyreader._select_pattern(
+            "M9G-c-21000101100000-21000101100100-0001.nc")
+
+
+def test_preloaded_instances(tmp_path, fake_gsyreader):
+    """That that preloaded instances are generated."""
+    g = fake_gsyreader._new_filehandler_instances(
+            _fake_filetype_info,
+            [("M9G-a-21000101053000-21000101053100-0001.nc",
+              {"platform": "M9G",
+               "start_time": datetime(2100, 1, 1, 5, 30, ),
+               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "segment": 1})])
+    total = list(g)
+    assert len(total) == 5
+
+    ffi2 = _fake_filetype_info.copy()
+    ffi2["requires"] = ["pergola"]
+    g = fake_gsyreader._new_filehandler_instances(
+            ffi2,
+            [("M9G-a-21000101053000-21000101053100-0001.nc",
+              {"platform": "M9G",
+               "start_time": datetime(2100, 1, 1, 5, 30, ),
+               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "segment": 1})])
+    with pytest.raises(ValueError, match="Failed to create"):
+        list(g)
+
+    g = fake_gsyreader._new_preloaded_filehandler_instances(
+            ffi2,
+            [("M9G-a-21000101053000-21000101053100-0001.nc",
+              {"platform": "M9G",
+               "start_time": datetime(2100, 1, 1, 5, 30, ),
+               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "segment": 1})])
+    with pytest.raises(NotImplementedError, match="Pre-loading not implemented"):
+        list(g)
