@@ -33,7 +33,7 @@ import xarray as xr
 import yaml
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
-from trollsift.parser import globify, parse
+from trollsift.parser import Parser, globify, parse
 
 try:
     from yaml import CLoader as Loader
@@ -1346,15 +1346,83 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         return new_height_proj_coord, new_height_px
 
     def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
+        """Get new filehandler instances.
+
+        Gets new filehandler instances, either just for files that exist, or,
+        if self.preload is True, also for predicted files that don't exist,
+        as a glob pattern.
+        """
         for (i, fh) in enumerate(super()._new_filehandler_instances(
                 filetype_info, filename_items, fh_kwargs=fh_kwargs)):
             yield fh
         if self.preload:
             if i < fh.filetype_info["expected_segments"]:
-                yield from self._new_preloaded_filehandler_instances()
+                yield from self._new_preloaded_filehandler_instances(
+                        filetype_info, fh)
 
-    def _new_preloaded_filehandler_instances(self):
-        raise NotImplementedError("Pre-loading not implemented yet")
+    def _new_preloaded_filehandler_instances(self, filetype_info, fh):
+        """Get filehandler instances for non-existing files.
+
+        Based on the filehandler for a single existing file, yield filehandler
+        instances for all files that we expect for a full disc cycle.  Those
+        filehandler instances are usually based on glob patterns rather than on
+        the explicity filename, which may not be reliably predictable.
+        """
+        if filetype_info.get("requires"):
+            raise NotImplementedError("Pre-loading not implemented for "
+                                      "handlers with required segments.")
+        filetype_cls = filetype_info["file_reader"]
+        for (filename, filename_info) in self._predict_filenames(filetype_info, fh):
+            # FIXME: handle fh_kwargs
+            yield filetype_cls(filename, filename_info, filetype_info)
+
+    def _predict_filenames(self, filetype_info, fh):
+        """Predict what filenames or glob patterns we should expect.
+
+        Based on the filehandler for a single existing file, yield strings
+        for filenames or glob patterns for all files that we expect to make up
+        a scene in the end.
+        """
+        for i in range(fh.filename_info["count_in_repeat_cycle"]+1,
+                       fh.filetype_info["expected_segments"]):
+            yield self._predict_filename(fh, i)
+
+    def _select_pattern(self, filename):
+        """Choose the matching file pattern.
+
+        Given a filename for a yamlreader with multiple file patterns,
+        return the matching file pattern.
+        """
+        # FIXME: this should test to match the filename
+        return self.file_patterns[0]
+
+    def _predict_filename(self, fh, i):
+        """Predict filename or glob pattern.
+
+        Given a filehandler for an extant file, predict what the filename or
+        glob pattern will be for segment i.
+        """
+        pat = self._select_pattern(fh.filename)
+        p = Parser(pat)
+        new_info = _predict_filename_info(fh, i)
+        new_filename = p.compose(new_info)
+        new_filename = new_filename.replace("000000", "??????")
+        return (new_filename, new_info)
+
+
+def _predict_filename_info(fh, i):
+    """Predict filename info for file that doesn't exist yet.
+
+    Taking an existing filehandler that refers to a real file with a segmented
+    reader, return a glob pattern that should match the file for segment number
+    i.
+    """
+    new_info = fh.filename_info.copy()
+    new_info[fh.filetype_info["segment_tag"]] = i
+    for tm in fh.filetype_info["time_tags"]:
+        new_info[tm] = new_info[tm].replace(
+            hour=0, minute=0, second=0)
+    return new_info
 
 
 def _stack_area_defs(area_def_dict):

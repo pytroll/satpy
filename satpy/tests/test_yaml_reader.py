@@ -1522,3 +1522,33 @@ class TestGEOVariableSegmentYAMLReader:
         new_empty_segment = geswh(empty_segment, new_height, "y")
         assert new_empty_segment.shape == (new_height, 5568)
         assert (new_empty_segment == empty_segment[0,0]).all()
+
+
+def test_predict_filename_info(tmp_path):
+    """Test prediction of filename info."""
+    from satpy.readers.yaml_reader import _predict_filename_info
+
+    fake_filename = os.fspath(tmp_path / "M9G-a-21000101100000-21000101100100-0001.nc")
+    fake_filename_info = {
+            "platform": "M9G",
+            "start_time": datetime(2100, 1, 1, 10, 0, 0),
+            "end_time": datetime(2100, 1, 1, 10, 1, 0),
+            "segment": 1}
+    fake_filetype_info = {
+            "file_reader": BaseFileHandler,
+            "file_patterns": [
+                "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%m%d%H%M%S}-{segment:>04d}",
+                "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%H%m%d%H%M%S}-{segment:>04d}"],
+            "expected_segments": 5,
+            "time_tags": ["start_time", "end_time"],
+            "segment_tag": "segment"}
+    fakehandler = BaseFileHandler(
+            fake_filename,
+            fake_filename_info,
+            fake_filetype_info)
+    info = _predict_filename_info(fakehandler, 3)
+    assert info == {
+            "platform": "M9G",
+            "start_time": datetime(2100, 1, 1, 0, 0, ),
+            "end_time": datetime(2100, 1, 1, 0, 0, ),
+            "segment": 3}
