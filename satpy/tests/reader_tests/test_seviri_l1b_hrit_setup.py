@@ -201,6 +201,7 @@ def get_acq_time_cds(start_time, nlines):
     tline["days"][1:-1] = days_since_1958 * np.ones(nlines - 2)
     offset_second = (start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()*1000
     tline["milliseconds"][1:-1] = np.arange(nlines - 2)+offset_second
+
     return tline
 
 
@@ -211,7 +212,8 @@ def get_acq_time_exp(start_time, nlines):
     tline_exp[-1] = np.datetime64("NaT")
     tline_exp[1:-1] = np.datetime64(start_time)
     tline_exp[1:-1] += np.arange(nlines - 2).astype("timedelta64[ms]")
-    return tline_exp
+
+    return tline_exp.astype("datetime64[ns]")
 
 
 def get_attrs_exp(projection_longitude=0.0):
