@@ -53,14 +53,14 @@ from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
 # the order of the L1B quality flags are from highest 32nd bit to the lowest 1 bit
 # https://sentinel.esa.int/documents/247904/1872756/Sentinel-3-OLCI-Product-Data-Format-Specification-OLCI-Level-1
-L1B_QUALITY_FLAGS = ["saturated@Oa21", "saturated@Oa20",     "saturated@Oa19",  "saturated@Oa18",
-                     "saturated@Oa17", "saturated@Oa16",     "saturated@Oa15",  "saturated@Oa14",
-                     "saturated@Oa13", "saturated@Oa12",     "saturated@Oa11",  "saturated@Oa10",
-                     "saturated@Oa09", "saturated@Oa08",     "saturated@Oa07",  "saturated@Oa06",
-                     "saturated@Oa05", "saturated@Oa04",     "saturated@Oa03",  "saturated@Oa02",
-                     "saturated@Oa01", "dubious",            "sun-glint_risk",  "duplicated",
-                     "cosmetic",       "invalid",            "straylight_risk", "bright",
-                     "tidal_region",   "fresh_inland_water", "coastline",       "land"]
+L1B_QUALITY_FLAGS = ["saturated@Oa21", "saturated@Oa20", "saturated@Oa19", "saturated@Oa18",
+                     "saturated@Oa17", "saturated@Oa16", "saturated@Oa15", "saturated@Oa14",
+                     "saturated@Oa13", "saturated@Oa12", "saturated@Oa11", "saturated@Oa10",
+                     "saturated@Oa09", "saturated@Oa08", "saturated@Oa07", "saturated@Oa06",
+                     "saturated@Oa05", "saturated@Oa04", "saturated@Oa03", "saturated@Oa02",
+                     "saturated@Oa01", "dubious", "sun-glint_risk", "duplicated",
+                     "cosmetic", "invalid", "straylight_risk", "bright",
+                     "tidal_region", "fresh_inland_water", "coastline", "land"]
 
 DEFAULT_L1B_MASK_ITEMS = ["dubious", "sun-glint_risk", "duplicated", "cosmetic", "invalid",
     "straylight_risk", "bright", "tidal_region", "coastline", "land"]
