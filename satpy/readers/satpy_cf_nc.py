@@ -311,15 +311,12 @@ class SatpyCFFileHandler(BaseFileHandler):
         if name != ds_id["name"]:
             data = data.rename(ds_id["name"])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
-        if "orbital_parameters" in data.attrs:
-            data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
-        if "time_parameters" in data.attrs:
-            time_params = _str2dict(data.attrs["time_parameters"])
-            from dateutil.parser import isoparse
-            for key, val in time_params.items():
-                time_params[key] = isoparse(val)
-            data.attrs["time_parameters"] = time_params
+        self._decode_dict_type_attrs(data)
         return data
+
+    def _decode_dict_type_attrs(self, data):
+        for key in ["orbital_parameters", "time_parameters"]:
+            data.attrs[key] = _str2dict(data.attrs[key])
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
@@ -334,8 +331,18 @@ class SatpyCFFileHandler(BaseFileHandler):
             raise NotImplementedError
 
 
+def _datetime_parser(json_dict):
+    import dateutil.parser
+    for key, value in json_dict.items():
+        try:
+            json_dict[key] = dateutil.parser.parse(value)
+        except (TypeError, ValueError):
+            pass
+    return json_dict
+
+
 def _str2dict(val):
     """Convert string to dictionary."""
     if isinstance(val, str):
-        val = json.loads(val)
+        val = json.loads(val, object_hook=_datetime_parser)
     return val
