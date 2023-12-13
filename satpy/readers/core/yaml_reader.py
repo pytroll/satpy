@@ -1360,10 +1360,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         for (i, fh) in enumerate(super()._new_filehandler_instances(
                 filetype_info, filename_items, fh_kwargs=fh_kwargs)):
             yield fh
-        if i == -1:
-            raise ValueError("Failed to create initial filehandler. "
-                             "Cannot predict remaining files.")
         if self.preload:
+            if i == -1:
+                raise ValueError("Failed to create initial filehandler. "
+                                 "Cannot predict remaining files.")
             if i < fh.filetype_info["expected_segments"]:
                 yield from self._new_preloaded_filehandler_instances(
                         filetype_info, fh)
