@@ -22,6 +22,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy._compat import cached_property
 from satpy.readers._geos_area import get_geos_area_naming, make_ext
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.file_handlers import BaseFileHandler
@@ -152,6 +153,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.ncols = self.nc["x"].size
         self._projection = self.nc["mtg_geos_projection"]
         self.multi_dims = {"maximum_number_of_layers": "layer", "number_of_vis_channels": "vis_channel_id"}
+
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -408,14 +410,15 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
 
-        # Use xarray's default netcdf4 engine to open the file
-        self.nc = xr.open_dataset(
+    @cached_property
+    def nc(self):
+        """Read the file."""
+        return xr.open_dataset(
             self.filename,
             decode_cf=True,
             mask_and_scale=True,
             chunks={
                 "number_of_images": CHUNK_SIZE,
-                # 'number_of_height_estimates': CHUNK_SIZE,
                 "number_of_winds": CHUNK_SIZE
             }
         )
