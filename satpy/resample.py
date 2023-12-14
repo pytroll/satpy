@@ -42,7 +42,7 @@ Resampling algorithms
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
-    "gradient_search", "Gradient Search Resampling", :class:`~pyresample.gradient.GradientSearchResampler`
+    "gradient_search", "Gradient Search Resampling", :meth:`~pyresample.gradient.create_gradient_search_resampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -148,13 +148,11 @@ from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
-import pyresample
 import xarray as xr
 import zarr
-from packaging import version
 from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
 from pyresample.geometry import SwathDefinition
-from pyresample.gradient import GradientSearchResampler
+from pyresample.gradient import create_gradient_search_resampler
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
 from satpy._config import config_search_paths, get_config_path
@@ -176,8 +174,6 @@ BIL_COORDINATES = {"bilinear_s": ("x1", ),
                    "out_coords_y": ("y2", )}
 
 resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
-
-PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 
 
 def hash_dict(the_dict, the_hash=None):
@@ -773,33 +769,6 @@ def _get_replicated_chunk_sizes(d_arr, repeats):
     return tuple(repeated_chunks)
 
 
-def _get_arg_to_pass_for_skipna_handling(**kwargs):
-    """Determine if skipna can be passed to the compute functions for the average and sum bucket resampler."""
-    # FIXME this can be removed once Pyresample 1.18.0 is a Satpy requirement
-
-    if PR_USE_SKIPNA:
-        if "mask_all_nan" in kwargs:
-            warnings.warn(
-                "Argument mask_all_nan is deprecated. Please use skipna for missing values handling. "
-                "Continuing with default skipna=True, if not provided differently.",
-                DeprecationWarning,
-                stacklevel=3
-            )
-            kwargs.pop("mask_all_nan")
-    else:
-        if "mask_all_nan" in kwargs:
-            warnings.warn(
-                "Argument mask_all_nan is deprecated."
-                "Please update Pyresample and use skipna for missing values handling.",
-                DeprecationWarning,
-                stacklevel=3
-            )
-        kwargs.setdefault("mask_all_nan", False)
-        kwargs.pop("skipna")
-
-    return kwargs
-
-
 class BucketResamplerBase(PRBaseResampler):
     """Base class for bucket resampling which implements averaging."""
 
@@ -832,11 +801,6 @@ class BucketResamplerBase(PRBaseResampler):
         Returns (xarray.DataArray): Data resampled to the target area
 
         """
-        if not PR_USE_SKIPNA and "skipna" in kwargs:
-            raise ValueError("You are trying to set the skipna argument but you are using an old version of"
-                             " Pyresample that does not support it."
-                             "Please update Pyresample to 1.18.0 or higher to be able to use this argument.")
-
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
@@ -910,17 +874,16 @@ class BucketAvg(BucketResamplerBase):
         Returns:
             dask.Array
         """
-        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
-
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
                                                  fill_value=fill_value,
+                                                 skipna=skipna,
                                                  **kwargs)
                 results.append(res)
         else:
-            res = self.resampler.get_average(data, fill_value=fill_value,
+            res = self.resampler.get_average(data, fill_value=fill_value, skipna=skipna,
                                              **kwargs)
             results.append(res)
 
@@ -948,16 +911,14 @@ class BucketSum(BucketResamplerBase):
 
     def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
-        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
-
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
-                res = self.resampler.get_sum(data[i, :, :],
+                res = self.resampler.get_sum(data[i, :, :], skipna=skipna,
                                              **kwargs)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data, **kwargs)
+            res = self.resampler.get_sum(data, skipna=skipna, **kwargs)
             results.append(res)
 
         return da.stack(results)
@@ -1009,7 +970,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
-              "gradient_search": GradientSearchResampler,
+              "gradient_search": create_gradient_search_resampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
