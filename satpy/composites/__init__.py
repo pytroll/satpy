@@ -1052,7 +1052,7 @@ class CloudCompositor(GenericCompositor):
         alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
 
         if self.invert_alpha:
-            alpha = 1.0 - alpha
+            alpha.data = 1.0 - alpha.data
 
         # gamma adjustment
         alpha **= gamma
