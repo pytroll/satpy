@@ -49,6 +49,8 @@ def get_new_read_prologue(prologue):
 def get_fake_file_handler(observation_start_time, nlines, ncols, projection_longitude=0,
                           orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
+    import warnings
+
     prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
     mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=observation_start_time)
     filename_info = get_fake_filename_info(observation_start_time)
@@ -80,13 +82,16 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
         )
         epilogue = mock.MagicMock(epilogue=epilogue)
 
-        reader = HRITMSGFileHandler(
-            "filename",
-            filename_info,
-            {"filetype": "info"},
-            prologue,
-            epilogue
-        )
+        with warnings.catch_warnings():
+            # Orbit polynomial has no exact match, so filter the unnecessary warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid for")
+            reader = HRITMSGFileHandler(
+                "filename",
+                filename_info,
+                {"filetype": "info"},
+                prologue,
+                epilogue
+            )
         reader.mda.update(mda)
         return reader
 
