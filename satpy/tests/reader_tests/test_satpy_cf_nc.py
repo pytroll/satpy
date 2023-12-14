@@ -260,12 +260,15 @@ class TestCFReader:
 
     def test_write_and_read_with_swath_definition(self, cf_scene, nc_filename):
         """Save a dataset with a swath definition to file with cf_writer and read the data again."""
-        cf_scene.save_datasets(writer="cf",
-                               filename=nc_filename,
-                               engine="h5netcdf",
-                               flatten_attrs=True,
-                               pretty=True,
-                               datasets=["swath_data"])
+        with warnings.catch_warnings():
+            # Filter out warning about missing lon/lat DataArray coordinates
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"Coordinate .* referenced")
+            cf_scene.save_datasets(writer="cf",
+                                filename=nc_filename,
+                                engine="h5netcdf",
+                                flatten_attrs=True,
+                                pretty=True,
+                                datasets=["swath_data"])
         scn_ = Scene(reader="satpy_cf_nc",
                      filenames=[nc_filename])
         scn_.load(["swath_data"])
