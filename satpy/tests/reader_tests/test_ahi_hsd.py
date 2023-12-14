@@ -105,7 +105,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch("satpy.readers.ahi_hsd.np.fromfile")
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
+
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch("satpy.readers.ahi_hsd.open", m, create=True):
@@ -140,18 +141,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore",
-                                        message=r"You will likely lose important projection information",
-                                        category=UserWarning)
-                proj_dict = area_def.proj_dict
-            a, b = proj4_radius_parameters(proj_dict)
-            assert a == 6378137.0
-            assert b == 6356752.3
-            assert proj_dict["h"] == 35785863.0
-            assert proj_dict["lon_0"] == 140.7
-            assert proj_dict["proj"] == "geos"
-            assert proj_dict["units"] == "m"
+            expected_crs = CRS.from_dict(dict(a=6378137.0, b=6356752.3, h= 35785863.0,
+                                              lon_0=140.7, proj="geos", units="m"))
+            assert area_def.crs == expected_crs
             np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
                                                               1592000.0102878273, 5132000.033164027))
 
