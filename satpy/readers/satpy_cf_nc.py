@@ -318,15 +318,8 @@ class SatpyCFFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
-        import warnings
-
         try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore",
-                                        message=r"You will likely lose important projection information",
-                                        category=UserWarning)
-                # FIXME: This should be silenced in Pyresample
-                area = AreaDefinition.from_cf(self.filename)
+            area = AreaDefinition.from_cf(self.filename)
             return area
         except ValueError:
             # No CF compliant projection information was found in the netcdf file or
