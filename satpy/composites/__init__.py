@@ -204,7 +204,7 @@ class CompositeBase:
                     if coord not in ds.dims and
                     any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
-                new_arrays.append(ds.drop(drop))
+                new_arrays.append(ds.drop_vars(drop))
             else:
                 new_arrays.append(ds)
 
@@ -1180,7 +1180,8 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 def _get_sharpening_ratio(high_res, low_res):
-    ratio = high_res / low_res
+    with np.errstate(divide="ignore"):
+        ratio = high_res / low_res
     # make ratio a no-op (multiply by 1) where the ratio is NaN, infinity,
     # or it is negative.
     ratio[~np.isfinite(ratio) | (ratio < 0)] = 1.0
