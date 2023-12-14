@@ -971,10 +971,11 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
     get_segment_position_info = MagicMock()
     get_segment_position_info.return_value = chk_pos_info
 
-    fh = MagicMock()
     filetype_info = {"expected_segments": expected_segments,
                      "file_type": "filetype1"}
     filename_info = {"segment": segment}
+
+    fh = _create_mocked_basic_fh()
     fh.filetype_info = filetype_info
     fh.filename_info = filename_info
     fh.get_area_def = get_area_def
@@ -982,6 +983,12 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
 
     return fh, seg_area
 
+
+def _create_mocked_basic_fh():
+    fake_fh = MagicMock()
+    fake_fh.filename_info = {}
+    fake_fh.filetype_info = {}
+    return fake_fh
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
@@ -993,9 +1000,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        fake_fh = MagicMock()
-        fake_fh.filename_info = {}
-        fake_fh.filetype_info = {}
+        fake_fh = _create_mocked_basic_fh()
         cfh.return_value = {"ft1": [fake_fh]}
 
         # default (1)
@@ -1029,6 +1034,28 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filename_info["segment"]
         assert es == 5
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_segments_sorting(self, cfh):
+        """Test that segment filehandlers are sorted by segment number."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
+        # create filehandlers with different segment numbers
+        fake_fh_1 = _create_mocked_basic_fh()
+        fake_fh_1.filename_info["segment"] = 1
+        fake_fh_2 = _create_mocked_basic_fh()
+        fake_fh_2.filename_info["segment"] = 2
+        fake_fh_3 = _create_mocked_basic_fh()
+        fake_fh_3.filename_info["segment"] = 3
+
+        # put the filehandlers in an unsorted order
+        cfh.return_value = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
+
+        # check that the created filehandlers are sorted by segment number
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        assert [fh.filename_info["segment"] for fh in created_fhs["ft1"]] == [1, 2, 3]
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
