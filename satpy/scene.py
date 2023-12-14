@@ -39,12 +39,6 @@ from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
-#try:
-#    import hvplot.xarray as hvplot_xarray  # noqa
-#except ImportError:
-#    hvplot_xarray = None
-
-
 LOG = logging.getLogger(__name__)
 
 
@@ -1074,12 +1068,12 @@ class Scene:
         return gview
 
     def to_hvplot(self, datasets=None, *args, **kwargs):
-        """Convert satpy Scene to Hvplot.
+        """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
         Args:
             datasets (list): Limit included products to these datasets.
-            kwargs: hvplot options dictionary.
             args: Arguments coming from hvplot
+            kwargs: hvplot options dictionary.
 
         Returns: hvplot object that contains within it the plots of datasets list.
                  As default it contains all Scene datasets plots and a plot title is shown.
@@ -1087,10 +1081,11 @@ class Scene:
         Example usage::
 
            scene_list = ['ash','IR_108']
+           scn = Scene()
+           scn.load(scene_list)
+           scn = scn.resample('eurol')
            plot = scn.to_hvplot(datasets=scene_list)
-
            plot.ash+plot.IR_108
-
         """
 
         def _get_crs(xarray_ds):
@@ -1113,12 +1108,7 @@ class Scene:
                 clabel=f"[{_get_units(xarray_ds,variable)}]", title=title,
                 **defaults)
 
-        #def _check_hvplot_library():
-        #   if hvplot_xarray is None:
-        #    raise ImportError("'hvplot' must be installed to use this feature")
-#
-#        _check_hvplot_library()
-
+        import hvplot.xarray as hvplot_xarray  # noqa
         plot = Overlay()
         xarray_ds = self.to_xarray_dataset(datasets)
 
@@ -1128,7 +1118,6 @@ class Scene:
         else:
             ccrs = None
             defaults={"x":"longitude","y":"latitude"}
-
 
         if datasets is None:
             datasets = list(xarray_ds.keys())
@@ -1140,9 +1129,6 @@ class Scene:
                         ylabel="Latitude")
 
         defaults.update(kwargs)
-
-        #if "latitude" in xarray_ds.coords:
-        #    defaults.update({"x":"longitude","y":"latitude"})
 
         for element in datasets:
             title = f"{element} @ {_get_timestamp(xarray_ds)}"
