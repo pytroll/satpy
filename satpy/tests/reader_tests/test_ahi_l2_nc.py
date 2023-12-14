@@ -77,7 +77,7 @@ def test_ahi_l2_area_def(himl2_filename, caplog):
     """Test reader handles area definition correctly."""
     import warnings
 
-    ps = "+proj=geos +lon_0=140.7 +h=35785863 +x_0=0 +y_0=0 +a=6378137 +rf=298.257024882273 +units=m +no_defs +type=crs"
+    ps = "+a=6378137 +h=35785863 +lon_0=140.7 +no_defs +proj=geos +rf=298.257024882273 +type=crs +units=m +x_0=0 +y_0=0"
 
     # Check case where input data is correct size.
     fh = ahil2_filehandler(himl2_filename)
