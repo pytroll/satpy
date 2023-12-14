@@ -962,7 +962,7 @@ class TestHighCloudCompositor:
                                        [1.0, 0.625, 0.0],
                                        [1.0, 0.5555555, 0.0]])
             expected = np.stack([self.data, expexted_alpha])
-        np.testing.assert_almost_equal(res.values, expected)
+            np.testing.assert_almost_equal(res.values, expected)
 
 
 class TestLowCloudCompositor:
@@ -985,7 +985,7 @@ class TestLowCloudCompositor:
             res = comp([self.btd, self.bt_win, self.lsm])
             expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
             expected = np.stack([self.btd, expexted_alpha])
-        np.testing.assert_equal(res.values, expected)
+            np.testing.assert_equal(res.values, expected)
 
 
 class TestSingleBandCompositor(unittest.TestCase):
