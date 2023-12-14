@@ -969,10 +969,6 @@ enhancements:
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
     operations:
-      - name: inverse
-        method: !!python/name:satpy.enhancements.invert
-        args:
-          - [False, True]
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs:

@@ -1015,7 +1015,7 @@ class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
     def __init__(self, name, transition_min=258.15, transition_max=298.15,
-                 transition_gamma=3.0, **kwargs):
+                 invert_alpha=False, transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1028,6 +1028,7 @@ class CloudCompositor(GenericCompositor):
         """
         self.transition_min = transition_min
         self.transition_max = transition_max
+        self.invert_alpha = invert_alpha
         self.transition_gamma = transition_gamma
         super(CloudCompositor, self).__init__(name, **kwargs)
 
@@ -1049,6 +1050,9 @@ class CloudCompositor(GenericCompositor):
         alpha = data.where(data > tr_min, 1.)
         alpha = alpha.where(data <= tr_max, 0.)
         alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
+
+        if self.invert_alpha:
+            alpha = 1.0 - alpha
 
         # gamma adjustment
         alpha **= gamma
@@ -1155,6 +1159,7 @@ class LowCloudCompositor(CloudCompositor):
     def __init__(self, name, values_land=(1,), values_sea=(0,),
                  range_land=(0.0, 4.0),
                  range_sea=(0.0, 4.0),
+                 invert_alpha=True,
                  transition_gamma=1.0, **kwargs):
         """Init info.
 
@@ -1182,7 +1187,7 @@ class LowCloudCompositor(CloudCompositor):
         self.transition_gamma = transition_gamma
         self.transition_min = None  # Placeholder for later use in CloudCompositor
         self.transition_max = None  # Placeholder for later use in CloudCompositor
-        super().__init__(name, transition_gamma=transition_gamma, **kwargs)
+        super().__init__(name, invert_alpha=invert_alpha, transition_gamma=transition_gamma, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite.
