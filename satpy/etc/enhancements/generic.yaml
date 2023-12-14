@@ -964,7 +964,7 @@ enhancements:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs:
-          stretch: linear
+          stretch: crude
 
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
@@ -972,7 +972,7 @@ enhancements:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs:
-          stretch: linear
+          stretch: crude
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
