@@ -1157,7 +1157,13 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     """
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
-        """Create file handler objects and determine expected segments for each."""
+        """Create file handler objects and determine expected segments for each.
+
+        Additionally, sort the filehandlers by segment number to avoid
+        issues with filenames where start_time or alphabetic sorting does not
+        produce the correct order.
+
+        """
         created_fhs = super(GEOSegmentYAMLReader, self).create_filehandlers(
             filenames, fh_kwargs=fh_kwargs)
 
@@ -1171,6 +1177,11 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 # add segment key-values for FCI filehandlers
                 if "segment" not in fh.filename_info:
                     fh.filename_info["segment"] = fh.filename_info.get("count_in_repeat_cycle", 1)
+
+        # sort by segment number
+        for file_type in created_fhs.keys():
+            created_fhs[file_type] = sorted(created_fhs[file_type], key=lambda x: x.filename_info.get("segment", 1))
+
         return created_fhs
 
     def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
@@ -1322,11 +1333,9 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     failure = True
     counter = 1
     expected_segments = 1
-    # get list of file handlers in segment order
-    # (ex. first segment, second segment, etc)
-    handlers = sorted(file_handlers, key=lambda x: x.filename_info.get("segment", 1))
+
     projectable = None
-    for fh in handlers:
+    for fh in file_handlers:
         if fh.filetype_info["file_type"] in ds_info["file_type"]:
             expected_segments = fh.filetype_info["expected_segments"]
 
