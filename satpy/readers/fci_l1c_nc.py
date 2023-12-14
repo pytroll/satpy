@@ -138,6 +138,9 @@ from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
+from satpy.readers.eum_base import get_service_mode
+
+from .netcdf_utils import NetCDF4FsspecFileHandler, Preloadable
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +193,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
+class FCIL1cNCFileHandler(Preloadable, NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -200,13 +203,31 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
+
+    # Platform names according to the MTG FCI L1 Product User Guide,
+    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+    #
+    # After launch: translate to METEOSAT-xx instead?  Not sure how the
+    # numbering will be considering MTG-S1 and MTG-S2 will be launched
+    # in-between.
+    _platform_name_translate = {
+        "MTI1": "MTG-I1",
+        "MTI2": "MTG-I2",
+        "MTI3": "MTG-I3",
+        "MTI4": "MTG-I4"}
+
     def __init__(self, filename, filename_info, filetype_info,
-                 clip_negative_radiances=None, **kwargs):
+                 *args, clip_negative_radiances=None, **kwargs):
+                 *args, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
+                         *args,
                          cache_var_size=0,
-                         cache_handle=True)
+                         cache_handle=True,
+                         **kwargs)
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))

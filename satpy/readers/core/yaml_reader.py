@@ -1357,13 +1357,14 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         as a glob pattern.
         """
         i = -1
+        # on first call, don't pass preload
+        fh_kwargs_without_preload = fh_kwargs.copy()
+        fh_kwargs_without_preload.pop("preload", None)
         for (i, fh) in enumerate(super()._new_filehandler_instances(
-                filetype_info, filename_items, fh_kwargs=fh_kwargs)):
+                filetype_info, filename_items,
+                fh_kwargs=fh_kwargs_without_preload)):
             yield fh
-        if self.preload:
-            if i == -1:
-                raise ValueError("Failed to create initial filehandler. "
-                                 "Cannot predict remaining files.")
+        if self.preload and i >= 0:
             if i < fh.filetype_info["expected_segments"]:
                 yield from self._new_preloaded_filehandler_instances(
                         filetype_info, fh)
@@ -1382,7 +1383,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         filetype_cls = filetype_info["file_reader"]
         for (filename, filename_info) in self._predict_filenames(filetype_info, fh):
             # FIXME: handle fh_kwargs
-            yield filetype_cls(filename, filename_info, filetype_info)
+            yield filetype_cls(filename, filename_info, filetype_info,
+                               preload=True, ref_fh=fh)
 
     def _predict_filenames(self, filetype_info, fh):
         """Predict what filenames or glob patterns we should expect.

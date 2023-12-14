@@ -18,8 +18,10 @@
 """Helpers for reading netcdf-based files."""
 
 import logging
+import time
 
 import dask.array as da
+import dask.delayed
 import netCDF4
 import numpy as np
 import xarray as xr
@@ -455,3 +457,89 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         if self._use_h5netcdf:
             return obj.attrs[key]
         return super()._get_attr(obj, key)
+
+
+class Preloadable:
+    """Mixin class for pre-loading."""
+    def __init__(self, *args, preload=False, ref_fh=None, **kwargs):
+        """Store attributes needed for preloading to work."""
+        self.preload = preload
+        self.ref_fh = ref_fh
+        super().__init__(*args, **kwargs)
+
+    def _collect_listed_variables(self, file_handle, listed_variables):
+        if self.preload:
+            self._preload_listed_variables(listed_variables)
+        else:
+            super()._collect_listed_variables(file_handle, listed_variables)
+
+    def _preload_listed_variables(self, listed_variables):
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        for raw_name in listed_variables:
+            for subst_name in self._get_required_variable_names(
+                    [raw_name], variable_name_replacements):
+                if self._can_get_from_other_segment(raw_name):
+                    self.file_content[subst_name] = self.ref_fh[subst_name]
+                    self._copy_variable_info(subst_name)
+#                elif self._can_get_from_other_rc(raw_name):
+#                    LOG.debug(f"Get {subst_name:s} from cached RC")
+#                    raise NotImplementedError("RC-caching not implemented yet")
+                else:
+                    self._collect_variable_delayed(subst_name)
+                # FIXME: collect attributes
+
+    def _can_get_from_other_segment(self, itm):
+        return "segment" in self.filetype_info["required_netcdf_variables"][itm]
+
+    def _can_get_from_other_rc(self, itm):
+        return "rc" in self.filetype_info["required_netcdf_variables"][itm]
+
+    def _collect_variable_delayed(self, subst_name):
+        other = self.ref_fh[subst_name]
+        dade = dask.delayed(_get_delayed_value_from_nc)(self.filename, subst_name)
+        array = da.from_delayed(dade, shape=other.shape, dtype=other.dtype)
+
+        # FIXME: can we safely reuse dimensions, attrs, and name?
+        # NO! Vertical extent varies between segments.
+        var_obj = xr.DataArray(
+                array,
+                dims=other.dims,
+                attrs=other.attrs,
+                name=other.name)
+#        self.file_content[subst_name] = var_obj
+        self._collect_variable_info(subst_name, var_obj)
+
+    def _collect_variable_info(self, var_name, var_obj):
+        if self.preload:
+            self.file_content[var_name] = var_obj
+            self._copy_variable_info(var_name)
+        else:
+            super()._collect_variable_info(var_name, var_obj)
+
+    def _copy_variable_info(self, var_name):
+        # Assume attributes and info can be copied from first segment
+        # FIXME: shape is NOT valid to copy on some variables, but
+        # could come from an older repeat cycle
+        to_copy = [k for k in self.ref_fh.file_content if var_name in k and var_name != k]
+        for var in to_copy:
+            self.file_content[var] = self.ref_fh[var]
+
+    def _get_file_handle(self):
+        if self.preload:
+            return None
+        return super()._get_file_handle()
+
+
+def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1):
+    LOG.debug(f"Waiting for {fn!s} to appear.")
+    for _ in range(max_tries):
+        # this should use glob
+        try:
+            nc = netCDF4.Dataset(fn, "r")
+        except FileNotFoundError:
+            time.sleep(wait)
+        else:
+            break
+    else:
+        raise TimeoutError("File failed to materialise")
+    return da.from_array(nc[var])

@@ -171,6 +171,5 @@ def _get_reader_kwargs(reader, reader_kwargs):
     for (k, v) in reader_kwargs.items():
         reader_kwargs_without_filter[k] = v.copy()
         reader_kwargs_without_filter[k].pop("filter_parameters", None)
-        reader_kwargs_without_filter[k].pop("preload", None)
 
     return (reader_kwargs, reader_kwargs_without_filter)
