@@ -1178,11 +1178,13 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 if "segment" not in fh.filename_info:
                     fh.filename_info["segment"] = fh.filename_info.get("count_in_repeat_cycle", 1)
 
-        # sort by segment number
-        for file_type in created_fhs.keys():
-            created_fhs[file_type] = sorted(created_fhs[file_type], key=lambda x: x.filename_info.get("segment", 1))
-
+        self._sort_segment_filehandler_by_segment_number()
         return created_fhs
+
+    def _sort_segment_filehandler_by_segment_number(self):
+        for file_type in self.file_handlers.keys():
+            self.file_handlers[file_type] = sorted(self.file_handlers[file_type],
+                                                   key=lambda x: x.filename_info.get("segment", 0))
 
     def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
         """Load only a piece of the dataset."""

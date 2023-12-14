@@ -1051,11 +1051,11 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fake_fh_3.filename_info["segment"] = 3
 
         # put the filehandlers in an unsorted order
-        cfh.return_value = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
+        reader.file_handlers = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
 
         # check that the created filehandlers are sorted by segment number
-        created_fhs = reader.create_filehandlers(["fake.nc"])
-        assert [fh.filename_info["segment"] for fh in created_fhs["ft1"]] == [1, 2, 3]
+        reader.create_filehandlers(["fake.nc"])
+        assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
