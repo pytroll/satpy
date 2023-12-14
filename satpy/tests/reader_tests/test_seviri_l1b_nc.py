@@ -381,7 +381,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         }
         file_handler.nc["orbit_polynomial_start_time_day"] = 0
         file_handler.nc["orbit_polynomial_end_time_day"] = 0
-        res = file_handler.get_dataset(dataset_id, dataset_info)
+        with pytest.warns(UserWarning, match=r"No orbit polynomial valid for"):
+            res = file_handler.get_dataset(dataset_id, dataset_info)
         assert "satellite_actual_longitude" not in res.attrs[
             "orbital_parameters"]
 
