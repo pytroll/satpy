@@ -90,7 +90,7 @@ def test_ahi_l2_area_def(himl2_filename, caplog):
         warnings.filterwarnings("ignore",
                                 message=r"You will likely lose important projection information",
                                 category=UserWarning)
-        assert area_def.proj4_string == ps
+        assert area_def.proj_str == ps
 
     # Check case where input data is incorrect size.
     fh = ahil2_filehandler(himl2_filename)
