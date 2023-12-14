@@ -615,8 +615,8 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                   mask_and_scale=False,
                                   chunks={"xc": CHUNK_SIZE, "yc": CHUNK_SIZE})
         self.sensor = "goes_imager"
-        self.nlines = self.nc.dims["yc"]
-        self.ncols = self.nc.dims["xc"]
+        self.nlines = self.nc.sizes["yc"]
+        self.ncols = self.nc.sizes["xc"]
         self.platform_name = self._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
         self.platform_shortname = self.platform_name.replace("-", "").lower()
@@ -1124,8 +1124,8 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
                                   mask_and_scale=False,
                                   chunks={"xc": CHUNK_SIZE, "yc": CHUNK_SIZE})
         self.sensor = "goes_imager"
-        self.nlines = self.nc.dims["yc"]
-        self.ncols = self.nc.dims["xc"]
+        self.nlines = self.nc.sizes["yc"]
+        self.ncols = self.nc.sizes["xc"]
         self.platform_name = GOESNCBaseFileHandler._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
         self.platform_shortname = self.platform_name.replace("-", "").lower()

@@ -73,8 +73,8 @@ class HIML2NCFileHandler(BaseFileHandler):
             raise ValueError("File is not a full disk scene")
 
         self.sensor = self.nc.attrs["instrument_name"].lower()
-        self.nlines = self.nc.dims["Columns"]
-        self.ncols = self.nc.dims["Rows"]
+        self.nlines = self.nc.sizes["Columns"]
+        self.ncols = self.nc.sizes["Rows"]
         self.platform_name = self.nc.attrs["satellite_name"]
         self.platform_shortname = filename_info["platform"]
         self._meta = None
