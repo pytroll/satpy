@@ -2837,13 +2837,13 @@ datasets:
     file_key: channel_id
     standard_name: channel_id
 
-  latitude:
+  amv_latitude:
     name: latitude
     file_type: nc_fci_amv
     file_key: latitude
     standard_name: latitude
 
-  longitude:
+  amv_longitude:
     name: longitude
     file_type: nc_fci_amv
     file_key: longitude
