@@ -946,9 +946,7 @@ class TestHighCloudCompositor:
         area = create_area_def(area_id="test", projection={"proj": "latlong"},
                                center=(0, 45), width=3, height=3, resolution=35)
 
-        self.data = xr.DataArray(da.from_array([[200, 250, 300],
-                                                [200, 250, 300],
-                                                [200, 250, 300]]),
+        self.data = xr.DataArray(da.from_array([[200, 250, 300], [200, 250, 300], [200, 250, 300]]),
                                  dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]},
                                  attrs={"area": area})
 
@@ -958,11 +956,11 @@ class TestHighCloudCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = HighCloudCompositor(name="test")
             res = comp([self.data])
-            expexted_alpha = np.array([[1.0, 0.7142857, 0.0],
-                                       [1.0, 0.625, 0.0],
-                                       [1.0, 0.5555555, 0.0]])
-            expected = np.stack([self.data, expexted_alpha])
-            np.testing.assert_almost_equal(res.values, expected)
+            data = res.values
+
+        expexted_alpha = np.array([[1.0, 0.7142857, 0.0], [1.0, 0.625, 0.0], [1.0, 0.5555555, 0.0]])
+        expected = np.stack([self.data, expexted_alpha])
+        np.testing.assert_almost_equal(data, expected)
 
 
 class TestLowCloudCompositor:
@@ -983,9 +981,11 @@ class TestLowCloudCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = LowCloudCompositor(name="test")
             res = comp([self.btd, self.bt_win, self.lsm])
-            expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
-            expected = np.stack([self.btd, expexted_alpha])
-            np.testing.assert_equal(res.values, expected)
+            data = res.values
+
+        expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expexted_alpha])
+        np.testing.assert_equal(data, expected)
 
 
 class TestSingleBandCompositor(unittest.TestCase):
