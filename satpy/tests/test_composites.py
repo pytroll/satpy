@@ -970,7 +970,7 @@ class TestHighCloudCompositor:
             comp = HighCloudCompositor(name="test")
             res = comp([self.data])
         assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array) 
+        assert isinstance(res.data, da.Array)
         expexted_alpha = np.array([[1.0, 0.7142857, 0.0], [1.0, 0.625, 0.0], [1.0, 0.5555555, 0.0]])
         expected = np.stack([self.data, expexted_alpha])
         np.testing.assert_almost_equal(res.values, expected)
