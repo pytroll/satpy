@@ -180,6 +180,7 @@ class TestOCCCIReader:
             warnings.filterwarnings("ignore",
                                     message=r"You will likely lose important projection information",
                                     category=UserWarning)
+            # The corresponding CRS objects do not match even if the proj dicts match, so use the dicts
             assert area.proj_dict == area_exp.proj_dict
 
     def test_bad_fname(self, fake_dataset, fake_file_dict):

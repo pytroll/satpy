@@ -138,9 +138,7 @@ class TestGEOSProjectionUtil(unittest.TestCase):
 
     def test_get_area_definition(self):
         """Test the retrieval of the area definition."""
-        import warnings
-
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
 
         pdict, extent = self.make_pdict_ext(1, "N2S")
         good_res = (-3000.4032785810186, -3000.4032785810186)
@@ -148,16 +146,9 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         a_def = get_area_definition(pdict, extent)
         assert a_def.area_id == pdict["a_name"]
         assert a_def.resolution == good_res
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=r"You will likely lose important projection information",
-                                    category=UserWarning)
-            assert a_def.proj_dict["proj"] == "geos"
-            assert a_def.proj_dict["units"] == "m"
-            a, b = proj4_radius_parameters(a_def.proj_dict)
-            assert a == 6378169
-            assert b == 6356583.8
-            assert a_def.proj_dict["h"] == 35785831
+
+        expected_crs = CRS(dict(proj="geos", units="m", a=6378169, b=6356583.8, h=35785831))
+        assert a_def.crs == expected_crs
 
     def test_sampling_to_lfac_cfac(self):
         """Test conversion from angular sampling to line/column offset."""

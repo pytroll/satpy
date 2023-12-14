@@ -221,23 +221,13 @@ class TestHRITFileHandler:
 
     def test_get_area_def(self):
         """Test getting an area definition."""
-        import warnings
-
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
 
         area = self.reader.get_area_def("VIS06")
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=r"You will likely lose important projection information",
-                                    category=UserWarning)
-            proj_dict = area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-        assert a == 6378169.0
-        assert b == 6356583.8
-        assert proj_dict["h"] == 35785831.0
-        assert proj_dict["lon_0"] == 44.0
-        assert proj_dict["proj"] == "geos"
-        assert proj_dict["units"] == "m"
+
+        expected_crs = CRS(dict(proj="geos", a=6378169.0, b=6356583.8, h=35785831.0, lon_0=44.0, units="m"))
+        assert area.crs == expected_crs
+
         assert area.area_extent == (-77771774058.38356, -77771774058.38356,
                                     30310525626438.438, 3720765401003.719)
 

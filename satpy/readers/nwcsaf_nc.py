@@ -347,8 +347,13 @@ class NcNWCSAF(BaseFileHandler):
     @staticmethod
     def _ensure_crs_extents_in_meters(crs, area_extent):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
+        import warnings
         if "kilo" in crs.axis_info[0].unit_name:
-            proj_dict = crs.to_dict()
+            with warnings.catch_warnings():
+                # The proj dict route is the only feasible way to modify the area, suppress the warning it causes
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message="You will likely lose important projection information")
+                proj_dict = crs.to_dict()
             proj_dict["units"] = "m"
             if "a" in proj_dict:
                 proj_dict["a"] *= 1000.

@@ -28,7 +28,6 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
-from pyresample.utils import proj4_radius_parameters
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -497,22 +496,10 @@ class TestFiduceoMviriFileHandlers:
     def test_get_area_definition(self, file_handler, name, resolution,
                                  area_exp):
         """Test getting area definitions."""
-        import warnings
-
         dataset_id = make_dataid(name=name, resolution=resolution)
         area = file_handler.get_area_def(dataset_id)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=r"You will likely lose important projection information",
-                                    category=UserWarning)
-            a, b = proj4_radius_parameters(area.proj_dict)
-            a_exp, b_exp = proj4_radius_parameters(area_exp.proj_dict)
-            assert a == a_exp
-            assert b == b_exp
-            assert area.width == area_exp.width
-            assert area.height == area_exp.height
-            for key in ["h", "lon_0", "proj", "units"]:
-                assert area.proj_dict[key] == area_exp.proj_dict[key]
+
+        assert area.crs == area_exp.crs
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
 
     def test_calib_exceptions(self, file_handler):

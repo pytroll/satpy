@@ -18,7 +18,6 @@
 """The HRIT msg reader tests package."""
 
 import unittest
-import warnings
 from datetime import datetime
 from unittest import mock
 
@@ -26,6 +25,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from numpy import testing as npt
+from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
@@ -117,21 +117,12 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
-        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         assert area.area_extent == (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=r"You will likely lose important projection information",
-                                    category=UserWarning)
-            proj_dict = area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-        assert a == 6378169.0
-        assert b == pytest.approx(6356583.8)
-        assert proj_dict["h"] == 35785831.0
-        assert proj_dict["lon_0"] == 0.0
-        assert proj_dict["proj"] == "geos"
-        assert proj_dict["units"] == "m"
+
+        expected_crs = CRS(dict(a=6378169.0, b=6356583.8, h=35785831.0, lon_0=0.0, proj="geos", units="m"))
+        assert expected_crs == area.crs
+
         self.reader.fill_hrv = False
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         npt.assert_allclose(area.defs[0].area_extent,
@@ -171,20 +162,12 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
-        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="VIS006", resolution=3000))
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=r"You will likely lose important projection information",
-                                    category=UserWarning)
-            proj_dict = area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-        assert a == 6378169.0
-        assert b == pytest.approx(6356583.8)
-        assert proj_dict["h"] == 35785831.0
-        assert proj_dict["lon_0"] == self.projection_longitude
-        assert proj_dict["proj"] == "geos"
-        assert proj_dict["units"] == "m"
+
+        expected_crs = CRS(dict(a=6378169.0, b=6356583.8, h=35785831.0, lon_0=self.projection_longitude,
+                                proj="geos", units="m"))
+        assert area.crs == expected_crs
+
         assert area.area_extent == (-77771774058.38356, -3720765401003.719, 30310525626438.438, 77771774058.38356)
 
         # Data shifted by 1.5km to N-W

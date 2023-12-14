@@ -506,18 +506,13 @@ class TestNcNWCSAFFileKeyPrefix:
 
 
 def _check_filehandler_area_def(file_handler, dsid):
-    import warnings
+    from pyproj import CRS
 
-    correct_h = float(PROJ["gdal_projection"].split("+h=")[-1])
-    correct_a = float(PROJ["gdal_projection"].split("+a=")[-1].split()[0])
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore",
-                                message=r"You will likely lose important projection information",
-                                category=UserWarning)
-        area_definition = file_handler.get_area_def(dsid)
-        assert area_definition.proj_dict["h"] == correct_h
-        assert area_definition.proj_dict["a"] == correct_a
-        assert area_definition.proj_dict["units"] == "m"
+    area_definition = file_handler.get_area_def(dsid)
+
+    expected_crs = CRS(PROJ["gdal_projection"])
+    assert area_definition.crs == expected_crs
+
     correct_extent = (PROJ["gdal_xgeo_up_left"],
                       PROJ["gdal_ygeo_low_right"],
                       PROJ["gdal_xgeo_low_right"],

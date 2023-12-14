@@ -75,7 +75,7 @@ def test_startend(himl2_filename):
 
 def test_ahi_l2_area_def(himl2_filename, caplog):
     """Test reader handles area definition correctly."""
-    import warnings
+    from pyproj import CRS
 
     ps = "+a=6378137 +h=35785863 +lon_0=140.7 +no_defs +proj=geos +rf=298.257024882273 +type=crs +units=m +x_0=0 +y_0=0"
 
@@ -86,11 +86,9 @@ def test_ahi_l2_area_def(himl2_filename, caplog):
     assert area_def.width == dimensions["Columns"]
     assert area_def.height == dimensions["Rows"]
     assert np.allclose(area_def.area_extent, exp_ext)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore",
-                                message=r"You will likely lose important projection information",
-                                category=UserWarning)
-        assert area_def.proj_str == ps
+
+    expected_crs = CRS(ps)
+    assert area_def.crs == expected_crs
 
     # Check case where input data is incorrect size.
     fh = ahil2_filehandler(himl2_filename)
