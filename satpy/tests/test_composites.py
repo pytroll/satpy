@@ -969,6 +969,8 @@ class TestHighCloudCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = HighCloudCompositor(name="test")
             res = comp([self.data])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array) 
         expexted_alpha = np.array([[1.0, 0.7142857, 0.0], [1.0, 0.625, 0.0], [1.0, 0.5555555, 0.0]])
         expected = np.stack([self.data, expexted_alpha])
         np.testing.assert_almost_equal(res.values, expected)
@@ -1014,6 +1016,8 @@ class TestLowCloudCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = LowCloudCompositor(name="test")
             res = comp([self.btd, self.bt_win, self.lsm])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
         expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
         expected = np.stack([self.btd, expexted_alpha])
         np.testing.assert_equal(res.values, expected)
