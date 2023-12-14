@@ -42,7 +42,7 @@ Resampling algorithms
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
-    "gradient_search", "Gradient Search Resampling", :class:`~pyresample.gradient.GradientSearchResampler`
+    "gradient_search", "Gradient Search Resampling", :meth:`~pyresample.gradient.create_gradient_search_resampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
