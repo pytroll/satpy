@@ -103,10 +103,10 @@ class TestNdviHybridGreenCompositor:
 
             # Test General functionality with linear strength (=1.0)
             res = comp((self.c01, self.c02, self.c03))
-            assert isinstance(res, xr.DataArray)
-            assert isinstance(res.data, da.Array)
-            assert res.attrs["name"] == "ndvi_hybrid_green"
-            assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "ndvi_hybrid_green"
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.values
         np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
 
@@ -115,7 +115,7 @@ class TestNdviHybridGreenCompositor:
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
-            res = comp((self.c01, self.c02, self.c03)).compute()
+            res = comp((self.c01, self.c02, self.c03))
         assert res.data.dtype == np.float32
 
     def test_nonlinear_scaling(self):
@@ -124,7 +124,6 @@ class TestNdviHybridGreenCompositor:
             comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), strength=2.0,
                                    prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
-
             res = comp((self.c01, self.c02, self.c03))
         res_np = res.data.compute()
         assert res.dtype == res_np.dtype
