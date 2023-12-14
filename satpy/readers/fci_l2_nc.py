@@ -372,7 +372,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # Construct area definition from standardized area definition.
         stand_area_def = get_area_def(area_naming["area_id"])
 
-        if (stand_area_def.x_size != self.ncols) | (stand_area_def.y_size != self.nlines):
+        if (stand_area_def.width != self.ncols) | (stand_area_def.height != self.nlines):
             raise NotImplementedError("Unrecognised AreaDefinition.")
 
         mod_area_extent = self._modify_area_extent(stand_area_def.area_extent)
@@ -382,8 +382,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             stand_area_def.description,
             "",
             stand_area_def.crs,
-            stand_area_def.x_size,
-            stand_area_def.y_size,
+            stand_area_def.width,
+            stand_area_def.height,
             mod_area_extent)
 
         return area_def
