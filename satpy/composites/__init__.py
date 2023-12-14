@@ -1079,7 +1079,7 @@ class HighCloudCompositor(CloudCompositor):
 
       - transition_min = transition_min[0] where abs(latitude) < latitude_min(0)
       - transition_min = transition_min[1] where abs(latitude) > latitude_min(0)
-      - transition_min = linear interpolation between transition_min[0] and transition_min[1] as a funtion
+      - transition_min = linear interpolation between transition_min[0] and transition_min[1] as a function
                          of where abs(latitude).
     """
 
@@ -1139,7 +1139,7 @@ class HighCloudCompositor(CloudCompositor):
 class LowCloudCompositor(CloudCompositor):
     """Detect low-level clouds based on thresholding and use it as a mask for compositing during night-time.
 
-    This compsitor computes the brightness temperature difference between a window channel (e.g. 10.5 micron)
+    This compositor computes the brightness temperature difference between a window channel (e.g. 10.5 micron)
     and the near-infrared channel e.g. (3.8 micron) and uses this brightness temperature difference, `BTD`, to
     create a partially transparent mask for compositing.
 
