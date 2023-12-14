@@ -1202,11 +1202,6 @@ class LowCloudCompositor(CloudCompositor):
         lsm = lsm.squeeze(drop=True)
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
 
-        # Avoid spurious false alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
-        # TODO Consolidate this. Should it really be set to zero and thus within the threshold range? What if the
-        #  lower threshold would be changed to -1
-        btd = btd.where(bt_win >= 230, 0.0)
-
         # Call CloudCompositor for land surface pixels
         self.transition_min, self.transition_max = self.range_land
         res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
@@ -1217,6 +1212,10 @@ class LowCloudCompositor(CloudCompositor):
 
         # Compine resutls for land and sea/water surface pixels
         res = res.where(lsm.isin(self.values_land), res_sea)
+
+        # Make pixels with cold window channel brightness temperatures transparent to avoid spurious false
+        # alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
+        res.loc["A"] = res.sel(bands="A").where(bt_win >= 230, 0.0)
 
         return res
 
