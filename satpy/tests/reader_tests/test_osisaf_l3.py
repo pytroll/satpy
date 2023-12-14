@@ -225,7 +225,7 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
 
-        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere"))
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
         assert area_def.crs == expected_crs
 
         assert area_def.width == 5
@@ -278,7 +278,7 @@ class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
 
-        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere"))
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
         assert area_def.crs == expected_crs
 
         assert area_def.width == 5
@@ -351,7 +351,8 @@ class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
 
-        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere"))
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
+
         assert area_def.crs == expected_crs
 
         assert area_def.width == 5
