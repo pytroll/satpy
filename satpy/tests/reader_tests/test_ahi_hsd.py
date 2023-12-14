@@ -331,7 +331,10 @@ class TestAHIHSDFileHandler:
         with _fake_hsd_handler() as fh:
             fh.data_info["number_of_columns"] = ncols
             fh.data_info["number_of_lines"] = nrows
-            im = fh.read_band(mock.MagicMock(), mock.MagicMock())
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                im = fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
@@ -366,7 +369,10 @@ class TestAHIHSDFileHandler:
             # Test if masking space pixels disables with appropriate flag
             fh.mask_space = False
             with mock.patch("satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space") as mask_space:
-                fh.read_band(mock.MagicMock(), mock.MagicMock())
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
     def test_read_band_from_actual_file(self, hsd_file_jp01):
@@ -377,14 +383,17 @@ class TestAHIHSDFileHandler:
         key = {"name": "B01", "calibration": "counts", "resolution": 1000}
         import dask
         with dask.config.set({"array.chunk-size": "32MiB"}):
-            data = fh.read_band(
-                key,
-                {
-                    "units": "%",
-                    "standard_name": "toa_bidirectional_reflectance",
-                    "wavelength": 2,
-                    "resolution": 1000,
-                })
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                data = fh.read_band(
+                    key,
+                    {
+                        "units": "%",
+                        "standard_name": "toa_bidirectional_reflectance",
+                        "wavelength": 2,
+                        "resolution": 1000,
+                    })
             assert data.chunks == ((1100,) * 10, (1100,) * 10)
             assert data.dtype == data.compute().dtype
             assert data.dtype == np.float32
@@ -406,7 +415,10 @@ class TestAHIHSDFileHandler:
                 fh.data_info["number_of_columns"] = ncols
                 fh.data_info["number_of_lines"] = nrows
                 scn = Scene(reader="ahi_hsd", filenames=["HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT"])
-                scn.load(["B07"])
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    scn.load(["B07"])
                 im = scn["B07"]
 
                 # Make sure space masking worked
@@ -461,9 +473,8 @@ class TestAHIHSDFileHandler:
 
             # Expected and actual blocklength do not match
             fp_.tell.return_value = 100
-            with warnings.catch_warnings(record=True) as w:
+            with pytest.raises(UserWarning, match=r"Actual .* header size does not match expected"):
                 fh._check_fpos(fp_, fpos, 0, "header 1")
-                assert len(w) > 0
 
     def test_is_valid_time(self):
         """Test that valid times are correctly identified."""
@@ -480,7 +491,9 @@ class TestAHIHSDFileHandler:
                 mocker.return_value = True
                 assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
                 mocker.return_value = False
-                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
+                with pytest.raises(UserWarning,
+                                   match=r"Observation timeline is fill value, not rounding observation time"):
+                    assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):
