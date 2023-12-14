@@ -1114,8 +1114,6 @@ class HighCloudCompositor(CloudCompositor):
         `projectables` is expected to be a list or tuple with a single element:
           - index 0: Brightness temperature of a thermal infrared window channel (e.g. 10.5 microns).
         """
-        # TODO Optimize and make sure that there are no early unnecessary dask computations. Is there a way to avoid
-        # computation of the latitude array?
         if len(projectables) != 1:
             raise ValueError(f"Expected 1 dataset, got {len(projectables)}")
 
@@ -1196,7 +1194,6 @@ class LowCloudCompositor(CloudCompositor):
           - index 1. Brightness temperature of the window channel (used to filter out noise-induced false alarms).
           - index 2: Land-Sea-Mask.
         """
-        # TODO Optimize and make sure that there are no early unnecessary dask computations
         if len(projectables) != 3:
             raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
 
