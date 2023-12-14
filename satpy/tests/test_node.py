@@ -26,7 +26,7 @@ from satpy.node import CompositorNode
 class FakeCompositor:
     """A fake compositor."""
 
-    def __init__(self, id):
+    def __init__(self, id):  # noqa: A002
         """Set up the fake compositor."""
         self.id = id
 

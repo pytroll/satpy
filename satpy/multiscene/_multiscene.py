@@ -192,7 +192,7 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(
+    def from_files(  # noqa: D417
             cls,
             files_to_sort: Collection[str],
             reader: str | Collection[str] | None = None,

@@ -48,8 +48,8 @@ FAKE_DATA_INFO: InfoDict = {
     "compression_flag_for_data": 0,
     "hblock_number": 2,
     "number_of_bits_per_pixel": 16,
-    "number_of_columns": 11000,
-    "number_of_lines": 1100,
+    "number_of_columns": np.array([11000]),
+    "number_of_lines": np.array([1100]),
     "spare": "",
 }
 FAKE_PROJ_INFO: InfoDict = {
@@ -135,8 +135,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "compression_flag_for_data": 0,
                             "hblock_number": 2,
                             "number_of_bits_per_pixel": 16,
-                            "number_of_columns": 1000,
-                            "number_of_lines": 1000,
+                            "number_of_columns": np.array([1000]),
+                            "number_of_lines": np.array([1000]),
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
@@ -183,8 +183,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "compression_flag_for_data": 0,
                             "hblock_number": 2,
                             "number_of_bits_per_pixel": 16,
-                            "number_of_columns": 11000,
-                            "number_of_lines": 1100,
+                            "number_of_columns": np.array([11000]),
+                            "number_of_lines": np.array([1100]),
                             "spare": ""}
 
             area_def = fh.get_area_def(None)

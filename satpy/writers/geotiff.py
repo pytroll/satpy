@@ -137,7 +137,7 @@ class GeoTIFFWriter(ImageWriter):
 
         return init_kwargs, kwargs
 
-    def save_image(
+    def save_image(  # noqa: D417
             self,
             img: XRImage,
             filename: Optional[str] = None,

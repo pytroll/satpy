@@ -237,7 +237,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files."""
 
-    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):  # noqa: D417
         """Configure reader behavior.
 
         Args:

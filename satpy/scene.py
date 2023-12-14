@@ -660,7 +660,7 @@ class Scene:
             else:
                 replace_anc(new_ds, pres)
 
-    def slice(self, key):
+    def slice(self, key):  # noqa: A003
         """Slice Scene by dataset index.
 
         .. note::
@@ -1128,7 +1128,7 @@ class Scene:
         epoch (str):
             Reference time for encoding the time coordinates (if available).
             Example format: "seconds since 1970-01-01 00:00:00".
-            If None, the default reference time is retrieved using "from satpy.cf_writer import EPOCH"
+            If None, the default reference time is defined using "from satpy.cf.coords import EPOCH"
         flatten_attrs (bool):
             If True, flatten dict-type attributes.
         exclude_attrs (list):
@@ -1384,7 +1384,7 @@ class Scene:
             LOG.debug("Unloading dataset: %r", ds_id)
             del self._datasets[ds_id]
 
-    def load(self, wishlist, calibration="*", resolution="*",
+    def load(self, wishlist, calibration="*", resolution="*",  # noqa: D417
              polarization="*", level="*", modifiers="*", generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
