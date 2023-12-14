@@ -18,6 +18,7 @@
 """The HRIT msg reader tests package."""
 
 import unittest
+import warnings
 from datetime import datetime
 from unittest import mock
 
@@ -119,7 +120,11 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         assert area.area_extent == (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356)
-        proj_dict = area.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
         assert a == 6378169.0
         assert b == pytest.approx(6356583.8)
@@ -168,7 +173,11 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="VIS006", resolution=3000))
-        proj_dict = area.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
         assert a == 6378169.0
         assert b == pytest.approx(6356583.8)

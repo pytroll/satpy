@@ -166,6 +166,8 @@ class TestOCCCIReader:
 
     def test_get_area_def(self, area_exp, fake_file_dict):
         """Test area definition."""
+        import warnings
+
         reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_1m"]])
         res = reader.load([ds_list_all[0]])
         area = res[ds_list_all[0]].attrs["area"]
@@ -174,7 +176,11 @@ class TestOCCCIReader:
         assert area.area_extent == area_exp.area_extent
         assert area.width == area_exp.width
         assert area.height == area_exp.height
-        assert area.proj_dict == area_exp.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area.proj_dict == area_exp.proj_dict
 
     def test_bad_fname(self, fake_dataset, fake_file_dict):
         """Test case where an incorrect composite period is given."""

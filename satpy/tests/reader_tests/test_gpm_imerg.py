@@ -105,6 +105,8 @@ class TestHdf5IMERG(unittest.TestCase):
 
     def test_load_data(self):
         """Test loading data."""
+        import warnings
+
         from satpy.readers import load_reader
 
         # Filename to test, needed for start and end times
@@ -130,6 +132,10 @@ class TestHdf5IMERG(unittest.TestCase):
         assert res["IRprecipitation"].resolution == 0.1
         assert res["IRprecipitation"].area.width == 3600
         assert res["IRprecipitation"].area.height == 1800
-        assert res["IRprecipitation"].area.proj_dict == pdict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert res["IRprecipitation"].area.proj_dict == pdict
         np.testing.assert_almost_equal(res["IRprecipitation"].area.area_extent,
                                        (-179.95, -89.95, 179.95, 89.95), 5)

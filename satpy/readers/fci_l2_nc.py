@@ -381,7 +381,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             stand_area_def.area_id,
             stand_area_def.description,
             "",
-            stand_area_def.proj_dict,
+            stand_area_def.crs,
             stand_area_def.x_size,
             stand_area_def.y_size,
             mod_area_extent)

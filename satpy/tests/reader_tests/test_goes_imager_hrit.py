@@ -172,6 +172,8 @@ class TestHRITGOESFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area definition."""
+        import warnings
+
         self.reader.mda.update({
             "cfac": 10216334,
             "lfac": 10216334,
@@ -184,13 +186,17 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                            resolution=3000)
         area = self.reader.get_area_def(dsid)
 
-        a, b = proj4_radius_parameters(area.proj_dict)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            a, b = proj4_radius_parameters(area.proj_dict)
+            assert area.proj_dict["h"] == ALTITUDE
+            assert area.proj_dict["lon_0"] == 100.1640625
+            assert area.proj_dict["proj"] == "geos"
+            assert area.proj_dict["units"] == "m"
         assert a == EQUATOR_RADIUS
         assert b == POLE_RADIUS
-        assert area.proj_dict["h"] == ALTITUDE
-        assert area.proj_dict["lon_0"] == 100.1640625
-        assert area.proj_dict["proj"] == "geos"
-        assert area.proj_dict["units"] == "m"
         assert area.width == 2816
         assert area.height == 464
         assert area.area_id == "goes-15_goes_imager_fd_3km"

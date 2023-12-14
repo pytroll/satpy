@@ -140,7 +140,11 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore",
+                                        message=r"You will likely lose important projection information",
+                                        category=UserWarning)
+                proj_dict = area_def.proj_dict
             a, b = proj4_radius_parameters(proj_dict)
             assert a == 6378137.0
             assert b == 6356752.3
@@ -188,7 +192,11 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore",
+                                        message=r"You will likely lose important projection information",
+                                        category=UserWarning)
+                proj_dict = area_def.proj_dict
             a, b = proj4_radius_parameters(proj_dict)
             assert a == 6378137.0
             assert b == 6356752.3

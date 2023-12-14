@@ -221,9 +221,16 @@ class TestHRITFileHandler:
 
     def test_get_area_def(self):
         """Test getting an area definition."""
+        import warnings
+
         from pyresample.utils import proj4_radius_parameters
+
         area = self.reader.get_area_def("VIS06")
-        proj_dict = area.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
         assert a == 6378169.0
         assert b == 6356583.8

@@ -16,6 +16,7 @@
 """Module for testing the satpy.readers.osisaf_l3 module."""
 
 import os
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -223,11 +224,15 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area_def.proj_dict["a"] == 6378273.0
+            assert area_def.proj_dict["lat_0"] == -90
+            assert area_def.proj_dict["lat_ts"] == -70
+            assert area_def.proj_dict["lon_0"] == 0
+            assert area_def.proj_dict["proj"] == "stere"
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -243,10 +248,14 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_lambert_azimuthal_equal_area"
-        assert area_def.proj_dict["R"] == 6371228
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "laea"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area_def.proj_dict["R"] == 6371228
+            assert area_def.proj_dict["lat_0"] == -90
+            assert area_def.proj_dict["lon_0"] == 0
+            assert area_def.proj_dict["proj"] == "laea"
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -279,11 +288,15 @@ class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area_def.proj_dict["a"] == 6378273.0
+            assert area_def.proj_dict["lat_0"] == -90
+            assert area_def.proj_dict["lat_ts"] == -70
+            assert area_def.proj_dict["lon_0"] == 0
+            assert area_def.proj_dict["proj"] == "stere"
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -318,8 +331,12 @@ class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_geographic_area"
-        assert area_def.proj_dict["datum"] == "WGS84"
-        assert area_def.proj_dict["proj"] == "longlat"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area_def.proj_dict["datum"] == "WGS84"
+            assert area_def.proj_dict["proj"] == "longlat"
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -353,11 +370,15 @@ class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert area_def.proj_dict["a"] == 6378273.0
+            assert area_def.proj_dict["lat_0"] == -90
+            assert area_def.proj_dict["lat_ts"] == -70
+            assert area_def.proj_dict["lon_0"] == 0
+            assert area_def.proj_dict["proj"] == "stere"
 
         assert area_def.width == 5
         assert area_def.height == 2

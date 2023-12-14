@@ -249,11 +249,14 @@ class TestCFReader:
         expected_area = cf_scene["image0"].attrs["area"]
         actual_area = scn_["image0"].attrs["area"]
         assert pytest.approx(expected_area.area_extent, 0.000001) == actual_area.area_extent
-        assert expected_area.proj_dict == actual_area.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            assert expected_area.proj_dict == actual_area.proj_dict
         assert expected_area.shape == actual_area.shape
         assert expected_area.area_id == actual_area.area_id
         assert expected_area.description == actual_area.description
-        assert expected_area.proj_dict == actual_area.proj_dict
 
     def test_write_and_read_with_swath_definition(self, cf_scene, nc_filename):
         """Save a dataset with a swath definition to file with cf_writer and read the data again."""
