@@ -1184,10 +1184,8 @@ class LowCloudCompositor(CloudCompositor):
         self.values_sea = values_sea if type(values_sea) in [list, tuple] else [values_sea]
         self.range_land = range_land
         self.range_sea = range_sea
-        self.transition_gamma = transition_gamma
-        self.transition_min = None  # Placeholder for later use in CloudCompositor
-        self.transition_max = None  # Placeholder for later use in CloudCompositor
-        super().__init__(name, invert_alpha=invert_alpha, transition_gamma=transition_gamma, **kwargs)
+        super().__init__(name, transition_min=None, transition_max=None,
+                         invert_alpha=invert_alpha, transition_gamma=transition_gamma, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite.
