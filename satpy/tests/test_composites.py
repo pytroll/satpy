@@ -937,6 +937,57 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
         np.testing.assert_allclose(res, exp)
 
 
+class TestHighCloudCompositor:
+    """Test HighCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        from pyresample.geometry import create_area_def
+        area = create_area_def(area_id="test", projection={"proj": "latlong"},
+                               center=(0, 45), width=3, height=3, resolution=35)
+
+        self.data = xr.DataArray(da.from_array([[200, 250, 300],
+                                                [200, 250, 300],
+                                                [200, 250, 300]]),
+                                 dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]},
+                                 attrs={"area": area})
+
+    def test_default_behaviour(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import HighCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = HighCloudCompositor(name="test")
+            res = comp([self.data])
+            expexted_alpha = np.array([[1.0, 0.7142857, 0.0],
+                                       [1.0, 0.625, 0.0],
+                                       [1.0, 0.5555555, 0.0]])
+            expected = np.stack([self.data, expexted_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+
+class TestLowCloudCompositor:
+    """Test LowCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        self.btd = xr.DataArray(da.from_array([[0.0, 1.0, 10.0], [0.0, 1.0, 10.0], [0.0, 1.0, 10.0]]),
+                                dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]})
+        self.bt_win = xr.DataArray(da.from_array([[250, 250, 250], [250, 250, 250], [150, 150, 150]]),
+                                   dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]})
+        self.lsm = xr.DataArray(da.from_array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]]),
+                                dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]})
+
+    def test_default_behaviour(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import LowCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = LowCloudCompositor(name="test")
+            res = comp([self.btd, self.bt_win, self.lsm])
+            expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
+            expected = np.stack([self.btd, expexted_alpha])
+        np.testing.assert_equal(res.values, expected)
+
+
 class TestSingleBandCompositor(unittest.TestCase):
     """Test the single-band compositor."""
 
