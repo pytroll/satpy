@@ -506,8 +506,8 @@ composites:
 
   geo_color:
     compositor: !!python/name:satpy.composites.DayNightCompositor
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     standard_name: geo_color_day_night_blend
     prerequisites:
       - true_color_ndvi_green
