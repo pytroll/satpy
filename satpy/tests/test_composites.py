@@ -945,9 +945,9 @@ class TestHighCloudCompositor:
         from pyresample.geometry import create_area_def
         area = create_area_def(area_id="test", projection={"proj": "latlong"},
                                center=(0, 45), width=3, height=3, resolution=35)
-
+        self.dtype = np.float32
         self.data = xr.DataArray(
-            da.from_array(np.array([[200, 250, 300], [200, 250, 300], [200, 250, 300]], dtype=np.float32)),
+            da.from_array(np.array([[200, 250, 300], [200, 250, 300], [200, 250, 300]], dtype=self.dtype)),
             dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]},
             attrs={"area": area}
         )
@@ -967,7 +967,7 @@ class TestHighCloudCompositor:
         from satpy.composites import HighCloudCompositor
         comp = HighCloudCompositor(name="test")
         res = comp([self.data])
-        assert res.data.dtype == np.float32
+        assert res.data.dtype == self.dtype
 
 
 class TestLowCloudCompositor:
@@ -975,16 +975,17 @@ class TestLowCloudCompositor:
 
     def setup_method(self):
         """Create test data."""
+        self.dtype = np.float32
         self.btd = xr.DataArray(
-            da.from_array(np.array([[0.0, 1.0, 10.0], [0.0, 1.0, 10.0], [0.0, 1.0, 10.0]], dtype=np.float32)),
+            da.from_array(np.array([[0.0, 1.0, 10.0], [0.0, 1.0, 10.0], [0.0, 1.0, 10.0]], dtype=self.dtype)),
             dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
         )
         self.bt_win = xr.DataArray(
-            da.from_array(np.array([[250, 250, 250], [250, 250, 250], [150, 150, 150]], dtype=np.float32)),
+            da.from_array(np.array([[250, 250, 250], [250, 250, 250], [150, 150, 150]], dtype=self.dtype)),
             dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
         )
         self.lsm = xr.DataArray(
-            da.from_array(np.array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]], dtype=np.float32)),
+            da.from_array(np.array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]], dtype=self.dtype)),
             dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
         )
 
@@ -1003,7 +1004,7 @@ class TestLowCloudCompositor:
         from satpy.composites import LowCloudCompositor
         comp = LowCloudCompositor(name="test")
         res = comp([self.btd, self.bt_win, self.lsm])
-        assert res.data.dtype == np.float32
+        assert res.data.dtype == self.dtype
 
 
 class TestSingleBandCompositor(unittest.TestCase):
