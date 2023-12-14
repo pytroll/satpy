@@ -78,7 +78,7 @@ def time_seconds(tc_array, year):
     word = tc_array[:, 3]
     msecs += word & 1023
     return (np.datetime64(
-        str(year) + "-01-01T00:00:00Z", "s") +
+        str(year) + "-01-01T00:00:00", "s") +
         msecs[:].astype("timedelta64[ms]") +
         (day - 1)[:].astype("timedelta64[D]"))
 
@@ -224,7 +224,7 @@ class HRPTFile(BaseFileHandler):
         """Calibrate a solar channel."""
         from pygac.calibration import calibrate_solar
         julian_days = ((np.datetime64(self.start_time)
-                        - np.datetime64(str(self.year) + "-01-01T00:00:00Z"))
+                        - np.datetime64(str(self.year) + "-01-01T00:00:00"))
                        / np.timedelta64(1, "D"))
         data = calibrate_solar(data, _get_channel_index(key), self.year, julian_days,
                                self.calibrator)
