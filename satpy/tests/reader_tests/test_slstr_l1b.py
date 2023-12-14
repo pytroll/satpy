@@ -151,7 +151,7 @@ class TestSLSTRReader(TestSLSTRL1B):
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         assert test.view == "nadir"
         assert test.stripe == "a"
-        with pytest.raises(UserWarning, match=r"No radiance adjustment supplied for channel"):
+        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
             test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
@@ -215,7 +215,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
 
         test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
         # Check warning is raised if we don't have calibration
-        with pytest.raises(UserWarning, match=r"No radiance adjustment supplied for channel"):
+        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
             test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
 
         # Check user calibration is used correctly

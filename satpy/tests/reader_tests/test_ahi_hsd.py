@@ -473,7 +473,7 @@ class TestAHIHSDFileHandler:
 
             # Expected and actual blocklength do not match
             fp_.tell.return_value = 100
-            with pytest.raises(UserWarning, match=r"Actual .* header size does not match expected"):
+            with pytest.warns(UserWarning, match=r"Actual .* header size does not match expected"):
                 fh._check_fpos(fp_, fpos, 0, "header 1")
 
     def test_is_valid_time(self):
@@ -491,7 +491,7 @@ class TestAHIHSDFileHandler:
                 mocker.return_value = True
                 assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
                 mocker.return_value = False
-                with pytest.raises(UserWarning,
+                with pytest.warns(UserWarning,
                                    match=r"Observation timeline is fill value, not rounding observation time"):
                     assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
