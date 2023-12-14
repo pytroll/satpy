@@ -1083,30 +1083,31 @@ class HighCloudCompositor(CloudCompositor):
                          of where abs(latitude).
     """
 
-    def __init__(self, name, transition_min=(210., 230.), transition_max=300, latitude_min=(30., 60.),  # noqa: D417
-                 transition_gamma=1.0, **kwargs):
+    def __init__(self, name, transition_min_limits=(210., 230.), latitude_min_limits=(30., 60.),  # noqa: D417
+                 transition_max=300, transition_gamma=1.0, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            transition_min (tuple): Brightness temperature values used to identify opaque white
-                                    clouds at different latitudes
+            transition_min_limits (tuple): Brightness temperature values used to identify opaque white
+                                           clouds at different latitudes
             transition_max (float): Brightness temperatures above this value are not considered to
                                     be high clouds -> transparent
-            latitude_min (tuple): Latitude values defining the intervals for computing latitude-dependent
-                                  transition_min values.
+            latitude_min_limits (tuple): Latitude values defining the intervals for computing latitude-dependent
+                                         `transition_min` values from `transition_min_limits`.
             transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
                                       temperature range (`transition_min` to `transition_max`).
 
         """
-        if len(transition_min) != 2:
-            raise ValueError(f"Expected 2 `transition_min` values, got {len(transition_min)}")
-        if len(latitude_min) != 2:
-            raise ValueError(f"Expected 2 `latitude_min` values, got {len(latitude_min)}")
+        if len(transition_min_limits) != 2:
+            raise ValueError(f"Expected 2 `transition_min_limits` values, got {len(transition_min_limits)}")
+        if len(transition_min_limits) != 2:
+            raise ValueError(f"Expected 2 `latitude_min_limits` values, got {len(transition_min_limits)}")
         if type(transition_max) in [list, tuple]:
             raise ValueError(f"Expected `transition_max` to be of type float, is of type {type(transition_max)}")
 
-        self.latitude_min = latitude_min
-        super().__init__(name, transition_min=transition_min, transition_max=transition_max,
+        self.transition_min_limits = transition_min_limits
+        self.latitude_min_limits = latitude_min_limits
+        super().__init__(name, transition_min=None, transition_max=transition_max,
                          transition_gamma=transition_gamma, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -1122,16 +1123,17 @@ class HighCloudCompositor(CloudCompositor):
         _, lats = data.attrs["area"].get_lonlats(chunks=data.chunks, dtype=data.dtype)
         lats = np.abs(lats)
 
-        slope = (self.transition_min[1] - self.transition_min[0]) / (self.latitude_min[1] - self.latitude_min[0])
-        offset = self.transition_min[0] - slope * self.latitude_min[0]
+        slope = (self.transition_min_limits[1] - self.transition_min_limits[0]) / \
+                (self.latitude_min_limits[1] - self.latitude_min_limits[0])
+        offset = self.transition_min_limits[0] - slope * self.latitude_min_limits[0]
 
-        tr_min_lat = xr.DataArray(name="tr_min_lat", coords=data.coords, dims=data.dims).astype(data.dtype)
-        tr_min_lat = tr_min_lat.where(lats >= self.latitude_min[0], self.transition_min[0])
-        tr_min_lat = tr_min_lat.where(lats <= self.latitude_min[1], self.transition_min[1])
-        tr_min_lat = tr_min_lat.where((lats < self.latitude_min[0]) | (lats > self.latitude_min[1]),
-                                      slope * lats + offset)
-
-        self.transition_min = tr_min_lat
+        # Compute pixel-level latitude dependent transition_min values and pass to parent CloudCompositor class
+        transition_min = xr.DataArray(name="transition_min", coords=data.coords, dims=data.dims).astype(data.dtype)
+        transition_min = transition_min.where(lats >= self.latitude_min_limits[0], self.transition_min_limits[0])
+        transition_min = transition_min.where(lats <= self.latitude_min_limits[1], self.transition_min_limits[1])
+        transition_min = transition_min.where((lats < self.latitude_min_limits[0]) |
+                                              (lats > self.latitude_min_limits[1]), slope * lats + offset)
+        self.transition_min = transition_min
 
         return super().__call__(projectables, **kwargs)
 

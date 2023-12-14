@@ -973,6 +973,14 @@ class TestHighCloudCompositor:
         expected = np.stack([self.data, expexted_alpha])
         np.testing.assert_almost_equal(res.values, expected)
 
+    def test_high_cloud_compositor_multiple_calls(self):
+        """Test that the modified init variables are reset properly when calling the compositor multiple times."""
+        from satpy.composites import HighCloudCompositor
+        comp = HighCloudCompositor(name="test")
+        res = comp([self.data])
+        res2 = comp([self.data])
+        np.testing.assert_equal(res.values, res2.values)
+
     def test_high_cloud_compositor_dtype(self):
         """Test that the datatype is not altered by the compositor."""
         from satpy.composites import HighCloudCompositor
