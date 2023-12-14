@@ -1120,13 +1120,13 @@ class HighCloudCompositor(CloudCompositor):
             raise ValueError(f"Expected 1 dataset, got {len(projectables)}")
 
         data = projectables[0]
-        _, lats = data.attrs["area"].get_lonlats()
+        _, lats = data.attrs["area"].get_lonlats(chunks=data.chunks, dtype=data.dtype)
         lats = np.abs(lats)
 
         slope = (self.transition_min[1] - self.transition_min[0]) / (self.latitude_min[1] - self.latitude_min[0])
         offset = self.transition_min[0] - slope * self.latitude_min[0]
 
-        tr_min_lat = xr.DataArray(name="tr_min_lat", coords=data.coords, dims=data.dims)
+        tr_min_lat = xr.DataArray(name="tr_min_lat", coords=data.coords, dims=data.dims).astype(data.dtype)
         tr_min_lat = tr_min_lat.where(lats >= self.latitude_min[0], self.transition_min[0])
         tr_min_lat = tr_min_lat.where(lats <= self.latitude_min[1], self.transition_min[1])
         tr_min_lat = tr_min_lat.where((lats < self.latitude_min[0]) | (lats > self.latitude_min[1]),
