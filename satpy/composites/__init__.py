@@ -185,6 +185,7 @@ class CompositeBase:
         """
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
+        new_arrays = self.align_geo_coordinates(new_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
 
@@ -209,6 +210,23 @@ class CompositeBase:
                 new_arrays.append(ds)
 
         return new_arrays
+
+    def align_geo_coordinates(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+        """Align DataArrays along geolocation coordinates.
+
+        See :func:`~xarray.align` for more information. This function uses
+        the "override" join method to essentially ignore differences between
+        coordinates. The :meth:`check_geolocation` should be called before
+        this to ensure that geolocation coordinates and "area" are compatible.
+        The :meth:`drop_coordinates` method should be called before this to
+        ensure that coordinates that are considered "negligible" when computing
+        composites do not affect alignment.
+
+        """
+        non_geo_coords = tuple(
+            coord_name for data_arr in data_arrays
+            for coord_name in data_arr.coords if coord_name not in ("x", "y"))
+        return xr.align(*data_arrays, join="override", exclude=non_geo_coords)
 
     def check_geolocation(self, data_arrays):
         """Check that the geolocations of the *data_arrays* are compatible.
