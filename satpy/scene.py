@@ -39,10 +39,10 @@ from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
-try:
-    import hvplot.xarray as hvplot_xarray  # noqa
-except ImportError:
-    hvplot_xarray = None
+#try:
+#    import hvplot.xarray as hvplot_xarray  # noqa
+#except ImportError:
+#    hvplot_xarray = None
 
 
 LOG = logging.getLogger(__name__)
@@ -1092,6 +1092,7 @@ class Scene:
            plot.ash+plot.IR_108
 
         """
+
         def _get_crs(xarray_ds):
             return xarray_ds.area.to_cartopy_crs()
 
@@ -1112,23 +1113,36 @@ class Scene:
                 clabel=f"[{_get_units(xarray_ds,variable)}]", title=title,
                 **defaults)
 
-        if hvplot_xarray is None:
-            raise ImportError("'hvplot' must be installed to use this feature")
+        #def _check_hvplot_library():
+        #   if hvplot_xarray is None:
+        #    raise ImportError("'hvplot' must be installed to use this feature")
+#
+#        _check_hvplot_library()
 
         plot = Overlay()
         xarray_ds = self.to_xarray_dataset(datasets)
-        ccrs = _get_crs(xarray_ds)
+
+        if hasattr(xarray_ds, "area") and hasattr(xarray_ds.area, "to_cartopy_crs"):
+            ccrs = _get_crs(xarray_ds)
+            defaults={"x":"x","y":"y"}
+        else:
+            ccrs = None
+            defaults={"x":"longitude","y":"latitude"}
+
 
         if datasets is None:
             datasets = list(xarray_ds.keys())
 
-        defaults = dict(x="x", y="y", data_aspect=1, project=True, geo=True,
+        defaults.update(data_aspect=1, project=True, geo=True,
                         crs=ccrs, projection=ccrs, rasterize=True, coastline="110m",
                         cmap="Plasma", responsive=True, dynamic=False, framewise=True,
                         colorbar=False, global_extent=False, xlabel="Longitude",
                         ylabel="Latitude")
 
         defaults.update(kwargs)
+
+        #if "latitude" in xarray_ds.coords:
+        #    defaults.update({"x":"longitude","y":"latitude"})
 
         for element in datasets:
             title = f"{element} @ {_get_timestamp(xarray_ds)}"
