@@ -208,8 +208,10 @@ class TestCFWriter:
                                   attrs={"name": "HRV", "start_time": tstart, "end_time": tend})
 
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
-                              pretty=True)
+            with pytest.warns(UserWarning, match=r"Cannot pretty-format"):
+                scn.save_datasets(filename=filename, writer="cf",
+                                  groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
+                                  pretty=True)
 
             nc_root = xr.open_dataset(filename)
             assert "history" in nc_root.attrs
