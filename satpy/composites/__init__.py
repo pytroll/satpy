@@ -1148,8 +1148,8 @@ class LowCloudCompositor(CloudCompositor):
     Pixels with `BTD` values below a given threshold  will be transparent, whereas pixels with `BTD` values
     above another threshold will be opaque. The transparency of all other `BTD` values will be a linear
     function of the `BTD` value itself. Two sets of thresholds are used, one set for land surface types
-    (`range_land`) and another one for sea/water surface types (`range_sea`), respectively. Hence,
-    this compositor requires a land-sea-mask as a prerequisite input. This follows the GeoColor
+    (`range_land`) and another one for water surface types (`range_water`), respectively. Hence,
+    this compositor requires a land-water-mask as a prerequisite input. This follows the GeoColor
     implementation of night-time low-level clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
     with some adjustments to the thresholds based on recent developments and feedback from CIRA.
 
@@ -1157,9 +1157,9 @@ class LowCloudCompositor(CloudCompositor):
     only applicable during night-time.
     """
 
-    def __init__(self, name, values_land=(1,), values_sea=(0,),  # noqa: D417
+    def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
                  range_land=(0.0, 4.0),
-                 range_sea=(0.0, 4.0),
+                 range_water=(0.0, 4.0),
                  invert_alpha=True,
                  transition_gamma=1.0, **kwargs):
         """Init info.
@@ -1167,12 +1167,12 @@ class LowCloudCompositor(CloudCompositor):
         Collect custom configuration values.
 
         Args:
-            values_land (list): List of values used to identify land surface pixels in the land-sea-mask.
-            values_sea (list): List of values used to identify sea/water surface pixels in the land-sea-mask.
+            values_land (list): List of values used to identify land surface pixels in the land-water-mask.
+            values_water (list): List of values used to identify water surface pixels in the land-water-mask.
             range_land (tuple): Threshold values used for masking low-level clouds from the brightness temperature
                                 difference over land surface types.
-            range_sea (tuple): Threshold values used for masking low-level clouds from the brightness temperature
-                               difference over sea/water.
+            range_water (tuple): Threshold values used for masking low-level clouds from the brightness temperature
+                                 difference over water.
             invert_alpha (bool): Invert the alpha channel to make low data values transparent
                                  and high data values opaque.
             transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
@@ -1180,13 +1180,13 @@ class LowCloudCompositor(CloudCompositor):
         """
         if len(range_land) != 2:
             raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
-        if len(range_sea) != 2:
-            raise ValueError(f"Expected 2 `range_sea` values, got {len(range_sea)}")
+        if len(range_water) != 2:
+            raise ValueError(f"Expected 2 `range_water` values, got {len(range_water)}")
 
         self.values_land = values_land if type(values_land) in [list, tuple] else [values_land]
-        self.values_sea = values_sea if type(values_sea) in [list, tuple] else [values_sea]
+        self.values_water = values_water if type(values_water) in [list, tuple] else [values_water]
         self.range_land = range_land
-        self.range_sea = range_sea
+        self.range_water = range_water
         super().__init__(name, transition_min=None, transition_max=None,
                          invert_alpha=invert_alpha, transition_gamma=transition_gamma, **kwargs)
 
@@ -1211,12 +1211,12 @@ class LowCloudCompositor(CloudCompositor):
         self.transition_min, self.transition_max = self.range_land
         res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
 
-        # Call CloudCompositor for sea/water surface pixels
-        self.transition_min, self.transition_max = self.range_sea
-        res_sea = super().__call__([btd.where(lsm.isin(self.values_sea))], **kwargs)
+        # Call CloudCompositor for /water surface pixels
+        self.transition_min, self.transition_max = self.range_water
+        res_water = super().__call__([btd.where(lsm.isin(self.values_water))], **kwargs)
 
-        # Compine resutls for land and sea/water surface pixels
-        res = res.where(lsm.isin(self.values_land), res_sea)
+        # Compine resutls for land and water surface pixels
+        res = res.where(lsm.isin(self.values_land), res_water)
 
         # Make pixels with cold window channel brightness temperatures transparent to avoid spurious false
         # alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops

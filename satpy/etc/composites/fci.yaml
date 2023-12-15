@@ -145,10 +145,10 @@ composites:
   geo_color_low_clouds:
    standard_name: geo_color_low_clouds
    compositor: !!python/name:satpy.composites.LowCloudCompositor
-   values_sea: 0
+   values_water: 0
    values_land: 100
+   range_water: [1.35, 5.0]
    range_land: [4.35, 6.75]
-   range_sea: [1.35, 5.0]
    prerequisites:
      - compositor: !!python/name:satpy.composites.DifferenceCompositor
        prerequisites:
@@ -156,7 +156,7 @@ composites:
          - name: ir_38
      - name: ir_105
      - compositor: !!python/name:satpy.composites.StaticImageCompositor
-       standard_name: land_sea_mask
+       standard_name: land_water_mask
        url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
        known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
 
