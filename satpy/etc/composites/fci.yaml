@@ -194,6 +194,39 @@ composites:
     prerequisites:
       - ir_sandwich
       - colorized_ir_clouds
+
+  cloud_type:
+    description: >
+      Equal to cimss_cloud_type, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: nir_13
+        modifiers: [ sunz_corrected, sunz_reduced ]
+      - name: vis_06
+        modifiers: [ sunz_corrected, sunz_reduced ]
+      - name: nir_16
+        modifiers: [ sunz_corrected, sunz_reduced ]
+    standard_name: cimss_cloud_type
+
+  cloud_phase:
+    description: >
+      Equal to cloud_phase, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: nir_16
+        modifiers: [sunz_corrected, sunz_reduced]
+      - name: nir_22
+        modifiers: [sunz_corrected, sunz_reduced]
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    standard_name: cloud_phase
+
   binary_cloud_mask:
     # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
     # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
