@@ -240,7 +240,7 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
@@ -255,7 +255,7 @@ class TestCFWriter:
         scn = Scene()
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
         times = np.array(["2018-05-30T10:05:00", "2018-05-30T10:05:01",
-                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype=np.datetime64)
+                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype="datetime64[ns]")
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["y", "x"],
                                          coords={"time": ("y", times)},
@@ -273,7 +273,7 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y", "time"],
-                                         coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                         coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
@@ -307,12 +307,12 @@ class TestCFWriter:
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
         with TempFile() as filename:
@@ -330,12 +330,12 @@ class TestCFWriter:
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]})
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]})
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer="cf")
             with xr.open_dataset(filename, decode_cf=True) as f:
@@ -350,7 +350,7 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
