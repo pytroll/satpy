@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2020 Satpy developers
+# Copyright (c) 2016-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,7 +15,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
+import glob
 import logging
+import pickle  # nosec
 import time
 
 import dask.array as da
@@ -461,10 +461,11 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
 
 class Preloadable:
     """Mixin class for pre-loading."""
-    def __init__(self, *args, preload=False, ref_fh=None, **kwargs):
+    def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
         self.ref_fh = ref_fh
+        self.rc_cache = rc_cache
         super().__init__(*args, **kwargs)
 
     def _collect_listed_variables(self, file_handle, listed_variables):
@@ -481,9 +482,14 @@ class Preloadable:
                 if self._can_get_from_other_segment(raw_name):
                     self.file_content[subst_name] = self.ref_fh[subst_name]
                     self._copy_variable_info(subst_name)
-#                elif self._can_get_from_other_rc(raw_name):
-#                    LOG.debug(f"Get {subst_name:s} from cached RC")
-#                    raise NotImplementedError("RC-caching not implemented yet")
+                elif self._can_get_from_other_rc(raw_name):
+                    try:
+                        self.file_content[subst_name] = self._get_from_other_rc(subst_name)
+                    except OSError as err:
+                        raise OSError("Cannot read repeat cycle cache. "
+                                      "Generate using "
+                                      "satpy.utils.create_preloadable_cache "
+                                      "first. ") from err
                 else:
                     self._collect_variable_delayed(subst_name)
                 # FIXME: collect attributes
@@ -493,6 +499,14 @@ class Preloadable:
 
     def _can_get_from_other_rc(self, itm):
         return "rc" in self.filetype_info["required_netcdf_variables"][itm]
+
+    def _get_from_other_rc(self, itm):
+        cache_fn = self.rc_cache
+        return self._read_var_from_cache(cache_fn, itm)
+
+    def _read_var_from_cache(self, cache_fn, itm):
+        with open(cache_fn, "rb") as fp:
+            return pickle.load(fp)[itm]  # nosec
 
     def _collect_variable_delayed(self, subst_name):
         other = self.ref_fh[subst_name]
@@ -529,17 +543,40 @@ class Preloadable:
             return None
         return super()._get_file_handle()
 
+    def store_cache(self, filename=None):
+        """Store RC-cachable data to cache."""
+        if self.preload:
+            raise ValueError("Cannot store cache with pre-loaded handler")
+        listed_variables = self.filetype_info.get("required_netcdf_variables")
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        to_store = {}
+        for raw_name in listed_variables:
+            for subst_name in self._get_required_variable_names(
+                    [raw_name], variable_name_replacements):
+                if self._can_get_from_other_rc(raw_name):
+                    try:
+                        obj = self[subst_name].compute()
+                    except AttributeError:  # not a dask array
+                        obj = self[subst_name]
+                    to_store[subst_name] = obj
+        filename = filename or self.rc_cache
+        LOG.info(f"Storing cache to {filename:s}")
+        with open(filename, "wb") as fp:
+            # FIXME: potential security risk?  Acceptable?
+            pickle.dump(to_store, fp)
+
 
 def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1):
-    LOG.debug(f"Waiting for {fn!s} to appear.")
+    LOG.debug(f"Waiting for {fn!s} to appear to get {var:s}.")
     for _ in range(max_tries):
-        # this should use glob
-        try:
-            nc = netCDF4.Dataset(fn, "r")
-        except FileNotFoundError:
+        fns = glob.glob(fn)
+        if len(fns) == 0:
             time.sleep(wait)
-        else:
-            break
+            continue
+        elif len(fns) > 1:
+            raise ValueError(f"Expected one matching file, found {len(fns):d}")
+        break
     else:
         raise TimeoutError("File failed to materialise")
+    nc = netCDF4.Dataset(fns[0], "r")
     return da.from_array(nc[var])

@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2022 Satpy developers
+# Copyright (c) 2016-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,6 +15,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
 
+import datetime
 import glob
 import itertools
 import logging
@@ -29,6 +28,7 @@ from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
+import appdirs
 import numpy as np
 import xarray as xr
 import yaml
@@ -1375,7 +1375,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         Based on the filehandler for a single existing file, yield filehandler
         instances for all files that we expect for a full disc cycle.  Those
         filehandler instances are usually based on glob patterns rather than on
-        the explicity filename, which may not be reliably predictable.
+        the explicit filename, which may not be reliably predictable.
         """
         if filetype_info.get("requires"):
             raise NotImplementedError("Pre-loading not implemented for "
@@ -1384,7 +1384,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         for (filename, filename_info) in self._predict_filenames(filetype_info, fh):
             # FIXME: handle fh_kwargs
             yield filetype_cls(filename, filename_info, filetype_info,
-                               preload=True, ref_fh=fh)
+                               preload=True, ref_fh=fh,
+                               rc_cache=self._get_cache_filename(fh))
 
     def _predict_filenames(self, filetype_info, fh):
         """Predict what filenames or glob patterns we should expect.
@@ -1427,6 +1428,25 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_filename = new_filename.replace("000000", "??????")
         new_filename = os.fspath(basedir / new_filename)
         return (new_filename, new_info)
+
+    def _get_cache_filename(self, fh):
+        """Get filename for inter-rc caching."""
+        dirname = self._get_cache_dir(fh)
+        pat = self._select_pattern(fh.filename)
+        p = Parser(pat)
+        new_info = fh.filename_info.copy()
+        for tm in fh.filetype_info["time_tags"]:
+            new_info[tm] = datetime.datetime.min
+        for ct in fh.filetype_info["variable_tags"]:
+            new_info[ct] = 0
+        name = p.compose(new_info)
+        pt = pathlib.Path(name)
+        pt = pt.with_suffix(".pkl")
+        return os.path.join(dirname, os.fspath(pt))
+
+    def _get_cache_dir(self, fh):
+        return os.path.join(appdirs.user_cache_dir(), "satpy", "preloadable",
+                            type(fh).__name__)
 
 
 def _predict_filename_info(fh, i):

@@ -100,11 +100,14 @@ file_types:
         - ir_105
         - ir_123
         - ir_133
+    # information needed for preloading
     segment_tag: count_in_repeat_cycle
     time_tags:
       - processing_time
       - start_time
       - end_time
+    variable_tags:  # other tags where RC caching doesn't care about variation
+      - repeat_cycle_in_day
   fci_l1c_hrfi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
     file_patterns:
