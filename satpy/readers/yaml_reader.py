@@ -1182,9 +1182,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         return created_fhs
 
     def _sort_segment_filehandler_by_segment_number(self):
-        for file_type in self.file_handlers.keys():
-            self.file_handlers[file_type] = sorted(self.file_handlers[file_type],
-                                                   key=lambda x: x.filename_info.get("segment", 0))
+        if hasattr(self, "file_handlers"):
+            for file_type in self.file_handlers.keys():
+                self.file_handlers[file_type] = sorted(self.file_handlers[file_type],
+                                                       key=lambda x: x.filename_info.get("segment", 0))
 
     def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
         """Load only a piece of the dataset."""
