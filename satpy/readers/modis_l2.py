@@ -172,17 +172,18 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         for var_name, val in self.sd.datasets().items():
             if var_name in handled:
                 continue
-            if len(val[0]) == 2:
-                resolution = res_dict.get(val[1][-1])
-                if resolution is not None:
-                    ds_info = {
-                        "file_type": self.filetype_info["file_type"],
-                        "resolution": resolution,
-                        "name": var_name,
-                        "file_key": var_name,
-                        "coordinates": ["longitude", "latitude"]
-                    }
-                    yield True, ds_info
+            if len(val[0]) != 2:
+                continue
+            resolution = res_dict.get(val[1][-1])
+            if resolution is not None:
+                ds_info = {
+                    "file_type": self.filetype_info["file_type"],
+                    "resolution": resolution,
+                    "name": var_name,
+                    "file_key": var_name,
+                    "coordinates": ["longitude", "latitude"]
+                }
+                yield True, ds_info
 
     def _extract_and_mask_category_dataset(self, dataset_id, dataset_info, var_name):
         # what dimension is per-byte
