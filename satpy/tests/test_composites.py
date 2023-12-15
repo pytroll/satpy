@@ -37,7 +37,7 @@ from satpy.tests.utils import CustomScheduler
 # - tmp_path
 
 
-class TestMatchDataArrays(unittest.TestCase):
+class TestMatchDataArrays:
     """Test the utility method 'match_data_arrays'."""
 
     def _get_test_ds(self, shape=(50, 100), dims=("y", "x")):
@@ -131,6 +131,38 @@ class TestMatchDataArrays(unittest.TestCase):
         comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays([ds, ds])
         assert "acq_time" not in ret_datasets[0].coords
+
+    def test_almost_equal_geo_coordinates(self):
+        """Test that coordinates that are almost-equal still match.
+
+        See https://github.com/pytroll/satpy/issues/2668 for discussion.
+
+        Various operations like cropping and resampling can cause
+        geo-coordinates (y, x) to be very slightly unequal due to floating
+        point precision. This test makes sure that even in those cases we
+        can still generate composites from DataArrays with these coordinates.
+
+        """
+        from satpy.composites import CompositeBase
+        from satpy.resample import add_crs_xy_coords
+
+        comp = CompositeBase("test_comp")
+        data_arr1 = self._get_test_ds(shape=(2, 2))
+        data_arr1 = add_crs_xy_coords(data_arr1, data_arr1.attrs["area"])
+        data_arr2 = self._get_test_ds(shape=(2, 2))
+        data_arr2 = data_arr2.assign_coords(
+            x=data_arr1.coords["x"] + 0.000001,
+            y=data_arr1.coords["y"],
+            crs=data_arr1.coords["crs"],
+        )
+        # data_arr2 = add_crs_xy_coords(data_arr2, data_arr2.attrs["area"])
+        # data_arr2.assign_coords(x=data_arr2.coords["x"].copy() + 1.1)
+        # default xarray alignment would fail and collapse one of our dims
+        assert 0 in (data_arr2 - data_arr1).shape
+        new_data_arr1, new_data_arr2 = comp.match_data_arrays([data_arr1, data_arr2])
+        assert 0 not in new_data_arr1.shape
+        assert 0 not in new_data_arr2.shape
+        assert 0 not in (new_data_arr2 - new_data_arr1).shape
 
 
 class TestRatioSharpenedCompositors:

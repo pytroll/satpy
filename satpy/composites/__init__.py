@@ -157,7 +157,7 @@ class CompositeBase:
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
-    def match_data_arrays(self, data_arrays):
+    def match_data_arrays(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
         """Match data arrays so that they can be used together in a composite.
 
         For the purpose of this method, "can be used together" means:
@@ -185,32 +185,11 @@ class CompositeBase:
         """
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
+        new_arrays = self.align_geo_coordinates(new_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
 
-    def drop_coordinates(self, data_arrays):
-        """Drop negligible non-dimensional coordinates.
-
-        Drops negligible coordinates if they do not correspond to any
-        dimension.  Negligible coordinates are defined in the
-        :attr:`NEGLIGIBLE_COORDS` module attribute.
-
-        Args:
-            data_arrays (List[arrays]): Arrays to be checked
-        """
-        new_arrays = []
-        for ds in data_arrays:
-            drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and
-                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
-            if drop:
-                new_arrays.append(ds.drop_vars(drop))
-            else:
-                new_arrays.append(ds)
-
-        return new_arrays
-
-    def check_geolocation(self, data_arrays):
+    def check_geolocation(self, data_arrays: Sequence[xr.DataArray]) -> None:
         """Check that the geolocations of the *data_arrays* are compatible.
 
         For the purpose of this method, "compatible" means:
@@ -220,7 +199,7 @@ class CompositeBase:
         - If all have an area, the areas should be all the same.
 
         Args:
-            data_arrays (List[arrays]): Arrays to be checked
+            data_arrays: Arrays to be checked
 
         Raises:
             :class:`IncompatibleAreas`:
@@ -250,6 +229,47 @@ class CompositeBase:
             LOG.debug("Not all areas are the same in "
                       "'{}'".format(self.attrs["name"]))
             raise IncompatibleAreas("Areas are different")
+
+    @staticmethod
+    def drop_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+        """Drop negligible non-dimensional coordinates.
+
+        Drops negligible coordinates if they do not correspond to any
+        dimension.  Negligible coordinates are defined in the
+        :attr:`NEGLIGIBLE_COORDS` module attribute.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+        """
+        new_arrays = []
+        for ds in data_arrays:
+            drop = [coord for coord in ds.coords
+                    if coord not in ds.dims and
+                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
+            if drop:
+                new_arrays.append(ds.drop_vars(drop))
+            else:
+                new_arrays.append(ds)
+
+        return new_arrays
+
+    @staticmethod
+    def align_geo_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+        """Align DataArrays along geolocation coordinates.
+
+        See :func:`~xarray.align` for more information. This function uses
+        the "override" join method to essentially ignore differences between
+        coordinates. The :meth:`check_geolocation` should be called before
+        this to ensure that geolocation coordinates and "area" are compatible.
+        The :meth:`drop_coordinates` method should be called before this to
+        ensure that coordinates that are considered "negligible" when computing
+        composites do not affect alignment.
+
+        """
+        non_geo_coords = tuple(
+            coord_name for data_arr in data_arrays
+            for coord_name in data_arr.coords if coord_name not in ("x", "y"))
+        return list(xr.align(*data_arrays, join="override", exclude=non_geo_coords))
 
 
 class DifferenceCompositor(CompositeBase):
