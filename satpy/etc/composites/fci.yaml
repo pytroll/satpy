@@ -195,8 +195,8 @@ composites:
       - ir_sandwich
       - colorized_ir_clouds
   binary_cloud_mask:
-    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
-    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
+    # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
     compositor: !!python/name:satpy.composites.CategoricalDataCompositor
     prerequisites:
       - name: 'cloud_state'
