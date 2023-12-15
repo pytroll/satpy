@@ -1365,18 +1365,6 @@ datasets:
     - longitude
     - latitude
 
-  radiance_min:
-    name: radiance_min
-    resolution: 32000
-    file_type: nc_fci_asr
-    file_key: radiance_min
-    long_name: TOA min Radiance
-    standard_name: toa_radiance
-    cell_method: area:minimum
-    coordinates:
-    - longitude
-    - latitude
-
   radiance_mean:
     name: radiance_mean
     resolution: 32000
@@ -1385,6 +1373,18 @@ datasets:
     long_name: TOA mean Radiance
     standard_name: toa_radiance
     cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_min:
+    name: radiance_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_min
+    long_name: TOA min Radiance
+    standard_name: toa_radiance
+    cell_method: area:minimum
     coordinates:
     - longitude
     - latitude
@@ -1876,70 +1876,6 @@ datasets:
     - longitude
     - latitude
 
-  reflectance_min:
-    name: reflectance_min
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_min
-    long_name: TOA Bidirectional Reflectance segment min
-    standard_name: toa_bidirectional_reflectance
-    cell_method: area:minimum
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_std:
-    name: reflectance_std
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_std
-    long_name: TOA Bidirectional Reflectance standard deviation
-    standard_name: toa_bidirectional_reflectance
-    cell_method: area:standard_deviation
-    coordinates:
-    - longitude
-    - latitude
-
-  quality_reflectance:
-    name: quality_reflectance
-    resolution: 32000
-    file_type: nc_fci_asr
-    file_key: quality_reflectance
-    fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence
-    standard_name: reflectance_quality
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_max:
-    name: bt_max
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: bt_max
-    long_name: TOA Brightess Temperature segment max
-    standard_name: toa_brightess_temperature
-    cell_method: area:maximum
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean:
-    name: bt_mean
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    long_name: TOA Brightess Temperature segment mean
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
   bt_mean_all_ir38:
     name: bt_mean_all_ir38
     resolution: 32000
@@ -2300,7 +2236,7 @@ datasets:
     - longitude
     - latitude
 
-    quality_reflectance_all_vis04:
+  quality_reflectance_all_vis04:
     name: quality_reflectance_all_vis04
     resolution: 32000
     wavelength: [0.384, 0.444, 0.504]
