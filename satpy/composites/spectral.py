@@ -159,9 +159,9 @@ class NDVIHybridGreen(SpectralBlender):
         LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
                  f"{self.limits[1]}] and strength {self.strength}.")
 
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        ndvi_input = self.match_data_arrays(projectables)
 
-        ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
+        ndvi = (ndvi_input[2] - ndvi_input[1]) / (ndvi_input[2] + ndvi_input[1])
 
         ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
 
