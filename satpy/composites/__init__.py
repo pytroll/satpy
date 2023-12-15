@@ -1014,7 +1014,7 @@ class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
     def __init__(self, name, transition_min=258.15, transition_max=298.15,  # noqa: D417
-                 invert_alpha=False, transition_gamma=3.0, **kwargs):
+                 transition_gamma=3.0, invert_alpha=False, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1022,15 +1022,15 @@ class CloudCompositor(GenericCompositor):
                                     clouds -> opaque white
             transition_max (float): Values above this are
                                     cloud free -> transparent
+            transition_gamma (float): Gamma correction to apply at the end
             invert_alpha (bool): Invert the alpha channel to make low data values transparent
                                  and high data values opaque.
-            transition_gamma (float): Gamma correction to apply at the end
 
         """
         self.transition_min = transition_min
         self.transition_max = transition_max
-        self.invert_alpha = invert_alpha
         self.transition_gamma = transition_gamma
+        self.invert_alpha = invert_alpha
         super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -1160,8 +1160,8 @@ class LowCloudCompositor(CloudCompositor):
     def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
                  range_land=(0.0, 4.0),
                  range_water=(0.0, 4.0),
-                 invert_alpha=True,
-                 transition_gamma=1.0, **kwargs):
+                 transition_gamma=1.0,
+                 invert_alpha=True, **kwargs):
         """Init info.
 
         Collect custom configuration values.
@@ -1173,10 +1173,10 @@ class LowCloudCompositor(CloudCompositor):
                                 difference over land surface types.
             range_water (tuple): Threshold values used for masking low-level clouds from the brightness temperature
                                  difference over water.
-            invert_alpha (bool): Invert the alpha channel to make low data values transparent
-                                 and high data values opaque.
             transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
                                       temperature difference range.
+            invert_alpha (bool): Invert the alpha channel to make low data values transparent
+                                 and high data values opaque.
         """
         if len(range_land) != 2:
             raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
@@ -1188,7 +1188,7 @@ class LowCloudCompositor(CloudCompositor):
         self.range_land = range_land
         self.range_water = range_water
         super().__init__(name, transition_min=None, transition_max=None,
-                         invert_alpha=invert_alpha, transition_gamma=transition_gamma, **kwargs)
+                         transition_gamma=transition_gamma, invert_alpha=invert_alpha, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite.
