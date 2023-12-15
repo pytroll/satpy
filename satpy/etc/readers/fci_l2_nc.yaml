@@ -1045,13 +1045,14 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 0
     flag_values: [0,1]
-    flag_meanings: [' Snow/Ice undetected',' Snow/Ice detected']
+    flag_meanings: ['No snow/Ice detected',' Snow/Ice detected']
     standard_name: status_flag
 
   cloud_test_cmt1:
     name: cloud_test_cmt1
     resolution: 2000
     file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
     extract_byte: 1
     flag_values: [0,1]
     flag_meanings: ['Cloud undetected','Cloud detected']
@@ -1092,7 +1093,7 @@ datasets:
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
-    sextract_byte: 5
+    extract_byte: 5
     flag_values: [0,1]
     flag_meanings: ['Cloud undetected','Cloud detected']
     standard_name: status_flag
