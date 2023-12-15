@@ -152,7 +152,8 @@ class TestCFWriter:
         scn = Scene()
         scn["1"] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
+            with pytest.warns(UserWarning, match=r"Invalid NetCDF dataset name"):
+                scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f["1"][:], [1, 2, 3])
                 assert "original_name" not in f["1"].attrs
