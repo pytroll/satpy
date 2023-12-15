@@ -79,10 +79,10 @@ class TestNdviHybridGreenCompositor:
             dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C02"})
         self.c02 = xr.DataArray(
             da.from_array(np.array([[0.25, 0.30], [0.25, 0.35]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val],  attrs={"name": "C03"})
+            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C03"})
         self.c03 = xr.DataArray(
             da.from_array(np.array([[0.35, 0.35], [0.28, 0.65]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val],  attrs={"name": "C04"})
+            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C04"})
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
