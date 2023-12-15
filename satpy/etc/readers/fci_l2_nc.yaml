@@ -1305,1234 +1305,12 @@ datasets:
     standard_name: product_timeliness
 
   # ASR
-  radiance_min:
-    name: radiance_min
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: radiance_min
-    long_name: TOA min Radiance
-    standard_name: toa_radiance
-    cell_method: area:minimum
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_max:
-    name: radiance_max
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: radiance_max
-    long_name: TOA max Radiance
-    standard_name: toa_radiance
-    cell_method: area:maximum
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean:
-    name: radiance_mean
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    long_name: TOA mean Radiance
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_vis04:
-    name: radiance_mean_all_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 0
-    long_name: TOA mean Radiance over all pixels for vis04 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_vis04:
-    name: radiance_mean_clear_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 0
-    long_name: TOA mean Radiance over clear pixels for vis04 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_vis04:
-    name: radiance_mean_cloudy_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 0
-    long_name: TOA mean Radiance over cloudy pixels for vis04 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_vis05:
-    name: radiance_mean_all_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 1
-    long_name: TOA mean Radiance over all pixels for vis05 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_vis05:
-    name: radiance_mean_clear_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 1
-    long_name: TOA mean Radiance over clear pixels for vis05 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_vis05:
-    name: radiance_mean_cloudy_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 1
-    long_name: TOA mean Radiance over cloudy pixels for vis05 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_vis06:
-    name: radiance_mean_all_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 2
-    long_name: TOA mean Radiance over all pixels for vis06 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_vis06:
-    name: radiance_mean_clear_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 2
-    long_name: TOA mean Radiance over clear pixels for vis06 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_vis06:
-    name: radiance_mean_cloudy_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 2
-    long_name: TOA mean Radiance over cloudy pixels for vis06 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_vis08:
-    name: radiance_mean_all_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 3
-    long_name: TOA mean Radiance over all pixels for vis08 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_vis08:
-    name: radiance_mean_clear_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 3
-    long_name: TOA mean Radiance over clear pixels for vis08 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_vis08:
-    name: radiance_mean_cloudy_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 3
-    long_name: TOA mean Radiance over cloudy pixels for vis08 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_vis09:
-    name: radiance_mean_all_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 4
-    long_name: TOA mean Radiance over all pixels for vis09 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_vis09:
-    name: radiance_mean_clear_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 4
-    long_name: TOA mean Radiance over clear pixels for vis09 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_vis09:
-    name: radiance_mean_cloudy_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 4
-    long_name: TOA mean Radiance over cloudy pixels for vis09 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_nir13:
-    name: radiance_mean_all_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 5
-    long_name: TOA mean Radiance over all pixels for nir13 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_nir13:
-    name: radiance_mean_clear_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 5
-    long_name: TOA mean Radiance over clear pixels for nir13 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_nir13:
-    name: radiance_mean_cloudy_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 5
-    long_name: TOA mean Radiance over cloudy pixels for nir13 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_nir16:
-    name: radiance_mean_all_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 6
-    long_name: TOA mean Radiance over all pixels for nir16 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_nir16:
-    name: radiance_mean_clear_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 6
-    long_name: TOA mean Radiance over clear pixels for nir16 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_nir16:
-    name: radiance_mean_cloudy_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 6
-    long_name: TOA mean Radiance over cloudy pixels for nir16 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_nir22:
-    name: radiance_mean_all_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 7
-    long_name: TOA mean Radiance over all pixels for nir22 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_nir22:
-    name: radiance_mean_clear_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 7
-    long_name: TOA mean Radiance over clear pixels for nir22 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_nir22:
-    name: radiance_mean_cloudy_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 7
-    long_name: TOA mean Radiance over cloudy pixels for nir22 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir38:
-    name: radiance_mean_all_ir38
-    resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 8
-    long_name: TOA mean Radiance over all pixels for ir38 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir38:
-    name: radiance_mean_clear_ir38
-    resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 8
-    long_name: TOA mean Radiance over clear pixels for ir38 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir38:
-    name: radiance_mean_cloudy_ir38
-    resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 8
-    long_name: TOA mean Radiance over cloudy pixels for ir38 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_wv63:
-    name: radiance_mean_all_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 9
-    long_name: TOA mean Radiance over all pixels for wv63 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_wv63:
-    name: radiance_mean_clear_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 9
-    long_name: TOA mean Radiance over clear pixels for wv63 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_wv63:
-    name: radiance_mean_cloudy_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 9
-    long_name: TOA mean Radiance over cloudy pixels for wv63 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_wv73:
-    name: radiance_mean_all_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 10
-    long_name: TOA mean Radiance over all pixels for wv73 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_wv73:
-    name: radiance_mean_clear_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 10
-    long_name: TOA mean Radiance over clear pixels for wv73 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_wv73:
-    name: radiance_mean_cloudy_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 10
-    long_name: TOA mean Radiance over cloudy pixels for wv73 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir87:
-    name: radiance_mean_all_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 11
-    long_name: TOA mean Radiance over all pixels for ir87 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir87:
-    name: radiance_mean_clear_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 11
-    long_name: TOA mean Radiance over clear pixels for ir87 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir87:
-    name: radiance_mean_cloudy_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 11
-    long_name: TOA mean Radiance over cloudy pixels for ir87 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir97:
-    name: radiance_mean_all_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 12
-    long_name: TOA mean Radiance over all pixels for ir97 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir97:
-    name: radiance_mean_clear_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 12
-    long_name: TOA mean Radiance over clear pixels for ir97 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir97:
-    name: radiance_mean_cloudy_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 12
-    long_name: TOA mean Radiance over cloudy pixels for ir97 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir105:
-    name: radiance_mean_all_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 13
-    long_name: TOA mean Radiance over all pixels for ir105 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir105:
-    name: radiance_mean_clear_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 13
-    long_name: TOA mean Radiance over clear pixels for ir105 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir105:
-    name: radiance_mean_cloudy_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 13
-    long_name: TOA mean Radiance over cloudy pixels for ir105 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir123:
-    name: radiance_mean_all_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 14
-    long_name: TOA mean Radiance over all pixels for ir123 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir123:
-    name: radiance_mean_clear_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 14
-    long_name: TOA mean Radiance over clear pixels for ir123 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir123:
-    name: radiance_mean_cloudy_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 14
-    long_name: TOA mean Radiance over cloudy pixels for ir123 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_all_ir133:
-    name: radiance_mean_all_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 0
-    channel_id: 15
-    long_name: TOA mean Radiance over all pixels for ir133 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_clear_ir133:
-    name: radiance_mean_clear_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 1
-    channel_id: 15
-    long_name: TOA mean Radiance over clear pixels for ir133 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_mean_cloudy_ir133:
-    name: radiance_mean_cloudy_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: radiance_mean
-    category_id: 2
-    channel_id: 15
-    long_name: TOA mean Radiance over cloudy pixels for ir133 channel
-    standard_name: toa_radiance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_std:
-    name: radiance_std
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: radiance_std
-    long_name: TOA Radiance standard deviation over None pixels for None channel
-    standard_name: toa_radiance
-    cell_method: area:standard_deviation
-    coordinates:
-    - longitude
-    - latitude
-
-  radiance_quality:
-    name: radiance_quality
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: radiance_quality
-    long_name: TOA Radiance Quality
-    standard_name: radiance_quality
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_min:
-    name: reflectance_min
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_min
-    long_name: TOA min Reflectance
-    standard_name: toa_reflectance
-    cell_method: area:minimum
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_max:
-    name: reflectance_max
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_max
-    long_name: TOA max Reflectance
-    standard_name: toa_reflectance
-    cell_method: area:maximum
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean:
-    name: reflectance_mean
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    long_name: TOA mean Reflectance
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_vis04:
-    name: reflectance_mean_all_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 0
-    long_name: TOA mean Reflectance over all pixels for vis04 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_vis04:
-    name: reflectance_mean_clear_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 0
-    long_name: TOA mean Reflectance over clear pixels for vis04 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_vis04:
-    name: reflectance_mean_cloudy_vis04
-    resolution: 32000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 0
-    long_name: TOA mean Reflectance over cloudy pixels for vis04 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_vis05:
-    name: reflectance_mean_all_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 1
-    long_name: TOA mean Reflectance over all pixels for vis05 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_vis05:
-    name: reflectance_mean_clear_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 1
-    long_name: TOA mean Reflectance over clear pixels for vis05 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_vis05:
-    name: reflectance_mean_cloudy_vis05
-    resolution: 32000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 1
-    long_name: TOA mean Reflectance over cloudy pixels for vis05 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_vis06:
-    name: reflectance_mean_all_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 2
-    long_name: TOA mean Reflectance over all pixels for vis06 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_vis06:
-    name: reflectance_mean_clear_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 2
-    long_name: TOA mean Reflectance over clear pixels for vis06 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_vis06:
-    name: reflectance_mean_cloudy_vis06
-    resolution: 32000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 2
-    long_name: TOA mean Reflectance over cloudy pixels for vis06 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_vis08:
-    name: reflectance_mean_all_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 3
-    long_name: TOA mean Reflectance over all pixels for vis08 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_vis08:
-    name: reflectance_mean_clear_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 3
-    long_name: TOA mean Reflectance over clear pixels for vis08 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_vis08:
-    name: reflectance_mean_cloudy_vis08
-    resolution: 32000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 3
-    long_name: TOA mean Reflectance over cloudy pixels for vis08 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_vis09:
-    name: reflectance_mean_all_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 4
-    long_name: TOA mean Reflectance over all pixels for vis09 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_vis09:
-    name: reflectance_mean_clear_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 4
-    long_name: TOA mean Reflectance over clear pixels for vis09 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_vis09:
-    name: reflectance_mean_cloudy_vis09
-    resolution: 32000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 4
-    long_name: TOA mean Reflectance over cloudy pixels for vis09 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_nir13:
-    name: reflectance_mean_all_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 5
-    long_name: TOA mean Reflectance over all pixels for nir13 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_nir13:
-    name: reflectance_mean_clear_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 5
-    long_name: TOA mean Reflectance over clear pixels for nir13 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_nir13:
-    name: reflectance_mean_cloudy_nir13
-    resolution: 32000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 5
-    long_name: TOA mean Reflectance over cloudy pixels for nir13 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_nir16:
-    name: reflectance_mean_all_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 6
-    long_name: TOA mean Reflectance over all pixels for nir16 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_nir16:
-    name: reflectance_mean_clear_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 6
-    long_name: TOA mean Reflectance over clear pixels for nir16 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_nir16:
-    name: reflectance_mean_cloudy_nir16
-    resolution: 32000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 6
-    long_name: TOA mean Reflectance over cloudy pixels for nir16 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_all_nir22:
-    name: reflectance_mean_all_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 0
-    vis_channel_id: 7
-    long_name: TOA mean Reflectance over all pixels for nir22 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_clear_nir22:
-    name: reflectance_mean_clear_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 1
-    vis_channel_id: 7
-    long_name: TOA mean Reflectance over clear pixels for nir22 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_mean_cloudy_nir22:
-    name: reflectance_mean_cloudy_nir22
-    resolution: 32000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_asr
-    file_key: reflectance_mean
-    category_id: 2
-    vis_channel_id: 7
-    long_name: TOA mean Reflectance over cloudy pixels for nir22 channel
-    standard_name: toa_reflectance
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_std:
-    name: reflectance_std
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_std
-    long_name: TOA Reflectance standard deviation
-    standard_name: toa_reflectance
-    cell_method: area:standard_deviation
-    coordinates:
-    - longitude
-    - latitude
-
-  reflectance_quality:
-    name: reflectance_quality
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: reflectance_quality
-    long_name: TOA Reflectance Quality
-    standard_name: reflectance_quality
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_min:
-    name: bt_min
-    resolution: 32000
-    wavelength: []
-    file_type: nc_fci_asr
-    file_key: bt_min
-    long_name: TOA min Brightess Temperature
-    standard_name: toa_brightess_temperature
-    cell_method: area:minimum
-    coordinates:
-    - longitude
-    - latitude
-
   bt_max:
     name: bt_max
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_max
-    long_name: TOA max Brightess Temperature
+    long_name: TOA Brightess Temperature segment max
     standard_name: toa_brightess_temperature
     cell_method: area:maximum
     coordinates:
@@ -2542,372 +1320,23 @@ datasets:
   bt_mean:
     name: bt_mean
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_mean
-    long_name: TOA mean Brightess Temperature
+    long_name: TOA Brightess Temperature segment mean
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
     - longitude
     - latitude
 
-  bt_mean_all_ir38:
-    name: bt_mean_all_ir38
+  bt_min:
+    name: bt_min
     resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
     file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 0
-    long_name: TOA mean Brightess Temperature over all pixels for ir38 channel
+    file_key: bt_min
+    long_name: TOA Brightess Temperature segment min
     standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir38:
-    name: bt_mean_clear_ir38
-    resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 0
-    long_name: TOA mean Brightess Temperature over clear pixels for ir38 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir38:
-    name: bt_mean_cloudy_ir38
-    resolution: 32000
-    wavelength: [3.4, 3.8, 4.2]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 0
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir38 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_wv63:
-    name: bt_mean_all_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 1
-    long_name: TOA mean Brightess Temperature over all pixels for wv63 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_wv63:
-    name: bt_mean_clear_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 1
-    long_name: TOA mean Brightess Temperature over clear pixels for wv63 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_wv63:
-    name: bt_mean_cloudy_wv63
-    resolution: 32000
-    wavelength: [5.3, 6.3, 7.3]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 1
-    long_name: TOA mean Brightess Temperature over cloudy pixels for wv63 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_wv73:
-    name: bt_mean_all_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 2
-    long_name: TOA mean Brightess Temperature over all pixels for wv73 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_wv73:
-    name: bt_mean_clear_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 2
-    long_name: TOA mean Brightess Temperature over clear pixels for wv73 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_wv73:
-    name: bt_mean_cloudy_wv73
-    resolution: 32000
-    wavelength: [6.85, 7.35, 7.85]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 2
-    long_name: TOA mean Brightess Temperature over cloudy pixels for wv73 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_ir87:
-    name: bt_mean_all_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 3
-    long_name: TOA mean Brightess Temperature over all pixels for ir87 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir87:
-    name: bt_mean_clear_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 3
-    long_name: TOA mean Brightess Temperature over clear pixels for ir87 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir87:
-    name: bt_mean_cloudy_ir87
-    resolution: 32000
-    wavelength: [8.3, 8.7, 9.1]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 3
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir87 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_ir97:
-    name: bt_mean_all_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 4
-    long_name: TOA mean Brightess Temperature over all pixels for ir97 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir97:
-    name: bt_mean_clear_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 4
-    long_name: TOA mean Brightess Temperature over clear pixels for ir97 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir97:
-    name: bt_mean_cloudy_ir97
-    resolution: 32000
-    wavelength: [9.36, 9.66, 9.96]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 4
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir97 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_ir105:
-    name: bt_mean_all_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 5
-    long_name: TOA mean Brightess Temperature over all pixels for ir105 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir105:
-    name: bt_mean_clear_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 5
-    long_name: TOA mean Brightess Temperature over clear pixels for ir105 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir105:
-    name: bt_mean_cloudy_ir105
-    resolution: 32000
-    wavelength: [9.8, 10.5, 11.2]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 5
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir105 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_ir123:
-    name: bt_mean_all_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 6
-    long_name: TOA mean Brightess Temperature over all pixels for ir123 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir123:
-    name: bt_mean_clear_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 6
-    long_name: TOA mean Brightess Temperature over clear pixels for ir123 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir123:
-    name: bt_mean_cloudy_ir123
-    resolution: 32000
-    wavelength: [11.8, 12.3, 12.8]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 6
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir123 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_all_ir133:
-    name: bt_mean_all_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 0
-    ir_channel_id: 7
-    long_name: TOA mean Brightess Temperature over all pixels for ir133 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_clear_ir133:
-    name: bt_mean_clear_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 1
-    ir_channel_id: 7
-    long_name: TOA mean Brightess Temperature over clear pixels for ir133 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
-    coordinates:
-    - longitude
-    - latitude
-
-  bt_mean_cloudy_ir133:
-    name: bt_mean_cloudy_ir133
-    resolution: 32000
-    wavelength: [12.7, 13.3, 13.9]
-    file_type: nc_fci_asr
-    file_key: bt_mean
-    category_id: 2
-    ir_channel_id: 7
-    long_name: TOA mean Brightess Temperature over cloudy pixels for ir133 channel
-    standard_name: toa_brightess_temperature
-    cell_method: area:mean
+    cell_method: area:minimum
     coordinates:
     - longitude
     - latitude
@@ -2915,7 +1344,6 @@ datasets:
   bt_std:
     name: bt_std
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: bt_std
     long_name: TOA Brightess Temperature standard deviation
@@ -2925,24 +1353,135 @@ datasets:
     - longitude
     - latitude
 
-  bt_quality:
-    name: bt_quality
+  radiance_max:
+    name: radiance_max
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
-    file_key: bt_quality
-    long_name: TOA Brightess Temperature Quality
+    file_key: radiance_max
+    long_name: TOA max Radiance
+    standard_name: toa_radiance
+    cell_method: area:maximum
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_min:
+    name: radiance_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_min
+    long_name: TOA min Radiance
+    standard_name: toa_radiance
+    cell_method: area:minimum
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_mean:
+    name: radiance_mean
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_mean
+    long_name: TOA mean Radiance
+    standard_name: toa_radiance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  radiance_std:
+    name: radiance_std
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: radiance_std
+    long_name: TOA Outgoing Radiance standard deviation
+    standard_name: toa_outgoing_radiance
+    cell_method: area:standard_deviation
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_max:
+    name: reflectance_max
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_max
+    long_name: TOA Bidirectional Reflectance segment max
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:maximum
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean:
+    name: reflectance_mean
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: TOA Bidirectional Reflectance segment mean
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_min:
+    name: reflectance_min
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_min
+    long_name: TOA Bidirectional Reflectance segment min
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:minimum
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_std:
+    name: reflectance_std
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: reflectance_std
+    long_name: TOA Bidirectional Reflectance standard deviation
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:standard_deviation
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt:
+    name: quality_bt
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence
     standard_name: brightness_temperature_quality
     coordinates:
     - longitude
     - latitude
 
-  pixel_percentage:
-    name: pixel_percentage
+  quality_reflectance:
+    name: quality_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: pixel_percentage
-    standard_name: pixels_used_fraction
+    file_key: quality_reflectance
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_radiance:
+    name: quality_radiance
+    resolution: 32000
+    wavelength: []
+    file_type: nc_fci_asr
+    file_key: quality_radiance
+    fill_value: -1
+    long_name: TOA Radiance % confidence
+    standard_name: radiance_quality
     coordinates:
     - longitude
     - latitude
@@ -2963,6 +1502,1556 @@ datasets:
     file_type: nc_fci_asr
     file_key: water_pixel_percent
     standard_name: water_area_fraction
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage:
+    name: pixel_percentage
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    standard_name: pixels_used_fraction
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis04:
+    name: reflectance_mean_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 0
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis04:
+    name: reflectance_mean_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 0
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis04:
+    name: reflectance_mean_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 0
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis05:
+    name: reflectance_mean_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 1
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis05:
+    name: reflectance_mean_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 1
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis05:
+    name: reflectance_mean_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 1
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis06:
+    name: reflectance_mean_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 2
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis06:
+    name: reflectance_mean_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 2
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis06:
+    name: reflectance_mean_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 2
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis08:
+    name: reflectance_mean_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 3
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis08:
+    name: reflectance_mean_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 3
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis08:
+    name: reflectance_mean_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 3
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_vis09:
+    name: reflectance_mean_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 4
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_vis09:
+    name: reflectance_mean_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 4
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_vis09:
+    name: reflectance_mean_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 4
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir13:
+    name: reflectance_mean_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 5
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir13:
+    name: reflectance_mean_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 5
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir13:
+    name: reflectance_mean_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 5
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir16:
+    name: reflectance_mean_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 6
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir16:
+    name: reflectance_mean_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 6
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir16:
+    name: reflectance_mean_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 6
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_all_nir22:
+    name: reflectance_mean_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 7
+    category_id: 0
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (all pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_clear_nir22:
+    name: reflectance_mean_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 7
+    category_id: 1
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (clear pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_mean_cloudy_nir22:
+    name: reflectance_mean_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    vis_channel_id: 7
+    category_id: 2
+    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (cloudy pixels)
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_min:
+    name: reflectance_min
+    resolution: 32000
+    wavelength: []
+    file_type: nc_fci_asr
+    file_key: reflectance_min
+    long_name: TOA Bidirectional Reflectance segment min
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:minimum
+    coordinates:
+    - longitude
+    - latitude
+
+  reflectance_std:
+    name: reflectance_std
+    resolution: 32000
+    wavelength: []
+    file_type: nc_fci_asr
+    file_key: reflectance_std
+    long_name: TOA Bidirectional Reflectance standard deviation
+    standard_name: toa_bidirectional_reflectance
+    cell_method: area:standard_deviation
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance:
+    name: quality_reflectance
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_max:
+    name: bt_max
+    resolution: 32000
+    wavelength: []
+    file_type: nc_fci_asr
+    file_key: bt_max
+    long_name: TOA Brightess Temperature segment max
+    standard_name: toa_brightess_temperature
+    cell_method: area:maximum
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean:
+    name: bt_mean
+    resolution: 32000
+    wavelength: []
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: TOA Brightess Temperature segment mean
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir38:
+    name: bt_mean_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 0
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 3.8um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir38:
+    name: bt_mean_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 0
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 3.8um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir38:
+    name: bt_mean_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 0
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 3.8um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_wv63:
+    name: bt_mean_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 1
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 6.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_wv63:
+    name: bt_mean_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 1
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 6.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_wv63:
+    name: bt_mean_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 1
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 6.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_wv73:
+    name: bt_mean_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 2
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 7.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_wv73:
+    name: bt_mean_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 2
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 7.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_wv73:
+    name: bt_mean_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 2
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 7.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir87:
+    name: bt_mean_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 3
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 8.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir87:
+    name: bt_mean_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 3
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 8.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir87:
+    name: bt_mean_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 3
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 8.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir97:
+    name: bt_mean_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 4
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 9.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir97:
+    name: bt_mean_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 4
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 9.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir97:
+    name: bt_mean_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 4
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 9.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir105:
+    name: bt_mean_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 5
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 10.5um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir105:
+    name: bt_mean_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 5
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 10.5um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir105:
+    name: bt_mean_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 5
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 10.5um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir123:
+    name: bt_mean_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 6
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 12.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir123:
+    name: bt_mean_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 6
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 12.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir123:
+    name: bt_mean_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 6
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 12.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_all_ir133:
+    name: bt_mean_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 7
+    category_id: 0
+    long_name: TOA Brightess Temperature segment mean at 13.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_clear_ir133:
+    name: bt_mean_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 7
+    category_id: 1
+    long_name: TOA Brightess Temperature segment mean at 13.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+  bt_mean_cloudy_ir133:
+    name: bt_mean_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    ir_channel_id: 7
+    category_id: 2
+    long_name: TOA Brightess Temperature segment mean at 13.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    cell_method: area:mean
+    coordinates:
+    - longitude
+    - latitude
+
+    quality_reflectance_all_vis04:
+    name: quality_reflectance_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 0
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis04:
+    name: quality_reflectance_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 0
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis04:
+    name: quality_reflectance_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 0
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis05:
+    name: quality_reflectance_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 1
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis05:
+    name: quality_reflectance_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 1
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis05:
+    name: quality_reflectance_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 1
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis06:
+    name: quality_reflectance_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 2
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis06:
+    name: quality_reflectance_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 2
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis06:
+    name: quality_reflectance_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 2
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis08:
+    name: quality_reflectance_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 3
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis08:
+    name: quality_reflectance_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 3
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis08:
+    name: quality_reflectance_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 3
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_vis09:
+    name: quality_reflectance_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 4
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_vis09:
+    name: quality_reflectance_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 4
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_vis09:
+    name: quality_reflectance_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 4
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir13:
+    name: quality_reflectance_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 5
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir13:
+    name: quality_reflectance_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 5
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir13:
+    name: quality_reflectance_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 5
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir16:
+    name: quality_reflectance_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 6
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir16:
+    name: quality_reflectance_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 6
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir16:
+    name: quality_reflectance_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 6
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_all_nir22:
+    name: quality_reflectance_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 7
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (all pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_clear_nir22:
+    name: quality_reflectance_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 7
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (clear pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_reflectance_cloudy_nir22:
+    name: quality_reflectance_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    vis_channel_id: 7
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (cloudy pixels)
+    standard_name: reflectance_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir38:
+    name: quality_bt_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 0
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 3.8um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir38:
+    name: quality_bt_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 0
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 3.8um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir38:
+    name: quality_bt_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 0
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 3.8um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_wv63:
+    name: quality_bt_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 1
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 6.3um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_wv63:
+    name: quality_bt_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 1
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 6.3um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_wv63:
+    name: quality_bt_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 1
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 6.3um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_wv73:
+    name: quality_bt_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 2
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 7.3um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_wv73:
+    name: quality_bt_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 2
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 7.3um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_wv73:
+    name: quality_bt_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 2
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 7.3um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir87:
+    name: quality_bt_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 3
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 8.7um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir87:
+    name: quality_bt_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 3
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 8.7um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir87:
+    name: quality_bt_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 3
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 8.7um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir97:
+    name: quality_bt_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 4
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 9.7um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir97:
+    name: quality_bt_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 4
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 9.7um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir97:
+    name: quality_bt_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 4
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 9.7um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir105:
+    name: quality_bt_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 5
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 10.5um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir105:
+    name: quality_bt_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 5
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 10.5um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir105:
+    name: quality_bt_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 5
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 10.5um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir123:
+    name: quality_bt_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 6
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 12.3um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir123:
+    name: quality_bt_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 6
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 12.3um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir123:
+    name: quality_bt_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 6
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 12.3um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_all_ir133:
+    name: quality_bt_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 7
+    category_id: 0
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 13.3um (all pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_clear_ir133:
+    name: quality_bt_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 7
+    category_id: 1
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 13.3um (clear pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  quality_bt_cloudy_ir133:
+    name: quality_bt_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    ir_channel_id: 7
+    category_id: 2
+    fill_value: -1
+    long_name: TOA Brightess Temperature % confidence at 13.3um (cloudy pixels)
+    standard_name: brightness_temperature_quality
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_all:
+    name: pixel_percentage_all
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: Percentage of FoR pixels used (all pixels)
+    standard_name: pixels_used_fraction
+    category_id: 0
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: Percentage of FoR pixels used (clear pixels)
+    standard_name: pixels_used_fraction
+    category_id: 1
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_cloudy:
+    name: pixel_percentage_cloudy
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: Percentage of FoR pixels used (cloudy pixels)
+    standard_name: pixels_used_fraction
+    category_id: 2
     coordinates:
     - longitude
     - latitude
