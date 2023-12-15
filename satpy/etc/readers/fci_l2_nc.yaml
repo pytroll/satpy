@@ -697,7 +697,7 @@ datasets:
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_stability_lifted_index
+    standard_name: atmosphere_stability_k_index
 
   lifted_index:
     name: lifted_index
@@ -707,7 +707,7 @@ datasets:
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_stability_k_index
+    standard_name: atmosphere_stability_lifted_index
 
   prec_water_high:
     name: prec_water_high
@@ -754,9 +754,11 @@ datasets:
     resolution: 6000
     file_type: nc_fci_gii
     file_key: percent_cloud_free
+    units: '%'
     coordinates:
     - longitude
     - latitude
+    long_name: Percentage of Cloud Free Pixels Processed in FoR
     standard_name: cloud_free_area_fraction
 
   number_of_iterations_gii:
@@ -1255,7 +1257,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 21
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No dust detected','Dust detected']
     standard_name: status_flag
 
   cloud_test_ash:
@@ -1265,7 +1267,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 22
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No ash detected','Ash detected']
     standard_name: status_flag
 
   cloud_test_dust_ash:
@@ -1275,7 +1277,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 23
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Dust detected','Ash detected']
     standard_name: status_flag
 
   cloud_test_cmrt6:
