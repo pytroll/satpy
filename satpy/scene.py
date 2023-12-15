@@ -25,7 +25,6 @@ from typing import Callable
 
 import numpy as np
 import xarray as xr
-from holoviews import Overlay
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
@@ -1109,6 +1108,8 @@ class Scene:
                 **defaults)
 
         import hvplot.xarray as hvplot_xarray  # noqa
+        from holoviews import Overlay
+
         plot = Overlay()
         xarray_ds = self.to_xarray_dataset(datasets)
 
