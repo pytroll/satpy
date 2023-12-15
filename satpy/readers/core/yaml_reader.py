@@ -1385,7 +1385,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             # FIXME: handle fh_kwargs
             yield filetype_cls(filename, filename_info, filetype_info,
                                preload=True, ref_fh=fh,
-                               rc_cache=self._get_cache_filename(fh))
+                               rc_cache=self._get_cache_filename(
+                                   filename, filename_info, fh))
 
     def _predict_filenames(self, filetype_info, fh):
         """Predict what filenames or glob patterns we should expect.
@@ -1429,12 +1430,12 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_filename = os.fspath(basedir / new_filename)
         return (new_filename, new_info)
 
-    def _get_cache_filename(self, fh):
+    def _get_cache_filename(self, filename, filename_info, fh):
         """Get filename for inter-rc caching."""
         dirname = self._get_cache_dir(fh)
-        pat = self._select_pattern(fh.filename)
+        pat = self._select_pattern(filename)
         p = Parser(pat)
-        new_info = fh.filename_info.copy()
+        new_info = filename_info.copy()
         for tm in fh.filetype_info["time_tags"]:
             new_info[tm] = datetime.datetime.min
         for ct in fh.filetype_info["variable_tags"]:

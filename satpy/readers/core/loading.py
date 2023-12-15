@@ -195,7 +195,10 @@ def create_preloadable_cache(reader_name, filenames):
     for (nm, reader_inst) in reader_instances.items():
         for (tp, handlers) in reader_inst.file_handlers.items():
             for handler in handlers:
-                filename = reader_inst._get_cache_filename(handler)
+                filename = reader_inst._get_cache_filename(
+                        handler.filename,
+                        handler.filename_info,
+                        handler)
                 p = pathlib.Path(filename)
                 p.parent.mkdir(exist_ok=True, parents=True)
                 handler.store_cache(filename)

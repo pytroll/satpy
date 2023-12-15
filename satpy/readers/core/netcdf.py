@@ -476,29 +476,36 @@ class Preloadable:
 
     def _preload_listed_variables(self, listed_variables):
         variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        with open(self.rc_cache, "rb") as fp:
+            self.file_content.update(pickle.load(fp))  # nosec
         for raw_name in listed_variables:
             for subst_name in self._get_required_variable_names(
                     [raw_name], variable_name_replacements):
                 if self._can_get_from_other_segment(raw_name):
                     self.file_content[subst_name] = self.ref_fh[subst_name]
-                    self._copy_variable_info(subst_name)
-                elif self._can_get_from_other_rc(raw_name):
-                    try:
-                        self.file_content[subst_name] = self._get_from_other_rc(subst_name)
-                    except OSError as err:
-                        raise OSError("Cannot read repeat cycle cache. "
-                                      "Generate using "
-                                      "satpy.utils.create_preloadable_cache "
-                                      "first. ") from err
-                else:
+                elif not self._can_get_from_other_rc(raw_name):
                     self._collect_variable_delayed(subst_name)
-                # FIXME: collect attributes
 
     def _can_get_from_other_segment(self, itm):
         return "segment" in self.filetype_info["required_netcdf_variables"][itm]
 
     def _can_get_from_other_rc(self, itm):
-        return "rc" in self.filetype_info["required_netcdf_variables"][itm]
+        # it's always safe to store variable attributes, shapes, dtype, dimensions
+        # between repeat cycles
+        for meta in ("/attr/", "/shape", "/dtype", "/dimension/", "/dimensions"):
+            if meta in itm:
+                return True
+        # need an inverted mapping so I can tell which variables I can store
+        listed_variables = self.filetype_info.get("required_netcdf_variables")
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        invmap = {}
+        for raw_name in listed_variables:
+            for subst_name in self._get_required_variable_names([raw_name],
+                                                                variable_name_replacements):
+                invmap[subst_name] = raw_name
+        if "rc" in self.filetype_info["required_netcdf_variables"][invmap.get(itm, itm)]:
+            return True
+        return False
 
     def _get_from_other_rc(self, itm):
         cache_fn = self.rc_cache
@@ -509,34 +516,19 @@ class Preloadable:
             return pickle.load(fp)[itm]  # nosec
 
     def _collect_variable_delayed(self, subst_name):
-        other = self.ref_fh[subst_name]
+        md = self.ref_fh[subst_name]  # some metadata from reference segment
         dade = dask.delayed(_get_delayed_value_from_nc)(self.filename, subst_name)
-        array = da.from_delayed(dade, shape=other.shape, dtype=other.dtype)
+        array = da.from_delayed(
+                dade,
+                shape=self[subst_name + "/shape"],  # not safe from reference segment!
+                dtype=md.dtype)
 
-        # FIXME: can we safely reuse dimensions, attrs, and name?
-        # NO! Vertical extent varies between segments.
         var_obj = xr.DataArray(
                 array,
-                dims=other.dims,
-                attrs=other.attrs,
-                name=other.name)
-#        self.file_content[subst_name] = var_obj
-        self._collect_variable_info(subst_name, var_obj)
-
-    def _collect_variable_info(self, var_name, var_obj):
-        if self.preload:
-            self.file_content[var_name] = var_obj
-            self._copy_variable_info(var_name)
-        else:
-            super()._collect_variable_info(var_name, var_obj)
-
-    def _copy_variable_info(self, var_name):
-        # Assume attributes and info can be copied from first segment
-        # FIXME: shape is NOT valid to copy on some variables, but
-        # could come from an older repeat cycle
-        to_copy = [k for k in self.ref_fh.file_content if var_name in k and var_name != k]
-        for var in to_copy:
-            self.file_content[var] = self.ref_fh[var]
+                dims=md.dims,  # dimension /names/ should be safe
+                attrs=md.attrs,  # FIXME: is this safe?  More involved to gather otherwise
+                name=md.name)
+        self.file_content[subst_name] = var_obj
 
     def _get_file_handle(self):
         if self.preload:
@@ -547,18 +539,14 @@ class Preloadable:
         """Store RC-cachable data to cache."""
         if self.preload:
             raise ValueError("Cannot store cache with pre-loaded handler")
-        listed_variables = self.filetype_info.get("required_netcdf_variables")
-        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
         to_store = {}
-        for raw_name in listed_variables:
-            for subst_name in self._get_required_variable_names(
-                    [raw_name], variable_name_replacements):
-                if self._can_get_from_other_rc(raw_name):
-                    try:
-                        obj = self[subst_name].compute()
-                    except AttributeError:  # not a dask array
-                        obj = self[subst_name]
-                    to_store[subst_name] = obj
+        for key in self.file_content.keys():
+            if self._can_get_from_other_rc(key):
+                try:
+                    to_store[key] = self[key].compute()
+                except AttributeError:  # not a dask array
+                    to_store[key] = self[key]
+
         filename = filename or self.rc_cache
         LOG.info(f"Storing cache to {filename:s}")
         with open(filename, "wb") as fp:
@@ -579,4 +567,4 @@ def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1):
     else:
         raise TimeoutError("File failed to materialise")
     nc = netCDF4.Dataset(fns[0], "r")
-    return da.from_array(nc[var])
+    return nc[var][:]
