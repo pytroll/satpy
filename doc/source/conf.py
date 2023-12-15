@@ -70,7 +70,7 @@ MOCK_MODULES = ["h5py"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()  # type: ignore
 
-autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "imageio", "mipp", "netCDF4",
+autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
                         "pyorbital", "pyspectral", "rasterio", "trollimage",
                         "zarr"]
