@@ -1014,7 +1014,7 @@ class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
     def __init__(self, name, transition_min=258.15, transition_max=298.15,  # noqa: D417
-                 transition_gamma=3.0, **kwargs):
+                 transition_gamma=3.0, invert_alpha=False, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1023,11 +1023,14 @@ class CloudCompositor(GenericCompositor):
             transition_max (float): Values above this are
                                     cloud free -> transparent
             transition_gamma (float): Gamma correction to apply at the end
+            invert_alpha (bool): Invert the alpha channel to make low data values transparent
+                                 and high data values opaque.
 
         """
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
+        self.invert_alpha = invert_alpha
         super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -1049,9 +1052,176 @@ class CloudCompositor(GenericCompositor):
         alpha = alpha.where(data <= tr_max, 0.)
         alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
 
+        if self.invert_alpha:
+            alpha.data = 1.0 - alpha.data
+
         # gamma adjustment
         alpha **= gamma
         res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
+        return res
+
+
+class HighCloudCompositor(CloudCompositor):
+    """Detect high clouds based on latitude-dependent thresholding and use it as a mask for compositing.
+
+    This compositor aims at identifying high clouds and assigning them a transparency based on the brightness
+    temperature (cloud opacity). In contrast to the `CloudCompositor`, the brightness temperature threshold at
+    the lower end, used to identify high opaque clouds, is made a function of the latitude in order to have
+    tropopause level clouds appear opaque at both high and low latitudes. This follows the Geocolor
+    implementation of high clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
+    with some adjustments to the thresholds based on recent developments and feedback from CIRA.
+
+    The two brightness temperature thresholds in `transition_min` are used together with the corresponding
+    latitude limits in `latitude_min` to compute a modified version of `transition_min` that is later used
+    when calling `CloudCompositor`. The modified version of `transition_min` will be an array with the same
+    shape as the input projectable dataset, where the actual values of threshold_min are a function of the
+    dataset `latitude`:
+
+      - transition_min = transition_min[0] where abs(latitude) < latitude_min(0)
+      - transition_min = transition_min[1] where abs(latitude) > latitude_min(0)
+      - transition_min = linear interpolation between transition_min[0] and transition_min[1] as a function
+                         of where abs(latitude).
+    """
+
+    def __init__(self, name, transition_min_limits=(210., 230.), latitude_min_limits=(30., 60.),  # noqa: D417
+                 transition_max=300, transition_gamma=1.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transition_min_limits (tuple): Brightness temperature values used to identify opaque white
+                                           clouds at different latitudes
+            transition_max (float): Brightness temperatures above this value are not considered to
+                                    be high clouds -> transparent
+            latitude_min_limits (tuple): Latitude values defining the intervals for computing latitude-dependent
+                                         `transition_min` values from `transition_min_limits`.
+            transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
+                                      temperature range (`transition_min` to `transition_max`).
+
+        """
+        if len(transition_min_limits) != 2:
+            raise ValueError(f"Expected 2 `transition_min_limits` values, got {len(transition_min_limits)}")
+        if len(latitude_min_limits) != 2:
+            raise ValueError(f"Expected 2 `latitude_min_limits` values, got {len(latitude_min_limits)}")
+        if type(transition_max) in [list, tuple]:
+            raise ValueError(f"Expected `transition_max` to be of type float, is of type {type(transition_max)}")
+
+        self.transition_min_limits = transition_min_limits
+        self.latitude_min_limits = latitude_min_limits
+        super().__init__(name, transition_min=None, transition_max=transition_max,
+                         transition_gamma=transition_gamma, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        """Generate the composite.
+
+        `projectables` is expected to be a list or tuple with a single element:
+          - index 0: Brightness temperature of a thermal infrared window channel (e.g. 10.5 microns).
+        """
+        if len(projectables) != 1:
+            raise ValueError(f"Expected 1 dataset, got {len(projectables)}")
+
+        data = projectables[0]
+        _, lats = data.attrs["area"].get_lonlats(chunks=data.chunks, dtype=data.dtype)
+        lats = np.abs(lats)
+
+        slope = (self.transition_min_limits[1] - self.transition_min_limits[0]) / \
+                (self.latitude_min_limits[1] - self.latitude_min_limits[0])
+        offset = self.transition_min_limits[0] - slope * self.latitude_min_limits[0]
+
+        # Compute pixel-level latitude dependent transition_min values and pass to parent CloudCompositor class
+        transition_min = xr.DataArray(name="transition_min", coords=data.coords, dims=data.dims).astype(data.dtype)
+        transition_min = transition_min.where(lats >= self.latitude_min_limits[0], self.transition_min_limits[0])
+        transition_min = transition_min.where(lats <= self.latitude_min_limits[1], self.transition_min_limits[1])
+        transition_min = transition_min.where((lats < self.latitude_min_limits[0]) |
+                                              (lats > self.latitude_min_limits[1]), slope * lats + offset)
+        self.transition_min = transition_min
+
+        return super().__call__(projectables, **kwargs)
+
+
+class LowCloudCompositor(CloudCompositor):
+    """Detect low-level clouds based on thresholding and use it as a mask for compositing during night-time.
+
+    This compositor computes the brightness temperature difference between a window channel (e.g. 10.5 micron)
+    and the near-infrared channel e.g. (3.8 micron) and uses this brightness temperature difference, `BTD`, to
+    create a partially transparent mask for compositing.
+
+    Pixels with `BTD` values below a given threshold  will be transparent, whereas pixels with `BTD` values
+    above another threshold will be opaque. The transparency of all other `BTD` values will be a linear
+    function of the `BTD` value itself. Two sets of thresholds are used, one set for land surface types
+    (`range_land`) and another one for water surface types (`range_water`), respectively. Hence,
+    this compositor requires a land-water-mask as a prerequisite input. This follows the GeoColor
+    implementation of night-time low-level clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
+    with some adjustments to the thresholds based on recent developments and feedback from CIRA.
+
+    Please note that the spectral test and thus the output of the compositor (using the expected input data) is
+    only applicable during night-time.
+    """
+
+    def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
+                 range_land=(0.0, 4.0),
+                 range_water=(0.0, 4.0),
+                 transition_gamma=1.0,
+                 invert_alpha=True, **kwargs):
+        """Init info.
+
+        Collect custom configuration values.
+
+        Args:
+            values_land (list): List of values used to identify land surface pixels in the land-water-mask.
+            values_water (list): List of values used to identify water surface pixels in the land-water-mask.
+            range_land (tuple): Threshold values used for masking low-level clouds from the brightness temperature
+                                difference over land surface types.
+            range_water (tuple): Threshold values used for masking low-level clouds from the brightness temperature
+                                 difference over water.
+            transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
+                                      temperature difference range.
+            invert_alpha (bool): Invert the alpha channel to make low data values transparent
+                                 and high data values opaque.
+        """
+        if len(range_land) != 2:
+            raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
+        if len(range_water) != 2:
+            raise ValueError(f"Expected 2 `range_water` values, got {len(range_water)}")
+
+        self.values_land = values_land if type(values_land) in [list, tuple] else [values_land]
+        self.values_water = values_water if type(values_water) in [list, tuple] else [values_water]
+        self.range_land = range_land
+        self.range_water = range_water
+        super().__init__(name, transition_min=None, transition_max=None,
+                         transition_gamma=transition_gamma, invert_alpha=invert_alpha, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        """Generate the composite.
+
+        `projectables` is expected to be a list or tuple with the following three elements:
+          - index 0: Brightness temperature difference between a window channel (e.g. 10.5 micron) and a
+                     near-infrared channel e.g. (3.8 micron).
+          - index 1. Brightness temperature of the window channel (used to filter out noise-induced false alarms).
+          - index 2: Land-Sea-Mask.
+        """
+        if len(projectables) != 3:
+            raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
+
+        projectables = self.match_data_arrays(projectables)
+        btd, bt_win, lsm = projectables
+        lsm = lsm.squeeze(drop=True)
+        lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
+
+        # Call CloudCompositor for land surface pixels
+        self.transition_min, self.transition_max = self.range_land
+        res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
+
+        # Call CloudCompositor for /water surface pixels
+        self.transition_min, self.transition_max = self.range_water
+        res_water = super().__call__([btd.where(lsm.isin(self.values_water))], **kwargs)
+
+        # Compine resutls for land and water surface pixels
+        res = res.where(lsm.isin(self.values_land), res_water)
+
+        # Make pixels with cold window channel brightness temperatures transparent to avoid spurious false
+        # alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
+        res.loc["A"] = res.sel(bands="A").where(bt_win >= 230, 0.0)
+
         return res
 
 

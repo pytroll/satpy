@@ -948,6 +948,120 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
         np.testing.assert_allclose(res, exp)
 
 
+class TestHighCloudCompositor:
+    """Test HighCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        from pyresample.geometry import create_area_def
+        area = create_area_def(area_id="test", projection={"proj": "latlong"},
+                               center=(0, 45), width=3, height=3, resolution=35)
+        self.dtype = np.float32
+        self.data = xr.DataArray(
+            da.from_array(np.array([[200, 250, 300], [200, 250, 300], [200, 250, 300]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]},
+            attrs={"area": area}
+        )
+
+    def test_high_cloud_compositor(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import HighCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = HighCloudCompositor(name="test")
+            res = comp([self.data])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expexted_alpha = np.array([[1.0, 0.7142857, 0.0], [1.0, 0.625, 0.0], [1.0, 0.5555555, 0.0]])
+        expected = np.stack([self.data, expexted_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+    def test_high_cloud_compositor_multiple_calls(self):
+        """Test that the modified init variables are reset properly when calling the compositor multiple times."""
+        from satpy.composites import HighCloudCompositor
+        comp = HighCloudCompositor(name="test")
+        res = comp([self.data])
+        res2 = comp([self.data])
+        np.testing.assert_equal(res.values, res2.values)
+
+    def test_high_cloud_compositor_dtype(self):
+        """Test that the datatype is not altered by the compositor."""
+        from satpy.composites import HighCloudCompositor
+        comp = HighCloudCompositor(name="test")
+        res = comp([self.data])
+        assert res.data.dtype == self.dtype
+
+    def test_high_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import HighCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `transition_min_limits` values, got 1"):
+            _ = HighCloudCompositor("test", transition_min_limits=(210., ))
+
+        with pytest.raises(ValueError, match="Expected 2 `latitude_min_limits` values, got 3"):
+            _ = HighCloudCompositor("test", latitude_min_limits=(20., 40., 60.))
+
+        with pytest.raises(ValueError, match="Expected `transition_max` to be of type float, "
+                                             "is of type <class 'tuple'>"):
+            _ = HighCloudCompositor("test", transition_max=(250., 300.))
+
+        comp = HighCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 1 dataset, got 2"):
+            _ = comp([self.data, self.data])
+
+
+class TestLowCloudCompositor:
+    """Test LowCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        self.dtype = np.float32
+        self.btd = xr.DataArray(
+            da.from_array(np.array([[0.0, 1.0, 10.0], [0.0, 1.0, 10.0], [0.0, 1.0, 10.0]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+        self.bt_win = xr.DataArray(
+            da.from_array(np.array([[250, 250, 250], [250, 250, 250], [150, 150, 150]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+        self.lsm = xr.DataArray(
+            da.from_array(np.array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+
+    def test_low_cloud_compositor(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import LowCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = LowCloudCompositor(name="test")
+            res = comp([self.btd, self.bt_win, self.lsm])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expexted_alpha])
+        np.testing.assert_equal(res.values, expected)
+
+    def test_low_cloud_compositor_dtype(self):
+        """Test that the datatype is not altered by the compositor."""
+        from satpy.composites import LowCloudCompositor
+        comp = LowCloudCompositor(name="test")
+        res = comp([self.btd, self.bt_win, self.lsm])
+        assert res.data.dtype == self.dtype
+
+    def test_low_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import LowCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `range_land` values, got 1"):
+            _ = LowCloudCompositor("test", range_land=(2.0, ))
+
+        with pytest.raises(ValueError, match="Expected 2 `range_water` values, got 1"):
+            _ = LowCloudCompositor("test", range_water=(2.0,))
+
+        comp = LowCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 3 datasets, got 2"):
+            _ = comp([self.btd, self.lsm])
+
+
 class TestSingleBandCompositor(unittest.TestCase):
     """Test the single-band compositor."""
 
