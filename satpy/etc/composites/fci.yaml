@@ -47,15 +47,6 @@ composites:
         modifiers: [ sunz_corrected ]
     standard_name: toa_bidirectional_reflectance
 
-  binary_cloud_mask:
-    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
-    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
-    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
-    prerequisites:
-      - name: 'cloud_state'
-    lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
-    standard_name: binary_cloud_mask
-
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     description: >
@@ -180,3 +171,34 @@ composites:
    prerequisites:
      - geo_color_high_clouds
      - geo_color_background_with_low_clouds
+
+  ir_sandwich:
+    compositor: !!python/name:satpy.composites.SandwichCompositor
+    standard_name: ir_sandwich
+    prerequisites:
+      - name: 'vis_06'
+        modifiers: [ sunz_corrected ]
+      - name: colorized_ir_clouds
+
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: 'ir_105'
+    standard_name: colorized_ir_clouds
+
+  ir_sandwich_with_night_colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 73
+    lim_high: 82
+    prerequisites:
+      - ir_sandwich
+      - colorized_ir_clouds
+  binary_cloud_mask:
+    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
+    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
+    prerequisites:
+      - name: 'cloud_state'
+    lut: [ .nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan ]
+    standard_name: binary_cloud_mask
