@@ -73,15 +73,16 @@ class TestNdviHybridGreenCompositor:
 
     def setup_method(self):
         """Initialize channels."""
+        coord_val = [1.0, 2.0]
         self.c01 = xr.DataArray(
             da.from_array(np.array([[0.25, 0.30], [0.20, 0.30]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), attrs={"name": "C02"})
+            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C02"})
         self.c02 = xr.DataArray(
             da.from_array(np.array([[0.25, 0.30], [0.25, 0.35]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), attrs={"name": "C03"})
+            dims=("y", "x"), coords=[coord_val, coord_val],  attrs={"name": "C03"})
         self.c03 = xr.DataArray(
             da.from_array(np.array([[0.35, 0.35], [0.28, 0.65]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), attrs={"name": "C04"})
+            dims=("y", "x"), coords=[coord_val, coord_val],  attrs={"name": "C04"})
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
@@ -123,3 +124,17 @@ class TestNdviHybridGreenCompositor:
         with pytest.raises(ValueError, match="Expected strength greater than 0.0, got 0.0."):
             _ = NDVIHybridGreen("ndvi_hybrid_green", strength=0.0, prerequisites=(0.51, 0.65, 0.85),
                                 standard_name="toa_bidirectional_reflectance")
+
+    def test_with_slightly_mismatching_coord_input(self):
+        """Test the case where an input (typically the red band) has a slightly different coordinate.
+
+        If match_data_arrays is called correctly, the coords will be aligned and the array will have the expected shape.
+
+        """
+        comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+                               standard_name="toa_bidirectional_reflectance")
+
+        c02_bad_shape = self.c02.copy()
+        c02_bad_shape.coords["y"] = [1.1, 2.]
+        res = comp((self.c01, c02_bad_shape, self.c03))
+        assert res.shape == (2, 2)
