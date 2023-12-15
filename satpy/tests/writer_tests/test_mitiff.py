@@ -52,14 +52,13 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -119,14 +118,13 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -186,14 +184,14 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
+
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -217,14 +215,14 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
+
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=geos +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. h=36000. +units=km"),
+            CRS("+proj=geos +datum=WGS84 +ellps=WGS84 +lon_0=0. h=36000. +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -248,14 +246,14 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
+
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=geos +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. h=36000. +units=km"),
+            CRS("+proj=geos +datum=WGS84 +ellps=WGS84 +lon_0=0. h=36000. +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -278,14 +276,14 @@ class TestMITIFFWriter(unittest.TestCase):
         from datetime import datetime
 
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
+
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -313,8 +311,8 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         from satpy.scene import Scene
         from satpy.tests.utils import make_dsq
@@ -322,8 +320,7 @@ class TestMITIFFWriter(unittest.TestCase):
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -418,8 +415,8 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         from satpy.scene import Scene
         from satpy.tests.utils import make_dsq
@@ -427,8 +424,7 @@ class TestMITIFFWriter(unittest.TestCase):
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -473,16 +469,15 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
@@ -508,16 +503,15 @@ class TestMITIFFWriter(unittest.TestCase):
 
         import dask.array as da
         import xarray as xr
+        from pyproj import CRS
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj4_str_to_dict("+proj=stere +datum=WGS84 +ellps=WGS84 "
-                              "+lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+            CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
             100,
             200,
             (-1000., -1500., 1000., 1500.),
