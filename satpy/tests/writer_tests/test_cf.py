@@ -247,7 +247,7 @@ class TestCFWriter:
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf", encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -264,7 +264,8 @@ class TestCFWriter:
                                          coords={"time": ("y", times)},
                                          attrs=dict(start_time=times[0], end_time=times[-1]))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", pretty=True)
+            scn.save_datasets(filename=filename, writer="cf", pretty=True,
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
 
@@ -280,7 +281,11 @@ class TestCFWriter:
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            with warnings.catch_warnings():
+                # The purpose is to use the default time encoding, silence the warning
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message=r"Times can't be serialized faithfully to int64 with requested units")
+                scn.save_datasets(filename=filename, writer="cf")
             # Check decoded time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -319,7 +324,8 @@ class TestCFWriter:
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeB]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -340,7 +346,8 @@ class TestCFWriter:
                                           dims=["x", "y", "time"],
                                           coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]})
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -357,7 +364,8 @@ class TestCFWriter:
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"])
+            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"],
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename) as f:
                 assert set(f.encoding["unlimited_dims"]) == {"time"}
 
