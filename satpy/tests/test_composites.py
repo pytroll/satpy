@@ -990,6 +990,24 @@ class TestHighCloudCompositor:
         res = comp([self.data])
         assert res.data.dtype == self.dtype
 
+    def test_high_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import HighCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `transition_min_limits` values, got 1"):
+            _ = HighCloudCompositor("test", transition_min_limits=(210., ))
+
+        with pytest.raises(ValueError, match="Expected 2 `latitude_min_limits` values, got 3"):
+            _ = HighCloudCompositor("test", latitude_min_limits=(20., 40., 60.))
+
+        with pytest.raises(ValueError, match="Expected `transition_max` to be of type float, "
+                                             "is of type <class 'tuple'>"):
+            _ = HighCloudCompositor("test", transition_max=(250., 300.))
+
+        comp = HighCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 1 dataset, got 2"):
+            _ = comp([self.data, self.data])
+
 
 class TestLowCloudCompositor:
     """Test LowCloudCompositor."""
@@ -1028,6 +1046,20 @@ class TestLowCloudCompositor:
         comp = LowCloudCompositor(name="test")
         res = comp([self.btd, self.bt_win, self.lsm])
         assert res.data.dtype == self.dtype
+
+    def test_low_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import LowCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `range_land` values, got 1"):
+            _ = LowCloudCompositor("test", range_land=(2.0, ))
+
+        with pytest.raises(ValueError, match="Expected 2 `range_water` values, got 1"):
+            _ = LowCloudCompositor("test", range_water=(2.0,))
+
+        comp = LowCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 3 datasets, got 2"):
+            _ = comp([self.btd, self.lsm])
 
 
 class TestSingleBandCompositor(unittest.TestCase):

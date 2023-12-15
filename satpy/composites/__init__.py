@@ -1100,8 +1100,8 @@ class HighCloudCompositor(CloudCompositor):
         """
         if len(transition_min_limits) != 2:
             raise ValueError(f"Expected 2 `transition_min_limits` values, got {len(transition_min_limits)}")
-        if len(transition_min_limits) != 2:
-            raise ValueError(f"Expected 2 `latitude_min_limits` values, got {len(transition_min_limits)}")
+        if len(latitude_min_limits) != 2:
+            raise ValueError(f"Expected 2 `latitude_min_limits` values, got {len(latitude_min_limits)}")
         if type(transition_max) in [list, tuple]:
             raise ValueError(f"Expected `transition_max` to be of type float, is of type {type(transition_max)}")
 
