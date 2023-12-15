@@ -550,6 +550,7 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance
 
   crm_vis04:
     name: crm_vis04
@@ -559,6 +560,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 0
+    long_name: TOA Bidirectional Reflectance at 0.41um (temporal average)
 
   crm_vis05:
     name: crm_vis05
@@ -568,6 +570,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 1
+    long_name: TOA Bidirectional Reflectance at 0.51um (temporal average)
 
   crm_vis06:
     name: crm_vis06
@@ -577,6 +580,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 2
+    long_name: TOA Bidirectional Reflectance at 0.64um (temporal average)
 
   crm_vis08:
     name: crm_vis08
@@ -586,6 +590,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 3
+    long_name: TOA Bidirectional Reflectance at 0.865um (temporal average)
 
   crm_vis09:
     name: crm_vis09
@@ -595,6 +600,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 4
+    long_name: TOA Bidirectional Reflectance at 0.914um (temporal average)
 
   crm_nir13:
     name: crm_nir13
@@ -604,6 +610,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 5
+    long_name: TOA Bidirectional Reflectance at 1.38um (temporal average)
 
   crm_nir16:
     name: crm_nir16
@@ -613,6 +620,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 6
+    long_name: TOA Bidirectional Reflectance at 1.61um (temporal average)
 
   crm_nir22:
     name: crm_nir22
@@ -622,6 +630,7 @@ datasets:
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
     vis_channel_id: 7
+    long_name: TOA Bidirectional Reflectance at 2.25um (temporal average)
 
   mean_sza:
     name: mean_sza
