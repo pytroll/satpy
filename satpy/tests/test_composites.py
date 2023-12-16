@@ -1497,28 +1497,46 @@ class TestBackgroundCompositor:
 
     @mock.patch("satpy.composites.enhance2dataset", _enhance2dataset)
     @pytest.mark.parametrize(
-        ("foreground_bands", "background_bands", "exp_bands", "exp_result"),
+        ("foreground_bands", "background_bands", "bg_fill_in", "exp_bands", "exp_result"),
         [
-            ("L", "L", "L", np.array([[1.0, 0.5], [0.0, 1.0]])),
-            ("LA", "LA", "L", np.array([[1.0, 0.75], [0.5, 1.0]])),
-            ("RGB", "RGB", "RGB", np.array([
+            ("L", "L", True, "L", np.array([[1.0, 0.5], [0.0, 1.0]])),
+            ("L", "L", False, "L", np.array([[1.0, 0.5], [0.0, 1.0]])),
+            ("LA", "LA", True, "LA", np.array([[[1.0, 0.75], [0.5, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
+            ("LA", "LA", False, "LA", np.array([[[1.0, 0.75], [0.5, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGB", "RGB", True, "RGB", np.array([
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]]])),
-            ("RGBA", "RGBA", "RGB", np.array([
+            ("RGB", "RGB", False, "RGB", np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]]])),
+            ("RGBA", "RGBA", True, "RGBA", np.array([
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]]])),
-            ("RGBA", "RGB", "RGB", np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGBA", "RGBA", False, "RGBA", np.array([
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]]])),
+                [[1., 0.75], [0.5, 1.]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGBA", "RGB", True, "RGBA", np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGBA", "RGB", False, "RGBA", np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
         ]
     )
-    def test_call(self, foreground_bands, background_bands, exp_bands, exp_result):
+    def test_call(self, foreground_bands, background_bands, bg_fill_in, exp_bands, exp_result):
         """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
-        comp = BackgroundCompositor("name")
+        comp = BackgroundCompositor("name", bg_fill_in=bg_fill_in)
 
         # L mode images
         foreground_data = self.foreground_data[foreground_bands]
