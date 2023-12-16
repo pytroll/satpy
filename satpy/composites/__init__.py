@@ -1724,7 +1724,7 @@ class BackgroundCompositor(GenericCompositor):
 
     @staticmethod
     def _fill_nan_area(channel, filler):
-        return xr.where(channel.isnull(), filler, chan)
+        return xr.where(channel.isnull(), filler)
 
     @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
