@@ -1738,11 +1738,11 @@ class BackgroundCompositor(GenericCompositor):
             data = []
 
             if "A" in background.attrs["mode"]:
-                cutoff = 0
+                band_list = foreground.mode
             else:
-                cutoff = -1
+                band_list = foreground.mode[: -1]
 
-            for band in foreground.mode[: cutoff]:
+            for band in band_list:
                 fg_band = foreground.sel(bands=band)
                 bg_band = background.sel(bands=band)
 
