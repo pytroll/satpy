@@ -1729,8 +1729,6 @@ class BackgroundCompositor(GenericCompositor):
                                ) -> list[xr.DataArray]:
         if "A" in foreground.attrs["mode"]:
             # Use alpha channel as weight and blend the two composites
-            # If both foreground and background have alpha channels
-            # Use them to build a new alpha channel and blend the two composites
             alpha_fore = foreground.sel(bands="A")
             alpha_back = background.sel(bands="A") if "A" in background.attrs["mode"] else 1
             new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
@@ -1749,9 +1747,7 @@ class BackgroundCompositor(GenericCompositor):
                 chan = (fg_band * alpha_fore +
                         bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
 
-                # Fill the area where foreground is Nan with background
-                if bg_fill_in:
-                    chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan) if bg_fill_in else chan
 
                 data.append(chan)
 
