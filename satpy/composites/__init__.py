@@ -1679,9 +1679,10 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 class BackgroundCompositor(GenericCompositor):
     """A compositor that overlays one composite on top of another."""
 
-    def __call__(self, projectables, *args, **kwargs):
+    def __call__(self, projectables, bg_fill_in=True, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
+        self.bg_fill_in = bg_fill_in
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
@@ -1717,17 +1718,41 @@ class BackgroundCompositor(GenericCompositor):
                                background: xr.DataArray
                                ) -> list[xr.DataArray]:
         if "A" in foreground.attrs["mode"]:
-            # Use alpha channel as weight and blend the two composites
-            alpha = foreground.sel(bands="A")
-            data = []
-            # NOTE: there's no alpha band in the output image, it will
-            # be added by the data writer
-            for band in foreground.mode[:-1]:
-                fg_band = foreground.sel(bands=band)
-                bg_band = background.sel(bands=band)
-                chan = (fg_band * alpha + bg_band * (1 - alpha))
-                chan = xr.where(chan.isnull(), bg_band, chan)
-                data.append(chan)
+            if "A" not in background.attrs["mode"]:
+                # Use alpha channel as weight and blend the two composites
+                alpha = foreground.sel(bands="A")
+                data = []
+                # NOTE: there's no alpha band in the output image, it will
+                # be added by the data writer
+                for band in foreground.mode[:-1]:
+                    fg_band = foreground.sel(bands=band)
+                    bg_band = background.sel(bands=band)
+                    chan = (fg_band * alpha + bg_band * (1 - alpha))
+                    # Fill the area where foreground is Nan with background
+                    if self.bg_fill_in:
+                        chan = xr.where(chan.isnull(), bg_band, chan)
+                    data.append(chan)
+
+            else:
+                # Both foreground and background have alpha channels
+                # Use them to build a new alpha channel and blend the two composites
+                alpha_fore = foreground.sel(bands="A")
+                alpha_back = background.sel(bands="A")
+                data = []
+                new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+
+                for band in foreground.mode:
+                    fg_band = foreground.sel(bands=band)
+                    bg_band = background.sel(bands=band)
+                    if band != "A":
+                        chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha
+                    else:
+                        chan = new_alpha
+                    # Fill the area where foreground is Nan with background
+                    if self.bg_fill_in:
+                        chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+                    data.append(chan)
+
         else:
             data_arr = xr.where(foreground.isnull(), background, foreground)
             # Split to separate bands so the mode is correct
