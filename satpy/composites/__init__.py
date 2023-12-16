@@ -1723,48 +1723,48 @@ class BackgroundCompositor(GenericCompositor):
         return attrs
 
     @staticmethod
-    def _fill_nan_area(channel, filler):
-        return xr.where(channel.isnull(), filler, channel)
-
-    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
                                bg_fill_in=True
                                ) -> list[xr.DataArray]:
         if "A" in foreground.attrs["mode"]:
-            if "A" not in background.attrs["mode"]:
-                # Use alpha channel as weight and blend the two composites
-                alpha = foreground.sel(bands="A")
-                data = []
-                # NOTE: there's no alpha band in the output image, it will
-                # be added by the data writer
-                for band in foreground.mode[:-1]:
-                    fg_band = foreground.sel(bands=band)
-                    bg_band = background.sel(bands=band)
-                    chan = (fg_band * alpha + bg_band * (1 - alpha))
+            # Use alpha channel as weight and blend the two composites
+            # If both foreground and background have alpha channels
+            # Use them to build a new alpha channel and blend the two composites
+            alpha_fore = foreground.sel(bands="A")
+            alpha_back = background.sel(bands="A") if "A" in background.attrs["mode"] else None
+            new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+
+            data = []
+
+            if "A" in background.attrs["mode"]:
+                cutoff = 0
+            else:
+                cutoff = -1
+
+            for band in foreground.mode[: cutoff]:
+                fg_band = foreground.sel(bands=band)
+                bg_band = background.sel(bands=band)
+
+                if "A" in background.attrs["mode"]:
+                    chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha \
+                        if band != "A" else new_alpha
+
                     # Fill the area where foreground is Nan with background
                     if bg_fill_in:
-                        chan = BackgroundCompositor._fill_nan_area(chan, bg_band)
+                        chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+
                     data.append(chan)
 
-            else:
-                # Both foreground and background have alpha channels
-                # Use them to build a new alpha channel and blend the two composites
-                alpha_fore = foreground.sel(bands="A")
-                alpha_back = background.sel(bands="A")
-                data = []
-                new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+                else:
+                    # NOTE: there's no alpha band in the output image, it will
+                    # be added by the data writer
+                    chan = (fg_band * alpha_fore + bg_band * (1 - alpha_fore))
 
-                for band in foreground.mode:
-                    fg_band = foreground.sel(bands=band)
-                    bg_band = background.sel(bands=band)
-                    if band != "A":
-                        chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha
-                    else:
-                        chan = new_alpha
                     # Fill the area where foreground is Nan with background
                     if bg_fill_in:
-                        chan = BackgroundCompositor._fill_nan_area(chan, bg_band * alpha_back)
+                        chan = xr.where(chan.isnull(), bg_band, chan)
+
                     data.append(chan)
 
         else:
