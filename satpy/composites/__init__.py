@@ -1740,7 +1740,8 @@ class BackgroundCompositor(GenericCompositor):
                 chan = (fg_band * alpha_fore +
                         bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
 
-                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan) if bg_fill_in else chan
+                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan) if (
+                        bg_fill_in and chan != new_alpha) else chan
 
                 data.append(chan)
 
