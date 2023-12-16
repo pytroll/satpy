@@ -1700,10 +1700,7 @@ class BackgroundCompositor(GenericCompositor):
         background = add_bands(background, foreground["bands"])
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        if self.bg_fill_in:
-            data = self._get_merged_image_data(foreground, background, bg_fill_in=True)
-        else:
-            data = self._get_merged_image_data(foreground, background, bg_fill_in=False)
+        data = self._get_merged_image_data(foreground, background, bg_fill_in=self.bg_fill_in)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1734,11 +1731,7 @@ class BackgroundCompositor(GenericCompositor):
             new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
 
             data = []
-
-            if "A" in background.attrs["mode"]:
-                band_list = foreground.mode
-            else:
-                band_list = foreground.mode[:-1]
+            band_list = foreground.mode if "A" in background.attrs["mode"] else foreground.mode[:-1]
 
             for band in band_list:
                 fg_band = foreground.sel(bands=band)
