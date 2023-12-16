@@ -1732,7 +1732,7 @@ class BackgroundCompositor(GenericCompositor):
             # If both foreground and background have alpha channels
             # Use them to build a new alpha channel and blend the two composites
             alpha_fore = foreground.sel(bands="A")
-            alpha_back = background.sel(bands="A") if "A" in background.attrs["mode"] else None
+            alpha_back = background.sel(bands="A") if "A" in background.attrs["mode"] else 1
             new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
 
             data = []
@@ -1740,32 +1740,20 @@ class BackgroundCompositor(GenericCompositor):
             if "A" in background.attrs["mode"]:
                 band_list = foreground.mode
             else:
-                band_list = foreground.mode[: -1]
+                band_list = foreground.mode[:-1]
 
             for band in band_list:
                 fg_band = foreground.sel(bands=band)
                 bg_band = background.sel(bands=band)
 
-                if "A" in background.attrs["mode"]:
-                    chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha \
-                        if band != "A" else new_alpha
+                chan = (fg_band * alpha_fore +
+                        bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
 
-                    # Fill the area where foreground is Nan with background
-                    if bg_fill_in:
-                        chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+                # Fill the area where foreground is Nan with background
+                if bg_fill_in:
+                    chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
 
-                    data.append(chan)
-
-                else:
-                    # NOTE: there's no alpha band in the output image, it will
-                    # be added by the data writer
-                    chan = (fg_band * alpha_fore + bg_band * (1 - alpha_fore))
-
-                    # Fill the area where foreground is Nan with background
-                    if bg_fill_in:
-                        chan = xr.where(chan.isnull(), bg_band, chan)
-
-                    data.append(chan)
+                data.append(chan)
 
         else:
             data_arr = xr.where(foreground.isnull(), background, foreground)
