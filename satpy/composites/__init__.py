@@ -1723,6 +1723,10 @@ class BackgroundCompositor(GenericCompositor):
         return attrs
 
     @staticmethod
+    def _fill_nan_area(channel, filler):
+        return xr.where(channel.isnull(), filler, chan)
+
+    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
                                bg_fill_in=True
@@ -1740,7 +1744,7 @@ class BackgroundCompositor(GenericCompositor):
                     chan = (fg_band * alpha + bg_band * (1 - alpha))
                     # Fill the area where foreground is Nan with background
                     if bg_fill_in:
-                        chan = xr.where(chan.isnull(), bg_band, chan)
+                        chan = BackgroundCompositor._fill_nan_area(chan, bg_band)
                     data.append(chan)
 
             else:
@@ -1760,7 +1764,7 @@ class BackgroundCompositor(GenericCompositor):
                         chan = new_alpha
                     # Fill the area where foreground is Nan with background
                     if bg_fill_in:
-                        chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+                        chan = BackgroundCompositor._fill_nan_area(chan, bg_band * alpha_back)
                     data.append(chan)
 
         else:
