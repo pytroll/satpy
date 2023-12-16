@@ -1677,7 +1677,13 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
 
 class BackgroundCompositor(GenericCompositor):
-    """A compositor that overlays one composite on top of another."""
+    """A compositor that overlays one composite on top of another.
+
+    Args:
+        bg_fill_in (bool): True means the compositor will fill the area where
+                           foreground is Nan with background.
+                           False means it will just leave the area blank.
+    """
 
     def __call__(self, projectables, bg_fill_in=True, *args, **kwargs):
         """Call the compositor."""
@@ -1694,7 +1700,10 @@ class BackgroundCompositor(GenericCompositor):
         background = add_bands(background, foreground["bands"])
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background)
+        if self.bg_fill_in:
+            data = self._get_merged_image_data(foreground, background, bg_fill_in=True)
+        else:
+            data = self._get_merged_image_data(foreground, background, bg_fill_in=False)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1715,7 +1724,8 @@ class BackgroundCompositor(GenericCompositor):
 
     @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
-                               background: xr.DataArray
+                               background: xr.DataArray,
+                               bg_fill_in=True
                                ) -> list[xr.DataArray]:
         if "A" in foreground.attrs["mode"]:
             if "A" not in background.attrs["mode"]:
@@ -1729,7 +1739,7 @@ class BackgroundCompositor(GenericCompositor):
                     bg_band = background.sel(bands=band)
                     chan = (fg_band * alpha + bg_band * (1 - alpha))
                     # Fill the area where foreground is Nan with background
-                    if self.bg_fill_in:
+                    if bg_fill_in:
                         chan = xr.where(chan.isnull(), bg_band, chan)
                     data.append(chan)
 
@@ -1749,7 +1759,7 @@ class BackgroundCompositor(GenericCompositor):
                     else:
                         chan = new_alpha
                     # Fill the area where foreground is Nan with background
-                    if self.bg_fill_in:
+                    if bg_fill_in:
                         chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
                     data.append(chan)
 
