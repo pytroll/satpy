@@ -1679,19 +1679,57 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 class BackgroundCompositor(GenericCompositor):
     """A compositor that overlays one composite on top of another.
 
-    Args:
-        bg_fill_in (bool): True means the compositor will fill the area where
-                           foreground is Nan with background.
-                           False means it will just leave the area blank.
-    """
+    Beside foreground and background, a third optional dataset could be passed
+    to the compositor to use its Nan area for masking. This is useful when you
+    reproject a specific local-area image (e.g. a geostationary satellite view)
+    to global extent, and put it on a global background (e.g. NASA's Black Marble)
+    while making other areas of the world transparent, only keeping the local one.
 
-    def __call__(self, projectables, bg_fill_in=True, *args, **kwargs):
+    To use this function in a YAML configuration file, add the third dataset
+    as ``optional_prerequisites``:
+
+    .. code-block:: yaml
+
+      night_cloud_alpha_2000_with_background:
+        compositor: !!python/name:satpy.composites.BackgroundCompositor
+        prerequisites:
+          - name: night_cloud_alpha_2000
+          - name: static_night
+        optional_prerequisites:
+          - name: IR105
+
+    """
+    def __init__(self, name, mask_value=None, **kwargs):  # noqa: D417
+        """Collect custom configuration values.
+
+        Args:
+            mask_value (float / None): If it's a float, all the pixels where the third dataset
+                                       values that are equal to this will be masked out.
+                                       If it's a string, it only accepts strings related to
+                                       ``np.nan``, e.g. "np.nan" / "nan" / "Nan" / "Null".
+                                       Otherwise, it will be set to ``np.nan``.
+                                       If not set by the user, it will also be ``np.nan``.
+                                       This argument could be helpful when you try to use a
+                                       StaticImageCompositor for mask. Please note: If you
+                                       are using ``mask_value`` then your mask dataset
+                                       shouldn't include an alpha channel.
+
+        """
+        self.mask_value = mask_value if mask_value is not None else np.nan
+
+        super(BackgroundCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, optional_datasets=None, *args, **kwargs):
         """Call the compositor."""
-        projectables = self.match_data_arrays(projectables)
-        self.bg_fill_in = bg_fill_in
+        optional_datasets = tuple() if optional_datasets is None else optional_datasets
+        projectables = self.match_data_arrays(projectables + optional_datasets)
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
+        mask_dataset = enhance2dataset(projectables[2], convert_p=True) if not optional_datasets == [] else None
+
+        original_bg_mode = background.attrs["mode"]
+
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA
@@ -1699,8 +1737,16 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
 
+        # True means the alpha channel of the background was initially generated, e.g. by CloudCompositor
+        # not newly added through 'add_bands'
+        # False means it was newly added, or it just doesn't exist
+        # This is important in the next steps
+        original_bg_alpha = True if ("A" in original_bg_mode and "A" in background.attrs["mode"]) else False
+
+        mask = self._get_mask(mask_dataset, self.mask_value)
+
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background, bg_fill_in=self.bg_fill_in)
+        data = self._get_merged_image_data(foreground, background, original_bg_alpha=original_bg_alpha, mask=mask)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1720,18 +1766,47 @@ class BackgroundCompositor(GenericCompositor):
         return attrs
 
     @staticmethod
+    def _get_mask(dataset: xr.DataArray, mask_value):
+        if dataset is None:
+            mask = None
+        else:
+            # If the mask_dataset already has an alpha channel, just use it as mask
+            # Otherwise build one
+            if "A" in dataset.attrs["mode"]:
+                mask = dataset.sel(bands="A")
+            else:
+                if np.isnan(mask_value):
+                    mask = xr.where(dataset.isnull(), 0, 1)
+                else:
+                    mask = xr.where(dataset == mask_value, 0, 1)
+
+        return mask
+
+    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
-                               bg_fill_in=True
+                               original_bg_alpha: bool,
+                               mask: xr.DataArray
                                ) -> list[xr.DataArray]:
         if "A" in foreground.attrs["mode"]:
-            # Use alpha channel as weight and blend the two composites
+            # Use alpha channels as weights and blend the two composites
             alpha_fore = foreground.sel(bands="A")
-            alpha_back = background.sel(bands="A") if "A" in background.attrs["mode"] else 1
+            # If the background alpha is authentic just use it
+            # If not, it is full of 1 meaning it's a forged one, or it doesn't exist(but we still need it)
+            alpha_back = background.sel(bands="A") if original_bg_alpha else xr.full_like(alpha_fore, 1)
+            # Any way we need a new alpha for the new image
             new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+            # Do the area-masking job
+            if mask is not None:
+                alpha_fore.data = np.minimum(alpha_fore.data, mask.data[0])
+                alpha_back.data = np.minimum(alpha_back.data, mask.data[0])
+                new_alpha.data = np.minimum(new_alpha.data, mask.data[0])
 
             data = []
-            band_list = foreground.mode if "A" in background.attrs["mode"] else foreground.mode[:-1]
+            # If the background alpha is authentic or area-masking is effective
+            # The compositor will pass the new_alpha to the writer
+            # Otherwise it will leave the writer to decide
+            band_list = foreground.mode if (original_bg_alpha or mask is not None)else foreground.mode[:-1]
 
             for band in band_list:
                 fg_band = foreground.sel(bands=band)
@@ -1740,8 +1815,7 @@ class BackgroundCompositor(GenericCompositor):
                 chan = (fg_band * alpha_fore +
                         bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
 
-                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan) if (
-                        bg_fill_in and band != "A") else chan
+                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
 
                 data.append(chan)
 
