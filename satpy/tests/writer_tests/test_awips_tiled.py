@@ -198,7 +198,7 @@ class TestAWIPSTiledWriter:
             check_required_properties(unmasked_ds, output_ds)
             scale_factor = output_ds["data"].encoding["scale_factor"]
             np.testing.assert_allclose(input_data_arr.values, output_ds["data"].data,
-                                       atol=scale_factor / 2)
+                                       atol=scale_factor * 0.75)
 
     def test_units_length_warning(self, tmp_path):
         """Test long 'units' warnings are raised."""

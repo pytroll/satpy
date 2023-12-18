@@ -74,23 +74,28 @@ class SeviriBaseTest(unittest.TestCase):
         exp = chebyshev4(coefs, time, domain)
         np.testing.assert_allclose(res, exp)
 
-    def test_get_cds_time(self):
-        """Test the get_cds_time function."""
-        # Scalar
+    def test_get_cds_time_scalar(self):
+        """Test the get_cds_time function for scalar inputs."""
         assert get_cds_time(days=21246, msecs=12 * 3600 * 1000) == np.datetime64("2016-03-03 12:00")
 
-        # Array
+    def test_get_cds_time_array(self):
+        """Test the get_cds_time function for array inputs."""
         days = np.array([21246, 21247, 21248])
         msecs = np.array([12*3600*1000, 13*3600*1000 + 1, 14*3600*1000 + 2])
         expected = np.array([np.datetime64("2016-03-03 12:00:00.000"),
                              np.datetime64("2016-03-04 13:00:00.001"),
                              np.datetime64("2016-03-05 14:00:00.002")])
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
 
+    def test_get_cds_time_nanoseconds(self):
+        """Test the get_cds_time function for having nanosecond precision."""
         days = 21246
-        msecs = 12*3600*1000
+        msecs = 12 * 3600 * 1000
         expected = np.datetime64("2016-03-03 12:00:00.000")
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
+        assert res.dtype == np.dtype("datetime64[ns]")
 
     def test_pad_data_horizontally_bad_shape(self):
         """Test the error handling for the horizontal hrv padding."""

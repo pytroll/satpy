@@ -221,6 +221,8 @@ class MITIFFWriter(ImageWriter):
         return _image_description
 
     def _add_proj4_string(self, datasets, first_dataset):
+        import warnings
+
         proj4_string = " Proj string: "
 
         if isinstance(datasets, list):
@@ -232,7 +234,11 @@ class MITIFFWriter(ImageWriter):
         if hasattr(area, "crs") and area.crs.to_epsg() is not None:
             proj4_string += "+init=EPSG:{}".format(area.crs.to_epsg())
         else:
-            proj4_string += area.proj_str
+            # Filter out the PROJ warning of losing projection information
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message=r"You will likely lose important projection information")
+                proj4_string += area.proj_str
 
         x_0 = 0
         y_0 = 0

@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.composites import IncompatibleAreas
+from satpy.composites import IncompatibleAreas, enhance2dataset
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
@@ -1065,6 +1065,80 @@ class Scene:
             gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
 
         return gview
+
+    def to_hvplot(self, datasets=None, *args, **kwargs):
+        """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
+
+        Args:
+            datasets (list): Limit included products to these datasets.
+            args: Arguments coming from hvplot
+            kwargs: hvplot options dictionary.
+
+        Returns: hvplot object that contains within it the plots of datasets list.
+                 As default it contains all Scene datasets plots and a plot title is shown.
+
+        Example usage::
+
+           scene_list = ['ash','IR_108']
+           scn = Scene()
+           scn.load(scene_list)
+           scn = scn.resample('eurol')
+           plot = scn.to_hvplot(datasets=scene_list)
+           plot.ash+plot.IR_108
+        """
+
+        def _get_crs(xarray_ds):
+            return xarray_ds.area.to_cartopy_crs()
+
+        def _get_timestamp(xarray_ds):
+            time = xarray_ds.attrs["start_time"]
+            return time.strftime("%Y %m %d -- %H:%M UTC")
+
+        def _get_units(xarray_ds, variable):
+            return xarray_ds[variable].attrs["units"]
+
+        def _plot_rgb(xarray_ds, variable, **defaults):
+            img = enhance2dataset(xarray_ds[variable])
+            return img.hvplot.rgb(bands="bands", title=title,
+                                  clabel="", **defaults)
+
+        def _plot_quadmesh(xarray_ds, variable, **defaults):
+            return xarray_ds[variable].hvplot.quadmesh(
+                clabel=f"[{_get_units(xarray_ds,variable)}]", title=title,
+                **defaults)
+
+        import hvplot.xarray as hvplot_xarray  # noqa
+        from holoviews import Overlay
+
+        plot = Overlay()
+        xarray_ds = self.to_xarray_dataset(datasets)
+
+        if hasattr(xarray_ds, "area") and hasattr(xarray_ds.area, "to_cartopy_crs"):
+            ccrs = _get_crs(xarray_ds)
+            defaults={"x":"x","y":"y"}
+        else:
+            ccrs = None
+            defaults={"x":"longitude","y":"latitude"}
+
+        if datasets is None:
+            datasets = list(xarray_ds.keys())
+
+        defaults.update(data_aspect=1, project=True, geo=True,
+                        crs=ccrs, projection=ccrs, rasterize=True, coastline="110m",
+                        cmap="Plasma", responsive=True, dynamic=False, framewise=True,
+                        colorbar=False, global_extent=False, xlabel="Longitude",
+                        ylabel="Latitude")
+
+        defaults.update(kwargs)
+
+        for element in datasets:
+            title = f"{element} @ {_get_timestamp(xarray_ds)}"
+            if xarray_ds[element].shape[0] == 3:
+                plot[element] = _plot_rgb(xarray_ds, element, **defaults)
+            else:
+                plot[element] = _plot_quadmesh(xarray_ds, element, **defaults)
+
+        return plot
 
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
