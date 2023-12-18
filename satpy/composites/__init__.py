@@ -1804,16 +1804,13 @@ class BackgroundCompositor(GenericCompositor):
         # If both images have alpha band or just background has one, the new alpha band will be passed to the writer
         # If area-masking is needed, the same
         # If neither of the images has alpha band but area-masking is still needed, the same
-        if "A" in foreground.attrs["mode"]:
-            if "A" in background.attrs["mode"]:
-                output_mode = background.mode
-            else:
-                output_mode = background.mode if mask is None else foreground.mode
+        if "A" in background.attrs["mode"]:
+            output_mode = background.mode
         else:
-            if "A" in background.attrs["mode"]:
-                output_mode = background.mode
-            else:
-                output_mode = foreground.mode if mask is None else foreground.mode + "A"
+            output_mode = (
+                background.mode if "A" in foreground.attrs["mode"] and mask is None else
+                foreground.mode if mask is None else foreground.mode + "A"
+            )
 
         return output_mode
 
