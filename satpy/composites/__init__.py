@@ -1775,12 +1775,12 @@ class BackgroundCompositor(GenericCompositor):
     def _get_alpha(dataset: xr.DataArray):
         # If the dataset contains an alpha channel, just use it
         # If not, we still need one. So build it and fill it with 1
-        if "A" in dataset.attrs['mode']:
+        if "A" in dataset.attrs["mode"]:
             alpha = dataset.sel(bands="A")
         else:
             first_band = dataset.isel(bands=0)
             alpha = xr.full_like(first_band, 1)
-            alpha['bands'] = "A"
+            alpha["bands"] = "A"
 
         # There could be Nans in the alpha, especially for original ones
         # Replace them with 0, so they won't affect new_alpha
@@ -1799,13 +1799,13 @@ class BackgroundCompositor(GenericCompositor):
         # If both images have alpha band or just background has one, the new alpha band will be passed to the writer
         # If area-masking is needed, the same
         # If neither of the images has alpha band but area-masking is still needed, the same
-        if "A" in foreground.attrs['mode']:
-            if "A" in background.attrs['mode']:
+        if "A" in foreground.attrs["mode"]:
+            if "A" in background.attrs["mode"]:
                 output_mode = background.mode
             else:
                 output_mode = background.mode if mask is None else foreground.mode
         else:
-            if "A" in background.attrs['mode']:
+            if "A" in background.attrs["mode"]:
                 output_mode = background.mode
             else:
                 output_mode = foreground.mode if mask is None else foreground.mode + "A"
