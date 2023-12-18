@@ -1795,7 +1795,7 @@ class BackgroundCompositor(GenericCompositor):
         # Get the output bands of the stacked image
         # Actually, it's about deciding whether to pass the new alpha band of the stacked image to the writer
         # Or just leave the write for decision
-        
+
         # If both images have alpha band or just background has one, the new alpha band will be passed to the writer
         # If area-masking is needed, the same
         # If neither of the images has alpha band but area-masking is still needed, the same
