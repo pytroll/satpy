@@ -28,7 +28,11 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../reading`.
+Additionally the reader tries to add non yaml configured 2D datasets dynamically. As mentioned above there are a lot
+of different level 2 datasets so this might not work in every case (for example bit encoded datasets similar to the
+supported m[0/y]d35_l2 cloud mask are not decoded).
+
+To get a list of the available datasets for a given file refer to the :ref:`reading:available datasets` section.
 
 
 Geolocation files
