@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.composites import IncompatibleAreas, enhance2dataset
+from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
@@ -1011,134 +1011,6 @@ class Scene:
         if not in_ipynb():
             img.show()
         return img
-
-    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
-        """Convert satpy Scene to geoviews.
-
-        Args:
-            gvtype (gv plot type):
-                One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to :class:`geoviews.Image`.
-                See Geoviews documentation for details.
-            datasets (list): Limit included products to these datasets
-            kdims (list of str):
-                Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, optional):
-                Value dimensions. See geoviews documentation for more information.
-                If not given defaults to first data variable
-            dynamic (bool, optional): Load and compute data on-the-fly during
-                visualization. Default is ``False``. See
-                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
-                for more information. Has no effect when data to be visualized
-                only has 2 dimensions (y/x or longitude/latitude) and doesn't
-                require grouping via the Holoviews ``groupby`` function.
-
-        Returns: geoviews object
-
-        Todo:
-            * better handling of projection information in datasets which are
-              to be passed to geoviews
-
-        """
-        import geoviews as gv
-        from cartopy import crs  # noqa
-        if gvtype is None:
-            gvtype = gv.Image
-
-        ds = self.to_xarray_dataset(datasets)
-
-        if vdims is None:
-            # by default select first data variable as display variable
-            vdims = ds.data_vars[list(ds.data_vars.keys())[0]].name
-
-        if hasattr(ds, "area") and hasattr(ds.area, "to_cartopy_crs"):
-            dscrs = ds.area.to_cartopy_crs()
-            gvds = gv.Dataset(ds, crs=dscrs)
-        else:
-            gvds = gv.Dataset(ds)
-
-        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
-        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
-        if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
-        else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
-
-        return gview
-
-    def to_hvplot(self, datasets=None, *args, **kwargs):
-        """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
-
-        Args:
-            datasets (list): Limit included products to these datasets.
-            args: Arguments coming from hvplot
-            kwargs: hvplot options dictionary.
-
-        Returns: hvplot object that contains within it the plots of datasets list.
-                 As default it contains all Scene datasets plots and a plot title is shown.
-
-        Example usage::
-
-           scene_list = ['ash','IR_108']
-           scn = Scene()
-           scn.load(scene_list)
-           scn = scn.resample('eurol')
-           plot = scn.to_hvplot(datasets=scene_list)
-           plot.ash+plot.IR_108
-        """
-
-        def _get_crs(xarray_ds):
-            return xarray_ds.area.to_cartopy_crs()
-
-        def _get_timestamp(xarray_ds):
-            time = xarray_ds.attrs["start_time"]
-            return time.strftime("%Y %m %d -- %H:%M UTC")
-
-        def _get_units(xarray_ds, variable):
-            return xarray_ds[variable].attrs["units"]
-
-        def _plot_rgb(xarray_ds, variable, **defaults):
-            img = enhance2dataset(xarray_ds[variable])
-            return img.hvplot.rgb(bands="bands", title=title,
-                                  clabel="", **defaults)
-
-        def _plot_quadmesh(xarray_ds, variable, **defaults):
-            return xarray_ds[variable].hvplot.quadmesh(
-                clabel=f"[{_get_units(xarray_ds,variable)}]", title=title,
-                **defaults)
-
-        import hvplot.xarray as hvplot_xarray  # noqa
-        from holoviews import Overlay
-
-        plot = Overlay()
-        xarray_ds = self.to_xarray_dataset(datasets)
-
-        if hasattr(xarray_ds, "area") and hasattr(xarray_ds.area, "to_cartopy_crs"):
-            ccrs = _get_crs(xarray_ds)
-            defaults={"x":"x","y":"y"}
-        else:
-            ccrs = None
-            defaults={"x":"longitude","y":"latitude"}
-
-        if datasets is None:
-            datasets = list(xarray_ds.keys())
-
-        defaults.update(data_aspect=1, project=True, geo=True,
-                        crs=ccrs, projection=ccrs, rasterize=True, coastline="110m",
-                        cmap="Plasma", responsive=True, dynamic=False, framewise=True,
-                        colorbar=False, global_extent=False, xlabel="Longitude",
-                        ylabel="Latitude")
-
-        defaults.update(kwargs)
-
-        for element in datasets:
-            title = f"{element} @ {_get_timestamp(xarray_ds)}"
-            if xarray_ds[element].shape[0] == 3:
-                plot[element] = _plot_rgb(xarray_ds, element, **defaults)
-            else:
-                plot[element] = _plot_quadmesh(xarray_ds, element, **defaults)
-
-        return plot
 
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
