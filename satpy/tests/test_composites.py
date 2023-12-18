@@ -1594,12 +1594,11 @@ class TestBackgroundCompositor:
         mask_no_bands_dataset = xr.DataArray(da.from_array(self.mask_no_bands_data),
                                              dims=("y", "x"),
                                              attrs=attrs)
-        if mask and not mask_no_bands:
-            res = comp([foreground, background], optional_datasets=[mask_dataset])
-        elif mask and mask_no_bands:
-            res = comp([foreground, background], optional_datasets=[mask_no_bands_dataset])
-        else:
-            res = comp([foreground, background])
+        optional_datasets = [mask_dataset] if mask and not mask_no_bands else [
+            mask_no_bands_dataset] if mask and mask_no_bands else []
+
+        res = comp([foreground, background], optional_datasets=optional_datasets)
+
         print(res.data.compute())
 
         assert res.attrs["area"] == "foo"
