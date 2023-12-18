@@ -517,7 +517,8 @@ class Preloadable:
 
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
-        dade = dask.delayed(_get_delayed_value_from_nc)(self.filename, subst_name)
+        fn_matched = _wait_for_file(self.filename)
+        dade = _get_delayed_value_from_nc(fn_matched, subst_name)
         array = da.from_delayed(
                 dade,
                 shape=self[subst_name + "/shape"],  # not safe from reference segment!
@@ -554,8 +555,10 @@ class Preloadable:
             pickle.dump(to_store, fp)
 
 
-def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1, auto_maskandscale=False):
-    LOG.debug(f"Waiting for {fn!s} to appear to get {var:s}.")
+@dask.delayed
+def _wait_for_file(fn, max_tries=300, wait=2):
+    """Wait for file to appear."""
+    LOG.debug(f"Waiting for {fn!s} to appear.")
     for _ in range(max_tries):
         fns = glob.glob(fn)
         if len(fns) == 0:
@@ -563,10 +566,14 @@ def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1, auto_maskandscale=
             continue
         elif len(fns) > 1:
             raise ValueError(f"Expected one matching file, found {len(fns):d}")
-        break
+        return fns[0]
     else:
         raise TimeoutError("File failed to materialise")
-    nc = netCDF4.Dataset(fns[0], "r")
-    if hasattr(nc, "set_auto_maskandscale"):
-        nc.set_auto_maskandscale(auto_maskandscale)
-    return nc[var][:]
+
+
+@dask.delayed
+def _get_delayed_value_from_nc(fn, var, max_tries=300, wait=2, auto_maskandscale=False):
+    with netCDF4.Dataset(fn, "r") as nc:
+        if hasattr(nc, "set_auto_maskandscale"):
+            nc.set_auto_maskandscale(auto_maskandscale)
+        return nc[var][:]
