@@ -88,10 +88,76 @@ def _create_test_netcdf(filename, resolution=742):
 
 
 @pytest.fixture(scope="session")
-def cf_scene():
+def area():
+    """Get fake area definition."""
+    area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
+    proj_dict = {"a": 6378169.0, "b": 6356583.8, "h": 35785831.0,
+                 "lon_0": 0.0, "proj": "geos", "units": "m"}
+    area = AreaDefinition("test",
+                          "test",
+                          "test",
+                          proj_dict,
+                          2,
+                          2,
+                          area_extent)
+    return area
+
+
+@pytest.fixture(scope="session")
+def common_attrs(area):
+    """Get common dataset attributes."""
+    return {
+        "start_time": datetime(2019, 4, 1, 12, 0),
+        "end_time": datetime(2019, 4, 1, 12, 15),
+        "platform_name": "tirosn",
+        "orbit_number": 99999,
+        "area": area
+    }
+
+
+@pytest.fixture(scope="session")
+def vis006(area, common_attrs):
+    """Get fake VIS006 dataset."""
+    x, y = area.get_proj_coords()
+    y_visir = y[:, 0]
+    x_visir = x[0, :]
+    attrs = {
+        "name": "image0",
+        "id_tag": "ch_r06",
+        "coordinates": "lat lon",
+        "resolution": 1000,
+        "calibration": "reflectance",
+        "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
+        "orbital_parameters": {
+          "projection_longitude": 1,
+          "projection_latitude": 1,
+          "projection_altitude": 1,
+          "satellite_nominal_longitude": 1,
+          "satellite_nominal_latitude": 1,
+          "satellite_actual_longitude": 1,
+          "satellite_actual_latitude": 1,
+          "satellite_actual_altitude": 1,
+          "nadir_longitude": 1,
+          "nadir_latitude": 1,
+          "only_in_1": False
+        },
+        "time_parameters": {
+          "nominal_start_time": common_attrs["start_time"],
+          "nominal_end_time": common_attrs["end_time"]
+        }
+    }
+    attrs.update(common_attrs)
+    coords = {"y": y_visir, "x": x_visir, "acq_time": ("y", [1, 2])}
+    vis006 = xr.DataArray(np.array([[1, 2], [3, 4]]),
+                          dims=("y", "x"),
+                          coords=coords,
+                          attrs=attrs)
+    return vis006
+
+
+@pytest.fixture(scope="session")
+def cf_scene(vis006, common_attrs, area):
     """Create a cf scene."""
-    tstart = datetime(2019, 4, 1, 12, 0)
-    tend = datetime(2019, 4, 1, 12, 15)
     data_visir = np.array([[1, 2], [3, 4]])
     z_visir = [1, 2, 3, 4, 5, 6, 7]
     qual_data = [[1, 2, 3, 4, 5, 6, 7],
@@ -100,59 +166,9 @@ def cf_scene():
     lat = 33.0 * np.array([[1, 2], [3, 4]])
     lon = -13.0 * np.array([[1, 2], [3, 4]])
 
-    proj_dict = {
-        "a": 6378169.0, "b": 6356583.8, "h": 35785831.0,
-        "lon_0": 0.0, "proj": "geos", "units": "m"
-    }
-    x_size, y_size = data_visir.shape
-    area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
-    area = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        proj_dict,
-        x_size,
-        y_size,
-        area_extent,
-    )
-
     x, y = area.get_proj_coords()
     y_visir = y[:, 0]
     x_visir = x[0, :]
-
-    common_attrs = {
-        "start_time": tstart,
-        "end_time": tend,
-        "platform_name": "tirosn",
-        "orbit_number": 99999,
-        "area": area
-    }
-
-    vis006 = xr.DataArray(data_visir,
-                          dims=("y", "x"),
-                          coords={"y": y_visir, "x": x_visir, "acq_time": ("y", time_vis006)},
-                          attrs={
-                              "name": "image0", "id_tag": "ch_r06",
-                              "coordinates": "lat lon", "resolution": 1000, "calibration": "reflectance",
-                              "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
-                              "orbital_parameters": {
-                                  "projection_longitude": 1,
-                                  "projection_latitude": 1,
-                                  "projection_altitude": 1,
-                                  "satellite_nominal_longitude": 1,
-                                  "satellite_nominal_latitude": 1,
-                                  "satellite_actual_longitude": 1,
-                                  "satellite_actual_latitude": 1,
-                                  "satellite_actual_altitude": 1,
-                                  "nadir_longitude": 1,
-                                  "nadir_latitude": 1,
-                                  "only_in_1": False
-                              },
-                              "time_parameters": {
-                                  "nominal_start_time": tstart,
-                                  "nominal_end_time": tend
-                              }
-                          })
 
     ir_108 = xr.DataArray(data_visir,
                           dims=("y", "x"),
