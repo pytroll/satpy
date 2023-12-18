@@ -1680,7 +1680,8 @@ class BackgroundCompositor(GenericCompositor):
     """A compositor that overlays one composite on top of another.
 
     Beside foreground and background, a third optional dataset could be passed
-    to the compositor to use its Nan area for masking. This is useful when you
+    to the compositor to use it for masking. If this dataset contains
+    more than one band, only the first band will be used. This is useful when you
     reproject a specific local-area image (e.g. a geostationary satellite view)
     to global extent, and put it on a global background (e.g. NASA's Black Marble)
     while making other areas of the world transparent, only keeping the local one.
@@ -1703,16 +1704,12 @@ class BackgroundCompositor(GenericCompositor):
         """Collect custom configuration values.
 
         Args:
-            mask_value (float / None): If it's a float, all the pixels where the third dataset
-                                       values that are equal to this will be masked out.
-                                       If it's a string, it only accepts strings related to
-                                       ``np.nan``, e.g. "np.nan" / "nan" / "Nan" / "Null".
-                                       Otherwise, it will be set to ``np.nan``.
-                                       If not set by the user, it will also be ``np.nan``.
+            mask_value (float / None): All the pixels on the stacked image where the values
+                                       of the third dataset that are equal to this will be
+                                       masked out.
+                                       If not set by the user, it will be ``np.nan``.
                                        This argument could be helpful when you try to use a
-                                       StaticImageCompositor for mask. Please note: If you
-                                       are using ``mask_value`` then your mask dataset
-                                       shouldn't include an alpha channel.
+                                       local image(StaticImageCompositor) for masking.
 
         """
         self.mask_value = mask_value if mask_value is not None else np.nan
@@ -1721,14 +1718,12 @@ class BackgroundCompositor(GenericCompositor):
 
     def __call__(self, projectables, optional_datasets=None, *args, **kwargs):
         """Call the compositor."""
-        optional_datasets = tuple() if optional_datasets is None else optional_datasets
+        optional_datasets = [] if optional_datasets is None else optional_datasets
         projectables = self.match_data_arrays(projectables + optional_datasets)
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
-        mask_dataset = enhance2dataset(projectables[2], convert_p=True) if not optional_datasets == [] else None
-
-        original_bg_mode = background.attrs["mode"]
+        mask_dataset = projectables[2] if not optional_datasets == [] else None
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
@@ -1737,16 +1732,14 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
 
-        # True means the alpha channel of the background was initially generated, e.g. by CloudCompositor
-        # not newly added through 'add_bands'
-        # False means it was newly added, or it just doesn't exist
-        # This is important in the next steps
-        original_bg_alpha = True if ("A" in original_bg_mode and "A" in background.attrs["mode"]) else False
-
         mask = self._get_mask(mask_dataset, self.mask_value)
+        alpha_fore = self._get_alpha(foreground)
+        alpha_back = self._get_alpha(background)
+        output_mode = self._get_output_mode(foreground, background, mask)
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background, original_bg_alpha=original_bg_alpha, mask=mask)
+        data = self._get_merged_image_data(foreground, background, mask=mask,
+                                           alpha_fore=alpha_fore, alpha_back=alpha_back, output_mode=output_mode)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1770,59 +1763,84 @@ class BackgroundCompositor(GenericCompositor):
         if dataset is None:
             mask = None
         else:
-            # If the mask_dataset already has an alpha channel, just use it as mask
-            # Otherwise build one
-            if "A" in dataset.attrs["mode"]:
-                mask = dataset.sel(bands="A")
+            dataset = dataset.isel(bands=0)
+            if np.isnan(mask_value):
+                mask = xr.where(dataset.isnull(), 0, 1)
             else:
-                if np.isnan(mask_value):
-                    mask = xr.where(dataset.isnull(), 0, 1)
-                else:
-                    mask = xr.where(dataset == mask_value, 0, 1)
+                mask = xr.where(dataset == mask_value, 0, 1)
 
         return mask
 
     @staticmethod
+    def _get_alpha(dataset: xr.DataArray):
+        # If the dataset contains an alpha channel, just use it
+        # If not, we still need one. So build it and fill it with 1
+        if "A" in dataset.attrs['mode']:
+            alpha = dataset.sel(bands="A")
+        else:
+            first_band = dataset.isel(bands=0)
+            alpha = xr.full_like(first_band, 1)
+            alpha['bands'] = "A"
+
+        # There could be Nans in the alpha, especially for original ones
+        # Replace them with 0, so they won't affect new_alpha
+        alpha = xr.where(alpha.isnull(), 0, alpha)
+
+        return alpha
+
+    @staticmethod
+    def _get_output_mode(foreground: xr.DataArray,
+                         background: xr.DataArray,
+                         mask: xr.DataArray):
+        # Get the output bands of the stacked image
+        # Actually, it's about deciding whether to pass the new alpha band of the stacked image to the writer
+        # Or just leave the write for decision
+        
+        # If both images have alpha band or just background has one, the new alpha band will be passed to the writer
+        # If area-masking is needed, the same
+        # If neither of the images has alpha band but area-masking is still needed, the same
+        if "A" in foreground.attrs['mode']:
+            if "A" in background.attrs['mode']:
+                output_mode = background.mode
+            else:
+                output_mode = background.mode if mask is None else foreground.mode
+        else:
+            if "A" in background.attrs['mode']:
+                output_mode = background.mode
+            else:
+                output_mode = foreground.mode if mask is None else foreground.mode + "A"
+
+        return output_mode
+
+    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
-                               original_bg_alpha: bool,
-                               mask: xr.DataArray
+                               mask: xr.DataArray,
+                               alpha_fore: xr.DataArray,
+                               alpha_back: xr.DataArray,
+                               output_mode: str,
                                ) -> list[xr.DataArray]:
-        if "A" in foreground.attrs["mode"]:
-            # Use alpha channels as weights and blend the two composites
-            alpha_fore = foreground.sel(bands="A")
-            # If the background alpha is authentic just use it
-            # If not, it is full of 1 meaning it's a forged one, or it doesn't exist(but we still need it)
-            alpha_back = background.sel(bands="A") if original_bg_alpha else xr.full_like(alpha_fore, 1)
-            # Any way we need a new alpha for the new image
-            new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
-            # Do the area-masking job
-            if mask is not None:
-                alpha_fore.data = np.minimum(alpha_fore.data, mask.data[0])
-                alpha_back.data = np.minimum(alpha_back.data, mask.data[0])
-                new_alpha.data = np.minimum(new_alpha.data, mask.data[0])
 
-            data = []
-            # If the background alpha is authentic or area-masking is effective
-            # The compositor will pass the new_alpha to the writer
-            # Otherwise it will leave the writer to decide
-            band_list = foreground.mode if (original_bg_alpha or mask is not None)else foreground.mode[:-1]
+        new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
 
-            for band in band_list:
-                fg_band = foreground.sel(bands=band)
-                bg_band = background.sel(bands=band)
+        # Do the masking job
+        if mask is not None:
+            alpha_fore.data = np.minimum(alpha_fore.data, mask.data)
+            alpha_back.data = np.minimum(alpha_back.data, mask.data)
+            new_alpha.data = np.minimum(new_alpha.data, mask.data)
 
-                chan = (fg_band * alpha_fore +
-                        bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
+        data = []
 
-                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+        for band in output_mode:
+            fg_band = foreground.sel(bands=band) if band != "A" else new_alpha
+            bg_band = background.sel(bands=band) if band != "A" else new_alpha
 
-                data.append(chan)
+            chan = (fg_band * alpha_fore +
+                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
 
-        else:
-            data_arr = xr.where(foreground.isnull(), background, foreground)
-            # Split to separate bands so the mode is correct
-            data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
+            chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+
+            data.append(chan)
 
         return data
 
