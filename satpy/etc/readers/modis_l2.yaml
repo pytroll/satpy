@@ -1,7 +1,7 @@
 reader:
   name: modis_l2
   short_name: MODIS l2
-  long_name: MODIS Level 2 (mod35) data in HDF-EOS format
+  long_name: Terra and Aqua MODIS Level 2 (mod35) data in HDF-EOS format
   description: MODIS HDF-EOS L2 Reader
   status: Beta
   supports_fsspec: false
@@ -83,7 +83,7 @@ datasets:
     name: longitude
     resolution:
       5000:
-        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf]
+        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf, modis_l2_product]
       1000:
         file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, mod05_hdf, modis_l2_product]
       500:
@@ -98,7 +98,7 @@ datasets:
     resolution:
       5000:
         # For EUM reduced (thinned) files
-        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf]
+        file_type: [mod35_hdf, mod06_hdf, mod06ct_hdf, mod07_hdf, mod05_hdf, modis_l2_product]
       1000:
         file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf, mod05_hdf, modis_l2_product]
       500:
