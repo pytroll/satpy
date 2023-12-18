@@ -1763,7 +1763,12 @@ class BackgroundCompositor(GenericCompositor):
         if dataset is None:
             mask = None
         else:
-            dataset = dataset.isel(bands=0)
+            # If mask dataset is a composite, then extract its first band
+            try:
+                dataset = dataset.isel(bands=0)
+            except ValueError:
+                pass
+
             if np.isnan(mask_value):
                 mask = xr.where(dataset.isnull(), 0, 1)
             else:
