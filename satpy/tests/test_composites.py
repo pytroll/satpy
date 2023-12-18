@@ -1607,8 +1607,6 @@ class TestBackgroundCompositor:
 
         res = comp([foreground, background], optional_datasets=optional_datasets)
 
-        print(res.data.compute())
-
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, exp_result)
         assert res.attrs["mode"] == exp_bands
