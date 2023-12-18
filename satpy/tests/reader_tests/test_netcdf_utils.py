@@ -24,6 +24,7 @@ import unittest
 
 import numpy as np
 import pytest
+import xarray as xr
 
 try:
     from satpy.readers.core.netcdf import NetCDF4FileHandler, Preloadable
@@ -404,7 +405,8 @@ class FakePreloadableHandler(Preloadable, FakeNetCDF4FileHandler):
 class TestPreloadableHandler:
     """Test functionality related to preloading."""
 
-    def test_wait_for_file_already_exists(self, tmp_path):
+    @staticmethod
+    def test_wait_for_file_already_exists(tmp_path):
         """Test case where file already exists."""
         from satpy.readers.netcdf_utils import _wait_for_file
         fn = tmp_path / "file1"
@@ -413,7 +415,8 @@ class TestPreloadableHandler:
         waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
         assert waiter.compute() == os.fspath(fn)
 
-    def test_wait_for_file_appears(self, tmp_path):
+    @staticmethod
+    def test_wait_for_file_appears(tmp_path):
         """Test case where file appears after a bit."""
         from satpy.readers.netcdf_utils import _wait_for_file
         def _wait_and_create(path):
@@ -429,7 +432,8 @@ class TestPreloadableHandler:
             assert res == os.fspath(fn)
             assert t2 - t1 > 0.05
 
-    def test_wait_for_file_not_appears(self, tmp_path):
+    @staticmethod
+    def test_wait_for_file_not_appears(tmp_path):
         """Test case where file fails to appear."""
         from satpy.readers.netcdf_utils import _wait_for_file
         fn = tmp_path / "file3"
@@ -437,7 +441,8 @@ class TestPreloadableHandler:
         with pytest.raises(TimeoutError):
             waiter.compute()
 
-    def test_wait_for_file_multiple_appear(self, tmp_path):
+    @staticmethod
+    def test_wait_for_file_multiple_appear(tmp_path):
         """Test case where file fails to appear."""
         from satpy.readers.netcdf_utils import _wait_for_file
         fn = tmp_path / "file?"
@@ -445,7 +450,8 @@ class TestPreloadableHandler:
         with pytest.raises(TimeoutError):
             waiter.compute()
 
-    def test_wait_for_file_multiple_appears(self, tmp_path):
+    @staticmethod
+    def test_wait_for_file_multiple_appears(tmp_path):
         """Test case where file appears after a bit."""
         from satpy.readers.netcdf_utils import _wait_for_file
         def _wait_and_create(path1, path2):
@@ -460,3 +466,12 @@ class TestPreloadableHandler:
         with pytest.raises(ValueError,
                            match="Expected one matching file, found 2"):
             waiter.compute()
+
+    def test_get_delayed_from_file(self, tmp_path):
+        """Get getting a value from a file (delayed)."""
+        from satpy.readers.netcdf_utils import _get_delayed_value_from_nc
+        ncname = tmp_path / "croatia.nc"
+        ds = xr.Dataset({"rijeka": (("y", "x"), np.zeros((3, 3)))})
+        ds.to_netcdf(ncname)
+        var_del = _get_delayed_value_from_nc(ncname, "rijeka")
+        var_del.compute()
