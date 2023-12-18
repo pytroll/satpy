@@ -1012,6 +1012,70 @@ class Scene:
             img.show()
         return img
 
+    def to_geoviews(self, gvtype=None, datasets=None,
+                    kdims=None, vdims=None, dynamic=False):
+        """Convert satpy Scene to geoviews.
+
+        Args:
+            scn (satpy.Scene): Satpy Scene.
+            gvtype (gv plot type):
+                One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
+                Default to :class:`geoviews.Image`.
+                See Geoviews documentation for details.
+            datasets (list): Limit included products to these datasets
+            kdims (list of str):
+                Key dimensions. See geoviews documentation for more information.
+            vdims (list of str, optional):
+                Value dimensions. See geoviews documentation for more information.
+                If not given defaults to first data variable
+            dynamic (bool, optional): Load and compute data on-the-fly during
+                visualization. Default is ``False``. See
+                https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
+                for more information. Has no effect when data to be visualized
+                only has 2 dimensions (y/x or longitude/latitude) and doesn't
+                require grouping via the Holoviews ``groupby`` function.
+
+        Returns: geoviews object
+
+        Todo:
+            * better handling of projection information in datasets which are
+              to be passed to geoviews
+
+        """
+        from satpy._scene_converters import to_geoviews
+        return to_geoviews(self, gvtype=None, datasets=None,
+                           kdims=None, vdims=None, dynamic=False)
+
+
+    def to_hvplot(self, datasets=None, *args, **kwargs):
+        """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
+
+        Args:
+            scn (satpy.Scene): Satpy Scene.
+            datasets (list): Limit included products to these datasets.
+            args: Arguments coming from hvplot
+            kwargs: hvplot options dictionary.
+
+        Returns:
+            hvplot object that contains within it the plots of datasets list.
+            As default it contains all Scene datasets plots and a plot title
+            is shown.
+
+        Example usage::
+
+           scene_list = ['ash','IR_108']
+           scn = Scene()
+           scn.load(scene_list)
+           scn = scn.resample('eurol')
+           plot = scn.to_hvplot(datasets=scene_list)
+           plot.ash+plot.IR_108
+        """
+        from satpy._scene_converters import to_hvplot
+
+        return to_hvplot(self, datasets=None, *args, **kwargs)
+
+
+
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
 
