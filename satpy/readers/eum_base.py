@@ -33,14 +33,14 @@ def timecds2datetime(tcds):
 
     Works both with a dictionary and a numpy record_array.
     """
-    days = int(tcds["Days"])
-    milliseconds = int(tcds["Milliseconds"])
+    days = int(tcds["Days"].item())
+    milliseconds = int(tcds["Milliseconds"].item())
     try:
-        microseconds = int(tcds["Microseconds"])
+        microseconds = int(tcds["Microseconds"].item())
     except (KeyError, ValueError):
         microseconds = 0
     try:
-        microseconds += int(tcds["Nanoseconds"]) / 1000.
+        microseconds += int(tcds["Nanoseconds"].item()) / 1000.
     except (KeyError, ValueError):
         pass
 

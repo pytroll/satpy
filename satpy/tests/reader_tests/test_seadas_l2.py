@@ -198,7 +198,10 @@ def _add_variable_to_netcdf_file(nc, var_name, var_info):
                           fill_value=var_info.get("fill_value"))
     v[:] = var_info["data"]
     for attr_key, attr_val in var_info["attrs"].items():
+        if isinstance(attr_val, (int, float)):
+            attr_val = v.dtype.type(attr_val)
         setattr(v, attr_key, attr_val)
+
 
 
 class TestSEADAS:
