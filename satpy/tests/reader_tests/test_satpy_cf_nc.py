@@ -89,7 +89,7 @@ def _create_test_netcdf(filename, resolution=742):
 
 @pytest.fixture(scope="session")
 def area():
-    """Get fake area definition."""
+    """Get area definition."""
     area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
     proj_dict = {"a": 6378169.0, "b": 6356583.8, "h": 35785831.0,
                  "lon_0": 0.0, "proj": "geos", "units": "m"}
@@ -116,11 +116,18 @@ def common_attrs(area):
 
 
 @pytest.fixture(scope="session")
-def vis006(area, common_attrs):
-    """Get fake VIS006 dataset."""
+def xy_coords(area):
+    """Get projection coordinates."""
     x, y = area.get_proj_coords()
-    y_visir = y[:, 0]
-    x_visir = x[0, :]
+    y = y[:, 0]
+    x = x[0, :]
+    return x, y
+
+
+@pytest.fixture(scope="session")
+def vis006(xy_coords, common_attrs):
+    """Get VIS006 dataset."""
+    x, y = xy_coords
     attrs = {
         "name": "image0",
         "id_tag": "ch_r06",
@@ -147,7 +154,7 @@ def vis006(area, common_attrs):
         }
     }
     attrs.update(common_attrs)
-    coords = {"y": y_visir, "x": x_visir, "acq_time": ("y", [1, 2])}
+    coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
     vis006 = xr.DataArray(np.array([[1, 2], [3, 4]]),
                           dims=("y", "x"),
                           coords=coords,
@@ -156,13 +163,38 @@ def vis006(area, common_attrs):
 
 
 @pytest.fixture(scope="session")
-def cf_scene(vis006, common_attrs, area):
-    """Create a cf scene."""
-    data_visir = np.array([[1, 2], [3, 4]])
-    z_visir = [1, 2, 3, 4, 5, 6, 7]
+def ir_108(xy_coords):
+    """Get IR_108 dataset."""
+    x, y = xy_coords
+    coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
+    attrs = {"name": "image1", "id_tag": "ch_tb11", "coordinates": "lat lon"}
+    ir_108 = xr.DataArray(np.array([[1, 2], [3, 4]]),
+                          dims=("y", "x"),
+                          coords=coords,
+                          attrs=attrs)
+    return ir_108
+
+
+@pytest.fixture(scope="session")
+def qual_flags(xy_coords):
+    """Get quality flags."""
     qual_data = [[1, 2, 3, 4, 5, 6, 7],
                  [1, 2, 3, 4, 5, 6, 7]]
-    time_vis006 = [1, 2]
+    x, y = xy_coords
+    z = [1, 2, 3, 4, 5, 6, 7]
+    coords = {"y": y, "z": z, "acq_time": ("y", [1, 2])}
+    qual_f = xr.DataArray(qual_data,
+                          dims=("y", "z"),
+                          coords=coords,
+                          attrs={"name": "qual_flags",
+                                 "id_tag": "qual_flags"})
+    return qual_f
+
+
+@pytest.fixture(scope="session")
+def cf_scene(vis006, ir_108, qual_flags, common_attrs, area):
+    """Create a cf scene."""
+    data_visir = np.array([[1, 2], [3, 4]])
     lat = 33.0 * np.array([[1, 2], [3, 4]])
     lon = -13.0 * np.array([[1, 2], [3, 4]])
 
@@ -170,17 +202,6 @@ def cf_scene(vis006, common_attrs, area):
     y_visir = y[:, 0]
     x_visir = x[0, :]
 
-    ir_108 = xr.DataArray(data_visir,
-                          dims=("y", "x"),
-                          coords={"y": y_visir, "x": x_visir, "acq_time": ("y", time_vis006)},
-                          attrs={"name": "image1", "id_tag": "ch_tb11", "coordinates": "lat lon"})
-    qual_f = xr.DataArray(qual_data,
-                          dims=("y", "z"),
-                          coords={"y": y_visir, "z": z_visir, "acq_time": ("y", time_vis006)},
-                          attrs={
-                              "name": "qual_flags",
-                              "id_tag": "qual_flags"
-                          })
     lat = xr.DataArray(lat,
                        dims=("y", "x"),
                        coords={"y": y_visir, "x": x_visir},
@@ -223,7 +244,7 @@ def cf_scene(vis006, common_attrs, area):
         "1": prefix_data,
         "lat": lat,
         "lon": lon,
-        "qual_flags": qual_f
+        "qual_flags": qual_flags
     }
 
     for key in scene_dict:
