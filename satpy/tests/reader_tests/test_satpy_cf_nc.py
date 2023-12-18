@@ -153,7 +153,6 @@ def vis006(xy_coords, common_attrs):
           "nominal_end_time": common_attrs["end_time"]
         }
     }
-    attrs.update(common_attrs)
     coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
     vis006 = xr.DataArray(np.array([[1, 2], [3, 4]]),
                           dims=("y", "x"),
@@ -192,63 +191,69 @@ def qual_flags(xy_coords):
 
 
 @pytest.fixture(scope="session")
-def cf_scene(vis006, ir_108, qual_flags, common_attrs, area):
-    """Create a cf scene."""
-    data_visir = np.array([[1, 2], [3, 4]])
+def lonlats(xy_coords):
+    """Get longitudes and latitudes."""
+    x, y = xy_coords
     lat = 33.0 * np.array([[1, 2], [3, 4]])
     lon = -13.0 * np.array([[1, 2], [3, 4]])
+    attrs = {"name": "lat",
+             "standard_name": "latitude",
+             "modifiers": np.array([])}
+    dims = ("y", "x")
+    coords = {"y": y, "x": x}
+    lat = xr.DataArray(lat, dims=dims, coords=coords, attrs=attrs)
+    lon = xr.DataArray(lon, dims=dims, coords=coords, attrs=attrs)
+    return lon, lat
 
-    x, y = area.get_proj_coords()
-    y_visir = y[:, 0]
-    x_visir = x[0, :]
 
-    lat = xr.DataArray(lat,
-                       dims=("y", "x"),
-                       coords={"y": y_visir, "x": x_visir},
-                       attrs={
-                           "name": "lat",
-                           "standard_name": "latitude",
-                           "modifiers": np.array([])
-                       })
-    lon = xr.DataArray(lon,
-                       dims=("y", "x"),
-                       coords={"y": y_visir, "x": x_visir},
-                       attrs={
-                           "name": "lon",
-                           "standard_name": "longitude",
-                           "modifiers": np.array([])
-                       })
-
-    # for prefix testing
-    prefix_data = xr.DataArray(data_visir,
+@pytest.fixture(scope="session")
+def prefix_data(xy_coords, area):
+    """Get dataset whose name should be prefixed."""
+    x, y = xy_coords
+    attrs = {"name": "1",
+             "id_tag": "ch_r06",
+             "coordinates": "lat lon",
+             "resolution": 1000,
+             "calibration": "reflectance",
+             "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
+             "area": area}
+    prefix_data = xr.DataArray(np.array([[1, 2], [3, 4]]),
                                dims=("y", "x"),
-                               coords={"y": y_visir, "x": x_visir},
-                               attrs={
-                                   "name": "1", "id_tag": "ch_r06",
-                                   "coordinates": "lat lon", "resolution": 1000, "calibration": "reflectance",
-                                   "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
-                                   "area": area
-                               })
+                               coords={"y": y, "x": x},
+                               attrs=attrs)
+    return prefix_data
 
-    # for swath testing
+
+@pytest.fixture(scope="session")
+def swath_data(prefix_data, lonlats):
+    """Get swath data."""
+    lon, lat = lonlats
     area = SwathDefinition(lons=lon, lats=lat)
     swath_data = prefix_data.copy()
     swath_data.attrs.update({"name": "swath_data", "area": area})
+    return swath_data
 
+
+@pytest.fixture(scope="session")
+def datasets(vis006, ir_108, qual_flags, lonlats, prefix_data, swath_data):
+    """Get datasets belonging to the scene."""
+    lon, lat = lonlats
+    return {"image0": vis006,
+            "image1": ir_108,
+            "swath_data": swath_data,
+            "1": prefix_data,
+            "lat": lat,
+            "lon": lon,
+            "qual_flags": qual_flags}
+
+
+@pytest.fixture(scope="session")
+def cf_scene(datasets, common_attrs):
+    """Create a cf scene."""
     scene = Scene()
     scene.attrs["sensor"] = ["avhrr-1", "avhrr-2", "avhrr-3"]
-    scene_dict = {
-        "image0": vis006,
-        "image1": ir_108,
-        "swath_data": swath_data,
-        "1": prefix_data,
-        "lat": lat,
-        "lon": lon,
-        "qual_flags": qual_flags
-    }
-
-    for key in scene_dict:
-        scene[key] = scene_dict[key]
+    for key in datasets:
+        scene[key] = datasets[key]
         if key != "swath_data":
             scene[key].attrs.update(common_attrs)
     return scene
