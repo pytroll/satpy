@@ -1510,10 +1510,18 @@ class TestBackgroundCompositor:
         ("foreground_bands", "background_bands", "mask", "mask_no_bands",
          "mask_bands", "mask_value", "exp_bands", "exp_result"),
         [
-            ("L", "L", True, False, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]],[[1.0, 1.0], [1.0, 0.0]]])),
-            ("L", "L", True, False, "RGB", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]], [[1.0, 1.0], [1.0, 0.0]]])),
-            ("L", "LA", False, False, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
-            ("LA", "LA", False, False, "RGB", None, "LA", np.array([[[1.0, 0.75], [0.5, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
+            ("L", "L", True, False, "L", None, "LA", np.array([
+                [[1.0, 0.5], [0.0, 0.0]],
+                [[1.0, 1.0], [1.0, 0.0]]])),
+            ("L", "L", True, False, "RGB", None, "LA", np.array([
+                [[1.0, 0.5], [0.0, 0.0]],
+                [[1.0, 1.0], [1.0, 0.0]]])),
+            ("L", "LA", False, False, "L", None, "LA", np.array([
+                [[1.0, 0.5], [0.0, 1.0]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
+            ("LA", "LA", False, False, "RGB", None, "LA", np.array([
+                [[1.0, 0.75], [0.5, 1.0]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
             ("LA", "RGB", True, False, "L", None, "RGBA", np.array([
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 0.75], [0.5, 0.0]],
