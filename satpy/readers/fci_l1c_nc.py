@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,12 +17,10 @@
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1c data.  FCI will fly
-on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
-scheduled to be launched on the 13th of December 2022.
-For more information about FCI, see `EUMETSAT`_.
+Imager (FCI) Level-1c data.  FCI flies on the MTG Imager (MTG-I) series
+of satellites, with the first satellite (MTG-I1) launched on the 13th
+of December 2022.  For more information about FCI, see `EUMETSAT`_.
 
-For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
