@@ -212,7 +212,7 @@ class EPSAVHRRFile(BaseFileHandler):
     def _interpolate(self, lons_like, lats_like):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         if nav_sample_rate == 20 and self.pixels == 2048:
-            lons_like_1km, lats_like_1km = self._interpolate_20km_to_1km(lons_like, lats_like)
+            lons_like_1km, lats_like_1km = _interpolate_20km_to_1km(lons_like, lats_like)
             lons_like_1km = da.from_delayed(lons_like_1km, dtype=lons_like.dtype,
                                             shape=(self.scanlines, self.pixels))
             lats_like_1km = da.from_delayed(lats_like_1km, dtype=lats_like.dtype,
