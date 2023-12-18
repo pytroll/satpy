@@ -23,7 +23,7 @@ import logging
 import os
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict, deque
+from collections import deque
 from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
@@ -119,6 +119,11 @@ def load_yaml_configs(*config_files, loader=Loader):
             config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
     _verify_reader_info_assign_config_files(config, config_files)
     return config
+
+
+def remove_duplicates(elements):
+    """Remove duplicates from a list while retaining order."""
+    return list(dict.fromkeys(elements))
 
 
 class AbstractYAMLReader(metaclass=ABCMeta):
@@ -278,7 +283,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         See `satpy.readers.get_key` for more information about kwargs.
 
         """
-        return get_key(key, self.all_ids.keys(), **kwargs)
+        return get_key(key, self.all_dataset_ids, **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -359,7 +364,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                  filter_filenames=True,
                  **kwargs):
         """Set up initial internal storage for loading file data."""
-        super(FileYAMLReader, self).__init__(config_dict)
+        super().__init__(config_dict)
 
         self.file_handlers = {}
         self.available_ids = {}
@@ -605,7 +610,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
-        filenames = list(OrderedDict.fromkeys(filenames))
+        filenames = remove_duplicates(filenames)
         logger.debug("Assigning to %s: %s", self.info["name"], filenames)
 
         self.info.setdefault("filenames", []).extend(filenames)
@@ -1158,7 +1163,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each."""
-        created_fhs = super(GEOSegmentYAMLReader, self).create_filehandlers(
+        created_fhs = super().create_filehandlers(
             filenames, fh_kwargs=fh_kwargs)
 
         # add "expected_segments" information
@@ -1530,3 +1535,50 @@ def split_integer_in_most_equal_parts(x, n):
         ar = np.repeat(mod, n)
         ar[-remainder:] = mod + 1
         return ar.astype("int")
+
+
+class MultiFileYAMLReader(AbstractYAMLReader):
+    """Class for handling multiple files at once (same reader, same overpass/repeat cycle)."""
+
+    def start_time(self, *args, **kwargs):
+        """Get the start time of the data."""
+        pass
+
+    def end_time(self, *args, **kwargs):
+        """Get the end time of the data."""
+        pass
+
+    def filter_selected_filenames(self, *args, **kwargs):
+        """Filter filenames."""
+        pass
+
+    def create_filehandlers(self, files, **kwargs):
+        """Create file handlers."""
+        self.assign_storage_items(files)
+
+    def assign_storage_items(self, files):
+        """Assign storage items."""
+        self.json_file, self.data_file = files
+        if str(self.json_file).endswith("npz"):
+            self.json_file, self.data_file = self.data_file, self.json_file
+
+    @property
+    def available_dataset_ids(self):
+        """Generate the available dataset ids."""
+        return [DataID(default_id_keys_config, name="chanel_5", resolution=400)]
+
+    @property
+    def all_dataset_ids(self):
+        """Generate all the dataset ids."""
+        return [DataID(default_id_keys_config, name="chanel_5", resolution=400)]
+
+    def load(self, dataset_keys, **kwargs):
+        """Load the data."""
+        import json
+        with open(self.json_file, "r") as fp:
+            metadata = json.load(fp)
+        data_arrays = DatasetDict()
+        for dsid in dataset_keys:
+            data = np.load(self.data_file)[dsid["name"]]
+            data_arrays[dsid] = xr.DataArray(data, attrs=metadata)
+        return data_arrays
