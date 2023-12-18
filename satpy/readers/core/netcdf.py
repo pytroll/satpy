@@ -460,7 +460,42 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
 
 
 class Preloadable:
-    """Mixin class for pre-loading."""
+    """Mixin class for pre-loading.
+
+    This is a mixin class designed to use with file handlers that support
+    preloading.  Subclasses deriving from this mixin are expected to be
+    geo-segmentable file handlers, and can be created based on a glob pattern
+    for a non-existing file (as well as a path or glob pattern to an existing
+    file).  The first segment of a repeat cycle is always processed only after
+    the file exists.  For the remaining segments, metadata are collected as
+    much as possible before the file exists, from two possible sources:
+
+    - From the first segment.  For some file formats, many pieces of metadata
+      can be expected to be identical between segments.
+    - From the same segment number for a previous repeat cycle.  In this case,
+      caching is done on disk.
+
+    To implement a filehandler using this, make sure it derives from both
+    :class:`NetCDF4FileHandler` and this class, and make sure to pass keyword
+    arguments in `__init__` to the superclass.  In the YAML file,
+    ``required_netcdf_variables`` must be defined as a dictionary.  The keys
+    are variable names, and values are a list of strings describing what
+    assumptions can be made about caching, where ``"rc"`` means the value is
+    expected to be constant between repeat cycles, and ``"segment"`` means it is
+    expected to be constant between the segments within a repeat cycle.  For
+    variables that are actually variable, define the empty list.
+
+    Attributes (variable, global, and group), shapes, dtypes, and dimension names
+    are assumed to be always shareable between repeat cycles.
+
+    To use preloading, pass ``preload=True`` to ``reader_kwargs`` when creating
+    the Scene.
+
+    This feature is experimental.
+
+    ..versionadded: 0.47
+    """
+
     def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
@@ -469,12 +504,14 @@ class Preloadable:
         super().__init__(*args, **kwargs)
 
     def _collect_listed_variables(self, file_handle, listed_variables):
+        """Collect listed variables, either preloaded or regular."""
         if self.preload:
             self._preload_listed_variables(listed_variables)
         else:
             super()._collect_listed_variables(file_handle, listed_variables)
 
     def _preload_listed_variables(self, listed_variables):
+        """Preload listed variables, either from RC cache or segment cache."""
         variable_name_replacements = self.filetype_info.get("variable_name_replacements")
         with open(self.rc_cache, "rb") as fp:
             self.file_content.update(pickle.load(fp))  # nosec
@@ -487,9 +524,11 @@ class Preloadable:
                     self._collect_variable_delayed(subst_name)
 
     def _can_get_from_other_segment(self, itm):
+        """Return true if variable is segment-cachable."""
         return "segment" in self.filetype_info["required_netcdf_variables"][itm]
 
     def _can_get_from_other_rc(self, itm):
+        """Return true if variable is rc-cachable."""
         # it's always safe to store variable attributes, shapes, dtype, dimensions
         # between repeat cycles
         for meta in ("/attr/", "/shape", "/dtype", "/dimension/", "/dimensions"):
@@ -508,6 +547,7 @@ class Preloadable:
         return False
 
     def _get_from_other_rc(self, itm):
+        """Obtain variable from repeat cycle cache."""
         cache_fn = self.rc_cache
         return self._read_var_from_cache(cache_fn, itm)
 
@@ -540,6 +580,8 @@ class Preloadable:
         """Store RC-cachable data to cache."""
         if self.preload:
             raise ValueError("Cannot store cache with pre-loaded handler")
+        if "required_netcdf_variables" not in self.filetype_info:
+            raise ValueError("Caching needs required_netcdf_variables, but none is defined.")
         to_store = {}
         for key in self.file_content.keys():
             if self._can_get_from_other_rc(key):

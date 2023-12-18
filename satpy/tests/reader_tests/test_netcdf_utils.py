@@ -19,9 +19,11 @@
 
 import concurrent.futures
 import os
+import pickle
 import time
 import unittest
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -401,6 +403,10 @@ def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
 class FakePreloadableHandler(Preloadable, FakeNetCDF4FileHandler):
     """Fake preloadable handler."""
 
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Get fake test content."""
+        return {}
+
 
 class TestPreloadableHandler:
     """Test functionality related to preloading."""
@@ -475,3 +481,63 @@ class TestPreloadableHandler:
         ds.to_netcdf(ncname)
         var_del = _get_delayed_value_from_nc(ncname, "rijeka")
         var_del.compute()
+
+    @pytest.fixture()
+    def preloadable_false(self):
+        """Return a preloadable filehandler with preload=False."""
+        handler = FakePreloadableHandler(
+                "dummy",
+                {},
+                {"required_netcdf_variables": {
+                    "/iceland/reykjavík": ["rc"],
+                    "/iceland/bolungarvík": ["rc"]}},
+                preload=False)
+        return handler
+
+    @pytest.fixture()
+    def preloadable_true(self, preloadable_false):
+        """Return a preloadable filehandler with preload=True."""
+        handler = FakePreloadableHandler(
+                "dummy",
+                {},
+                {"required_netcdf_variables": {
+                    "/iceland/reykjavík": ["rc"],
+                    "/iceland/bolungarvík": ["segment"],
+                    "/iceland/{volcano}/lava": ["rc"],
+                    "/iceland/{volcano}/magma": [],
+                    },
+                 "variable_name_replacements": {
+                     "volcano": ["eyjafjallajökull", "bardarbunga"]
+                 }},
+                preload=True,
+                ref_fh=preloadable_false)
+        return handler
+
+    def test_store_cache(self, tmp_path, preloadable_false):
+        """Test that cache is stored as expected."""
+        cf = os.fspath(tmp_path / "test.pkl")
+        preloadable_false.file_content["/iceland/reykjavík"] = da.from_array([0, 1, 2])
+        preloadable_false.file_content["/iceland/bolungarvík"] = "012"
+        preloadable_false.store_cache(cf)
+        dt = pickle.load(open(cf, mode="rb"))
+        assert isinstance(dt["/iceland/reykjavík"], np.ndarray)  # calculated
+        np.testing.assert_array_equal(dt["/iceland/reykjavík"], np.array([0, 1, 2]))
+        assert dt["/iceland/bolungarvík"] == "012"
+
+    def test_can_get_from_other_segment(self, preloadable_true):
+        """Test if segment-cachable check works correctly."""
+        assert preloadable_true._can_get_from_other_segment("/iceland/bolungarvík")
+        assert not preloadable_true._can_get_from_other_segment("/iceland/reykjavík")
+
+    def test_can_get_from_other_rc(self, preloadable_true):
+        """Test if rc-cachable check works correctly."""
+        assert not preloadable_true._can_get_from_other_rc("/iceland/bolungarvík")
+        assert preloadable_true._can_get_from_other_rc("/iceland/reykjavík")
+        assert preloadable_true._can_get_from_other_rc("/iceland/bolungarvík/shape")
+        assert not preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/magma")
+        assert preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/lava")
+        assert preloadable_true._can_get_from_other_rc("/iceland/bardarbunga/lava")
+        assert preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/magma/dtype")
+
+    def test_get_from_other_segment(self, preloadable_true):
+        """Test that loading from a cached segment works."""
