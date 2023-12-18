@@ -1500,67 +1500,82 @@ class TestBackgroundCompositor:
                 [[1., 0.5], [0., np.nan]],
                 [[1., 0.5], [0., np.nan]]]),
         }
+        mask_no_bands_data = np.array([[1., 0.5], [0., np.nan]])
         cls.foreground_data = foreground_data
         cls.mask_data = mask_data
+        cls.mask_no_bands_data = mask_no_bands_data
 
     @mock.patch("satpy.composites.enhance2dataset", _enhance2dataset)
     @pytest.mark.parametrize(
-        ("foreground_bands", "background_bands", "mask", "mask_bands", "mask_value", "exp_bands", "exp_result"),
+        ("foreground_bands", "background_bands", "mask", "mask_no_bands",
+         "mask_bands", "mask_value", "exp_bands", "exp_result"),
         [
-            ("L", "L", True, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]],[[1.0, 1.0], [1.0, 0.0]]])),
-            ("L", "L", True, "RGB", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]], [[1.0, 1.0], [1.0, 0.0]]])),
-            ("L", "LA", False, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
-            ("LA", "LA", False, "RGB", None, "LA", np.array([[[1.0, 0.75], [0.5, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
-            ("LA", "RGB", True, "L", None, "RGBA", np.array([
+            ("L", "L", True, False, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]],[[1.0, 1.0], [1.0, 0.0]]])),
+            ("L", "L", True, False, "RGB", None, "LA", np.array([[[1.0, 0.5], [0.0, 0.0]], [[1.0, 1.0], [1.0, 0.0]]])),
+            ("L", "LA", False, False, "L", None, "LA", np.array([[[1.0, 0.5], [0.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
+            ("LA", "LA", False, False, "RGB", None, "LA", np.array([[[1.0, 0.75], [0.5, 1.0]], [[1.0, 1.0], [1.0, 1.0]]])),
+            ("LA", "RGB", True, False, "L", None, "RGBA", np.array([
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 1.0], [1.0, 0.0]]])),
-            ("RGB", "RGB", True, "L", 1, "RGBA", np.array([
+            ("RGB", "RGB", True, False, "L", 1, "RGBA", np.array([
                 [[0.0, 0.5], [0.0, 1.0]],
                 [[0.0, 0.5], [0.0, 1.0]],
                 [[0.0, 0.5], [0.0, 1.0]],
                 [[0.0, 1.0], [1.0, 1.0]]])),
-            ("RGB", "RGB", True, "RGB", 0.5, "RGBA", np.array([
+            ("RGB", "RGB", True, False, "RGB", 0.5, "RGBA", np.array([
                 [[1.0, 0.0], [0.0, 1.0]],
                 [[1.0, 0.0], [0.0, 1.0]],
                 [[1.0, 0.0], [0.0, 1.0]],
                 [[1.0, 0.0], [1.0, 1.0]]])),
-            ("RGB", "RGBA", False, "L", 1, "RGBA", np.array([
+            ("RGB", "RGBA", False, False, "L", 1, "RGBA", np.array([
                 [[1.0, 0.5], [0.0, 1.0]],
                 [[1.0, 0.5], [0.0, 1.0]],
                 [[1.0, 0.5], [0.0, 1.0]],
                 [[1.0, 1.0], [1.0, 1.0]]])),
-            ("RGBA", "RGB", True, "L", None, "RGBA", np.array([
+            ("RGBA", "RGB", True, False, "L", None, "RGBA", np.array([
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 0.75], [0.5, 0.0]],
                 [[1.0, 1.0], [1.0, 0.0]]])),
-            ("RGBA", "RGB", True, "RGB", 0, "RGBA", np.array([
+            ("RGBA", "RGB", True, False, "RGB", 0, "RGBA", np.array([
                 [[1.0, 0.75], [0.0, 1.0]],
                 [[1.0, 0.75], [0.0, 1.0]],
                 [[1.0, 0.75], [0.0, 1.0]],
                 [[1.0, 1.0], [0.0, 1.0]]])),
-            ("RGBA", "RGBA", True, "L", 0.5, "RGBA", np.array([
-                [[1.0, 0.0], [0.5, 1.0]],
-                [[1.0, 0.0], [0.5, 1.0]],
-                [[1.0, 0.0], [0.5, 1.0]],
-                [[1.0, 0.0], [1.0, 1.0]]])),
-            ("RGBA", "RGBA", False, "RGB", 0, "RGBA", np.array([
+            ("RGBA", "RGB", False, False, "RGB", 0, "RGBA", np.array([
                 [[1.0, 0.75], [0.5, 1.0]],
                 [[1.0, 0.75], [0.5, 1.0]],
                 [[1.0, 0.75], [0.5, 1.0]],
                 [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGBA", "RGBA", True, False, "L", 0.5, "RGBA", np.array([
+                [[1.0, 0.0], [0.5, 1.0]],
+                [[1.0, 0.0], [0.5, 1.0]],
+                [[1.0, 0.0], [0.5, 1.0]],
+                [[1.0, 0.0], [1.0, 1.0]]])),
+            ("RGBA", "RGBA", False, False, "RGB", 0, "RGBA", np.array([
+                [[1.0, 0.75], [0.5, 1.0]],
+                [[1.0, 0.75], [0.5, 1.0]],
+                [[1.0, 0.75], [0.5, 1.0]],
+                [[1.0, 1.0], [1.0, 1.0]]])),
+            ("RGBA", "RGBA", True, True, "L", None, "RGBA", np.array([
+                [[1.0, 0.75], [0.5, 0.0]],
+                [[1.0, 0.75], [0.5, 0.0]],
+                [[1.0, 0.75], [0.5, 0.0]],
+                [[1.0, 1.0], [1.0, 0.0]]])),
         ]
     )
-    def test_call(self, foreground_bands, background_bands, mask, mask_bands, mask_value, exp_bands, exp_result):
+    def test_call(self, foreground_bands, background_bands, mask, mask_no_bands, mask_bands, mask_value,
+                  exp_bands, exp_result):
         """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
         comp = BackgroundCompositor("name", mask_value=mask_value)
 
         # L mode images
         foreground_data = self.foreground_data[foreground_bands]
-        mask_data = self.mask_data[mask_bands]
+        mask_data = self.mask_data[mask_bands] if not mask_no_bands else self.mask_data["L"]
+
         attrs = {"mode": foreground_bands, "area": "foo"}
         foreground = xr.DataArray(da.from_array(foreground_data),
                                   dims=("bands", "y", "x"),
@@ -1575,8 +1590,18 @@ class TestBackgroundCompositor:
                                     dims=("bands", "y", "x"),
                                     coords={"bands": [c for c in attrs["mode"]]},
                                     attrs=attrs)
-        res = comp([foreground, background], optional_datasets=[mask_dataset]) if mask else \
-            comp([foreground, background])
+        attrs = {"area": "foo"}
+        mask_no_bands_dataset = xr.DataArray(da.from_array(self.mask_no_bands_data),
+                                             dims=("y", "x"),
+                                             attrs=attrs)
+        if mask and not mask_no_bands:
+            res = comp([foreground, background], optional_datasets=[mask_dataset])
+        elif mask and mask_no_bands:
+            res = comp([foreground, background], optional_datasets=[mask_no_bands_dataset])
+        else:
+            res = comp([foreground, background])
+        print(res.data.compute())
+
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, exp_result)
         assert res.attrs["mode"] == exp_bands
