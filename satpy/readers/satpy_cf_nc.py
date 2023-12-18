@@ -315,11 +315,8 @@ class SatpyCFFileHandler(BaseFileHandler):
         return data
 
     def _decode_dict_type_attrs(self, data):
-        for key in ["orbital_parameters", "time_parameters"]:
-            try:
-                data.attrs[key] = _str2dict(data.attrs[key])
-            except KeyError:
-                continue
+        for key, val in data.attrs.items():
+            data.attrs[key] = _str2dict(val)
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
@@ -346,6 +343,6 @@ def _datetime_parser(json_dict):
 
 def _str2dict(val):
     """Convert string to dictionary."""
-    if isinstance(val, str):
+    if isinstance(val, str) and val.startswith("{"):
         val = json.loads(val, object_hook=_datetime_parser)
     return val
