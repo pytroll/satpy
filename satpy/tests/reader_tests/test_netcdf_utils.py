@@ -17,17 +17,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.netcdf_utils module."""
 
+import concurrent.futures
 import os
+import time
 import unittest
 
 import numpy as np
 import pytest
 
 try:
-    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object  # type: ignore
+    NetCDF4FileHandler = Preloadable = object  # type: ignore
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -293,3 +295,68 @@ class TestNetCDF4FsspecFileHandler:
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
                 h5_file.assert_called_once()
                 assert fh._use_h5netcdf
+
+
+class FakePreloadableHandler(Preloadable, FakeNetCDF4FileHandler):
+    """Fake preloadable handler."""
+
+
+class TestPreloadableHandler:
+    """Test functionality related to preloading."""
+
+    def test_wait_for_file_already_exists(self, tmp_path):
+        """Test case where file already exists."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file1"
+        fn.parent.mkdir(exist_ok=True, parents=True)
+        fn.touch()
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        assert waiter.compute() == os.fspath(fn)
+
+    def test_wait_for_file_appears(self, tmp_path):
+        """Test case where file appears after a bit."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        def _wait_and_create(path):
+            time.sleep(0.1)
+            path.touch()
+        fn = tmp_path / "file2"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=3, wait=0.05)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(_wait_and_create, fn)
+            t1 = time.time()
+            res = waiter.compute()
+            t2 = time.time()
+            assert res == os.fspath(fn)
+            assert t2 - t1 > 0.05
+
+    def test_wait_for_file_not_appears(self, tmp_path):
+        """Test case where file fails to appear."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file3"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        with pytest.raises(TimeoutError):
+            waiter.compute()
+
+    def test_wait_for_file_multiple_appear(self, tmp_path):
+        """Test case where file fails to appear."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file?"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        with pytest.raises(TimeoutError):
+            waiter.compute()
+
+    def test_wait_for_file_multiple_appears(self, tmp_path):
+        """Test case where file appears after a bit."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        def _wait_and_create(path1, path2):
+            path1.touch()
+            path2.touch()
+        fn4 = tmp_path / "file4"
+        fn5 = tmp_path / "file5"
+        pat = os.fspath(tmp_path / "file?")
+        waiter = _wait_for_file(pat, max_tries=2, wait=0.1)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(_wait_and_create, fn4, fn5)
+        with pytest.raises(ValueError,
+                           match="Expected one matching file, found 2"):
+            waiter.compute()
