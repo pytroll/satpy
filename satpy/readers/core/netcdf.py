@@ -554,7 +554,7 @@ class Preloadable:
             pickle.dump(to_store, fp)
 
 
-def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1):
+def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1, auto_maskandscale=False):
     LOG.debug(f"Waiting for {fn!s} to appear to get {var:s}.")
     for _ in range(max_tries):
         fns = glob.glob(fn)
@@ -567,4 +567,6 @@ def _get_delayed_value_from_nc(fn, var, max_tries=10, wait=1):
     else:
         raise TimeoutError("File failed to materialise")
     nc = netCDF4.Dataset(fns[0], "r")
+    if hasattr(nc, "set_auto_maskandscale"):
+        nc.set_auto_maskandscale(auto_maskandscale)
     return nc[var][:]
