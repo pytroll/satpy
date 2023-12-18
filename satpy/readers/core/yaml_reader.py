@@ -1180,7 +1180,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     image in near real time.  This feature is experimental.  Use at your own
     risk.
 
-    .. versionadded: 0.46
+    .. versionadded: 0.47
     """
 
     def __init__(self, *args, **kwargs):
