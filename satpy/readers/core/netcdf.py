@@ -17,6 +17,7 @@
 
 import glob
 import logging
+import os
 import pickle  # nosec
 import time
 
@@ -499,8 +500,17 @@ class Preloadable:
     def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
-        self.ref_fh = ref_fh
-        self.rc_cache = rc_cache
+        if preload:
+            if not isinstance(ref_fh, BaseFileHandler):
+                raise TypeError(
+                    "Expect reference filehandler when preloading, got "
+                    f"{type(ref_fh)!s}")
+            self.ref_fh = ref_fh
+            if not isinstance(rc_cache, (str, bytes, os.PathLike)):
+                raise TypeError(
+                    "Expect cache file when preloading, got "
+                    f"{type(rc_cache)!s}")
+            self.rc_cache = rc_cache
         super().__init__(*args, **kwargs)
 
     def _collect_listed_variables(self, file_handle, listed_variables):
@@ -546,15 +556,6 @@ class Preloadable:
             return True
         return False
 
-    def _get_from_other_rc(self, itm):
-        """Obtain variable from repeat cycle cache."""
-        cache_fn = self.rc_cache
-        return self._read_var_from_cache(cache_fn, itm)
-
-    def _read_var_from_cache(self, cache_fn, itm):
-        with open(cache_fn, "rb") as fp:
-            return pickle.load(fp)[itm]  # nosec
-
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
         fn_matched = _wait_for_file(self.filename)
@@ -591,7 +592,7 @@ class Preloadable:
                     to_store[key] = self[key]
 
         filename = filename or self.rc_cache
-        LOG.info(f"Storing cache to {filename:s}")
+        LOG.info(f"Storing cache to {filename!s}")
         with open(filename, "wb") as fp:
             # FIXME: potential security risk?  Acceptable?
             pickle.dump(to_store, fp)
