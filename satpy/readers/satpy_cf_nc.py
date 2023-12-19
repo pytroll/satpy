@@ -179,6 +179,7 @@ Output:
 import itertools
 import json
 import logging
+from datetime import datetime
 
 import xarray as xr
 from pyresample import AreaDefinition
@@ -347,10 +348,9 @@ class DatasetAttributeDecoder:
 
 
 def _datetime_parser(json_dict):
-    import dateutil.parser
     for key, value in json_dict.items():
         try:
-            json_dict[key] = dateutil.parser.parse(value)
+            json_dict[key] = datetime.fromisoformat(value)
         except (TypeError, ValueError):
             pass
     return json_dict

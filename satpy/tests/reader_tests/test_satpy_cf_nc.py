@@ -107,7 +107,7 @@ def area():
 def common_attrs(area):
     """Get common dataset attributes."""
     return {
-        "start_time": datetime(2019, 4, 1, 12, 0),
+        "start_time": datetime(2019, 4, 1, 12, 0, 0, 123456),
         "end_time": datetime(2019, 4, 1, 12, 15),
         "platform_name": "tirosn",
         "orbit_number": 99999,
