@@ -1356,6 +1356,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         if self.preload is True, also for predicted files that don't exist,
         as a glob pattern.
         """
+        if fh_kwargs is None:
+            fh_kwargs = {}
         i = -1
         # on first call, don't pass preload
         fh_kwargs_without_preload = fh_kwargs.copy()
