@@ -311,12 +311,9 @@ class SatpyCFFileHandler(BaseFileHandler):
         if name != ds_id["name"]:
             data = data.rename(ds_id["name"])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
-        self._decode_dict_type_attrs(data)
+        decoder = DatasetAttributeDecoder()
+        decoder.decode_attrs(data)
         return data
-
-    def _decode_dict_type_attrs(self, data):
-        for key, val in data.attrs.items():
-            data.attrs[key] = _str2dict(val)
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
@@ -331,6 +328,24 @@ class SatpyCFFileHandler(BaseFileHandler):
             raise NotImplementedError
 
 
+class DatasetAttributeDecoder:
+    """Decode attributes from cf-compatible to Python object."""
+
+    def decode_attrs(self, dataset):
+        """Decode dataset attributes."""
+        self._decode_dict_type_attrs(dataset)
+
+    def _decode_dict_type_attrs(self, data):
+        for key, val in data.attrs.items():
+            data.attrs[key] = self._str2dict(val)
+
+    def _str2dict(self, val):
+        """Convert string to dictionary."""
+        if isinstance(val, str) and val.startswith("{"):
+            val = json.loads(val, object_hook=_datetime_parser)
+        return val
+
+
 def _datetime_parser(json_dict):
     import dateutil.parser
     for key, value in json_dict.items():
@@ -339,10 +354,3 @@ def _datetime_parser(json_dict):
         except (TypeError, ValueError):
             pass
     return json_dict
-
-
-def _str2dict(val):
-    """Convert string to dictionary."""
-    if isinstance(val, str) and val.startswith("{"):
-        val = json.loads(val, object_hook=_datetime_parser)
-    return val
