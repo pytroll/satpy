@@ -1720,9 +1720,12 @@ class BackgroundCompositor(GenericCompositor):
         """Call the compositor."""
         optional_datasets = [] if optional_datasets is None else optional_datasets
         projectables = self.match_data_arrays(projectables + optional_datasets)
+
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
+        before_bg_mode = background.attrs["mode"]
+
         mask_dataset = projectables[2] if not optional_datasets == [] else None
 
         # Adjust bands so that they match
@@ -1731,15 +1734,17 @@ class BackgroundCompositor(GenericCompositor):
         # RGB/RGBA -> RGBA/RGBA
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
+        after_bg_mode = background.attrs["mode"]
+
+        # It's important to judge whether the alpha band of background is initially generated, e.g. by CloudCompositor
+        # Or it's just added through 'add_bands'
+        # The result will be used to decide the output image mode
+        initial_bg_alpha = True if "A" in before_bg_mode and "A" in after_bg_mode else False
 
         mask = self._get_mask(mask_dataset, self.mask_value)
-        alpha_fore = self._get_alpha(foreground)
-        alpha_back = self._get_alpha(background)
-        output_mode = self._get_output_mode(foreground, background, mask)
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background, mask=mask,
-                                           alpha_fore=alpha_fore, alpha_back=alpha_back, output_mode=output_mode)
+        data = self._get_merged_image_data(foreground, background, mask=mask, initial_bg_alpha=initial_bg_alpha)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1763,7 +1768,7 @@ class BackgroundCompositor(GenericCompositor):
         if dataset is None:
             mask = None
         else:
-            # If mask dataset is a composite, then extract its first band
+            # If mask dataset is a composite, extract its first band
             try:
                 dataset = dataset.isel(bands=0)
             except ValueError:
@@ -1777,52 +1782,29 @@ class BackgroundCompositor(GenericCompositor):
         return mask
 
     @staticmethod
-    def _get_alpha(dataset: xr.DataArray):
-        # If the dataset contains an alpha channel, just use it
-        # If not, we still need one. So build it and fill it with 1
-        if "A" in dataset.attrs["mode"]:
-            alpha = dataset.sel(bands="A")
-        else:
-            first_band = dataset.isel(bands=0)
-            alpha = xr.full_like(first_band, 1)
-            alpha["bands"] = "A"
-
-        # There could be Nans in the alpha, especially for original ones
-        # Replace them with 0, so they won't affect new_alpha
-        alpha = xr.where(alpha.isnull(), 0, alpha)
-
-        return alpha
-
-    @staticmethod
-    def _get_output_mode(foreground: xr.DataArray,
-                         background: xr.DataArray,
-                         mask: xr.DataArray):
-        # Get the output bands of the stacked image
-        # Actually, it's about deciding whether to pass the new alpha band of the stacked image to the writer
-        # Or just leave the write for decision
-
-        # If both images have alpha band or just background has one, the new alpha band will be passed to the writer
-        # If area-masking is needed, the same
-        # If neither of the images has alpha band but area-masking is still needed, the same
-        if "A" in background.attrs["mode"]:
-            output_mode = background.mode
-        else:
-            output_mode = (
-                background.mode if "A" in foreground.attrs["mode"] and mask is None else
-                foreground.mode if mask is None else foreground.mode + "A"
-            )
-
-        return output_mode
-
-    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
                                mask: xr.DataArray,
-                               alpha_fore: xr.DataArray,
-                               alpha_back: xr.DataArray,
-                               output_mode: str,
+                               initial_bg_alpha: bool,
                                ) -> list[xr.DataArray]:
+        def _get_alpha(dataset: xr.DataArray):
+            # If the dataset contains an alpha channel, just use it
+            # If not, we still need one. So build it and fill it with 1
+            if "A" in dataset.attrs["mode"]:
+                alpha = dataset.sel(bands="A")
+            else:
+                first_band = dataset.isel(bands=0)
+                alpha = xr.full_like(first_band, 1)
+                alpha["bands"] = "A"
 
+            # There could be Nans in the alpha, especially through 'add_bands'
+            # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
+            alpha = xr.where(alpha.isnull(), 0, alpha)
+
+            return alpha
+
+        alpha_fore = _get_alpha(foreground)
+        alpha_back = _get_alpha(background)
         new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
 
         # Do the masking job
@@ -1833,14 +1815,24 @@ class BackgroundCompositor(GenericCompositor):
 
         data = []
 
+        # Unless background has an initial alpha band, there will be no alpha band in the output image
+        # Let the writer decide
+        output_mode = background.mode if initial_bg_alpha else background.mode.replace("A", "")
+
+        # If we let the writer decide alpha band, we must fill the transparent areas in the image with np.nan first
+        # The best way is through the new alpha
+        new_alpha_nan = xr.where(alpha_fore + alpha_back == 0, np.nan, new_alpha) if "A" not in output_mode \
+            else new_alpha
+
         for band in output_mode:
             fg_band = foreground.sel(bands=band) if band != "A" else new_alpha
             bg_band = background.sel(bands=band) if band != "A" else new_alpha
 
             chan = (fg_band * alpha_fore +
-                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha if band != "A" else new_alpha
+                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan if band != "A" else new_alpha
 
-            chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+            if mask is None:
+                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
 
             data.append(chan)
 
