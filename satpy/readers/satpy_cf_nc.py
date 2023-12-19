@@ -334,23 +334,36 @@ class DatasetAttributeDecoder:
 
     def decode_attrs(self, dataset):
         """Decode dataset attributes."""
-        self._decode_dict_type_attrs(dataset)
+        self._decode_dict_type_attrs(dataset.attrs)
+        self._decode_timestamps(dataset.attrs)
 
-    def _decode_dict_type_attrs(self, data):
-        for key, val in data.attrs.items():
-            data.attrs[key] = self._str2dict(val)
+    def _decode_dict_type_attrs(self, attrs):
+        for key, val in attrs.items():
+            attrs[key] = self._str2dict(val)
 
     def _str2dict(self, val):
         """Convert string to dictionary."""
         if isinstance(val, str) and val.startswith("{"):
-            val = json.loads(val, object_hook=_datetime_parser)
+            val = json.loads(val, object_hook=_datetime_parser_json)
         return val
 
+    def _decode_timestamps(self, attrs):
+        for key, value in attrs.items():
+            timestamp = _str2datetime(value)
+            if timestamp:
+                attrs[key] = timestamp
 
-def _datetime_parser(json_dict):
+
+def _datetime_parser_json(json_dict):
     for key, value in json_dict.items():
-        try:
-            json_dict[key] = datetime.fromisoformat(value)
-        except (TypeError, ValueError):
-            pass
+        timestamp = _str2datetime(value)
+        if timestamp:
+            json_dict[key] = timestamp
     return json_dict
+
+
+def _str2datetime(string):
+    try:
+        return datetime.fromisoformat(string)
+    except (TypeError, ValueError):
+        return None

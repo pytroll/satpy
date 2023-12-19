@@ -111,7 +111,8 @@ def common_attrs(area):
         "end_time": datetime(2019, 4, 1, 12, 15),
         "platform_name": "tirosn",
         "orbit_number": 99999,
-        "area": area
+        "area": area,
+        "my_timestamp": datetime(2000, 1, 1)
     }
 
 
@@ -445,6 +446,14 @@ class TestCFReader:
             orig_attrs = cf_scene["image0"].attrs[attr_name]
             new_attrs = scn_["image0"].attrs[attr_name]
             assert new_attrs == orig_attrs
+
+    def test_decoding_of_timestamps(self, cf_scene, nc_filename):
+        """Test decoding of timestamps."""
+        cf_scene.save_datasets(writer="cf", filename=nc_filename)
+        scn = Scene(reader="satpy_cf_nc", filenames=[nc_filename])
+        scn.load(["image0"])
+        expected = cf_scene["image0"].attrs["my_timestamp"]
+        assert scn["image0"].attrs["my_timestamp"] == expected
 
     def test_write_and_read_from_two_files(self, nc_filename, nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""
