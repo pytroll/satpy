@@ -1441,7 +1441,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         p = Parser(pat)
         new_info = filename_info.copy()
         for tm in fh.filetype_info.get("time_tags", []):
-            new_info[tm] = datetime.datetime.min
+            new_info[tm] = datetime.datetime.max
         for ct in fh.filetype_info.get("variable_tags", []):
             new_info[ct] = 0
         name = p.compose(new_info)

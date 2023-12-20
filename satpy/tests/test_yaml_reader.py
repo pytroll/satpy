@@ -1635,7 +1635,7 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
         for i in range(2, 6):  # disk cache except for nr. 1
             fn = (tmp_path / "cache" / "satpy" / "preloadable" /
                   "DummyPreloadableHandler" /
-                  f"M9G-a-10101000000-10101000000-{i:>04d}.pkl")
+                  f"M9G-a-99991231235959-99991231235959-{i:>04d}.pkl")
             fn.parent.mkdir(exist_ok=True, parents=True)
             with fn.open(mode="wb") as fp:
                 pickle.dump({}, fp)
@@ -1739,4 +1739,4 @@ def test_get_cache_filename(tmp_path):
         au.return_value = os.fspath(tmp_path / "cache")
         cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
-            "BaseFileHandler" / "a-10101000000-000000-04-01.pkl")
+            "BaseFileHandler" / "a-99991231235959-235959-04-01.pkl")
