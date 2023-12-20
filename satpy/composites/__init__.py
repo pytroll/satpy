@@ -1724,7 +1724,7 @@ class BackgroundCompositor(GenericCompositor):
         background = enhance2dataset(projectables[1], convert_p=True)
         before_bg_mode = background.attrs["mode"]
 
-        mask_dataset = projectables[2] if len(projecables) >= 3 else None
+        mask_dataset = projectables[2] if len(projectables) >= 3 else None
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
