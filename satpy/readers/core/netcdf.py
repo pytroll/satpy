@@ -494,7 +494,7 @@ class Preloadable:
 
     This feature is experimental.
 
-    ..versionadded: 0.47
+    .. versionadded: 0.47
     """
 
     def __init__(self, *args, preload=False, preload_step=2, preload_tries=300,

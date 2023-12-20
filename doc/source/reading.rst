@@ -341,6 +341,53 @@ are automatically added. Other possible coordinates you may see:
 
 * ``acq_time``: Instrument data acquisition time per scan or row of data.
 
+Reading data before they're available
+=====================================
+
+Normally, data need to exist before they can be read.  This requirement
+impacts data processing timeliness.  For data arriving in segments,
+Satpy can process each segment immediately as it comes in.
+This feature currently only works with the :mod:`~satpy.readers.fci_l1c_nc` reader.
+This is experimental and likely to be instable and might change.
+
+Consider a near real time data reception situation where FCI segments are
+delivered one by one.  Clasically, to produce full disc imagery,
+users would wait for all needed segments to arrive, before they
+start processing any data by passing all segments to the :class:`~satpy.Scene`.
+For a more timely imagery production, users can create the Scene, load the data, resample, and even call :method:`~satpy.Scene.save_datasets` (as long as ``compute=False``) before there the data are complete.
+When they then trigger the computation, much of the overhead in Satpy internals has already been completed, and Satpy will process each segment as it comes in.
+
+To do so, Satpy caches a selection data and metadata between segments
+and between repeat cycles.  Caching between segments happens in-memory
+and needs no farther preparation from the user, but where data are cached
+between repeat cycles, the user needs to create this cache first::
+
+  >>> from satpy.readers import create_preloadable_cache
+  >>> create_preloadable_cache("fci_l1c_nc", fci_files)
+
+For one full disc of FDHSI or HRFI data.  This needs to be done only once, or
+possibly again if there is an unexpected change in the data that are cached
+between repeat cycles (as defined in the reader YAML file).
+To make use of eager processing, the Scene object should be called passing
+``preload=True``, passing _only_ the path to the first segment::
+
+  >>> sc = Scene(
+  ...   filenames=[path_to_first_segment],
+  ...   reader="fci_l1c_nc",
+  ...   reader_kwargs={"preload": True})
+
+Satpy will figure out the names of the remaining segments and find them as
+they come in.  If the data are already available, processing is similar to
+the regular case.  If the data are not yet available, Satpy will wait during
+the computation of the dask graphs until data become available.
+
+For more technical background reading including hints
+on how this could be extended to other readers, see
+:class:`~satpy.readers.netcdf_utils.Preloadable` and
+:class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
+
+.. versionadded: 0.47
+
 Adding a Reader to Satpy
 ========================
 
