@@ -177,13 +177,12 @@ Output:
 
 """
 import itertools
-import json
 import logging
-from datetime import datetime
 
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy.cf.decoding
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -312,8 +311,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         if name != ds_id["name"]:
             data = data.rename(ds_id["name"])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
-        decoder = DatasetAttributeDecoder()
-        decoder.decode_attrs(data)
+        data.attrs = satpy.cf.decoding.decode_attrs(data.attrs)
         return data
 
     def get_area_def(self, dataset_id):
@@ -327,43 +325,3 @@ class SatpyCFFileHandler(BaseFileHandler):
             # with the yaml_reader NotImplementedError is raised.
             logger.debug("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
             raise NotImplementedError
-
-
-class DatasetAttributeDecoder:
-    """Decode attributes from cf-compatible to Python object."""
-
-    def decode_attrs(self, dataset):
-        """Decode dataset attributes."""
-        self._decode_dict_type_attrs(dataset.attrs)
-        self._decode_timestamps(dataset.attrs)
-
-    def _decode_dict_type_attrs(self, attrs):
-        for key, val in attrs.items():
-            attrs[key] = self._str2dict(val)
-
-    def _str2dict(self, val):
-        """Convert string to dictionary."""
-        if isinstance(val, str) and val.startswith("{"):
-            val = json.loads(val, object_hook=_datetime_parser_json)
-        return val
-
-    def _decode_timestamps(self, attrs):
-        for key, value in attrs.items():
-            timestamp = _str2datetime(value)
-            if timestamp:
-                attrs[key] = timestamp
-
-
-def _datetime_parser_json(json_dict):
-    for key, value in json_dict.items():
-        timestamp = _str2datetime(value)
-        if timestamp:
-            json_dict[key] = timestamp
-    return json_dict
-
-
-def _str2datetime(string):
-    try:
-        return datetime.fromisoformat(string)
-    except (TypeError, ValueError):
-        return None
