@@ -497,9 +497,12 @@ class Preloadable:
     ..versionadded: 0.47
     """
 
-    def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
+    def __init__(self, *args, preload=False, preload_step=2, preload_tries=300,
+                 ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
+        self.preload_tries = preload_tries
+        self.preload_step = preload_step
         if preload:
             if not isinstance(ref_fh, BaseFileHandler):
                 raise TypeError(
@@ -561,7 +564,8 @@ class Preloadable:
 
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
-        fn_matched = _wait_for_file(self.filename)
+        fn_matched = _wait_for_file(self.filename, self.preload_tries,
+                                    self.preload_step)
         dade = _get_delayed_value_from_nc(fn_matched, subst_name)
         array = da.from_delayed(
                 dade,
@@ -616,7 +620,7 @@ def _wait_for_file(fn, max_tries=300, wait=2):
 
 
 @dask.delayed
-def _get_delayed_value_from_nc(fn, var, max_tries=300, wait=2, auto_maskandscale=False):
+def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
     with netCDF4.Dataset(fn, "r") as nc:
         if hasattr(nc, "set_auto_maskandscale"):
             nc.set_auto_maskandscale(auto_maskandscale)

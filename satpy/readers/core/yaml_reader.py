@@ -1177,8 +1177,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     a scene based on all expected segments with dask delayed objects.  When
     computing the dask graphs, satpy will process each segment as soon as it
     comes in, strongly reducing the timeliness for processing a full disc
-    image in near real time.  This feature is experimental.  Use at your own
-    risk.
+    image in near real time.  Checking for new files can be controlled
+    with the argumentst ``preload_step`` (time in seconds) and
+    ``preload_tries`` (how many tries before giving up).
+    This feature is experimental.  Use at your own risk.
 
     .. versionadded: 0.47
     """
