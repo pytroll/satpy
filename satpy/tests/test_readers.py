@@ -22,6 +22,7 @@ import builtins
 import contextlib
 import datetime as dt
 import os
+import pickle
 import sys
 import unittest
 import warnings
@@ -29,6 +30,7 @@ from pathlib import Path
 from typing import Iterator
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -1300,3 +1302,35 @@ def test_init_import_warns(name):
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(readers, name)
+
+
+def test_create_preloadable_cache(tmp_path):
+    """Test utility function creating a test for preloading."""
+    from satpy.readers import create_preloadable_cache
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+    from satpy.tests.reader_tests.test_netcdf_utils import FakePreloadableHandler
+    fake_config = {"reader": {
+            "name": "tartupaluk"},
+         "file_types": {
+             "m9g": {
+                 "file_reader": FakePreloadableHandler,
+                 "file_patterns": ["a-{segment:d}.nc"],
+                 "expected_segments": 3,
+                 "required_netcdf_variables": {"/iceland/reykjavík": ["rc"]}}}}
+    dph = FakePreloadableHandler(
+            os.fspath(tmp_path / "a-0.nc"),
+            {"segment": 0}, fake_config["file_types"]["m9g"],
+            preload=False, rc_cache=tmp_path / "test.pkl")
+    dph.file_content["/iceland/reykjavík"] = xr.DataArray(da.from_array([[0, 1, 2]]))
+    gsyr = GEOSegmentYAMLReader(fake_config, preload=True)
+    gsyr.file_handlers["handler"] = [dph]
+
+    with unittest.mock.patch("satpy.readers.load_readers") as srl:
+        with unittest.mock.patch("appdirs.user_cache_dir") as au:
+            au.return_value = os.fspath(tmp_path / "cache")
+            srl.return_value = {"tartupaluk": gsyr}
+            create_preloadable_cache("tartupaluk", [tmp_path / "a-0.nc"])
+    with (tmp_path / "cache" / "satpy" / "preloadable" /
+          "FakePreloadableHandler" / "a-0.pkl").open(mode="rb") as fp:
+        data = pickle.load(fp)
+        assert data.keys()
