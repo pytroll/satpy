@@ -577,7 +577,7 @@ class Preloadable:
 
     def _get_file_handle(self):
         if self.preload:
-            return open("/dev/null", "r")
+            return open(os.devnull, "r")
         return super()._get_file_handle()
 
     def store_cache(self, filename=None):

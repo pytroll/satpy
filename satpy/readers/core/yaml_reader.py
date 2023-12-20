@@ -1356,22 +1356,23 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         if self.preload is True, also for predicted files that don't exist,
         as a glob pattern.
         """
-        if self.preload and "requires" in filetype_info:
-            raise ValueError("Unable to preload with required types")
         if fh_kwargs is None:
             fh_kwargs = {}
-        i = -1
-        # on first call, don't pass preload
         fh_kwargs_without_preload = fh_kwargs.copy()
         fh_kwargs_without_preload.pop("preload", None)
-        for (i, fh) in enumerate(super()._new_filehandler_instances(
-                filetype_info, filename_items,
-                fh_kwargs=fh_kwargs_without_preload)):
-            yield fh
-        if self.preload and i >= 0:
-            if i < fh.filetype_info["expected_segments"]:
-                yield from self._new_preloaded_filehandler_instances(
-                        filetype_info, fh)
+        fh_it = super()._new_filehandler_instances(filetype_info,
+                                                   filename_items,
+                                                   fh_kwargs=fh_kwargs_without_preload)
+        if not self.preload:
+            yield from fh_it
+            return
+        if "requires" in filetype_info:
+            raise ValueError("Unable to preload with required types")
+        fh_first = next(fh_it)
+        yield fh_first
+        yield from fh_it
+        yield from self._new_preloaded_filehandler_instances(
+                filetype_info, fh_first)
 
     def _new_preloaded_filehandler_instances(self, filetype_info, fh):
         """Get filehandler instances for non-existing files.
