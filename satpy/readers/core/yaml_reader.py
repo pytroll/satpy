@@ -1356,6 +1356,8 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         if self.preload is True, also for predicted files that don't exist,
         as a glob pattern.
         """
+        if self.preload and "requires" in filetype_info:
+            raise ValueError("Unable to preload with required types")
         if fh_kwargs is None:
             fh_kwargs = {}
         i = -1
@@ -1438,9 +1440,9 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         pat = self._select_pattern(filename)
         p = Parser(pat)
         new_info = filename_info.copy()
-        for tm in fh.filetype_info["time_tags"]:
+        for tm in fh.filetype_info.get("time_tags", []):
             new_info[tm] = datetime.datetime.min
-        for ct in fh.filetype_info["variable_tags"]:
+        for ct in fh.filetype_info.get("variable_tags", []):
             new_info[ct] = 0
         name = p.compose(new_info)
         pt = pathlib.Path(name)

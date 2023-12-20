@@ -113,7 +113,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
-        if listed_variables:
+        if listed_variables is not None:
             self._collect_listed_variables(file_handle, listed_variables)
         else:
             self.collect_metadata("", file_handle)
@@ -512,6 +512,9 @@ class Preloadable:
                     f"{type(rc_cache)!s}")
             self.rc_cache = rc_cache
         super().__init__(*args, **kwargs)
+        if "required_netcdf_variables" not in self.filetype_info:
+            raise ValueError("For preloadable filehandlers, "
+                             "required_netcdf_variables is mandatory.")
 
     def _collect_listed_variables(self, file_handle, listed_variables):
         """Collect listed variables, either preloaded or regular."""
@@ -574,15 +577,13 @@ class Preloadable:
 
     def _get_file_handle(self):
         if self.preload:
-            return None
+            return open("/dev/null", "r")
         return super()._get_file_handle()
 
     def store_cache(self, filename=None):
         """Store RC-cachable data to cache."""
         if self.preload:
             raise ValueError("Cannot store cache with pre-loaded handler")
-        if "required_netcdf_variables" not in self.filetype_info:
-            raise ValueError("Caching needs required_netcdf_variables, but none is defined.")
         to_store = {}
         for key in self.file_content.keys():
             if self._can_get_from_other_rc(key):

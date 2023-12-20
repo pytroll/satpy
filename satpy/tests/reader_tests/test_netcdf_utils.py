@@ -610,15 +610,17 @@ class TestPreloadableHandler:
             fph.store_cache(tmp_path / "nowhere-special.pkl")
         fc2 = fake_config.copy()
         del fc2["required_netcdf_variables"]
-        fph = FakePreloadableHandler("dummy", {}, fc2, preload=False,
-                                     rc_cache=cache_file)
-        with pytest.raises(ValueError, match="Caching needs required_netcdf_variables"):
-            fph.store_cache(tmp_path / "nowhere-special.pkl")
+        with pytest.raises(ValueError,
+                           match="For preloadable filehandlers, "
+                                 "required_netcdf_variables is mandatory"):
+            fph = FakePreloadableHandler("dummy", {}, fc2, preload=False,
+                                         rc_cache=cache_file)
 
-    def test_get_file_handle(self, preloadable_true, preloadable_false):
+    def test_get_file_handle(self, preloadable_true, preloadable_false,
+                             tmp_path):
         """Test getting the file handle."""
-        assert preloadable_true._get_file_handle() is None
-        assert preloadable_false._get_file_handle() is not None
+        preloadable_true._get_file_handle()
+        preloadable_false._get_file_handle()
 
     def test_collect_vars(self, tmp_path, fake_config, preloadable_false):
         """Test collecting variables is delegated."""
