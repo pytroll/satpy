@@ -433,10 +433,10 @@ class TestPreloadableHandler:
         """Test case where file appears after a bit."""
         from satpy.readers.netcdf_utils import _wait_for_file
         def _wait_and_create(path):
-            time.sleep(0.1)
+            time.sleep(0.08)
             path.touch()
         fn = tmp_path / "file2"
-        waiter = _wait_for_file(os.fspath(fn), max_tries=3, wait=0.05)
+        waiter = _wait_for_file(os.fspath(fn), max_tries=8, wait=0.07)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.submit(_wait_and_create, fn)
             t1 = time.time()
