@@ -1677,54 +1677,16 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
 
 class BackgroundCompositor(GenericCompositor):
-    """A compositor that overlays one composite on top of another.
+    """A compositor that overlays one composite on top of another."""
 
-    Beside foreground and background, a third optional dataset could be passed
-    to the compositor to use it for masking. If this dataset contains
-    more than one band, only the first band will be used. This is useful when you
-    reproject a specific local-area image (e.g. a geostationary satellite view)
-    to global extent, and put it on a global background (e.g. NASA's Black Marble)
-    while making other areas of the world transparent, only keeping the local one.
-
-    To use this function in a YAML configuration file, add the third dataset
-    as ``optional_prerequisites``:
-
-    .. code-block:: yaml
-
-      night_cloud_alpha_2000_with_background:
-        compositor: !!python/name:satpy.composites.BackgroundCompositor
-        prerequisites:
-          - name: night_cloud_alpha_2000
-          - name: static_night
-        optional_prerequisites:
-          - name: IR105
-
-    """
-    def __init__(self, name, mask_value=None, **kwargs):  # noqa: D417
-        """Collect custom configuration values.
-
-        Args:
-            mask_value (float | None): Value of the third dataset used to generate
-                the mask for the stacked image. Defaults to ``np.nan``. This is
-                useful when wanting additional masking for a static image
-                (e.g. :class:`StaticImageCompositor`).
-
-        """
-        self.mask_value = mask_value if mask_value is not None else np.nan
-
-        super(BackgroundCompositor, self).__init__(name, **kwargs)
-
-    def __call__(self, projectables, optional_datasets=None, *args, **kwargs):
+    def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
-        optional_datasets = [] if optional_datasets is None else optional_datasets
-        projectables = self.match_data_arrays(projectables + optional_datasets)
+        projectables = self.match_data_arrays(projectables)
 
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
         before_bg_mode = background.attrs["mode"]
-
-        mask_dataset = projectables[2] if len(projectables) >= 3 else None
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
@@ -1739,10 +1701,8 @@ class BackgroundCompositor(GenericCompositor):
         # The result will be used to decide the output image mode
         initial_bg_alpha = True if "A" in before_bg_mode and "A" in after_bg_mode else False
 
-        mask = self._get_mask(mask_dataset, self.mask_value)
-
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background, mask=mask, initial_bg_alpha=initial_bg_alpha)
+        data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
@@ -1762,27 +1722,8 @@ class BackgroundCompositor(GenericCompositor):
         return attrs
 
     @staticmethod
-    def _get_mask(dataset: xr.DataArray, mask_value):
-        if dataset is None:
-            mask = None
-        else:
-            # If mask dataset is a composite, extract its first band
-            try:
-                dataset = dataset.isel(bands=0)
-            except ValueError:
-                pass
-
-            if np.isnan(mask_value):
-                mask = xr.where(dataset.isnull(), 0, 1)
-            else:
-                mask = xr.where(dataset == mask_value, 0, 1)
-
-        return mask
-
-    @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
                                background: xr.DataArray,
-                               mask: xr.DataArray,
                                initial_bg_alpha: bool,
                                ) -> list[xr.DataArray]:
         def _get_alpha(dataset: xr.DataArray):
@@ -1805,12 +1746,6 @@ class BackgroundCompositor(GenericCompositor):
         alpha_back = _get_alpha(background)
         new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
 
-        # Do the masking job
-        if mask is not None:
-            alpha_fore.data = np.minimum(alpha_fore.data, mask.data)
-            alpha_back.data = np.minimum(alpha_back.data, mask.data)
-            new_alpha.data = np.minimum(new_alpha.data, mask.data)
-
         data = []
 
         # Unless background has an initial alpha band, there will be no alpha band in the output image
@@ -1829,8 +1764,7 @@ class BackgroundCompositor(GenericCompositor):
             chan = (fg_band * alpha_fore +
                     bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan if band != "A" else new_alpha
 
-            if mask is None:
-                chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+            chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
 
             data.append(chan)
 
