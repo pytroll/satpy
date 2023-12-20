@@ -1546,7 +1546,6 @@ class TestBackgroundCompositor:
                                   attrs=attrs)
 
         res = comp([foreground, background])
-        print(res.data.compute())
 
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, exp_result)
