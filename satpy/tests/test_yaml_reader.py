@@ -1595,7 +1595,7 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
             "expected_segments": 5,
             "time_tags": ["start_time", "end_time"],
             "segment_tag": "segment",
-            "required_netcdf_variables": []}
+            "required_netcdf_variables": {}}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
