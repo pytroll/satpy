@@ -1704,12 +1704,10 @@ class BackgroundCompositor(GenericCompositor):
         """Collect custom configuration values.
 
         Args:
-            mask_value (float / None): All the pixels on the stacked image where the values
-                                       of the third dataset that are equal to this will be
-                                       masked out.
-                                       If not set by the user, it will be ``np.nan``.
-                                       This argument could be helpful when you try to use a
-                                       local image(StaticImageCompositor) for masking.
+            mask_value (float | None): Value of the third dataset used to generate
+                the mask for the stacked image. Defaults to ``np.nan``. This is
+                useful when wanting additional masking for a static image
+                (e.g. :class:`StaticImageCompositor`).
 
         """
         self.mask_value = mask_value if mask_value is not None else np.nan
