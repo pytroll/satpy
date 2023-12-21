@@ -277,8 +277,8 @@ def test_filehandler_returns_area(insat_filehandler):
 
     ds_id = make_dataid(name="MIR", resolution=4000, calibration="brightness_temperature")
     area_def = fh.get_area_def(ds_id)
-    lons, lats = area_def.get_lonlats(chunks=1000)
-    assert "+lon_0=" + str(subsatellite_longitude) in area_def.crs.to_proj4()
+    _ = area_def.get_lonlats(chunks=1000)
+    assert subsatellite_longitude == area_def.crs.to_cf()["longitude_of_projection_origin"]
 
 
 def test_filehandler_has_start_and_end_time(insat_filehandler):

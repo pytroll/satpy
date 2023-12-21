@@ -23,7 +23,7 @@ from glob import glob
 from setuptools import find_packages, setup
 
 requires = ["numpy >=1.21", "pillow", "pyresample >=1.24.0", "trollsift",
-            "trollimage >=1.20", "pykdtree", "pyyaml >=5.1", "xarray >=0.10.1, !=0.13.0",
+            "trollimage >=1.20", "pykdtree", "pyyaml >=5.1", "xarray >=0.14.1",
             "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "appdirs",
             "packaging", "pooch", "pyorbital"]
 
@@ -76,6 +76,8 @@ extras_require = {
     "doc": ["sphinx", "sphinx_rtd_theme", "sphinxcontrib-apidoc"],
     # Other
     "geoviews": ["geoviews"],
+    "holoviews": ["holoviews"],
+    "hvplot": ["hvplot", "geoviews", "cartopy", "holoviews"],
     "overlays": ["pycoast", "pydecorate"],
     "satpos_from_tle": ["skyfield", "astropy"],
     "tests": test_requires,

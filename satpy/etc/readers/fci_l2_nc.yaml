@@ -64,6 +64,16 @@ file_types:
     file_patterns:
       - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
+  nc_fci_amvi:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCAMVFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-AMVI-{channel}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_amv:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCAMVFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-AMV-{channel}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
 datasets:
 
 # CLM
@@ -2732,5 +2742,262 @@ datasets:
   product_timeliness_asr:
     name: product_timeliness_asr
     file_type: nc_fci_asr
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+# AMV Intermediate Product
+  intm_latitude:
+    name: intm_latitude
+    file_type: nc_fci_amvi
+    file_key: intm_latitude
+    standard_name: latitude
+
+  intm_longitude:
+    name: intm_longitude
+    file_type: nc_fci_amvi
+    file_key: intm_longitude
+    standard_name: longitude
+
+  intm_speed:
+    name: intm_speed
+    file_type: nc_fci_amvi
+    file_key: intm_speed
+    standard_name: wind_speed
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_u_component:
+    name: intm_u_component
+    file_type: nc_fci_amvi
+    file_key: intm_u_component
+    standard_name: wind_speed_horizontal_component
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_v_component:
+    name: intm_v_component
+    file_type: nc_fci_amvi
+    file_key: intm_v_component
+    standard_name: wind_speed_vertical_component
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_direction:
+    name: intm_direction
+    file_type: nc_fci_amvi
+    file_key: intm_direction
+    standard_name: wind_to_direction
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_pressure:
+    name: intm_pressure
+    file_type: nc_fci_amvi
+    file_key: intm_pressure
+    standard_name: wind_pressure
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_temperature:
+    name: intm_temperature
+    file_type: nc_fci_amvi
+    file_key: intm_temperature
+    standard_name: wind_temperature
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_target_type:
+    name: intm_target_type
+    file_type: nc_fci_amvi
+    file_key: target_type
+    standard_name: wind_target_type
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_wind_method:
+    name: intm_wind_method
+    file_type: nc_fci_amvi
+    file_key: wind_method
+    standard_name: wind_wind_method
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+# AMV Final Product
+  channel_id:
+    name: channel_id
+    file_type: nc_fci_amv
+    file_key: channel_id
+    standard_name: channel_id
+
+  amv_latitude:
+    name: latitude
+    file_type: nc_fci_amv
+    file_key: latitude
+    standard_name: latitude
+
+  amv_longitude:
+    name: longitude
+    file_type: nc_fci_amv
+    file_key: longitude
+    standard_name: longitude
+
+  speed:
+    name: speed
+    file_type: nc_fci_amv
+    file_key: speed
+    standard_name: wind_speed
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_u_component:
+    name: speed_u_component
+    file_type: nc_fci_amv
+    file_key: speed_u_component
+    standard_name: wind_speed_horizontal_component
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_v_component:
+    name: speed_v_component
+    file_type: nc_fci_amv
+    file_key: speed_v_component
+    standard_name: wind_speed_vertical_component
+    coordinates:
+      - longitude
+      - latitude
+
+  direction:
+    name: direction
+    file_type: nc_fci_amv
+    file_key: direction
+    standard_name: wind_to_direction
+    coordinates:
+      - longitude
+      - latitude
+
+  pressure:
+    name: pressure
+    file_type: nc_fci_amv
+    file_key: pressure
+    standard_name: wind_pressure
+    coordinates:
+      - longitude
+      - latitude
+
+  temperature:
+    name: temperature
+    file_type: nc_fci_amv
+    file_key: temperature
+    standard_name: wind_temperature
+    coordinates:
+      - longitude
+      - latitude
+
+  target_type:
+    name: target_type
+    file_type: nc_fci_amv
+    file_key: target_type
+    standard_name: wind_target_type
+    coordinates:
+      - longitude
+      - latitude
+
+  wind_method:
+    name: wind_method
+    file_type: nc_fci_amv
+    file_key: wind_method
+    standard_name: wind_wind_method
+    coordinates:
+      - longitude
+      - latitude
+
+  fcst_u:
+    name: fcst_u
+    file_type: nc_fci_amv
+    file_key: forecast_u_component
+    standard_name: wind_forecast_u_component
+    coordinates:
+      - longitude
+      - latitude
+
+  fcst_v:
+    name: fcst_v
+    file_type: nc_fci_amv
+    file_key: forecast_v_component
+    standard_name: wind_forecast_v_component
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_pres:
+    name: best_fit_pres
+    file_type: nc_fci_amv
+    file_key: best_fit_pressure
+    standard_name: wind_best_fit_pressure
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_u:
+    name: best_fit_u
+    file_type: nc_fci_amv
+    file_key: best_fit_u_component
+    standard_name: wind_best_fit_u_component
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_v:
+    name: best_fit_v
+    file_type: nc_fci_amv
+    file_key: best_fit_v_component
+    standard_name: wind_best_fit_v_component
+    coordinates:
+      - longitude
+      - latitude
+
+  qi:
+    name: qi
+    file_type: nc_fci_amv
+    file_key: overall_reliability
+    standard_name: wind_overall_reliability
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst:
+    name: qi_excl_fcst
+    file_type: nc_fci_amv
+    file_key: overall_reliability_exc_forecast
+    standard_name: wind_overall_reliability_exc_forecast
+    coordinates:
+      - longitude
+      - latitude
+
+  product_quality:
+    name: product_quality
+    file_type: nc_fci_amv
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness:
+    name: product_completeness
+    file_type: nc_fci_amv
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness:
+    name: product_timeliness
+    file_type: nc_fci_amv
     file_key: product_timeliness
     long_name: product_timeliness_index

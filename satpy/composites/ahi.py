@@ -14,7 +14,3 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for AHI."""
-
-# The green corrector used to be defined here, but was moved to spectral.py
-# in Satpy 0.38 because it also applies to FCI.
-from .spectral import GreenCorrector  # noqa: F401

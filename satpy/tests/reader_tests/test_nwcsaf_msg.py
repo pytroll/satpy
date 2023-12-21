@@ -472,6 +472,8 @@ class TestH5NWCSAF(unittest.TestCase):
 
     def test_get_area_def(self):
         """Get the area definition."""
+        from pyproj import CRS
+
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
         from satpy.tests.utils import make_dataid
 
@@ -486,11 +488,8 @@ class TestH5NWCSAF(unittest.TestCase):
         for i in range(4):
             assert area_def.area_extent[i] == pytest.approx(aext_res[i], abs=1e-4)
 
-        proj_dict = AREA_DEF_DICT["proj_dict"]
-        assert proj_dict["proj"] == area_def.proj_dict["proj"]
-        # Not all elements passed on Appveyor, so skip testing every single element of the proj-dict:
-        # for key in proj_dict:
-        #    self.assertEqual(proj_dict[key], area_def.proj_dict[key])
+        expected_crs = CRS(AREA_DEF_DICT["proj_dict"])
+        assert expected_crs == area_def.crs
 
         assert AREA_DEF_DICT["x_size"] == area_def.width
         assert AREA_DEF_DICT["y_size"] == area_def.height

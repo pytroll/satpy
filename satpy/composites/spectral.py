@@ -16,7 +16,6 @@
 """Composite classes for spectral adjustments."""
 
 import logging
-import warnings
 
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
@@ -160,9 +159,9 @@ class NDVIHybridGreen(SpectralBlender):
         LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
                  f"{self.limits[1]}] and strength {self.strength}.")
 
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        projectables = self.match_data_arrays(projectables)
 
-        ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
+        ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
         ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
 
@@ -199,23 +198,3 @@ class NDVIHybridGreen(SpectralBlender):
             + self.limits[0]
 
         return fraction
-
-
-class GreenCorrector(SpectralBlender):
-    """Previous class used to blend channels for green band corrections.
-
-    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' which computes
-    a weighted average based on N number of channels and N number of corresponding weights/fractions. A new class
-    called 'HybridGreen' has been created, which performs a correction of green bands centered at 0.51 microns
-    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to improve true color imagery.
-    """
-
-    def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
-        """Set default keyword argument values."""
-        warnings.warn(
-            "'GreenCorrector' is deprecated, use 'SpectralBlender' instead, or 'HybridGreen' for hybrid green"
-            " correction following Miller et al. (2016).",
-            UserWarning,
-            stacklevel=2
-        )
-        super().__init__(fractions=fractions, *args, **kwargs)

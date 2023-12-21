@@ -73,8 +73,8 @@ class HIML2NCFileHandler(BaseFileHandler):
             raise ValueError("File is not a full disk scene")
 
         self.sensor = self.nc.attrs["instrument_name"].lower()
-        self.nlines = self.nc.dims["Columns"]
-        self.ncols = self.nc.dims["Rows"]
+        self.nlines = self.nc.sizes["Columns"]
+        self.ncols = self.nc.sizes["Rows"]
         self.platform_name = self.nc.attrs["satellite_name"]
         self.platform_shortname = filename_info["platform"]
         self._meta = None
@@ -100,8 +100,8 @@ class HIML2NCFileHandler(BaseFileHandler):
         # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
         variable = variable.rename({"Rows": "y", "Columns": "x"})
 
-        variable = variable.drop("Latitude")
-        variable = variable.drop("Longitude")
+        variable = variable.drop_vars("Latitude")
+        variable = variable.drop_vars("Longitude")
 
         variable.attrs.update(key.to_dict())
         return variable

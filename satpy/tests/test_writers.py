@@ -548,13 +548,20 @@ class TestComputeWriterResults(unittest.TestCase):
         import tempfile
         from datetime import datetime
 
+        from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
+        adef = AreaDefinition(
+            "test", "test", "test", "EPSG:4326",
+            100, 200, (-180., -90., 180., 90.),
+        )
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": datetime(2018, 1, 1, 0, 0, 0),
+                   "area": adef}
         )
         self.scn = Scene()
         self.scn["test"] = ds1
@@ -650,8 +657,14 @@ class TestBaseWriter:
         import tempfile
         from datetime import datetime
 
+        from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
+        adef = AreaDefinition(
+            "test", "test", "test", "EPSG:4326",
+            100, 200, (-180., -90., 180., 90.),
+        )
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
@@ -659,6 +672,7 @@ class TestBaseWriter:
                 "name": "test",
                 "start_time": datetime(2018, 1, 1, 0, 0, 0),
                 "sensor": "fake_sensor",
+                "area": adef,
             }
         )
         ds2 = ds1.copy()

@@ -81,6 +81,53 @@ class TestSceneConversions:
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
 
+    def test_hvplot_basic_with_area(self):
+        """Test converting a Scene to hvplot with a AreaDefinition."""
+        from pyresample.geometry import AreaDefinition
+        scn = Scene()
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
+
+    def test_hvplot_rgb_with_area(self):
+        """Test converting a Scene to hvplot with a AreaDefinition."""
+        from pyresample.geometry import AreaDefinition
+        scn = Scene()
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        scn["ds2"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        scn["ds3"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
+
+    def test_hvplot_basic_with_swath(self):
+        """Test converting a Scene to hvplot with a SwathDefinition."""
+        from pyresample.geometry import SwathDefinition
+        scn = Scene()
+        longitude = xr.DataArray(da.zeros((2, 2)))
+        latitude = xr.DataArray(da.zeros((2, 2)))
+        area = SwathDefinition(longitude, latitude)
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
 
 class TestToXarrayConversion:
     """Test Scene.to_xarray() conversion."""

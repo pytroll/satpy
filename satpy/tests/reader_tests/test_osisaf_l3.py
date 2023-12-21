@@ -21,6 +21,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 import xarray as xr
+from pyproj import CRS
 
 from satpy import DataQuery
 from satpy.readers.osisaf_l3_nc import OSISAFL3NCFileHandler
@@ -223,11 +224,9 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
+        assert area_def.crs == expected_crs
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -243,10 +242,9 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_lambert_azimuthal_equal_area"
-        assert area_def.proj_dict["R"] == 6371228
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "laea"
+
+        expected_crs = CRS(dict(R=6371228, lat_0=-90, lon_0=0, proj="laea"))
+        assert area_def.crs == expected_crs
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -279,11 +277,9 @@ class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
+        assert area_def.crs == expected_crs
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -318,8 +314,9 @@ class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_geographic_area"
-        assert area_def.proj_dict["datum"] == "WGS84"
-        assert area_def.proj_dict["proj"] == "longlat"
+
+        expected_crs = CRS(dict(datum="WGS84", proj="longlat"))
+        assert area_def.crs == expected_crs
 
         assert area_def.width == 5
         assert area_def.height == 2
@@ -353,11 +350,10 @@ class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
 
         area_def = test.get_area_def(None)
         assert area_def.description == "osisaf_polar_stereographic"
-        assert area_def.proj_dict["a"] == 6378273.0
-        assert area_def.proj_dict["lat_0"] == -90
-        assert area_def.proj_dict["lat_ts"] == -70
-        assert area_def.proj_dict["lon_0"] == 0
-        assert area_def.proj_dict["proj"] == "stere"
+
+        expected_crs = CRS(dict(a=6378273.0, lat_0=-90, lat_ts=-70, lon_0=0, proj="stere", rf=298.27940986765))
+
+        assert area_def.crs == expected_crs
 
         assert area_def.width == 5
         assert area_def.height == 2

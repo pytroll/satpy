@@ -36,7 +36,6 @@ import logging
 import numpy as np
 from pyproj import Proj
 from pyresample import geometry
-from pyresample.utils import proj4_str_to_dict
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
@@ -274,7 +273,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             area_name,
             area_name,
             area_name,
-            proj4_str_to_dict(proj),
+            proj,
             lon.shape[1],
             lon.shape[0],
             area_extent=extents,

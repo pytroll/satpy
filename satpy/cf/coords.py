@@ -291,8 +291,8 @@ def add_time_bounds_dimension(ds: xr.Dataset, time: str = "time") -> xr.Dataset:
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    ds["time_bnds"] = xr.DataArray([[np.datetime64(start_time),
-                                     np.datetime64(end_time)]],
+    ds["time_bnds"] = xr.DataArray([[np.datetime64(start_time, "ns"),
+                                     np.datetime64(end_time, "ns")]],
                                    dims=["time", "bnds_1d"])
     ds[time].attrs["bounds"] = "time_bnds"
     ds[time].attrs["standard_name"] = "time"

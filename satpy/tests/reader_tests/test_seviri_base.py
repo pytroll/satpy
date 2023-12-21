@@ -338,8 +338,12 @@ class TestOrbitPolynomialFinder:
     def test_get_orbit_polynomial(self, orbit_polynomials, time,
                                   orbit_polynomial_exp):
         """Test getting the satellite locator."""
+        import warnings
         finder = OrbitPolynomialFinder(orbit_polynomials)
-        orbit_polynomial = finder.get_orbit_polynomial(time=time)
+        with warnings.catch_warnings():
+            # There's no exact polynomial time match, filter the warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid")
+            orbit_polynomial = finder.get_orbit_polynomial(time=time)
         assert orbit_polynomial == orbit_polynomial_exp
 
     @pytest.mark.parametrize(
@@ -356,7 +360,8 @@ class TestOrbitPolynomialFinder:
         """Test exceptions thrown while getting the satellite locator."""
         finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
-            finder.get_orbit_polynomial(time=time)
+            with pytest.warns(UserWarning, match=r"No orbit polynomial valid"):
+                finder.get_orbit_polynomial(time=time)
 
 
 class TestMeirinkSlope:

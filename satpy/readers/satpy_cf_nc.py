@@ -237,7 +237,7 @@ class SatpyCFFileHandler(BaseFileHandler):
     def fix_modifier_attr(self, ds_info):
         """Fix modifiers attribute."""
         # Empty modifiers are read as [], which causes problems later
-        if "modifiers" in ds_info and not ds_info["modifiers"]:
+        if "modifiers" in ds_info and len(ds_info["modifiers"]) == 0:
             ds_info["modifiers"] = ()
         try:
             try:

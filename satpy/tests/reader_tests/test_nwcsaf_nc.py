@@ -268,13 +268,12 @@ class TestNcNWCSAFGeo:
     def test_get_area_def(self, nwcsaf_geo_ct_filehandler):
         """Test that get_area_def() returns proper area."""
         dsid = {"name": "ct"}
-
-        _check_area_def(nwcsaf_geo_ct_filehandler.get_area_def(dsid))
+        _check_filehandler_area_def(nwcsaf_geo_ct_filehandler, dsid)
 
     def test_get_area_def_km(self, nwcsaf_old_geo_ct_filehandler):
         """Test that get_area_def() returns proper area when the projection is in km."""
         dsid = {"name": "ct"}
-        _check_area_def(nwcsaf_old_geo_ct_filehandler.get_area_def(dsid))
+        _check_filehandler_area_def(nwcsaf_old_geo_ct_filehandler, dsid)
 
     def test_scale_dataset_attr_removal(self, nwcsaf_geo_ct_filehandler):
         """Test the scaling of the dataset and removal of obsolete attributes."""
@@ -506,12 +505,14 @@ class TestNcNWCSAFFileKeyPrefix:
         np.testing.assert_allclose(res.attrs["palette_meanings"], palette_meanings * COT_SCALE + COT_OFFSET)
 
 
-def _check_area_def(area_definition):
-    correct_h = float(PROJ["gdal_projection"].split("+h=")[-1])
-    correct_a = float(PROJ["gdal_projection"].split("+a=")[-1].split()[0])
-    assert area_definition.proj_dict["h"] == correct_h
-    assert area_definition.proj_dict["a"] == correct_a
-    assert area_definition.proj_dict["units"] == "m"
+def _check_filehandler_area_def(file_handler, dsid):
+    from pyproj import CRS
+
+    area_definition = file_handler.get_area_def(dsid)
+
+    expected_crs = CRS(PROJ["gdal_projection"])
+    assert area_definition.crs == expected_crs
+
     correct_extent = (PROJ["gdal_xgeo_up_left"],
                       PROJ["gdal_ygeo_low_right"],
                       PROJ["gdal_xgeo_low_right"],

@@ -32,12 +32,19 @@ import xarray as xr
 
 def _get_test_datasets_2d():
     """Create a single 2D test dataset."""
+    from pyresample.geometry import AreaDefinition
+
+    adef = AreaDefinition(
+        "test", "test", "test", "EPSG:4326",
+        100, 200, (-180., -90., 180., 90.),
+    )
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
         attrs={"name": "test",
                "start_time": datetime.utcnow(),
-               "units": "K"}
+               "units": "K",
+               "area": adef}
     )
     return [ds1]
 
@@ -54,12 +61,19 @@ def _get_test_datasets_2d_nonlinear_enhancement():
 
 def _get_test_datasets_3d():
     """Create a single 3D test dataset."""
+    from pyresample.geometry import AreaDefinition
+
+    adef = AreaDefinition(
+        "test", "test", "test", "EPSG:4326",
+        100, 200, (-180., -90., 180., 90.),
+    )
     ds1 = xr.DataArray(
         da.zeros((3, 100, 200), chunks=50),
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
-               "start_time": datetime.utcnow()}
+               "start_time": datetime.utcnow(),
+               "area": adef}
     )
     return [ds1]
 

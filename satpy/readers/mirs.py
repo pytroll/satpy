@@ -18,6 +18,7 @@
 """Interface to MiRS product."""
 
 import datetime
+import importlib
 import logging
 import os
 from collections import Counter
@@ -34,13 +35,12 @@ CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-try:
-    # try getting setuptools/distribute's version of resource retrieval first
-    from pkg_resources import resource_string as get_resource_string
-except ImportError:
-    from pkgutil import get_data as get_resource_string  # type: ignore
 
-#
+def get_resource_string(mod_part, file_part):
+    """Read resource string."""
+    ref = importlib.resources.files(mod_part).joinpath(file_part)
+    return ref.read_bytes()
+
 
 # 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2

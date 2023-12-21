@@ -1048,10 +1048,10 @@ class TestNativeMSGDataset:
                 "standard_name": "counts",
             }
         )
-        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01"),
-                                      np.datetime64("1958-01-02 00:00:02"),
-                                      np.datetime64("1958-01-02 00:00:03"),
-                                      np.datetime64("1958-01-02 00:00:04")])
+        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01").astype("datetime64[ns]"),
+                                      np.datetime64("1958-01-02 00:00:02").astype("datetime64[ns]"),
+                                      np.datetime64("1958-01-02 00:00:03").astype("datetime64[ns]"),
+                                      np.datetime64("1958-01-02 00:00:04").astype("datetime64[ns]")])
         return expected
 
     def test_get_dataset_with_raw_metadata(self, file_handler):

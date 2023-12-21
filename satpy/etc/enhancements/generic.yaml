@@ -954,6 +954,41 @@ enhancements:
         kwargs:
           weight: 1.0
 
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert
+        args:
+          - [True, false]
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: [[140.25, 191.25, 249.9]]}
+
+  geo_color_day_night_blend:
+    standard_name: geo_color_day_night_blend
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,0,0 ]
+          max_stretch: [ 1,1,1 ]
+
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds
     operations:

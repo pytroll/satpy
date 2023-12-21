@@ -139,8 +139,8 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                                              "h": 35785831.00,
                                              "ssp_longitude": ssp_lon}
 
-        self.mda["number_of_lines"] = int(self.nc.dims["y"])
-        self.mda["number_of_columns"] = int(self.nc.dims["x"])
+        self.mda["number_of_lines"] = int(self.nc.sizes["y"])
+        self.mda["number_of_columns"] = int(self.nc.sizes["x"])
 
         # only needed for HRV channel which is not implemented yet
         # self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])

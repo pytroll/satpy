@@ -21,6 +21,7 @@ import unittest
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
@@ -128,10 +129,13 @@ class TestGenericImage(unittest.TestCase):
 
     def test_png_scene(self):
         """Test reading PNG images via satpy.Scene()."""
+        from rasterio.errors import NotGeoreferencedWarning
+
         from satpy import Scene
 
         fname = os.path.join(self.base_dir, "test_l.png")
-        scn = Scene(reader="generic_image", filenames=[fname])
+        with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
+            scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
         assert scn["image"].shape == (1, self.y_size, self.x_size)
         assert scn.sensor_names == {"images"}
@@ -140,7 +144,8 @@ class TestGenericImage(unittest.TestCase):
         assert "area" not in scn["image"].attrs
 
         fname = os.path.join(self.base_dir, "20180101_0000_test_la.png")
-        scn = Scene(reader="generic_image", filenames=[fname])
+        with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
+            scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
         data = da.compute(scn["image"].data)
         assert scn["image"].shape == (1, self.y_size, self.x_size)

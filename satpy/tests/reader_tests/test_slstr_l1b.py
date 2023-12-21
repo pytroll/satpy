@@ -18,10 +18,10 @@
 """Module for testing the satpy.readers.nc_slstr module."""
 import unittest
 import unittest.mock as mock
-import warnings
 from datetime import datetime
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
@@ -151,7 +151,8 @@ class TestSLSTRReader(TestSLSTRL1B):
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         assert test.view == "nadir"
         assert test.stripe == "a"
-        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
+        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
+            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
         xr_.open_dataset.assert_called()
@@ -214,9 +215,8 @@ class TestSLSTRCalibration(TestSLSTRL1B):
 
         test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
         # Check warning is raised if we don't have calibration
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
             test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
-            assert issubclass(w[-1].category, UserWarning)
 
         # Check user calibration is used correctly
         test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c",

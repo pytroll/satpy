@@ -337,8 +337,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             "wavelength": "wavelength",
             "standard_name": "standard_name"
         }
-        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01"),
-                                      np.datetime64("1958-01-02 00:00:02")])
+        expected["acq_time"] = ("y", [np.datetime64("1958-01-02 00:00:01").astype("datetime64[ns]"),
+                                      np.datetime64("1958-01-02 00:00:02").astype("datetime64[ns]")])
         expected = expected[::-1]  # reader flips data upside down
         if mask_bad_quality_scan_lines:
             expected = file_handler._mask_bad_quality(expected, dataset_info)
@@ -381,7 +381,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         }
         file_handler.nc["orbit_polynomial_start_time_day"] = 0
         file_handler.nc["orbit_polynomial_end_time_day"] = 0
-        res = file_handler.get_dataset(dataset_id, dataset_info)
+        with pytest.warns(UserWarning, match=r"No orbit polynomial valid for"):
+            res = file_handler.get_dataset(dataset_id, dataset_info)
         assert "satellite_actual_longitude" not in res.attrs[
             "orbital_parameters"]
 

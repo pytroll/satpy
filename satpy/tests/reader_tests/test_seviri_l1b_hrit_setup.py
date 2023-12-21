@@ -49,6 +49,8 @@ def get_new_read_prologue(prologue):
 def get_fake_file_handler(observation_start_time, nlines, ncols, projection_longitude=0,
                           orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
+    import warnings
+
     prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
     mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=observation_start_time)
     filename_info = get_fake_filename_info(observation_start_time)
@@ -80,13 +82,16 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
         )
         epilogue = mock.MagicMock(epilogue=epilogue)
 
-        reader = HRITMSGFileHandler(
-            "filename",
-            filename_info,
-            {"filetype": "info"},
-            prologue,
-            epilogue
-        )
+        with warnings.catch_warnings():
+            # Orbit polynomial has no exact match, so filter the unnecessary warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid for")
+            reader = HRITMSGFileHandler(
+                "filename",
+                filename_info,
+                {"filetype": "info"},
+                prologue,
+                epilogue
+            )
         reader.mda.update(mda)
         return reader
 
@@ -201,6 +206,7 @@ def get_acq_time_cds(start_time, nlines):
     tline["days"][1:-1] = days_since_1958 * np.ones(nlines - 2)
     offset_second = (start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()*1000
     tline["milliseconds"][1:-1] = np.arange(nlines - 2)+offset_second
+
     return tline
 
 
@@ -211,7 +217,8 @@ def get_acq_time_exp(start_time, nlines):
     tline_exp[-1] = np.datetime64("NaT")
     tline_exp[1:-1] = np.datetime64(start_time)
     tline_exp[1:-1] += np.arange(nlines - 2).astype("timedelta64[ms]")
-    return tline_exp
+
+    return tline_exp.astype("datetime64[ns]")
 
 
 def get_attrs_exp(projection_longitude=0.0):

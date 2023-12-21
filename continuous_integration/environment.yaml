@@ -37,11 +37,12 @@ dependencies:
   - mock
   - libtiff
   - geoviews
+  - holoviews
+  - hvplot
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - geoviews
   - pytest
   - pytest-cov
   - pytest-lazy-fixture

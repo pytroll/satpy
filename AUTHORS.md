@@ -50,6 +50,7 @@ The following people have made contributions to this project:
 - [Lu Liu (yukaribbba)](https://github.com/yukaribbba)
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
+- [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
