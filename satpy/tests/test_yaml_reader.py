@@ -20,7 +20,6 @@
 
 import datetime as dt
 import os
-import pickle
 import random
 import unittest
 from tempfile import mkdtemp
@@ -1618,15 +1617,29 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
             "time_tags": ["start_time", "end_time"],
             "segment_tag": "segment",
             "required_netcdf_variables": {
-                "panarea": ["segment"],
-                "strómboli": ["rc"],
-                "salina": []}}
+                "grp/panarea": ["segment"],  # put in group to avoid https://github.com/pytroll/satpy/issues/2704
+                "grp/strómboli": ["rc"],
+                "grp/salina": []}}
+
+    ft_info_2 = {
+            "file_reader": DummyPreloadableHandler,
+            "file_patterns": [
+                "{platform}-c-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
+                "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"],
+            "expected_segments": 3,
+            "time_tags": ["start_time", "end_time"],
+            "segment_tag": "segment",
+            "required_netcdf_variables": {
+                "grp/panarea": ["segment"],
+                "grp/strómboli": ["rc"],
+                "grp/salina": []}}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
                 "name": "island-reader"},
              "file_types": {
-                 "m9g": ft_info}}, preload=True)
+                 "m9g": ft_info,
+                 "mag": ft_info_2}}, preload=True)
 
     # create a dummy file
 
@@ -1636,29 +1649,24 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
     ds["panarea"] = xr.DataArray(np.array([[0, 1, 2]]), dims=["y", "x"])
     ds["strómboli"] = xr.DataArray(np.array([[1, 1, 2]]), dims=["y", "x"])
     ds["salina"] = xr.DataArray(np.array([[2, 1, 2]]), dims=["y", "x"])
-    ds.to_netcdf(nm)
+    ds.to_netcdf(nm, group="/grp")
+
+    fn_info = {"platform": "M9a", "start_time": datetime(2100, 1, 1, 5, 30),
+               "end_time": datetime(2100, 1, 1, 5, 31), "segment": 1}
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
         # prepare cache files
+        dph = DummyPreloadableHandler(os.fspath(nm), fn_info, ft_info)
         for i in range(2, 4):  # disk cache except for nr. 1
             fn = (tmp_path / "cache" / "satpy" / "preloadable" /
                   "DummyPreloadableHandler" /
                   f"M9G-a-99991231235959-99991231235959-{i:>02d}.pkl")
             fn.parent.mkdir(exist_ok=True, parents=True)
-            with fn.open(mode="wb") as fp:
-                pickle.dump(
-                        {"strómboli": ds["strómboli"]}, fp)
+            dph.store_cache(os.fspath(fn))
 
-        g = gsyr.create_filehandlers([os.fspath(nm)])
-#                ft_info,
-#                [(os.fspath(nm),
-#                  {"platform": "M9G",
-#                   "start_time": datetime(2100, 1, 1, 5, 30, ),
-#                   "end_time": datetime(2100, 1, 1, 5, 31, ),
-#                   "segment": 1})])
-        total = list(g)
-        assert len(total) == 3
+        fhs = gsyr.create_filehandlers([os.fspath(nm)])
+        assert len(fhs["m9g"]) == 3
 
     ffi2 = ft_info.copy()
     ffi2["requires"] = ["pergola"]
