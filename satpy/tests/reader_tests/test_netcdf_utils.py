@@ -487,7 +487,13 @@ class TestPreloadableHandler:
         ds = xr.Dataset({"rijeka": (("y", "x"), np.zeros((3, 3)))})
         ds.to_netcdf(ncname)
         var_del = _get_delayed_value_from_nc(ncname, "rijeka")
-        var_del.compute()
+        np.testing.assert_array_equal(var_del.compute(), np.zeros((3, 3)))
+
+        ncname = tmp_path / "liechtenstein.nc"
+        ds = xr.Dataset({"vaduz": (("y", "x"), np.ones((2, 2)))})
+        ds.to_netcdf(ncname, group="/earth/europe")
+        var_del = _get_delayed_value_from_nc(ncname, "earth/europe/vaduz")
+        np.testing.assert_array_equal(var_del.compute(), np.ones((2, 2)))
 
     @pytest.fixture()
     def fake_config(self):

@@ -610,7 +610,7 @@ def _wait_for_file(fn, max_tries=300, wait=2):
     for _ in range(max_tries):
         fns = glob.glob(fn)
         if len(fns) == 0:
-            if _ % 60 == 0:
+            if _ % 60 == 30:
                 LOG.debug(f"Still waiting for {fn!s}")
             time.sleep(wait)
             continue
@@ -624,7 +624,9 @@ def _wait_for_file(fn, max_tries=300, wait=2):
 
 @dask.delayed
 def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
-    with netCDF4.Dataset(fn, "r") as nc:
-        if hasattr(nc, "set_auto_maskandscale"):
-            nc.set_auto_maskandscale(auto_maskandscale)
+    if "/" in var:
+        (grp, var) = var.rsplit("/", maxsplit=1)
+    else:
+        (grp, var) = (None, var)
+    with xr.open_dataset(fn, group=grp, mask_and_scale=auto_maskandscale) as nc:
         return nc[var][:]
