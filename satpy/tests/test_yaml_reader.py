@@ -1612,43 +1612,53 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
     ft_info = {
             "file_reader": DummyPreloadableHandler,
             "file_patterns": [
-                "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc",
-                "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc"],
-            "expected_segments": 5,
+                "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
+                "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"],
+            "expected_segments": 3,
             "time_tags": ["start_time", "end_time"],
             "segment_tag": "segment",
-            "required_netcdf_variables": {}}
+            "required_netcdf_variables": {
+                "panarea": ["segment"],
+                "strómboli": ["rc"],
+                "salina": []}}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
-                "name": "alicudi"},
+                "name": "island-reader"},
              "file_types": {
                  "m9g": ft_info}}, preload=True)
 
-    nm = tmp_path / "M9G-a-21000101053000-21000101053100-0001.nc"
+    # create a dummy file
+
+    nm = tmp_path / "M9G-a-21000101053000-21000101053100-01.nc"
     nm.parent.mkdir(exist_ok=True, parents=True)
     ds = xr.Dataset()
+    ds["panarea"] = xr.DataArray(np.array([[0, 1, 2]]), dims=["y", "x"])
+    ds["strómboli"] = xr.DataArray(np.array([[1, 1, 2]]), dims=["y", "x"])
+    ds["salina"] = xr.DataArray(np.array([[2, 1, 2]]), dims=["y", "x"])
     ds.to_netcdf(nm)
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
-        for i in range(2, 6):  # disk cache except for nr. 1
+        # prepare cache files
+        for i in range(2, 4):  # disk cache except for nr. 1
             fn = (tmp_path / "cache" / "satpy" / "preloadable" /
                   "DummyPreloadableHandler" /
-                  f"M9G-a-99991231235959-99991231235959-{i:>04d}.pkl")
+                  f"M9G-a-99991231235959-99991231235959-{i:>02d}.pkl")
             fn.parent.mkdir(exist_ok=True, parents=True)
             with fn.open(mode="wb") as fp:
-                pickle.dump({}, fp)
+                pickle.dump(
+                        {"strómboli": ds["strómboli"]}, fp)
 
-        g = gsyr._new_filehandler_instances(
-                ft_info,
-                [(os.fspath(nm),
-                  {"platform": "M9G",
-                   "start_time": datetime(2100, 1, 1, 5, 30, ),
-                   "end_time": datetime(2100, 1, 1, 5, 31, ),
-                   "segment": 1})])
+        g = gsyr.create_filehandlers([os.fspath(nm)])
+#                ft_info,
+#                [(os.fspath(nm),
+#                  {"platform": "M9G",
+#                   "start_time": datetime(2100, 1, 1, 5, 30, ),
+#                   "end_time": datetime(2100, 1, 1, 5, 31, ),
+#                   "segment": 1})])
         total = list(g)
-        assert len(total) == 5
+        assert len(total) == 3
 
     ffi2 = ft_info.copy()
     ffi2["requires"] = ["pergola"]
@@ -1740,3 +1750,7 @@ def test_get_cache_filename(tmp_path):
         cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
             "BaseFileHandler" / "a-99991231235959-235959-04-01.pkl")
+
+
+def test_preloaded_instances_files_absent(tmp_path):
+    """Test preloaded instances when subsequent files are absent."""
