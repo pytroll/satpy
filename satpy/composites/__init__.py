@@ -1704,7 +1704,8 @@ class BackgroundCompositor(GenericCompositor):
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
         data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
+        attrs.update(res.attrs)
+        res.attrs = attrs
         return res
 
     def _combine_metadata_with_mode_and_sensor(self,
