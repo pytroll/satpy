@@ -351,15 +351,19 @@ This feature currently only works with the :mod:`~satpy.readers.fci_l1c_nc` read
 This is experimental and likely to be instable and might change.
 
 Consider a near real time data reception situation where FCI segments are
-delivered one by one.  Clasically, to produce full disc imagery,
-users would wait for all needed segments to arrive, before they
-start processing any data by passing all segments to the :class:`~satpy.Scene`.
-For a more timely imagery production, users can create the Scene, load the data, resample, and even call :method:`~satpy.Scene.save_datasets` (as long as ``compute=False``) before there the data are complete.
-When they then trigger the computation, much of the overhead in Satpy internals has already been completed, and Satpy will process each segment as it comes in.
+delivered one by one.  Classically, to produce full disc imagery, users
+would wait for all needed segments to arrive, before they start processing
+any data by passing all segments to the :class:`~satpy.scene.Scene`.
+For a more timely imagery production, users can create the Scene, load the
+data, resample, and even call :meth:`~satpy.scene.Scene.save_datasets`
+(as long as ``compute=False``) before there the data are complete.
+When they then trigger the computation, much of the overhead in Satpy
+internals has already been completed, and Satpy will process each segment
+as it comes in.
 
-To do so, Satpy caches a selection data and metadata between segments
+To do so, Satpy caches a selection of data and metadata between segments
 and between repeat cycles.  Caching between segments happens in-memory
-and needs no farther preparation from the user, but where data are cached
+and needs no preparation from the user, but where data are cached
 between repeat cycles, the user needs to create this cache first::
 
   >>> from satpy.readers import create_preloadable_cache
@@ -386,7 +390,7 @@ on how this could be extended to other readers, see
 :class:`~satpy.readers.netcdf_utils.Preloadable` and
 :class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
 
-.. versionadded: 0.47
+.. versionadded:: 0.47
 
 Adding a Reader to Satpy
 ========================

@@ -478,7 +478,7 @@ class Preloadable:
 
     To implement a filehandler using this, make sure it derives from both
     :class:`NetCDF4FileHandler` and this class, and make sure to pass keyword
-    arguments in `__init__` to the superclass.  In the YAML file,
+    arguments in ``__init__`` to the superclass.  In the YAML file,
     ``required_netcdf_variables`` must be defined as a dictionary.  The keys
     are variable names, and values are a list of strings describing what
     assumptions can be made about caching, where ``"rc"`` means the value is
@@ -494,7 +494,7 @@ class Preloadable:
 
     This feature is experimental.
 
-    .. versionadded: 0.47
+    .. versionadded:: 0.47
     """
 
     def __init__(self, *args, preload=False, preload_step=2, preload_tries=300,

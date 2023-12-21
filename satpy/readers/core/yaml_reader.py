@@ -1171,18 +1171,20 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     will default to 1 segment.
 
     This reader uses an optional ``preload`` keyword argument that can be
-    passed to :meth:`Scene.__init__`.  This argument is intended for near real
-    time processing.  When only one segment has arrived, the user can create a
-    scene using this one segment and ``preload=True``, and Satpy will populate
-    a scene based on all expected segments with dask delayed objects.  When
-    computing the dask graphs, satpy will process each segment as soon as it
-    comes in, strongly reducing the timeliness for processing a full disc
-    image in near real time.  Checking for new files can be controlled
-    with the argumentst ``preload_step`` (time in seconds) and
-    ``preload_tries`` (how many tries before giving up).
+    passed to the :meth:`~satpy.scene.Scene` class upon instantiation.
+    This argument is intended for near real time processing.  When only
+    one segment has arrived, the user can create a scene using this one
+    segment and ``preload=True``, and Satpy will populate a scene based on
+    all expected segments with dask delayed objects.  When computing the
+    dask graphs, satpy will process each segment as soon as it comes in,
+    strongly reducing the timeliness for processing a full disc image in
+    near real time.  Checking for new files can be controlled with the
+    arguments ``preload_step`` (time in seconds) and ``preload_tries``
+    (how many tries before giving up).
+
     This feature is experimental.  Use at your own risk.
 
-    .. versionadded: 0.47
+    .. versionadded:: 0.47
     """
 
     def __init__(self, *args, **kwargs):
