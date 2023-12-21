@@ -628,5 +628,5 @@ def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
         (grp, var) = var.rsplit("/", maxsplit=1)
     else:
         (grp, var) = (None, var)
-    with xr.open_dataset(fn, group=grp, mask_and_scale=auto_maskandscale) as nc:
+    with xr.open_dataset(fn, group=grp, mask_and_scale=auto_maskandscale, engine="h5netcdf") as nc:
         return nc[var][:]

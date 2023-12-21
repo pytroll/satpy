@@ -385,6 +385,8 @@ they come in.  If the data are already available, processing is similar to
 the regular case.  If the data are not yet available, Satpy will wait during
 the computation of the dask graphs until data become available.
 
+Note that this uses the ``h5netcdf`` backend for opening NetCDF files.
+
 For more technical background reading including hints
 on how this could be extended to other readers, see
 :class:`~satpy.readers.netcdf_utils.Preloadable` and
