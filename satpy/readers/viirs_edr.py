@@ -62,6 +62,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable
 
+import dask.array as da
 import xarray as xr
 
 from satpy import DataID
@@ -93,11 +94,6 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                       "Along_Scan_750m": -1,
                                       "Along_Track_750m": row_chunks_m,
                                   })
-        if "Columns" in self.nc.dims:
-            self.nc = self.nc.rename({"Columns": "x", "Rows": "y"})
-        elif "Along_Track_375m" in self.nc.dims:
-            self.nc = self.nc.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
-            self.nc = self.nc.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
 
         # For some reason, no 'standard_name' is defined in some netCDF files, so
         # here we manually make the definitions.
@@ -134,7 +130,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             # delete the coordinates here so the base reader doesn't try to
             # make a SwathDefinition
             data_arr = data_arr.reset_coords(drop=True)
-        return data_arr
+
+        return self._rename_dims(data_arr)
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
         # xarray auto mask and scale handled any fills from the file
@@ -151,6 +148,16 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         if isinstance(flag_meanings, str) and "\n" not in flag_meanings:
             # only handle CF-standard flag meanings
             data_arr.attrs["flag_meanings"] = [flag for flag in data_arr.attrs["flag_meanings"].split(" ")]
+
+    @staticmethod
+    def _rename_dims(data_arr: xr.DataArray) -> xr.DataArray:
+        if "Columns" in data_arr.dims:
+            data_arr = data_arr.rename({"Columns": "x", "Rows": "y"})
+        if "Along_Track_375m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
+        if "Along_Track_750m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
+        return data_arr
 
     @property
     def start_time(self):
@@ -277,7 +284,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
             new_data_arr = new_data_arr.where(good_mask)
         return new_data_arr
 
-    def _get_veg_index_good_mask(self) -> xr.DataArray:
+    def _get_veg_index_good_mask(self) -> da.Array:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
         qf1 = self.nc["QF1 Surface Reflectance"]
         has_sun_glint = (qf1 & 0b11000000) > 0
@@ -306,8 +313,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         )
         # upscale from M-band resolution to I-band resolution
         bad_mask_iband_dask = bad_mask.data.repeat(2, axis=1).repeat(2, axis=0)
-        good_mask_iband = xr.DataArray(~bad_mask_iband_dask, dims=qf1.dims)
-        return good_mask_iband
+        return ~bad_mask_iband_dask
 
 
 class VIIRSLSTHandler(VIIRSJRRFileHandler):
