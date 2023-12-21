@@ -614,6 +614,7 @@ def _wait_for_file(fn, max_tries=300, wait=2):
             continue
         elif len(fns) > 1:
             raise ValueError(f"Expected one matching file, found {len(fns):d}")
+        LOG.debug(f"Found {fn!s}!")
         return fns[0]
     else:
         raise TimeoutError("File failed to materialise")

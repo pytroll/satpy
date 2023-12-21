@@ -1438,7 +1438,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_info = _predict_filename_info(fh, i)
         new_filename = p.compose(new_info)
         basedir = pathlib.Path(fh.filename).parent
-        new_filename = new_filename.replace("000000", "??????")
+        new_filename = new_filename.replace("235959", "??????")
         new_filename = os.fspath(basedir / new_filename)
         return (new_filename, new_info)
 
@@ -1473,7 +1473,7 @@ def _predict_filename_info(fh, i):
     new_info[fh.filetype_info["segment_tag"]] = i
     for tm in fh.filetype_info["time_tags"]:
         new_info[tm] = new_info[tm].replace(
-            hour=0, minute=0, second=0)
+            hour=23, minute=59, second=59)
     return new_info
 
 

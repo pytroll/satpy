@@ -1558,8 +1558,8 @@ def test_predict_filename_info(tmp_path):
     info = _predict_filename_info(fh, 3)
     assert info == {
             "platform": "M9G",
-            "start_time": datetime(2100, 1, 1, 0, 0, ),
-            "end_time": datetime(2100, 1, 1, 0, 0, ),
+            "start_time": datetime(2100, 1, 1, 23, 59, 59),
+            "end_time": datetime(2100, 1, 1, 23, 59, 59),
             "segment": 3}
 
 
@@ -1586,6 +1586,18 @@ def test_predict_filename(tmp_path, fake_gsyreader):
             "M9G-b-21000101100000-21000101100100-0001.nc")
     newname = fake_gsyreader._predict_filename(fh, 4)
     assert newname[0] == os.fspath(tmp_path / "M9G-b-21000101??????-21000101??????-0004.nc")
+
+    st = datetime(2023, 12, 20, 15, 8, 49)
+    et = st + dt.timedelta(minutes=5)
+    fn = f"M9G-b-{st:%Y%m%d%H%M%S}-{et:%Y%m%d%H%M%S}-0001.nc"
+    pt = "M9G-b-20231220??????-20231220??????-0004.nc"
+    fake_filename_info = {"platform": "M9G", "start_time": st, "end_time": et, "segment": 1}
+    fakehandler = BaseFileHandler(
+            os.fspath(tmp_path / fn),
+            fake_filename_info,
+            _fake_filetype_info)
+    newname = fake_gsyreader._predict_filename(fakehandler, 4)
+    assert newname[0] == os.fspath(tmp_path / pt)
 
 
 def test_select_pattern(fake_gsyreader):
