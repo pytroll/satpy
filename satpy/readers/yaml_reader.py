@@ -1343,7 +1343,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             return
         if "requires" in filetype_info:
             raise ValueError("Unable to preload with required types")
-        fh_first = next(fh_it)
+        try:
+            fh_first = next(fh_it)
+        except StopIteration:
+            return
         yield fh_first
         yield from fh_it
         yield from self._new_preloaded_filehandler_instances(
