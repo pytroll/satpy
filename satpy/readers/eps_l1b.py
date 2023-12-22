@@ -212,7 +212,7 @@ class EPSAVHRRFile(BaseFileHandler):
     def _interpolate(self, lons_like, lats_like):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         if nav_sample_rate == 20 and self.pixels == 2048:
-            lons_like_1km, lats_like_1km = self._interpolate_20km_to_1km(lons_like, lats_like)
+            lons_like_1km, lats_like_1km = _interpolate_20km_to_1km(lons_like, lats_like)
             lons_like_1km = da.from_delayed(lons_like_1km, dtype=lons_like.dtype,
                                             shape=(self.scanlines, self.pixels))
             lats_like_1km = da.from_delayed(lats_like_1km, dtype=lats_like.dtype,
@@ -223,12 +223,6 @@ class EPSAVHRRFile(BaseFileHandler):
                                   "sample rate = " + str(nav_sample_rate) +
                                   " and earth views = " +
                                   str(self.pixels))
-
-    @delayed(nout=2, pure=True)
-    def _interpolate_20km_to_1km(self, lons, lats):
-        # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
-        from geotiepoints import metop20kmto1km
-        return metop20kmto1km(lons, lats)
 
     def _get_full_angles(self, solar_zenith, sat_zenith, solar_azimuth, sat_azimuth):
 
@@ -403,3 +397,10 @@ class EPSAVHRRFile(BaseFileHandler):
         """Get end time."""
         # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
         return self._end_time
+
+
+@delayed(nout=2, pure=True)
+def _interpolate_20km_to_1km(lons, lats):
+    # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
+    from geotiepoints import metop20kmto1km
+    return metop20kmto1km(lons, lats)
