@@ -1573,7 +1573,7 @@ class TestBackgroundCompositor:
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
         assert res.attrs["mode"] == "L"
-        assert res.attrs["sensor"] is None
+        assert res.attrs["sensor"] == {"abi", "glm"}
 
 
 class TestMaskingCompositor:
