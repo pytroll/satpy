@@ -385,6 +385,18 @@ they come in.  If the data are already available, processing is similar to
 the regular case.  If the data are not yet available, Satpy will wait during
 the computation of the dask graphs until data become available.
 
+Some limitations that may be resolved in the future:
+
+- Mixing different file types for the same reader is not yet supported.
+  For FCI, that means it is not yet possible to mix FDHSI and HRFI data.
+- Only nominal case
+- Dask may not order the processing of the chunks optimally.  That means some
+  dask workers may be waiting for chunks 33–40 as chunks 1–32 are coming in
+  and are not being processed.
+- Currently, Satpy merely checks the existence of a file and not whether it
+  has been completely written.  This may lead to incomplete files being read,
+  which might lead to failures.
+
 Note that this uses the ``h5netcdf`` backend for opening NetCDF files.
 
 For more technical background reading including hints

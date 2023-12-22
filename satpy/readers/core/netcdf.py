@@ -606,17 +606,19 @@ class Preloadable:
 @dask.delayed
 def _wait_for_file(fn, max_tries=300, wait=2):
     """Wait for file to appear."""
-    LOG.debug(f"Waiting for {fn!s} to appear.")
-    for _ in range(max_tries):
+    for i in range(max_tries):
         fns = glob.glob(fn)
         if len(fns) == 0:
-            if _ % 60 == 30:
+            if i == 0:  # only log if not yet present
+                LOG.debug(f"Waiting for {fn!s} to appear.")
+            if i % 60 == 30:
                 LOG.debug(f"Still waiting for {fn!s}")
             time.sleep(wait)
             continue
-        elif len(fns) > 1:
+        if len(fns) > 1:
             raise ValueError(f"Expected one matching file, found {len(fns):d}")
-        LOG.debug(f"Found {fns[0]!s} matching {fn!s}!")
+        if i > 0:  # don't log if found immediately
+            LOG.debug(f"Found {fns[0]!s} matching {fn!s}!")
         return fns[0]
     else:
         raise TimeoutError(f"File matching {fn!s} failed to materialise")
