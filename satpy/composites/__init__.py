@@ -1753,7 +1753,7 @@ class BackgroundCompositor(GenericCompositor):
 
         # Unless background has an initial alpha band, there will be no alpha band in the output image
         # Let the writer decide
-        output_mode = background.mode if initial_bg_alpha else background.mode.replace("A", "")
+        output_mode = background.attrs["mode"] if initial_bg_alpha else background.attrs["mode"].replace("A", "")
 
         # If we let the writer decide alpha band, we must fill the transparent areas in the image with np.nan first
         # The best way is through the new alpha
