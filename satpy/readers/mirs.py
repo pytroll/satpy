@@ -336,19 +336,21 @@ class MiRSL2ncHandler(BaseFileHandler):
             return np.timedelta64("NaT")
         if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64("NaT")
-        return np.nan
+        return np.float32(np.nan)
 
     @staticmethod
     def _scale_data(data_arr, scale_factor, add_offset):
         """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
+            data_arr = data_arr * np.float32(scale_factor) + np.float32(add_offset)
         return data_arr
 
     def _fill_data(self, data_arr, fill_value, scale_factor, add_offset):
         """Fill missing data with NaN."""
         if fill_value is not None:
+            # NOTE: Sfc_type and other category products are not detected or handled properly
+            #   and will be converted from integers to 32-bit floats in this step
             fill_value = self._scale_data(fill_value, scale_factor, add_offset)
             fill_out = self._nan_for_dtype(data_arr.dtype)
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
@@ -373,7 +375,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         try:
-            global_attr_fill = self.nc.missing_value
+            global_attr_fill = self.nc.attrs["missing_value"]
         except AttributeError:
             global_attr_fill = 1.0
 

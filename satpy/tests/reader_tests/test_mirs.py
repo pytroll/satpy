@@ -43,21 +43,25 @@ EXAMPLE_FILES = [METOP_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
 N_CHANNEL = 22
 N_FOV = 96
 N_SCANLINE = 100
-DEFAULT_FILE_DTYPE = np.float64
+DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_2D_SHAPE = (N_SCANLINE, N_FOV)
 DEFAULT_DATE = datetime(2019, 6, 19, 13, 0)
 DEFAULT_LAT = np.linspace(23.09356, 36.42844, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_LON = np.linspace(127.6879, 144.5284, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
-FREQ = xr.DataArray([23.8, 31.4, 50.3, 51.76, 52.8, 53.596, 54.4, 54.94, 55.5,
-                     57.29, 57.29, 57.29, 57.29, 57.29, 57.29, 88.2, 165.5,
-                     183.31, 183.31, 183.31, 183.31, 183.31][:N_CHANNEL],
-                    dims="Channel",
-                    attrs={"description": "Central Frequencies (GHz)"})
-POLO = xr.DataArray([2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3,
-                     3, 3, 3][:N_CHANNEL], dims="Channel",
-                    attrs={"description": "Polarizations"})
+FREQ = xr.DataArray(
+    np.array([23.8, 31.4, 50.3, 51.76, 52.8, 53.596, 54.4, 54.94, 55.5,
+              57.29, 57.29, 57.29, 57.29, 57.29, 57.29, 88.2, 165.5,
+              183.31, 183.31, 183.31, 183.31, 183.31][:N_CHANNEL], dtype=np.float32),
+    dims="Channel",
+    attrs={"description": "Central Frequencies (GHz)"},
+)
+POLO = xr.DataArray(
+    np.array([2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3][:N_CHANNEL], dtype=np.int16),
+    dims="Channel",
+    attrs={"description": "Polarizations"},
+)
 
 DS_IDS = ["RR", "longitude", "latitude"]
 TEST_VARS = ["btemp_88v", "btemp_165h",
@@ -125,7 +129,7 @@ def fake_coeff_from_fn(fn):
 
 def _get_datasets_with_attributes(**kwargs):
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
-    bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
+    bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL, dtype=np.int16).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
                       attrs={"long_name": "Channel Temperature (K)",
                              "units": "Kelvin",
@@ -134,7 +138,7 @@ def _get_datasets_with_attributes(**kwargs):
                              "_FillValue": -999,
                              "valid_range": [0, 50000]},
                       dims=("Scanline", "Field_of_view", "Channel"))
-    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
+    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                       attrs={"long_name": "Rain Rate (mm/hr)",
                              "units": "mm/hr",
                              "coordinates": "Longitude Latitude",
@@ -142,7 +146,7 @@ def _get_datasets_with_attributes(**kwargs):
                              "_FillValue": -999,
                              "valid_range": [0, 1000]},
                       dims=("Scanline", "Field_of_view"))
-    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV)),
+    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                             attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow",
                                    "units": "1",
@@ -170,7 +174,7 @@ def _get_datasets_with_attributes(**kwargs):
         "Longitude": longitude
     }
 
-    attrs = {"missing_value": -999.}
+    attrs = {"missing_value": -999}
     ds = xr.Dataset(ds_vars, attrs=attrs)
     ds = ds.assign_coords({"Freq": FREQ, "Latitude": latitude, "Longitude": longitude})
     return ds
@@ -178,17 +182,17 @@ def _get_datasets_with_attributes(**kwargs):
 
 def _get_datasets_with_less_attributes():
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
-    bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
+    bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL, dtype=np.int16).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
                       attrs={"long_name": "Channel Temperature (K)",
                              "scale_factor": 0.01},
                       dims=("Scanline", "Field_of_view", "Channel"))
-    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
+    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                       attrs={"long_name": "Rain Rate (mm/hr)",
                              "scale_factor": 0.1},
                       dims=("Scanline", "Field_of_view"))
 
-    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV)),
+    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                             attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow"},
                             dims=("Scanline", "Field_of_view"))
@@ -260,8 +264,12 @@ def test_basic_load(filenames, loadable_ids, platform_name, reader_kw):
     loaded_data_arrs = _load_and_check_limb_correction_variables(r, loadable_ids, platform_name, exp_limb_corr)
     for _data_id, data_arr_dask in loaded_data_arrs.items():
         data_arr = data_arr_dask.compute()
-        assert data_arr.dtype is data_arr_dask.dtype
-        # assert data_arr.dtype is np.float32
+        assert data_arr.dtype == data_arr_dask.dtype
+        if np.issubdtype(data_arr.dtype, np.floating):
+            # we started with float32, it should stay that way
+            # NOTE: Sfc_type does not have enough metadata to dynamically force integer type
+            #   even though it is a mask/category product
+            assert data_arr.dtype.type == np.float32
         _check_metadata(data_arr, test_data, platform_name)
 
 
@@ -311,7 +319,7 @@ def _check_metadata(data_arr: xr.DataArray, test_data: xr.Dataset, platform_name
     var_name = data_arr.attrs["name"]
     if var_name not in ["latitude", "longitude"]:
         _check_area(data_arr)
-    _check_fill(data_arr)
+    assert "_FillValue" not in data_arr.attrs
     _check_attrs(data_arr, platform_name)
 
     input_fake_data = test_data["BT"] if "btemp" in var_name else test_data[var_name]
@@ -329,13 +337,6 @@ def _check_area(data_arr):
     from pyresample.geometry import SwathDefinition
     area = data_arr.attrs["area"]
     assert isinstance(area, SwathDefinition)
-
-
-def _check_fill(data_arr):
-    assert "_FillValue" not in data_arr.attrs
-    if np.issubdtype(data_arr.dtype, np.floating):
-        # we started with float32, it should stay that way
-        assert data_arr.dtype.type == np.float64
 
 
 def _check_valid_range(data_arr, test_valid_range):
