@@ -29,6 +29,7 @@ import xarray as xr
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
 NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
 N20_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_n20_s201702061601000_e201702061607000_c202012201658410.nc"
+N21_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_n21_s201702061601000_e201702061607000_c202012201658410.nc"
 OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s201702061601000_e201702061607000_c202010080001310.nc"
 
 EXAMPLE_FILES = [METOP_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
@@ -102,10 +103,8 @@ def fake_coeff_from_fn(fn):
         next_line = "   {}\n".format("   ".join([str(x) for x in locations[idx - 1]]))
         coeff_str.append(next_line)
         for fov in range(1, N_FOV+1):
-            random_coeff = np.random.rand(all_nchx[nx])
             random_coeff = np.ones(all_nchx[nx])
             str_coeff = "  ".join([str(x) for x in random_coeff])
-            random_means = np.random.uniform(261, 267, all_nchx[nx])
             random_means = np.zeros(all_nchx[nx])
             str_means = " ".join([str(x) for x in random_means])
             error_val = np.random.uniform(0, 4)
@@ -309,6 +308,7 @@ class TestMirsL2_NcReader:
             ([METOP_FILE], TEST_VARS, "metop-a"),
             ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
             ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
+            ([N21_MIRS_L2_SWATH], TEST_VARS, "noaa-21"),
             ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
@@ -323,9 +323,16 @@ class TestMirsL2_NcReader:
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables,  fh_kwargs=reader_kw)
             with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
-                    fd, mock.patch("satpy.readers.mirs.retrieve"):
+                    fd, mock.patch("satpy.readers.mirs.retrieve") as rtv:
                 fd.side_effect = fake_coeff_from_fn
                 loaded_data_arrs = r.load(loadable_ids)
+            if reader_kw.get("limb_correction", True) and platform_name in ("npp", "noaa-20", "noaa-21"):
+                suffix = f"noaa{platform_name[-2:]}" if platform_name.startswith("noaa") else "snpp"
+                assert rtv.call_count == 2 * len([var_name for var_name in loadable_ids if "btemp" in var_name])
+                for calls_args in rtv.call_args_list:
+                    assert calls_args[0][0].endswith(f"_{suffix}.txt")
+            else:
+                rtv.assert_not_called()
             assert len(loaded_data_arrs) == len(loadable_ids)
 
             test_data = fake_open_dataset(filenames[0])

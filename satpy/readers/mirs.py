@@ -304,9 +304,10 @@ class MiRSL2ncHandler(BaseFileHandler):
     def _get_coeff_filenames(self):
         """Retrieve necessary files for coefficients if needed."""
         coeff_fn = {"sea": None, "land": None}
-        if self.platform_name == "noaa-20":
-            coeff_fn["land"] = retrieve("readers/limbcoef_atmsland_noaa20.txt")
-            coeff_fn["sea"] = retrieve("readers/limbcoef_atmssea_noaa20.txt")
+        if self.platform_name.startswith("noaa"):
+            suffix = self.platform_name[-2:]
+            coeff_fn["land"] = retrieve(f"readers/limbcoef_atmsland_noaa{suffix}.txt")
+            coeff_fn["sea"] = retrieve(f"readers/limbcoef_atmssea_noaa{suffix}.txt")
         if self.platform_name == "npp":
             coeff_fn["land"] = retrieve("readers/limbcoef_atmsland_snpp.txt")
             coeff_fn["sea"] = retrieve("readers/limbcoef_atmssea_snpp.txt")
