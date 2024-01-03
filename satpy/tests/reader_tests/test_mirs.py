@@ -16,7 +16,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.tropomi_l2 module."""
+"""Module for testing the satpy.readers.mirs module."""
+from __future__ import annotations
 
 import os
 from datetime import datetime
@@ -25,6 +26,10 @@ from unittest import mock
 import numpy as np
 import pytest
 import xarray as xr
+
+from satpy._config import config_search_paths
+from satpy.readers import load_reader
+from satpy.readers.yaml_reader import FileYAMLReader
 
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
 NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
@@ -218,113 +223,92 @@ def fake_open_dataset(filename, **kwargs):
     return _get_datasets_with_attributes()
 
 
-class TestMirsL2_NcReader:
-    """Test mirs Reader."""
+@pytest.mark.parametrize(
+    ("filenames", "expected_datasets"),
+    [
+        ([METOP_FILE], DS_IDS),
+        ([NPP_MIRS_L2_SWATH], DS_IDS),
+        ([OTHER_MIRS_L2_SWATH], DS_IDS),
+    ]
+)
+def test_available_datasets(filenames, expected_datasets):
+    """Test that variables are dynamically discovered."""
+    r = _create_fake_reader(filenames, {})
+    avails = list(r.available_dataset_names)
+    for var_name in expected_datasets:
+        assert var_name in avails
 
-    yaml_file = "mirs.yaml"
 
-    def setup_method(self):
-        """Read fake data."""
-        from satpy._config import config_search_paths
-        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+@pytest.mark.parametrize(
+    ("filenames", "loadable_ids", "platform_name"),
+    [
+        ([METOP_FILE], TEST_VARS, "metop-a"),
+        ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+        ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
+        ([N21_MIRS_L2_SWATH], TEST_VARS, "noaa-21"),
+        ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
+    ]
+)
+@pytest.mark.parametrize("reader_kw", [{}, {"limb_correction": False}])
+def test_basic_load(filenames, loadable_ids, platform_name, reader_kw):
+    """Test that variables are loaded properly."""
+    r = _create_fake_reader(filenames, reader_kw)
+    with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
+            fd, mock.patch("satpy.readers.mirs.retrieve") as rtv:
+        fd.side_effect = fake_coeff_from_fn
+        loaded_data_arrs = r.load(loadable_ids)
+    if reader_kw.get("limb_correction", True) and platform_name in ("npp", "noaa-20", "noaa-21"):
+        suffix = f"noaa{platform_name[-2:]}" if platform_name.startswith("noaa") else "snpp"
+        assert rtv.call_count == 2 * len([var_name for var_name in loadable_ids if "btemp" in var_name])
+        for calls_args in rtv.call_args_list:
+            assert calls_args[0][0].endswith(f"_{suffix}.txt")
+    else:
+        rtv.assert_not_called()
+    assert len(loaded_data_arrs) == len(loadable_ids)
 
-    @pytest.mark.parametrize(
-        ("filenames", "expected_loadables"),
-        [
-            ([METOP_FILE], 1),
-            ([NPP_MIRS_L2_SWATH], 1),
-            ([OTHER_MIRS_L2_SWATH], 1),
-        ]
-    )
-    def test_reader_creation(self, filenames, expected_loadables):
-        """Test basic initialization."""
-        from satpy.readers import load_reader
-        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            assert len(loadables) == expected_loadables
-            r.create_filehandlers(loadables)
-            # make sure we have some files
-            assert r.file_handlers
+    test_data = fake_open_dataset(filenames[0])
+    for _data_id, data_arr in loaded_data_arrs.items():
+        data_arr = data_arr.compute()
+        var_name = data_arr.attrs["name"]
+        if var_name not in ["latitude", "longitude"]:
+            _check_area(data_arr)
+        _check_fill(data_arr)
+        _check_attrs(data_arr, platform_name)
 
-    @pytest.mark.parametrize(
-        ("filenames", "expected_datasets"),
-        [
-            ([METOP_FILE], DS_IDS),
-            ([NPP_MIRS_L2_SWATH], DS_IDS),
-            ([OTHER_MIRS_L2_SWATH], DS_IDS),
-        ]
-    )
-    def test_available_datasets(self, filenames, expected_datasets):
-        """Test that variables are dynamically discovered."""
-        from satpy.readers import load_reader
-        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables)
-            avails = list(r.available_dataset_names)
-            for var_name in expected_datasets:
-                assert var_name in avails
+        input_fake_data = test_data["BT"] if "btemp" in var_name \
+            else test_data[var_name]
+        if "valid_range" in input_fake_data.attrs:
+            valid_range = input_fake_data.attrs["valid_range"]
+            _check_valid_range(data_arr, valid_range)
+        if "_FillValue" in input_fake_data.attrs:
+            fill_value = input_fake_data.attrs["_FillValue"]
+            _check_fill_value(data_arr, fill_value)
 
-    @pytest.mark.parametrize(
-        ("filenames", "loadable_ids", "platform_name"),
-        [
-            ([METOP_FILE], TEST_VARS, "metop-a"),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
-            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
-            ([N21_MIRS_L2_SWATH], TEST_VARS, "noaa-21"),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
-        ]
-    )
-    @pytest.mark.parametrize("reader_kw", [{}, {"limb_correction": False}])
-    def test_basic_load(self, filenames, loadable_ids,
-                        platform_name, reader_kw):
-        """Test that variables are loaded properly."""
-        from satpy.readers import load_reader
-        with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables,  fh_kwargs=reader_kw)
-            with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
-                    fd, mock.patch("satpy.readers.mirs.retrieve") as rtv:
-                fd.side_effect = fake_coeff_from_fn
-                loaded_data_arrs = r.load(loadable_ids)
-            if reader_kw.get("limb_correction", True) and platform_name in ("npp", "noaa-20", "noaa-21"):
-                suffix = f"noaa{platform_name[-2:]}" if platform_name.startswith("noaa") else "snpp"
-                assert rtv.call_count == 2 * len([var_name for var_name in loadable_ids if "btemp" in var_name])
-                for calls_args in rtv.call_args_list:
-                    assert calls_args[0][0].endswith(f"_{suffix}.txt")
-            else:
-                rtv.assert_not_called()
-            assert len(loaded_data_arrs) == len(loadable_ids)
+        sensor = data_arr.attrs["sensor"]
+        if reader_kw.get("limb_correction", True) and sensor == "atms":
+            fd.assert_called()
+        else:
+            fd.assert_not_called()
+        assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]
 
-            test_data = fake_open_dataset(filenames[0])
-            for _data_id, data_arr in loaded_data_arrs.items():
-                data_arr = data_arr.compute()
-                var_name = data_arr.attrs["name"]
-                if var_name not in ["latitude", "longitude"]:
-                    _check_area(data_arr)
-                _check_fill(data_arr)
-                _check_attrs(data_arr, platform_name)
 
-                input_fake_data = test_data["BT"] if "btemp" in var_name \
-                    else test_data[var_name]
-                if "valid_range" in input_fake_data.attrs:
-                    valid_range = input_fake_data.attrs["valid_range"]
-                    _check_valid_range(data_arr, valid_range)
-                if "_FillValue" in input_fake_data.attrs:
-                    fill_value = input_fake_data.attrs["_FillValue"]
-                    _check_fill_value(data_arr, fill_value)
+def _create_fake_reader(
+        filenames: list[str],
+        reader_kwargs: dict,
+        exp_loadable_files: int | None = None
+) -> FileYAMLReader:
+    exp_loadable_files = exp_loadable_files if exp_loadable_files is not None else len(filenames)
+    reader_configs = config_search_paths(os.path.join("readers", "mirs.yaml"))
+    with mock.patch("satpy.readers.mirs.xr.open_dataset") as od:
+        od.side_effect = fake_open_dataset
+        r = load_reader(reader_configs)
+        loadables = r.select_files_from_pathnames(filenames)
+        r.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
 
-                sensor = data_arr.attrs["sensor"]
-                if reader_kw.get("limb_correction", True) and sensor == "atms":
-                    fd.assert_called()
-                else:
-                    fd.assert_not_called()
-                assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]
+        assert isinstance(r, FileYAMLReader)
+        assert len(loadables) == exp_loadable_files
+        assert r.file_handlers
+    return r
 
 
 def _check_area(data_arr):
