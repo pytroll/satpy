@@ -28,6 +28,7 @@ import pytest
 import xarray as xr
 
 from satpy._config import config_search_paths
+from satpy.dataset import DataID
 from satpy.readers import load_reader
 from satpy.readers.yaml_reader import FileYAMLReader
 
@@ -253,43 +254,15 @@ def test_available_datasets(filenames, expected_datasets):
 def test_basic_load(filenames, loadable_ids, platform_name, reader_kw):
     """Test that variables are loaded properly."""
     r = _create_fake_reader(filenames, reader_kw)
-    with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
-            fd, mock.patch("satpy.readers.mirs.retrieve") as rtv:
-        fd.side_effect = fake_coeff_from_fn
-        loaded_data_arrs = r.load(loadable_ids)
-    if reader_kw.get("limb_correction", True) and platform_name in ("npp", "noaa-20", "noaa-21"):
-        suffix = f"noaa{platform_name[-2:]}" if platform_name.startswith("noaa") else "snpp"
-        assert rtv.call_count == 2 * len([var_name for var_name in loadable_ids if "btemp" in var_name])
-        for calls_args in rtv.call_args_list:
-            assert calls_args[0][0].endswith(f"_{suffix}.txt")
-    else:
-        rtv.assert_not_called()
-    assert len(loaded_data_arrs) == len(loadable_ids)
 
     test_data = fake_open_dataset(filenames[0])
-    for _data_id, data_arr in loaded_data_arrs.items():
-        data_arr = data_arr.compute()
-        var_name = data_arr.attrs["name"]
-        if var_name not in ["latitude", "longitude"]:
-            _check_area(data_arr)
-        _check_fill(data_arr)
-        _check_attrs(data_arr, platform_name)
-
-        input_fake_data = test_data["BT"] if "btemp" in var_name \
-            else test_data[var_name]
-        if "valid_range" in input_fake_data.attrs:
-            valid_range = input_fake_data.attrs["valid_range"]
-            _check_valid_range(data_arr, valid_range)
-        if "_FillValue" in input_fake_data.attrs:
-            fill_value = input_fake_data.attrs["_FillValue"]
-            _check_fill_value(data_arr, fill_value)
-
-        sensor = data_arr.attrs["sensor"]
-        if reader_kw.get("limb_correction", True) and sensor == "atms":
-            fd.assert_called()
-        else:
-            fd.assert_not_called()
-        assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]
+    exp_limb_corr = reader_kw.get("limb_correction", True) and platform_name in ("npp", "noaa-20", "noaa-21")
+    loaded_data_arrs = _load_and_check_limb_correction_variables(r, loadable_ids, platform_name, exp_limb_corr)
+    for _data_id, data_arr_dask in loaded_data_arrs.items():
+        data_arr = data_arr_dask.compute()
+        assert data_arr.dtype is data_arr_dask.dtype
+        # assert data_arr.dtype is np.float32
+        _check_metadata(data_arr, test_data, platform_name)
 
 
 def _create_fake_reader(
@@ -309,6 +282,47 @@ def _create_fake_reader(
         assert len(loadables) == exp_loadable_files
         assert r.file_handlers
     return r
+
+
+def _load_and_check_limb_correction_variables(
+        reader: FileYAMLReader,
+        loadable_ids: list[str],
+        platform_name: str,
+        exp_limb_corr: bool
+) -> dict[DataID, xr.DataArray]:
+    with mock.patch("satpy.readers.mirs.read_atms_coeff_to_string") as \
+            fd, mock.patch("satpy.readers.mirs.retrieve") as rtv:
+        fd.side_effect = fake_coeff_from_fn
+        loaded_data_arrs = reader.load(loadable_ids)
+    if exp_limb_corr:
+        fd.assert_called()
+        suffix = f"noaa{platform_name[-2:]}" if platform_name.startswith("noaa") else "snpp"
+        assert rtv.call_count == 2 * len([var_name for var_name in loadable_ids if "btemp" in var_name])
+        for calls_args in rtv.call_args_list:
+            assert calls_args[0][0].endswith(f"_{suffix}.txt")
+    else:
+        fd.assert_not_called()
+        rtv.assert_not_called()
+    assert len(loaded_data_arrs) == len(loadable_ids)
+    return loaded_data_arrs
+
+
+def _check_metadata(data_arr: xr.DataArray, test_data: xr.Dataset, platform_name: str) -> None:
+    var_name = data_arr.attrs["name"]
+    if var_name not in ["latitude", "longitude"]:
+        _check_area(data_arr)
+    _check_fill(data_arr)
+    _check_attrs(data_arr, platform_name)
+
+    input_fake_data = test_data["BT"] if "btemp" in var_name else test_data[var_name]
+    if "valid_range" in input_fake_data.attrs:
+        valid_range = input_fake_data.attrs["valid_range"]
+        _check_valid_range(data_arr, valid_range)
+    if "_FillValue" in input_fake_data.attrs:
+        fill_value = input_fake_data.attrs["_FillValue"]
+        _check_fill_value(data_arr, fill_value)
+
+    assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]
 
 
 def _check_area(data_arr):
