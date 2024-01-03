@@ -268,40 +268,6 @@ class TestMirsL2_NcReader:
             for var_name in expected_datasets:
                 assert var_name in avails
 
-    @staticmethod
-    def _check_area(data_arr):
-        from pyresample.geometry import SwathDefinition
-        area = data_arr.attrs["area"]
-        assert isinstance(area, SwathDefinition)
-
-    @staticmethod
-    def _check_fill(data_arr):
-        assert "_FillValue" not in data_arr.attrs
-        if np.issubdtype(data_arr.dtype, np.floating):
-            # we started with float32, it should stay that way
-            assert data_arr.dtype.type == np.float64
-
-    @staticmethod
-    def _check_valid_range(data_arr, test_valid_range):
-        # valid_range is popped out of data_arr.attrs when it is applied
-        assert "valid_range" not in data_arr.attrs
-        assert data_arr.data.min() >= test_valid_range[0]
-        assert data_arr.data.max() <= test_valid_range[1]
-
-    @staticmethod
-    def _check_fill_value(data_arr, test_fill_value):
-        assert "_FillValue" not in data_arr.attrs
-        assert not (data_arr.data == test_fill_value).any()
-
-    @staticmethod
-    def _check_attrs(data_arr, platform_name):
-        attrs = data_arr.attrs
-        assert "scale_factor" not in attrs
-        assert "platform_name" in attrs
-        assert attrs["platform_name"] == platform_name
-        assert attrs["start_time"] == START_TIME
-        assert attrs["end_time"] == END_TIME
-
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids", "platform_name"),
         [
@@ -340,18 +306,18 @@ class TestMirsL2_NcReader:
                 data_arr = data_arr.compute()
                 var_name = data_arr.attrs["name"]
                 if var_name not in ["latitude", "longitude"]:
-                    self._check_area(data_arr)
-                self._check_fill(data_arr)
-                self._check_attrs(data_arr, platform_name)
+                    _check_area(data_arr)
+                _check_fill(data_arr)
+                _check_attrs(data_arr, platform_name)
 
                 input_fake_data = test_data["BT"] if "btemp" in var_name \
                     else test_data[var_name]
                 if "valid_range" in input_fake_data.attrs:
                     valid_range = input_fake_data.attrs["valid_range"]
-                    self._check_valid_range(data_arr, valid_range)
+                    _check_valid_range(data_arr, valid_range)
                 if "_FillValue" in input_fake_data.attrs:
                     fill_value = input_fake_data.attrs["_FillValue"]
-                    self._check_fill_value(data_arr, fill_value)
+                    _check_fill_value(data_arr, fill_value)
 
                 sensor = data_arr.attrs["sensor"]
                 if reader_kw.get("limb_correction", True) and sensor == "atms":
@@ -359,3 +325,37 @@ class TestMirsL2_NcReader:
                 else:
                     fd.assert_not_called()
                 assert data_arr.attrs["units"] == DEFAULT_UNITS[var_name]
+
+
+def _check_area(data_arr):
+    from pyresample.geometry import SwathDefinition
+    area = data_arr.attrs["area"]
+    assert isinstance(area, SwathDefinition)
+
+
+def _check_fill(data_arr):
+    assert "_FillValue" not in data_arr.attrs
+    if np.issubdtype(data_arr.dtype, np.floating):
+        # we started with float32, it should stay that way
+        assert data_arr.dtype.type == np.float64
+
+
+def _check_valid_range(data_arr, test_valid_range):
+    # valid_range is popped out of data_arr.attrs when it is applied
+    assert "valid_range" not in data_arr.attrs
+    assert data_arr.data.min() >= test_valid_range[0]
+    assert data_arr.data.max() <= test_valid_range[1]
+
+
+def _check_fill_value(data_arr, test_fill_value):
+    assert "_FillValue" not in data_arr.attrs
+    assert not (data_arr.data == test_fill_value).any()
+
+
+def _check_attrs(data_arr, platform_name):
+    attrs = data_arr.attrs
+    assert "scale_factor" not in attrs
+    assert "platform_name" in attrs
+    assert attrs["platform_name"] == platform_name
+    assert attrs["start_time"] == START_TIME
+    assert attrs["end_time"] == END_TIME
