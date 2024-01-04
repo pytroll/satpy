@@ -1132,7 +1132,8 @@ def local_netcdf_filename(tmp_path_factory):
     ds.to_netcdf(filename)
 
     yield str(filename)
-    filename.unlink()
+    with suppress(PermissionError):
+        filename.unlink()
 
 
 @pytest.fixture(scope="module")
@@ -1188,7 +1189,8 @@ def local_hdf5_filename(tmp_path_factory):
     h.close()
 
     yield str(filename)
-    filename.unlink()
+    with suppress(PermissionError):
+        filename.unlink()
 
 
 @pytest.fixture(scope="module")
