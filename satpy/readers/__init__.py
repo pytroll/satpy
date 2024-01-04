@@ -779,7 +779,15 @@ def _get_compression(file):
 
 
 def open_file_or_filename(unknown_file_thing):
-    """Try to open the *unknown_file_thing*, otherwise return the filename."""
+    """Try to open the provided file "thing" if needed, otherwise return the filename or Path.
+
+    This wraps the logic of getting something like an fsspec OpenFile object
+    that is not directly supported by most reading libraries and making it
+    usable. If a :class:`pathlib.Path` object or something that is not
+    open-able is provided then that object is passed along. In the case of
+    fsspec OpenFiles their ``.open()`` method is called and the result returned.
+
+    """
     if isinstance(unknown_file_thing, pathlib.Path):
         f_obj = unknown_file_thing
     else:
