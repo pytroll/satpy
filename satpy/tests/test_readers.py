@@ -18,11 +18,14 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import builtins
+import contextlib
 import os
 import sys
 import unittest
 import warnings
 from contextlib import suppress
+from pathlib import Path
+from typing import Iterator
 from unittest import mock
 
 import pytest
@@ -954,126 +957,149 @@ def _posixify_path(filename):
     return driveless_name.replace("\\", "/")
 
 
-class TestFSFile(unittest.TestCase):
+@pytest.fixture(scope="module")
+def random_string():
+    """Random string to be used as fake file content."""
+    return _generate_random_string()
+
+
+@pytest.fixture(scope="module")
+def local_filename(tmp_path_factory, random_string):
+    """Create simple on-disk file."""
+    with _local_file(tmp_path_factory, random_string) as local_path:
+        yield local_path
+
+
+@contextlib.contextmanager
+def _local_file(tmp_path_factory, filename: str) -> Iterator[Path]:
+    tmp_path = tmp_path_factory.mktemp("local_files")
+    local_filename = tmp_path / filename
+    local_filename.touch()
+    yield local_filename
+    local_filename.unlink()
+
+
+@pytest.fixture(scope="module")
+def local_file(local_filename):
+    """Open local file with fsspec."""
+    import fsspec
+
+    return fsspec.open(local_filename)
+
+
+@pytest.fixture(scope="module")
+def local_filename2(tmp_path_factory):
+    """Create a second local file."""
+    random_string2 = _generate_random_string()
+    with _local_file(tmp_path_factory, random_string2) as local_path:
+        yield local_path
+
+
+@pytest.fixture(scope="module")
+def local_zip_file(local_filename2):
+    """Create local zip file containing one local file."""
+    import zipfile
+
+    zip_name = Path(str(local_filename2) + ".zip")
+    zip_file = zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED)
+    zip_file.write(local_filename2)
+    zip_file.close()
+    yield zip_name
+    with suppress(PermissionError):
+        zip_name.unlink()
+
+
+class TestFSFile:
     """Test the FSFile class."""
 
-    def setUp(self):
-        """Set up the instance."""
-        import tempfile
-        import zipfile
-        from pathlib import Path
-
-        import fsspec
-        self.random_string = _generate_random_string()
-        self.local_filename = os.path.join(tempfile.gettempdir(), self.random_string)
-        Path(self.local_filename).touch()
-        self.local_file = fsspec.open(self.local_filename)
-
-        self.random_string2 = _generate_random_string()
-        self.local_filename2 = os.path.join(tempfile.gettempdir(), self.random_string2)
-        Path(self.local_filename2).touch()
-        self.zip_name = os.path.join(tempfile.gettempdir(), self.random_string2 + ".zip")
-        zip_file = zipfile.ZipFile(self.zip_name, "w", zipfile.ZIP_DEFLATED)
-        zip_file.write(self.local_filename2)
-        zip_file.close()
-        os.remove(self.local_filename2)
-
-    def tearDown(self):
-        """Destroy the instance."""
-        os.remove(self.local_filename)
-        with suppress(PermissionError):
-            os.remove(self.zip_name)
-
-    def test_regular_filename_is_returned_with_str(self):
+    def test_regular_filename_is_returned_with_str(self, random_string):
         """Test that str give the filename."""
         from satpy.readers import FSFile
-        assert str(FSFile(self.random_string)) == self.random_string
+        assert str(FSFile(random_string)) == random_string
 
-    def test_fsfile_with_regular_filename_abides_pathlike(self):
+    def test_fsfile_with_regular_filename_abides_pathlike(self, random_string):
         """Test that FSFile abides PathLike for regular filenames."""
         from satpy.readers import FSFile
-        assert os.fspath(FSFile(self.random_string)) == self.random_string
+        assert os.fspath(FSFile(random_string)) == random_string
 
-    def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self):
+    def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self, random_string):
         """Test that FSFile abides PathLike for filename+fs instances."""
         from satpy.readers import FSFile
-        assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
+        assert os.fspath(FSFile(random_string, fs=None)) == random_string
 
-    def test_fsfile_with_pathlike(self):
+    def test_fsfile_with_pathlike(self, local_filename):
         """Test FSFile with path-like object."""
         from pathlib import Path
 
         from satpy.readers import FSFile
-        f = FSFile(Path(self.local_filename))
-        assert str(f) == os.fspath(f) == self.local_filename
+        f = FSFile(Path(local_filename))
+        assert str(f) == os.fspath(f) == str(local_filename)
 
-    def test_fsfile_with_fs_open_file_abides_pathlike(self):
+    def test_fsfile_with_fs_open_file_abides_pathlike(self, local_file, random_string):
         """Test that FSFile abides PathLike for fsspec OpenFile instances."""
         from satpy.readers import FSFile
-        assert os.fspath(FSFile(self.local_file)).endswith(self.random_string)
+        assert os.fspath(FSFile(local_file)).endswith(random_string)
 
-    def test_repr_includes_filename(self):
+    def test_repr_includes_filename(self, local_file, random_string):
         """Test that repr includes the filename."""
         from satpy.readers import FSFile
-        assert self.random_string in repr(FSFile(self.local_file))
+        assert random_string in repr(FSFile(local_file))
 
-    def test_open_regular_file(self):
+    def test_open_regular_file(self, local_filename):
         """Test opening a regular file."""
         from satpy.readers import FSFile
-        _assert_is_open_file_and_close(FSFile(self.local_filename).open())
+        _assert_is_open_file_and_close(FSFile(local_filename).open())
 
-    def test_open_local_fs_file(self):
+    def test_open_local_fs_file(self, local_file):
         """Test opening a localfs file."""
         from satpy.readers import FSFile
-        _assert_is_open_file_and_close(FSFile(self.local_file).open())
+        _assert_is_open_file_and_close(FSFile(local_file).open())
 
-    def test_open_zip_fs_regular_filename(self):
+    def test_open_zip_fs_regular_filename(self, local_filename2, local_zip_file):
         """Test opening a zipfs with a regular filename provided."""
         from fsspec.implementations.zip import ZipFileSystem
 
         from satpy.readers import FSFile
-        zip_fs = ZipFileSystem(self.zip_name)
-        file = FSFile(_posixify_path(self.local_filename2), zip_fs)
+        zip_fs = ZipFileSystem(local_zip_file)
+        file = FSFile(_posixify_path(local_filename2), zip_fs)
         _assert_is_open_file_and_close(file.open())
 
-    def test_open_zip_fs_openfile(self):
+    def test_open_zip_fs_openfile(self, local_filename2, local_zip_file):
         """Test opening a zipfs openfile."""
         import fsspec
 
         from satpy.readers import FSFile
-        open_file = fsspec.open("zip:/" + _posixify_path(self.local_filename2) + "::file://" + self.zip_name)
+        open_file = fsspec.open("zip:/" + _posixify_path(local_filename2) + "::file://" + str(local_zip_file))
         file = FSFile(open_file)
         _assert_is_open_file_and_close(file.open())
 
-    def test_sorting_fsfiles(self):
+    def test_sorting_fsfiles(self, local_filename, local_filename2, local_zip_file):
         """Test sorting FSFiles."""
         from fsspec.implementations.zip import ZipFileSystem
 
         from satpy.readers import FSFile
-        zip_fs = ZipFileSystem(self.zip_name)
-        file1 = FSFile(self.local_filename2, zip_fs)
+        zip_fs = ZipFileSystem(local_zip_file)
+        file1 = FSFile(local_filename2, zip_fs)
 
-        file2 = FSFile(self.local_filename)
+        file2 = FSFile(local_filename)
 
         extra_file = os.path.normpath("/somedir/bla")
         sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
         expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
 
-    def test_equality(self):
+    def test_equality(self, local_filename, local_filename2, local_zip_file):
         """Test that FSFile compares equal when it should."""
         from fsspec.implementations.zip import ZipFileSystem
 
         from satpy.readers import FSFile
-        zip_fs = ZipFileSystem(self.zip_name)
-        assert FSFile(self.local_filename) == FSFile(self.local_filename)
-        assert (FSFile(self.local_filename, zip_fs) ==
-                FSFile(self.local_filename, zip_fs))
-        assert (FSFile(self.local_filename, zip_fs) !=
-                FSFile(self.local_filename))
-        assert FSFile(self.local_filename) != FSFile(self.local_filename2)
+        zip_fs = ZipFileSystem(local_zip_file)
+        assert FSFile(local_filename) == FSFile(local_filename)
+        assert (FSFile(local_filename, zip_fs) == FSFile(local_filename, zip_fs))
+        assert (FSFile(local_filename, zip_fs) != FSFile(local_filename))
+        assert FSFile(local_filename) != FSFile(local_filename2)
 
-    def test_hash(self):
+    def test_hash(self, local_filename, local_filename2, local_zip_file):
         """Test that FSFile hashing behaves sanely."""
         from fsspec.implementations.cached import CachingFileSystem
         from fsspec.implementations.local import LocalFileSystem
@@ -1082,9 +1108,9 @@ class TestFSFile(unittest.TestCase):
         from satpy.readers import FSFile
 
         lfs = LocalFileSystem()
-        zfs = ZipFileSystem(self.zip_name)
+        zfs = ZipFileSystem(local_zip_file)
         cfs = CachingFileSystem(fs=lfs)
         # make sure each name/fs-combi has its own hash
         assert len({hash(FSFile(fn, fs))
-                    for fn in {self.local_filename, self.local_filename2}
-                    for fs in [None, lfs, zfs, cfs]}) == 2*4
+                    for fn in {local_filename, local_filename2}
+                    for fs in [None, lfs, zfs, cfs]}) == 2 * 4
