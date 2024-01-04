@@ -28,7 +28,10 @@ from pathlib import Path
 from typing import Iterator
 from unittest import mock
 
+import numpy as np
 import pytest
+import xarray as xr
+from pytest_lazyfixture import lazy_fixture
 
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
@@ -1114,3 +1117,121 @@ class TestFSFile:
         assert len({hash(FSFile(fn, fs))
                     for fn in {local_filename, local_filename2}
                     for fs in [None, lfs, zfs, cfs]}) == 2 * 4
+
+
+@pytest.fixture(scope="module")
+def local_netcdf_filename(tmp_path_factory):
+    """Create a simple local NetCDF file."""
+    filename = tmp_path_factory.mktemp("fake_netcdfs") / "test.nc"
+    ds = xr.Dataset()
+    ds.attrs = {
+        "attr1": "a",
+        "attr2": 2,
+    }
+    ds["var1"] = xr.DataArray(np.zeros((10, 10), dtype=np.int16), dims=("y", "x"))
+    ds.to_netcdf(filename)
+
+    yield str(filename)
+    filename.unlink()
+
+
+@pytest.fixture(scope="module")
+def local_netcdf_path(local_netcdf_filename):
+    """Get Path object pointing to local netcdf file."""
+    return Path(local_netcdf_filename)
+
+
+@pytest.fixture(scope="module")
+def local_netcdf_fsspec(local_netcdf_filename):
+    """Get fsspec OpenFile object pointing to local netcdf file."""
+    import fsspec
+
+    return fsspec.open(local_netcdf_filename)
+
+
+@pytest.fixture(scope="module")
+def local_netcdf_fsfile(local_netcdf_fsspec):
+    """Get FSFile object wrapping an fsspec OpenFile pointing to local netcdf file."""
+    from satpy.readers import FSFile
+
+    return FSFile(local_netcdf_fsspec)
+
+
+def _open_xarray_netcdf4():
+    from functools import partial
+
+    pytest.importorskip("netCDF4")
+    return partial(xr.open_dataset, engine="netcdf4")
+
+
+def _open_xarray_h5netcdf():
+    from functools import partial
+
+    pytest.importorskip("h5netcdf")
+    return partial(xr.open_dataset, engine="h5netcdf")
+
+
+def _open_xarray_default():
+    pytest.importorskip("netCDF4")
+    pytest.importorskip("h5netcdf")
+    return xr.open_dataset
+
+
+@pytest.fixture(scope="module")
+def local_hdf5_filename(tmp_path_factory):
+    """Create on-disk HDF5 file."""
+    import h5py
+
+    filename = tmp_path_factory.mktemp("fake_hdf5s") / "test.h5"
+    h = h5py.File(filename, "w")
+    h.create_dataset("var1", data=np.zeros((10, 10), dtype=np.int16))
+    h.close()
+
+    yield str(filename)
+    filename.unlink()
+
+
+@pytest.fixture(scope="module")
+def local_hdf5_path(local_hdf5_filename):
+    """Get Path object pointing to local HDF5 file."""
+    return Path(local_hdf5_filename)
+
+
+@pytest.fixture(scope="module")
+def local_hdf5_fsspec(local_hdf5_filename):
+    """Get fsspec OpenFile pointing to local HDF5 file."""
+    import fsspec
+
+    return fsspec.open(local_hdf5_filename)
+
+
+def _open_h5py():
+    h5py = pytest.importorskip("h5py")
+    return h5py.File
+
+
+@pytest.mark.parametrize(
+    ("file_thing", "create_read_func"),
+    [
+        (lazy_fixture("local_netcdf_filename"), _open_xarray_default),
+        (lazy_fixture("local_netcdf_filename"), _open_xarray_netcdf4),
+        (lazy_fixture("local_netcdf_filename"), _open_xarray_h5netcdf),
+        (lazy_fixture("local_netcdf_path"), _open_xarray_default),
+        (lazy_fixture("local_netcdf_path"), _open_xarray_netcdf4),
+        (lazy_fixture("local_netcdf_path"), _open_xarray_h5netcdf),
+        (lazy_fixture("local_netcdf_fsspec"), _open_xarray_default),
+        (lazy_fixture("local_netcdf_fsspec"), _open_xarray_h5netcdf),
+        (lazy_fixture("local_netcdf_fsfile"), _open_xarray_default),
+        (lazy_fixture("local_netcdf_fsfile"), _open_xarray_h5netcdf),
+        (lazy_fixture("local_hdf5_filename"), _open_h5py),
+        (lazy_fixture("local_hdf5_path"), _open_h5py),
+        (lazy_fixture("local_hdf5_fsspec"), _open_h5py),
+    ],
+)
+def test_open_file_or_filename(file_thing, create_read_func):
+    """Test various combinations of file-like things and opening them with various libraries."""
+    from satpy.readers import open_file_or_filename
+
+    read_func = create_read_func()
+    open_thing = open_file_or_filename(file_thing)
+    read_func(open_thing)
