@@ -251,7 +251,7 @@ class MITIFFWriter(ImageWriter):
             _dataset = first_dataset
         else:
             _dataset = datasets
-        mitiff_pixel_adjustment = kwargs.get("mitiff_pixel_adjustment", False)
+        mitiff_pixel_adjustment = kwargs.get("mitiff_pixel_adjustment", True)
         proj4_string = self._append_projection_center(proj4_string, _dataset, x_0, y_0, mitiff_pixel_adjustment)
         LOG.debug("proj4_string: %s", proj4_string)
         proj4_string += "\n"
@@ -292,10 +292,10 @@ class MITIFFWriter(ImageWriter):
                      corner_correction_y) + y_0))
         return proj4_string
 
-    def _set_correction_size(self, dataset, kwargs):
+    def _set_correction_size(self, dataset, mitiff_pixel_adjustment):
         corner_correction_x = dataset.attrs["area"].pixel_size_x
         corner_correction_y = dataset.attrs["area"].pixel_size_y
-        if kwargs.get("mitiff_pixel_adjustment", False):
+        if not mitiff_pixel_adjustment:
             corner_correction_x = 0
             corner_correction_y = 0
         return corner_correction_x,corner_correction_y

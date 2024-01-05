@@ -901,34 +901,17 @@ class TestMITIFFWriter(unittest.TestCase):
             dims=("y", "x"),
             attrs={"area": area_def}
         )
-        default_expected_proj4_string = ' Proj string: +init=EPSG:3395 +towgs84=0,0,0 +units=km +x_0=1020.000000 +y_0=1515.000000\n'
+        default_expected_correction = (20.0, 15.0)
         w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
-        proj4_string = w._add_proj4_string(ds1, ds1)
-        assert proj4_string == default_expected_proj4_string
+        mitiff_pixel_adjustment = True
+        correction = w._set_correction_size(ds1, mitiff_pixel_adjustment)
+        assert correction == default_expected_correction
 
-        kwargs = {'mitiff_pixel_adjustment': False}
-        new_expected_proj4_string = ' Proj string: +init=EPSG:3395 +towgs84=0,0,0 +units=km +x_0=1000.000000 +y_0=1500.000000\n'
+        mitiff_pixel_adjustment = False
+        new_expected_correction = (0, 0)
         w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
-        proj4_string = w._add_proj4_string(ds1, ds1, **kwargs)
-        assert proj4_string == new_expected_proj4_string
-
-        area_def2 = AreaDefinition(
-            "test",
-            "test",
-            "test",
-            "+proj=merc +x_0=0 +y_0=0",
-            100,
-            200,
-            (-1000., -1500., 1000., 1500.),
-        )
-        ds2 = xr.DataArray(
-            da.zeros((10, 20), chunks=20),
-            dims=("y", "x"),
-            attrs={"area": area_def2}
-        )
-        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
-        proj4_string = w._add_proj4_string(ds2, ds2, **kwargs)
-        assert proj4_string == new_expected_proj4_string
+        correction = w._set_correction_size(ds1, mitiff_pixel_adjustment)
+        assert correction == new_expected_correction
 
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
