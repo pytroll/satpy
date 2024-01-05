@@ -1694,15 +1694,16 @@ class BackgroundCompositor(GenericCompositor):
         # RGB/RGBA -> RGBA/RGBA
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
-        after_bg_mode = background.attrs["mode"]
 
         # It's important to judge whether the alpha band of background is initially generated, e.g. by CloudCompositor
-        # Or it's just added through 'add_bands'
         # The result will be used to decide the output image mode
-        initial_bg_alpha = True if "A" in before_bg_mode and "A" in after_bg_mode else False
+        initial_bg_alpha = "A" in before_bg_mode
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
+        if "A" not in foreground.attrs["mode"] and "A" not in background.attrs["mode"]:
+            data = self._simple_overlay(foreground, background)
+        else:
+            data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
         for data_arr in data:
             data_arr.attrs = attrs
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
@@ -1739,7 +1740,7 @@ class BackgroundCompositor(GenericCompositor):
                 alpha = xr.full_like(first_band, 1)
                 alpha["bands"] = "A"
 
-            # There could be Nans in the alpha, especially through 'add_bands'
+            # There could be Nans in the alpha
             # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
             alpha = xr.where(alpha.isnull(), 0, alpha)
 
@@ -1751,26 +1752,43 @@ class BackgroundCompositor(GenericCompositor):
 
         data = []
 
-        # Unless background has an initial alpha band, there will be no alpha band in the output image
-        # Let the writer decide
-        output_mode = background.attrs["mode"] if initial_bg_alpha else background.attrs["mode"].replace("A", "")
+        # Pass the image data (alpha band will be dropped temporally) to the writer
+        output_mode = background.attrs["mode"].replace("A", "")
 
-        # If we let the writer decide alpha band, we must fill the transparent areas in the image with np.nan first
-        # The best way is through the new alpha
+        # For more info about alpha compositing please review https://en.wikipedia.org/wiki/Alpha_compositing
+        # Whether there's no initial alpha band, or it has been dropped, we're actually asking the writer for decision
+        # So first, we must fill the transparent areas in the image with np.nan
+        # The best way is through a modified version of new alpha
         new_alpha_nan = xr.where(alpha_fore + alpha_back == 0, np.nan, new_alpha) if "A" not in output_mode \
             else new_alpha
 
         for band in output_mode:
-            fg_band = foreground.sel(bands=band) if band != "A" else new_alpha
-            bg_band = background.sel(bands=band) if band != "A" else new_alpha
+            fg_band = foreground.sel(bands=band)
+            bg_band = background.sel(bands=band)
 
             chan = (fg_band * alpha_fore +
-                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan if band != "A" else new_alpha
+                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan
 
             chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
             chan["bands"] = band
 
             data.append(chan)
+
+        # If background has an initial alpha band, it will also be passed to the writer
+        if initial_bg_alpha:
+            new_alpha["bands"] = "A"
+            data.append(new_alpha)
+
+        return data
+
+    @staticmethod
+    def _simple_overlay(foreground: xr.DataArray,
+                        background: xr.DataArray,) -> list[xr.DataArray]:
+        # This is for the case when no alpha bands are involved
+        # Just simply lay the foreground upon background
+        data_arr = xr.where(foreground.isnull(), background, foreground)
+        # Split to separate bands so the mode is correct
+        data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
 
         return data
 
