@@ -152,6 +152,7 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
         "750m Surface Reflectance Band M1": xr.DataArray(m_data, dims=m_dims, attrs=sr_attrs),
     }
     for data_arr in data_arrs.values():
+        data_arr.encoding["chunksizes"] = data_arr.shape
         if "scale_factor" not in data_arr.attrs:
             continue
         data_arr.encoding["dtype"] = np.int16
