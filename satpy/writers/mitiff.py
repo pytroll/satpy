@@ -259,25 +259,18 @@ class MITIFFWriter(ImageWriter):
         if "units" not in proj4_string:
             proj4_string += " +units=km"
 
-        proj4_string = self._append_projection_center(proj4_string, datasets, first_dataset, x_0, y_0, **kwargs)
+        if isinstance(datasets, list):
+            _dataset = first_dataset
+        else:
+            _dataset = datasets
+        proj4_string = self._append_projection_center(proj4_string, _dataset, x_0, y_0, **kwargs)
         LOG.debug("proj4_string: %s", proj4_string)
         proj4_string += "\n"
 
         return proj4_string
 
-    def _append_projection_center(self, proj4_string, datasets, first_dataset, x_0, y_0, **kwargs):
-        if isinstance(datasets, list):
-            dataset = first_dataset
-        else:
-            dataset = datasets
-        corner_correction_x = dataset.attrs["area"].pixel_size_x
-        corner_correction_y = dataset.attrs["area"].pixel_size_y
-        try:
-            if kwargs['mitiff_pixel_adjustment'] is False:
-                corner_correction_x = 0
-                corner_correction_y = 0
-        except KeyError:
-            pass
+    def _append_projection_center(self, proj4_string, dataset, x_0, y_0, **kwargs):
+        corner_correction_x, corner_correction_y = self._set_correction_size(dataset, kwargs)
         if "x_0" not in proj4_string:
             proj4_string += " +x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
@@ -293,6 +286,17 @@ class MITIFFWriter(ImageWriter):
                     (-dataset.attrs["area"].area_extent[1] +
                      corner_correction_y) + y_0))
         return proj4_string
+
+    def _set_correction_size(self, dataset, kwargs):
+        corner_correction_x = dataset.attrs["area"].pixel_size_x
+        corner_correction_y = dataset.attrs["area"].pixel_size_y
+        try:
+            if kwargs['mitiff_pixel_adjustment'] is False:
+                corner_correction_x = 0
+                corner_correction_y = 0
+        except KeyError:
+            pass
+        return corner_correction_x,corner_correction_y
 
     def _convert_epsg_to_proj(self, proj4_string, x_0):
         if "EPSG:32631" in proj4_string:
