@@ -879,6 +879,57 @@ class TestMITIFFWriter(unittest.TestCase):
             proj4_string = w._add_proj4_string(ds1, ds1)
             assert proj4_string == check["proj4"]
 
+    def test_correction_proj4_string(self):
+        """Test correction of proj4 lower left coordinate."""
+        import dask.array as da
+        import xarray as xr
+        from pyresample.geometry import AreaDefinition
+
+        from satpy.writers.mitiff import MITIFFWriter
+        area_def = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "+proj=merc",
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((10, 20), chunks=20),
+            dims=("y", "x"),
+            attrs={"area": area_def}
+        )
+        default_expected_proj4_string = ' Proj string: +init=EPSG:3395 +towgs84=0,0,0 +units=km +x_0=1020.000000 +y_0=1515.000000\n'
+        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
+        proj4_string = w._add_proj4_string(ds1, ds1)
+        assert proj4_string == default_expected_proj4_string
+
+        kwargs = {'mitiff_pixel_adjustment': False}
+        new_expected_proj4_string = ' Proj string: +init=EPSG:3395 +towgs84=0,0,0 +units=km +x_0=1000.000000 +y_0=1500.000000\n'
+        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
+        proj4_string = w._add_proj4_string(ds1, ds1, **kwargs)
+        assert proj4_string == new_expected_proj4_string
+
+        area_def2 = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "+proj=merc +x_0=0 +y_0=0",
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+        ds2 = xr.DataArray(
+            da.zeros((10, 20), chunks=20),
+            dims=("y", "x"),
+            attrs={"area": area_def2}
+        )
+        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
+        proj4_string = w._add_proj4_string(ds2, ds2, **kwargs)
+        assert proj4_string == new_expected_proj4_string
+
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
         from satpy.writers.mitiff import MITIFFWriter

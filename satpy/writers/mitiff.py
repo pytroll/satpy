@@ -220,7 +220,7 @@ class MITIFFWriter(ImageWriter):
 
         return _image_description
 
-    def _add_proj4_string(self, datasets, first_dataset):
+    def _add_proj4_string(self, datasets, first_dataset, **kwargs):
         import warnings
 
         proj4_string = " Proj string: "
@@ -259,31 +259,39 @@ class MITIFFWriter(ImageWriter):
         if "units" not in proj4_string:
             proj4_string += " +units=km"
 
-        proj4_string = self._append_projection_center(proj4_string, datasets, first_dataset, x_0, y_0)
+        proj4_string = self._append_projection_center(proj4_string, datasets, first_dataset, x_0, y_0, **kwargs)
         LOG.debug("proj4_string: %s", proj4_string)
         proj4_string += "\n"
 
         return proj4_string
 
-    def _append_projection_center(self, proj4_string, datasets, first_dataset, x_0, y_0):
+    def _append_projection_center(self, proj4_string, datasets, first_dataset, x_0, y_0, **kwargs):
         if isinstance(datasets, list):
             dataset = first_dataset
         else:
             dataset = datasets
+        corner_correction_x = dataset.attrs["area"].pixel_size_x
+        corner_correction_y = dataset.attrs["area"].pixel_size_y
+        try:
+            if kwargs['mitiff_pixel_adjustment'] is False:
+                corner_correction_x = 0
+                corner_correction_y = 0
+        except KeyError:
+            pass
         if "x_0" not in proj4_string:
             proj4_string += " +x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
-                     dataset.attrs["area"].pixel_size_x) + x_0)
+                     corner_correction_x) + x_0)
             proj4_string += " +y_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[1] +
-                     dataset.attrs["area"].pixel_size_y) + y_0)
+                     corner_correction_y) + y_0)
         elif "+x_0=0" in proj4_string and "+y_0=0" in proj4_string:
             proj4_string = proj4_string.replace("+x_0=0", "+x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
-                     dataset.attrs["area"].pixel_size_x) + x_0))
+                     corner_correction_x) + x_0))
             proj4_string = proj4_string.replace("+y_0=0", "+y_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[1] +
-                     dataset.attrs["area"].pixel_size_y) + y_0))
+                     corner_correction_y) + y_0))
         return proj4_string
 
     def _convert_epsg_to_proj(self, proj4_string, x_0):
@@ -563,7 +571,7 @@ class MITIFFWriter(ImageWriter):
 
         _image_description += " Map projection: Stereographic\n"
 
-        _image_description += self._add_proj4_string(datasets, first_dataset)
+        _image_description += self._add_proj4_string(datasets, first_dataset, **kwargs)
 
         _image_description += " TrueLat: 60N\n"
         _image_description += " GridRot: 0\n"
