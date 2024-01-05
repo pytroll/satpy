@@ -245,6 +245,20 @@ class MITIFFWriter(ImageWriter):
         # FUTURE: Use pyproj 2.0+ to convert EPSG to PROJ4 if possible
         proj4_string, x_0 = self._convert_epsg_to_proj(proj4_string, x_0)
 
+        proj4_string = self._special_correction_of_proj_string(proj4_string)
+
+        if isinstance(datasets, list):
+            _dataset = first_dataset
+        else:
+            _dataset = datasets
+        mitiff_pixel_adjustment = kwargs.get("mitiff_pixel_adjustment", False)
+        proj4_string = self._append_projection_center(proj4_string, _dataset, x_0, y_0, mitiff_pixel_adjustment)
+        LOG.debug("proj4_string: %s", proj4_string)
+        proj4_string += "\n"
+
+        return proj4_string
+
+    def _special_correction_of_proj_string(self, proj4_string):
         if "geos" in proj4_string:
             proj4_string = proj4_string.replace("+sweep=x ", "")
             if "+a=6378137.0 +b=6356752.31414" in proj4_string:
@@ -258,19 +272,10 @@ class MITIFFWriter(ImageWriter):
 
         if "units" not in proj4_string:
             proj4_string += " +units=km"
-
-        if isinstance(datasets, list):
-            _dataset = first_dataset
-        else:
-            _dataset = datasets
-        proj4_string = self._append_projection_center(proj4_string, _dataset, x_0, y_0, **kwargs)
-        LOG.debug("proj4_string: %s", proj4_string)
-        proj4_string += "\n"
-
         return proj4_string
 
-    def _append_projection_center(self, proj4_string, dataset, x_0, y_0, **kwargs):
-        corner_correction_x, corner_correction_y = self._set_correction_size(dataset, kwargs)
+    def _append_projection_center(self, proj4_string, dataset, x_0, y_0, mitiff_pixel_adjustment):
+        corner_correction_x, corner_correction_y = self._set_correction_size(dataset, mitiff_pixel_adjustment)
         if "x_0" not in proj4_string:
             proj4_string += " +x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
@@ -290,12 +295,9 @@ class MITIFFWriter(ImageWriter):
     def _set_correction_size(self, dataset, kwargs):
         corner_correction_x = dataset.attrs["area"].pixel_size_x
         corner_correction_y = dataset.attrs["area"].pixel_size_y
-        try:
-            if kwargs['mitiff_pixel_adjustment'] is False:
-                corner_correction_x = 0
-                corner_correction_y = 0
-        except KeyError:
-            pass
+        if kwargs.get("mitiff_pixel_adjustment", False):
+            corner_correction_x = 0
+            corner_correction_y = 0
         return corner_correction_x,corner_correction_y
 
     def _convert_epsg_to_proj(self, proj4_string, x_0):
