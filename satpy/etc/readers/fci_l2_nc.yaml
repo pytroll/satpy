@@ -353,6 +353,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_optical_thickness
     layer: 0
+    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Upper Layer
     standard_name: atmosphere_optical_thickness_due_to_cloud
 
   retrieval_error_cloud_optical_thickness_upper_layer:
@@ -361,6 +362,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_optical_thickness
     layer: 0
+    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Upper Layer
     standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
 
   retrieved_cloud_optical_thickness_lower_layer:
@@ -369,6 +371,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_optical_thickness
     layer: 1
+    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Lower Layer
     standard_name: atmosphere_optical_thickness_due_to_cloud
 
   retrieval_error_cloud_optical_thickness_lower_layer:
@@ -377,21 +380,22 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_optical_thickness
     layer: 1
+    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Lower Layer
     standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
 
   retrieved_cloud_particle_effective_radius:
-    name: retrieved_cloud_particle_effective_radius_upper_layer
+    name: retrieved_cloud_particle_effective_radius
     resolution: 2000
     file_type: nc_fci_oca
     file_key: retrieved_cloud_particle_effective_radius
-    standard_name: effective_radius_of_cloud_particles
+    standard_name: effective_radius_of_cloud_particles_at_cloud_top
 
   retrieval_error_cloud_particle_effective_radius:
-    name: retrieval_error_cloud_particle_effective_radius_upper_layer
+    name: retrieval_error_cloud_particle_effective_radius
     resolution: 2000
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_particle_effective_radius
-    standard_name: effective_radius_of_cloud_particles standard_error
+    standard_name: effective_radius_of_cloud_particles_at_cloud_top standard_error
 
   retrieved_cloud_top_pressure_upper_layer:
     name: retrieved_cloud_top_pressure_upper_layer
@@ -399,6 +403,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_pressure
     layer: 0
+    long_name: Cloud Top Pressure for Upper Layer
     standard_name: air_pressure_at_cloud_top
 
   retrieval_error_cloud_top_pressure_upper_layer:
@@ -407,6 +412,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_top_pressure
     layer: 0
+    long_name: Cloud Top Pressure Error for Upper Layer
     standard_name: air_pressure_at_cloud_top standard_error
 
   retrieved_cloud_top_pressure_lower_layer:
@@ -415,6 +421,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_pressure
     layer: 1
+    long_name: Cloud Top Pressure for Lower Layer
     standard_name: air_pressure_at_cloud_top
 
   retrieval_error_cloud_top_pressure_lower_layer:
@@ -423,17 +430,18 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_top_pressure
     layer: 1
-    standard_name: air_pressure_at_cloud_top standard_erro
+    long_name: Cloud Top Pressure Error for Lower Layer
+    standard_name: air_pressure_at_cloud_top standard_error
 
   retrieved_cloud_top_temperature:
-    name: retrieved_cloud_top_temperature_upper_layer
+    name: retrieved_cloud_top_temperature
     resolution: 2000
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_temperature
     standard_name: air_temperature_at_cloud_top
 
   retrieved_cloud_top_height:
-    name: retrieved_cloud_top_height_upper_layer
+    name: retrieved_cloud_top_height
     resolution: 2000
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_height
@@ -650,6 +658,7 @@ datasets:
     file_type: nc_fci_crm
     file_key: historical_data
     standard_name: status_flag
+    import_enum_information: True
 
   product_quality_crm:
     name: product_quality_crm
@@ -1227,7 +1236,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 18
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
     standard_name: status_flag
 
   cloud_test_cmrt4:
@@ -1313,7 +1322,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: bt_max
-    long_name: TOA Brightess Temperature segment max
+    long_name: TOA Brightess Temperature Segment Max
     standard_name: toa_brightess_temperature
     cell_method: area:maximum
     coordinates:
@@ -1325,7 +1334,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: bt_mean
-    long_name: TOA Brightess Temperature segment mean
+    long_name: TOA Brightess Temperature Segment Mean
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1337,7 +1346,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: bt_min
-    long_name: TOA Brightess Temperature segment min
+    long_name: TOA Brightess Temperature Segment Min
     standard_name: toa_brightess_temperature
     cell_method: area:minimum
     coordinates:
@@ -1349,7 +1358,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: bt_std
-    long_name: TOA Brightess Temperature standard deviation
+    long_name: TOA Brightess Temperature Segment Standard Deviation
     standard_name: toa_brightess_temperature
     cell_method: area:standard_deviation
     coordinates:
@@ -1361,7 +1370,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_max
-    long_name: TOA max Radiance
+    long_name: TOA Radiance Segment Max
     standard_name: toa_radiance
     cell_method: area:maximum
     coordinates:
@@ -1373,7 +1382,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_mean
-    long_name: TOA mean Radiance
+    long_name: TOA Radiance Segment Mean
     standard_name: toa_radiance
     cell_method: area:mean
     coordinates:
@@ -1385,7 +1394,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_min
-    long_name: TOA min Radiance
+    long_name: TOA Radiance Segment Min
     standard_name: toa_radiance
     cell_method: area:minimum
     coordinates:
@@ -1397,7 +1406,7 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: radiance_std
-    long_name: TOA Outgoing Radiance standard deviation
+    long_name: TOA Radiance Segment Standard Deviation
     standard_name: toa_outgoing_radiance
     cell_method: area:standard_deviation
     coordinates:
@@ -1409,9 +1418,10 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: reflectance_max
-    long_name: TOA Bidirectional Reflectance segment max
+    long_name: TOA Bidirectional Reflectance Segment Max
     standard_name: toa_bidirectional_reflectance
     cell_method: area:maximum
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1421,9 +1431,10 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: reflectance_mean
-    long_name: TOA Bidirectional Reflectance segment mean
+    long_name: TOA Bidirectional Reflectance Segment Mean
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1433,9 +1444,10 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: reflectance_min
-    long_name: TOA Bidirectional Reflectance segment min
+    long_name: TOA Bidirectional Reflectance Segment Min
     standard_name: toa_bidirectional_reflectance
     cell_method: area:minimum
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1445,9 +1457,10 @@ datasets:
     resolution: 32000
     file_type: nc_fci_asr
     file_key: reflectance_std
-    long_name: TOA Bidirectional Reflectance standard deviation
+    long_name: TOA Bidirectional Reflectance Segment Standard Deviation
     standard_name: toa_bidirectional_reflectance
     cell_method: area:standard_deviation
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1479,7 +1492,6 @@ datasets:
   quality_radiance:
     name: quality_radiance
     resolution: 32000
-    wavelength: []
     file_type: nc_fci_asr
     file_key: quality_radiance
     fill_value: -1
@@ -1495,6 +1507,7 @@ datasets:
     file_type: nc_fci_asr
     file_key: land_pixel_percent
     standard_name: land_area_fraction
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1505,6 +1518,7 @@ datasets:
     file_type: nc_fci_asr
     file_key: water_pixel_percent
     standard_name: water_area_fraction
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1515,6 +1529,7 @@ datasets:
     file_type: nc_fci_asr
     file_key: pixel_percentage
     standard_name: pixels_used_fraction
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2967,6 +2982,7 @@ datasets:
     long_name: Percentage of FoR pixels used (all pixels)
     standard_name: pixels_used_fraction
     category_id: 0
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2979,6 +2995,7 @@ datasets:
     long_name: Percentage of FoR pixels used (clear pixels)
     standard_name: pixels_used_fraction
     category_id: 1
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2991,6 +3008,7 @@ datasets:
     long_name: Percentage of FoR pixels used (cloudy pixels)
     standard_name: pixels_used_fraction
     category_id: 2
+    units: '%'
     coordinates:
     - longitude
     - latitude
