@@ -1473,6 +1473,7 @@ datasets:
     fill_value: -1
     long_name: TOA Brightess Temperature % confidence
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1485,6 +1486,7 @@ datasets:
     fill_value: -1
     long_name: TOA Bidirectional Reflectance % confidence
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1497,6 +1499,7 @@ datasets:
     fill_value: -1
     long_name: TOA Radiance % confidence
     standard_name: radiance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1542,9 +1545,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.44um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1557,9 +1561,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.44um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1572,9 +1577,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 0
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 0.4um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.44um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1587,9 +1593,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.51um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1602,9 +1609,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.51um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1617,9 +1625,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 1
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 0.5um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.51um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1632,9 +1641,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.64um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1647,9 +1657,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.64um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1662,9 +1673,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 2
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 0.6um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.64um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1677,9 +1689,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.86um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1692,9 +1705,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.86um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1707,9 +1721,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 3
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.86um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1722,9 +1737,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.91um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1737,9 +1753,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.91um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1752,9 +1769,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 4
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 0.9um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 0.91um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1767,9 +1785,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.38um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1782,9 +1801,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.38um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1797,9 +1817,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 5
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 1.4um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.38um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1812,9 +1833,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.61um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1827,9 +1849,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.61um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1842,9 +1865,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 6
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 1.6um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 1.61um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1857,9 +1881,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 0
-    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (all pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 2.25um (all pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1872,9 +1897,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 1
-    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (clear pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 2.25um (clear pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1887,9 +1913,10 @@ datasets:
     file_key: reflectance_mean
     vis_channel_id: 7
     category_id: 2
-    long_name: TOA Bidirectional Reflectance segment mean at 2.2um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance Segment mean at 2.25um (cloudy pixels)
     standard_name: toa_bidirectional_reflectance
     cell_method: area:mean
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -1902,7 +1929,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 0
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 3.8um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 3.80um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1917,7 +1944,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 0
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 3.8um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 3.80um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1932,7 +1959,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 0
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 3.8um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 3.80um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1947,7 +1974,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 1
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 6.3um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 6.30um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1962,7 +1989,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 1
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 6.3um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 6.30um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1977,7 +2004,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 1
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 6.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 6.30um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -1992,7 +2019,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 2
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 7.3um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 7.35um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2007,7 +2034,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 2
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 7.3um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 7.35um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2022,7 +2049,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 2
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 7.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 7.35um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2037,7 +2064,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 3
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 8.7um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 8.70um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2052,7 +2079,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 3
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 8.7um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 8.70um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2067,7 +2094,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 3
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 8.7um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 8.70um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2082,7 +2109,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 4
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 9.7um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 9.66um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2097,7 +2124,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 4
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 9.7um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 9.66um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2112,7 +2139,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 4
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 9.7um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 9.66um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2127,7 +2154,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 5
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 10.5um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 10.50um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2142,7 +2169,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 5
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 10.5um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 10.50um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2157,7 +2184,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 5
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 10.5um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 10.50um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2172,7 +2199,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 6
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 12.3um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 12.30um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2187,7 +2214,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 6
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 12.3um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 12.30um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2202,7 +2229,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 6
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 12.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 12.30um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2217,7 +2244,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 7
     category_id: 0
-    long_name: TOA Brightess Temperature segment mean at 13.3um (all pixels)
+    long_name: TOA Brightess Temperature Segment mean at 13.30um (all pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2232,7 +2259,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 7
     category_id: 1
-    long_name: TOA Brightess Temperature segment mean at 13.3um (clear pixels)
+    long_name: TOA Brightess Temperature Segment mean at 13.30um (clear pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2247,7 +2274,7 @@ datasets:
     file_key: bt_mean
     ir_channel_id: 7
     category_id: 2
-    long_name: TOA Brightess Temperature segment mean at 13.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature Segment mean at 13.30um (cloudy pixels)
     standard_name: toa_brightess_temperature
     cell_method: area:mean
     coordinates:
@@ -2263,8 +2290,9 @@ datasets:
     vis_channel_id: 0
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.44um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2278,8 +2306,9 @@ datasets:
     vis_channel_id: 0
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.44um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2293,8 +2322,9 @@ datasets:
     vis_channel_id: 0
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.4um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.44um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2308,8 +2338,9 @@ datasets:
     vis_channel_id: 1
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.51um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2323,8 +2354,9 @@ datasets:
     vis_channel_id: 1
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.51um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2338,8 +2370,9 @@ datasets:
     vis_channel_id: 1
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.5um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.51um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2353,8 +2386,9 @@ datasets:
     vis_channel_id: 2
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.64um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2368,8 +2402,9 @@ datasets:
     vis_channel_id: 2
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.64um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2383,8 +2418,9 @@ datasets:
     vis_channel_id: 2
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.6um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.64um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2398,8 +2434,9 @@ datasets:
     vis_channel_id: 3
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.86um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2413,8 +2450,9 @@ datasets:
     vis_channel_id: 3
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.86um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2428,8 +2466,9 @@ datasets:
     vis_channel_id: 3
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.86um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2443,8 +2482,9 @@ datasets:
     vis_channel_id: 4
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.91um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2458,8 +2498,9 @@ datasets:
     vis_channel_id: 4
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.91um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2473,8 +2514,9 @@ datasets:
     vis_channel_id: 4
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 0.9um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 0.91um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2488,8 +2530,9 @@ datasets:
     vis_channel_id: 5
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.38um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2503,8 +2546,9 @@ datasets:
     vis_channel_id: 5
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.38um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2518,8 +2562,9 @@ datasets:
     vis_channel_id: 5
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.4um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.38um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2533,8 +2578,9 @@ datasets:
     vis_channel_id: 6
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.61um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2548,8 +2594,9 @@ datasets:
     vis_channel_id: 6
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.61um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2563,8 +2610,9 @@ datasets:
     vis_channel_id: 6
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 1.6um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 1.61um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2578,8 +2626,9 @@ datasets:
     vis_channel_id: 7
     category_id: 0
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (all pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 2.25um (all pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2593,8 +2642,9 @@ datasets:
     vis_channel_id: 7
     category_id: 1
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (clear pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 2.25um (clear pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2608,8 +2658,9 @@ datasets:
     vis_channel_id: 7
     category_id: 2
     fill_value: -1
-    long_name: TOA Bidirectional Reflectance % confidence at 2.2um (cloudy pixels)
+    long_name: TOA Bidirectional Reflectance % Confidence at 2.25um (cloudy pixels)
     standard_name: reflectance_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2623,8 +2674,9 @@ datasets:
     ir_channel_id: 0
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 3.8um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 3.80um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2638,8 +2690,9 @@ datasets:
     ir_channel_id: 0
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 3.8um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 3.80um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2653,8 +2706,9 @@ datasets:
     ir_channel_id: 0
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 3.8um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 3.80um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2668,8 +2722,9 @@ datasets:
     ir_channel_id: 1
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 6.3um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 6.30um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2683,8 +2738,9 @@ datasets:
     ir_channel_id: 1
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 6.3um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 6.30um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2698,8 +2754,9 @@ datasets:
     ir_channel_id: 1
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 6.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 6.30um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2713,8 +2770,9 @@ datasets:
     ir_channel_id: 2
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 7.3um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 7.35um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2728,8 +2786,9 @@ datasets:
     ir_channel_id: 2
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 7.3um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 7.35um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2743,8 +2802,9 @@ datasets:
     ir_channel_id: 2
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 7.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 7.35um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2758,8 +2818,9 @@ datasets:
     ir_channel_id: 3
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 8.7um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 8.70um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2773,8 +2834,9 @@ datasets:
     ir_channel_id: 3
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 8.7um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 8.70um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2788,8 +2850,9 @@ datasets:
     ir_channel_id: 3
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 8.7um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 8.70um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2803,8 +2866,9 @@ datasets:
     ir_channel_id: 4
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 9.7um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 9.66um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2818,8 +2882,9 @@ datasets:
     ir_channel_id: 4
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 9.7um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 9.66um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2833,8 +2898,9 @@ datasets:
     ir_channel_id: 4
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 9.7um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 9.66um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2848,8 +2914,9 @@ datasets:
     ir_channel_id: 5
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 10.5um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 10.50um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2863,8 +2930,9 @@ datasets:
     ir_channel_id: 5
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 10.5um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 10.50um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2878,8 +2946,9 @@ datasets:
     ir_channel_id: 5
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 10.5um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 10.50um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2893,8 +2962,9 @@ datasets:
     ir_channel_id: 6
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 12.3um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 12.30um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2908,8 +2978,9 @@ datasets:
     ir_channel_id: 6
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 12.3um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 12.30um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2923,8 +2994,9 @@ datasets:
     ir_channel_id: 6
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 12.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 12.30um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2938,8 +3010,9 @@ datasets:
     ir_channel_id: 7
     category_id: 0
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 13.3um (all pixels)
+    long_name: TOA Brightess Temperature % Confidence at 13.30um (all pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2953,8 +3026,9 @@ datasets:
     ir_channel_id: 7
     category_id: 1
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 13.3um (clear pixels)
+    long_name: TOA Brightess Temperature % Confidence at 13.30um (clear pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
@@ -2968,8 +3042,9 @@ datasets:
     ir_channel_id: 7
     category_id: 2
     fill_value: -1
-    long_name: TOA Brightess Temperature % confidence at 13.3um (cloudy pixels)
+    long_name: TOA Brightess Temperature % Confidence at 13.30um (cloudy pixels)
     standard_name: brightness_temperature_quality
+    units: '%'
     coordinates:
     - longitude
     - latitude
