@@ -102,6 +102,12 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             mtg_geos_projection.inverse_flattening = 298.257223563
             mtg_geos_projection.perspective_point_height = 35786400.
 
+            # Add enumerated type
+            enum_dict = {"False": 0, "True": 1}
+            bool_type = nc.createEnumType(np.uint8,"bool_t",enum_dict)
+            nc.createVariable("quality_flag", bool_type,
+                              dimensions=("number_of_rows", "number_of_columns"))
+
         self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={})
 
     def tearDown(self):
@@ -214,6 +220,19 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Checks that no AreaDefintion is implemented for scalar values
         with pytest.raises(NotImplementedError):
             self.fh.get_area_def(None)
+
+    def test_emumerations(self):
+        """Test the conversion of enumerated type information into flag_values and flag_meanings."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_enum", resolution=2000),
+                                      {"name": "quality_flag",
+                                       "file_key": "quality_flag",
+                                       "file_type": "test_file_type",
+                                       "import_enum_information": True})
+        attributes = dataset.attrs
+        assert "flag_values" in attributes
+        assert attributes["flag_values"] == [0,1]
+        assert "flag_meanings" in attributes
+        assert attributes["flag_meanings"] == ["False","True"]
 
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
