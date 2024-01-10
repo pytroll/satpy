@@ -372,5 +372,6 @@ class VIIRSAODHandler(VIIRSJRRFileHandler):
         new_data_arr = super()._mask_invalid(data_arr, ds_info)
         if self._aod_qc_filter is None or ds_info["name"] != "AOD550":
             return new_data_arr
+        LOG.debug(f"Filtering AOD data to include quality <= {self._aod_qc_filter}")
         qc_all = self.nc["QCAll"]
         return new_data_arr.where(qc_all <= self._aod_qc_filter)
