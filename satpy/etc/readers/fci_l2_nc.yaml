@@ -558,6 +558,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance (temporal average)
+    units: '%'
 
   crm_vis04:
     name: crm_vis04
@@ -566,6 +568,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 0.44um (temporal average)
+    units: '%'
     vis_channel_id: 0
 
   crm_vis05:
@@ -575,6 +579,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 0.51um (temporal average)
+    units: '%'
     vis_channel_id: 1
 
   crm_vis06:
@@ -584,6 +590,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 0.64um (temporal average)
+    units: '%'
     vis_channel_id: 2
 
   crm_vis08:
@@ -593,6 +601,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 0.86um (temporal average)
+    units: '%'
     vis_channel_id: 3
 
   crm_vis09:
@@ -602,6 +612,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 0.91um (temporal average)
+    units: '%'
     vis_channel_id: 4
 
   crm_nir13:
@@ -611,6 +623,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 1.38um (temporal average)
+    units: '%'
     vis_channel_id: 5
 
   crm_nir16:
@@ -620,6 +634,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 1.61um (temporal average)
+    units: '%'
     vis_channel_id: 6
 
   crm_nir22:
@@ -629,6 +645,8 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_clear_sky_reflectance
     standard_name: toa_bidirectional_reflectance
+    long_name: TOA Bidirectional Reflectance at 2.25um (temporal average)
+    units: '%'
     vis_channel_id: 7
 
   mean_sza:
@@ -637,6 +655,7 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_solar_zenith
     standard_name: solar_zenith_angle
+    long_name: Solar Zenith Angle (temporal average)
 
   mean_rel_azi:
     name: mean_rel_azi
@@ -644,6 +663,7 @@ datasets:
     file_type: nc_fci_crm
     file_key: mean_rel_solar_sat_azimuth
     standard_name: relative_sun_sensor_azimuth_angle
+    long_name: Relative Solar Satellite Azimuth Angle (temporal average)
 
   n_acc:
     name: n_acc
