@@ -56,6 +56,21 @@ regions. This behavior can be disabled by providing the reader keyword argument
 
     scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"filter_veg": False})
 
+AOD Filtering
+^^^^^^^^^^^^^
+
+The AOD (Aerosol Optical Depth) product can be optionally filtered based on
+Quality Control (QC) values in the file. By default no filtering is performed.
+By providing the ``aod_qc_filter`` keyword argument and specifying the maximum
+value of the ``QCAll`` variable to include (not mask). For example::
+
+    scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"aod_qc_filter": 1})
+
+will only preserve AOD550 values where the quality is 0 ("high") or
+1 ("medium"). At the time of writing the ``QCAll`` variable has 1 ("medium"),
+2 ("low"), and 3 ("no retrieval").
+
+
 """
 from __future__ import annotations
 
@@ -76,7 +91,7 @@ M_COLS = 3200
 class VIIRSJRRFileHandler(BaseFileHandler):
     """NetCDF4 reader for VIIRS Active Fires."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
@@ -343,3 +358,20 @@ class VIIRSLSTHandler(VIIRSJRRFileHandler):
             add_offset = self.nc[self._manual_scalings[var_name][1]]
             data_arr.data = data_arr.data * scale_factor.data + add_offset.data
             self.nc[var_name] = data_arr
+
+
+class VIIRSAODHandler(VIIRSJRRFileHandler):
+    """File handler for AOD data files."""
+
+    def __init__(self, *args, aod_qc_filter: int | None = None, **kwargs) -> None:
+        """Initialize file handler and keep track of QC filtering."""
+        super().__init__(*args, **kwargs)
+        self._aod_qc_filter = aod_qc_filter
+
+    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        new_data_arr = super()._mask_invalid(data_arr, ds_info)
+        if self._aod_qc_filter is None or ds_info["name"] != "AOD550":
+            return new_data_arr
+        LOG.debug(f"Filtering AOD data to include quality <= {self._aod_qc_filter}")
+        qc_all = self.nc["QCAll"]
+        return new_data_arr.where(qc_all <= self._aod_qc_filter)
