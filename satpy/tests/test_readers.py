@@ -977,7 +977,7 @@ def _local_file(tmp_path_factory, filename: str) -> Iterator[Path]:
     tmp_path = tmp_path_factory.mktemp("local_files")
     local_filename = tmp_path / filename
     local_filename.touch()
-    return local_filename
+    yield local_filename
 
 
 @pytest.fixture(scope="module")
