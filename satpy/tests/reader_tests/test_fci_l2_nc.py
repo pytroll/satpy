@@ -95,6 +95,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                                                "number_of_columns"))
             two_layers_dataset[0, :, :] = np.ones((100, 10))
             two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
+            two_layers_dataset.unit = "test_unit"
 
             mtg_geos_projection = nc.createVariable("mtg_geos_projection", int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 0.0
@@ -173,7 +174,6 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
         np.testing.assert_allclose(dataset.values, np.ones((100, 10)))
         assert dataset.attrs["test_attr"] == "attr"
-        assert dataset.attrs["units"] == "test_units"
         assert dataset.attrs["fill_value"] == -999
 
     def test_dataset_with_layer(self):
@@ -233,6 +233,40 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         assert attributes["flag_values"] == [0,1]
         assert "flag_meanings" in attributes
         assert attributes["flag_meanings"] == ["False","True"]
+
+    def test_units_from_file(self):
+        """Test units extraction from NetCDF file."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_units_from_file", resolution=2000),
+                                      {"name": "test_one_layer",
+                                       "file_key": "test_one_layer",
+                                       "file_type": "test_file_type"})
+        assert dataset.attrs["units"] == "test_units"
+
+    def test_unit_from_file(self):
+        """Test that a unit stored with attribute `unit` in the file is assigned to the `units` attribute."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_unit_from_file", resolution=2000),
+                                      {"name": "test_two_layers",
+                                       "file_key": "test_two_layers", "layer": 1,
+                                       "file_type": "test_file_type"})
+        assert dataset.attrs["units"] == "test_unit"
+
+    def test_units_from_yaml(self):
+        """Test units extraction from yaml file."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_units_from_yaml", resolution=2000),
+                                      {"name": "test_one_layer",
+                                       "units": "test_unit_from_yaml",
+                                       "file_key": "test_one_layer",
+                                       "file_type": "test_file_type"})
+        assert dataset.attrs["units"] == "test_unit_from_yaml"
+
+    def test_units_none_conversion(self):
+        """Test that a units stored as 'none' is converted to None."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_units_none_conversion", resolution=2000),
+                                      {"name": "test_one_layer",
+                                       "units": "none",
+                                       "file_key": "test_one_layer",
+                                       "file_type": "test_file_type"})
+        assert dataset.attrs["units"] is None
 
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
