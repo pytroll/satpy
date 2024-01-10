@@ -94,10 +94,7 @@ class FciL2CommonFunctions(object):
         variable.attrs.setdefault("units", None)
         if "unit" in variable.attrs:
             # Need to convert this attribute to the expected satpy entry
-            ncunit = variable.attrs["unit"]
-            if ncunit == "none":
-                ncunit = None
-            variable.attrs.update({"units": ncunit})
+            variable.attrs.update({"units": variable.attrs["unit"]})
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
@@ -119,6 +116,9 @@ class FciL2CommonFunctions(object):
                 variable.attrs["flag_values"] = flag_values
                 variable.attrs["flag_meanings"] = flag_meanings
                 netCDF4_dataset.close()
+
+        if variable.attrs["units"] == "none":
+            variable.attrs.update({"units": None})
 
         return variable
 
