@@ -91,7 +91,7 @@ M_COLS = 3200
 class VIIRSJRRFileHandler(BaseFileHandler):
     """NetCDF4 reader for VIIRS Active Fires."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
