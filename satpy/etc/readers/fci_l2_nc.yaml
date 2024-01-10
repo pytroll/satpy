@@ -1056,7 +1056,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 0
     flag_values: [0,1]
-    flag_meanings: ['No snow/Ice detected',' Snow/Ice detected']
+    flag_meanings: ['No snow/ice detected',' Snow/ice detected']
     standard_name: status_flag
 
   cloud_test_cmt1:
@@ -1066,7 +1066,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 1
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt2:
@@ -1076,7 +1076,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 2
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt3:
@@ -1086,7 +1086,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 3
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt4:
@@ -1096,7 +1096,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 4
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt5:
@@ -1106,7 +1106,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 5
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt6:
@@ -1116,7 +1116,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 6
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt7:
@@ -1126,7 +1126,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 7
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt8:
@@ -1136,7 +1136,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 8
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt9:
@@ -1146,7 +1146,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 9
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt10:
@@ -1156,7 +1156,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 10
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt11:
@@ -1166,7 +1166,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 11
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt12:
@@ -1176,7 +1176,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 12
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt13:
@@ -1186,7 +1186,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 13
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmt14:
@@ -1196,7 +1196,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 14
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_opqt:
@@ -1206,7 +1206,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 15
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No opaqueness detected', 'Opaqueness detected']
     standard_name: status_flag
 
   cloud_test_cmrt1:
@@ -1216,7 +1216,7 @@ datasets:
     file_key: cloud_mask_test_result
     extract_byte: 16
     flag_values: [0,1]
-    flag_meanings: ['Cloud undetected','Cloud detected']
+    flag_meanings: ['No cloud detected','Cloud detected']
     standard_name: status_flag
 
   cloud_test_cmrt2:
@@ -1297,24 +1297,6 @@ datasets:
     fill_value: -127
     standard_name: status_flag
     import_enum_information: True
-
-  product_quality_clmtest:
-    name: product_quality_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness_clmtest:
-    name: product_completeness_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness_clmtest:
-    name: product_timeliness_clmtest
-    file_type: nc_fci_test_clm
-    file_key: product_timeliness
-    standard_name: product_timeliness
 
   # ASR
   bt_max:
