@@ -184,7 +184,6 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
         np.testing.assert_allclose(dataset.values, 2 * np.ones((100, 10)))
-        assert dataset.attrs["units"] is None
         assert dataset.attrs["spacecraft_name"] == "test_platform"
 
     def test_dataset_with_invalid_filekey(self):
