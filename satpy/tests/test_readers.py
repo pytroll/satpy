@@ -23,7 +23,6 @@ import os
 import sys
 import unittest
 import warnings
-from contextlib import suppress
 from pathlib import Path
 from typing import Iterator
 from unittest import mock
@@ -978,8 +977,7 @@ def _local_file(tmp_path_factory, filename: str) -> Iterator[Path]:
     tmp_path = tmp_path_factory.mktemp("local_files")
     local_filename = tmp_path / filename
     local_filename.touch()
-    yield local_filename
-    local_filename.unlink()
+    return local_filename
 
 
 @pytest.fixture(scope="module")
@@ -1007,9 +1005,7 @@ def local_zip_file(local_filename2):
     zip_file = zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED)
     zip_file.write(local_filename2)
     zip_file.close()
-    yield zip_name
-    with suppress(PermissionError):
-        zip_name.unlink()
+    return zip_name
 
 
 class TestFSFile:
@@ -1131,9 +1127,7 @@ def local_netcdf_filename(tmp_path_factory):
     ds["var1"] = xr.DataArray(np.zeros((10, 10), dtype=np.int16), dims=("y", "x"))
     ds.to_netcdf(filename)
 
-    yield str(filename)
-    with suppress(PermissionError):
-        filename.unlink()
+    return str(filename)
 
 
 @pytest.fixture(scope="module")
@@ -1188,9 +1182,7 @@ def local_hdf5_filename(tmp_path_factory):
     h.create_dataset("var1", data=np.zeros((10, 10), dtype=np.int16))
     h.close()
 
-    yield str(filename)
-    with suppress(PermissionError):
-        filename.unlink()
+    return str(filename)
 
 
 @pytest.fixture(scope="module")
