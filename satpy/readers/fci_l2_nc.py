@@ -95,7 +95,7 @@ class FciL2CommonFunctions(object):
         if "unit" in variable.attrs:
             # Need to convert this attribute to the expected satpy entry
             ncunit = variable.attrs["unit"]
-            if ncunit == 'none':
+            if ncunit == "none":
                 ncunit = None
             variable.attrs.update({"units": ncunit})
             del variable.attrs["unit"]
