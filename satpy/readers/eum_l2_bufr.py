@@ -331,5 +331,3 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
-        if (xarr.attrs["resolution"] == "none"):
-            xarr.attrs.update({"resolution": None})

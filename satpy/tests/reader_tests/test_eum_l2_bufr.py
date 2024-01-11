@@ -147,7 +147,7 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'key': '#1#brightnessTemperature',
                 'resolution': 32000},
              """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_
-             20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""": {
+20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""": {
                 'platform_name': 'MTGi1',
                 'spacecraft_number': '24',
                 'RectificationLongitude': 'E0000',
@@ -156,7 +156,7 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'seg_size': None,
                 'file_type': 'fci_l2_bufr_amv',
                 'key': '#1#brightnessTemperature',
-                'resolution': 'none'}}
+                'resolution': 'null'}}
 
 
 TEST_FILES = list(TEST_DATA.keys())
@@ -348,10 +348,7 @@ class TestL2BufrReader:
 
         z = bufr_obj.get_data(dataset_name='TestData', key=TEST_DATA[input_file]['key'], coordinates=True)
 
-        if bufr_obj.resolution == 'none':
-            assert z.attrs["resolution"] is None
-        else:
-            assert z.attrs["resolution"] == bufr_obj.resolution
+        assert z.attrs["resolution"] == bufr_obj.resolution
 
 
 class AMVBufrData:
@@ -381,6 +378,7 @@ class TestAMVBufrReader:
         bufr_obj = AMVBufrData('AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455')
         assert bufr_obj.fh.with_adef is False
 
-        bufr_obj = AMVBufrData("""W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_
-              C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""")
+        input_file = """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_
+20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin"""
+        bufr_obj = AMVBufrData(input_file)
         assert bufr_obj.fh.with_adef is False
