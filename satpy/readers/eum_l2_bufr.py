@@ -64,10 +64,10 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
 
 # This is the physical size of the segment, in meters
 resolution_dict = {'seviri_l2_bufr_asr': 48000, 'seviri_l2_bufr_cla': 48000,
-                 'seviri_l2_bufr_csr': 48000, 'seviri_l2_bufr_gii': 9000,
-                 'seviri_l2_bufr_thu': 48000, 'seviri_l2_bufr_toz': 9000,
-                 'seviri_l2_bufr_amv': None,
-                 'fci_l2_bufr_asr': 32000, 'fci_l2_bufr_amv': None}
+                   'seviri_l2_bufr_csr': 48000, 'seviri_l2_bufr_gii': 9000,
+                   'seviri_l2_bufr_thu': 48000, 'seviri_l2_bufr_toz': 9000,
+                   'seviri_l2_bufr_amv': None,
+                   'fci_l2_bufr_asr': 32000, 'fci_l2_bufr_amv': None}
 
 # List of variables that are returned by eccodes as array, but we want as single value
 deprecate_to_single_value = ['satelliteIdentifier']
@@ -117,9 +117,9 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         else:
             # Product was retrieved from the EUMETSAT Data Center
             # get all attributes in one call
-            attr = self.get_attributes(['typicalDate', 'typicalTime','satelliteIdentifier'])
+            attr = self.get_attributes(['typicalDate', 'typicalTime', 'satelliteIdentifier'])
             timeStr = attr['typicalDate']+attr['typicalTime']
-            sc_id = int( attr['satelliteIdentifier'])
+            sc_id = int(attr['satelliteIdentifier'])
 
             self.bufr_header = {}
             self.bufr_header['NominalTime'] = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
@@ -134,10 +134,8 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         if self.seg_size:
             # make this keyword not usable for non-grided products
             self.with_adef = with_area_definition
-            self.resolution = resolution_dict[self.filetype]
         else:
             self.with_adef = False
-            self.resolution = None
 
     @property
     def start_time(self):
@@ -202,11 +200,11 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             for k in keys:
                 try:
                     if k in deprecate_to_single_value:
-                      # Extract satelliteIdentifier single value. The satelliteIdentifier attribute is returned as an
-                      # array becasue the environment variable ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS is set to 1.
-                      value = ec.codes_get_array(bufr, k)[0]
+                        # Extract satelliteIdentifier single value. The satelliteIdentifier attribute is returned as an
+                        # array becasue the environment variable ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS is set to 1.
+                        value = ec.codes_get_array(bufr, k)[0]
                     else:
-                      value = ec.codes_get(bufr, k)
+                        value = ec.codes_get(bufr, k)
                     attr[k] = value
 
                 except BaseException:
@@ -263,7 +261,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         arr = self.get_array(dataset_info['key'])
 
         if self.with_adef:
-            xarr = self.get_dataset_with_area_def(arr, dataset_id)
+            xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info["resolution"])
             # coordinates are not relevant when returning data with an AreaDefinition
             if 'coordinates' in dataset_info.keys():
                 del dataset_info['coordinates']
@@ -276,14 +274,14 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         self._add_attributes(xarr, dataset_info)
         return xarr
 
-    def get_dataset_with_area_def(self, arr, dataset_id):
+    def get_dataset_with_area_def(self, arr, dataset_id, resolution):
         """Get dataset with an AreaDefinition."""
         if dataset_id['name'] in ['latitude', 'longitude']:
             self.__setattr__(dataset_id['name'], arr)
             xarr = xr.DataArray(arr, dims=["y"])
         else:
             lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
-            self._area_def = self._construct_area_def(dataset_id)
+            self._area_def = self._construct_area_def(dataset_id, resolution)
             icol, irow = self._area_def.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
             data_2d = np.empty(self._area_def.shape)
@@ -300,7 +298,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         return xarr
 
-    def _construct_area_def(self, dataset_id):
+    def _construct_area_def(self, dataset_id, resolution):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
@@ -309,7 +307,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """
         area_naming_input_dict = {'platform_name': self.platform_name[:3].lower(),
                                   'instrument_name': self.sensor_name,
-                                  'resolution': self.resolution,
+                                  'resolution': resolution,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
@@ -333,3 +331,5 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
+        if (xarr.attrs["resolution"] == "none"):
+            xarr.attrs.update({"resolution": None})

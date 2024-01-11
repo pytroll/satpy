@@ -124,7 +124,7 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'seg_size': None,
                 'file_type': 'seviri_l2_bufr_amv',
                 'key': '#1#brightnessTemperature',
-                'resolution': 48000},
+                'resolution': 72009.675979608},
              'MSG2-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr': {
                 'platform_name': 'MSG2',
                 'spacecraft_number': '9',
@@ -135,7 +135,8 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'file_type': 'seviri_l2_bufr_asr',
                 'key': '#1#brightnessTemperature',
                 'resolution': 48000},
-             'W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------BUFR_C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin': {
+             """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------BUFR_C_EUMT_
+             20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""": {
                 'platform_name': 'MTGi1',
                 'spacecraft_number': '24',
                 'RectificationLongitude': 'E0000',
@@ -145,7 +146,8 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'file_type': 'fci_l2_bufr_asr',
                 'key': '#1#brightnessTemperature',
                 'resolution': 32000},
-             'W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin': {
+             """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_
+             20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""": {
                 'platform_name': 'MTGi1',
                 'spacecraft_number': '24',
                 'RectificationLongitude': 'E0000',
@@ -154,11 +156,11 @@ TEST_DATA = {'GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000': {
                 'seg_size': None,
                 'file_type': 'fci_l2_bufr_amv',
                 'key': '#1#brightnessTemperature',
-                'resolution': 32000}
-          }
+                'resolution': 'none'}}
 
 
 TEST_FILES = list(TEST_DATA.keys())
+
 
 class L2BufrData:
     """Mock L2 BUFR data."""
@@ -172,12 +174,10 @@ class L2BufrData:
         self.buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(self.buf1, 'unpack', 1)
         # write the bufr test data twice as we want to read in and then concatenate the data in the reader
-        # 55 id corresponds to METEOSAT 8`
+        # 55 id corresponds to METEOSAT 8
         ec.codes_set(self.buf1, 'satelliteIdentifier', 47 + int(TEST_DATA[filename]['spacecraft_number']))
         ec.codes_set_array(self.buf1, '#1#latitude', LAT)
-        #ec.codes_set_array(self.buf1, '#1#latitude', LAT)
         ec.codes_set_array(self.buf1, '#1#longitude', LON)
-       # ec.codes_set_array(self.buf1, '#1#longitude', LON)
         ec.codes_set_array(self.buf1, TEST_DATA[filename]['key'], DATA)
 
         self.m = mock.mock_open()
@@ -199,9 +199,10 @@ class L2BufrData:
 
                     FILENAME_INFO = {'start_time': '20231022224500', 'spacecraft': TEST_DATA[filename]['platform_name'],
                                      'server': 'TESTSERVER'}
-                    self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                        with_area_definition=with_adef,
-                                        rectification_longitude=int(TEST_DATA[filename]['RectificationLongitude'][1:])/10)
+                    self.fh = EumetsatL2BufrFileHandler(
+                        filename, FILENAME_INFO, FILETYPE_INFO,
+                        with_area_definition=with_adef,
+                        rectification_longitude=int(TEST_DATA[filename]['RectificationLongitude'][1:])/10)
                     self.fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
@@ -215,21 +216,22 @@ class L2BufrData:
                         with mock.patch('eccodes.codes_release') as ec5:
                             ec5.return_value = 1
 
-                            FILENAME_INFO = {'start_time': '20191112000000', 'spacecraft': TEST_DATA[filename]['platform_name']}
-                            self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                                    with_area_definition=with_adef,
-                                                    rectification_longitude=int(TEST_DATA[filename]['RectificationLongitude'][1:])/10)
+                            FILENAME_INFO = {'start_time': '20191112000000',
+                                             'spacecraft': TEST_DATA[filename]['platform_name']}
+                            self.fh = EumetsatL2BufrFileHandler(
+                                  filename, FILENAME_INFO, FILETYPE_INFO,
+                                  with_area_definition=with_adef,
+                                  rectification_longitude=int(TEST_DATA[filename]['RectificationLongitude'][1:])/10)
 
-        # Force resolution propertie in the file handler because the mock template doesn't have the
-        # segmentSizeAtNadirInXDirection key so it can't be initialized the normal way
-        self.fh.resolution = TEST_DATA[filename]['resolution']
+        self.resolution = TEST_DATA[filename]['resolution']
 
     def get_data(self, dataset_name, key, coordinates):
         """Read data from mock file."""
         DATASET_INFO = {
             'name': dataset_name,
             'key': key,
-            'fill_value': -1.e+100
+            'fill_value': -1.e+100,
+            'resolution': self.resolution
         }
         if coordinates:
             DATASET_INFO.update({'coordinates': ('longitude', 'latitude')})
@@ -242,7 +244,8 @@ class L2BufrData:
                     ec2.return_value = 1
                     with mock.patch('eccodes.codes_release') as ec5:
                         ec5.return_value = 1
-                        z = self.fh.get_dataset(make_dataid(name = dataset_name, resolution = self.fh.resolution), DATASET_INFO)
+                        z = self.fh.get_dataset(make_dataid(name=dataset_name, resolution=self.resolution),
+                                                DATASET_INFO)
 
         return z
 
@@ -253,12 +256,9 @@ class TestL2BufrReader:
 
     @staticmethod
     def test_lonslats(input_file):
-        print(input_file)
         """Test reading of longitude and latitude data with SEVIRI L2 BUFR reader."""
         bufr_obj = L2BufrData(input_file)
-        print('get zlat')
         zlat = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)
-        print(zlat)
         zlon = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)
         np.testing.assert_array_equal(zlat.values, np.concatenate((LAT, LAT), axis=0))
         np.testing.assert_array_equal(zlon.values, np.concatenate((LON, LON), axis=0))
@@ -276,8 +276,8 @@ class TestL2BufrReader:
     def test_attributes_with_area_definition(input_file):
         """Test correctness of dataset attributes with data loaded with a AreaDefinition."""
         bufr_obj = L2BufrData(input_file, with_adef=True)
-        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)  # We need to load the lat/lon data in order to
-        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)  # populate the file handler with these data
+        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)
+        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)
 
         z = bufr_obj.get_data(dataset_name='TestData', key=TEST_DATA[input_file]['key'], coordinates=True)
         assert z.attrs['platform_name'] == TEST_DATA[input_file]['platform_name']
@@ -297,14 +297,14 @@ class TestL2BufrReader:
         np.testing.assert_array_equal(z.values, x1)
 
     def test_data_with_area_definition(self, input_file):
+        """Test data loaded with an area definition."""
         if TEST_DATA[input_file]['seg_size'] is None:
-          # Skip this test
-          return
+            # Skip this test
+            return
 
-        """Test data loaded with AreaDefinition."""
         bufr_obj = L2BufrData(input_file, with_adef=True)
-        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)  # We need to load the lat/lon data in order to
-        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)  # populate the file handler with these data
+        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)
+        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)
 
         z = bufr_obj.get_data(dataset_name='TestData', key=TEST_DATA[input_file]['key'], coordinates=True)
 
@@ -324,20 +324,34 @@ class TestL2BufrReader:
         # Removed assert dedicated to products with seg_size=3 (covered by GII test case)
 
     def test_data_with_rect_lon(self, input_file):
+        """Test data loaded with an area definition and a rectification longitude."""
         if TEST_DATA[input_file]['seg_size'] is None:
-          # Skip this test
-          return
+            # Skip this test
+            return
 
-        """Test data loaded with AreaDefinition and user defined rectification longitude."""
         bufr_obj = L2BufrData(input_file, with_adef=True)
-        np.testing.assert_equal(bufr_obj.fh.ssp_lon, int(TEST_DATA[input_file]['RectificationLongitude'][1:])/10)
-        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)  # We need to load the lat/lon data in order to
-        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)  # populate the file handler with these data
+        np.testing.assert_equal(bufr_obj.fh.ssp_lon,
+                                int(TEST_DATA[input_file]['RectificationLongitude'][1:])/10)
+        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)
+        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)
         _ = bufr_obj.get_data(dataset_name='TestData', key=TEST_DATA[input_file]['key'], coordinates=True)
         # We need to lead the data in order to create the AreaDefinition
 
         ad = bufr_obj.fh.get_area_def(None)
         assert ad == TEST_DATA[input_file]['area']
+
+    def test_resolution(self, input_file):
+        """Test data loaded with the correct resolution attribute ."""
+        bufr_obj = L2BufrData(input_file, with_adef=True)
+        _ = bufr_obj.get_data('latitude', '#1#latitude', coordinates=False)
+        _ = bufr_obj.get_data('longitude', '#1#longitude', coordinates=False)
+
+        z = bufr_obj.get_data(dataset_name='TestData', key=TEST_DATA[input_file]['key'], coordinates=True)
+
+        if bufr_obj.resolution == 'none':
+            assert z.attrs["resolution"] is None
+        else:
+            assert z.attrs["resolution"] == bufr_obj.resolution
 
 
 class AMVBufrData:
@@ -352,7 +366,8 @@ class AMVBufrData:
             FILENAME_INFO = {'start_time': '20191112000000',
                              'spacecraft': TEST_DATA[filename]['platform_name'],
                              'server': 'TESTSERVER'}
-            self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO,
+            self.fh = EumetsatL2BufrFileHandler(
+                                filename, FILENAME_INFO,
                                 filetype_info={'file_type': TEST_DATA[filename]['file_type']},
                                 with_area_definition=True)
 
@@ -366,5 +381,6 @@ class TestAMVBufrReader:
         bufr_obj = AMVBufrData('AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455')
         assert bufr_obj.fh.with_adef is False
 
-        bufr_obj = AMVBufrData('W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin')
+        bufr_obj = AMVBufrData("""W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_
+              C_EUMT_20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""")
         assert bufr_obj.fh.with_adef is False
