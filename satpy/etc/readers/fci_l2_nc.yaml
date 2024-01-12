@@ -79,10 +79,10 @@ datasets:
 # CLM
   cloud_state:
     name: cloud_state
+    standard_name: cloud_mask_classification
     resolution: 2000
     file_type: nc_fci_clm
     file_key: cloud_state
-    standard_name: cloud_mask_classification
     fill_value: -127
     import_enum_information: True
 
