@@ -74,9 +74,269 @@ file_types:
     file_patterns:
       - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-AMV-{channel}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
+
 datasets:
 
-# CLM
+# AMV Intermediate - Atmospheric Motion Vectors Intermediate
+  intm_latitude:
+    name: intm_latitude
+    standard_name: latitude
+    file_type: nc_fci_amvi
+    file_key: intm_latitude
+
+  intm_longitude:
+    name: intm_longitude
+    standard_name: longitude
+    file_type: nc_fci_amvi
+    file_key: intm_longitude
+
+  intm_speed:
+    name: intm_speed
+    standard_name: wind_speed
+    file_type: nc_fci_amvi
+    file_key: intm_speed
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_u_component:
+    name: intm_u_component
+    standard_name: wind_speed_horizontal_component
+    file_type: nc_fci_amvi
+    file_key: intm_u_component
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_v_component:
+    name: intm_v_component
+    standard_name: wind_speed_vertical_component
+    file_type: nc_fci_amvi
+    file_key: intm_v_component
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_direction:
+    name: intm_direction
+    standard_name: wind_to_direction
+    file_type: nc_fci_amvi
+    file_key: intm_direction
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_pressure:
+    name: intm_pressure
+    standard_name: wind_pressure
+    file_type: nc_fci_amvi
+    file_key: intm_pressure
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_temperature:
+    name: intm_temperature
+    standard_name: wind_temperature
+    file_type: nc_fci_amvi
+    file_key: intm_temperature
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_target_type:
+    name: intm_target_type
+    standard_name: wind_target_type
+    file_type: nc_fci_amvi
+    file_key: target_type
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+  intm_wind_method:
+    name: intm_wind_method
+    standard_name: wind_wind_method
+    file_type: nc_fci_amvi
+    file_key: wind_method
+    coordinates:
+      - intm_longitude
+      - intm_latitude
+
+
+# AMV Final - Atmospheric Motion Vectors Final
+  channel_id:
+    name: channel_id
+    standard_name: channel_id
+    file_type: nc_fci_amv
+    file_key: channel_id
+
+  amv_latitude:
+    name: latitude
+    standard_name: latitude
+    file_type: nc_fci_amv
+    file_key: latitude
+
+  amv_longitude:
+    name: longitude
+    standard_name: longitude
+    file_type: nc_fci_amv
+    file_key: longitude
+
+  speed:
+    name: speed
+    standard_name: wind_speed
+    file_type: nc_fci_amv
+    file_key: speed
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_u_component:
+    name: speed_u_component
+    standard_name: wind_speed_horizontal_component
+    file_type: nc_fci_amv
+    file_key: speed_u_component
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_v_component:
+    name: speed_v_component
+    standard_name: wind_speed_vertical_component
+    file_type: nc_fci_amv
+    file_key: speed_v_component
+    coordinates:
+      - longitude
+      - latitude
+
+  direction:
+    name: direction
+    standard_name: wind_to_direction
+    file_type: nc_fci_amv
+    file_key: direction
+    coordinates:
+      - longitude
+      - latitude
+
+  pressure:
+    name: pressure
+    standard_name: wind_pressure
+    file_type: nc_fci_amv
+    file_key: pressure
+    coordinates:
+      - longitude
+      - latitude
+
+  temperature:
+    name: temperature
+    standard_name: wind_temperature
+    file_type: nc_fci_amv
+    file_key: temperature
+    coordinates:
+      - longitude
+      - latitude
+
+  target_type:
+    name: target_type
+    standard_name: wind_target_type
+    file_type: nc_fci_amv
+    file_key: target_type
+    coordinates:
+      - longitude
+      - latitude
+
+  wind_method:
+    name: wind_method
+    standard_name: wind_wind_method
+    file_type: nc_fci_amv
+    file_key: wind_method
+    coordinates:
+      - longitude
+      - latitude
+
+  fcst_u:
+    name: fcst_u
+    standard_name: wind_forecast_u_component
+    file_type: nc_fci_amv
+    file_key: forecast_u_component
+    coordinates:
+      - longitude
+      - latitude
+
+  fcst_v:
+    name: fcst_v
+    standard_name: wind_forecast_v_component
+    file_type: nc_fci_amv
+    file_key: forecast_v_component
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_pres:
+    name: best_fit_pres
+    standard_name: wind_best_fit_pressure
+    file_type: nc_fci_amv
+    file_key: best_fit_pressure
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_u:
+    name: best_fit_u
+    standard_name: wind_best_fit_u_component
+    file_type: nc_fci_amv
+    file_key: best_fit_u_component
+    coordinates:
+      - longitude
+      - latitude
+
+  best_fit_v:
+    name: best_fit_v
+    standard_name: wind_best_fit_v_component
+    file_type: nc_fci_amv
+    file_key: best_fit_v_component
+    coordinates:
+      - longitude
+      - latitude
+
+  qi:
+    name: qi
+    standard_name: wind_overall_reliability
+    file_type: nc_fci_amv
+    file_key: overall_reliability
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst:
+    name: qi_excl_fcst
+    standard_name: wind_overall_reliability_exc_forecast
+    file_type: nc_fci_amv
+    file_key: overall_reliability_exc_forecast
+    coordinates:
+      - longitude
+      - latitude
+
+  product_quality:
+    name: product_quality
+    standard_name: product_quality
+    file_type: nc_fci_amv
+    file_key: product_quality
+
+  product_completeness:
+    name: product_completeness
+    standard_name: product_completeness
+    file_type: nc_fci_amv
+    file_key: product_completeness
+
+  product_timeliness:
+    name: product_timeliness
+    standard_name: product_timeliness
+    file_type: nc_fci_amv
+    file_key: product_timeliness
+
+
+# CLM - Cloud Mask
   cloud_state:
     name: cloud_state
     standard_name: cloud_mask_classification
@@ -88,698 +348,352 @@ datasets:
 
   quality_illumination_clm:
     name: quality_illumination_clm
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_illumination
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_nwp_parameters_clm:
     name: quality_nwp_parameters_clm
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_nwp_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_MTG_parameters_clm:
     name: quality_MTG_parameters_clm
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_MTG_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_overall_processing_clm:
     name: quality_overall_processing_clm
+    standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_clm
     file_key: quality_overall_processing
-    standard_name: quality_flag
     fill_value: -127
     import_enum_information: True
 
   product_quality_clm:
     name: product_quality_clm
+    standard_name: product_quality
     file_type: nc_fci_clm
     file_key: product_quality
-    standard_name: product_quality
 
   product_completeness_clm:
     name: product_completeness_clm
+    standard_name: product_completeness
     file_type: nc_fci_clm
     file_key: product_completeness
-    standard_name: product_completeness
 
   product_timeliness_clm:
     name: product_timeliness_clm
+    standard_name: product_timeliness
     file_type: nc_fci_clm
     file_key: product_timeliness
-    standard_name: product_timeliness
 
-# FCI CT L2
+
+# CT - Cloud Type
   cloud_phase:
     name: cloud_phase
+    standard_name: cloud_phase_classification
     resolution: 2000
     file_type: nc_fci_ct
     file_key: cloud_phase
-    standar_name: cloud_phase_classification
     fill_value: -127
     import_enum_information: True
 
   cloud_type:
     name: cloud_type
+    standard_name: cloud_type_classification
     resolution: 2000
     file_type: nc_fci_ct
     file_key: cloud_type
-    standard_name: cloud_type_classification
     fill_value: -127
     import_enum_information: True
 
   quality_illumination_ct:
     name: quality_illumination_ct
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
     file_key: quality_illumination
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_nwp_parameters_ct:
     name: quality_nwp_parameters_ct
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
     file_key: quality_nwp_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_MTG_parameters_ct:
     name: quality_MTG_parameters_ct
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
     file_key: quality_MTG_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_overall_processing_ct:
     name: quality_overall_processing_ct
+    standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ct
     file_key: quality_overall_processing
-    standard_name: quality_flag
     fill_value: -127
     import_enum_information: True
 
   product_quality_ct:
     name: product_quality_ct
+    standard_name: product_quality
     file_type: nc_fci_ct
     file_key: product_quality
-    standard_name: product_quality
 
   product_completeness_ct:
     name: product_completeness_ct
+    standard_name: product_completeness
     file_type: nc_fci_ct
     file_key: product_completeness
-    standard_name: product_completeness
 
   product_timeliness_ct:
     name: product_timeliness_ct
+    standard_name: product_timeliness
     file_type: nc_fci_ct
     file_key: product_timeliness
-    standard_name: product_timeliness
 
-  # FCI CTTH Product
+
+  # CTTH - Cloud Top Temperature and Height
   cloud_top_aviation_height:
     name: cloud_top_aviation_height
+    standard_name: height_at_cloud_top_for_aviation
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_aviation_height
-    standard_name: height_at_cloud_top_for_aviation
 
   cloud_top_height:
     name: cloud_top_height
+    standard_name: height_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_height
-    standard_name: height_at_cloud_top
 
   cloud_top_pressure:
     name: cloud_top_pressure
+    standard_name: air_pressure_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_pressure
-    standard_name: air_pressure_at_cloud_top
 
   cloud_top_temperature:
     name: cloud_top_temperature
+    standard_name: air_temperature_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_temperature
-    standard_name: air_temperature_at_cloud_top
 
   effective_cloudiness:
     name: effective_cloudiness
+    standard_name: effective_cloud_cover
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: effective_cloudiness
-    standard_name: effective_cloud_cover
 
   quality_status_ctth:
     name: quality_status_ctth
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_status
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_rtm_ctth:
     name: quality_rtm_ctth
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_rtm
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_method_ctth:
     name: quality_method_ctth
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_method
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_nwp_parameters_ctth:
     name: quality_nwp_parameters_ctth
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_nwp_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_MTG_parameters_ctth:
     name: quality_MTG_parameters_ctth
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_MTG_parameters
-    standard_name: status_flag
     fill_value: -127
     import_enum_information: True
 
   quality_overall_processing_ctth:
     name: quality_overall_processing_ctth
+    standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing
-    standard_name: quality_flag
     fill_value: -127
     import_enum_information: True
 
   quality_overall_processing_aviation_ctth:
     name: quality_overall_processing_aviation_ctth
+    standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing_aviation
-    standard_name: quality_flag
     fill_value: -127
     import_enum_information: True
 
   product_quality_ctth:
     name: product_quality_ctth
+    standard_name: product_quality
     file_type: nc_fci_ctth
     file_key: product_quality
-    standard_name: product_quality
 
   product_completeness_ctth:
     name: product_completeness_ctth
+    standard_name: product_completeness
     file_type: nc_fci_ctth
     file_key: product_completeness
-    standard_name: product_completeness
 
   product_timeliness_ctth:
     name: product_timeliness_ctth
+    standard_name: product_timeliness
     file_type: nc_fci_ctth
     file_key: product_timeliness
-    standard_name: product_timeliness
 
-  # OCA
-  retrieved_cloud_phase:
-    name: retrieved_cloud_phase
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_phase
-    standard_name: thermodynamic_phase_of_cloud_particles_classification
-    fill_value: -127
-    import_enum_information: True
 
-  retrieved_cloud_optical_thickness:
-    name: retrieved_cloud_optical_thickness
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
-    standard_name: atmosphere_optical_thickness_due_to_cloud
-
-  retrieved_cloud_optical_thickness_upper_layer:
-    name: retrieved_cloud_optical_thickness_upper_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
-    layer: 0
-    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Upper Layer
-    standard_name: atmosphere_optical_thickness_due_to_cloud
-
-  retrieval_error_cloud_optical_thickness_upper_layer:
-    name: retrieval_error_cloud_optical_thickness_upper_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_optical_thickness
-    layer: 0
-    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Upper Layer
-    standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
-
-  retrieved_cloud_optical_thickness_lower_layer:
-    name: retrieved_cloud_optical_thickness_lower_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
-    layer: 1
-    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Lower Layer
-    standard_name: atmosphere_optical_thickness_due_to_cloud
-
-  retrieval_error_cloud_optical_thickness_lower_layer:
-    name: retrieval_error_cloud_optical_thickness_lower_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_optical_thickness
-    layer: 1
-    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Lower Layer
-    standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
-
-  retrieved_cloud_particle_effective_radius:
-    name: retrieved_cloud_particle_effective_radius
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_particle_effective_radius
-    standard_name: effective_radius_of_cloud_particles_at_cloud_top
-
-  retrieval_error_cloud_particle_effective_radius:
-    name: retrieval_error_cloud_particle_effective_radius
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_particle_effective_radius
-    standard_name: effective_radius_of_cloud_particles_at_cloud_top standard_error
-
-  retrieved_cloud_top_pressure_upper_layer:
-    name: retrieved_cloud_top_pressure_upper_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_pressure
-    layer: 0
-    long_name: Cloud Top Pressure for Upper Layer
-    standard_name: air_pressure_at_cloud_top
-
-  retrieval_error_cloud_top_pressure_upper_layer:
-    name: retrieval_error_cloud_top_pressure_upper_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_top_pressure
-    layer: 0
-    long_name: Cloud Top Pressure Error for Upper Layer
-    standard_name: air_pressure_at_cloud_top standard_error
-
-  retrieved_cloud_top_pressure_lower_layer:
-    name: retrieved_cloud_top_pressure_lower_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_pressure
-    layer: 1
-    long_name: Cloud Top Pressure for Lower Layer
-    standard_name: air_pressure_at_cloud_top
-
-  retrieval_error_cloud_top_pressure_lower_layer:
-    name: retrieval_error_cloud_top_pressure_lower_layer
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_top_pressure
-    layer: 1
-    long_name: Cloud Top Pressure Error for Lower Layer
-    standard_name: air_pressure_at_cloud_top standard_error
-
-  retrieved_cloud_top_temperature:
-    name: retrieved_cloud_top_temperature
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_temperature
-    standard_name: air_temperature_at_cloud_top
-
-  retrieved_cloud_top_height:
-    name: retrieved_cloud_top_height
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_height
-    standard_name: height_at_cloud_top
-
-  quality_jmeas:
-    name: quality_jmeas
-    resolution: 2000
-    file_type: nc_fci_oca
-    file_key: quality_jmeas
-    standard_name: cost_function_part_due_to_measurements
-
-  product_quality_oca:
-    name: product_quality_oca
-    file_type: nc_fci_oca
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness_oca:
-    name: product_completeness_oca
-    file_type: nc_fci_oca
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness_oca:
-    name: product_timeliness_oca
-    file_type: nc_fci_oca
-    file_key: product_timeliness
-    standard_name: product_timeliness
-
-  # FIR
+  # FIR - Active Fire Monitoring
   fire_probability:
     name: fire_probability
+    standard_name: fire_probability
     resolution: 2000
     file_type: nc_fci_fir
     file_key: fire_probability
-    standard_name: fire_probability
 
   fire_result:
     name: fire_result
+    standard_name: active_fire_classification
     resolution: 2000
     file_type: nc_fci_fir
     file_key: fire_result
-    standard_name: active_fire_classification
     fill_value: -127
     import_enum_information: True
 
   product_quality_fir:
     name: product_quality_fir
+    standard_name: product_quality
     file_type: nc_fci_fir
     file_key: product_quality
-    standard_name: product_quality
 
   product_completeness_fir:
     name: product_completeness_fir
+    standard_name: product_completeness
     file_type: nc_fci_fir
     file_key: product_completeness
-    standard_name: product_completeness
 
   product_timeliness_fir:
     name: product_timeliness_fir
+    standard_name: product_timeliness
     file_type: nc_fci_fir
     file_key: product_timeliness
-    standard_name: product_timeliness
-
-  # OLR
-  olr:
-    name: olr
-    resolution: 2000
-    file_type: nc_fci_olr
-    file_key: olr_value
-    standard_name: outgoing_longwave_radiation
-
-  cloud_type_olr:
-    name: cloud_type_olr
-    resolution: 2000
-    file_type: nc_fci_olr
-    file_key: cloud_type
-    standard_name: cloud_type_classification
-    fill_value: -127
-    import_enum_information: True
-
-  quality_overall_processing_olr:
-    name: quality_overall_processing_olr
-    resolution: 2000
-    file_type: nc_fci_olr
-    file_key: quality_overall_processing
-    standard_name: quality_flag
-    fill_value: -127
-    import_enum_information: True
-
-  product_quality_olr:
-    name: product_quality_olr
-    file_type: nc_fci_olr
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness_olr:
-    name: product_completeness_olr
-    file_type: nc_fci_olr
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness_olr:
-    name: product_timeliness_olr
-    file_type: nc_fci_olr
-    file_key: product_timeliness
-    standard_name: product_timeliness
-
-  # CRM
-  crm:
-    name: crm
-    resolution: 1000
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance (temporal average)
-    units: '%'
-
-  crm_vis04:
-    name: crm_vis04
-    resolution: 1000
-    wavelength: [0.384, 0.444, 0.504]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 0.44um (temporal average)
-    units: '%'
-    vis_channel_id: 0
-
-  crm_vis05:
-    name: crm_vis05
-    resolution: 1000
-    wavelength: [0.47, 0.51, 0.55]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 0.51um (temporal average)
-    units: '%'
-    vis_channel_id: 1
-
-  crm_vis06:
-    name: crm_vis06
-    resolution: 1000
-    wavelength: [0.59, 0.64, 0.69]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 0.64um (temporal average)
-    units: '%'
-    vis_channel_id: 2
-
-  crm_vis08:
-    name: crm_vis08
-    resolution: 1000
-    wavelength: [0.815, 0.865, 0.915]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 0.86um (temporal average)
-    units: '%'
-    vis_channel_id: 3
-
-  crm_vis09:
-    name: crm_vis09
-    resolution: 1000
-    wavelength: [0.894, 0.914, 0.934]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 0.91um (temporal average)
-    units: '%'
-    vis_channel_id: 4
-
-  crm_nir13:
-    name: crm_nir13
-    resolution: 1000
-    wavelength: [1.35, 1.38, 1.41]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 1.38um (temporal average)
-    units: '%'
-    vis_channel_id: 5
-
-  crm_nir16:
-    name: crm_nir16
-    resolution: 1000
-    wavelength: [1.56, 1.61, 1.66]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 1.61um (temporal average)
-    units: '%'
-    vis_channel_id: 6
-
-  crm_nir22:
-    name: crm_nir22
-    resolution: 1000
-    wavelength: [2.2, 2.25, 2.3]
-    file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
-    standard_name: toa_bidirectional_reflectance
-    long_name: TOA Bidirectional Reflectance at 2.25um (temporal average)
-    units: '%'
-    vis_channel_id: 7
-
-  mean_sza:
-    name: mean_sza
-    resolution: 1000
-    file_type: nc_fci_crm
-    file_key: mean_solar_zenith
-    standard_name: solar_zenith_angle
-    long_name: Solar Zenith Angle (temporal average)
-
-  mean_rel_azi:
-    name: mean_rel_azi
-    resolution: 1000
-    file_type: nc_fci_crm
-    file_key: mean_rel_solar_sat_azimuth
-    standard_name: relative_sun_sensor_azimuth_angle
-    long_name: Relative Solar Satellite Azimuth Angle (temporal average)
-
-  n_acc:
-    name: n_acc
-    resolution: 1000
-    file_type: nc_fci_crm
-    file_key: number_of_accumulations
-    standard_name: number_of_accumulations
-
-  historical_data:
-    name: historical_data
-    resolution: 1000
-    file_type: nc_fci_crm
-    file_key: historical_data
-    standard_name: status_flag
-    import_enum_information: True
-
-  product_quality_crm:
-    name: product_quality_crm
-    file_type: nc_fci_crm
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness_crm:
-    name: product_completeness_crm
-    file_type: nc_fci_crm
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness_crm:
-    name: product_timeliness_crm
-    file_type: nc_fci_crm
-    file_key: product_timeliness
-    standard_name: product_timeliness
 
 
-  # LAT/LON FOR SEGMENTED PRODUCTS
-  latitude:
-    name: latitude
-    file_key: latitude
-    resolution: [6000, 6000, 32000]
-    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
-    standard_name: latitude
-    units: degree_north
-
-  longitude:
-    name: longitude
-    file_key: longitude
-    resolution: [6000, 6000, 32000]
-    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
-    standard_name: longitude
-    units: degree_east
-
-
-  # GII
+  # GII - Global Instability Index
   k_index:
     name: k_index
+    standard_name: atmosphere_stability_k_index
     resolution: 6000
     file_type: nc_fci_gii
     file_key: k_index
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_stability_k_index
 
   lifted_index:
     name: lifted_index
+    standard_name: atmosphere_stability_lifted_index
     resolution: 6000
     file_type: nc_fci_gii
     file_key: lifted_index
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_stability_lifted_index
 
   prec_water_high:
     name: prec_water_high
+    standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
     file_key: prec_water_high
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_mass_content_of_water_vapor
 
   prec_water_low:
     name: prec_water_low
+    standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
     file_key: prec_water_low
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_mass_content_of_water_vapor
 
   prec_water_mid:
     name: prec_water_mid
+    standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
     file_key: prec_water_mid
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_mass_content_of_water_vapor
 
   prec_water_total:
     name: prec_water_total
+    standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
     file_key: prec_water_total
     coordinates:
     - longitude
     - latitude
-    standard_name: atmosphere_mass_content_of_water_vapor
 
   percent_cloud_free_gii:
     name: percent_cloud_free_gii
+    long_name: Percentage of Cloud Free Pixels Processed in FoR
+    standard_name: cloud_free_area_fraction
     resolution: 6000
     file_type: nc_fci_gii
     file_key: percent_cloud_free
@@ -787,538 +701,891 @@ datasets:
     coordinates:
     - longitude
     - latitude
-    long_name: Percentage of Cloud Free Pixels Processed in FoR
-    standard_name: cloud_free_area_fraction
 
   number_of_iterations_gii:
     name: number_of_iterations_gii
+    standard_name: number_of_iterations
     resolution: 6000
     file_type: nc_fci_gii
     file_key: number_of_iterations
     coordinates:
     - longitude
     - latitude
-    standard_name: number_of_iterations
 
   product_quality_gii:
     name: product_quality_gii
+    standard_name: product_quality
     file_type: nc_fci_gii
     file_key: product_quality
-    standard_name: product_quality
 
   product_completeness_gii:
     name: product_completeness_gii
+    standard_name: product_completeness
     file_type: nc_fci_gii
     file_key: product_completeness
-    standard_name: product_completeness
 
   product_timeliness_gii:
     name: product_timeliness_gii
+    standard_name: product_timeliness
     file_type: nc_fci_gii
     file_key: product_timeliness
-    standard_name: product_timeliness
 
-  # CLM Test
+
+  # OCA - Optimal Cloud Analysis
+  retrieved_cloud_phase:
+    name: retrieved_cloud_phase
+    standard_name: thermodynamic_phase_of_cloud_particles_classification
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_phase
+    fill_value: -127
+    import_enum_information: True
+
+  retrieved_cloud_optical_thickness:
+    name: retrieved_cloud_optical_thickness
+    standard_name: atmosphere_optical_thickness_due_to_cloud
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+
+  retrieved_cloud_optical_thickness_upper_layer:
+    name: retrieved_cloud_optical_thickness_upper_layer
+    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Upper Layer
+    standard_name: atmosphere_optical_thickness_due_to_cloud
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 0
+
+  retrieval_error_cloud_optical_thickness_upper_layer:
+    name: retrieval_error_cloud_optical_thickness_upper_layer
+    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Upper Layer
+    standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_optical_thickness
+    layer: 0
+
+  retrieved_cloud_optical_thickness_lower_layer:
+    name: retrieved_cloud_optical_thickness_lower_layer
+    long_name: Cloud Optical Thickness (referenced to 0.55 µm and in log10(COT)) for Lower Layer
+    standard_name: atmosphere_optical_thickness_due_to_cloud
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 1
+
+  retrieval_error_cloud_optical_thickness_lower_layer:
+    name: retrieval_error_cloud_optical_thickness_lower_layer
+    long_name: Cloud Optical Thickness Error (error in log10(COT)) for Lower Layer
+    standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_optical_thickness
+    layer: 1
+
+  retrieved_cloud_particle_effective_radius:
+    name: retrieved_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_particles_at_cloud_top
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_particle_effective_radius
+
+  retrieval_error_cloud_particle_effective_radius:
+    name: retrieval_error_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_particles_at_cloud_top standard_error
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_particle_effective_radius
+
+  retrieved_cloud_top_pressure_upper_layer:
+    name: retrieved_cloud_top_pressure_upper_layer
+    long_name: Cloud Top Pressure for Upper Layer
+    standard_name: air_pressure_at_cloud_top
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 0
+
+  retrieval_error_cloud_top_pressure_upper_layer:
+    name: retrieval_error_cloud_top_pressure_upper_layer
+    long_name: Cloud Top Pressure Error for Upper Layer
+    standard_name: air_pressure_at_cloud_top standard_error
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_top_pressure
+    layer: 0
+
+  retrieved_cloud_top_pressure_lower_layer:
+    name: retrieved_cloud_top_pressure_lower_layer
+    long_name: Cloud Top Pressure for Lower Layer
+    standard_name: air_pressure_at_cloud_top
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 1
+
+  retrieval_error_cloud_top_pressure_lower_layer:
+    name: retrieval_error_cloud_top_pressure_lower_layer
+    long_name: Cloud Top Pressure Error for Lower Layer
+    standard_name: air_pressure_at_cloud_top standard_error
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieval_error_cloud_top_pressure
+    layer: 1
+
+  retrieved_cloud_top_temperature:
+    name: retrieved_cloud_top_temperature
+    standard_name: air_temperature_at_cloud_top
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_temperature
+
+  retrieved_cloud_top_height:
+    name: retrieved_cloud_top_height
+    standard_name: height_at_cloud_top
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_height
+
+  quality_jmeas:
+    name: quality_jmeas
+    standard_name: cost_function_part_due_to_measurements
+    resolution: 2000
+    file_type: nc_fci_oca
+    file_key: quality_jmeas
+
+  product_quality_oca:
+    name: product_quality_oca
+    standard_name: product_quality
+    file_type: nc_fci_oca
+    file_key: product_quality
+
+  product_completeness_oca:
+    name: product_completeness_oca
+    standard_name: product_completeness
+    file_type: nc_fci_oca
+    file_key: product_completeness
+
+  product_timeliness_oca:
+    name: product_timeliness_oca
+    standard_name: product_timeliness
+    file_type: nc_fci_oca
+    file_key: product_timeliness
+
+
+  # OLR - Outgoing Longwave Radiation
+  olr:
+    name: olr
+    standard_name: outgoing_longwave_radiation
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: olr_value
+
+  cloud_type_olr:
+    name: cloud_type_olr
+    standard_name: cloud_type_classification
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: cloud_type
+    fill_value: -127
+    import_enum_information: True
+
+  quality_overall_processing_olr:
+    name: quality_overall_processing_olr
+    standard_name: quality_flag
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: quality_overall_processing
+    fill_value: -127
+    import_enum_information: True
+
+  product_quality_olr:
+    name: product_quality_olr
+    standard_name: product_quality
+    file_type: nc_fci_olr
+    file_key: product_quality
+
+  product_completeness_olr:
+    name: product_completeness_olr
+    standard_name: product_completeness
+    file_type: nc_fci_olr
+    file_key: product_completeness
+
+  product_timeliness_olr:
+    name: product_timeliness_olr
+    standard_name: product_timeliness
+    file_type: nc_fci_olr
+    file_key: product_timeliness
+
+
+  # CRM - Clear-Sky Reflectance Maps
+  crm:
+    name: crm
+    long_name: TOA Bidirectional Reflectance (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+
+  crm_vis04:
+    name: crm_vis04
+    long_name: TOA Bidirectional Reflectance at 0.44um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 0
+
+  crm_vis05:
+    name: crm_vis05
+    long_name: TOA Bidirectional Reflectance at 0.51um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 1
+
+  crm_vis06:
+    name: crm_vis06
+    long_name: TOA Bidirectional Reflectance at 0.64um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 2
+
+  crm_vis08:
+    name: crm_vis08
+    long_name: TOA Bidirectional Reflectance at 0.86um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 3
+
+  crm_vis09:
+    name: crm_vis09
+    long_name: TOA Bidirectional Reflectance at 0.91um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 4
+
+  crm_nir13:
+    name: crm_nir13
+    long_name: TOA Bidirectional Reflectance at 1.38um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 5
+
+  crm_nir16:
+    name: crm_nir16
+    long_name: TOA Bidirectional Reflectance at 1.61um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 6
+
+  crm_nir22:
+    name: crm_nir22
+    long_name: TOA Bidirectional Reflectance at 2.25um (temporal average)
+    standard_name: toa_bidirectional_reflectance
+    resolution: 1000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    units: '%'
+    vis_channel_id: 7
+
+  mean_sza:
+    name: mean_sza
+    long_name: Solar Zenith Angle (temporal average)
+    standard_name: solar_zenith_angle
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_solar_zenith
+
+  mean_rel_azi:
+    name: mean_rel_azi
+    long_name: Relative Solar Satellite Azimuth Angle (temporal average)
+    standard_name: relative_sun_sensor_azimuth_angle
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_rel_solar_sat_azimuth
+
+  n_acc:
+    name: n_acc
+    standard_name: number_of_accumulations
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: number_of_accumulations
+
+  historical_data:
+    name: historical_data
+    standard_name: status_flag
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: historical_data
+    import_enum_information: True
+
+  product_quality_crm:
+    name: product_quality_crm
+    standard_name: product_quality
+    file_type: nc_fci_crm
+    file_key: product_quality
+
+  product_completeness_crm:
+    name: product_completeness_crm
+    standard_name: product_completeness
+    file_type: nc_fci_crm
+    file_key: product_completeness
+
+  product_timeliness_crm:
+    name: product_timeliness_crm
+    standard_name: product_timeliness
+    file_type: nc_fci_crm
+    file_key: product_timeliness
+
+
+  # LAT/LON FOR SEGMENTED PRODUCTS
+  latitude:
+    name: latitude
+    standard_name: latitude
+    file_key: latitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    units: degree_north
+
+  longitude:
+    name: longitude
+    standard_name: longitude
+    file_key: longitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    units: degree_east
+
+
+  # CLM Test - Cloud Mask Test
   cloud_test_sit1_flag:
     name: cloud_test_sit1_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 0
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt1_flag:
     name: cloud_test_cmt1_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 1
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt2_flag:
     name: cloud_test_cmt2_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 2
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt3_flag:
     name: cloud_test_cmt3_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 3
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt4_flag:
     name: cloud_test_cmt4_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 4
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt5_flag:
     name: cloud_test_cmt5_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 5
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt6_flag:
     name: cloud_test_cmt6_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 6
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt7_flag:
     name: cloud_test_cmt7_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 7
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt8_flag:
     name: cloud_test_cmt8_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 8
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt9_flag:
     name: cloud_test_cmt9_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 9
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt10_flag:
     name: cloud_test_cmt10_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 10
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt11_flag:
     name: cloud_test_cmt11_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 11
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt12_flag:
     name: cloud_test_cmt12_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 12
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt13_flag:
     name: cloud_test_cmt13_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 13
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmt14_flag:
     name: cloud_test_cmt14_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 14
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_opqt_flag:
     name: cloud_test_opqt_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 15
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt1_flag:
     name: cloud_test_cmrt1_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 16
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt2_flag:
     name: cloud_test_cmrt2_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 17
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt3_flag:
     name: cloud_test_cmrt3_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 18
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt4_flag:
     name: cloud_test_cmrt4_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 19
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt5_flag:
     name: cloud_test_cmrt5_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 20
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_cmrt6_flag:
     name: cloud_test_cmrt6_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 21
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_dust_flag:
     name: cloud_test_dust_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 22
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_ash_flag:
     name: cloud_test_ash_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 23
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_dust_ash_flag:
     name: cloud_test_dust_ash_flag
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_flag
     extract_byte: 24
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
-    standard_name: status_flag
 
   cloud_test_sit1:
     name: cloud_test_sit1
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 0
     flag_values: [0,1]
     flag_meanings: ['No snow/ice detected',' Snow/ice detected']
-    standard_name: status_flag
 
   cloud_test_cmt1:
     name: cloud_test_cmt1
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 1
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt2:
     name: cloud_test_cmt2
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 2
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt3:
     name: cloud_test_cmt3
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 3
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt4:
     name: cloud_test_cmt4
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 4
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt5:
     name: cloud_test_cmt5
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 5
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt6:
     name: cloud_test_cmt6
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 6
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt7:
     name: cloud_test_cmt7
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 7
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt8:
     name: cloud_test_cmt8
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 8
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt9:
     name: cloud_test_cmt9
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 9
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt10:
     name: cloud_test_cmt10
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 10
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt11:
     name: cloud_test_cmt11
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 11
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt12:
     name: cloud_test_cmt12
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 12
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt13:
     name: cloud_test_cmt13
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 13
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmt14:
     name: cloud_test_cmt14
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 14
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_opqt:
     name: cloud_test_opqt
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 15
     flag_values: [0,1]
     flag_meanings: ['No opaqueness detected', 'Opaqueness detected']
-    standard_name: status_flag
 
   cloud_test_cmrt1:
     name: cloud_test_cmrt1
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 16
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
-    standard_name: status_flag
 
   cloud_test_cmrt2:
     name: cloud_test_cmrt2
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 17
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
-    standard_name: status_flag
 
   cloud_test_cmrt3:
     name: cloud_test_cmrt3
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 18
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
-    standard_name: status_flag
 
   cloud_test_cmrt4:
     name: cloud_test_cmrt4
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 19
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
-    standard_name: status_flag
 
   cloud_test_cmrt5:
     name: cloud_test_cmrt5
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 20
     flag_values: [0,1]
     flag_meanings: ['Clear sky restored', 'Cloud unchanged']
-    standard_name: status_flag
 
   cloud_test_dust:
     name: cloud_test_dust
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 21
     flag_values: [0,1]
     flag_meanings: ['No dust detected','Dust detected']
-    standard_name: status_flag
 
   cloud_test_ash:
     name: cloud_test_ash
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 22
     flag_values: [0,1]
     flag_meanings: ['No ash detected','Ash detected']
-    standard_name: status_flag
 
   cloud_test_dust_ash:
     name: cloud_test_dust_ash
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
     extract_byte: 23
     flag_values: [0,1]
     flag_meanings: ['Dust detected','Ash detected']
-    standard_name: status_flag
 
   cloud_test_cmrt6:
     name: cloud_test_cmrt6
+    standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_cmrt6_test_result
     fill_value: -127
-    standard_name: status_flag
     import_enum_information: True
 
-  # ASR
+  # ASR - All-Sky Radiances
   bt_max:
     name: bt_max
     resolution: 32000
@@ -3105,262 +3372,5 @@ datasets:
   product_timeliness_asr:
     name: product_timeliness_asr
     file_type: nc_fci_asr
-    file_key: product_timeliness
-    standard_name: product_timeliness
-
-# AMV Intermediate Product
-  intm_latitude:
-    name: intm_latitude
-    file_type: nc_fci_amvi
-    file_key: intm_latitude
-    standard_name: latitude
-
-  intm_longitude:
-    name: intm_longitude
-    file_type: nc_fci_amvi
-    file_key: intm_longitude
-    standard_name: longitude
-
-  intm_speed:
-    name: intm_speed
-    file_type: nc_fci_amvi
-    file_key: intm_speed
-    standard_name: wind_speed
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_u_component:
-    name: intm_u_component
-    file_type: nc_fci_amvi
-    file_key: intm_u_component
-    standard_name: wind_speed_horizontal_component
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_v_component:
-    name: intm_v_component
-    file_type: nc_fci_amvi
-    file_key: intm_v_component
-    standard_name: wind_speed_vertical_component
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_direction:
-    name: intm_direction
-    file_type: nc_fci_amvi
-    file_key: intm_direction
-    standard_name: wind_to_direction
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_pressure:
-    name: intm_pressure
-    file_type: nc_fci_amvi
-    file_key: intm_pressure
-    standard_name: wind_pressure
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_temperature:
-    name: intm_temperature
-    file_type: nc_fci_amvi
-    file_key: intm_temperature
-    standard_name: wind_temperature
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_target_type:
-    name: intm_target_type
-    file_type: nc_fci_amvi
-    file_key: target_type
-    standard_name: wind_target_type
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-  intm_wind_method:
-    name: intm_wind_method
-    file_type: nc_fci_amvi
-    file_key: wind_method
-    standard_name: wind_wind_method
-    coordinates:
-      - intm_longitude
-      - intm_latitude
-
-# AMV Final Product
-  channel_id:
-    name: channel_id
-    file_type: nc_fci_amv
-    file_key: channel_id
-    standard_name: channel_id
-
-  amv_latitude:
-    name: latitude
-    file_type: nc_fci_amv
-    file_key: latitude
-    standard_name: latitude
-
-  amv_longitude:
-    name: longitude
-    file_type: nc_fci_amv
-    file_key: longitude
-    standard_name: longitude
-
-  speed:
-    name: speed
-    file_type: nc_fci_amv
-    file_key: speed
-    standard_name: wind_speed
-    coordinates:
-      - longitude
-      - latitude
-
-  speed_u_component:
-    name: speed_u_component
-    file_type: nc_fci_amv
-    file_key: speed_u_component
-    standard_name: wind_speed_horizontal_component
-    coordinates:
-      - longitude
-      - latitude
-
-  speed_v_component:
-    name: speed_v_component
-    file_type: nc_fci_amv
-    file_key: speed_v_component
-    standard_name: wind_speed_vertical_component
-    coordinates:
-      - longitude
-      - latitude
-
-  direction:
-    name: direction
-    file_type: nc_fci_amv
-    file_key: direction
-    standard_name: wind_to_direction
-    coordinates:
-      - longitude
-      - latitude
-
-  pressure:
-    name: pressure
-    file_type: nc_fci_amv
-    file_key: pressure
-    standard_name: wind_pressure
-    coordinates:
-      - longitude
-      - latitude
-
-  temperature:
-    name: temperature
-    file_type: nc_fci_amv
-    file_key: temperature
-    standard_name: wind_temperature
-    coordinates:
-      - longitude
-      - latitude
-
-  target_type:
-    name: target_type
-    file_type: nc_fci_amv
-    file_key: target_type
-    standard_name: wind_target_type
-    coordinates:
-      - longitude
-      - latitude
-
-  wind_method:
-    name: wind_method
-    file_type: nc_fci_amv
-    file_key: wind_method
-    standard_name: wind_wind_method
-    coordinates:
-      - longitude
-      - latitude
-
-  fcst_u:
-    name: fcst_u
-    file_type: nc_fci_amv
-    file_key: forecast_u_component
-    standard_name: wind_forecast_u_component
-    coordinates:
-      - longitude
-      - latitude
-
-  fcst_v:
-    name: fcst_v
-    file_type: nc_fci_amv
-    file_key: forecast_v_component
-    standard_name: wind_forecast_v_component
-    coordinates:
-      - longitude
-      - latitude
-
-  best_fit_pres:
-    name: best_fit_pres
-    file_type: nc_fci_amv
-    file_key: best_fit_pressure
-    standard_name: wind_best_fit_pressure
-    coordinates:
-      - longitude
-      - latitude
-
-  best_fit_u:
-    name: best_fit_u
-    file_type: nc_fci_amv
-    file_key: best_fit_u_component
-    standard_name: wind_best_fit_u_component
-    coordinates:
-      - longitude
-      - latitude
-
-  best_fit_v:
-    name: best_fit_v
-    file_type: nc_fci_amv
-    file_key: best_fit_v_component
-    standard_name: wind_best_fit_v_component
-    coordinates:
-      - longitude
-      - latitude
-
-  qi:
-    name: qi
-    file_type: nc_fci_amv
-    file_key: overall_reliability
-    standard_name: wind_overall_reliability
-    coordinates:
-      - longitude
-      - latitude
-
-  qi_excl_fcst:
-    name: qi_excl_fcst
-    file_type: nc_fci_amv
-    file_key: overall_reliability_exc_forecast
-    standard_name: wind_overall_reliability_exc_forecast
-    coordinates:
-      - longitude
-      - latitude
-
-  product_quality:
-    name: product_quality
-    file_type: nc_fci_amv
-    file_key: product_quality
-    standard_name: product_quality
-
-  product_completeness:
-    name: product_completeness
-    file_type: nc_fci_amv
-    file_key: product_completeness
-    standard_name: product_completeness
-
-  product_timeliness:
-    name: product_timeliness
-    file_type: nc_fci_amv
     file_key: product_timeliness
     standard_name: product_timeliness
