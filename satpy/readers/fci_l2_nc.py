@@ -88,7 +88,7 @@ class FciL2CommonFunctions(object):
         else:
             xdim, ydim = "number_of_columns", "number_of_rows"
 
-        if dataset_info["file_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
+        if dataset_info["nc_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
             variable = variable.rename({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
@@ -104,7 +104,7 @@ class FciL2CommonFunctions(object):
         if (import_enum_information):
             netCDF4_dataset = netCDF4.Dataset(self.filename, "r")
             # This currently assumes a flat netCDF file
-            dataType=netCDF4_dataset.variables[dataset_info["file_key"]].datatype
+            dataType=netCDF4_dataset.variables[dataset_info["nc_key"]].datatype
             if (hasattr(dataType,"enum_dict")):
                 enum = dataType.enum_dict
                 flag_values = []
@@ -189,8 +189,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         par_name = dataset_info["name"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
@@ -222,7 +222,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
     @staticmethod
     def _decode_clm_test_data(variable, dataset_info):
-        if dataset_info["file_key"] != "cloud_mask_cmrt6_test_result":
+        if dataset_info["nc_key"] != "cloud_mask_cmrt6_test_result":
             variable = variable.astype("uint32")
             variable.values = (variable.values >> dataset_info["extract_byte"] << 31 >> 31).astype("int8")
 
@@ -352,8 +352,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:
@@ -470,8 +470,8 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
         return attributes
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:

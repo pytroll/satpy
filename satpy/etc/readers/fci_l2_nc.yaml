@@ -82,19 +82,19 @@ datasets:
     name: intm_latitude
     standard_name: latitude
     file_type: nc_fci_amvi
-    file_key: intm_latitude
+    nc_key: intm_latitude
 
   intm_longitude:
     name: intm_longitude
     standard_name: longitude
     file_type: nc_fci_amvi
-    file_key: intm_longitude
+    nc_key: intm_longitude
 
   intm_speed:
     name: intm_speed
     standard_name: wind_speed
     file_type: nc_fci_amvi
-    file_key: intm_speed
+    nc_key: intm_speed
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -103,7 +103,7 @@ datasets:
     name: intm_u_component
     standard_name: wind_speed_horizontal_component
     file_type: nc_fci_amvi
-    file_key: intm_u_component
+    nc_key: intm_u_component
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -112,7 +112,7 @@ datasets:
     name: intm_v_component
     standard_name: wind_speed_vertical_component
     file_type: nc_fci_amvi
-    file_key: intm_v_component
+    nc_key: intm_v_component
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -121,7 +121,7 @@ datasets:
     name: intm_direction
     standard_name: wind_to_direction
     file_type: nc_fci_amvi
-    file_key: intm_direction
+    nc_key: intm_direction
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -130,7 +130,7 @@ datasets:
     name: intm_pressure
     standard_name: wind_pressure
     file_type: nc_fci_amvi
-    file_key: intm_pressure
+    nc_key: intm_pressure
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -139,7 +139,7 @@ datasets:
     name: intm_temperature
     standard_name: wind_temperature
     file_type: nc_fci_amvi
-    file_key: intm_temperature
+    nc_key: intm_temperature
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -148,7 +148,7 @@ datasets:
     name: intm_target_type
     standard_name: wind_target_type
     file_type: nc_fci_amvi
-    file_key: target_type
+    nc_key: target_type
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -157,7 +157,7 @@ datasets:
     name: intm_wind_method
     standard_name: wind_wind_method
     file_type: nc_fci_amvi
-    file_key: wind_method
+    nc_key: wind_method
     coordinates:
       - intm_longitude
       - intm_latitude
@@ -168,25 +168,25 @@ datasets:
     name: channel_id
     standard_name: channel_id
     file_type: nc_fci_amv
-    file_key: channel_id
+    nc_key: channel_id
 
   amv_latitude:
     name: latitude
     standard_name: latitude
     file_type: nc_fci_amv
-    file_key: latitude
+    nc_key: latitude
 
   amv_longitude:
     name: longitude
     standard_name: longitude
     file_type: nc_fci_amv
-    file_key: longitude
+    nc_key: longitude
 
   speed:
     name: speed
     standard_name: wind_speed
     file_type: nc_fci_amv
-    file_key: speed
+    nc_key: speed
     coordinates:
       - longitude
       - latitude
@@ -195,7 +195,7 @@ datasets:
     name: speed_u_component
     standard_name: wind_speed_horizontal_component
     file_type: nc_fci_amv
-    file_key: speed_u_component
+    nc_key: speed_u_component
     coordinates:
       - longitude
       - latitude
@@ -204,7 +204,7 @@ datasets:
     name: speed_v_component
     standard_name: wind_speed_vertical_component
     file_type: nc_fci_amv
-    file_key: speed_v_component
+    nc_key: speed_v_component
     coordinates:
       - longitude
       - latitude
@@ -213,7 +213,7 @@ datasets:
     name: direction
     standard_name: wind_to_direction
     file_type: nc_fci_amv
-    file_key: direction
+    nc_key: direction
     coordinates:
       - longitude
       - latitude
@@ -222,7 +222,7 @@ datasets:
     name: pressure
     standard_name: wind_pressure
     file_type: nc_fci_amv
-    file_key: pressure
+    nc_key: pressure
     coordinates:
       - longitude
       - latitude
@@ -231,7 +231,7 @@ datasets:
     name: temperature
     standard_name: wind_temperature
     file_type: nc_fci_amv
-    file_key: temperature
+    nc_key: temperature
     coordinates:
       - longitude
       - latitude
@@ -240,7 +240,7 @@ datasets:
     name: target_type
     standard_name: wind_target_type
     file_type: nc_fci_amv
-    file_key: target_type
+    nc_key: target_type
     coordinates:
       - longitude
       - latitude
@@ -249,7 +249,7 @@ datasets:
     name: wind_method
     standard_name: wind_wind_method
     file_type: nc_fci_amv
-    file_key: wind_method
+    nc_key: wind_method
     coordinates:
       - longitude
       - latitude
@@ -258,7 +258,7 @@ datasets:
     name: fcst_u
     standard_name: wind_forecast_u_component
     file_type: nc_fci_amv
-    file_key: forecast_u_component
+    nc_key: forecast_u_component
     coordinates:
       - longitude
       - latitude
@@ -267,7 +267,7 @@ datasets:
     name: fcst_v
     standard_name: wind_forecast_v_component
     file_type: nc_fci_amv
-    file_key: forecast_v_component
+    nc_key: forecast_v_component
     coordinates:
       - longitude
       - latitude
@@ -276,7 +276,7 @@ datasets:
     name: best_fit_pres
     standard_name: wind_best_fit_pressure
     file_type: nc_fci_amv
-    file_key: best_fit_pressure
+    nc_key: best_fit_pressure
     coordinates:
       - longitude
       - latitude
@@ -285,7 +285,7 @@ datasets:
     name: best_fit_u
     standard_name: wind_best_fit_u_component
     file_type: nc_fci_amv
-    file_key: best_fit_u_component
+    nc_key: best_fit_u_component
     coordinates:
       - longitude
       - latitude
@@ -294,7 +294,7 @@ datasets:
     name: best_fit_v
     standard_name: wind_best_fit_v_component
     file_type: nc_fci_amv
-    file_key: best_fit_v_component
+    nc_key: best_fit_v_component
     coordinates:
       - longitude
       - latitude
@@ -303,7 +303,7 @@ datasets:
     name: qi
     standard_name: wind_overall_reliability
     file_type: nc_fci_amv
-    file_key: overall_reliability
+    nc_key: overall_reliability
     coordinates:
       - longitude
       - latitude
@@ -312,7 +312,7 @@ datasets:
     name: qi_excl_fcst
     standard_name: wind_overall_reliability_exc_forecast
     file_type: nc_fci_amv
-    file_key: overall_reliability_exc_forecast
+    nc_key: overall_reliability_exc_forecast
     coordinates:
       - longitude
       - latitude
@@ -321,19 +321,19 @@ datasets:
     name: product_quality
     standard_name: product_quality
     file_type: nc_fci_amv
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness:
     name: product_completeness
     standard_name: product_completeness
     file_type: nc_fci_amv
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness:
     name: product_timeliness
     standard_name: product_timeliness
     file_type: nc_fci_amv
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
 # CLM - Cloud Mask
@@ -342,7 +342,7 @@ datasets:
     standard_name: cloud_mask_classification
     resolution: 2000
     file_type: nc_fci_clm
-    file_key: cloud_state
+    nc_key: cloud_state
     fill_value: -127
     import_enum_information: True
 
@@ -351,7 +351,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
-    file_key: quality_illumination
+    nc_key: quality_illumination
     fill_value: -127
     import_enum_information: True
 
@@ -360,7 +360,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
-    file_key: quality_nwp_parameters
+    nc_key: quality_nwp_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -369,7 +369,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_clm
-    file_key: quality_MTG_parameters
+    nc_key: quality_MTG_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -378,7 +378,7 @@ datasets:
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_clm
-    file_key: quality_overall_processing
+    nc_key: quality_overall_processing
     fill_value: -127
     import_enum_information: True
 
@@ -386,19 +386,19 @@ datasets:
     name: product_quality_clm
     standard_name: product_quality
     file_type: nc_fci_clm
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_clm:
     name: product_completeness_clm
     standard_name: product_completeness
     file_type: nc_fci_clm
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_clm:
     name: product_timeliness_clm
     standard_name: product_timeliness
     file_type: nc_fci_clm
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
 # CT - Cloud Type
@@ -407,7 +407,7 @@ datasets:
     standard_name: cloud_phase_classification
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: cloud_phase
+    nc_key: cloud_phase
     fill_value: -127
     import_enum_information: True
 
@@ -416,7 +416,7 @@ datasets:
     standard_name: cloud_type_classification
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: cloud_type
+    nc_key: cloud_type
     fill_value: -127
     import_enum_information: True
 
@@ -425,7 +425,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: quality_illumination
+    nc_key: quality_illumination
     fill_value: -127
     import_enum_information: True
 
@@ -434,7 +434,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: quality_nwp_parameters
+    nc_key: quality_nwp_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -443,7 +443,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: quality_MTG_parameters
+    nc_key: quality_MTG_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -452,7 +452,7 @@ datasets:
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ct
-    file_key: quality_overall_processing
+    nc_key: quality_overall_processing
     fill_value: -127
     import_enum_information: True
 
@@ -460,19 +460,19 @@ datasets:
     name: product_quality_ct
     standard_name: product_quality
     file_type: nc_fci_ct
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_ct:
     name: product_completeness_ct
     standard_name: product_completeness
     file_type: nc_fci_ct
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_ct:
     name: product_timeliness_ct
     standard_name: product_timeliness
     file_type: nc_fci_ct
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # CTTH - Cloud Top Temperature and Height
@@ -481,42 +481,42 @@ datasets:
     standard_name: height_at_cloud_top_for_aviation
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: cloud_top_aviation_height
+    nc_key: cloud_top_aviation_height
 
   cloud_top_height:
     name: cloud_top_height
     standard_name: height_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: cloud_top_height
+    nc_key: cloud_top_height
 
   cloud_top_pressure:
     name: cloud_top_pressure
     standard_name: air_pressure_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: cloud_top_pressure
+    nc_key: cloud_top_pressure
 
   cloud_top_temperature:
     name: cloud_top_temperature
     standard_name: air_temperature_at_cloud_top
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: cloud_top_temperature
+    nc_key: cloud_top_temperature
 
   effective_cloudiness:
     name: effective_cloudiness
     standard_name: effective_cloud_cover
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: effective_cloudiness
+    nc_key: effective_cloudiness
 
   quality_status_ctth:
     name: quality_status_ctth
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_status
+    nc_key: quality_status
     fill_value: -127
     import_enum_information: True
 
@@ -525,7 +525,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_rtm
+    nc_key: quality_rtm
     fill_value: -127
     import_enum_information: True
 
@@ -534,7 +534,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_method
+    nc_key: quality_method
     fill_value: -127
     import_enum_information: True
 
@@ -543,7 +543,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_nwp_parameters
+    nc_key: quality_nwp_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -552,7 +552,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_MTG_parameters
+    nc_key: quality_MTG_parameters
     fill_value: -127
     import_enum_information: True
 
@@ -561,7 +561,7 @@ datasets:
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_overall_processing
+    nc_key: quality_overall_processing
     fill_value: -127
     import_enum_information: True
 
@@ -570,7 +570,7 @@ datasets:
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ctth
-    file_key: quality_overall_processing_aviation
+    nc_key: quality_overall_processing_aviation
     fill_value: -127
     import_enum_information: True
 
@@ -578,19 +578,19 @@ datasets:
     name: product_quality_ctth
     standard_name: product_quality
     file_type: nc_fci_ctth
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_ctth:
     name: product_completeness_ctth
     standard_name: product_completeness
     file_type: nc_fci_ctth
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_ctth:
     name: product_timeliness_ctth
     standard_name: product_timeliness
     file_type: nc_fci_ctth
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # FIR - Active Fire Monitoring
@@ -599,14 +599,14 @@ datasets:
     standard_name: fire_probability
     resolution: 2000
     file_type: nc_fci_fir
-    file_key: fire_probability
+    nc_key: fire_probability
 
   fire_result:
     name: fire_result
     standard_name: active_fire_classification
     resolution: 2000
     file_type: nc_fci_fir
-    file_key: fire_result
+    nc_key: fire_result
     fill_value: -127
     import_enum_information: True
 
@@ -614,19 +614,19 @@ datasets:
     name: product_quality_fir
     standard_name: product_quality
     file_type: nc_fci_fir
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_fir:
     name: product_completeness_fir
     standard_name: product_completeness
     file_type: nc_fci_fir
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_fir:
     name: product_timeliness_fir
     standard_name: product_timeliness
     file_type: nc_fci_fir
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # GII - Global Instability Index
@@ -635,7 +635,7 @@ datasets:
     standard_name: atmosphere_stability_k_index
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: k_index
+    nc_key: k_index
     coordinates:
     - longitude
     - latitude
@@ -645,7 +645,7 @@ datasets:
     standard_name: atmosphere_stability_lifted_index
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: lifted_index
+    nc_key: lifted_index
     coordinates:
     - longitude
     - latitude
@@ -655,7 +655,7 @@ datasets:
     standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: prec_water_high
+    nc_key: prec_water_high
     coordinates:
     - longitude
     - latitude
@@ -665,7 +665,7 @@ datasets:
     standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: prec_water_low
+    nc_key: prec_water_low
     coordinates:
     - longitude
     - latitude
@@ -675,7 +675,7 @@ datasets:
     standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: prec_water_mid
+    nc_key: prec_water_mid
     coordinates:
     - longitude
     - latitude
@@ -685,7 +685,7 @@ datasets:
     standard_name: atmosphere_mass_content_of_water_vapor
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: prec_water_total
+    nc_key: prec_water_total
     coordinates:
     - longitude
     - latitude
@@ -696,7 +696,7 @@ datasets:
     standard_name: cloud_free_area_fraction
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: percent_cloud_free
+    nc_key: percent_cloud_free
     units: '%'
     coordinates:
     - longitude
@@ -707,7 +707,7 @@ datasets:
     standard_name: number_of_iterations
     resolution: 6000
     file_type: nc_fci_gii
-    file_key: number_of_iterations
+    nc_key: number_of_iterations
     coordinates:
     - longitude
     - latitude
@@ -716,19 +716,19 @@ datasets:
     name: product_quality_gii
     standard_name: product_quality
     file_type: nc_fci_gii
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_gii:
     name: product_completeness_gii
     standard_name: product_completeness
     file_type: nc_fci_gii
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_gii:
     name: product_timeliness_gii
     standard_name: product_timeliness
     file_type: nc_fci_gii
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # OCA - Optimal Cloud Analysis
@@ -737,7 +737,7 @@ datasets:
     standard_name: thermodynamic_phase_of_cloud_particles_classification
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_phase
+    nc_key: retrieved_cloud_phase
     fill_value: -127
     import_enum_information: True
 
@@ -746,7 +746,7 @@ datasets:
     standard_name: atmosphere_optical_thickness_due_to_cloud
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
+    nc_key: retrieved_cloud_optical_thickness
 
   retrieved_cloud_optical_thickness_upper_layer:
     name: retrieved_cloud_optical_thickness_upper_layer
@@ -754,7 +754,7 @@ datasets:
     standard_name: atmosphere_optical_thickness_due_to_cloud
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
+    nc_key: retrieved_cloud_optical_thickness
     layer: 0
 
   retrieval_error_cloud_optical_thickness_upper_layer:
@@ -763,7 +763,7 @@ datasets:
     standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_optical_thickness
+    nc_key: retrieval_error_cloud_optical_thickness
     layer: 0
 
   retrieved_cloud_optical_thickness_lower_layer:
@@ -772,7 +772,7 @@ datasets:
     standard_name: atmosphere_optical_thickness_due_to_cloud
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_optical_thickness
+    nc_key: retrieved_cloud_optical_thickness
     layer: 1
 
   retrieval_error_cloud_optical_thickness_lower_layer:
@@ -781,7 +781,7 @@ datasets:
     standard_name: atmosphere_optical_thickness_due_to_cloud standard_error
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_optical_thickness
+    nc_key: retrieval_error_cloud_optical_thickness
     layer: 1
 
   retrieved_cloud_particle_effective_radius:
@@ -789,14 +789,14 @@ datasets:
     standard_name: effective_radius_of_cloud_particles_at_cloud_top
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_particle_effective_radius
+    nc_key: retrieved_cloud_particle_effective_radius
 
   retrieval_error_cloud_particle_effective_radius:
     name: retrieval_error_cloud_particle_effective_radius
     standard_name: effective_radius_of_cloud_particles_at_cloud_top standard_error
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_particle_effective_radius
+    nc_key: retrieval_error_cloud_particle_effective_radius
 
   retrieved_cloud_top_pressure_upper_layer:
     name: retrieved_cloud_top_pressure_upper_layer
@@ -804,7 +804,7 @@ datasets:
     standard_name: air_pressure_at_cloud_top
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_pressure
+    nc_key: retrieved_cloud_top_pressure
     layer: 0
 
   retrieval_error_cloud_top_pressure_upper_layer:
@@ -813,7 +813,7 @@ datasets:
     standard_name: air_pressure_at_cloud_top standard_error
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_top_pressure
+    nc_key: retrieval_error_cloud_top_pressure
     layer: 0
 
   retrieved_cloud_top_pressure_lower_layer:
@@ -822,7 +822,7 @@ datasets:
     standard_name: air_pressure_at_cloud_top
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_pressure
+    nc_key: retrieved_cloud_top_pressure
     layer: 1
 
   retrieval_error_cloud_top_pressure_lower_layer:
@@ -831,7 +831,7 @@ datasets:
     standard_name: air_pressure_at_cloud_top standard_error
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieval_error_cloud_top_pressure
+    nc_key: retrieval_error_cloud_top_pressure
     layer: 1
 
   retrieved_cloud_top_temperature:
@@ -839,39 +839,39 @@ datasets:
     standard_name: air_temperature_at_cloud_top
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_temperature
+    nc_key: retrieved_cloud_top_temperature
 
   retrieved_cloud_top_height:
     name: retrieved_cloud_top_height
     standard_name: height_at_cloud_top
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: retrieved_cloud_top_height
+    nc_key: retrieved_cloud_top_height
 
   quality_jmeas:
     name: quality_jmeas
     standard_name: cost_function_part_due_to_measurements
     resolution: 2000
     file_type: nc_fci_oca
-    file_key: quality_jmeas
+    nc_key: quality_jmeas
 
   product_quality_oca:
     name: product_quality_oca
     standard_name: product_quality
     file_type: nc_fci_oca
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_oca:
     name: product_completeness_oca
     standard_name: product_completeness
     file_type: nc_fci_oca
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_oca:
     name: product_timeliness_oca
     standard_name: product_timeliness
     file_type: nc_fci_oca
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # OLR - Outgoing Longwave Radiation
@@ -880,14 +880,14 @@ datasets:
     standard_name: outgoing_longwave_radiation
     resolution: 2000
     file_type: nc_fci_olr
-    file_key: olr_value
+    nc_key: olr_value
 
   cloud_type_olr:
     name: cloud_type_olr
     standard_name: cloud_type_classification
     resolution: 2000
     file_type: nc_fci_olr
-    file_key: cloud_type
+    nc_key: cloud_type
     fill_value: -127
     import_enum_information: True
 
@@ -896,7 +896,7 @@ datasets:
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_olr
-    file_key: quality_overall_processing
+    nc_key: quality_overall_processing
     fill_value: -127
     import_enum_information: True
 
@@ -904,19 +904,19 @@ datasets:
     name: product_quality_olr
     standard_name: product_quality
     file_type: nc_fci_olr
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_olr:
     name: product_completeness_olr
     standard_name: product_completeness
     file_type: nc_fci_olr
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_olr:
     name: product_timeliness_olr
     standard_name: product_timeliness
     file_type: nc_fci_olr
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # CRM - Clear-Sky Reflectance Maps
@@ -926,7 +926,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 1000
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
 
   crm_vis04:
@@ -936,7 +936,7 @@ datasets:
     resolution: 1000
     wavelength: [0.384, 0.444, 0.504]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 0
 
@@ -947,7 +947,7 @@ datasets:
     resolution: 1000
     wavelength: [0.47, 0.51, 0.55]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 1
 
@@ -958,7 +958,7 @@ datasets:
     resolution: 1000
     wavelength: [0.59, 0.64, 0.69]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 2
 
@@ -969,7 +969,7 @@ datasets:
     resolution: 1000
     wavelength: [0.815, 0.865, 0.915]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 3
 
@@ -980,7 +980,7 @@ datasets:
     resolution: 1000
     wavelength: [0.894, 0.914, 0.934]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 4
 
@@ -991,7 +991,7 @@ datasets:
     resolution: 1000
     wavelength: [1.35, 1.38, 1.41]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 5
 
@@ -1002,7 +1002,7 @@ datasets:
     resolution: 1000
     wavelength: [1.56, 1.61, 1.66]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 6
 
@@ -1013,7 +1013,7 @@ datasets:
     resolution: 1000
     wavelength: [2.2, 2.25, 2.3]
     file_type: nc_fci_crm
-    file_key: mean_clear_sky_reflectance
+    nc_key: mean_clear_sky_reflectance
     units: '%'
     vis_channel_id: 7
 
@@ -1023,7 +1023,7 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 1000
     file_type: nc_fci_crm
-    file_key: mean_solar_zenith
+    nc_key: mean_solar_zenith
 
   mean_rel_azi:
     name: mean_rel_azi
@@ -1031,47 +1031,47 @@ datasets:
     standard_name: relative_sun_sensor_azimuth_angle
     resolution: 1000
     file_type: nc_fci_crm
-    file_key: mean_rel_solar_sat_azimuth
+    nc_key: mean_rel_solar_sat_azimuth
 
   n_acc:
     name: n_acc
     standard_name: number_of_accumulations
     resolution: 1000
     file_type: nc_fci_crm
-    file_key: number_of_accumulations
+    nc_key: number_of_accumulations
 
   historical_data:
     name: historical_data
     standard_name: status_flag
     resolution: 1000
     file_type: nc_fci_crm
-    file_key: historical_data
+    nc_key: historical_data
     import_enum_information: True
 
   product_quality_crm:
     name: product_quality_crm
     standard_name: product_quality
     file_type: nc_fci_crm
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_crm:
     name: product_completeness_crm
     standard_name: product_completeness
     file_type: nc_fci_crm
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_crm:
     name: product_timeliness_crm
     standard_name: product_timeliness
     file_type: nc_fci_crm
-    file_key: product_timeliness
+    nc_key: product_timeliness
 
 
   # LAT/LON FOR SEGMENTED PRODUCTS
   latitude:
     name: latitude
     standard_name: latitude
-    file_key: latitude
+    nc_key: latitude
     resolution: [6000, 6000, 32000]
     file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
     units: degree_north
@@ -1079,7 +1079,7 @@ datasets:
   longitude:
     name: longitude
     standard_name: longitude
-    file_key: longitude
+    nc_key: longitude
     resolution: [6000, 6000, 32000]
     file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
     units: degree_east
@@ -1091,7 +1091,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 0
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1101,7 +1101,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 1
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1111,7 +1111,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 2
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1121,7 +1121,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 3
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1131,7 +1131,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 4
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1141,7 +1141,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 5
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1151,7 +1151,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 6
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1161,7 +1161,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 7
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1171,7 +1171,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 8
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1181,7 +1181,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 9
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1191,7 +1191,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 10
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1201,7 +1201,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 11
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1211,7 +1211,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 12
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1221,7 +1221,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 13
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1231,7 +1231,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 14
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1241,7 +1241,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 15
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1251,7 +1251,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 16
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1261,7 +1261,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 17
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1271,7 +1271,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 18
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1281,7 +1281,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 19
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1291,7 +1291,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 20
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1301,7 +1301,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 21
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1311,7 +1311,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 22
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1321,7 +1321,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 23
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1331,7 +1331,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_flag
+    nc_key: cloud_mask_test_flag
     extract_byte: 24
     flag_values: [0,1]
     flag_meanings: ['Test not carried out','Test carried out']
@@ -1341,7 +1341,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 0
     flag_values: [0,1]
     flag_meanings: ['No snow/ice detected',' Snow/ice detected']
@@ -1351,7 +1351,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 1
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1361,7 +1361,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 2
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1371,7 +1371,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 3
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1381,7 +1381,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 4
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1391,7 +1391,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 5
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1401,7 +1401,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 6
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1411,7 +1411,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 7
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1421,7 +1421,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 8
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1431,7 +1431,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 9
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1441,7 +1441,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 10
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1451,7 +1451,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 11
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1461,7 +1461,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 12
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1471,7 +1471,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 13
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1481,7 +1481,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 14
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1491,7 +1491,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 15
     flag_values: [0,1]
     flag_meanings: ['No opaqueness detected', 'Opaqueness detected']
@@ -1501,7 +1501,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 16
     flag_values: [0,1]
     flag_meanings: ['No cloud detected','Cloud detected']
@@ -1511,7 +1511,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 17
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
@@ -1521,7 +1521,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 18
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
@@ -1531,7 +1531,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 19
     flag_values: [0,1]
     flag_meanings: ['Clear unchanged', 'Cloud detected (restored from clear sky)']
@@ -1541,7 +1541,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 20
     flag_values: [0,1]
     flag_meanings: ['Clear sky restored', 'Cloud unchanged']
@@ -1551,7 +1551,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 21
     flag_values: [0,1]
     flag_meanings: ['No dust detected','Dust detected']
@@ -1561,7 +1561,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 22
     flag_values: [0,1]
     flag_meanings: ['No ash detected','Ash detected']
@@ -1571,7 +1571,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_test_result
+    nc_key: cloud_mask_test_result
     extract_byte: 23
     flag_values: [0,1]
     flag_meanings: ['Dust detected','Ash detected']
@@ -1581,7 +1581,7 @@ datasets:
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_test_clm
-    file_key: cloud_mask_cmrt6_test_result
+    nc_key: cloud_mask_cmrt6_test_result
     fill_value: -127
     import_enum_information: True
 
@@ -1592,7 +1592,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_max
+    nc_key: bt_max
     cell_method: area:maximum
     coordinates:
     - longitude
@@ -1604,7 +1604,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1616,7 +1616,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_min
+    nc_key: bt_min
     cell_method: area:minimum
     coordinates:
     - longitude
@@ -1628,7 +1628,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_std
+    nc_key: bt_std
     cell_method: area:standard_deviation
     coordinates:
     - longitude
@@ -1640,7 +1640,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_max
+    nc_key: radiance_max
     cell_method: area:maximum
     coordinates:
     - longitude
@@ -1652,7 +1652,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     cell_method: area:mean
     coordinates:
     - longitude
@@ -1664,7 +1664,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_min
+    nc_key: radiance_min
     cell_method: area:minimum
     coordinates:
     - longitude
@@ -1676,7 +1676,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_std
+    nc_key: radiance_std
     cell_method: area:standard_deviation
     coordinates:
     - longitude
@@ -1688,7 +1688,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_max
+    nc_key: reflectance_max
     cell_method: area:maximum
     units: '%'
     coordinates:
@@ -1701,7 +1701,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     cell_method: area:mean
     units: '%'
     coordinates:
@@ -1714,7 +1714,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_min
+    nc_key: reflectance_min
     cell_method: area:minimum
     units: '%'
     coordinates:
@@ -1727,7 +1727,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_std
+    nc_key: reflectance_std
     cell_method: area:standard_deviation
     units: '%'
     coordinates:
@@ -1740,7 +1740,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     fill_value: -1
     units: '%'
     coordinates:
@@ -1753,7 +1753,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     fill_value: -1
     units: '%'
     coordinates:
@@ -1766,7 +1766,7 @@ datasets:
     standard_name: radiance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_radiance
+    nc_key: quality_radiance
     fill_value: -1
     coordinates:
     - longitude
@@ -1777,7 +1777,7 @@ datasets:
     standard_name: land_area_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: land_pixel_percent
+    nc_key: land_pixel_percent
     coordinates:
     - longitude
     - latitude
@@ -1787,7 +1787,7 @@ datasets:
     standard_name: water_area_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: water_pixel_percent
+    nc_key: water_pixel_percent
     coordinates:
     - longitude
     - latitude
@@ -1797,7 +1797,7 @@ datasets:
     standard_name: water_area_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: pixel_percentage
+    nc_key: pixel_percentage
     coordinates:
     - longitude
     - latitude
@@ -1808,7 +1808,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 0
@@ -1824,7 +1824,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 1
@@ -1840,7 +1840,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 2
@@ -1856,7 +1856,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 0
@@ -1872,7 +1872,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 1
@@ -1888,7 +1888,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 2
@@ -1904,7 +1904,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 0
@@ -1920,7 +1920,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 1
@@ -1936,7 +1936,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 2
@@ -1952,7 +1952,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 0
@@ -1968,7 +1968,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 1
@@ -1984,7 +1984,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 2
@@ -2000,7 +2000,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 0
@@ -2016,7 +2016,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 1
@@ -2032,7 +2032,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 2
@@ -2048,7 +2048,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 0
@@ -2064,7 +2064,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 1
@@ -2080,7 +2080,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 2
@@ -2096,7 +2096,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 0
@@ -2112,7 +2112,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 1
@@ -2128,7 +2128,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 2
@@ -2144,7 +2144,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 0
@@ -2160,7 +2160,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 1
@@ -2176,7 +2176,7 @@ datasets:
     standard_name: toa_bidirectional_reflectance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: reflectance_mean
+    nc_key: reflectance_mean
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 2
@@ -2192,7 +2192,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 0
@@ -2207,7 +2207,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 1
@@ -2222,7 +2222,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 2
@@ -2237,7 +2237,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 0
@@ -2252,7 +2252,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 1
@@ -2267,7 +2267,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 2
@@ -2282,7 +2282,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 0
@@ -2297,7 +2297,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 1
@@ -2312,7 +2312,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 2
@@ -2327,7 +2327,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 0
@@ -2342,7 +2342,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 1
@@ -2357,7 +2357,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 2
@@ -2372,7 +2372,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 0
@@ -2387,7 +2387,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 1
@@ -2402,7 +2402,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 2
@@ -2417,7 +2417,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 0
@@ -2432,7 +2432,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 1
@@ -2447,7 +2447,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 2
@@ -2462,7 +2462,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 0
@@ -2477,7 +2477,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 1
@@ -2492,7 +2492,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 2
@@ -2507,7 +2507,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 0
@@ -2522,7 +2522,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 1
@@ -2537,7 +2537,7 @@ datasets:
     standard_name: toa_brightess_temperature
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: bt_mean
+    nc_key: bt_mean
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 2
@@ -2552,7 +2552,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 0
@@ -2567,7 +2567,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 1
@@ -2582,7 +2582,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 2
@@ -2597,7 +2597,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 0
@@ -2612,7 +2612,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 1
@@ -2627,7 +2627,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 2
@@ -2642,7 +2642,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 0
@@ -2657,7 +2657,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 1
@@ -2672,7 +2672,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 2
@@ -2687,7 +2687,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 0
@@ -2702,7 +2702,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 1
@@ -2717,7 +2717,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 2
@@ -2732,7 +2732,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 0
@@ -2747,7 +2747,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 1
@@ -2762,7 +2762,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 2
@@ -2777,7 +2777,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 0
@@ -2792,7 +2792,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 1
@@ -2807,7 +2807,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 2
@@ -2822,7 +2822,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 0
@@ -2837,7 +2837,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 1
@@ -2852,7 +2852,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 2
@@ -2867,7 +2867,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 0
@@ -2882,7 +2882,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 1
@@ -2897,7 +2897,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 2
@@ -2912,7 +2912,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 8
     wavelength: [3.4, 3.8, 4.2]
     category_id: 0
@@ -2927,7 +2927,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 8
     wavelength: [3.4, 3.8, 4.2]
     category_id: 1
@@ -2942,7 +2942,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 8
     wavelength: [3.4, 3.8, 4.2]
     category_id: 2
@@ -2957,7 +2957,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 9
     wavelength: [5.3, 6.3, 7.3]
     category_id: 0
@@ -2972,7 +2972,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 9
     wavelength: [5.3, 6.3, 7.3]
     category_id: 1
@@ -2987,7 +2987,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 9
     wavelength: [5.3, 6.3, 7.3]
     category_id: 2
@@ -3002,7 +3002,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 10
     wavelength: [6.85, 7.35, 7.85]
     category_id: 0
@@ -3017,7 +3017,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 10
     wavelength: [6.85, 7.35, 7.85]
     category_id: 1
@@ -3032,7 +3032,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 10
     wavelength: [6.85, 7.35, 7.85]
     category_id: 2
@@ -3047,7 +3047,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 11
     wavelength: [8.3, 8.7, 9.1]
     category_id: 0
@@ -3062,7 +3062,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 11
     wavelength: [8.3, 8.7, 9.1]
     category_id: 1
@@ -3077,7 +3077,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 11
     wavelength: [8.3, 8.7, 9.1]
     category_id: 2
@@ -3092,7 +3092,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 12
     wavelength: [9.36, 9.66, 9.96]
     category_id: 0
@@ -3107,7 +3107,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 12
     wavelength: [9.36, 9.66, 9.96]
     category_id: 1
@@ -3122,7 +3122,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 12
     wavelength: [9.36, 9.66, 9.96]
     category_id: 2
@@ -3137,7 +3137,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 13
     wavelength: [9.8, 10.5, 11.2]
     category_id: 0
@@ -3152,7 +3152,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 13
     wavelength: [9.8, 10.5, 11.2]
     category_id: 1
@@ -3167,7 +3167,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 13
     wavelength: [9.8, 10.5, 11.2]
     category_id: 2
@@ -3182,7 +3182,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 14
     wavelength: [11.8, 12.3, 12.8]
     category_id: 0
@@ -3197,7 +3197,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 14
     wavelength: [11.8, 12.3, 12.8]
     category_id: 1
@@ -3212,7 +3212,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 14
     wavelength: [11.8, 12.3, 12.8]
     category_id: 2
@@ -3227,7 +3227,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 15
     wavelength: [12.7, 13.3, 13.9]
     category_id: 0
@@ -3242,7 +3242,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 15
     wavelength: [12.7, 13.3, 13.9]
     category_id: 1
@@ -3257,7 +3257,7 @@ datasets:
     standard_name: toa_outgoing_radiance
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: radiance_mean
+    nc_key: radiance_mean
     channel_id: 15
     wavelength: [12.7, 13.3, 13.9]
     category_id: 2
@@ -3272,7 +3272,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 0
@@ -3288,7 +3288,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 1
@@ -3304,7 +3304,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 0
     wavelength: [0.384, 0.444, 0.504]
     category_id: 2
@@ -3320,7 +3320,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 0
@@ -3336,7 +3336,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 1
@@ -3352,7 +3352,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 1
     wavelength: [0.47, 0.51, 0.55]
     category_id: 2
@@ -3368,7 +3368,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 0
@@ -3384,7 +3384,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 1
@@ -3400,7 +3400,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 2
     wavelength: [0.59, 0.64, 0.69]
     category_id: 2
@@ -3416,7 +3416,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 0
@@ -3432,7 +3432,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 1
@@ -3448,7 +3448,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 3
     wavelength: [0.815, 0.865, 0.915]
     category_id: 2
@@ -3464,7 +3464,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 0
@@ -3480,7 +3480,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 1
@@ -3496,7 +3496,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 4
     wavelength: [0.894, 0.914, 0.934]
     category_id: 2
@@ -3512,7 +3512,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 0
@@ -3528,7 +3528,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 1
@@ -3544,7 +3544,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 5
     wavelength: [1.35, 1.38, 1.41]
     category_id: 2
@@ -3560,7 +3560,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 0
@@ -3576,7 +3576,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 1
@@ -3592,7 +3592,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 6
     wavelength: [1.56, 1.61, 1.66]
     category_id: 2
@@ -3608,7 +3608,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 0
@@ -3624,7 +3624,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 1
@@ -3640,7 +3640,7 @@ datasets:
     standard_name: reflectance_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_reflectance
+    nc_key: quality_reflectance
     vis_channel_id: 7
     wavelength: [2.2, 2.25, 2.3]
     category_id: 2
@@ -3656,7 +3656,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 0
@@ -3672,7 +3672,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 1
@@ -3688,7 +3688,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 0
     wavelength: [3.4, 3.8, 4.2]
     category_id: 2
@@ -3704,7 +3704,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 0
@@ -3720,7 +3720,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 1
@@ -3736,7 +3736,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 1
     wavelength: [5.3, 6.3, 7.3]
     category_id: 2
@@ -3752,7 +3752,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 0
@@ -3768,7 +3768,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 1
@@ -3784,7 +3784,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 2
     wavelength: [6.85, 7.35, 7.85]
     category_id: 2
@@ -3800,7 +3800,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 0
@@ -3816,7 +3816,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 1
@@ -3832,7 +3832,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 3
     wavelength: [8.3, 8.7, 9.1]
     category_id: 2
@@ -3848,7 +3848,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 0
@@ -3864,7 +3864,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 1
@@ -3880,7 +3880,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 4
     wavelength: [9.36, 9.66, 9.96]
     category_id: 2
@@ -3896,7 +3896,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 0
@@ -3912,7 +3912,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 1
@@ -3928,7 +3928,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 5
     wavelength: [9.8, 10.5, 11.2]
     category_id: 2
@@ -3944,7 +3944,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 0
@@ -3960,7 +3960,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 1
@@ -3976,7 +3976,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 6
     wavelength: [11.8, 12.3, 12.8]
     category_id: 2
@@ -3992,7 +3992,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 0
@@ -4008,7 +4008,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 1
@@ -4024,7 +4024,7 @@ datasets:
     standard_name: brightness_temperature_quality
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: quality_bt
+    nc_key: quality_bt
     ir_channel_id: 7
     wavelength: [12.7, 13.3, 13.9]
     category_id: 2
@@ -4040,7 +4040,7 @@ datasets:
     standard_name: pixels_used_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: pixel_percentage
+    nc_key: pixel_percentage
     category_id: 0
     units: '%'
     coordinates:
@@ -4053,7 +4053,7 @@ datasets:
     standard_name: pixels_used_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: pixel_percentage
+    nc_key: pixel_percentage
     category_id: 1
     units: '%'
     coordinates:
@@ -4066,7 +4066,7 @@ datasets:
     standard_name: pixels_used_fraction
     resolution: 32000
     file_type: nc_fci_asr
-    file_key: pixel_percentage
+    nc_key: pixel_percentage
     category_id: 2
     units: '%'
     coordinates:
@@ -4077,16 +4077,16 @@ datasets:
     name: product_quality_asr
     standard_name: product_quality
     file_type: nc_fci_asr
-    file_key: product_quality
+    nc_key: product_quality
 
   product_completeness_asr:
     name: product_completeness_asr
     standard_name: product_completeness
     file_type: nc_fci_asr
-    file_key: product_completeness
+    nc_key: product_completeness
 
   product_timeliness_asr:
     name: product_timeliness_asr
     standard_name: product_timeliness
     file_type: nc_fci_asr
-    file_key: product_timeliness
+    nc_key: product_timeliness
