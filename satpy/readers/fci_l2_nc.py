@@ -102,23 +102,30 @@ class FciL2CommonFunctions(object):
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if (import_enum_information):
-            netCDF4_dataset = netCDF4.Dataset(self.filename, "r")
-            # This currently assumes a flat netCDF file
-            dataType=netCDF4_dataset.variables[dataset_info["nc_key"]].datatype
-            if (hasattr(dataType,"enum_dict")):
-                enum = dataType.enum_dict
-                flag_values = []
-                flag_meanings = []
-                for item in enumerate(enum):
-                    flag_values.append(item[0])
-                    flag_meanings.append(item[1])
-
-                variable.attrs["flag_values"] = flag_values
-                variable.attrs["flag_meanings"] = flag_meanings
-                netCDF4_dataset.close()
+            variable = self._add_flag_values_and_meamings(self.filename,dataset_info["nc_key"], variable)
 
         if variable.attrs["units"] == "none":
             variable.attrs.update({"units": None})
+
+        return variable
+
+    @staticmethod
+    def _add_flag_values_and_meamings(filename,key,variable):
+        #"""Build flag values and meaning from enum datatype """
+        netCDF4_dataset = netCDF4.Dataset(filename, "r")
+        # This currently assumes a flat netCDF file
+        dataType=netCDF4_dataset.variables[key].datatype
+        if (hasattr(dataType,"enum_dict")):
+            enum = dataType.enum_dict
+            flag_values = []
+            flag_meanings = []
+            for item in enumerate(enum):
+                flag_values.append(item[0])
+                flag_meanings.append(item[1])
+
+            variable.attrs["flag_values"] = flag_values
+            variable.attrs["flag_meanings"] = flag_meanings
+            netCDF4_dataset.close()
 
         return variable
 
