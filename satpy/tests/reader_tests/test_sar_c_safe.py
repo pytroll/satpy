@@ -28,6 +28,7 @@ import yaml
 
 from satpy._config import PACKAGE_CONFIG_PATH
 from satpy.dataset import DataQuery
+from satpy.dataset.dataid import DataID
 from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFEXMLNoise
 
 rasterio = pytest.importorskip("rasterio")
@@ -851,6 +852,7 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   reader.create_filehandlers(files)
   query = DataQuery(name="measurement", polarization="vv",
                     calibration="sigma_nought", quantity="dB")
+  query = DataID(reader._id_keys, **query.to_dict())
   dataset_dict = reader.load([query])
   array = dataset_dict["measurement"]
   np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10])
