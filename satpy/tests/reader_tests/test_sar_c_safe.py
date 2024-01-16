@@ -17,105 +17,185 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.sar-c_safe module."""
 
-import unittest
-import unittest.mock as mock
+import os
 from enum import Enum
 from io import BytesIO
 
-import dask.array as da
 import numpy as np
-import xarray as xr
+import pytest
 
 from satpy.dataset import DataQuery
 from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFEXMLNoise
 
+rasterio = pytest.importorskip("rasterio")
 
-class TestSAFEGRD(unittest.TestCase):
+
+dirname_suffix = "20190201T024655_20190201T024720_025730_02DC2A_AE07"
+filename_suffix = "20190201t024655-20190201t024720-025730-02dc2a"
+
+@pytest.fixture(scope="module")
+def granule_directory(tmp_path_factory):
+  """Create a granule directory."""
+  data_dir = tmp_path_factory.mktemp("data")
+  gdir = data_dir / f"S1A_IW_GRDH_1SDV_{dirname_suffix}.SAFE"
+  os.mkdir(gdir)
+  return gdir
+
+
+@pytest.fixture(scope="module")
+def annotation_file(granule_directory):
+  """Create an annotation file."""
+  ann_dir = granule_directory / "annotation"
+  os.makedirs(ann_dir, exist_ok=True)
+  annotation_file = ann_dir / f"s1a-iw-grd-vv-{filename_suffix}-001.xml"
+  with open(annotation_file, "wb") as fd:
+      fd.write(annotation_xml)
+  return annotation_file
+
+
+@pytest.fixture(scope="module")
+def annotation_filehandler(annotation_file):
+  """Create an annotation filehandler."""
+  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  return SAFEXMLAnnotation(annotation_file, filename_info, None)
+
+
+@pytest.fixture(scope="module")
+def calibration_file(granule_directory):
+  """Create a calibration file."""
+  cal_dir = granule_directory / "annotation" / "calibration"
+  os.makedirs(cal_dir, exist_ok=True)
+  calibration_file = cal_dir / f"calibration-s1a-iw-grd-vv-{filename_suffix}-001.xml"
+  with open(calibration_file, "wb") as fd:
+      fd.write(calibration_xml)
+  return calibration_file
+
+@pytest.fixture(scope="module")
+def calibration_filehandler(calibration_file, annotation_filehandler):
+  """Create a calibration filehandler."""
+  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  return SAFEXMLCalibration(calibration_file,
+                            filename_info,
+                            None,
+                            annotation_filehandler)
+
+@pytest.fixture(scope="module")
+def noise_file(granule_directory):
+  """Create a noise file."""
+  noise_dir = granule_directory / "annotation" / "calibration"
+  os.makedirs(noise_dir, exist_ok=True)
+  noise_file = noise_dir / f"noise-s1a-iw-grd-vv-{filename_suffix}-001.xml"
+  with open(noise_file, "wb") as fd:
+      fd.write(noise_xml)
+  return noise_file
+
+
+@pytest.fixture(scope="module")
+def noise_filehandler(noise_file, annotation_filehandler):
+  """Create a noise filehandler."""
+  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  return SAFEXMLNoise(noise_file, filename_info, None, annotation_filehandler)
+
+
+@pytest.fixture(scope="module")
+def noise_with_holes_filehandler(annotation_filehandler):
+  """Create a noise filehandler from data with holes."""
+  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  noise_filehandler = SAFEXMLNoise(BytesIO(noise_xml_with_holes),
+                                   filename_info, None,
+                                   annotation_filehandler)
+  return noise_filehandler
+
+
+
+@pytest.fixture(scope="module")
+def measurement_file(granule_directory):
+  """Create a tiff measurement file."""
+  GCP = rasterio.control.GroundControlPoint
+
+  gcps = [GCP(0, 0, 0, 0, 0),
+          GCP(0, 3, 1, 0, 0),
+          GCP(3, 0, 0, 1, 0),
+          GCP(3, 3, 1, 1, 0),
+          GCP(0, 7, 2, 0, 0),
+          GCP(3, 7, 2, 1, 0),
+          GCP(7, 7, 2, 2, 0),
+          GCP(7, 3, 1, 2, 0),
+          GCP(7, 0, 0, 2, 0),
+          GCP(0, 15, 3, 0, 0),
+          GCP(3, 15, 3, 1, 0),
+          GCP(7, 15, 3, 2, 0),
+          GCP(15, 15, 3, 3, 0),
+          GCP(15, 7, 2, 3, 0),
+          GCP(15, 3, 1, 3, 0),
+          GCP(15, 0, 0, 3, 0),
+          ]
+  Z = np.linspace(0, 30000, 100, dtype=np.uint16).reshape((10, 10))
+  m_dir = granule_directory / "measurement"
+  os.makedirs(m_dir, exist_ok=True)
+  filename = m_dir / f"s1a-iw-grd-vv-{filename_suffix}-001.tiff"
+  with rasterio.open(
+    filename,
+    "w",
+    driver="GTiff",
+    height=Z.shape[0],
+    width=Z.shape[1],
+    count=1,
+    dtype=Z.dtype,
+    crs="+proj=latlong",
+    gcps=gcps) as dst:
+      dst.write(Z, 1)
+  return filename
+
+
+@pytest.fixture(scope="module")
+def measurement_filehandler(measurement_file, annotation_filehandler, noise_filehandler, calibration_filehandler):
+  """Create a measurement filehandler."""
+  filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": 0, "end_time": 0,
+                   "polarization": "vv"}
+  filetype_info = None
+  from satpy.readers.sar_c_safe import SAFEGRD
+  filehandler =  SAFEGRD(measurement_file,
+                         filename_info,
+                         filetype_info,
+                         calibration_filehandler,
+                         noise_filehandler,
+                         annotation_filehandler)
+  return filehandler
+
+
+class Calibration(Enum):
+    """Calibration levels."""
+
+    gamma = 1
+    sigma_nought = 2
+    beta_nought = 3
+    dn = 4
+
+
+class TestSAFEGRD:
     """Test the SAFE GRD file handler."""
 
-    @mock.patch("rasterio.open")
-    def setUp(self, mocked_rio_open):
-        """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEGRD
-        filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": 0, "end_time": 0,
-                         "polarization": "vv"}
-        filetype_info = "bla"
-        self.noisefh = mock.MagicMock()
-        self.noisefh.get_noise_correction.return_value = xr.DataArray(np.zeros((2, 2)), dims=["y", "x"])
-        self.calfh = mock.MagicMock()
-        self.calfh.get_calibration_constant.return_value = 1
-        self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)), dims=["y", "x"])
-        self.annotationfh = mock.MagicMock()
-
-        self.test_fh = SAFEGRD("S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/"
-                               "s1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff",
-                               filename_info, filetype_info, self.calfh, self.noisefh, self.annotationfh)
-        self.mocked_rio_open = mocked_rio_open
-
-    def test_instantiate(self):
-        """Test initialization of file handlers."""
-        assert self.test_fh._polarization == "vv"
-        assert self.test_fh.calibration == self.calfh
-        assert self.test_fh.noise == self.noisefh
-        self.mocked_rio_open.assert_called()
-
-    @mock.patch("xarray.open_dataset")
-    def test_read_calibrated_natural(self, mocked_xarray_open):
+    def test_read_calibrated_natural(self, measurement_filehandler):
         """Test the calibration routines."""
-        calibration = mock.MagicMock()
-        calibration.name = "sigma_nought"
-        mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
-                                                                                                        [2, 3]])),
-                                                                                dims=["y", "x"])
-        xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                  calibration=calibration, quantity="natural"), info=dict())
-        np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
+        calibration = Calibration.sigma_nought
+        xarr = measurement_filehandler.get_dataset(DataQuery(name="measurement", polarization="vv",
+                                                   calibration=calibration, quantity="natural"), info=dict())
+        expected = np.array([[np.nan, 0.02707529], [2.55858416, 3.27611055]])
+        np.testing.assert_allclose(xarr.values[:2, :2], expected, rtol=2e-7)
 
-    @mock.patch("xarray.open_dataset")
-    def test_read_calibrated_dB(self, mocked_xarray_open):
+    def test_read_calibrated_dB(self, measurement_filehandler):
         """Test the calibration routines."""
-        calibration = mock.MagicMock()
-        calibration.name = "sigma_nought"
-        mocked_xarray_open.return_value.__getitem__.return_value = xr.DataArray(da.from_array(np.array([[0, 1],
-                                                                                                        [2, 3]])),
-                                                                                dims=["y", "x"])
-        xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                  calibration=calibration, quantity="dB"), info=dict())
-        np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])
+        calibration = Calibration.sigma_nought
+        xarr = measurement_filehandler.get_dataset(DataQuery(name="measurement", polarization="vv",
+                                                   calibration=calibration, quantity="dB"), info=dict())
+        expected = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
+        np.testing.assert_allclose(xarr.values[:2, :2], expected)
 
-    def test_read_lon_lats(self):
+    def test_read_lon_lats(self, measurement_filehandler):
         """Test reading lons and lats."""
-
-        class FakeGCP:
-
-            def __init__(self, *args):
-                self.row, self.col, self.x, self.y, self.z = args
-
-        gcps = [FakeGCP(0, 0, 0, 0, 0),
-                FakeGCP(0, 3, 1, 0, 0),
-                FakeGCP(3, 0, 0, 1, 0),
-                FakeGCP(3, 3, 1, 1, 0),
-                FakeGCP(0, 7, 2, 0, 0),
-                FakeGCP(3, 7, 2, 1, 0),
-                FakeGCP(7, 7, 2, 2, 0),
-                FakeGCP(7, 3, 1, 2, 0),
-                FakeGCP(7, 0, 0, 2, 0),
-                FakeGCP(0, 15, 3, 0, 0),
-                FakeGCP(3, 15, 3, 1, 0),
-                FakeGCP(7, 15, 3, 2, 0),
-                FakeGCP(15, 15, 3, 3, 0),
-                FakeGCP(15, 7, 2, 3, 0),
-                FakeGCP(15, 3, 1, 3, 0),
-                FakeGCP(15, 0, 0, 3, 0),
-                ]
-
-        crs = dict(init="epsg:4326")
-
-        self.mocked_rio_open.return_value.gcps = [gcps, crs]
-        self.mocked_rio_open.return_value.shape = [16, 16]
-
         query = DataQuery(name="longitude", polarization="vv")
-        xarr = self.test_fh.get_dataset(query, info=dict())
+        xarr = measurement_filehandler.get_dataset(query, info=dict())
         expected = np.array([[3.79492915e-16, 5.91666667e-01, 9.09722222e-01,
                               1.00000000e+00, 9.08333333e-01, 6.80555556e-01,
                               3.62500000e-01, 8.32667268e-17, -3.61111111e-01,
@@ -212,7 +292,7 @@ class TestSAFEGRD(unittest.TestCase):
                               6.32142857e-01, 4.79166667e-01, 3.46031746e-01,
                               2.32142857e-01, 1.36904762e-01, 5.97222222e-02,
                               0.00000000e+00]])
-        np.testing.assert_allclose(xarr.values, expected)
+        np.testing.assert_allclose(xarr.values, expected[:10, :10])
 
 
 annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -622,15 +702,11 @@ calibration_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class TestSAFEXMLNoise(unittest.TestCase):
+class TestSAFEXMLNoise:
     """Test the SAFE XML Noise file handler."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
-        filename_info = dict(start_time=None, end_time=None, polarization="vv")
-        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
-        self.noise_fh = SAFEXMLNoise(BytesIO(noise_xml), filename_info, mock.MagicMock(), self.annotation_fh)
-
         self.expected_azimuth_noise = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                                 [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                                 [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
@@ -655,8 +731,6 @@ class TestSAFEXMLNoise(unittest.TestCase):
                                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                               ])
 
-        self.noise_fh_with_holes = SAFEXMLNoise(BytesIO(noise_xml_with_holes), filename_info, mock.MagicMock(),
-                                                self.annotation_fh)
         self.expected_azimuth_noise_with_holes = np.array(
             [[np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
              [2, 2, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
@@ -670,112 +744,90 @@ class TestSAFEXMLNoise(unittest.TestCase):
              [10, np.nan, 11, 11, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
              ])
 
-    def test_azimuth_noise_array(self):
+    def test_azimuth_noise_array(self, noise_filehandler):
         """Test reading the azimuth-noise array."""
-        res = self.noise_fh.azimuth_noise_reader.read_azimuth_noise_array()
+        res = noise_filehandler.azimuth_noise_reader.read_azimuth_noise_array()
         np.testing.assert_array_equal(res, self.expected_azimuth_noise)
 
-    def test_azimuth_noise_array_with_holes(self):
+    def test_azimuth_noise_array_with_holes(self, noise_with_holes_filehandler):
         """Test reading the azimuth-noise array."""
-        res = self.noise_fh_with_holes.azimuth_noise_reader.read_azimuth_noise_array()
+        res = noise_with_holes_filehandler.azimuth_noise_reader.read_azimuth_noise_array()
         np.testing.assert_array_equal(res, self.expected_azimuth_noise_with_holes)
 
-    def test_range_noise_array(self):
+    def test_range_noise_array(self, noise_filehandler):
         """Test reading the range-noise array."""
-        res = self.noise_fh.read_range_noise_array(chunks=5)
+        res = noise_filehandler.read_range_noise_array(chunks=5)
         np.testing.assert_allclose(res, self.expected_range_noise)
 
-    def test_get_noise_dataset(self):
+    def test_get_noise_dataset(self, noise_filehandler):
         """Test using get_dataset for the noise."""
         query = DataQuery(name="noise", polarization="vv")
-        res = self.noise_fh.get_dataset(query, {})
+        res = noise_filehandler.get_dataset(query, {})
         np.testing.assert_allclose(res, self.expected_azimuth_noise * self.expected_range_noise)
 
-    def test_get_noise_dataset_has_right_chunk_size(self):
+    def test_get_noise_dataset_has_right_chunk_size(self, noise_filehandler):
         """Test using get_dataset for the noise has right chunk size in result."""
         query = DataQuery(name="noise", polarization="vv")
-        res = self.noise_fh.get_dataset(query, {}, chunks=3)
+        res = noise_filehandler.get_dataset(query, {}, chunks=3)
         assert res.data.chunksize == (3, 3)
 
 
-class Calibration(Enum):
-    """Calibration levels."""
-
-    gamma = 1
-    sigma_nought = 2
-    beta_nought = 3
-    dn = 4
-
-
-class TestSAFEXMLCalibration(unittest.TestCase):
+class TestSAFEXMLCalibration:
     """Test the SAFE XML Calibration file handler."""
 
-    def setUp(self):
-        """Set up the test case."""
-        filename_info = dict(start_time=None, end_time=None, polarization="vv")
-        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
-        self.calibration_fh = SAFEXMLCalibration(BytesIO(calibration_xml),
-                                                 filename_info,
-                                                 mock.MagicMock(),
-                                                 self.annotation_fh)
+    def setup_method(self):
+      """Set up testing."""
+      self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
+                                1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
 
-        self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
-                                         1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
 
-    def test_dn_calibration_array(self):
+    def test_dn_calibration_array(self, calibration_filehandler):
         """Test reading the dn calibration array."""
         expected_dn = np.ones((10, 10)) * 1087
-        res = self.calibration_fh.get_calibration(Calibration.dn, chunks=5)
+        res = calibration_filehandler.get_calibration(Calibration.dn, chunks=5)
         np.testing.assert_allclose(res, expected_dn)
 
-    def test_beta_calibration_array(self):
+    def test_beta_calibration_array(self, calibration_filehandler):
         """Test reading the beta calibration array."""
         expected_beta = np.ones((10, 10)) * 1087
-        res = self.calibration_fh.get_calibration(Calibration.beta_nought, chunks=5)
+        res = calibration_filehandler.get_calibration(Calibration.beta_nought, chunks=5)
         np.testing.assert_allclose(res, expected_beta)
 
-    def test_sigma_calibration_array(self):
+    def test_sigma_calibration_array(self, calibration_filehandler):
         """Test reading the sigma calibration array."""
         expected_sigma = np.array([[1894.274, 1841.4335, 1788.593, 1554.4165, 1320.24, 1299.104,
                                     1277.968, 1277.968, 1277.968, 1277.968]]) * np.ones((10, 1))
-        res = self.calibration_fh.get_calibration(Calibration.sigma_nought, chunks=5)
+        res = calibration_filehandler.get_calibration(Calibration.sigma_nought, chunks=5)
         np.testing.assert_allclose(res, expected_sigma)
 
-    def test_gamma_calibration_array(self):
+
+    def test_gamma_calibration_array(self, calibration_filehandler):
         """Test reading the gamma calibration array."""
-        res = self.calibration_fh.get_calibration(Calibration.gamma, chunks=5)
+        res = calibration_filehandler.get_calibration(Calibration.gamma, chunks=5)
         np.testing.assert_allclose(res, self.expected_gamma)
 
-    def test_get_calibration_dataset(self):
+    def test_get_calibration_dataset(self, calibration_filehandler):
         """Test using get_dataset for the calibration."""
         query = DataQuery(name="gamma", polarization="vv")
-        res = self.calibration_fh.get_dataset(query, {})
+        res = calibration_filehandler.get_dataset(query, {})
         np.testing.assert_allclose(res, self.expected_gamma)
 
-    def test_get_calibration_dataset_has_right_chunk_size(self):
+    def test_get_calibration_dataset_has_right_chunk_size(self, calibration_filehandler):
         """Test using get_dataset for the calibration yields array with right chunksize."""
         query = DataQuery(name="gamma", polarization="vv")
-        res = self.calibration_fh.get_dataset(query, {}, chunks=3)
+        res = calibration_filehandler.get_dataset(query, {}, chunks=3)
         assert res.data.chunksize == (3, 3)
         np.testing.assert_allclose(res, self.expected_gamma)
 
-    def test_get_calibration_constant(self):
+    def test_get_calibration_constant(self, calibration_filehandler):
         """Test getting the calibration constant."""
         query = DataQuery(name="calibration_constant", polarization="vv")
-        res = self.calibration_fh.get_dataset(query, {})
+        res = calibration_filehandler.get_dataset(query, {})
         assert res == 1
 
 
-class TestSAFEXMLAnnotation(unittest.TestCase):
-    """Test the SAFE XML Annotation file handler."""
-
-    def setUp(self):
-        """Set up the test case."""
-        filename_info = dict(start_time=None, end_time=None, polarization="vv")
-        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
-
-    def test_incidence_angle(self):
-        """Test reading the incidence angle."""
-        query = DataQuery(name="incidence_angle", polarization="vv")
-        res = self.annotation_fh.get_dataset(query, {})
-        np.testing.assert_allclose(res, 19.18318046)
+def test_incidence_angle(annotation_filehandler):
+    """Test reading the incidence angle in an annotation file."""
+    query = DataQuery(name="incidence_angle", polarization="vv")
+    res = annotation_filehandler.get_dataset(query, {})
+    np.testing.assert_allclose(res, 19.18318046)
