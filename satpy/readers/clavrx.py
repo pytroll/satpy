@@ -266,14 +266,24 @@ class _CLAVRxHelper:
         x, y = l1b['x'], l1b['y']
         area_extent, ncols, nlines = _CLAVRxHelper._area_extent(x, y, h)
 
-        area = geometry.AreaDefinition(
-            'ahi_geos',
-            "AHI L2 file area",
-            'ahi_geos',
-            proj,
-            ncols,
-            nlines,
-            np.asarray(area_extent))
+        if sensor == "abi":
+            area = geometry.AreaDefinition(
+              'abi_geos',
+              "ABI L2 file area",
+              'abi_geos',
+              proj,
+              ncols,
+              nlines,
+              np.asarray(area_extent))
+        else:
+            area = geometry.AreaDefinition(
+               'ahi_geos',
+               "AHI L2 file area",
+               'ahi_geos',
+               proj,
+               ncols,
+               nlines,
+               np.asarray(area_extent))
 
         return area
 
