@@ -43,8 +43,8 @@ Remaining datasets (such as quality flags and uncertainties) have the same
 name in the reader as in the netCDF file.
 
 
-Example
--------
+Example:
+--------
 This is how to read FIDUCEO MVIRI FCDR data in satpy:
 
 .. code-block:: python
@@ -143,8 +143,8 @@ If you need the angles in both resolutions, use data queries:
     sza_vis = scn[query_vis]
 
 
-References
-----------
+References:
+-----------
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide
 
@@ -173,16 +173,16 @@ ALTITUDE = 42164000.0 - EQUATOR_RADIUS
 MVIRI_FIELD_OF_VIEW = 18.0
 """[Handbook] section 5.3.2.1."""
 
-CHANNELS = ['VIS', 'WV', 'IR']
+CHANNELS = ["VIS", "WV", "IR"]
 ANGLES = [
-    'solar_zenith_angle',
-    'solar_azimuth_angle',
-    'satellite_zenith_angle',
-    'satellite_azimuth_angle'
+    "solar_zenith_angle",
+    "solar_azimuth_angle",
+    "satellite_zenith_angle",
+    "satellite_azimuth_angle"
 ]
 OTHER_REFLECTANCES = [
-    'u_independent_toa_bidirectional_reflectance',
-    'u_structured_toa_bidirectional_reflectance'
+    "u_independent_toa_bidirectional_reflectance",
+    "u_structured_toa_bidirectional_reflectance"
 ]
 HIGH_RESOL = 2250
 
@@ -200,19 +200,19 @@ class IRWVCalibrator:
 
     def calibrate(self, counts, calibration):
         """Calibrate IR/WV counts to the given calibration."""
-        if calibration == 'counts':
+        if calibration == "counts":
             return counts
-        elif calibration in ('radiance', 'brightness_temperature'):
+        elif calibration in ("radiance", "brightness_temperature"):
             return self._calibrate_rad_bt(counts, calibration)
         else:
             raise KeyError(
-                'Invalid IR/WV calibration: {}'.format(calibration.name)
+                "Invalid IR/WV calibration: {}".format(calibration.name)
             )
 
     def _calibrate_rad_bt(self, counts, calibration):
         """Calibrate counts to radiance or brightness temperature."""
         rad = self._counts_to_radiance(counts)
-        if calibration == 'radiance':
+        if calibration == "radiance":
             return rad
         bt = self._radiance_to_brightness_temperature(rad)
         return bt
@@ -222,7 +222,7 @@ class IRWVCalibrator:
 
         Reference: [PUG], equations (4.1) and (4.2).
         """
-        rad = self.coefs['a'] + self.coefs['b'] * counts
+        rad = self.coefs["a"] + self.coefs["b"] * counts
         return rad.where(rad > 0, np.float32(np.nan))
 
     def _radiance_to_brightness_temperature(self, rad):
@@ -230,7 +230,7 @@ class IRWVCalibrator:
 
         Reference: [PUG], equations (5.1) and (5.2).
         """
-        bt = self.coefs['bt_b'] / (np.log(rad) - self.coefs['bt_a'])
+        bt = self.coefs["bt_b"] / (np.log(rad) - self.coefs["bt_a"])
         return bt.where(bt > 0, np.float32(np.nan))
 
 
@@ -252,19 +252,19 @@ class VISCalibrator:
 
     def calibrate(self, counts, calibration):
         """Calibrate VIS counts."""
-        if calibration == 'counts':
+        if calibration == "counts":
             return counts
-        elif calibration in ('radiance', 'reflectance'):
+        elif calibration in ("radiance", "reflectance"):
             return self._calibrate_rad_refl(counts, calibration)
         else:
             raise KeyError(
-                'Invalid VIS calibration: {}'.format(calibration.name)
+                "Invalid VIS calibration: {}".format(calibration.name)
             )
 
     def _calibrate_rad_refl(self, counts, calibration):
         """Calibrate counts to radiance or reflectance."""
         rad = self._counts_to_radiance(counts)
-        if calibration == 'radiance':
+        if calibration == "radiance":
             return rad
         refl = self._radiance_to_reflectance(rad)
         refl = self.update_refl_attrs(refl)
@@ -275,11 +275,11 @@ class VISCalibrator:
 
         Reference: [PUG], equations (7) and (8).
         """
-        years_since_launch = self.coefs['years_since_launch']
-        a_cf = (self.coefs['a0'] +
-                self.coefs['a1'] * years_since_launch +
-                self.coefs['a2'] * years_since_launch ** 2)
-        mean_count_space_vis = self.coefs['mean_count_space']
+        years_since_launch = self.coefs["years_since_launch"]
+        a_cf = (self.coefs["a0"] +
+                self.coefs["a1"] * years_since_launch +
+                self.coefs["a2"] * years_since_launch ** 2)
+        mean_count_space_vis = self.coefs["mean_count_space"]
         rad = (counts - mean_count_space_vis) * a_cf
         return rad.where(rad > 0, np.float32(np.nan))
 
@@ -298,17 +298,17 @@ class VISCalibrator:
         )  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
         refl = (
-           (np.pi * self.coefs['distance_sun_earth'] ** 2) /
-           (self.coefs['solar_irradiance'] * cos_sza) *
+           (np.pi * self.coefs["distance_sun_earth"] ** 2) /
+           (self.coefs["solar_irradiance"] * cos_sza) *
            rad
         )
         return self.refl_factor_to_percent(refl)
 
     def update_refl_attrs(self, refl):
         """Update attributes of reflectance datasets."""
-        refl.attrs['sun_earth_distance_correction_applied'] = True
-        refl.attrs['sun_earth_distance_correction_factor'] = self.coefs[
-            'distance_sun_earth'].item()
+        refl.attrs["sun_earth_distance_correction_applied"] = True
+        refl.attrs["sun_earth_distance_correction_factor"] = self.coefs[
+            "distance_sun_earth"].item()
         return refl
 
     @staticmethod
@@ -328,24 +328,24 @@ class Navigator:
 
     def _get_proj_params(self, im_size, projection_longitude):
         """Get projection parameters for the given settings."""
-        area_name = 'geos_mviri_{0}x{0}'.format(im_size)
+        area_name = "geos_mviri_{0}x{0}".format(im_size)
         lfac, cfac, loff, coff = self._get_factors_offsets(im_size)
         return {
-            'ssp_lon': projection_longitude,
-            'a': EQUATOR_RADIUS,
-            'b': POLE_RADIUS,
-            'h': ALTITUDE,
-            'units': 'm',
-            'loff': loff - im_size,
-            'coff': coff,
-            'lfac': -lfac,
-            'cfac': -cfac,
-            'nlines': im_size,
-            'ncols': im_size,
-            'scandir': 'S2N',  # Reference: [PUG] section 2.
-            'p_id': area_name,
-            'a_name': area_name,
-            'a_desc': 'MVIRI Geostationary Projection'
+            "ssp_lon": projection_longitude,
+            "a": EQUATOR_RADIUS,
+            "b": POLE_RADIUS,
+            "h": ALTITUDE,
+            "units": "m",
+            "loff": loff - im_size,
+            "coff": coff,
+            "lfac": -lfac,
+            "cfac": -cfac,
+            "nlines": im_size,
+            "ncols": im_size,
+            "scandir": "S2N",  # Reference: [PUG] section 2.
+            "p_id": area_name,
+            "a_name": area_name,
+            "a_desc": "MVIRI Geostationary Projection"
         }
 
     def _get_factors_offsets(self, im_size):
@@ -382,7 +382,7 @@ class Interpolator:
         # No tiepoint coordinates specified in the files. Use dimensions
         # to calculate tiepoint sampling and assign tiepoint coordinates
         # accordingly.
-        sampling = target_x.size // ds.coords['x'].size
+        sampling = target_x.size // ds.coords["x"].size
         ds = ds.assign_coords(x=target_x.values[::sampling],
                               y=target_y.values[::sampling])
 
@@ -406,11 +406,11 @@ class Interpolator:
             Mean scanline acquisition timestamps
         """
         # Compute mean timestamp per scanline
-        time = time2d.mean(dim='x')
+        time = time2d.mean(dim="x")
 
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
-        y = time.coords['y'].values
+        y = time.coords["y"].values
         if y.size < target_y.size:
             reps = target_y.size // y.size
             y_rep = np.repeat(y, reps)
@@ -476,15 +476,15 @@ class DatasetWrapper:
 
     def _should_dims_be_renamed(self, ds):
         """Determine whether dataset dimensions need to be renamed."""
-        return 'y_ir_wv' in ds.dims or 'y_tie' in ds.dims
+        return "y_ir_wv" in ds.dims or "y_tie" in ds.dims
 
     def _rename_dims(self, ds):
         """Rename dataset dimensions to match satpy's expectations."""
         new_names = {
-            'y_ir_wv': 'y',
-            'x_ir_wv': 'x',
-            'y_tie': 'y',
-            'x_tie': 'x'
+            "y_ir_wv": "y",
+            "x_ir_wv": "x",
+            "y_tie": "y",
+            "x_tie": "x"
         }
         for old_name, new_name in new_names.items():
             if old_name in ds.dims:
@@ -492,7 +492,7 @@ class DatasetWrapper:
         return ds
 
     def _coordinates_not_assigned(self, ds):
-        return 'y' in ds.dims and 'y' not in ds.coords
+        return "y" in ds.dims and "y" not in ds.coords
 
     def _reassign_coords(self, ds):
         """Re-assign coordinates.
@@ -500,14 +500,14 @@ class DatasetWrapper:
         For some reason xarray doesn't assign coordinates to all high
         resolution data variables.
         """
-        return ds.assign_coords({'y': self.nc.coords['y'],
-                                 'x': self.nc.coords['x']})
+        return ds.assign_coords({"y": self.nc.coords["y"],
+                                 "x": self.nc.coords["x"]})
 
     def _cleanup_attrs(self, ds):
         """Cleanup dataset attributes."""
         # Remove ancillary_variables attribute to avoid downstream
         # satpy warnings.
-        ds.attrs.pop('ancillary_variables', None)
+        ds.attrs.pop("ancillary_variables", None)
 
     def get_time(self):
         """Get time coordinate.
@@ -515,32 +515,32 @@ class DatasetWrapper:
         Variable is sometimes named "time" and sometimes "time_ir_wv".
         """
         try:
-            return self['time_ir_wv']
+            return self["time_ir_wv"]
         except KeyError:
-            return self['time']
+            return self["time"]
 
     def get_xy_coords(self, resolution):
         """Get x and y coordinates for the given resolution."""
         if is_high_resol(resolution):
-            return self.nc.coords['x'], self.nc.coords['y']
-        return self.nc.coords['x_ir_wv'], self.nc.coords['x_ir_wv']
+            return self.nc.coords["x"], self.nc.coords["y"]
+        return self.nc.coords["x_ir_wv"], self.nc.coords["x_ir_wv"]
 
     def get_image_size(self, resolution):
         """Get image size for the given resolution."""
         if is_high_resol(resolution):
-            return self.nc.coords['y'].size
-        return self.nc.coords['y_ir_wv'].size
+            return self.nc.coords["y"].size
+        return self.nc.coords["y_ir_wv"].size
 
 
 class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
 
     nc_keys = {
-        'WV': 'count_wv',
-        'IR': 'count_ir'
+        "WV": "count_wv",
+        "IR": "count_ir"
     }
 
-    def __init__(self, filename, filename_info, filetype_info,
+    def __init__(self, filename, filename_info, filetype_info,  # noqa: D417
                  mask_bad_quality=False):
         """Initialize the file handler.
 
@@ -555,16 +555,16 @@ class FiduceoMviriBase(BaseFileHandler):
         self.mask_bad_quality = mask_bad_quality
         nc_raw = xr.open_dataset(
             filename,
-            chunks={'x': CHUNK_SIZE,
-                    'y': CHUNK_SIZE,
-                    'x_ir_wv': CHUNK_SIZE,
-                    'y_ir_wv': CHUNK_SIZE}
+            chunks={"x": CHUNK_SIZE,
+                    "y": CHUNK_SIZE,
+                    "x_ir_wv": CHUNK_SIZE,
+                    "y_ir_wv": CHUNK_SIZE}
         )
         self.nc = DatasetWrapper(nc_raw)
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
-        self.projection_longitude = float(filename_info['projection_longitude'])
+        self.projection_longitude = float(filename_info["projection_longitude"])
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
@@ -576,12 +576,12 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        name = dataset_id['name']
-        resolution = dataset_id['resolution']
+        name = dataset_id["name"]
+        resolution = dataset_id["resolution"]
         if name in ANGLES:
             ds = self._get_angles(name, resolution)
         elif name in CHANNELS:
-            ds = self._get_channel(name, resolution, dataset_id['calibration'])
+            ds = self._get_channel(name, resolution, dataset_id["calibration"])
         else:
             ds = self._get_other_dataset(name)
         ds = self._cleanup_coords(ds)
@@ -590,7 +590,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
-        im_size = self.nc.get_image_size(dataset_id['resolution'])
+        im_size = self.nc.get_image_size(dataset_id["resolution"])
         nav = Navigator()
         return nav.get_area_def(
             im_size=im_size,
@@ -605,13 +605,13 @@ class FiduceoMviriBase(BaseFileHandler):
             channel=name,
             calibration=calibration
         )
-        if name == 'VIS':
-            qc = VisQualityControl(self.nc['quality_pixel_bitmask'])
+        if name == "VIS":
+            qc = VisQualityControl(self.nc["quality_pixel_bitmask"])
             if self.mask_bad_quality:
                 ds = qc.mask(ds)
             else:
                 qc.check()
-        ds['acq_time'] = self._get_acq_time(resolution)
+        ds["acq_time"] = self._get_acq_time(resolution)
         return ds
 
     def _get_angles_uncached(self, name, resolution):
@@ -638,10 +638,10 @@ class FiduceoMviriBase(BaseFileHandler):
     def _update_attrs(self, ds, info):
         """Update dataset attributes."""
         ds.attrs.update(info)
-        ds.attrs.update({'platform': self.filename_info['platform'],
-                         'sensor': self.filename_info['sensor']})
-        ds.attrs['raw_metadata'] = self.nc.attrs
-        ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        ds.attrs.update({"platform": self.filename_info["platform"],
+                         "sensor": self.filename_info["sensor"]})
+        ds.attrs["raw_metadata"] = self.nc.attrs
+        ds.attrs["orbital_parameters"] = self._get_orbital_parameters()
 
     def _cleanup_coords(self, ds):
         """Cleanup dataset coordinates.
@@ -651,11 +651,11 @@ class FiduceoMviriBase(BaseFileHandler):
         can assign projection coordinates upstream (based on the area
         definition).
         """
-        return ds.drop_vars(['y', 'x'])
+        return ds.drop_vars(["y", "x"])
 
     def _calibrate(self, ds, channel, calibration):
         """Calibrate the given dataset."""
-        if channel == 'VIS':
+        if channel == "VIS":
             return self._calibrate_vis(ds, channel, calibration)
         calib = IRWVCalibrator(self.calib_coefs[channel])
         return calib.calibrate(ds, calibration)
@@ -671,21 +671,21 @@ class FiduceoMviriBase(BaseFileHandler):
         Note: Only coefficients present in both file types.
         """
         coefs = {
-            'VIS': {
-                'distance_sun_earth': self.nc['distance_sun_earth'],
-                'solar_irradiance': self.nc['solar_irradiance_vis']
+            "VIS": {
+                "distance_sun_earth": self.nc["distance_sun_earth"],
+                "solar_irradiance": self.nc["solar_irradiance_vis"]
             },
-            'IR': {
-                'a': self.nc['a_ir'],
-                'b': self.nc['b_ir'],
-                'bt_a': self.nc['bt_a_ir'],
-                'bt_b': self.nc['bt_b_ir']
+            "IR": {
+                "a": self.nc["a_ir"],
+                "b": self.nc["b_ir"],
+                "bt_a": self.nc["bt_a_ir"],
+                "bt_b": self.nc["bt_b_ir"]
             },
-            'WV': {
-                'a': self.nc['a_wv'],
-                'b': self.nc['b_wv'],
-                'bt_a': self.nc['bt_a_wv'],
-                'bt_b': self.nc['bt_b_wv']
+            "WV": {
+                "a": self.nc["a_wv"],
+                "b": self.nc["b_wv"],
+                "bt_a": self.nc["bt_a_wv"],
+                "bt_b": self.nc["bt_b_wv"]
             },
         }
 
@@ -710,15 +710,15 @@ class FiduceoMviriBase(BaseFileHandler):
     def _get_orbital_parameters(self):
         """Get the orbital parameters."""
         orbital_parameters = {
-            'projection_longitude': self.projection_longitude,
-            'projection_latitude': 0.0,
-            'projection_altitude': ALTITUDE
+            "projection_longitude": self.projection_longitude,
+            "projection_latitude": 0.0,
+            "projection_altitude": ALTITUDE
         }
         ssp_lon, ssp_lat = self._get_ssp_lonlat()
         if not np.isnan(ssp_lon) and not np.isnan(ssp_lat):
             orbital_parameters.update({
-                'satellite_actual_longitude': ssp_lon,
-                'satellite_actual_latitude': ssp_lat,
+                "satellite_actual_longitude": ssp_lon,
+                "satellite_actual_latitude": ssp_lat,
                 # altitude not available
             })
         return orbital_parameters
@@ -733,13 +733,13 @@ class FiduceoMviriBase(BaseFileHandler):
         Returns:
             Subsatellite longitude and latitude
         """
-        ssp_lon = self._get_ssp('longitude')
-        ssp_lat = self._get_ssp('latitude')
+        ssp_lon = self._get_ssp("longitude")
+        ssp_lat = self._get_ssp("latitude")
         return ssp_lon, ssp_lat
 
     def _get_ssp(self, coord):
-        key_start = 'sub_satellite_{}_start'.format(coord)
-        key_end = 'sub_satellite_{}_end'.format(coord)
+        key_start = "sub_satellite_{}_start".format(coord)
+        key_end = "sub_satellite_{}_end".format(coord)
         try:
             sub_lonlat = np.nanmean(
                 [self.nc[key_start].values,
@@ -755,42 +755,42 @@ class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
     """File handler for FIDUCEO MVIRI Easy FCDR."""
 
     nc_keys = FiduceoMviriBase.nc_keys.copy()
-    nc_keys['VIS'] = 'toa_bidirectional_reflectance_vis'
+    nc_keys["VIS"] = "toa_bidirectional_reflectance_vis"
 
     def _calibrate_vis(self, ds, channel, calibration):
         """Calibrate VIS channel.
 
         Easy FCDR provides reflectance only, no counts or radiance.
         """
-        if calibration == 'reflectance':
+        if calibration == "reflectance":
             coefs = self.calib_coefs[channel]
             cal = VISCalibrator(coefs)
             refl = cal.refl_factor_to_percent(ds)
             refl = cal.update_refl_attrs(refl)
             return refl
-        elif calibration in ('counts', 'radiance'):
-            raise ValueError('Cannot calibrate to {}. Easy FCDR provides '
-                             'reflectance only.'.format(calibration.name))
+        elif calibration in ("counts", "radiance"):
+            raise ValueError("Cannot calibrate to {}. Easy FCDR provides "
+                             "reflectance only.".format(calibration.name))
         else:
-            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+            raise KeyError("Invalid calibration: {}".format(calibration.name))
 
 
 class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
     """File handler for FIDUCEO MVIRI Full FCDR."""
 
     nc_keys = FiduceoMviriBase.nc_keys.copy()
-    nc_keys['VIS'] = 'count_vis'
+    nc_keys["VIS"] = "count_vis"
 
     def _get_calib_coefs(self):
         """Add additional VIS coefficients only present in full FCDR."""
         coefs = super()._get_calib_coefs()
-        coefs['VIS'].update({
-            'years_since_launch': np.float32(self.nc['years_since_launch']),
-            'a0': np.float32(self.nc['a0_vis']),
-            'a1': np.float32(self.nc['a1_vis']),
-            'a2': np.float32(self.nc['a2_vis']),
-            'mean_count_space': np.float32(
-                self.nc['mean_count_space_vis']
+        coefs["VIS"].update({
+            "years_since_launch": np.float32(self.nc["years_since_launch"]),
+            "a0": np.float32(self.nc["a0_vis"]),
+            "a1": np.float32(self.nc["a1_vis"]),
+            "a2": np.float32(self.nc["a2_vis"]),
+            "mean_count_space": np.float32(
+                self.nc["mean_count_space_vis"]
             )
         })
         return coefs
@@ -798,7 +798,7 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
     def _calibrate_vis(self, ds, channel, calibration):
         """Calibrate VIS channel."""
         sza = None
-        if calibration == 'reflectance':
-            sza = self._get_angles('solar_zenith_angle', HIGH_RESOL)
+        if calibration == "reflectance":
+            sza = self._get_angles("solar_zenith_angle", HIGH_RESOL)
         cal = VISCalibrator(self.calib_coefs[channel], sza)
         return cal.calibrate(ds, calibration)

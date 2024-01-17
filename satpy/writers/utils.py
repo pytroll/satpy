@@ -18,7 +18,7 @@
 """Writer utilities."""
 
 
-def flatten_dict(d, parent_key='', sep='_'):
+def flatten_dict(d, parent_key="", sep="_"):
     """Flatten a nested dictionary.
 
     Based on https://stackoverflow.com/a/6027615/5703449

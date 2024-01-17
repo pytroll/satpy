@@ -17,6 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for reader tests."""
 
+import inspect
+import os
+
 
 def default_attr_processor(root, attr):
     """Do not change the attribute."""
@@ -43,3 +46,39 @@ def fill_h5(root, contents, attr_processor=default_attr_processor):
         if "attrs" in val:
             for attr_name, attr_val in val["attrs"].items():
                 root[key].attrs[attr_name] = attr_processor(root, attr_val)
+
+
+def get_jit_methods(module):
+    """Get all jit-compiled methods in a module."""
+    res = {}
+    module_name = module.__name__
+    members = inspect.getmembers(module)
+    for member_name, obj in members:
+        if _is_jit_method(obj):
+            full_name = f"{module_name}.{member_name}"
+            res[full_name] = obj
+    return res
+
+
+def _is_jit_method(obj):
+    return hasattr(obj, "py_func")
+
+
+def skip_numba_unstable_if_missing():
+    """Determine if numba-based tests should be skipped during unstable CI tests.
+
+    If numba fails to import it could be because numba is not compatible with
+    a newer version of numpy. This is very likely to happen in the
+    unstable/experimental CI environment. This function returns ``True`` if
+    numba-based tests should be skipped if ``numba`` could not
+    be imported *and* we're in the unstable environment. We determine if we're
+    in this CI environment by looking for the ``UNSTABLE="1"``
+    environment variable.
+
+    """
+    try:
+        import numba
+    except ImportError:
+        numba = None
+
+    return numba is None and os.environ.get("UNSTABLE", "0") in ("1", "true")

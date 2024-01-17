@@ -45,6 +45,7 @@ ABI_FILE = f'{L1B_FILE}.level2.nc'
 FILL_VALUE = -32768
 
 
+
 def fake_test_content(filename, **kwargs):
     """Mimic reader input file content."""
     attrs = {
@@ -137,7 +138,7 @@ class TestCLAVRXReaderGeo:
     def setup_method(self):
         """Read fake data."""
         from satpy._config import config_search_paths
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
@@ -162,7 +163,7 @@ class TestCLAVRXReaderGeo:
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.clavrx.xr.open_dataset') as od:
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
             od.side_effect = fake_test_content
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -192,10 +193,10 @@ class TestCLAVRXReaderGeo:
                     semi_minor_axis=6356752.3142,
                     perspective_point_height=35791000,
                     longitude_of_projection_origin=140.7,
-                    sweep_angle_axis='y',
+                    sweep_angle_axis="y",
                 )
                 d.return_value = fake_donor = mock.MagicMock(
-                    variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+                    variables={"goes_imager_projection": proj, "x": x, "y": y},
                 )
                 fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
 

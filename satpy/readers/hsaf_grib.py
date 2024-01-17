@@ -39,7 +39,7 @@ LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 CF_UNITS = {
-    'none': '1',
+    "none": "1",
 }
 
 
@@ -67,7 +67,7 @@ class HSAFFileHandler(BaseFileHandler):
 
     @staticmethod
     def _get_datetime(msg):
-        dtstr = str(msg['dataDate']) + str(msg['dataTime']).zfill(4)
+        dtstr = str(msg["dataDate"]) + str(msg["dataTime"]).zfill(4)
         return datetime.strptime(dtstr, "%Y%m%d%H%M")
 
     @property
@@ -78,19 +78,19 @@ class HSAFFileHandler(BaseFileHandler):
     def get_metadata(self, msg):
         """Get the metadata."""
         try:
-            center_description = msg['centreDescription']
+            center_description = msg["centreDescription"]
         except (RuntimeError, KeyError):
             center_description = None
         ds_info = {
-            'filename': self.filename,
-            'shortName': msg['shortName'],
-            'long_name': msg['name'],
-            'units': msg['units'],
-            'centreDescription': center_description,
-            'data_time': self._analysis_time,
-            'nx': msg['Nx'],
-            'ny': msg['Ny'],
-            'projparams': msg.projparams
+            "filename": self.filename,
+            "shortName": msg["shortName"],
+            "long_name": msg["name"],
+            "units": msg["units"],
+            "centreDescription": center_description,
+            "data_time": self._analysis_time,
+            "nx": msg["Nx"],
+            "ny": msg["Ny"],
+            "projparams": msg.projparams
         }
         return ds_info
 
@@ -106,28 +106,28 @@ class HSAFFileHandler(BaseFileHandler):
         """Get the area definition of the datasets in the file."""
         proj_param = msg.projparams.copy()
 
-        Rx = 2 * np.arcsin(1. / msg['NrInRadiusOfEarth']) / msg['dx']
-        Ry = 2 * np.arcsin(1. / msg['NrInRadiusOfEarth']) / msg['dy']
+        Rx = 2 * np.arcsin(1. / msg["NrInRadiusOfEarth"]) / msg["dx"]
+        Ry = 2 * np.arcsin(1. / msg["NrInRadiusOfEarth"]) / msg["dy"]
 
-        x_0 = - msg['XpInGridLengths']
-        x_1 = msg['Nx'] - msg['XpInGridLengths']
-        y_0 = (msg['Ny'] - msg['YpInGridLengths']) * -1
-        y_1 = msg['YpInGridLengths']
+        x_0 = - msg["XpInGridLengths"]
+        x_1 = msg["Nx"] - msg["XpInGridLengths"]
+        y_0 = (msg["Ny"] - msg["YpInGridLengths"]) * -1
+        y_1 = msg["YpInGridLengths"]
 
-        min_x = (x_0 * Rx) * proj_param['h']
-        max_x = (x_1 * Rx) * proj_param['h']
+        min_x = (x_0 * Rx) * proj_param["h"]
+        max_x = (x_1 * Rx) * proj_param["h"]
 
-        min_y = (y_0 * Ry) * proj_param['h']
-        max_y = (y_1 * Ry) * proj_param['h']
+        min_y = (y_0 * Ry) * proj_param["h"]
+        max_y = (y_1 * Ry) * proj_param["h"]
 
         area_extent = (min_x, min_y, max_x, max_y)
 
-        area = geometry.AreaDefinition('hsaf_region',
-                                       'A region from H-SAF',
-                                       'geos',
+        area = geometry.AreaDefinition("hsaf_region",
+                                       "A region from H-SAF",
+                                       "geos",
                                        proj_param,
-                                       msg['Nx'],
-                                       msg['Ny'],
+                                       msg["Nx"],
+                                       msg["Ny"],
                                        area_extent)
 
         return area
@@ -139,24 +139,24 @@ class HSAFFileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Read a GRIB message into an xarray DataArray."""
-        if (ds_id['name'] not in self.filename):
-            raise IOError("File does not contain {} data".format(ds_id['name']))
+        if (ds_id["name"] not in self.filename):
+            raise IOError("File does not contain {} data".format(ds_id["name"]))
 
         msg = self._get_message(1)
 
         ds_info = self.get_metadata(msg)
-        ds_info['end_time'] = ds_info['data_time']
+        ds_info["end_time"] = ds_info["data_time"]
 
-        if (ds_id['name'] == 'h05' or ds_id['name'] == 'h05B'):
+        if (ds_id["name"] == "h05" or ds_id["name"] == "h05B"):
             flen = len(self.filename)
             timedelt = self.filename[flen-10:flen-8]
-            ds_info['start_time'] = (ds_info['end_time'] -
+            ds_info["start_time"] = (ds_info["end_time"] -
                                      timedelta(hours=int(timedelt)))
         else:
-            ds_info['start_time'] = ds_info['end_time']
-        fill = msg['missingValue']
+            ds_info["start_time"] = ds_info["end_time"]
+        fill = msg["missingValue"]
         data = msg.values.astype(np.float32)
-        if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+        if msg.valid_key("jScansPositively") and msg["jScansPositively"] == 1:
             data = data[::-1]
 
         if isinstance(data, np.ma.MaskedArray):
@@ -166,4 +166,4 @@ class HSAFFileHandler(BaseFileHandler):
             data[data == fill] = np.nan
             data = da.from_array(data, chunks=CHUNK_SIZE)
 
-        return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
+        return xr.DataArray(data, attrs=ds_info, dims=("y", "x"))

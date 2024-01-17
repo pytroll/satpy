@@ -25,6 +25,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers.ahi_l1b_gridded_bin import AHI_LUT_NAMES, AHIGriddedFileHandler
@@ -35,65 +36,65 @@ class TestAHIGriddedArea(unittest.TestCase):
 
     def setUp(self):
         """Create fake data for testing."""
-        self.FULLDISK_SIZES = {0.005: {'x_size': 24000,
-                                       'y_size': 24000},
-                               0.01: {'x_size': 12000,
-                                      'y_size': 12000},
-                               0.02: {'x_size': 6000,
-                                      'y_size': 6000}}
+        self.FULLDISK_SIZES = {0.005: {"x_size": 24000,
+                                       "y_size": 24000},
+                               0.01: {"x_size": 12000,
+                                      "y_size": 12000},
+                               0.02: {"x_size": 6000,
+                                      "y_size": 6000}}
 
         self.AHI_FULLDISK_EXTENT = [85., -60., 205., 60.]
 
     @staticmethod
-    def make_fh(filetype, area='fld'):
+    def make_fh(filetype, area="fld"):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
-            fh = AHIGriddedFileHandler('somefile',
-                                       {'area': area},
-                                       filetype_info={'file_type': filetype})
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
+            fh = AHIGriddedFileHandler("somefile",
+                                       {"area": area},
+                                       filetype_info={"file_type": filetype})
             return fh
 
     def test_low_res(self):
         """Check size of the low resolution (2km) grid."""
-        tmp_fh = self.make_fh('tir.01')
-        self.assertEqual(self.FULLDISK_SIZES[0.02]['x_size'], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.02]['y_size'], tmp_fh.nlines)
+        tmp_fh = self.make_fh("tir.01")
+        assert self.FULLDISK_SIZES[0.02]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.02]["y_size"] == tmp_fh.nlines
 
     def test_med_res(self):
         """Check size of the low resolution (1km) grid."""
-        tmp_fh = self.make_fh('vis.02')
-        self.assertEqual(self.FULLDISK_SIZES[0.01]['x_size'], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.01]['y_size'], tmp_fh.nlines)
+        tmp_fh = self.make_fh("vis.02")
+        assert self.FULLDISK_SIZES[0.01]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.01]["y_size"] == tmp_fh.nlines
 
     def test_hi_res(self):
         """Check size of the low resolution (0.5km) grid."""
-        tmp_fh = self.make_fh('ext.01')
-        self.assertEqual(self.FULLDISK_SIZES[0.005]['x_size'], tmp_fh.ncols)
-        self.assertEqual(self.FULLDISK_SIZES[0.005]['y_size'], tmp_fh.nlines)
+        tmp_fh = self.make_fh("ext.01")
+        assert self.FULLDISK_SIZES[0.005]["x_size"] == tmp_fh.ncols
+        assert self.FULLDISK_SIZES[0.005]["y_size"] == tmp_fh.nlines
 
     def test_area_def(self):
         """Check that a valid full disk area is produced."""
-        good_area = AreaDefinition('gridded_himawari',
-                                   'A gridded Himawari area',
-                                   'longlat',
-                                   'EPSG:4326',
-                                   self.FULLDISK_SIZES[0.01]['x_size'],
-                                   self.FULLDISK_SIZES[0.01]['y_size'],
+        good_area = AreaDefinition("gridded_himawari",
+                                   "A gridded Himawari area",
+                                   "longlat",
+                                   "EPSG:4326",
+                                   self.FULLDISK_SIZES[0.01]["x_size"],
+                                   self.FULLDISK_SIZES[0.01]["y_size"],
                                    self.AHI_FULLDISK_EXTENT)
 
-        tmp_fh = self.make_fh('vis.01')
+        tmp_fh = self.make_fh("vis.01")
         tmp_fh.get_area_def(None)
-        self.assertEqual(tmp_fh.area, good_area)
+        assert tmp_fh.area == good_area
 
     def test_bad_area(self):
         """Ensure an error is raised for an usupported area."""
-        tmp_fh = self.make_fh('ext.01')
-        tmp_fh.areaname = 'scanning'
-        with self.assertRaises(NotImplementedError):
+        tmp_fh = self.make_fh("ext.01")
+        tmp_fh.areaname = "scanning"
+        with pytest.raises(NotImplementedError):
             tmp_fh.get_area_def(None)
-        with self.assertRaises(NotImplementedError):
-            self.make_fh('ext.01', area='scanning')
+        with pytest.raises(NotImplementedError):
+            self.make_fh("ext.01", area="scanning")
 
 
 class TestAHIGriddedFileCalibration(unittest.TestCase):
@@ -102,16 +103,16 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
-            in_fname = 'test_file'
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
+            in_fname = "test_file"
             fh = AHIGriddedFileHandler(in_fname,
-                                       {'area': 'fld'},
-                                       filetype_info={'file_type': 'tir.01'})
+                                       {"area": "fld"},
+                                       filetype_info={"file_type": "tir.01"})
             self.fh = fh
 
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._get_luts')
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.os.path.exists')
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.np.loadtxt')
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._get_luts")
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.os.path.exists")
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.np.loadtxt")
     def test_calibrate(self, np_loadtxt, os_exist, get_luts):
         """Test the calibration modes of AHI using the LUTs."""
         load_return = np.squeeze(np.dstack([np.arange(0, 2048, 1),
@@ -128,26 +129,26 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
 
         os_exist.return_value = False
         # Check that the LUT download is called if we don't have the LUTS
-        self.fh.calibrate(in_data, 'reflectance')
+        self.fh.calibrate(in_data, "reflectance")
         get_luts.assert_called()
 
         os_exist.return_value = True
         # Ensure results equal if no calibration applied
-        out_data = self.fh.calibrate(in_data, 'counts')
+        out_data = self.fh.calibrate(in_data, "counts")
         np.testing.assert_equal(in_data, out_data)
 
         # Now ensure results equal if LUT calibration applied
-        out_data = self.fh.calibrate(in_data, 'reflectance')
+        out_data = self.fh.calibrate(in_data, "reflectance")
         np.testing.assert_allclose(refl_out, out_data)
 
         # Check that exception is raised if bad calibration is passed
-        with self.assertRaises(NotImplementedError):
-            self.fh.calibrate(in_data, 'lasers')
+        with pytest.raises(NotImplementedError):
+            self.fh.calibrate(in_data, "lasers")
 
         # Check that exception is raised if no file is present
         np_loadtxt.side_effect = FileNotFoundError
-        with self.assertRaises(FileNotFoundError):
-            self.fh.calibrate(in_data, 'reflectance')
+        with pytest.raises(FileNotFoundError):
+            self.fh.calibrate(in_data, "reflectance")
 
 
 class TestAHIGriddedFileHandler(unittest.TestCase):
@@ -155,44 +156,44 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
 
     def new_unzip(fname):
         """Fake unzipping."""
-        if fname[-3:] == 'bz2':
+        if fname[-3:] == "bz2":
             return fname[:-4]
 
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.unzip_file',
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.unzip_file",
                 mock.MagicMock(side_effect=new_unzip))
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
-            in_fname = 'test_file.bz2'
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
+            in_fname = "test_file.bz2"
             fh = AHIGriddedFileHandler(in_fname,
-                                       {'area': 'fld'},
-                                       filetype_info={'file_type': 'tir.01'})
+                                       {"area": "fld"},
+                                       filetype_info={"file_type": "tir.01"})
 
             # Check that the filename is altered for bz2 format files
-            self.assertNotEqual(in_fname, fh.filename)
+            assert in_fname != fh.filename
             self.fh = fh
 
-        key = {'calibration': 'counts',
-               'name': 'vis.01'}
-        info = {'units': 'unitless',
-                'standard_name': 'vis.01',
-                'wavelength': 10.8,
-                'resolution': 0.05}
+        key = {"calibration": "counts",
+               "name": "vis.01"}
+        info = {"units": "unitless",
+                "standard_name": "vis.01",
+                "wavelength": 10.8,
+                "resolution": 0.05}
         self.key = key
         self.info = info
 
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.np.memmap')
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.np.memmap")
     def test_dataread(self, memmap):
         """Check that a dask array is returned from the read function."""
         test_arr = np.zeros((10, 10))
         memmap.return_value = test_arr
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
             res = self.fh._read_data(mock.MagicMock())
             np.testing.assert_allclose(res, da.from_array(test_arr))
 
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._read_data')
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._read_data")
     def test_get_dataset(self, mocked_read):
         """Check that a good dataset is returned on request."""
         m = mock.mock_open()
@@ -200,17 +201,17 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
         out_data = np.array([[100., 300., 500.],
                              [800., 1500., 2040.]])
         mocked_read.return_value = out_data
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
             res = self.fh.get_dataset(self.key, self.info)
             mocked_read.assert_called()
             # Check output data is correct
             np.testing.assert_allclose(res.values, out_data)
             # Also check a couple of attributes
-            self.assertEqual(res.attrs['name'], self.key['name'])
-            self.assertEqual(res.attrs['wavelength'], self.info['wavelength'])
+            assert res.attrs["name"] == self.key["name"]
+            assert res.attrs["wavelength"] == self.info["wavelength"]
 
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('os.remove')
+    @mock.patch("os.path.exists", return_value=True)
+    @mock.patch("os.remove")
     def test_destructor(self, exist_patch, remove_patch):
         """Check that file handler deletes files if needed."""
         del self.fh
@@ -229,27 +230,27 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         with tarfile.open(fname, "w:gz") as tar_handle:
             for namer in AHI_LUT_NAMES:
                 tmpf = os.path.join(tempfile.tempdir, namer)
-                with open(tmpf, 'w') as tmp_fid:
+                with open(tmpf, "w") as tmp_fid:
                     tmp_fid.write("TEST\n")
-                tar_handle.add(tmpf, arcname='count2tbb_v102/'+namer)
+                tar_handle.add(tmpf, arcname="count2tbb_v102/"+namer)
                 os.remove(tmpf)
 
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
-            in_fname = 'test_file'
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
+            in_fname = "test_file"
             fh = AHIGriddedFileHandler(in_fname,
-                                       {'area': 'fld'},
-                                       filetype_info={'file_type': 'tir.01'})
+                                       {"area": "fld"},
+                                       filetype_info={"file_type": "tir.01"})
             self.fh = fh
 
-        key = {'calibration': 'counts',
-               'name': 'vis.01'}
-        info = {'units': 'unitless',
-                'standard_name': 'vis.01',
-                'wavelength': 10.8,
-                'resolution': 0.05}
+        key = {"calibration": "counts",
+               "name": "vis.01"}
+        info = {"units": "unitless",
+                "standard_name": "vis.01",
+                "wavelength": 10.8,
+                "resolution": 0.05}
         self.key = key
         self.info = info
 
@@ -262,23 +263,22 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         if os.path.isdir(self.fh.lut_dir):
             shutil.rmtree(self.fh.lut_dir)
 
-    @mock.patch('satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._download_luts',
+    @mock.patch("satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler._download_luts",
                 mock.MagicMock(side_effect=mocked_ftp_dl))
     def test_get_luts(self):
         """Check that the function to download LUTs operates successfully."""
         tempdir = tempfile.gettempdir()
-        print(self.fh.lut_dir)
         self.fh._get_luts()
-        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb_v102/')))
+        assert not os.path.exists(os.path.join(tempdir, "count2tbb_v102/"))
         for lut_name in AHI_LUT_NAMES:
-            self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
+            assert os.path.isfile(os.path.join(self.fh.lut_dir, lut_name))
 
-    @mock.patch('urllib.request.urlopen')
-    @mock.patch('shutil.copyfileobj')
+    @mock.patch("urllib.request.urlopen")
+    @mock.patch("shutil.copyfileobj")
     def test_download_luts(self, mock_dl, mock_shutil):
         """Test that the FTP library is called for downloading LUTS."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
-            self.fh._download_luts('/test_file')
+        with mock.patch("satpy.readers.ahi_l1b_gridded_bin.open", m, create=True):
+            self.fh._download_luts("/test_file")
             mock_dl.assert_called()
             mock_shutil.assert_called()

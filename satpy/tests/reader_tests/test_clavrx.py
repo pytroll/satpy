@@ -23,6 +23,7 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
@@ -45,63 +46,63 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         file_content = {
-            '/attr/platform': 'SNPP',
-            '/attr/sensor': 'VIIRS',
+            "/attr/platform": "SNPP",
+            "/attr/sensor": "VIIRS",
         }
         file_content['longitude'] = xr.DataArray(
             da.from_array(DEFAULT_LON_DATA, chunks=4096),
             attrs={
-                '_FillValue': np.nan,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'standard_name': 'longitude',
+                "_FillValue": np.nan,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "standard_name": "longitude",
             })
-        file_content['longitude/shape'] = DEFAULT_FILE_SHAPE
+        file_content["longitude/shape"] = DEFAULT_FILE_SHAPE
 
-        file_content['latitude'] = xr.DataArray(
+        file_content["latitude"] = xr.DataArray(
             da.from_array(DEFAULT_LAT_DATA, chunks=4096),
             attrs={
-                '_FillValue': np.nan,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'standard_name': 'latitude',
+                "_FillValue": np.nan,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "standard_name": "latitude",
             })
-        file_content['latitude/shape'] = DEFAULT_FILE_SHAPE
+        file_content["latitude/shape"] = DEFAULT_FILE_SHAPE
 
-        file_content['variable1'] = xr.DataArray(
+        file_content["variable1"] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
-                '_FillValue': -1,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'units': '1',
+                "_FillValue": -1,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "units": "1",
             })
-        file_content['variable1/shape'] = DEFAULT_FILE_SHAPE
+        file_content["variable1/shape"] = DEFAULT_FILE_SHAPE
 
         # data with fill values
-        file_content['variable2'] = xr.DataArray(
+        file_content["variable2"] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
-                '_FillValue': -1,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'units': '1',
+                "_FillValue": -1,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "units": "1",
             })
-        file_content['variable2/shape'] = DEFAULT_FILE_SHAPE
-        file_content['variable2'] = file_content['variable2'].where(
-                                        file_content['variable2'] % 2 != 0)
+        file_content["variable2/shape"] = DEFAULT_FILE_SHAPE
+        file_content["variable2"] = file_content["variable2"].where(
+                                        file_content["variable2"] % 2 != 0)
 
         # category
-        file_content['variable3'] = xr.DataArray(
+        file_content["variable3"] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
             attrs={
-                'SCALED': 0,
-                '_FillValue': -128,
-                'flag_meanings': 'clear water supercooled mixed ice unknown',
-                'flag_values': [0, 1, 2, 3, 4, 5],
-                'units': 'none',
+                "SCALED": 0,
+                "_FillValue": -128,
+                "flag_meanings": "clear water supercooled mixed ice unknown",
+                "flag_values": [0, 1, 2, 3, 4, 5],
+                "units": "none",
             })
-        file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
+        file_content["variable3/shape"] = DEFAULT_FILE_SHAPE
 
         file_content['refl_1_38um_nom'] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
@@ -129,9 +130,9 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         """Wrap HDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.clavrx import CLAVRXHDF4FileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerPolar,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, "__bases__", (FakeHDF4FileHandlerPolar,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -144,79 +145,79 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+            "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_available_datasets(self):
         """Test available_datasets with fake variables from YAML."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+            "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
         # mimic the YAML file being configured for more datasets
         fake_dataset_info = [
-            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['clavrx_hdf4']}),
-            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['clavrx_hdf4']}),
-            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
-            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
-            (None, {'name': '_fake1', 'file_type': ['clavrx_hdf4']}),
-            (None, {'name': 'variable1', 'file_type': ['level_fake']}),
-            (True, {'name': 'variable3', 'file_type': ['clavrx_hdf4']}),
+            (None, {"name": "variable1", "resolution": None, "file_type": ["clavrx_hdf4"]}),
+            (True, {"name": "variable2", "resolution": 742, "file_type": ["clavrx_hdf4"]}),
+            (True, {"name": "variable2", "resolution": 1, "file_type": ["clavrx_hdf4"]}),
+            (None, {"name": "variable2", "resolution": 1, "file_type": ["clavrx_hdf4"]}),
+            (None, {"name": "_fake1", "file_type": ["clavrx_hdf4"]}),
+            (None, {"name": "variable1", "file_type": ["level_fake"]}),
+            (True, {"name": "variable3", "file_type": ["clavrx_hdf4"]}),
         ]
 
         new_ds_infos = list(r.file_handlers['clavrx_hdf4'][0].available_datasets(
             fake_dataset_info))
-        self.assertEqual(len(new_ds_infos), 9)
+        assert len(new_ds_infos) == 9
 
         # we have this and can provide the resolution
-        self.assertTrue(new_ds_infos[0][0])
-        self.assertEqual(new_ds_infos[0][1]['resolution'], 742)  # hardcoded
+        assert new_ds_infos[0][0]
+        assert new_ds_infos[0][1]["resolution"] == 742  # hardcoded
 
         # we have this, but previous file handler said it knew about it
         # and it is producing the same resolution as what we have
-        self.assertTrue(new_ds_infos[1][0])
-        self.assertEqual(new_ds_infos[1][1]['resolution'], 742)
+        assert new_ds_infos[1][0]
+        assert new_ds_infos[1][1]["resolution"] == 742
 
         # we have this, but don't want to change the resolution
         # because a previous handler said it has it
-        self.assertTrue(new_ds_infos[2][0])
-        self.assertEqual(new_ds_infos[2][1]['resolution'], 1)
+        assert new_ds_infos[2][0]
+        assert new_ds_infos[2][1]["resolution"] == 1
 
         # even though the previous one was known we can still
         # produce it at our new resolution
-        self.assertTrue(new_ds_infos[3][0])
-        self.assertEqual(new_ds_infos[3][1]['resolution'], 742)
+        assert new_ds_infos[3][0]
+        assert new_ds_infos[3][1]["resolution"] == 742
 
         # we have this and can update the resolution since
         # no one else has claimed it
-        self.assertTrue(new_ds_infos[4][0])
-        self.assertEqual(new_ds_infos[4][1]['resolution'], 742)
+        assert new_ds_infos[4][0]
+        assert new_ds_infos[4][1]["resolution"] == 742
 
         # we don't have this variable, don't change it
-        self.assertFalse(new_ds_infos[5][0])
-        self.assertIsNone(new_ds_infos[5][1].get('resolution'))
+        assert not new_ds_infos[5][0]
+        assert new_ds_infos[5][1].get("resolution") is None
 
         # we have this, but it isn't supposed to come from our file type
-        self.assertIsNone(new_ds_infos[6][0])
-        self.assertIsNone(new_ds_infos[6][1].get('resolution'))
+        assert new_ds_infos[6][0] is None
+        assert new_ds_infos[6][1].get("resolution") is None
 
         # we could have loaded this but some other file handler said it has this
-        self.assertTrue(new_ds_infos[7][0])
-        self.assertIsNone(new_ds_infos[7][1].get('resolution'))
+        assert new_ds_infos[7][0]
+        assert new_ds_infos[7][1].get("resolution") is None
 
         # we can add resolution to the previous dataset, so we do
-        self.assertTrue(new_ds_infos[8][0])
-        self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
+        assert new_ds_infos[8][0]
+        assert new_ds_infos[8][1]["resolution"] == 742
 
     def test_available_datasets_with_alias(self):
         """Test availability of aliased dataset."""
@@ -242,15 +243,16 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
+        with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+                "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
             ])
             r.create_filehandlers(loadables)
 
         var_list = ["M09", 'variable2', 'variable3']
+
         datasets = r.load(var_list)
-        self.assertEqual(len(datasets), len(var_list))
+        assert len(datasets) == len(var_list)
         for v in datasets.values():
             self.assertIn(v.attrs['units'], ['1', '%'])
             self.assertEqual(v.attrs['platform_name'], 'npp')
@@ -267,37 +269,37 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         file_content = {
-            '/attr/platform': 'HIM8',
-            '/attr/sensor': 'AHI',
+            "/attr/platform": "HIM8",
+            "/attr/sensor": "AHI",
             # this is a Level 2 file that came from a L1B file
-            '/attr/L1B': 'clavrx_H08_20180806_1800',
+            "/attr/L1B": "clavrx_H08_20180806_1800",
         }
 
-        file_content['longitude'] = xr.DataArray(
+        file_content["longitude"] = xr.DataArray(
             DEFAULT_LON_DATA,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                '_FillValue': np.nan,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'standard_name': 'longitude',
+                "_FillValue": np.nan,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "standard_name": "longitude",
             })
-        file_content['longitude/shape'] = DEFAULT_FILE_SHAPE
+        file_content["longitude/shape"] = DEFAULT_FILE_SHAPE
 
-        file_content['latitude'] = xr.DataArray(
+        file_content["latitude"] = xr.DataArray(
             DEFAULT_LAT_DATA,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                '_FillValue': np.nan,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'standard_name': 'latitude',
+                "_FillValue": np.nan,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "standard_name": "latitude",
             })
-        file_content['latitude/shape'] = DEFAULT_FILE_SHAPE
+        file_content["latitude/shape"] = DEFAULT_FILE_SHAPE
 
         file_content['refl_1_38um_nom'] = xr.DataArray(
             DEFAULT_FILE_DATA.astype(np.float32),
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
                 'SCALED': 1,
                 'add_offset': 59.0,
@@ -311,31 +313,31 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
         file_content['refl_1_38um_nom/shape'] = DEFAULT_FILE_SHAPE
 
         # data with fill values
-        file_content['variable2'] = xr.DataArray(
+        file_content["variable2"] = xr.DataArray(
             DEFAULT_FILE_DATA.astype(np.float32),
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                '_FillValue': -1,
-                'scale_factor': 1.,
-                'add_offset': 0.,
-                'units': '1',
+                "_FillValue": -1,
+                "scale_factor": 1.,
+                "add_offset": 0.,
+                "units": "1",
             })
-        file_content['variable2/shape'] = DEFAULT_FILE_SHAPE
-        file_content['variable2'] = file_content['variable2'].where(
-            file_content['variable2'] % 2 != 0)
+        file_content["variable2/shape"] = DEFAULT_FILE_SHAPE
+        file_content["variable2"] = file_content["variable2"].where(
+            file_content["variable2"] % 2 != 0)
 
         # category
-        file_content['variable3'] = xr.DataArray(
+        file_content["variable3"] = xr.DataArray(
             DEFAULT_FILE_DATA.astype(np.byte),
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'SCALED': 0,
-                '_FillValue': -128,
-                'flag_meanings': 'clear water supercooled mixed ice unknown',
-                'flag_values': [0, 1, 2, 3, 4, 5],
-                'units': '1',
+                "SCALED": 0,
+                "_FillValue": -128,
+                "flag_meanings": "clear water supercooled mixed ice unknown",
+                "flag_values": [0, 1, 2, 3, 4, 5],
+                "units": "1",
             })
-        file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
+        file_content["variable3/shape"] = DEFAULT_FILE_SHAPE
 
         return file_content
 
@@ -349,9 +351,9 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         """Wrap HDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.clavrx import CLAVRXHDF4FileHandler
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerGeo,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, "__bases__", (FakeHDF4FileHandlerGeo,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -364,12 +366,12 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'clavrx_H08_20180806_1800.level2.hdf',
+            "clavrx_H08_20180806_1800.level2.hdf",
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_no_nav_donor(self):
         """Test exception raised when no donor file is available."""
@@ -377,11 +379,12 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
+        with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'clavrx_H08_20180806_1800.level2.hdf',
+                "clavrx_H08_20180806_1800.level2.hdf",
             ])
             r.create_filehandlers(loadables)
+          
         self.assertRaises(IOError, r.load, ['refl_1_38um_nom', 'variable2', 'variable3'])
 
     def test_load_all_old_donor(self):
@@ -390,13 +393,13 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
+        with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'clavrx_H08_20180806_1800.level2.hdf',
+                "clavrx_H08_20180806_1800.level2.hdf",
             ])
             r.create_filehandlers(loadables)
-        with mock.patch('satpy.readers.clavrx.glob') as g, mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
-            g.return_value = ['fake_donor.nc']
+        with mock.patch("satpy.readers.clavrx.glob") as g, mock.patch("satpy.readers.clavrx.netCDF4.Dataset") as d:
+            g.return_value = ["fake_donor.nc"]
             x = np.linspace(-0.1518, 0.1518, 300)
             y = np.linspace(0.1518, -0.1518, 10)
             proj = mock.Mock(
@@ -404,10 +407,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 semi_minor_axis=6356.7523142,
                 perspective_point_height=35791,
                 longitude_of_projection_origin=140.7,
-                sweep_angle_axis='y',
+                sweep_angle_axis="y",
             )
             d.return_value = fake_donor = mock.MagicMock(
-                variables={'Projection': proj, 'x': x, 'y': y},
+                variables={"Projection": proj, "x": x, "y": y},
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
             datasets = r.load(['refl_1_38um_nom', 'variable2', 'variable3'])
@@ -417,17 +420,17 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertIn(v.attrs['units'], ['1', '%'])
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             if v.attrs.get("flag_values"):
-                self.assertIn('_FillValue', v.attrs)
+                assert "_FillValue" in v.attrs
             else:
                 self.assertNotIn('_FillValue', v.attrs)
             if v.attrs["name"] == 'refl_1_38um_nom':
                 self.assertIn("valid_range", v.attrs)
                 self.assertIsInstance(v.attrs["valid_range"], list)
             else:
-                self.assertNotIn('valid_range', v.attrs)
-            if 'flag_values' in v.attrs:
-                self.assertTrue(np.issubdtype(v.dtype, np.integer))
-                self.assertIsNotNone(v.attrs.get('flag_meanings'))
+                assert "valid_range" not in v.attrs
+            if "flag_values" in v.attrs:
+                assert np.issubdtype(v.dtype, np.integer)
+                assert v.attrs.get("flag_meanings") is not None
 
     def test_load_all_new_donor(self):
         """Test loading all test datasets with new donor."""
@@ -435,13 +438,13 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
+        with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
-                'clavrx_H08_20180806_1800.level2.hdf',
+                "clavrx_H08_20180806_1800.level2.hdf",
             ])
             r.create_filehandlers(loadables)
-        with mock.patch('satpy.readers.clavrx.glob') as g, mock.patch('satpy.readers.clavrx.netCDF4.Dataset') as d:
-            g.return_value = ['fake_donor.nc']
+        with mock.patch("satpy.readers.clavrx.glob") as g, mock.patch("satpy.readers.clavrx.netCDF4.Dataset") as d:
+            g.return_value = ["fake_donor.nc"]
             x = np.linspace(-0.1518, 0.1518, 300)
             y = np.linspace(0.1518, -0.1518, 10)
             proj = mock.Mock(
@@ -449,10 +452,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 semi_minor_axis=6356752.3142,
                 perspective_point_height=35791000,
                 longitude_of_projection_origin=140.7,
-                sweep_angle_axis='y',
+                sweep_angle_axis="y",
             )
             d.return_value = fake_donor = mock.MagicMock(
-                variables={'goes_imager_projection': proj, 'x': x, 'y': y},
+                variables={"goes_imager_projection": proj, "x": x, "y": y},
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
             datasets = r.load(['refl_1_38um_nom', 'variable2', 'variable3'])

@@ -36,37 +36,37 @@ LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 CF_UNITS = {
-    'none': '1',
+    "none": "1",
 }
 
 SENSORS = {
-    'MODIS': 'modis',
-    'VIIRS': 'viirs',
-    'AVHRR': 'avhrr',
-    'AHI': 'ahi',
-    'ABI': 'abi',
-    'GOES-RU-IMAGER': 'abi',
+    "MODIS": "modis",
+    "VIIRS": "viirs",
+    "AVHRR": "avhrr",
+    "AHI": "ahi",
+    "ABI": "abi",
+    "GOES-RU-IMAGER": "abi",
 }
 PLATFORMS = {
-    'SNPP': 'npp',
-    'HIM8': 'himawari8',
-    'HIM9': 'himawari9',
-    'H08': 'himawari8',
-    'H09': 'himawari9',
-    'G16': 'GOES-16',
-    'G17': 'GOES-17',
-    'G18': 'GOES-18',
+    "SNPP": "npp",
+    "HIM8": "himawari8",
+    "HIM9": "himawari9",
+    "H08": "himawari8",
+    "H09": "himawari9",
+    "G16": "GOES-16",
+    "G17": "GOES-17",
+    "G18": "GOES-18",
 }
 ROWS_PER_SCAN = {
-    'viirs': 16,
-    'modis': 10,
+    "viirs": 16,
+    "modis": 10,
 }
 NADIR_RESOLUTION = {
-    'viirs': 742,
-    'modis': 1000,
-    'avhrr': 1050,
-    'ahi': 2000,
-    'abi': 2004,
+    "viirs": 742,
+    "modis": 1000,
+    "avhrr": 1050,
+    "ahi": 2000,
+    "abi": 2004,
 }
 
 CHANNEL_ALIASES = {
@@ -134,8 +134,8 @@ class _CLAVRxHelper:
     @staticmethod
     def _remove_attributes(attrs: dict) -> dict:
         """Remove attributes that described data before scaling."""
-        old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
-                     'SCALED_MISSING']
+        old_attrs = ["unscaled_missing", "SCALED_MIN", "SCALED_MAX",
+                     "SCALED_MISSING"]
 
         for attr_key in old_attrs:
             attrs.pop(attr_key, None)
@@ -144,16 +144,18 @@ class _CLAVRxHelper:
     @staticmethod
     def _get_data(data, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
-        if dataset_id.get('resolution'):
-            data.attrs['resolution'] = dataset_id['resolution']
+        if dataset_id.get("resolution"):
+            data.attrs["resolution"] = dataset_id["resolution"]
 
         attrs = data.attrs.copy()
+
 
         # don't need these attributes after applied.
         factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
         offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
         flag_values = data.attrs.get("flag_values", [None])
         valid_range = attrs.get('valid_range', [None])
+
         if isinstance(valid_range, np.ndarray):
             attrs["valid_range"] = valid_range.tolist()
 
@@ -165,6 +167,7 @@ class _CLAVRxHelper:
         else:
             fill = attrs.pop('_FillValue', None)
             data = data.where(data != fill)
+
             data = _scale_data(data, factor, offset)
 
             if valid_range[0] is not None:
@@ -200,21 +203,22 @@ class _CLAVRxHelper:
         lon_0 = projection_coordinates.longitude_of_projection_origin
         sweep_axis = projection_coordinates.sweep_angle_axis[0]
 
-        proj_dict = {'a': float(a) * distance_multiplier,
-                     'b': float(b) * distance_multiplier,
-                     'lon_0': float(lon_0),
-                     'h': float(h) * distance_multiplier,
-                     'proj': 'geos',
-                     'units': 'm',
-                     'sweep': sweep_axis}
+        proj_dict = {"a": float(a) * distance_multiplier,
+                     "b": float(b) * distance_multiplier,
+                     "lon_0": float(lon_0),
+                     "h": float(h) * distance_multiplier,
+                     "proj": "geos",
+                     "units": "m",
+                     "sweep": sweep_axis}
         return proj_dict
 
     @staticmethod
     def _find_input_nc(filename: str, sensor: str, l1b_base: str) -> str:
         dirname = os.path.dirname(filename)
-        l1b_filename = os.path.join(dirname, l1b_base + '.nc')
+        l1b_filename = os.path.join(dirname, l1b_base + ".nc")
         if os.path.exists(l1b_filename):
             return str(l1b_filename)
+
 
         if sensor == "AHI":
             glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
@@ -226,7 +230,7 @@ class _CLAVRxHelper:
         if len(found_l1b_filenames) == 0:
             raise IOError("Could not find navigation donor for {0}"
                           " in same directory as CLAVR-x data".format(l1b_base))
-        LOG.debug('Candidate nav donors: {0}'.format(repr(found_l1b_filenames)))
+        LOG.debug("Candidate nav donors: {0}".format(repr(found_l1b_filenames)))
         return found_l1b_filenames[0]
 
     @staticmethod
@@ -262,9 +266,10 @@ class _CLAVRxHelper:
         if not proj:
             raise ValueError(f"Unable to recover projection information for {filename}")
 
-        h = float(proj['h'])
-        x, y = l1b['x'], l1b['y']
+        h = float(proj["h"])
+        x, y = l1b["x"], l1b["y"]
         area_extent, ncols, nlines = _CLAVRxHelper._area_extent(x, y, h)
+
 
         if sensor == "abi":
             area = geometry.AreaDefinition(
@@ -294,24 +299,24 @@ class _CLAVRxHelper:
         attr_info.update(attrs)
         attr_info.update(ds_info)
 
-        flag_meanings = attr_info.get('flag_meanings', None)
-        if not attr_info.get('SCALED', 1) and not flag_meanings:
-            attr_info['flag_meanings'] = '<flag_meanings_unknown>'
-            attr_info.setdefault('flag_values', [None])
-        elif not attr_info.get('SCALED', 1) and isinstance(flag_meanings, str):
+        flag_meanings = attr_info.get("flag_meanings", None)
+        if not attr_info.get("SCALED", 1) and not flag_meanings:
+            attr_info["flag_meanings"] = "<flag_meanings_unknown>"
+            attr_info.setdefault("flag_values", [None])
+        elif not attr_info.get("SCALED", 1) and isinstance(flag_meanings, str):
             attr_info["flag_meanings"] = flag_meanings.split("  ")
-        u = attr_info.get('units')
+        u = attr_info.get("units")
         if u in CF_UNITS:
             # CF compliance
-            attr_info['units'] = CF_UNITS[u]
+            attr_info["units"] = CF_UNITS[u]
             if u.lower() == "none":
-                attr_info['units'] = "1"
-        attr_info['sensor'] = sensor
-        attr_info['platform_name'] = platform
+                attr_info["units"] = "1"
+        attr_info["sensor"] = sensor
+        attr_info["platform_name"] = platform
         rps = _get_rows_per_scan(sensor)
         if rps:
-            attr_info['rows_per_scan'] = rps
-        attr_info['reader'] = 'clavrx'
+            attr_info["rows_per_scan"] = rps
+        attr_info["reader"] = "clavrx"
 
         return attr_info
 
@@ -333,21 +338,24 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     @property
     def start_time(self):
         """Get the start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get the end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     def get_dataset(self, dataset_id, ds_info):
+
         """Get a dataset for Polar Sensors."""
         var_name = ds_info.get('file_key', dataset_id['name'])
+        
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
                                                 data.attrs, ds_info)
         return data
+
 
     def _available_aliases(self, ds_info, current_var):
         """Add alias if there is a match."""
@@ -362,6 +370,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Add more information if this reader can provide it."""
         handled_variables = set()
         for is_avail, ds_info in (configured_datasets or []):
+
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
@@ -370,6 +379,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             this_res = ds_info.get('resolution')
             var_name = ds_info.get('file_key', ds_info['name'])
             matches = self.file_type_matches(ds_info['file_type'])
+
             # we can confidently say that we can provide this dataset and can
             # provide more info
             if matches and var_name in self and this_res != self.resolution:
@@ -377,6 +387,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                 new_info['resolution'] = self.resolution
                 if self._is_polar():
                     new_info['coordinates'] = ds_info.get('coordinates', ('longitude', 'latitude'))
+
                 yield True, new_info
             elif is_avail is None:
                 # if we didn't know how to handle this dataset and no one else did
@@ -391,6 +402,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         for var_name, val in self.file_content.items():
             if isinstance(val, SDS):
                 ds_info = {
+
                     'file_type': self.filetype_info['file_type'],
                     'resolution': self.resolution,
                     'name': var_name,
@@ -407,22 +419,24 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
     def get_shape(self, dataset_id, ds_info):
         """Get the shape."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
-        return self[var_name + '/shape']
+        var_name = ds_info.get("file_key", dataset_id["name"])
+        return self[var_name + "/shape"]
 
     def _is_polar(self):
-        l1b_att, inst_att = (str(self.file_content.get('/attr/L1B', None)),
-                             str(self.file_content.get('/attr/sensor', None)))
+        l1b_att, inst_att = (str(self.file_content.get("/attr/L1B", None)),
+                             str(self.file_content.get("/attr/sensor", None)))
 
-        return (inst_att != 'AHI' and 'GOES' not in inst_att) or (l1b_att is None)
+        return (inst_att != "AHI" and "GOES" not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
         if self._is_polar():  # then it doesn't have a fixed grid
             return super(CLAVRXHDF4FileHandler, self).get_area_def(key)
 
+
         l1b_att = str(self.file_content.get('/attr/L1B', None))
         area_def = _CLAVRxHelper._read_axi_fixed_grid(self.filename, self.sensor, l1b_att)
+
         return area_def
 
 
@@ -442,14 +456,16 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   decode_coords=True,
                                   chunks=CHUNK_SIZE)
         # y,x is used in satpy, bands rather than channel using in xrimage
-        self.nc = self.nc.rename_dims({'scan_lines_along_track_direction': "y",
-                                       'pixel_elements_along_scan_direction': "x"})
+        self.nc = self.nc.rename_dims({"scan_lines_along_track_direction": "y",
+                                       "pixel_elements_along_scan_direction": "x"})
 
         self.platform = _get_platform(
+
             self.filename_info.get('platform_shortname', None))
         self.sensor = _get_sensor(self.nc.attrs.get('sensor', None))
         self.resolution = _CLAVRxHelper._get_nadir_resolution(self.sensor,
                                                               self.filename_info.get('resolution'))
+
         # coordinates need scaling and valid_range (mask_and_scale won't work on valid_range)
         self.nc.coords["latitude"] = _CLAVRxHelper._get_data(self.nc.coords["latitude"],
                                                              {"name": "latitude"})
@@ -459,8 +475,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     def _dynamic_dataset_info(self, var_name):
         """Set data name and, if applicable, aliases."""
         ds_info = {
-            'file_type': self.filetype_info['file_type'],
-            'name': var_name,
+            "file_type": self.filetype_info["file_type"],
+            "name": var_name,
         }
         yield True, ds_info
 
@@ -519,10 +535,11 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         yield from self._available_file_datasets(handled_vars)
 
     def _is_polar(self):
-        l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
-                             str(self.nc.attrs.get('sensor', None)))
+        l1b_att, inst_att = (str(self.nc.attrs.get("L1B", None)),
+                             str(self.nc.attrs.get("sensor", None)))
 
         return (inst_att not in ['ABI', 'AHI'] and 'GOES' not in inst_att) or (l1b_att is None)
+
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
@@ -535,6 +552,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset for supported geostationary sensors."""
         var_name = ds_info.get("file_key", dataset_id['name'])
+
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,

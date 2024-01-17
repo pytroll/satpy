@@ -43,9 +43,9 @@ def std_filetype_infos():
     cfg = load_yaml_configs(cpaths[0])
 
     # get the li_l2 filetype:
-    ftypes = cfg['file_types']
+    ftypes = cfg["file_types"]
 
-    yield ftypes
+    return ftypes
 
 
 # Note: the helper class below has some missing abstract class implementation,
@@ -69,31 +69,31 @@ class TestLIL2():
         """Check the validity of a given variable."""
         dname = vname
 
-        dims = settings.get('dimensions', {})
+        dims = settings.get("dimensions", {})
 
-        var_path = settings.get('variable_path', '')
+        var_path = settings.get("variable_path", "")
 
         # Compute shape from dimensions:
-        if desc['shape'] == ():
+        if desc["shape"] == ():
             # scalar case, dim should have been added in the code by validate_array_dimensions
             shape = (1,)
         else:
-            shape = tuple([dims[dim_name] for dim_name in desc['shape']])
+            shape = tuple([dims[dim_name] for dim_name in desc["shape"]])
 
         dataset_info = {
-            'name': dname,
-            'variable_name': vname,
-            'use_rescaling': False,
+            "name": dname,
+            "variable_name": vname,
+            "use_rescaling": False,
         }
         var_params = [dataset_info, desc, dname, handler, shape, var_path]
         self._test_dataset_variable(var_params)
 
     def _test_dataset_variables(self, settings, ds_desc, handler):
         """Check the loading of the non in sector variables."""
-        assert 'variables' in ds_desc
-        all_vars = ds_desc['variables']
+        assert "variables" in ds_desc
+        all_vars = ds_desc["variables"]
 
-        variables = settings.get('variables')
+        variables = settings.get("variables")
         for vname, desc in variables.items():
             # variable should be in list of dataset:
             assert vname in all_vars
@@ -105,17 +105,17 @@ class TestLIL2():
 
         dname = f"{vname}_{sname}_sector"
 
-        dims = settings.get('dimensions', {})
+        dims = settings.get("dimensions", {})
 
-        var_path = settings.get('variable_path', '')
+        var_path = settings.get("variable_path", "")
 
-        shape = tuple([dims[dim_name] for dim_name in desc['shape']])
+        shape = tuple([dims[dim_name] for dim_name in desc["shape"]])
 
         dataset_info = {
-            'name': dname,
-            'variable_name': vname,
-            'sector_name': sname,
-            'use_rescaling': False,
+            "name": dname,
+            "variable_name": vname,
+            "sector_name": sname,
+            "use_rescaling": False,
         }
         var_params = [dataset_info, desc, vname, handler, shape, var_path]
         self._test_dataset_variable(var_params, sname=sname)
@@ -125,7 +125,7 @@ class TestLIL2():
         dataset_info, desc, dname, handler, shape, var_path = var_params
         res = self.get_variable_dataset(dataset_info, dname, handler)
         assert res.shape == shape
-        assert res.dims[0] == 'y'
+        assert res.dims[0] == "y"
         # Should retrieve content with fullname key:
         full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below
@@ -140,23 +140,23 @@ class TestLIL2():
         res = handler.get_dataset(dataset_id, dataset_info)
         return res
 
-    def create_fullname_key(self, desc, var_path, vname, sname=''):
+    def create_fullname_key(self, desc, var_path, vname, sname=""):
         """Create full name key for sector/non-sector content retrieval."""
-        vpath = desc.get('path', var_path)
-        if vpath != "" and vpath[-1] != '/':
-            vpath += '/'
+        vpath = desc.get("path", var_path)
+        if vpath != "" and vpath[-1] != "/":
+            vpath += "/"
         if sname != "":
-            sname += '/'
+            sname += "/"
         full_name = f"{vpath}{sname}{vname}"
         return full_name
 
     def _test_dataset_sector_variables(self, settings, ds_desc, handler):
         """Check the loading of the in sector variables."""
-        sector_vars = settings.get('sector_variables')
-        sectors = settings.get('sectors', ['north', 'east', 'south', 'west'])
+        sector_vars = settings.get("sector_variables")
+        sectors = settings.get("sectors", ["north", "east", "south", "west"])
 
-        assert 'sector_variables' in ds_desc
-        all_vars = ds_desc['sector_variables']
+        assert "sector_variables" in ds_desc
+        all_vars = ds_desc["sector_variables"]
 
         for sname in sectors:
             for vname, desc in sector_vars.items():
@@ -168,33 +168,33 @@ class TestLIL2():
         """Test loading of all datasets from all products."""
         # Iterate on all the available product types:
         for ptype, pinfo in products_dict.items():
-            ftype = pinfo['ftype']
+            ftype = pinfo["ftype"]
             filename_info = {
-                'start_time': "0000",
-                'end_time': "1000"
+                "start_time": "0000",
+                "end_time": "1000"
             }
 
-            handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, ftype))
+            handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, ftype))
             ds_desc = handler.ds_desc
 
             # retrieve the schema that what used to generate the content for that product:
             settings = get_product_schema(ptype)
 
             # Now we check all the variables are available:
-            if 'variables' in settings:
+            if "variables" in settings:
                 self._test_dataset_variables(settings, ds_desc, handler)
 
                 # check the sector variables:
-            if 'sector_variables' in settings:
+            if "sector_variables" in settings:
                 self._test_dataset_sector_variables(settings, ds_desc, handler)
 
     def test_unregistered_dataset_loading(self, filetype_infos):
         """Test loading of an unregistered dataset."""
         # Iterate on all the available product types:
 
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
-        dataset_id = make_dataid(name='test_dataset')
+        dataset_id = make_dataid(name="test_dataset")
         with pytest.raises(KeyError):
             handler.get_dataset(dataset_id)
 
@@ -202,22 +202,22 @@ class TestLIL2():
         """Test loading of a dataset that is not provided."""
         # Iterate on all the available product types:
 
-        dataset_dict = {'name': 'test_dataset'}
+        dataset_dict = {"name": "test_dataset"}
 
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
-        dataset_id = make_dataid(name='test_dataset')
+        dataset_id = make_dataid(name="test_dataset")
 
         assert handler.get_dataset(dataset_id, ds_info=dataset_dict) is None
 
     def test_filename_infos(self, filetype_infos):
         """Test settings retrieved from filename."""
         filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416"
+            "start_time": "20101112131415",
+            "end_time": "20101112131416"
         }
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
         # Start and end time should come from filename info:
         assert handler.start_time == "20101112131415"
@@ -236,19 +236,19 @@ class TestLIL2():
         assert len(handler.provided_datasets) > 0
 
         # Sensor names should be just 'li'
-        assert handler.sensor_names == {'li'}
+        assert handler.sensor_names == {"li"}
 
         # check product type:
-        assert handler.product_type == '2-AF'
+        assert handler.product_type == "2-AF"
 
     def test_var_path_exists(self, filetype_infos):
         """Test variable_path_exists from li reader."""
         filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416",
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
         }
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # Check variable paths:
         assert handler.variable_path_exists("dummy") is False
@@ -265,11 +265,11 @@ class TestLIL2():
     def test_get_first_valid_variable(self, filetype_infos):
         """Test get_first_valid_variable from li reader."""
         filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416",
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
         }
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # Check variable paths:
         var1 = handler.get_first_valid_variable(["dummy/path", "data/north/event_id"])
@@ -311,30 +311,30 @@ class TestLIL2():
         assert id(meas2) == id(var3)
 
         # We should have a fill value on those variables:
-        assert var1.attrs.get('_FillValue') == 65535
-        assert var2.attrs.get('_FillValue') == 65535
+        assert var1.attrs.get("_FillValue") == 65535
+        assert var2.attrs.get("_FillValue") == 65535
 
     def test_get_first_valid_variable_not_found(self, filetype_infos):
         """Test get_first_valid_variable from li reader if the variable is not found."""
         filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416",
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
         }
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         with pytest.raises(KeyError):
             handler.get_first_valid_variable(["dummy/path", "data/test/test_var"])
 
     def test_available_datasets(self, filetype_infos):
         """Test available_datasets from li reader."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lef_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # get current ds_infos. These should all be returned by the available_datasets
         ds_infos_to_compare = handler.dataset_infos.copy()
 
         # now add a dummy configured dataset to make sure that it is included in the available_datasets output
-        ds_info_dummy = {'test': 'test'}
+        ds_info_dummy = {"test": "test"}
         conf_ds_dummy = [(True, ds_info_dummy)]
         ds_infos_to_compare.insert(0, ds_info_dummy)
 
@@ -343,11 +343,11 @@ class TestLIL2():
     def test_variable_scaling(self, filetype_infos):
         """Test automatic rescaling with offset and scale attributes."""
         filename_info = {
-            'start_time': "20101112131415",
-            'end_time': "20101112131416"
+            "start_time": "20101112131415",
+            "end_time": "20101112131416"
         }
 
-        handler = LIL2NCFileHandler('filename', filename_info, extract_filetype_info(filetype_infos, 'li_l2_lfl_nc'))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
 
         # Get the raw variable without rescaling:
         vname = "latitude"
@@ -355,9 +355,9 @@ class TestLIL2():
 
         # Get the dataset without rescaling:
         dataset_info = {
-            'name': vname,
-            'variable_name': vname,
-            'use_rescaling': False,
+            "name": vname,
+            "variable_name": vname,
+            "use_rescaling": False,
         }
 
         dataset_id = make_dataid(name=vname)
@@ -365,7 +365,7 @@ class TestLIL2():
         assert np.all(lat_noscale.values == rawlat)
 
         # Now get the dataset with scaling:
-        dataset_info['use_rescaling'] = True
+        dataset_info["use_rescaling"] = True
         lat_scaled = handler.get_dataset(dataset_id, dataset_info)
 
         # By default we write data in the ranges [-88.3/0.0027, 88.3/0.0027] for latitude and longitude:
@@ -374,12 +374,12 @@ class TestLIL2():
 
     def test_swath_coordinates(self, filetype_infos):
         """Test that swath coordinates are used correctly to assign coordinates to some datasets."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lfl_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
 
         # Check latitude:
         dsid = make_dataid(name="latitude")
         dset = handler.get_dataset(dsid)
-        assert 'coordinates' not in dset.attrs
+        assert "coordinates" not in dset.attrs
 
         # get_area_def should raise exception:
         with pytest.raises(NotImplementedError):
@@ -388,21 +388,21 @@ class TestLIL2():
         # Check radiance:
         dsid = make_dataid(name="radiance")
         dset = handler.get_dataset(dsid)
-        assert 'coordinates' in dset.attrs
-        assert dset.attrs['coordinates'][0] == "longitude"
-        assert dset.attrs['coordinates'][1] == "latitude"
+        assert "coordinates" in dset.attrs
+        assert dset.attrs["coordinates"][0] == "longitude"
+        assert dset.attrs["coordinates"][1] == "latitude"
 
         with pytest.raises(NotImplementedError):
             handler.get_area_def(dsid)
 
     def test_report_datetimes(self, filetype_infos):
         """Should report time variables as numpy datetime64 type and time durations as timedelta64."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_le_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # Check epoch_time:
         dsid = make_dataid(name="epoch_time_north_sector")
         dset = handler.get_dataset(dsid)
-        assert dset.values.dtype == np.dtype('datetime64[ns]')
+        assert dset.values.dtype == np.dtype("datetime64[ns]")
 
         # The default epoch_time should be 1.234 seconds after epoch:
         ref_time = np.datetime64(datetime(2000, 1, 1, 0, 0, 1, 234000))
@@ -411,14 +411,14 @@ class TestLIL2():
         # Check time_offset:
         dsid = make_dataid(name="time_offset_east_sector")
         dset = handler.get_dataset(dsid)
-        assert dset.values.dtype == np.dtype('timedelta64[ns]')
+        assert dset.values.dtype == np.dtype("timedelta64[ns]")
 
         # The default time_offset should be: np.linspace(0.0, 1000.0, nobs)
         # but then we first multiply by 1e6 to generate us times:
         # Note that below no automatic transform to np.float64 is happening:
         nobs = dset.shape[0]
         ref_data = np.linspace(0.0, 1000.0, nobs).astype(np.float32)
-        ref_data = (ref_data * 1e9).astype('timedelta64[ns]')
+        ref_data = (ref_data * 1e9).astype("timedelta64[ns]")
 
         # And not absolutely sure why, but we always get the timedelta in ns from the dataset:
         # ref_data = (ref_data).astype('timedelta64[ns]')
@@ -427,33 +427,33 @@ class TestLIL2():
 
     def test_milliseconds_to_timedelta(self, filetype_infos):
         """Should covert milliseconds to timedelta."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lfl_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
 
         # Check flash_duration:
         dsid = make_dataid(name="flash_duration")
         dset = handler.get_dataset(dsid)
-        assert dset.values.dtype == np.dtype('timedelta64[ns]')
+        assert dset.values.dtype == np.dtype("timedelta64[ns]")
 
         nobs = dset.shape[0]
-        ref_data = np.linspace(0, 1000, nobs).astype('u2')
-        ref_data = (ref_data * 1e6).astype('timedelta64[ns]')
+        ref_data = np.linspace(0, 1000, nobs).astype("u2")
+        ref_data = (ref_data * 1e6).astype("timedelta64[ns]")
 
         assert np.all(dset.values == ref_data)
 
     def test_apply_accumulate_index_offset(self, filetype_infos):
         """Should accumulate index offsets."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_le_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # Check time offset:
         dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
         dset = handler.get_dataset(dsid)
 
         nobs = dset.shape[0]
-        ref_data = (np.arange(nobs)).astype('u4')
+        ref_data = (np.arange(nobs)).astype("u4")
         # check first execution without offset
         assert np.all(dset.values == ref_data)
         # check that the offset is being stored
-        assert handler.current_ds_info['__index_offset'] == 123
+        assert handler.current_ds_info["__index_offset"] == 123
 
         # check execution with offset value
         # this simulates the case where we are loading this variable from multiple files and concatenating it
@@ -462,62 +462,62 @@ class TestLIL2():
 
     def test_combine_info(self, filetype_infos):
         """Test overridden combine_info."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_le_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # get a dataset including the index_offset in the ds_info
         dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
-        ds_info = {'name': 'l1b_chunk_offsets_north_sector',
-                   'variable_name': 'l1b_chunk_offsets',
-                   'sector_name': 'north',
-                   '__index_offset': 1000,
-                   'accumulate_index_offset': "{sector_name}/l1b_window"}
+        ds_info = {"name": "l1b_chunk_offsets_north_sector",
+                   "variable_name": "l1b_chunk_offsets",
+                   "sector_name": "north",
+                   "__index_offset": 1000,
+                   "accumulate_index_offset": "{sector_name}/l1b_window"}
         dset = handler.get_dataset(dsid, ds_info=ds_info)
         handler.combine_info([dset.attrs])
         # combine_info should have removed the index_offset key from the ds_info passed to get_dataset
-        assert '__index_offset' not in ds_info
+        assert "__index_offset" not in ds_info
         # and reset the current_ds_info dict, in order to avoid failures if we call combine_info again
         assert handler.current_ds_info is None
 
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
         dsid = make_dataid(name="flash_accumulation")
         dset = handler.get_dataset(dsid)
-        assert 'coordinates' in dset.attrs
+        assert "coordinates" in dset.attrs
 
-        assert dset.attrs['coordinates'][0] == "longitude"
-        assert dset.attrs['coordinates'][1] == "latitude"
+        assert dset.attrs["coordinates"][0] == "longitude"
+        assert dset.attrs["coordinates"][1] == "latitude"
 
         with pytest.raises(NotImplementedError):
             handler.get_area_def(dsid)
 
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_afr_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afr_nc"))
 
         dsid = make_dataid(name="flash_radiance")
         dset = handler.get_dataset(dsid)
-        assert 'coordinates' in dset.attrs
+        assert "coordinates" in dset.attrs
 
-        assert dset.attrs['coordinates'][0] == "longitude"
-        assert dset.attrs['coordinates'][1] == "latitude"
+        assert dset.attrs["coordinates"][0] == "longitude"
+        assert dset.attrs["coordinates"][1] == "latitude"
 
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_afa_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afa_nc"))
 
         dsid = make_dataid(name="accumulated_flash_area")
         dset = handler.get_dataset(dsid)
-        assert 'coordinates' in dset.attrs
+        assert "coordinates" in dset.attrs
 
-        assert dset.attrs['coordinates'][0] == "longitude"
-        assert dset.attrs['coordinates'][1] == "latitude"
+        assert dset.attrs["coordinates"][0] == "longitude"
+        assert dset.attrs["coordinates"][1] == "latitude"
 
     def test_generate_coords_on_accumulated_prods(self, filetype_infos):
         """Test daskified generation of coords."""
-        accumulated_products = ['li_l2_af_nc', 'li_l2_afr_nc', 'li_l2_afa_nc']
-        coordinate_datasets = ['longitude', 'latitude']
+        accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
+        coordinate_datasets = ["longitude", "latitude"]
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 dset = handler.get_dataset(dsid)
                 # Check dataset type
@@ -527,12 +527,12 @@ class TestLIL2():
 
     def test_generate_coords_on_lon_lat(self, filetype_infos):
         """Test getting lon/lat dataset on accumulated product."""
-        accumulated_products = ['li_l2_af_nc', 'li_l2_afr_nc', 'li_l2_afa_nc']
-        coordinate_datasets = ['longitude', 'latitude']
+        accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
+        coordinate_datasets = ["longitude", "latitude"]
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 handler.generate_coords_from_scan_angles = mock.MagicMock(
                     side_effect=handler.generate_coords_from_scan_angles)
@@ -541,12 +541,12 @@ class TestLIL2():
 
     def test_generate_coords_inverse_proj(self, filetype_infos):
         """Test inverse_projection execution delayed until .values is called on the dataset."""
-        accumulated_products = ['li_l2_af_nc', 'li_l2_afr_nc', 'li_l2_afa_nc']
-        coordinate_datasets = ['longitude', 'latitude']
+        accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
+        coordinate_datasets = ["longitude", "latitude"]
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 handler.inverse_projection = mock.MagicMock(side_effect=handler.inverse_projection)
                 dset = handler.get_dataset(dsid)
@@ -557,17 +557,17 @@ class TestLIL2():
 
     def test_generate_coords_not_called_on_non_coord_dataset(self, filetype_infos):
         """Test that the method is not called when getting non-coord dataset."""
-        handler = self.generate_coords(filetype_infos, 'li_l2_af_nc', 'flash_accumulation')
+        handler = self.generate_coords(filetype_infos, "li_l2_af_nc", "flash_accumulation")
         assert not handler.generate_coords_from_scan_angles.called
 
     def test_generate_coords_not_called_on_non_accum_dataset(self, filetype_infos):
         """Test that the method is not called when getting non-accum dataset."""
-        handler = self.generate_coords(filetype_infos, 'li_l2_lef_nc', 'latitude_north_sector')
+        handler = self.generate_coords(filetype_infos, "li_l2_lef_nc", "latitude_north_sector")
         assert not handler.generate_coords_from_scan_angles.called
 
     def generate_coords(self, filetype_infos, file_type_name, variable_name):
         """Generate file handler and mimic coordinate generator call."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, file_type_name))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, file_type_name))
         dsid = make_dataid(name=variable_name)
         handler.generate_coords_from_scan_angles = mock.MagicMock(
             side_effect=handler.generate_coords_from_scan_angles)
@@ -576,10 +576,10 @@ class TestLIL2():
 
     def test_generate_coords_called_once(Self, filetype_infos):
         """Test that the method is called only once."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
         # check internal variable is empty
         assert len(handler.internal_variables) == 0
-        coordinate_datasets = ['longitude', 'latitude']
+        coordinate_datasets = ["longitude", "latitude"]
         handler.generate_coords_from_scan_angles = mock.MagicMock(side_effect=handler.generate_coords_from_scan_angles)
 
         for ds_name in coordinate_datasets:
@@ -593,34 +593,34 @@ class TestLIL2():
     def test_coords_generation(self, filetype_infos):
         """Compare daskified coords generation results with non-daskified."""
         # Prepare dummy (but somewhat realistic) arrays of azimuth/elevation values.
-        products = ['li_l2_af_nc',
-                    'li_l2_afr_nc',
-                    'li_l2_afa_nc']
+        products = ["li_l2_af_nc",
+                    "li_l2_afr_nc",
+                    "li_l2_afa_nc"]
 
         for prod in products:
-            handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, prod))
+            handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, prod))
 
             # Get azimuth/elevation arrays from handler
-            azimuth = handler.get_measured_variable(handler.swath_coordinates['azimuth'])
+            azimuth = handler.get_measured_variable(handler.swath_coordinates["azimuth"])
             azimuth = handler.apply_use_rescaling(azimuth)
 
-            elevation = handler.get_measured_variable(handler.swath_coordinates['elevation'])
+            elevation = handler.get_measured_variable(handler.swath_coordinates["elevation"])
             elevation = handler.apply_use_rescaling(elevation)
 
             # Initialize proj_dict
-            proj_var = handler.swath_coordinates['projection']
+            proj_var = handler.swath_coordinates["projection"]
             geos_proj = handler.get_measured_variable(proj_var, fill_value=None)
             major_axis = float(geos_proj.attrs["semi_major_axis"])
             point_height = 35786400.0  # float(geos_proj.attrs["perspective_point_height"])
             inv_flattening = float(geos_proj.attrs["inverse_flattening"])
             lon_0 = float(geos_proj.attrs["longitude_of_projection_origin"])
             sweep = str(geos_proj.attrs["sweep_angle_axis"])
-            proj_dict = {'a': major_axis,
-                         'lon_0': lon_0,
-                         'h': point_height,
+            proj_dict = {"a": major_axis,
+                         "lon_0": lon_0,
+                         "h": point_height,
                          "rf": inv_flattening,
-                         'proj': 'geos',
-                         'units': 'm',
+                         "proj": "geos",
+                         "units": "m",
                          "sweep": sweep}
 
             # Compute reference values
@@ -633,8 +633,8 @@ class TestLIL2():
             lat_ref = lat_ref.astype(np.float32)
 
             handler.generate_coords_from_scan_angles()
-            lon = handler.internal_variables['longitude'].values
-            lat = handler.internal_variables['latitude'].values
+            lon = handler.internal_variables["longitude"].values
+            lat = handler.internal_variables["latitude"].values
 
             # Compare the arrays, should be the same:
             np.testing.assert_equal(lon, lon_ref)
@@ -642,7 +642,7 @@ class TestLIL2():
 
     def test_get_area_def_acc_products(self, filetype_infos):
         """Test retrieval of area def for accumulated products."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'),
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=True)
 
         dsid = make_dataid(name="flash_accumulation")
@@ -656,7 +656,7 @@ class TestLIL2():
 
     def test_get_area_def_non_acc_products(self, filetype_infos):
         """Test retrieval of area def for non-accumulated products."""
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_lgr_nc'),
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lgr_nc"),
                                     with_area_definition=True)
         # Should throw for non-accum products:
         with pytest.raises(NotImplementedError):
@@ -672,9 +672,9 @@ class TestLIL2():
 
         # We return the settings we want to use here to generate our custom/fixed product content:
         return {
-            'num_obs': 1234,
-            'providers': {
-                'flash_accumulation': write_flash_accum,
+            "num_obs": 1234,
+            "providers": {
+                "flash_accumulation": write_flash_accum,
             }
         }
 
@@ -682,7 +682,7 @@ class TestLIL2():
         """Test accumulated products data array without area definition."""
         # without area definition
         handler_without_area_def = LIL2NCFileHandler(
-            'filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'), with_area_definition=False)
+            "filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
 
         dsid = make_dataid(name="flash_accumulation")
 
@@ -692,7 +692,7 @@ class TestLIL2():
 
     def test_with_area_def(self, filetype_infos):
         """Test accumulated products data array with area definition."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler = self.handler_with_area(filetype_infos, "li_l2_af_nc")
         dsid = make_dataid(name="flash_accumulation")
         # Retrieve the 2D array:
         arr = handler.get_dataset(dsid).values
@@ -700,7 +700,7 @@ class TestLIL2():
 
     def test_get_on_fci_grid_exc(self, filetype_infos):
         """Test the execution of the get_on_fci_grid function for an accumulated gridded variable."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler = self.handler_with_area(filetype_infos, "li_l2_af_nc")
         handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
         dsid = make_dataid(name="flash_accumulation")
         handler.get_dataset(dsid)
@@ -708,7 +708,7 @@ class TestLIL2():
 
     def test_get_on_fci_grid_exc_non_grid(self, filetype_infos):
         """Test the non-execution of the get_on_fci_grid function for an accumulated non-gridded variable."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler = self.handler_with_area(filetype_infos, "li_l2_af_nc")
         handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
         dsid = make_dataid(name="accumulation_offsets")
         handler.get_dataset(dsid)
@@ -716,7 +716,7 @@ class TestLIL2():
 
     def test_get_on_fci_grid_exc_non_accum(self, filetype_infos):
         """Test the non-execution of the get_on_fci_grid function for a non-accumulated variable."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_lef_nc')
+        handler = self.handler_with_area(filetype_infos, "li_l2_lef_nc")
         handler.get_array_on_fci_grid = mock.MagicMock(side_effect=handler.get_array_on_fci_grid)
         dsid = make_dataid(name="radiance_north_sector")
         handler.get_dataset(dsid)
@@ -724,7 +724,7 @@ class TestLIL2():
 
     def test_with_area_def_vars_with_no_pattern(self, filetype_infos):
         """Test accumulated products variable with no patterns and with area definition."""
-        handler = self.handler_with_area(filetype_infos, 'li_l2_af_nc')
+        handler = self.handler_with_area(filetype_infos, "li_l2_af_nc")
         # variable with no patterns
         dsid = make_dataid(name="accumulation_offsets")
         assert handler.get_dataset(dsid).shape == (1,)
@@ -734,7 +734,7 @@ class TestLIL2():
         # Note: we need a test param provider here to ensure we write the same values for both handlers below:
         FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
         # with area definition
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, product_name),
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, product_name),
                                     with_area_definition=True)
         return handler
 
@@ -743,7 +743,7 @@ class TestLIL2():
         # with area definition
         FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
 
-        handler = LIL2NCFileHandler('filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'),
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=True)
         dsid = make_dataid(name="flash_accumulation")
 
@@ -751,11 +751,11 @@ class TestLIL2():
         arr = handler.get_dataset(dsid).values
 
         # Retrieve the x/y coordinates:
-        xarr = handler.get_measured_variable('x').values.astype(int)
-        yarr = handler.get_measured_variable('y').values.astype(int)
+        xarr = handler.get_measured_variable("x").values.astype(int)
+        yarr = handler.get_measured_variable("y").values.astype(int)
 
         handler_without_area_def = LIL2NCFileHandler(
-            'filename', {}, extract_filetype_info(filetype_infos, 'li_l2_af_nc'), with_area_definition=False)
+            "filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
 
         FakeLIFileHandlerBase.schema_parameters = None
 

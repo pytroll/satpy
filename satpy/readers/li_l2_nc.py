@@ -71,14 +71,14 @@ class LIL2NCFileHandler(LINCFileHandler):
         """Compute area definition for a dataset, only supported for accumulated products."""
         var_with_swath_coord = self.is_var_with_swath_coord(dsid)
         if var_with_swath_coord and self.with_area_def:
-            return get_area_def('mtg_fci_fdss_2km')
+            return get_area_def("mtg_fci_fdss_2km")
 
-        raise NotImplementedError('Area definition is not supported for accumulated products.')
+        raise NotImplementedError("Area definition is not supported for accumulated products.")
 
     def is_var_with_swath_coord(self, dsid):
         """Check if the variable corresponding to this dataset is listed as variable with swath coordinates."""
         # since the patterns are compiled to regex we use the search() method below to find matches
-        with_swath_coords = any([p.search(dsid['name']) is not None for p in self.swath_coordinates['patterns']])
+        with_swath_coords = any([p.search(dsid["name"]) is not None for p in self.swath_coordinates["patterns"]])
         return with_swath_coords
 
     def get_array_on_fci_grid(self, data_array: xr.DataArray):
@@ -92,8 +92,8 @@ class LIL2NCFileHandler(LINCFileHandler):
         # Note that x and y have origin in the south-west corner of the image
         # and start with index 1.
 
-        rows = self.get_measured_variable('y')
-        cols = self.get_measured_variable('x')
+        rows = self.get_measured_variable("y")
+        cols = self.get_measured_variable("x")
         attrs = data_array.attrs
 
         rows, cols = da.compute(rows, cols)
@@ -110,7 +110,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         flattened_result[rows * LI_GRID_SHAPE[0] + cols] = data_array
         # ... reshape to final 2D grid
         data_2d = da.reshape(flattened_result, LI_GRID_SHAPE)
-        xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=('y', 'x'))
+        xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=("y", "x"))
         xarr.attrs = attrs
 
         return xarr

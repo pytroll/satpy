@@ -36,9 +36,8 @@ The generic ``satpy_cf_nc`` reader reads files of type:
     '{platform_name}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
 
 
-Example
--------
-
+Example:
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -92,9 +91,8 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
     ''AVHRR-GAC_FDR_1C_{platform}_{start_time:%Y%m%dT%H%M%SZ}_{end_time:%Y%m%dT%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc'
 
 
-Example
--------
-
+Example:
+--------
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -196,7 +194,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 class SatpyCFFileHandler(BaseFileHandler):
     """File handler for Satpy's CF netCDF files."""
 
-    def __init__(self, filename, filename_info, filetype_info, numeric_name_prefix='CHANNEL_'):
+    def __init__(self, filename, filename_info, filetype_info, numeric_name_prefix="CHANNEL_"):
         """Initialize file handler."""
         super().__init__(filename, filename_info, filetype_info)
         self.engine = None
@@ -205,12 +203,12 @@ class SatpyCFFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def sensor_names(self):
@@ -239,11 +237,11 @@ class SatpyCFFileHandler(BaseFileHandler):
     def fix_modifier_attr(self, ds_info):
         """Fix modifiers attribute."""
         # Empty modifiers are read as [], which causes problems later
-        if 'modifiers' in ds_info and not ds_info['modifiers']:
-            ds_info['modifiers'] = ()
+        if "modifiers" in ds_info and len(ds_info["modifiers"]) == 0:
+            ds_info["modifiers"] = ()
         try:
             try:
-                ds_info['modifiers'] = tuple(ds_info['modifiers'].split(' '))
+                ds_info["modifiers"] = tuple(ds_info["modifiers"].split(" "))
             except AttributeError:
                 pass
         except KeyError:
@@ -252,14 +250,14 @@ class SatpyCFFileHandler(BaseFileHandler):
     def _assign_ds_info(self, var_name, val):
         """Assign ds_info."""
         ds_info = dict(val.attrs)
-        ds_info['file_type'] = self.filetype_info['file_type']
-        ds_info['name'] = ds_info['nc_store_name'] = var_name
-        if 'original_name' in ds_info:
-            ds_info['name'] = ds_info['original_name']
+        ds_info["file_type"] = self.filetype_info["file_type"]
+        ds_info["name"] = ds_info["nc_store_name"] = var_name
+        if "original_name" in ds_info:
+            ds_info["name"] = ds_info["original_name"]
         elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
-            ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
+            ds_info["name"] = var_name.replace(self._numeric_name_prefix, "")
         try:
-            ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
+            ds_info["wavelength"] = WavelengthRange.from_cf(ds_info["wavelength"])
         except KeyError:
             pass
         return ds_info
@@ -278,15 +276,15 @@ class SatpyCFFileHandler(BaseFileHandler):
         nc = xr.open_dataset(self.filename, engine=self.engine)
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)
-            ds_info['file_type'] = self.filetype_info['file_type']
-            ds_info['name'] = var_name
+            ds_info["file_type"] = self.filetype_info["file_type"]
+            ds_info["name"] = var_name
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def _compare_attr(self, _ds_id_dict, key, data):
-        if key in ['name', 'modifiers']:
+        if key in ["name", "modifiers"]:
             return True
-        elif key == 'wavelength':
+        elif key == "wavelength":
             return _ds_id_dict[key] == WavelengthRange.from_cf(data.attrs[key])
         else:
             return data.attrs[key] == _ds_id_dict[key]
@@ -303,15 +301,15 @@ class SatpyCFFileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", ds_id['name'])
+        logger.debug("Getting data for: %s", ds_id["name"])
         nc = xr.open_dataset(self.filename, engine=self.engine,
-                             chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
-        name = ds_info.get('nc_store_name', ds_id['name'])
-        data = nc[ds_info.get('file_key', name)]
+                             chunks={"y": CHUNK_SIZE, "x": CHUNK_SIZE})
+        name = ds_info.get("nc_store_name", ds_id["name"])
+        data = nc[ds_info.get("file_key", name)]
         if not self._dataid_attrs_equal(ds_id, data):
             return
-        if name != ds_id['name']:
-            data = data.rename(ds_id['name'])
+        if name != ds_id["name"]:
+            data = data.rename(ds_id["name"])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         if "orbital_parameters" in data.attrs:
             data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])

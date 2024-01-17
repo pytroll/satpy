@@ -32,37 +32,37 @@ EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
-VIIRS_DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
-                      'SVDNB': 'VIIRS-DNB-SDR',
-                      'GITCO': 'VIIRS-IMG-GEO-TC',
-                      'GIMGO': 'VIIRS-IMG-GEO',
-                      'SVI01': 'VIIRS-I1-SDR',
-                      'SVI02': 'VIIRS-I2-SDR',
-                      'SVI03': 'VIIRS-I3-SDR',
-                      'SVI04': 'VIIRS-I4-SDR',
-                      'SVI05': 'VIIRS-I5-SDR',
-                      'GMTCO': 'VIIRS-MOD-GEO-TC',
-                      'GMODO': 'VIIRS-MOD-GEO',
-                      'SVM01': 'VIIRS-M1-SDR',
-                      'SVM02': 'VIIRS-M2-SDR',
-                      'SVM03': 'VIIRS-M3-SDR',
-                      'SVM04': 'VIIRS-M4-SDR',
-                      'SVM05': 'VIIRS-M5-SDR',
-                      'SVM06': 'VIIRS-M6-SDR',
-                      'SVM07': 'VIIRS-M7-SDR',
-                      'SVM08': 'VIIRS-M8-SDR',
-                      'SVM09': 'VIIRS-M9-SDR',
-                      'SVM10': 'VIIRS-M10-SDR',
-                      'SVM11': 'VIIRS-M11-SDR',
-                      'SVM12': 'VIIRS-M12-SDR',
-                      'SVM13': 'VIIRS-M13-SDR',
-                      'SVM14': 'VIIRS-M14-SDR',
-                      'SVM15': 'VIIRS-M15-SDR',
-                      'SVM16': 'VIIRS-M16-SDR',
-                      'IVCDB': 'VIIRS-DualGain-Cal-IP'}
-ATMS_DATASET_KEYS = {'SATMS': 'ATMS-SDR',
-                     'GATMO': 'ATMS-SDR-GEO',
-                     'TATMS': 'ATMS-TDR'}
+VIIRS_DATASET_KEYS = {"GDNBO": "VIIRS-DNB-GEO",
+                      "SVDNB": "VIIRS-DNB-SDR",
+                      "GITCO": "VIIRS-IMG-GEO-TC",
+                      "GIMGO": "VIIRS-IMG-GEO",
+                      "SVI01": "VIIRS-I1-SDR",
+                      "SVI02": "VIIRS-I2-SDR",
+                      "SVI03": "VIIRS-I3-SDR",
+                      "SVI04": "VIIRS-I4-SDR",
+                      "SVI05": "VIIRS-I5-SDR",
+                      "GMTCO": "VIIRS-MOD-GEO-TC",
+                      "GMODO": "VIIRS-MOD-GEO",
+                      "SVM01": "VIIRS-M1-SDR",
+                      "SVM02": "VIIRS-M2-SDR",
+                      "SVM03": "VIIRS-M3-SDR",
+                      "SVM04": "VIIRS-M4-SDR",
+                      "SVM05": "VIIRS-M5-SDR",
+                      "SVM06": "VIIRS-M6-SDR",
+                      "SVM07": "VIIRS-M7-SDR",
+                      "SVM08": "VIIRS-M8-SDR",
+                      "SVM09": "VIIRS-M9-SDR",
+                      "SVM10": "VIIRS-M10-SDR",
+                      "SVM11": "VIIRS-M11-SDR",
+                      "SVM12": "VIIRS-M12-SDR",
+                      "SVM13": "VIIRS-M13-SDR",
+                      "SVM14": "VIIRS-M14-SDR",
+                      "SVM15": "VIIRS-M15-SDR",
+                      "SVM16": "VIIRS-M16-SDR",
+                      "IVCDB": "VIIRS-DualGain-Cal-IP"}
+ATMS_DATASET_KEYS = {"SATMS": "ATMS-SDR",
+                     "GATMO": "ATMS-SDR-GEO",
+                     "TATMS": "ATMS-TDR"}
 
 DATASET_KEYS = {}
 DATASET_KEYS.update(VIIRS_DATASET_KEYS)
@@ -100,13 +100,13 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def _parse_datetime(self, datestr, timestr):
-        try:
-            datetime_str = datestr + timestr
-        except TypeError:
-            datetime_str = (str(datestr.data.compute().astype(str)) +
-                            str(timestr.data.compute().astype(str)))
+        if not isinstance(datestr, str):
+            datestr = str(datestr.data.compute().astype(str))
+        if not isinstance(timestr, str):
+            timestr = str(timestr.data.compute().astype(str))
+        datetime_str = datestr + timestr
 
-        time_val = datetime.strptime(datetime_str, '%Y%m%d%H%M%S.%fZ')
+        time_val = datetime.strptime(datetime_str, "%Y%m%d%H%M%S.%fZ")
         if abs(time_val - NO_DATE) < EPSILON_TIME:
             # catch rare case when SDR files have incorrect date
             raise ValueError("Datetime invalid {}".format(time_val))
@@ -140,29 +140,29 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
 
     def _get_aggr_path(self, fileinfo_key, aggr_default):
         dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/' + aggr_default
+        default = "Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/" + aggr_default
         return self.filetype_info.get(fileinfo_key, default).format(dataset_group=dataset_group)
 
     @property
     def platform_name(self):
         """Get platform name."""
-        default = '/attr/Platform_Short_Name'
+        default = "/attr/Platform_Short_Name"
         platform_path = self.filetype_info.get(
-            'platform_name', default).format(**self.filetype_info)
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'J01': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21',
-                         'J02': 'NOAA-21'}
+            "platform_name", default).format(**self.filetype_info)
+        platform_dict = {"NPP": "Suomi-NPP",
+                         "JPSS-1": "NOAA-20",
+                         "J01": "NOAA-20",
+                         "JPSS-2": "NOAA-21",
+                         "J02": "NOAA-21"}
         return platform_dict.get(self[platform_path], self[platform_path])
 
     @property
     def sensor_name(self):
         """Get sensor name."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
-        default = 'Data_Products/{dataset_group}/attr/Instrument_Short_Name'
+        default = "Data_Products/{dataset_group}/attr/Instrument_Short_Name"
         sensor_path = self.filetype_info.get(
-            'sensor_name', default).format(dataset_group=dataset_group)
+            "sensor_name", default).format(dataset_group=dataset_group)
         return self[sensor_path].lower()
 
     def scale_swath_data(self, data, scaling_factors, dataset_group):
@@ -178,7 +178,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
     def scale_data_to_specified_unit(self, data, dataset_id, ds_info):
         """Get sscale and offset factors and convert/scale data to given physical unit."""
         var_path = self._generate_file_key(dataset_id, ds_info)
-        dataset_group = ds_info['dataset_group']
+        dataset_group = ds_info["dataset_group"]
         file_units = _get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
 
@@ -241,38 +241,38 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         else:
             expanded = np.repeat(var, scans)
             expanded.attrs = var.attrs
-            expanded.rename({expanded.dims[0]: 'y'})
+            expanded.rename({expanded.dims[0]: "y"})
             return expanded
 
     def _scan_size(self, dataset_group_name):
         """Get how many rows of data constitute one scanline."""
-        if 'ATM' in dataset_group_name:
+        if "ATM" in dataset_group_name:
             scan_size = 1
-        elif 'I' in dataset_group_name:
+        elif "I" in dataset_group_name:
             scan_size = 32
         else:
             scan_size = 16
         return scan_size
 
     def _generate_file_key(self, ds_id, ds_info, factors=False):
-        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
+        var_path = ds_info.get("file_key", "All_Data/{dataset_group}_All/{calibration}")
         calibration = {
-            'radiance': 'Radiance',
-            'reflectance': 'Reflectance',
-            'brightness_temperature': 'BrightnessTemperature',
-        }.get(ds_id.get('calibration'))
-        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
+            "radiance": "Radiance",
+            "reflectance": "Reflectance",
+            "brightness_temperature": "BrightnessTemperature",
+        }.get(ds_id.get("calibration"))
+        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info["dataset_group"]])
+        if ds_id["name"] in ["dnb_longitude", "dnb_latitude"]:
             if self.use_tc is True:
-                return var_path + '_TC'
-            if self.use_tc is None and var_path + '_TC' in self.file_content:
-                return var_path + '_TC'
+                return var_path + "_TC"
+            if self.use_tc is None and var_path + "_TC" in self.file_content:
+                return var_path + "_TC"
         return var_path
 
     def _update_data_attributes(self, data, dataset_id, ds_info):
         file_units = _get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
-        i = getattr(data, 'attrs', {})
+        i = getattr(data, "attrs", {})
         i.update(ds_info)
         i.update({
             "platform_name": self.platform_name,
@@ -280,7 +280,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
             "units": output_units,
-            "rows_per_scan": self._scan_size(ds_info['dataset_group']),
+            "rows_per_scan": self._scan_size(ds_info["dataset_group"]),
         })
         i.update(dataset_id.to_dict())
         data.attrs.update(i)
@@ -304,7 +304,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
                 data_chunks.append(variable.isel(y=slice(start_scan,
                                                          start_scan + gscans * scan_size)))
                 start_scan += gscans * scan_size
-            return xr.concat(data_chunks, 'y')
+            return xr.concat(data_chunks, "y")
         else:
             # This is not tested - Not sure this code is ever going to be used? A. Dybbroe
             # Mon Jan  2 13:31:21 2023
@@ -316,11 +316,11 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         return [scan_size * gran_scans for gran_scans in scans_per_gran]
 
     def _get_scans_per_granule(self, dataset_group):
-        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        number_of_granules_path = "Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules"
         nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
         scans = []
         for granule in range(self[nb_granules_path]):
-            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = "Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans"
             scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
             scans.append(self[scans_path])
         return scans
@@ -350,7 +350,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             if is_avail is not None:
                 yield is_avail, ds_info
                 continue
-            dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
+            dataset_group = [ds_group for ds_group in ds_info["dataset_groups"] if ds_group in self.datasets]
             if dataset_group:
                 yield True, ds_info
             elif is_avail is None:

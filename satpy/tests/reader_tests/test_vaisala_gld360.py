@@ -34,13 +34,13 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         expected_power = np.array([12.3, 13.2, -31.])
         expected_lat = np.array([30.5342, -0.5727, 12.1529])
         expected_lon = np.array([-90.1152, 104.0688, -10.8756])
-        expected_time = np.array(['2017-06-20T00:00:00.007178000', '2017-06-20T00:00:00.020162000',
-                                  '2017-06-20T00:00:00.023183000'], dtype='datetime64[ns]')
+        expected_time = np.array(["2017-06-20T00:00:00.007178000", "2017-06-20T00:00:00.020162000",
+                                  "2017-06-20T00:00:00.023183000"], dtype="datetime64[ns]")
 
         filename = StringIO(
-            u'2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n'
-            '2017-06-20 00:00:00.020162  -0.5727  104.0688    13.2 kA\n'
-            '2017-06-20 00:00:00.023183  12.1529  -10.8756   -31.0 kA'
+            u"2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n"
+            "2017-06-20 00:00:00.020162  -0.5727  104.0688    13.2 kA\n"
+            "2017-06-20 00:00:00.023183  12.1529  -10.8756   -31.0 kA"
         )
         filename_info = {}
         filetype_info = {}
@@ -52,25 +52,25 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         filename.close()
 
         # test power
-        dataset_id = make_dataid(name='power')
-        dataset_info = {'units': 'kA'}
+        dataset_id = make_dataid(name="power")
+        dataset_info = {"units": "kA"}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_allclose(result, expected_power, rtol=1e-05)
 
         # test lat
-        dataset_id = make_dataid(name='latitude')
+        dataset_id = make_dataid(name="latitude")
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_allclose(result, expected_lat, rtol=1e-05)
 
         # test lon
-        dataset_id = make_dataid(name='longitude')
+        dataset_id = make_dataid(name="longitude")
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_allclose(result, expected_lon, rtol=1e-05)
 
         # test time
-        dataset_id = make_dataid(name='time')
+        dataset_id = make_dataid(name="time")
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_array_equal(result, expected_time)

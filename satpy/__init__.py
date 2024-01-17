@@ -35,4 +35,4 @@ from satpy.scene import Scene  # noqa
 from satpy.utils import get_logger  # noqa
 from satpy.writers import available_writers  # noqa
 
-log = get_logger('satpy')
+log = get_logger("satpy")

@@ -6,11 +6,13 @@ dependencies:
   - pip
   - appdirs
   - dask
+  - dask-image
   - defusedxml
   - donfig
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
   - graphviz
+  - numba
   - numpy
   - pillow
   - pooch
@@ -23,7 +25,6 @@ dependencies:
   - rioxarray
   - setuptools
   - setuptools_scm
-  - setuptools_scm_git_archive
   - sphinx
   - sphinx_rtd_theme
   - sphinxcontrib-apidoc

@@ -38,20 +38,20 @@ class HDF_GHI_L1(FY4Base):
     def __init__(self, filename, filename_info, filetype_info):
         """Init filehandler."""
         super(HDF_GHI_L1, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = 'GHI'
+        self.sensor = "GHI"
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        ds_name = dataset_id['name']
-        logger.debug('Reading in get_dataset %s.', ds_name)
-        file_key = ds_info.get('file_key', ds_name)
+        ds_name = dataset_id["name"]
+        logger.debug("Reading in get_dataset %s.", ds_name)
+        file_key = ds_info.get("file_key", ds_name)
         if self.CHANS_ID in file_key:
-            file_key = f'Data/{file_key}'
+            file_key = f"Data/{file_key}"
         elif self.SUN_ID in file_key or self.SAT_ID in file_key:
-            file_key = f'Navigation/{file_key}'
+            file_key = f"Navigation/{file_key}"
         data = self.get(file_key)
         if data.ndim >= 2:
-            data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
+            data = data.rename({data.dims[-2]: "y", data.dims[-1]: "x"})
 
         data = self.calibrate(data, ds_info, ds_name, file_key)
 
@@ -61,58 +61,58 @@ class HDF_GHI_L1(FY4Base):
 
     def adjust_attrs(self, data, ds_info):
         """Adjust the attrs of the data."""
-        satname = self.PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
-        data.attrs.update({'platform_name': satname,
-                           'sensor': self['/attr/Sensor Identification Code'].lower(),
-                           'orbital_parameters': {
-                               'satellite_nominal_latitude': self['/attr/NOMSubSatLat'].item(),
-                               'satellite_nominal_longitude': self['/attr/NOMSubSatLon'].item(),
-                               'satellite_nominal_altitude': self['/attr/NOMSatHeight'].item()}})
+        satname = self.PLATFORM_NAMES.get(self["/attr/Satellite Name"], self["/attr/Satellite Name"])
+        data.attrs.update({"platform_name": satname,
+                           "sensor": self["/attr/Sensor Identification Code"].lower(),
+                           "orbital_parameters": {
+                               "satellite_nominal_latitude": self["/attr/NOMSubSatLat"].item(),
+                               "satellite_nominal_longitude": self["/attr/NOMSubSatLon"].item(),
+                               "satellite_nominal_altitude": self["/attr/NOMSatHeight"].item()}})
         data.attrs.update(ds_info)
         # remove attributes that could be confusing later
-        data.attrs.pop('FillValue', None)
-        data.attrs.pop('Intercept', None)
-        data.attrs.pop('Slope', None)
+        data.attrs.pop("FillValue", None)
+        data.attrs.pop("Intercept", None)
+        data.attrs.pop("Slope", None)
 
     def get_area_def(self, key):
         """Get the area definition."""
         # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
-        res = key['resolution']
+        res = key["resolution"]
 
         pdict = {}
 
-        c_lats = self.file_content['/attr/Corner-Point Latitudes']
-        c_lons = self.file_content['/attr/Corner-Point Longitudes']
+        c_lats = self.file_content["/attr/Corner-Point Latitudes"]
+        c_lons = self.file_content["/attr/Corner-Point Longitudes"]
 
         p1 = (c_lons[0], c_lats[0])
         p2 = (c_lons[1], c_lats[1])
         p3 = (c_lons[2], c_lats[2])
         p4 = (c_lons[3], c_lats[3])
 
-        pdict['a'] = self.file_content['/attr/Semi_major_axis'] * 1E3  # equator radius (m)
-        pdict['b'] = self.file_content['/attr/Semi_minor_axis'] * 1E3  # equator radius (m)
-        pdict['h'] = self.file_content['/attr/NOMSatHeight'] * 1E3  # the altitude of satellite (m)
+        pdict["a"] = self.file_content["/attr/Semi_major_axis"] * 1E3  # equator radius (m)
+        pdict["b"] = self.file_content["/attr/Semi_minor_axis"] * 1E3  # equator radius (m)
+        pdict["h"] = self.file_content["/attr/NOMSatHeight"] * 1E3  # the altitude of satellite (m)
 
-        pdict['h'] = pdict['h'] - pdict['a']
+        pdict["h"] = pdict["h"] - pdict["a"]
 
-        pdict['ssp_lon'] = float(self.file_content['/attr/NOMSubSatLon'])
-        pdict['nlines'] = float(self.file_content['/attr/RegLength'])
-        pdict['ncols'] = float(self.file_content['/attr/RegWidth'])
+        pdict["ssp_lon"] = float(self.file_content["/attr/NOMSubSatLon"])
+        pdict["nlines"] = float(self.file_content["/attr/RegLength"])
+        pdict["ncols"] = float(self.file_content["/attr/RegWidth"])
 
-        pdict['scandir'] = 'S2N'
+        pdict["scandir"] = "S2N"
 
-        pdict['a_desc'] = "FY-4 {} area".format(self.filename_info['observation_type'])
-        pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}m'
-        pdict['p_id'] = f'FY-4, {res}m'
+        pdict["a_desc"] = "FY-4 {} area".format(self.filename_info["observation_type"])
+        pdict["a_name"] = f'{self.filename_info["observation_type"]}_{res}m'
+        pdict["p_id"] = f"FY-4, {res}m"
 
-        proj_dict = {'a': pdict['a'],
-                     'b': pdict['b'],
-                     'lon_0': pdict['ssp_lon'],
-                     'h': pdict['h'],
-                     'proj': 'geos',
-                     'units': 'm',
-                     'sweep': 'y'}
+        proj_dict = {"a": pdict["a"],
+                     "b": pdict["b"],
+                     "lon_0": pdict["ssp_lon"],
+                     "h": pdict["h"],
+                     "proj": "geos",
+                     "units": "m",
+                     "sweep": "y"}
 
         p = Proj(proj_dict)
         o1 = (p(p1[0], p1[1]))  # Upper left

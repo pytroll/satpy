@@ -49,7 +49,7 @@ can do this using conda_::
 
 .. _conda: https://conda.io/
 
-This will create a new environment called "satpy-dev" with Python 3.8
+This will create a new environment called "satpy-dev" with Python 3.11
 installed. The second command will activate the environment so any future
 conda, python, or pip commands will use this new environment.
 
@@ -125,7 +125,7 @@ Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. For building the documentation,
 additional packages are needed. These can be installed with ::
 
-    pip install -e ".[all]".
+    pip install -e ".[all]"
 
 After editing the source files there the documentation can be generated locally::
 
