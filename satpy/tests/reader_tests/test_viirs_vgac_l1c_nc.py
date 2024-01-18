@@ -25,6 +25,7 @@ This version tests the readers for VIIIRS VGAC data preliminary version.
 import datetime
 
 import numpy as np
+import xarray as xr
 import pytest
 from netCDF4 import Dataset
 
@@ -107,3 +108,26 @@ class TestVGACREader:
                                                     hour=9, minute=8, second=7)
         assert scn_.end_time == datetime.datetime(year=2023, month=3, day=28,
                                                   hour=10, minute=11, second=12)
+
+    def test_dt64_to_datetime(self):
+        from satpy.readers.viirs_vgac_l1c_nc import VGACFileHandler
+        fh = VGACFileHandler(filename="",
+                             filename_info={"start_time": "2023-03-28T09:08:07"},
+                             filetype_info="")
+        in_dt = datetime.datetime(year=2023, month=3, day=28,
+                                  hour=9, minute=8, second=7)
+        out_dt = fh.dt64_to_datetime(in_dt)
+        assert out_dt == in_dt
+
+    def test_decode_time_variable(self):
+        from satpy.readers.viirs_vgac_l1c_nc import VGACFileHandler
+        fh = VGACFileHandler(filename="",
+                             filename_info={"start_time": "2023-03-28T09:08:07"},
+                             filetype_info="")
+        data = xr.DataArray(
+            [[1, 2],
+             [3, 4]],
+            dims=('y', 'x'),
+            attrs={"units": "something not expected"})
+        with pytest.raises(AttributeError):
+            fh.decode_time_variable(data, "time", None)
