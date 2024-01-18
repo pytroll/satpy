@@ -30,7 +30,7 @@ from satpy.tests.utils import make_dataid
 class TestHRITJMAFileHandler(unittest.TestCase):
     """Test the HRITJMAFileHandler."""
 
-    @mock.patch('satpy.readers.hrit_jma.HRITFileHandler.__init__')
+    @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
     def _get_reader(self, mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
         from satpy.readers.hrit_jma import HRITJMAFileHandler
         if not filename_info:
@@ -39,10 +39,10 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             filetype_info = {}
         if not reader_kwargs:
             reader_kwargs = {}
-        HRITJMAFileHandler.filename = 'filename'
+        HRITJMAFileHandler.filename = "filename"
         HRITJMAFileHandler.mda = mda
-        HRITJMAFileHandler._start_time = filename_info.get('start_time')
-        return HRITJMAFileHandler('filename', filename_info, filetype_info, **reader_kwargs)
+        HRITJMAFileHandler._start_time = filename_info.get("start_time")
+        return HRITJMAFileHandler("filename", filename_info, filetype_info, **reader_kwargs)
 
     def _get_acq_time(self, nlines):
         """Get sample header entry for scanline acquisition times.
@@ -58,39 +58,39 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mjd_1970 = 40587.0
         lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
         times_sparse = mjd_1970 + lines_sparse / 24 / 3600
-        acq_time_s = ['LINE:={}\rTIME:={:.6f}\r'.format(line, time)
+        acq_time_s = ["LINE:={}\rTIME:={:.6f}\r".format(line, time)
                       for line, time in zip(lines_sparse, times_sparse)]
-        acq_time_b = ''.join(acq_time_s).encode()
+        acq_time_b = "".join(acq_time_s).encode()
         return acq_time_b
 
     def _get_mda(self, loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
-                 segno=0, numseg=1, vis=True, platform='Himawari-8'):
+                 segno=0, numseg=1, vis=True, platform="Himawari-8"):
         """Create metadata dict like HRITFileHandler would do it."""
         if vis:
-            idf = b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r' \
-                  b'0:=-0.10\r1023:=100.00\r65535:=100.00\r'
+            idf = b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r" \
+                  b"0:=-0.10\r1023:=100.00\r65535:=100.00\r"
         else:
-            idf = b'$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r' \
-                  b'0:=329.98\r1023:=130.02\r65535:=130.02\r'
-        proj_h8 = b'GEOS(140.70)                    '
-        proj_mtsat2 = b'GEOS(145.00)                    '
-        proj_name = proj_h8 if platform == 'Himawari-8' else proj_mtsat2
-        return {'image_segm_seq_no': segno,
-                'total_no_image_segm': numseg,
-                'projection_name': proj_name,
-                'projection_parameters': {
-                    'a': 6378169.00,
-                    'b': 6356583.80,
-                    'h': 35785831.00,
+            idf = b"$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r" \
+                  b"0:=329.98\r1023:=130.02\r65535:=130.02\r"
+        proj_h8 = b"GEOS(140.70)                    "
+        proj_mtsat2 = b"GEOS(145.00)                    "
+        proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
+        return {"image_segm_seq_no": segno,
+                "total_no_image_segm": numseg,
+                "projection_name": proj_name,
+                "projection_parameters": {
+                    "a": 6378169.00,
+                    "b": 6356583.80,
+                    "h": 35785831.00,
                 },
-                'cfac': 10233128,
-                'lfac': 10233128,
-                'coff': coff,
-                'loff': loff,
-                'number_of_columns': ncols,
-                'number_of_lines': nlines,
-                'image_data_function': idf,
-                'image_observation_time': self._get_acq_time(nlines)}
+                "cfac": 10233128,
+                "lfac": 10233128,
+                "coff": coff,
+                "loff": loff,
+                "number_of_columns": ncols,
+                "number_of_lines": nlines,
+                "image_data_function": idf,
+                "image_observation_time": self._get_acq_time(nlines)}
 
     def test_init(self):
         """Test creating the file handler."""
@@ -100,48 +100,49 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mda = self._get_mda()
         mda_expected = mda.copy()
         mda_expected.update(
-            {'planned_end_segment_number': 1,
-             'planned_start_segment_number': 1,
-             'segment_sequence_number': 0,
-             'unit': 'ALBEDO(%)'})
-        mda_expected['projection_parameters']['SSP_longitude'] = 140.7
+            {"planned_end_segment_number": 1,
+             "planned_start_segment_number": 1,
+             "segment_sequence_number": 0,
+             "unit": "ALBEDO(%)"})
+        mda_expected["projection_parameters"]["SSP_longitude"] = 140.7
         reader = self._get_reader(mda=mda)
-        self.assertEqual(reader.mda, mda_expected)
+        assert reader.mda == mda_expected
 
         # Check projection name
-        self.assertEqual(reader.projection_name, 'GEOS(140.70)')
+        assert reader.projection_name == "GEOS(140.70)"
 
         # Check calibration table
         cal_expected = np.array([[0, -0.1],
                                  [1023,  100],
                                  [65535,  100]])
-        self.assertTrue(np.all(reader.calibration_table == cal_expected))
+        assert np.all(reader.calibration_table == cal_expected)
 
         # Check if scanline timestamps are there (dedicated test below)
-        self.assertIsInstance(reader.acq_time, np.ndarray)
+        assert isinstance(reader.acq_time, np.ndarray)
+        assert reader.acq_time.dtype == np.dtype("datetime64[ns]")
 
         # Check platform
-        self.assertEqual(reader.platform, HIMAWARI8)
+        assert reader.platform == HIMAWARI8
 
         # Check is_segmented attribute
         expected = {0: False, 1: True, 8: True}
         for segno, is_segmented in expected.items():
             mda = self._get_mda(segno=segno)
             reader = self._get_reader(mda=mda)
-            self.assertEqual(reader.is_segmented, is_segmented)
+            assert reader.is_segmented == is_segmented
 
         # Check area IDs
         expected = [
-            ({'area': 1}, 1),
-            ({'area': 1234}, UNKNOWN_AREA),
+            ({"area": 1}, 1),
+            ({"area": 1234}, UNKNOWN_AREA),
             ({}, UNKNOWN_AREA)
         ]
         mda = self._get_mda()
         for filename_info, area_id in expected:
             reader = self._get_reader(mda=mda, filename_info=filename_info)
-            self.assertEqual(reader.area_id, area_id)
+            assert reader.area_id == area_id
 
-    @mock.patch('satpy.readers.hrit_jma.HRITJMAFileHandler.__init__')
+    @mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__")
     def test_get_platform(self, mocked_init):
         """Test platform identification."""
         from satpy.readers.hrit_jma import PLATFORMS, UNKNOWN_PLATFORM, HRITJMAFileHandler
@@ -151,11 +152,11 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         for proj_name, platform in PLATFORMS.items():
             reader.projection_name = proj_name
-            self.assertEqual(reader._get_platform(), platform)
+            assert reader._get_platform() == platform
 
-        with mock.patch('logging.Logger.error') as mocked_log:
-            reader.projection_name = 'invalid'
-            self.assertEqual(reader._get_platform(), UNKNOWN_PLATFORM)
+        with mock.patch("logging.Logger.error") as mocked_log:
+            reader.projection_name = "invalid"
+            assert reader._get_platform() == UNKNOWN_PLATFORM
             mocked_log.assert_called()
 
     def test_get_area_def(self):
@@ -164,50 +165,50 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         cases = [
             # Non-segmented, full disk
-            {'loff': 1375.0, 'coff': 1375.0,
-             'nlines': 2750, 'ncols': 2750,
-             'segno': 0, 'numseg': 1,
-             'area': FULL_DISK,
-             'extent': (-5498000.088960204, -5498000.088960204,
+            {"loff": 1375.0, "coff": 1375.0,
+             "nlines": 2750, "ncols": 2750,
+             "segno": 0, "numseg": 1,
+             "area": FULL_DISK,
+             "extent": (-5498000.088960204, -5498000.088960204,
                         5502000.089024927, 5502000.089024927)},
             # Non-segmented, northern hemisphere
-            {'loff': 1325.0, 'coff': 1375.0,
-             'nlines': 1375, 'ncols': 2750,
-             'segno': 0, 'numseg': 1,
-             'area': NORTH_HEMIS,
-             'extent': (-5498000.088960204, -198000.00320373234,
+            {"loff": 1325.0, "coff": 1375.0,
+             "nlines": 1375, "ncols": 2750,
+             "segno": 0, "numseg": 1,
+             "area": NORTH_HEMIS,
+             "extent": (-5498000.088960204, -198000.00320373234,
                         5502000.089024927, 5302000.085788833)},
             # Non-segmented, southern hemisphere
-            {'loff': 50, 'coff': 1375.0,
-             'nlines': 1375, 'ncols': 2750,
-             'segno': 0, 'numseg': 1,
-             'area': SOUTH_HEMIS,
-             'extent': (-5498000.088960204, -5298000.085724112,
+            {"loff": 50, "coff": 1375.0,
+             "nlines": 1375, "ncols": 2750,
+             "segno": 0, "numseg": 1,
+             "area": SOUTH_HEMIS,
+             "extent": (-5498000.088960204, -5298000.085724112,
                         5502000.089024927, 202000.0032684542)},
             # Segmented, segment #1
-            {'loff': 1375.0, 'coff': 1375.0,
-             'nlines': 275, 'ncols': 2750,
-             'segno': 1, 'numseg': 10,
-             'area': FULL_DISK,
-             'extent': (-5498000.088960204, 4402000.071226413,
+            {"loff": 1375.0, "coff": 1375.0,
+             "nlines": 275, "ncols": 2750,
+             "segno": 1, "numseg": 10,
+             "area": FULL_DISK,
+             "extent": (-5498000.088960204, 4402000.071226413,
                         5502000.089024927, 5502000.089024927)},
             # Segmented, segment #7
-            {'loff': 1375.0, 'coff': 1375.0,
-             'nlines': 275, 'ncols': 2750,
-             'segno': 7, 'numseg': 10,
-             'area': FULL_DISK,
-             'extent': (-5498000.088960204, -2198000.035564665,
+            {"loff": 1375.0, "coff": 1375.0,
+             "nlines": 275, "ncols": 2750,
+             "segno": 7, "numseg": 10,
+             "area": FULL_DISK,
+             "extent": (-5498000.088960204, -2198000.035564665,
                         5502000.089024927, -1098000.0177661523)},
         ]
         for case in cases:
-            mda = self._get_mda(loff=case['loff'], coff=case['coff'],
-                                nlines=case['nlines'], ncols=case['ncols'],
-                                segno=case['segno'], numseg=case['numseg'])
+            mda = self._get_mda(loff=case["loff"], coff=case["coff"],
+                                nlines=case["nlines"], ncols=case["ncols"],
+                                segno=case["segno"], numseg=case["numseg"])
             reader = self._get_reader(mda=mda,
-                                      filename_info={'area': case['area']})
-            area = reader.get_area_def('some_id')
-            self.assertTupleEqual(area.area_extent, case['extent'])
-            self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
+                                      filename_info={"area": case["area"]})
+            area = reader.get_area_def("some_id")
+            assert area.area_extent == case["extent"]
+            assert area.description == AREA_NAMES[case["area"]]["long"]
 
     def test_calibrate(self):
         """Test calibration."""
@@ -237,11 +238,11 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         reader = self._get_reader(mda=mda)
 
         # 1. Counts
-        res = reader.calibrate(data=counts, calibration='counts')
-        self.assertTrue(np.all(counts.values == res.values))
+        res = reader.calibrate(data=counts, calibration="counts")
+        assert np.all(counts.values == res.values)
 
         # 2. Reflectance
-        res = reader.calibrate(data=counts, calibration='reflectance')
+        res = reader.calibrate(data=counts, calibration="reflectance")
         np.testing.assert_allclose(refl, res.values)  # also compares NaN
 
         # 3. Brightness temperature
@@ -249,7 +250,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                segno=0, vis=False)
         reader_bt = self._get_reader(mda=mda_bt)
         res = reader_bt.calibrate(data=counts,
-                                  calibration='brightness_temperature')
+                                  calibration="brightness_temperature")
         np.testing.assert_allclose(bt, res.values)  # also compares NaN
 
     def test_mask_space(self):
@@ -263,9 +264,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         # First line of the segment should be space, in the middle of the
         # last line there should be some valid pixels
         np.testing.assert_allclose(masked.values[0, :], np.nan)
-        self.assertTrue(np.all(masked.values[-1, 588:788] == 1))
+        assert np.all(masked.values[-1, 588:788] == 1)
 
-    @mock.patch('satpy.readers.hrit_jma.HRITFileHandler.get_dataset')
+    @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
         """Test getting a dataset."""
         from satpy.readers.hrit_jma import HIMAWARI8
@@ -277,72 +278,69 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
                                                           chunks=1024),
-                                                  dims=('y', 'x'))
+                                                  dims=("y", "x"))
 
         # Check attributes
-        res = reader.get_dataset(key, {'units': '%', 'sensor': 'ahi'})
-        self.assertEqual(res.attrs['units'], '%')
-        self.assertEqual(res.attrs['sensor'], 'ahi')
-        self.assertEqual(res.attrs['platform_name'], HIMAWARI8)
-        self.assertDictEqual(res.attrs['orbital_parameters'], {'projection_longitude': 140.7,
-                                                               'projection_latitude': 0.,
-                                                               'projection_altitude': 35785831.0})
+        res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
+        assert res.attrs["units"] == "%"
+        assert res.attrs["sensor"] == "ahi"
+        assert res.attrs["platform_name"] == HIMAWARI8
+        assert res.attrs["orbital_parameters"] == {"projection_longitude": 140.7,
+                                                   "projection_latitude": 0.0,
+                                                   "projection_altitude": 35785831.0}
 
         # Check if acquisition time is a coordinate
-        self.assertIn('acq_time', res.coords)
+        assert "acq_time" in res.coords
 
         # Check called methods
-        with mock.patch.object(reader, '_mask_space') as mask_space:
-            with mock.patch.object(reader, 'calibrate') as calibrate:
-                reader.get_dataset(key, {'units': '%', 'sensor': 'ahi'})
+        with mock.patch.object(reader, "_mask_space") as mask_space:
+            with mock.patch.object(reader, "calibrate") as calibrate:
+                reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
                 mask_space.assert_called()
                 calibrate.assert_called()
 
-        with mock.patch('logging.Logger.error') as log_mock:
-            reader.get_dataset(key, {'units': '%', 'sensor': 'jami'})
+        with mock.patch("logging.Logger.error") as log_mock:
+            reader.get_dataset(key, {"units": "%", "sensor": "jami"})
             log_mock.assert_called()
 
     def test_mjd2datetime64(self):
         """Test conversion from modified julian day to datetime64."""
         from satpy.readers.hrit_jma import mjd2datetime64
-        self.assertEqual(mjd2datetime64(np.array([0])),
-                         np.datetime64('1858-11-17', 'us'))
-        self.assertEqual(mjd2datetime64(np.array([40587.5])),
-                         np.datetime64('1970-01-01 12:00', 'us'))
+        assert mjd2datetime64(np.array([0])) == np.datetime64("1858-11-17", "ns")
+        assert mjd2datetime64(np.array([40587.5])) == np.datetime64("1970-01-01 12:00", "ns")
 
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""
-        dt_line = np.arange(1, 11000+1).astype('timedelta64[s]')
-        acq_time_exp = np.datetime64('1970-01-01', 'us') + dt_line
-
-        for platform in ['Himawari-8', 'MTSAT-2']:
+        dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
+        acq_time_exp = np.datetime64("1970-01-01", "ns") + dt_line
+        for platform in ["Himawari-8", "MTSAT-2"]:
             # Results are not exactly identical because timestamps are stored in
             # the header with only 6 decimals precision (max diff here: 45 msec).
             mda = self._get_mda(platform=platform)
             reader = self._get_reader(mda=mda)
             np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                        acq_time_exp.astype(np.int64),
-                                       atol=45000)
+                                       atol=45000000)
 
     def test_start_time_from_filename(self):
         """Test that by default the datetime in the filename is returned."""
         import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
-        for platform in ['Himawari-8', 'MTSAT-2']:
+        for platform in ["Himawari-8", "MTSAT-2"]:
             mda = self._get_mda(platform=platform)
             reader = self._get_reader(
                 mda=mda,
-                filename_info={'start_time': start_time})
+                filename_info={"start_time": start_time})
             assert reader._start_time == start_time
 
     def test_start_time_from_aqc_time(self):
         """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
         import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
-        for platform in ['Himawari-8', 'MTSAT-2']:
+        for platform in ["Himawari-8", "MTSAT-2"]:
             mda = self._get_mda(platform=platform)
             reader = self._get_reader(
                 mda=mda,
-                filename_info={'start_time': start_time},
-                reader_kwargs={'use_acquisition_time_as_start_time': True})
+                filename_info={"start_time": start_time},
+                reader_kwargs={"use_acquisition_time_as_start_time": True})
             assert reader.start_time == reader.acq_time[0].astype(dt.datetime)

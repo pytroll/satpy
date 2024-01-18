@@ -83,18 +83,18 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
         """Initialize file handler."""
-        self.datasets = filename_info['datasets'].split('-')
+        self.datasets = filename_info["datasets"].split("-")
         self.use_tc = use_tc
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, item):
         """Get item."""
-        if '*' in item:
+        if "*" in item:
             # this is an aggregated field that can't easily be loaded, need to
             # join things together
             idx = 0
             base_item = item
-            item = base_item.replace('*', str(idx))
+            item = base_item.replace("*", str(idx))
             result = []
             while True:
                 try:
@@ -106,7 +106,7 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
                     break
 
                 idx += 1
-                item = base_item.replace('*', str(idx))
+                item = base_item.replace("*", str(idx))
             return result
         else:
             return super().__getitem__(item)
@@ -120,11 +120,11 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
         scans for each granule is read from:
         ``Data_Products/...Gran_x/N_Number_Of_Scans``.
         """
-        dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
+        dataset_group = [ds_group for ds_group in ds_info["dataset_groups"] if ds_group in self.datasets]
         if not dataset_group:
             return
         dataset_group = dataset_group[0]
-        ds_info['dataset_group'] = dataset_group
+        ds_info["dataset_group"] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
 
         data = self.concatenate_dataset(dataset_group, var_path)
@@ -138,17 +138,17 @@ class VIIRSSDRFileHandler(JPSS_SDR_FileHandler):
     def get_bounding_box(self):
         """Get the bounding box of this file."""
         from pyproj import Geod
-        geod = Geod(ellps='WGS84')
+        geod = Geod(ellps="WGS84")
         dataset_group = DATASET_KEYS[self.datasets[0]]
         idx = 0
         lons_ring = None
         lats_ring = None
         while True:
-            path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{idx}/attr/'
+            path = "Data_Products/{dataset_group}/{dataset_group}_Gran_{idx}/attr/"
             prefix = path.format(dataset_group=dataset_group, idx=idx)
             try:
-                lats = self.file_content[prefix + 'G-Ring_Latitude']
-                lons = self.file_content[prefix + 'G-Ring_Longitude']
+                lats = self.file_content[prefix + "G-Ring_Latitude"]
+                lons = self.file_content[prefix + "G-Ring_Longitude"]
                 if lons_ring is None:
                     lons_ring = lons
                     lats_ring = lats
@@ -185,7 +185,7 @@ def split_desired_other(fhs, prime_geo, second_geo):
 class VIIRSSDRReader(FileYAMLReader):
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
-    def __init__(self, config_files, use_tc=None, **kwargs):
+    def __init__(self, config_files, use_tc=None, **kwargs):  # noqa: D417
         """Initialize file reader and adjust geolocation preferences.
 
         Args:
@@ -215,16 +215,16 @@ class VIIRSSDRReader(FileYAMLReader):
         geo_del = []
         viirs_del = []
         for filename, filename_info in filename_items:
-            datasets = filename_info['datasets'].split('-')
+            datasets = filename_info["datasets"].split("-")
             if not self._is_viirs_dataset(datasets):
                 viirs_del.append(filename)
 
-            if ('GITCO' in datasets) or ('GMTCO' in datasets):
+            if ("GITCO" in datasets) or ("GMTCO" in datasets):
                 if self.use_tc is False:
                     geo_del.append(filename)
                 else:
                     geo_keep.append(filename)
-            elif ('GIMGO' in datasets) or ('GMODO' in datasets):
+            elif ("GIMGO" in datasets) or ("GMODO" in datasets):
                 if self.use_tc is True:
                     geo_del.append(filename)
                 else:
@@ -240,20 +240,20 @@ class VIIRSSDRReader(FileYAMLReader):
         return self._remove_datasets_from_files(filename_items, files_to_edit, no_viirs)
 
     def _remove_geo_datasets_from_files(self, filename_items, files_to_edit):
-        datasets_to_consider = ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']
+        datasets_to_consider = ["GITCO", "GMTCO", "GIMGO", "GMODO"]
         return self._remove_datasets_from_files(filename_items, files_to_edit, datasets_to_consider)
 
     def _remove_datasets_from_files(self, filename_items, files_to_edit, considered_datasets):
         fdict = dict(filename_items)
         for to_del in files_to_edit:
-            fdict[to_del]['datasets'] = fdict[to_del]['datasets'].split('-')
+            fdict[to_del]["datasets"] = fdict[to_del]["datasets"].split("-")
             for dataset in considered_datasets:
                 with suppress(ValueError):
-                    fdict[to_del]['datasets'].remove(dataset)
-            if not fdict[to_del]['datasets']:
+                    fdict[to_del]["datasets"].remove(dataset)
+            if not fdict[to_del]["datasets"]:
                 del fdict[to_del]
             else:
-                fdict[to_del]['datasets'] = "-".join(fdict[to_del]['datasets'])
+                fdict[to_del]["datasets"] = "-".join(fdict[to_del]["datasets"])
         filename_items = fdict.items()
         return filename_items
 
@@ -269,15 +269,15 @@ class VIIRSSDRReader(FileYAMLReader):
             try:
                 # get the filename and remove the creation time
                 # which is often wrong
-                fn = fh['/attr/N_GEO_Ref'][:46] + '*.h5'
+                fn = fh["/attr/N_GEO_Ref"][:46] + "*.h5"
                 fns.extend(glob(os.path.join(base_dir, fn)))
 
                 # usually is non-terrain corrected file, add the terrain
                 # corrected file too
-                if fn[:5] == 'GIMGO':
-                    fn = 'GITCO' + fn[5:]
-                elif fn[:5] == 'GMODO':
-                    fn = 'GMTCO' + fn[5:]
+                if fn[:5] == "GIMGO":
+                    fn = "GITCO" + fn[5:]
+                elif fn[:5] == "GMODO":
+                    fn = "GMTCO" + fn[5:]
                 else:
                     continue
                 fns.extend(glob(os.path.join(base_dir, fn)))
@@ -288,22 +288,22 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def _get_primary_secondary_geo_groups(self, ds_info):
         """Find out which geolocation files are needed."""
-        if ds_info['dataset_groups'][0].startswith('GM'):
+        if ds_info["dataset_groups"][0].startswith("GM"):
             if self.use_tc is False:
-                prime_geo = 'GMODO'
-                second_geo = 'GMTCO'
+                prime_geo = "GMODO"
+                second_geo = "GMTCO"
             else:
-                prime_geo = 'GMTCO'
-                second_geo = 'GMODO'
-        elif ds_info['dataset_groups'][0].startswith('GI'):
+                prime_geo = "GMTCO"
+                second_geo = "GMODO"
+        elif ds_info["dataset_groups"][0].startswith("GI"):
             if self.use_tc is False:
-                prime_geo = 'GIMGO'
-                second_geo = 'GITCO'
+                prime_geo = "GIMGO"
+                second_geo = "GITCO"
             else:
-                prime_geo = 'GITCO'
-                second_geo = 'GIMGO'
+                prime_geo = "GITCO"
+                second_geo = "GIMGO"
         else:
-            raise ValueError('Unknown dataset group %s' % ds_info['dataset_groups'][0])
+            raise ValueError("Unknown dataset group %s" % ds_info["dataset_groups"][0])
         return prime_geo, second_geo
 
     def get_right_geo_fhs(self, dsid, fhs):
@@ -313,7 +313,7 @@ class VIIRSSDRReader(FileYAMLReader):
         desired, other = split_desired_other(fhs, prime_geo, second_geo)
         if desired:
             try:
-                ds_info['dataset_groups'].remove(second_geo)
+                ds_info["dataset_groups"].remove(second_geo)
             except ValueError:
                 pass
             return desired
@@ -324,13 +324,13 @@ class VIIRSSDRReader(FileYAMLReader):
         """Get the file handler to load this dataset."""
         ds_info = self.all_ids[dsid]
 
-        fhs = [fh for fh in self.file_handlers['generic_file']
-               if set(fh.datasets) & set(ds_info['dataset_groups'])]
+        fhs = [fh for fh in self.file_handlers["generic_file"]
+               if set(fh.datasets) & set(ds_info["dataset_groups"])]
         if not fhs:
             LOG.warning("Required file type '%s' not found or loaded for "
-                        "'%s'", ds_info['file_type'], dsid['name'])
+                        "'%s'", ds_info["file_type"], dsid["name"])
         else:
-            if len(set(ds_info['dataset_groups']) & {'GITCO', 'GIMGO', 'GMTCO', 'GMODO'}) > 1:
+            if len(set(ds_info["dataset_groups"]) & {"GITCO", "GIMGO", "GMTCO", "GMODO"}) > 1:
                 fhs = self.get_right_geo_fhs(dsid, fhs)
             return fhs
 
@@ -351,12 +351,12 @@ class VIIRSSDRReader(FileYAMLReader):
             # check the dataset file for the geolocation filename
             geo_filenames = self._load_filenames_from_geo_ref(dsid)
             self._create_new_geo_file_handlers(geo_filenames)
-            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], prime_geo, second_geo)
+            self._remove_not_loaded_geo_dataset_group(c_info["dataset_groups"], prime_geo, second_geo)
 
         return coords
 
     def _geo_dataset_groups(self, c_info):
-        if len(c_info['dataset_groups']) == 1:  # filtering already done
+        if len(c_info["dataset_groups"]) == 1:  # filtering already done
             return None, None
         try:
             prime_geo, second_geo = self._get_primary_secondary_geo_groups(c_info)
@@ -365,12 +365,12 @@ class VIIRSSDRReader(FileYAMLReader):
             return None, None
 
     def _create_new_geo_file_handlers(self, geo_filenames):
-        existing_filenames = set([fh.filename for fh in self.file_handlers['generic_file']])
+        existing_filenames = set([fh.filename for fh in self.file_handlers["generic_file"]])
         geo_filenames = set(geo_filenames) - existing_filenames
         self.create_filehandlers(geo_filenames)
 
     def _remove_not_loaded_geo_dataset_group(self, c_dataset_groups, prime_geo, second_geo):
-        all_fhs = self.file_handlers['generic_file']
+        all_fhs = self.file_handlers["generic_file"]
         desired, other = split_desired_other(all_fhs, prime_geo, second_geo)
         group_to_remove = second_geo if desired else prime_geo
         c_dataset_groups.remove(group_to_remove)

@@ -23,16 +23,16 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 # mapping of netcdf type code to numpy data type:
 TYPE_MAP = {
-    'i1': np.int8,
-    'i2': np.int16,
-    'i4': np.int32,
-    'i8': np.int64,
-    'u1': np.uint8,
-    'u2': np.uint16,
-    'u4': np.uint32,
-    'u8': np.uint64,
-    'f4': np.float32,
-    'f8': np.float64,
+    "i1": np.int8,
+    "i2": np.int16,
+    "i4": np.int32,
+    "i8": np.int64,
+    "u1": np.uint8,
+    "u2": np.uint16,
+    "u4": np.uint32,
+    "u8": np.uint64,
+    "f4": np.float32,
+    "f8": np.float64,
 }
 
 
@@ -47,55 +47,55 @@ def l2_le_schema(settings=None):
         return np.random.randint(low=0, high=np.iinfo(np.uint16).max - 1, size=num, dtype=np.uint16)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', 'data/'),
-        'dimensions': {
-            'unfiltered_events': nobs,
-            'l1b_chunks': nchunks,
-            'l1b_offsets': nchunks,
-            'filters': nfilters,
-            'scalar': 1,
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", "data/"),
+        "dimensions": {
+            "unfiltered_events": nobs,
+            "l1b_chunks": nchunks,
+            "l1b_offsets": nchunks,
+            "filters": nfilters,
+            "scalar": 1,
         },
-        'variables': {},
-        'sector_variables': {
+        "variables": {},
+        "sector_variables": {
             "event_id": {
                 "format": "u2",
-                "shape": ('unfiltered_events',),
+                "shape": ("unfiltered_events",),
                 "fill_value": 65535,
                 "long_name": "ID of LI L2 Event",
                 "default_data": lambda: rand_u16(nobs)
             },
             "group_id": {
                 "format": "u2",
-                "shape": ('unfiltered_events',),
+                "shape": ("unfiltered_events",),
                 "fill_value": 65535,
                 "long_name": "ID of associated LI L2 Group object",
                 "default_data": lambda: rand_u16(nobs)
             },
             "l1b_chunk_ids": {
                 "format": "u4",
-                "shape": ('l1b_chunks',),
+                "shape": ("l1b_chunks",),
                 "fill_value": 4294967295,
                 "long_name": "Array of L1b event chunk IDs",
                 "default_data": lambda: np.arange(nchunks) + 10000
             },
             "l1b_chunk_offsets": {
                 "format": "u4",
-                "shape": ('l1b_offsets',),
+                "shape": ("l1b_offsets",),
                 "fill_value": 4294967295,
                 "long_name": "Array offset for L1b event chunk boundaries",
                 "default_data": lambda: np.arange(nchunks)
             },
             "l1b_window": {
                 "format": "u4",
-                "shape": ('unfiltered_events',),
+                "shape": ("unfiltered_events",),
                 "fill_value": 4294967295,
                 "long_name": "window index of associated L1b event",
                 "default_data": lambda: (np.arange(nobs) + 10000)
             },
             "filter_values": {
                 "format": "u1",
-                "shape": ('unfiltered_events', 'filters',),
+                "shape": ("unfiltered_events", "filters",),
                 "fill_value": 255,
                 "scale_factor": 0.004,
                 "add_offset": 0.0,
@@ -104,22 +104,22 @@ def l2_le_schema(settings=None):
             },
             "epoch_time": {
                 "format": "f8",
-                "shape": ('scalar',),
+                "shape": ("scalar",),
                 "fill_value": 9.96920996886869e36,
                 "long_name": "Start time of integration frame",
                 "default_data": lambda: 1.234,
-                'precision': '1 millisecond',
-                'time_standard': 'UTC',
-                'standard_name': 'time',
-                'units': 'seconds since 2000-01-01 00:00:00.0',
+                "precision": "1 millisecond",
+                "time_standard": "UTC",
+                "standard_name": "time",
+                "units": "seconds since 2000-01-01 00:00:00.0",
             },
             "time_offset": {
                 "format": "f4",
-                "shape": ('unfiltered_events',),
+                "shape": ("unfiltered_events",),
                 "fill_value": 9.96921e36,
                 "long_name": "Time offset from epoch time",
                 "default_data": lambda: np.linspace(0.0, 1000.0, nobs),
-                'units': 'seconds',
+                "units": "seconds",
             },
         }
     }
@@ -136,13 +136,13 @@ def l2_lef_schema(settings=None):
     nobs = settings.get("num_obs", 123)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', 'data/'),
-        'dimensions': {
-            'events': nobs,
-            'scalar': 1,
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", "data/"),
+        "dimensions": {
+            "events": nobs,
+            "scalar": 1,
         },
-        'variables': {
+        "variables": {
             "l1b_geolocation_warning": {
                 "format": "i1",
                 "shape": (),  # test explicitly the scalar case
@@ -150,47 +150,47 @@ def l2_lef_schema(settings=None):
             },
             "l1b_missing_warning": {
                 "format": "i1",
-                "shape": ('scalar',),
+                "shape": ("scalar",),
                 "default_data": lambda: 0
             },
             "l1b_radiometric_warning": {
                 "format": "i1",
-                "shape": ('scalar',),
+                "shape": ("scalar",),
                 "default_data": lambda: 0
             },
         },
-        'sector_variables': {
+        "sector_variables": {
             "event_id": {
                 "format": "u4",
-                "shape": ('events',),
+                "shape": ("events",),
                 "fill_value": 65535,
                 "long_name": "ID of LI L2 Event",
                 "default_data": lambda: np.arange(1, nobs + 1)
             },
             "group_id": {
                 "format": "u4",
-                "shape": ('events',),
+                "shape": ("events",),
                 "fill_value": 65535,
                 "long_name": "ID of associated LI L2 Group object",
                 "default_data": lambda: np.arange(1, nobs + 1)
             },
             "flash_id": {
                 "format": "u4",
-                "shape": ('events',),
+                "shape": ("events",),
                 "fill_value": 65535,
                 "long_name": "ID of associated LI L2 Flash object",
                 "default_data": lambda: np.arange(1, nobs + 1)
             },
             "detector": {
                 "format": "u4",
-                "shape": ('scalar',),
+                "shape": ("scalar",),
                 "fill_value": 65535,
                 "long_name": "ID of detector for this group",
                 "default_data": lambda: 1
             },
             "latitude": {
                 "format": "i2",
-                "shape": ('events',),
+                "shape": ("events",),
                 "fill_value": -32767,
                 "long_name": "Latitude of group",
                 "units": "degrees_north",
@@ -199,7 +199,7 @@ def l2_lef_schema(settings=None):
             },
             "longitude": {
                 "format": "i2",
-                "shape": ('events',),
+                "shape": ("events",),
                 "fill_value": -32767,
                 "long_name": "Longitude of group",
                 "units": "degrees_east",
@@ -208,7 +208,7 @@ def l2_lef_schema(settings=None):
             },
             "radiance": {
                 "format": "u2",
-                "shape": ('events',),
+                "shape": ("events",),
                 "long_name": "Radiance of Flash",
                 "standard_name": "radiance",
                 "units": "mW.m-2.sr-1",
@@ -216,34 +216,34 @@ def l2_lef_schema(settings=None):
             },
             "event_filter_qa": {
                 "format": "u1",
-                "shape": ('events',),
+                "shape": ("events",),
                 "long_name": "L2 event pre-filtering quality assurance value",
                 "default_data": lambda: np.random.randint(1, 2 ** 8 - 1, nobs)
             },
             "epoch_time": {
                 "format": "f8",
-                "shape": ('scalar',),
+                "shape": ("scalar",),
                 "long_name": "Start time of integration frame",
                 "units": "seconds since 2000-01-01 00:00:00.0",
                 "default_data": lambda: start_ts
             },
             "time_offset": {
                 "format": "f4",
-                "shape": ('events',),
+                "shape": ("events",),
                 "long_name": "Time offset from epoch time",
                 "units": "seconds",
                 "default_data": lambda: np.random.uniform(1, 2 ** 31 - 1, nobs)
             },
             "detector_row": {
                 "format": "u2",
-                "shape": ('events',),
+                "shape": ("events",),
                 "long_name": "Detector row position of event pixel",
                 "units": "1",
                 "default_data": lambda: np.random.randint(1, 1000, nobs)
             },
             "detector_column": {
                 "format": "u2",
-                "shape": ('events',),
+                "shape": ("events",),
                 "long_name": "Detector column position of event pixel",
                 "units": "1",
                 "default_data": lambda: np.random.randint(1, 1000, nobs)
@@ -258,22 +258,22 @@ def l2_lgr_schema(settings=None):
     ngrps = settings.get("num_groups", 120)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'groups': ngrps,
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", ""),
+        "dimensions": {
+            "groups": ngrps,
         },
-        'variables': {
+        "variables": {
             "latitude": {
                 "format": "f4",
-                "shape": ('groups',),
+                "shape": ("groups",),
                 "long_name": "Latitude of group",
                 "units": "degrees_north",
                 "default_data": lambda: np.linspace(-90, 90, ngrps)
             },
             "longitude": {
                 "format": "f4",
-                "shape": ('groups',),
+                "shape": ("groups",),
                 "long_name": "Longitude of group",
                 "units": "degrees_east",
                 "default_data": lambda: np.linspace(-180, 80, ngrps)
@@ -292,15 +292,15 @@ def l2_lfl_schema(settings=None):
     etime = (datetime(2019, 1, 2) - epoch).total_seconds()
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': {
-            'flashes': nobs,
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", ""),
+        "dimensions": {
+            "flashes": nobs,
         },
-        'variables': {
+        "variables": {
             "latitude": {
                 "format": "i2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Latitude of Flash",
                 "standard_name": "latitude",
                 "units": "degrees_north",
@@ -312,7 +312,7 @@ def l2_lfl_schema(settings=None):
             },
             "longitude": {
                 "format": "i2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Longitude of Flash",
                 "standard_name": "longitude",
                 "units": "degrees_east",
@@ -324,7 +324,7 @@ def l2_lfl_schema(settings=None):
             },
             "radiance": {
                 "format": "u2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Radiance of Flash",
                 "standard_name": "radiance",
                 "units": "mW.m-2.sr-1",
@@ -332,7 +332,7 @@ def l2_lfl_schema(settings=None):
             },
             "flash_duration": {
                 "format": "u2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Flash duration",
                 "standard_name": "flash_duration",
                 "units": "ms",
@@ -340,56 +340,56 @@ def l2_lfl_schema(settings=None):
             },
             "flash_filter_confidence": {
                 "format": "i1",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "L2 filtered flash confidence",
                 "standard_name": "flash_filter_confidence",
                 "default_data": lambda: np.clip(np.round(np.random.normal(20, 10, nobs)), 1, 2 ** 7 - 1)
             },
             "flash_footprint": {
                 "format": "u2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Flash footprint size",
-                "standard_name": 'flash_footprint',
+                "standard_name": "flash_footprint",
                 "units": "L1 grid pixels",
                 "default_data": lambda: np.maximum(1, np.round(np.random.normal(5, 3, nobs)))
             },
             "flash_id": {
                 "format": "u4",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Flash footprint size",
-                "standard_name": 'flash_id',
+                "standard_name": "flash_id",
                 "default_data": lambda: np.arange(1, nobs + 1)
             },
             "flash_time": {
                 "format": "f8",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Nominal flash time",
                 "units": "seconds since 2000-01-01 00:00:00.0",
-                "standard_name": 'time',
+                "standard_name": "time",
                 "precision": "1 millisecond",
                 "default_data": lambda: np.random.uniform(stime, etime, nobs)
             },
             "l1b_geolocation_warning": {
-                "format": "u8",
-                "shape": ('flashes',),
+                "format": "i1",
+                "shape": ("flashes",),
                 "long_name": "L1b geolocation warning",
                 "default_data": lambda: -127
             },
             "l1b_radiometric_warning": {
-                "format": "u8",
-                "shape": ('flashes',),
+                "format": "i1",
+                "shape": ("flashes",),
                 "long_name": "L1b radiometric warning",
                 "default_data": lambda: -127
             },
             "number_of_events": {
                 "format": "u2",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Number of events in each flash",
                 "default_data": lambda: 1
             },
             "number_of_groups": {
                 "format": "u4",
-                "shape": ('flashes',),
+                "shape": ("flashes",),
                 "long_name": "Number of flashes in each flash",
                 "default_data": lambda: 1
             },
@@ -403,45 +403,45 @@ def l2_af_schema(settings=None):
     nobs = settings.get("num_obs", 1234)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': accumulation_dimensions(1, nobs),
-        'variables': {
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", ""),
+        "dimensions": accumulation_dimensions(1, nobs),
+        "variables": {
             "accumulation_offsets": {
                 "format": "u4",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "default_data": lambda: 0
             },
             "accumulation_start_times": {
                 "format": "f8",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "default_data": lambda: 4.25055600161e8
             },
             "l1b_geolocation_warning": {
                 "format": "i1",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "long_name": "L1b geolocation warning",
                 "default_data": lambda: -127
             },
             "l1b_radiometric_warning": {
                 "format": "i1",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "long_name": "L1b radiometric warning",
                 "default_data": lambda: -127
             },
             "average_flash_qa": {
                 "format": "i1",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "default_data": lambda: 23
             },
             "flash_accumulation": {
                 "format": "u2",
-                "shape": ('pixels',),
+                "shape": ("pixels",),
                 "default_data": lambda: np.clip(np.round(np.random.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
             },
             "mtg_geos_projection": mtg_geos_projection(),
-            "x": fci_grid_definition('X', nobs),
-            "y": fci_grid_definition('Y', nobs),
+            "x": fci_grid_definition("X", nobs),
+            "y": fci_grid_definition("Y", nobs),
         }
     }
 
@@ -453,27 +453,27 @@ def l2_afa_schema(settings=None):
     nacc = settings.get("num_accumulations", 20)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': accumulation_dimensions(nacc, npix),
-        'variables': {
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", ""),
+        "dimensions": accumulation_dimensions(nacc, npix),
+        "variables": {
             "accumulation_start_times": {
                 "format": "f4",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "long_name": "Accumulation start time",
                 "units": "seconds since 2000-01-01 00:00:00.0",
                 "default_data": lambda: np.linspace(0.0, 1.0, nacc)
             },
             "accumulated_flash_area": {
                 "format": "u4",
-                "shape": ('pixels',),
+                "shape": ("pixels",),
                 "fill_value": 4294967295,
                 "long_name": "Number of contributing unique flashes to each pixel",
                 "default_data": lambda: np.mod(np.arange(npix), 10) + 1
             },
             "mtg_geos_projection": mtg_geos_projection(),
-            "x": fci_grid_definition('X', npix),
-            "y": fci_grid_definition('Y', npix),
+            "x": fci_grid_definition("X", npix),
+            "y": fci_grid_definition("Y", npix),
         }
     }
 
@@ -485,13 +485,13 @@ def l2_afr_schema(settings=None):
     nacc = settings.get("num_accumulations", 20)
 
     return {
-        'providers': settings.get('providers', {}),
-        'variable_path': settings.get('variable_path', ''),
-        'dimensions': accumulation_dimensions(nacc, nobs),
-        'variables': {
+        "providers": settings.get("providers", {}),
+        "variable_path": settings.get("variable_path", ""),
+        "dimensions": accumulation_dimensions(nacc, nobs),
+        "variables": {
             "flash_radiance": {
                 "format": "f4",
-                "shape": ('pixels',),
+                "shape": ("pixels",),
                 "long_name": "Area averaged flash radiance accumulation",
                 "grid_mapping": "mtg_geos_projection",
                 "coordinate": "sparse: x y",
@@ -499,14 +499,14 @@ def l2_afr_schema(settings=None):
             },
             "accumulation_start_times": {
                 "format": "f4",
-                "shape": ('accumulations',),
+                "shape": ("accumulations",),
                 "long_name": "Accumulation start time",
                 "units": "seconds since 2000-01-01 00:00:00.0",
                 "default_data": lambda: 0
             },
             "mtg_geos_projection": mtg_geos_projection(),
-            "x": fci_grid_definition('X', nobs),
-            "y": fci_grid_definition('Y', nobs),
+            "x": fci_grid_definition("X", nobs),
+            "y": fci_grid_definition("Y", nobs),
         }
     }
 
@@ -514,29 +514,29 @@ def l2_afr_schema(settings=None):
 def accumulation_dimensions(nacc, nobs):
     """Set dimensions for the accumulated products."""
     return {
-        'accumulations': nacc,
-        'pixels': nobs,
+        "accumulations": nacc,
+        "pixels": nobs,
     }
 
 
 def fci_grid_definition(axis, nobs):
     """FCI grid definition on X or Y axis."""
-    if axis == 'X':
-        long_name = 'azimuth angle encoded as column'
-        standard_name = 'projection_x_coordinate'
+    if axis == "X":
+        long_name = "azimuth angle encoded as column"
+        standard_name = "projection_x_coordinate"
     else:
-        long_name = 'zenith angle encoded as row'
-        standard_name = 'projection_y_coordinate'
+        long_name = "zenith angle encoded as row"
+        standard_name = "projection_y_coordinate"
 
     return {
         "format": "i2",
-        "shape": ('pixels',),
+        "shape": ("pixels",),
         "add_offset": -0.155619516,
         "axis": axis,
         "long_name": long_name,
         "scale_factor": 5.58878e-5,
         "standard_name": standard_name,
-        "units": 'radian',
+        "units": "radian",
         "valid_range": np.asarray([1, 5568]),
         "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
     }
@@ -546,49 +546,49 @@ def mtg_geos_projection():
     """MTG geos projection definition."""
     return {
         "format": "i4",
-        "shape": ('accumulations',),
-        "grid_mapping_name": 'geostationary',
+        "shape": ("accumulations",),
+        "grid_mapping_name": "geostationary",
         "inverse_flattening": 298.2572221,
         "latitude_of_projection_origin": 0,
         "longitude_of_projection_origin": 0,
         "perspective_point_height": 42164000,
         "semi_major_axis": 6378169,
         "semi_minor_axis": 6356583.8,
-        "sweep_angle_axis": 'y',
-        "long_name": 'MTG geostationary projection',
+        "sweep_angle_axis": "y",
+        "long_name": "MTG geostationary projection",
         "default_data": lambda: -2147483647
     }
 
 
 products_dict = {
-    '2-LE': {'ftype': 'li_l2_le_nc', 'schema': l2_le_schema},
-    '2-LEF': {'ftype': 'li_l2_lef_nc', 'schema': l2_lef_schema},
-    '2-LGR': {'ftype': 'li_l2_lgr_nc', 'schema': l2_lgr_schema},
-    '2-LFL': {'ftype': 'li_l2_lfl_nc', 'schema': l2_lfl_schema},
-    '2-AF': {'ftype': 'li_l2_af_nc', 'schema': l2_af_schema},
-    '2-AFA': {'ftype': 'li_l2_afa_nc', 'schema': l2_afa_schema},
-    '2-AFR': {'ftype': 'li_l2_afr_nc', 'schema': l2_afr_schema},
+    "2-LE": {"ftype": "li_l2_le_nc", "schema": l2_le_schema},
+    "2-LEF": {"ftype": "li_l2_lef_nc", "schema": l2_lef_schema},
+    "2-LGR": {"ftype": "li_l2_lgr_nc", "schema": l2_lgr_schema},
+    "2-LFL": {"ftype": "li_l2_lfl_nc", "schema": l2_lfl_schema},
+    "2-AF": {"ftype": "li_l2_af_nc", "schema": l2_af_schema},
+    "2-AFA": {"ftype": "li_l2_afa_nc", "schema": l2_afa_schema},
+    "2-AFR": {"ftype": "li_l2_afr_nc", "schema": l2_afr_schema},
 }
 
 
 def get_product_schema(pname, settings=None):
     """Retrieve an LI product schema given its name."""
-    return products_dict[pname]['schema'](settings)
+    return products_dict[pname]["schema"](settings)
 
 
 def extract_filetype_info(filetype_infos, filetype):
     """Extract Satpy-conform filetype_info from filetype_infos fixture."""
     ftype_info = filetype_infos[filetype]
-    ftype_info['file_type'] = filetype
+    ftype_info["file_type"] = filetype
     return ftype_info
 
 
 def set_variable_path(var_path, desc, sname):
     """Replace variable default path if applicable and ensure trailing separator."""
-    vpath = desc.get('path', var_path)
+    vpath = desc.get("path", var_path)
     # Ensure we have a trailing separator:
-    if vpath != "" and vpath[-1] != '/':
-        vpath += '/'
+    if vpath != "" and vpath[-1] != "/":
+        vpath += "/"
     if sname != "":
         vpath += sname + "/"
     return vpath
@@ -606,9 +606,9 @@ def populate_dummy_data(data, names, details):
         # Otherwise we write the default data:
         if data.shape == ():
             # scalar case
-            data = desc['default_data']()
+            data = desc["default_data"]()
         else:
-            data[:] = desc['default_data']()
+            data[:] = desc["default_data"]()
 
 
 def add_attributes(attribs, ignored_attrs, desc):
@@ -634,22 +634,22 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
         var_path = settings.get("variable_path", "")
 
         # Also keep track of the potential providers:
-        providers = settings.get('providers', {})
+        providers = settings.get("providers", {})
 
         # list of ignored attribute names:
         ignored_attrs = ["path", "format", "shape", "default_data", "fill_value"]
 
         # dictionary of dimensions:
-        dims = settings.get('dimensions', {})
+        dims = settings.get("dimensions", {})
 
         def write_variable(vname, desc, sname=""):
             """Write a variable in our dataset."""
             # get numeric shape:
-            shape_str = desc['shape']
+            shape_str = desc["shape"]
             shape = tuple([dims[dname] for dname in shape_str])
 
             # Get the desired data type:
-            dtype = TYPE_MAP[desc['format']]
+            dtype = TYPE_MAP[desc["format"]]
 
             # Prepare a numpy array with the appropriate shape and type:
             data = np.zeros(shape, dtype=dtype)
@@ -665,8 +665,8 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             add_attributes(attribs, ignored_attrs, desc)
 
             # Rename the fill value attribute:
-            if 'fill_value' in desc:
-                attribs['_FillValue'] = desc['fill_value']
+            if "fill_value" in desc:
+                attribs["_FillValue"] = desc["fill_value"]
 
             names = [vname, sname]
             details = [desc, providers, settings]
@@ -692,7 +692,7 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
             # Note: params *IS* callable below:
             params = params(filename, filename_info, filetype_info)  # pylint: disable=not-callable
 
-        settings = get_product_schema(filetype_info['file_desc']['product_type'], params)
+        settings = get_product_schema(filetype_info["file_desc"]["product_type"], params)
 
         # Resulting dataset:
         dset = {}
@@ -713,16 +713,16 @@ class FakeLIFileHandlerBase(FakeNetCDF4FileHandler):  # pylint: disable=abstract
 
     def write_variables(self, settings, write_variable):
         """Write raw (i.e. not in sectors) variables."""
-        if 'variables' in settings:
-            variables = settings.get('variables')
+        if "variables" in settings:
+            variables = settings.get("variables")
             for vname, desc in variables.items():
                 write_variable(vname, desc)
 
     def write_sector_variables(self, settings, write_variable):
         """Write the sector variables."""
-        if 'sector_variables' in settings:
-            sector_vars = settings.get('sector_variables')
-            sectors = settings.get('sectors', ['north', 'east', 'south', 'west'])
+        if "sector_variables" in settings:
+            sector_vars = settings.get("sector_variables")
+            sectors = settings.get("sectors", ["north", "east", "south", "west"])
 
             for sname in sectors:
                 for vname, desc in sector_vars.items():

@@ -118,7 +118,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
     @classmethod
     def read_mda(cls, attribute):
         """Read the EOS metadata."""
-        line_iterator = iter(attribute.split('\n'))
+        line_iterator = iter(attribute.split("\n"))
         return cls._read_mda(line_iterator)
 
     @classmethod
@@ -128,18 +128,18 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         for line in lines:
             if not line:
                 continue
-            if line == 'END':
+            if line == "END":
                 return current_dict
 
             key, val = cls._split_line(line, lines)
 
-            if key in ['GROUP', 'OBJECT']:
+            if key in ["GROUP", "OBJECT"]:
                 current_dict[val] = cls._read_mda(lines, val)
-            elif key in ['END_GROUP', 'END_OBJECT']:
+            elif key in ["END_GROUP", "END_OBJECT"]:
                 if val != element:
                     raise SyntaxError("Non-matching end-tag")
                 return current_dict
-            elif key in ['CLASS', 'NUM_VAL']:
+            elif key in ["CLASS", "NUM_VAL"]:
                 pass
             else:
                 current_dict[key] = val
@@ -148,7 +148,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     @classmethod
     def _split_line(cls, line, lines):
-        key, val = line.split('=')
+        key, val = line.split("=", maxsplit=1)
         key = key.strip()
         val = val.strip()
         try:
@@ -163,8 +163,8 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         """Platform name from the internal file metadata."""
         try:
             # Example: 'Terra' or 'Aqua'
-            return self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
-                'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+            return self.metadata["INVENTORYMETADATA"]["ASSOCIATEDPLATFORMINSTRUMENTSENSOR"][
+                "ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER"]["ASSOCIATEDPLATFORMSHORTNAME"]["VALUE"]
         except KeyError:
             return self._platform_name_from_filename()
 
@@ -180,9 +180,9 @@ class HDFEOSBaseFileReader(BaseFileHandler):
     def start_time(self):
         """Get the start time of the dataset."""
         try:
-            date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
-                    self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
-            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+            date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGDATE"]["VALUE"] + " " +
+                    self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGTIME"]["VALUE"])
+            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
         except KeyError:
             return self._start_time_from_filename()
 
@@ -193,9 +193,9 @@ class HDFEOSBaseFileReader(BaseFileHandler):
     def end_time(self):
         """Get the end time of the dataset."""
         try:
-            date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
-                    self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
-            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+            date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGDATE"]["VALUE"] + " " +
+                    self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGTIME"]["VALUE"])
+            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
         except KeyError:
             return self.start_time
 
@@ -216,7 +216,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
         dask_arr = from_sds(dataset, chunks=chunks)
-        dims = ('y', 'x') if dask_arr.ndim == 2 else None
+        dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
         data = self._scale_and_mask_data_array(data, is_category=is_category)
@@ -262,8 +262,8 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
         """
         good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
-        scale_factor = data.attrs.pop('scale_factor', None)
-        add_offset = data.attrs.pop('add_offset', None)
+        scale_factor = data.attrs.pop("scale_factor", None)
+        add_offset = data.attrs.pop("add_offset", None)
         # don't scale category products, even though scale_factor may equal 1
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
@@ -285,16 +285,17 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         if is_category and np.issubdtype(data_arr.dtype, np.integer):
             # no need to mask, the fill value is already what it needs to be
             return None, None
-        new_fill = np.nan
-        data_arr.attrs.pop('_FillValue', None)
+        fill_type = data_arr.dtype.type if np.issubdtype(data_arr.dtype, np.floating) else np.float32
+        new_fill = fill_type(np.nan)
+        data_arr.attrs.pop("_FillValue", None)
         good_mask = data_arr != fill_value
         return good_mask, new_fill
 
     def _add_satpy_metadata(self, data_id: DataID, data_arr: xr.DataArray):
         """Add metadata that is specific to Satpy."""
         new_attrs = {
-            'platform_name': 'EOS-' + self.metadata_platform_name,
-            'sensor': 'modis',
+            "platform_name": "EOS-" + self.metadata_platform_name,
+            "sensor": "modis",
         }
 
         res = data_id["resolution"]
@@ -319,12 +320,12 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     # list of geographical datasets handled by the georeader
     # mapping to the default variable name if not specified in YAML
     DATASET_NAMES = {
-        'longitude': 'Longitude',
-        'latitude': 'Latitude',
-        'satellite_azimuth_angle': ('SensorAzimuth', 'Sensor_Azimuth'),
-        'satellite_zenith_angle': ('SensorZenith', 'Sensor_Zenith'),
-        'solar_azimuth_angle': ('SolarAzimuth', 'SolarAzimuth'),
-        'solar_zenith_angle': ('SolarZenith', 'Solar_Zenith'),
+        "longitude": "Longitude",
+        "latitude": "Latitude",
+        "satellite_azimuth_angle": ("SensorAzimuth", "Sensor_Azimuth"),
+        "satellite_zenith_angle": ("SensorZenith", "Sensor_Zenith"),
+        "solar_azimuth_angle": ("SolarAzimuth", "SolarAzimuth"),
+        "solar_zenith_angle": ("SolarZenith", "Solar_Zenith"),
     }
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
@@ -351,8 +352,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
 
     @staticmethod
     def _geo_resolution_for_l1b(metadata):
-        ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
-        if ds.endswith('D03') or ds.endswith('HKM') or ds.endswith('QKM'):
+        ds = metadata["INVENTORYMETADATA"]["COLLECTIONDESCRIPTIONCLASS"]["SHORTNAME"]["VALUE"]
+        if ds.endswith("D03") or ds.endswith("HKM") or ds.endswith("QKM"):
             return 1000
         # 1km files have 5km geolocation usually
         return 5000
@@ -362,10 +363,10 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         # data files probably have this level 2 files
         # this does not work for L1B 1KM data files because they are listed
         # as 1KM data but the geo data inside is at 5km
-        latitude_dim = metadata['SwathStructure']['SWATH_1']['DimensionMap']['DimensionMap_2']['GeoDimension']
-        resolution_regex = re.compile(r'(?P<resolution>\d+)(km|KM)')
+        latitude_dim = metadata["SwathStructure"]["SWATH_1"]["DimensionMap"]["DimensionMap_2"]["GeoDimension"]
+        resolution_regex = re.compile(r"(?P<resolution>\d+)(km|KM)")
         resolution_match = resolution_regex.search(latitude_dim)
-        return int(resolution_match.group('resolution')) * 1000
+        return int(resolution_match.group("resolution")) * 1000
 
     @property
     def geo_resolution(self):
@@ -391,7 +392,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             result1 = self._load_ds_by_name(name1)
             result2 = self._load_ds_by_name(name2) - offset
             try:
-                sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
+                sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
             except KeyError:
                 # no sensor zenith angle, do "simple" interpolation
                 sensor_zenith = None
@@ -406,11 +407,11 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     def get_dataset(self, dataset_id: DataID, dataset_info: dict) -> xr.DataArray:
         """Get the geolocation dataset."""
         # Name of the dataset as it appears in the HDF EOS file
-        in_file_dataset_name = dataset_info.get('file_key')
+        in_file_dataset_name = dataset_info.get("file_key")
         # Name of the dataset in the YAML file
-        dataset_name = dataset_id['name']
+        dataset_name = dataset_id["name"]
         # Resolution asked
-        resolution = dataset_id['resolution']
+        resolution = dataset_id["resolution"]
         if in_file_dataset_name is not None:
             # if the YAML was configured with a specific name use that
             data = self.load_dataset(in_file_dataset_name)
@@ -427,21 +428,21 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
 
             # The data must be interpolated
             logger.debug("Loading %s", dataset_name)
-            if dataset_name in ['longitude', 'latitude']:
-                self.get_interpolated_dataset('longitude', 'latitude',
+            if dataset_name in ["longitude", "latitude"]:
+                self.get_interpolated_dataset("longitude", "latitude",
                                               resolution)
-            elif dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+            elif dataset_name in ["satellite_azimuth_angle", "satellite_zenith_angle"]:
                 # Sensor dataset names differs between L1b and L2 products
-                self.get_interpolated_dataset('satellite_azimuth_angle', 'satellite_zenith_angle',
+                self.get_interpolated_dataset("satellite_azimuth_angle", "satellite_zenith_angle",
                                               resolution, offset=90)
-            elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+            elif dataset_name in ["solar_azimuth_angle", "solar_zenith_angle"]:
                 # Sensor dataset names differs between L1b and L2 products
-                self.get_interpolated_dataset('solar_azimuth_angle', 'solar_zenith_angle',
+                self.get_interpolated_dataset("solar_azimuth_angle", "solar_zenith_angle",
                                               resolution, offset=90)
 
             data = self.cache[dataset_name, resolution]
 
-        for key in ('standard_name', 'units'):
+        for key in ("standard_name", "units"):
             if key in dataset_info:
                 data.attrs[key] = dataset_info[key]
         self._add_satpy_metadata(dataset_id, data)

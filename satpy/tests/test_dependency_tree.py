@@ -59,7 +59,7 @@ class TestDependencyTree(unittest.TestCase):
         self.dependency_tree.add_leaf(dependency_2_1, node_dependency_2)
         # We don't need to add the unmodified dependency a second time.
 
-        dependency_3 = make_dataid(name='ds2', resolution=250, calibration="reflectance", modifiers=tuple())
+        dependency_3 = make_dataid(name="ds2", resolution=250, calibration="reflectance", modifiers=tuple())
         self.dependency_tree.add_leaf(dependency_3, node_composite_1)
 
     @staticmethod
@@ -78,7 +78,7 @@ class TestDependencyTree(unittest.TestCase):
                                  new_dependency_tree.trunk())
 
         # make sure that we can get access to sub-nodes
-        c13_id = make_cid(name='comp13')
+        c13_id = make_cid(name="comp13")
         assert self._nodes_equal(self.dependency_tree.trunk(limit_nodes_to=[c13_id]),
                                  new_dependency_tree.trunk(limit_nodes_to=[c13_id]))
 
@@ -87,10 +87,8 @@ class TestDependencyTree(unittest.TestCase):
         new_dependency_tree = self.dependency_tree.copy()
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
 
-        self.assertIs(self.dependency_tree._root.children[0].children[0].children[1],
-                      self.dependency_tree.empty_node)
-        self.assertIs(new_dependency_tree._root.children[0].children[0].children[1],
-                      self.dependency_tree.empty_node)
+        assert self.dependency_tree._root.children[0].children[0].children[1] is self.dependency_tree.empty_node
+        assert new_dependency_tree._root.children[0].children[0].children[1] is self.dependency_tree.empty_node
 
     def test_new_dependency_tree_preserves_unique_empty_node(self):
         """Test that dependency tree instantiation preserves the uniqueness of the empty node."""
@@ -104,14 +102,14 @@ class TestMissingDependencies(unittest.TestCase):
     def test_new_missing_dependencies(self):
         """Test new MissingDependencies."""
         from satpy.node import MissingDependencies
-        error = MissingDependencies('bla')
-        assert error.missing_dependencies == 'bla'
+        error = MissingDependencies("bla")
+        assert error.missing_dependencies == "bla"
 
     def test_new_missing_dependencies_with_message(self):
         """Test new MissingDependencies with a message."""
         from satpy.node import MissingDependencies
-        error = MissingDependencies('bla', "This is a message")
-        assert 'This is a message' in str(error)
+        error = MissingDependencies("bla", "This is a message")
+        assert "This is a message" in str(error)
 
 
 class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
@@ -126,27 +124,27 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         from satpy.modifiers.geometry import SunZenithCorrector
         from satpy.readers.yaml_reader import FileYAMLReader
 
-        config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
+        config_file = os.path.join(PACKAGE_CONFIG_PATH, "readers", "modis_l1b.yaml")
         self.reader_instance = FileYAMLReader.from_config_files(config_file)
 
-        overview = {'_satpy_id': make_dataid(name='overview'),
-                    'name': 'overview',
-                    'optional_prerequisites': [],
-                    'prerequisites': [DataQuery(name='1', modifiers=('sunz_corrected',)),
-                                      DataQuery(name='2', modifiers=('sunz_corrected',)),
-                                      DataQuery(name='31')],
-                    'standard_name': 'overview'}
-        compositors = {'modis': DatasetDict()}
-        compositors['modis']['overview'] = GenericCompositor(**overview)
+        overview = {"_satpy_id": make_dataid(name="overview"),
+                    "name": "overview",
+                    "optional_prerequisites": [],
+                    "prerequisites": [DataQuery(name="1", modifiers=("sunz_corrected",)),
+                                      DataQuery(name="2", modifiers=("sunz_corrected",)),
+                                      DataQuery(name="31")],
+                    "standard_name": "overview"}
+        compositors = {"modis": DatasetDict()}
+        compositors["modis"]["overview"] = GenericCompositor(**overview)
 
-        modifiers = {'modis': {'sunz_corrected': (SunZenithCorrector,
-                                                  {'optional_prerequisites': ['solar_zenith_angle'],
-                                                   'name': 'sunz_corrected',
-                                                   'prerequisites': []})}}
-        dep_tree = DependencyTree({'modis_l1b': self.reader_instance}, compositors, modifiers)
-        dep_tree.populate_with_keys({'overview'}, DataQuery(resolution=1000))
+        modifiers = {"modis": {"sunz_corrected": (SunZenithCorrector,
+                                                  {"optional_prerequisites": ["solar_zenith_angle"],
+                                                   "name": "sunz_corrected",
+                                                   "prerequisites": []})}}
+        dep_tree = DependencyTree({"modis_l1b": self.reader_instance}, compositors, modifiers)
+        dep_tree.populate_with_keys({"overview"}, DataQuery(resolution=1000))
         for key in dep_tree._all_nodes.keys():
-            assert key.get('resolution', 1000) == 1000
+            assert key.get("resolution", 1000) == 1000
 
 
 class TestMultipleSensors(unittest.TestCase):
@@ -194,18 +192,18 @@ class TestMultipleSensors(unittest.TestCase):
         # create the dictionary one element at a time to force "incorrect" order
         # (sensor2 comes before sensor1, but results should be alphabetical order)
         compositors = {}
-        compositors['sensor2'] = s2_comps = DatasetDict()
-        compositors['sensor1'] = s1_comps = DatasetDict()
-        c1_s2_id = make_cid(name='comp1', resolution=1000)
-        c1_s1_id = make_cid(name='comp1', resolution=500)
+        compositors["sensor2"] = s2_comps = DatasetDict()
+        compositors["sensor1"] = s1_comps = DatasetDict()
+        c1_s2_id = make_cid(name="comp1", resolution=1000)
+        c1_s1_id = make_cid(name="comp1", resolution=500)
         s2_comps[c1_s2_id] = comp1_sensor2
         s1_comps[c1_s1_id] = comp1_sensor1
 
         modifiers = {}
-        modifiers['sensor2'] = s2_mods = {}
-        modifiers['sensor1'] = s1_mods = {}
-        s2_mods['mod1'] = (_FakeModifier, {'ret_val': 2})
-        s1_mods['mod1'] = (_FakeModifier, {'ret_val': 1})
+        modifiers["sensor2"] = s2_mods = {}
+        modifiers["sensor1"] = s1_mods = {}
+        s2_mods["mod1"] = (_FakeModifier, {"ret_val": 2})
+        s1_mods["mod1"] = (_FakeModifier, {"ret_val": 1})
 
         self.dependency_tree = DependencyTree({}, compositors, modifiers)
         # manually add a leaf so we don't have to mock a reader
@@ -214,16 +212,16 @@ class TestMultipleSensors(unittest.TestCase):
 
     def test_compositor_loaded_sensor_order(self):
         """Test that a compositor is loaded from the first alphabetical sensor."""
-        self.dependency_tree.populate_with_keys({'comp1'})
+        self.dependency_tree.populate_with_keys({"comp1"})
         comp_nodes = self.dependency_tree.trunk()
-        self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].name["resolution"], 500)
+        assert len(comp_nodes) == 1
+        assert comp_nodes[0].name["resolution"] == 500
 
     def test_modifier_loaded_sensor_order(self):
         """Test that a modifier is loaded from the first alphabetical sensor."""
         from satpy import DataQuery
-        dq = DataQuery(name='ds5', modifiers=('mod1',))
+        dq = DataQuery(name="ds5", modifiers=("mod1",))
         self.dependency_tree.populate_with_keys({dq})
         comp_nodes = self.dependency_tree.trunk()
-        self.assertEqual(len(comp_nodes), 1)
-        self.assertEqual(comp_nodes[0].data[0].ret_val, 1)
+        assert len(comp_nodes) == 1
+        assert comp_nodes[0].data[0].ret_val == 1

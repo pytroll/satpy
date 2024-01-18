@@ -56,12 +56,28 @@ regions. This behavior can be disabled by providing the reader keyword argument
 
     scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"filter_veg": False})
 
+AOD Filtering
+^^^^^^^^^^^^^
+
+The AOD (Aerosol Optical Depth) product can be optionally filtered based on
+Quality Control (QC) values in the file. By default no filtering is performed.
+By providing the ``aod_qc_filter`` keyword argument and specifying the maximum
+value of the ``QCAll`` variable to include (not mask). For example::
+
+    scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"aod_qc_filter": 1})
+
+will only preserve AOD550 values where the quality is 0 ("high") or
+1 ("medium"). At the time of writing the ``QCAll`` variable has 1 ("medium"),
+2 ("low"), and 3 ("no retrieval").
+
+
 """
 from __future__ import annotations
 
 import logging
 from typing import Iterable
 
+import dask.array as da
 import xarray as xr
 
 from satpy import DataID
@@ -75,7 +91,7 @@ M_COLS = 3200
 class VIIRSJRRFileHandler(BaseFileHandler):
     """NetCDF4 reader for VIIRS Active Fires."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
@@ -86,28 +102,23 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={
-                                      'Columns': -1,
-                                      'Rows': row_chunks_m,
-                                      'Along_Scan_375m': -1,
-                                      'Along_Track_375m': row_chunks_i,
-                                      'Along_Scan_750m': -1,
-                                      'Along_Track_750m': row_chunks_m,
+                                      "Columns": -1,
+                                      "Rows": row_chunks_m,
+                                      "Along_Scan_375m": -1,
+                                      "Along_Track_375m": row_chunks_i,
+                                      "Along_Scan_750m": -1,
+                                      "Along_Track_750m": row_chunks_m,
                                   })
-        if 'Columns' in self.nc.dims:
-            self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
-        elif 'Along_Track_375m' in self.nc.dims:
-            self.nc = self.nc.rename({'Along_Scan_375m': 'x', 'Along_Track_375m': 'y'})
-            self.nc = self.nc.rename({'Along_Scan_750m': 'x', 'Along_Track_750m': 'y'})
 
         # For some reason, no 'standard_name' is defined in some netCDF files, so
         # here we manually make the definitions.
-        if 'Latitude' in self.nc:
-            self.nc['Latitude'].attrs.update({'standard_name': 'latitude'})
-        if 'Longitude' in self.nc:
-            self.nc['Longitude'].attrs.update({'standard_name': 'longitude'})
+        if "Latitude" in self.nc:
+            self.nc["Latitude"].attrs.update({"standard_name": "latitude"})
+        if "Longitude" in self.nc:
+            self.nc["Longitude"].attrs.update({"standard_name": "longitude"})
 
-        self.algorithm_version = filename_info['platform_shortname']
-        self.sensor_name = 'viirs'
+        self.algorithm_version = filename_info["platform_shortname"]
+        self.sensor_name = "viirs"
 
     def rows_per_scans(self, data_arr: xr.DataArray) -> int:
         """Get number of array rows per instrument scan based on data resolution."""
@@ -115,7 +126,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id: DataID, info: dict) -> xr.DataArray:
         """Get the dataset."""
-        data_arr = self.nc[info['file_key']]
+        data_arr = self.nc[info["file_key"]]
         data_arr = self._mask_invalid(data_arr, info)
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
@@ -134,7 +145,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             # delete the coordinates here so the base reader doesn't try to
             # make a SwathDefinition
             data_arr = data_arr.reset_coords(drop=True)
-        return data_arr
+
+        return self._rename_dims(data_arr)
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
         # xarray auto mask and scale handled any fills from the file
@@ -150,27 +162,37 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         flag_meanings = data_arr.attrs.get("flag_meanings", None)
         if isinstance(flag_meanings, str) and "\n" not in flag_meanings:
             # only handle CF-standard flag meanings
-            data_arr.attrs['flag_meanings'] = [flag for flag in data_arr.attrs['flag_meanings'].split(' ')]
+            data_arr.attrs["flag_meanings"] = [flag for flag in data_arr.attrs["flag_meanings"].split(" ")]
+
+    @staticmethod
+    def _rename_dims(data_arr: xr.DataArray) -> xr.DataArray:
+        if "Columns" in data_arr.dims:
+            data_arr = data_arr.rename({"Columns": "x", "Rows": "y"})
+        if "Along_Track_375m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
+        if "Along_Track_750m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
+        return data_arr
 
     @property
     def start_time(self):
         """Get first date/time when observations were recorded."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get last date/time when observations were recorded."""
-        return self.filename_info['end_time']
+        return self.filename_info["end_time"]
 
     @property
     def platform_name(self):
         """Get platform name."""
-        platform_path = self.filename_info['platform_shortname']
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'J01': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21',
-                         'J02': 'NOAA-21'}
+        platform_path = self.filename_info["platform_shortname"]
+        platform_dict = {"NPP": "Suomi-NPP",
+                         "JPSS-1": "NOAA-20",
+                         "J01": "NOAA-20",
+                         "JPSS-2": "NOAA-21",
+                         "J02": "NOAA-21"}
         return platform_dict[platform_path.upper()]
 
     def available_datasets(self, configured_datasets=None):
@@ -212,9 +234,10 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            if self.file_type_matches(ds_info['file_type']) is None:
+            if self.file_type_matches(ds_info["file_type"]) is None:
                 # this is not the file type for this dataset
                 yield None, ds_info
+                continue
             yield file_key in self.nc, ds_info
 
         yield from self._dynamic_variables_from_file(handled_var_names)
@@ -276,20 +299,20 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
             new_data_arr = new_data_arr.where(good_mask)
         return new_data_arr
 
-    def _get_veg_index_good_mask(self) -> xr.DataArray:
+    def _get_veg_index_good_mask(self) -> da.Array:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
-        qf1 = self.nc['QF1 Surface Reflectance']
+        qf1 = self.nc["QF1 Surface Reflectance"]
         has_sun_glint = (qf1 & 0b11000000) > 0
         is_cloudy = (qf1 & 0b00001100) > 0  # mask everything but "confident clear"
         cloud_quality = (qf1 & 0b00000011) < 0b10
 
-        qf2 = self.nc['QF2 Surface Reflectance']
+        qf2 = self.nc["QF2 Surface Reflectance"]
         has_snow_or_ice = (qf2 & 0b00100000) > 0
         has_cloud_shadow = (qf2 & 0b00001000) > 0
         water_mask = (qf2 & 0b00000111)
         has_water = (water_mask <= 0b010) | (water_mask == 0b101)  # shallow water, deep ocean, arctic
 
-        qf7 = self.nc['QF7 Surface Reflectance']
+        qf7 = self.nc["QF7 Surface Reflectance"]
         has_aerosols = (qf7 & 0b00001100) > 0b1000  # high aerosol quantity
         adjacent_to_cloud = (qf7 & 0b00000010) > 0
 
@@ -305,8 +328,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         )
         # upscale from M-band resolution to I-band resolution
         bad_mask_iband_dask = bad_mask.data.repeat(2, axis=1).repeat(2, axis=0)
-        good_mask_iband = xr.DataArray(~bad_mask_iband_dask, dims=qf1.dims)
-        return good_mask_iband
+        return ~bad_mask_iband_dask
 
 
 class VIIRSLSTHandler(VIIRSJRRFileHandler):
@@ -336,3 +358,20 @@ class VIIRSLSTHandler(VIIRSJRRFileHandler):
             add_offset = self.nc[self._manual_scalings[var_name][1]]
             data_arr.data = data_arr.data * scale_factor.data + add_offset.data
             self.nc[var_name] = data_arr
+
+
+class VIIRSAODHandler(VIIRSJRRFileHandler):
+    """File handler for AOD data files."""
+
+    def __init__(self, *args, aod_qc_filter: int | None = None, **kwargs) -> None:
+        """Initialize file handler and keep track of QC filtering."""
+        super().__init__(*args, **kwargs)
+        self._aod_qc_filter = aod_qc_filter
+
+    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        new_data_arr = super()._mask_invalid(data_arr, ds_info)
+        if self._aod_qc_filter is None or ds_info["name"] != "AOD550":
+            return new_data_arr
+        LOG.debug(f"Filtering AOD data to include quality <= {self._aod_qc_filter}")
+        qc_all = self.nc["QCAll"]
+        return new_data_arr.where(qc_all <= self._aod_qc_filter)

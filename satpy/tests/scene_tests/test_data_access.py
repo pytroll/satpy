@@ -83,21 +83,22 @@ class TestDataAccessMethods:
         from pyresample.geometry import SwathDefinition
         scene = Scene()
         sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
-        scene["1"] = xr.DataArray(np.arange(5), attrs={'area': sd})
-        scene["2"] = xr.DataArray(np.arange(5), attrs={'area': sd})
+        scene["1"] = xr.DataArray(np.arange(5), attrs={"area": sd})
+        scene["2"] = xr.DataArray(np.arange(5), attrs={"area": sd})
         scene["3"] = xr.DataArray(np.arange(5))
         for area_obj, ds_list in scene.iter_by_area():
-            ds_list_names = set(ds['name'] for ds in ds_list)
+            ds_list_names = set(ds["name"] for ds in ds_list)
             if area_obj is sd:
-                assert ds_list_names == {'1', '2'}
+                assert ds_list_names == {"1", "2"}
             else:
                 assert area_obj is None
-                assert ds_list_names == {'3'}
+                assert ds_list_names == {"3"}
 
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
         scene = Scene()
-        pytest.raises(ValueError, scene.__setitem__, '1', np.arange(5))
+        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
+            scene.__setitem__("1", np.arange(5))
 
     def test_setitem(self):
         """Test setting an item."""
@@ -108,16 +109,16 @@ class TestDataAccessMethods:
         assert set(scene._datasets.keys()) == {expected_id}
         assert set(scene._wishlist) == {expected_id}
 
-        did = make_dataid(name='oranges')
+        did = make_dataid(name="oranges")
         scene[did] = ds1
-        assert 'oranges' in scene
+        assert "oranges" in scene
         nparray = np.arange(5*5).reshape(5, 5)
-        with pytest.raises(ValueError):
-            scene['apples'] = nparray
-        assert 'apples' not in scene
-        did = make_dataid(name='apples')
+        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
+            scene["apples"] = nparray
+        assert "apples" not in scene
+        did = make_dataid(name="apples")
         scene[did] = nparray
-        assert 'apples' in scene
+        assert "apples" in scene
 
     def test_getitem(self):
         """Test __getitem__ with names only."""
@@ -125,41 +126,41 @@ class TestDataAccessMethods:
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
         scene["2"] = ds2 = xr.DataArray(np.arange(5))
         scene["3"] = ds3 = xr.DataArray(np.arange(5))
-        assert scene['1'] is ds1
-        assert scene['2'] is ds2
-        assert scene['3'] is ds3
-        pytest.raises(KeyError, scene.__getitem__, '4')
-        assert scene.get('3') is ds3
-        assert scene.get('4') is None
+        assert scene["1"] is ds1
+        assert scene["2"] is ds2
+        assert scene["3"] is ds3
+        pytest.raises(KeyError, scene.__getitem__, "4")
+        assert scene.get("3") is ds3
+        assert scene.get("4") is None
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers."""
         # Return least modified item
         scene = Scene()
-        scene['1'] = ds1_m0 = xr.DataArray(np.arange(5))
-        scene[make_dataid(name='1', modifiers=('mod1',))
+        scene["1"] = ds1_m0 = xr.DataArray(np.arange(5))
+        scene[make_dataid(name="1", modifiers=("mod1",))
               ] = xr.DataArray(np.arange(5))
-        assert scene['1'] is ds1_m0
+        assert scene["1"] is ds1_m0
         assert len(list(scene.keys())) == 2
 
         scene = Scene()
-        scene['1'] = ds1_m0 = xr.DataArray(np.arange(5))
-        scene[make_dataid(name='1', modifiers=('mod1',))
+        scene["1"] = ds1_m0 = xr.DataArray(np.arange(5))
+        scene[make_dataid(name="1", modifiers=("mod1",))
               ] = xr.DataArray(np.arange(5))
-        scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
+        scene[make_dataid(name="1", modifiers=("mod1", "mod2"))
               ] = xr.DataArray(np.arange(5))
-        assert scene['1'] is ds1_m0
+        assert scene["1"] is ds1_m0
         assert len(list(scene.keys())) == 3
 
         scene = Scene()
-        scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
+        scene[make_dataid(name="1", modifiers=("mod1", "mod2"))
               ] = ds1_m2 = xr.DataArray(np.arange(5))
-        scene[make_dataid(name='1', modifiers=('mod1',))
+        scene[make_dataid(name="1", modifiers=("mod1",))
               ] = ds1_m1 = xr.DataArray(np.arange(5))
-        assert scene['1'] is ds1_m1
-        assert scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))] is ds1_m2
+        assert scene["1"] is ds1_m1
+        assert scene[make_dataid(name="1", modifiers=("mod1", "mod2"))] is ds1_m2
         pytest.raises(KeyError, scene.__getitem__,
-                      make_dataid(name='1', modifiers=tuple()))
+                      make_dataid(name="1", modifiers=tuple()))
         assert len(list(scene.keys())) == 2
 
     def test_getitem_slices(self):
@@ -168,13 +169,13 @@ class TestDataAccessMethods:
         from pyresample.utils import proj4_str_to_dict
         scene1 = Scene()
         scene2 = Scene()
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
+        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
+                                      "+units=m +no_defs")
         area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
+            "test",
+            "test",
+            "test",
             proj_dict,
             200,
             400,
@@ -184,80 +185,80 @@ class TestDataAccessMethods:
                                     lats=np.zeros((5, 10)))
         scene1["1"] = scene2["1"] = xr.DataArray(np.zeros((5, 10)))
         scene1["2"] = scene2["2"] = xr.DataArray(np.zeros((5, 10)),
-                                                 dims=('y', 'x'))
-        scene1["3"] = xr.DataArray(np.zeros((5, 10)), dims=('y', 'x'),
-                                   attrs={'area': area_def})
+                                                 dims=("y", "x"))
+        scene1["3"] = xr.DataArray(np.zeros((5, 10)), dims=("y", "x"),
+                                   attrs={"area": area_def})
         anc_vars = [xr.DataArray(np.ones((5, 10)),
-                                 attrs={'name': 'anc_var', 'area': area_def})]
-        attrs = {'ancillary_variables': anc_vars, 'area': area_def}
+                                 attrs={"name": "anc_var", "area": area_def})]
+        attrs = {"ancillary_variables": anc_vars, "area": area_def}
         scene1["3a"] = xr.DataArray(np.zeros((5, 10)),
-                                    dims=('y', 'x'),
+                                    dims=("y", "x"),
                                     attrs=attrs)
-        scene2["4"] = xr.DataArray(np.zeros((5, 10)), dims=('y', 'x'),
-                                   attrs={'area': swath_def})
+        scene2["4"] = xr.DataArray(np.zeros((5, 10)), dims=("y", "x"),
+                                   attrs={"area": swath_def})
         anc_vars = [xr.DataArray(np.ones((5, 10)),
-                                 attrs={'name': 'anc_var', 'area': swath_def})]
-        attrs = {'ancillary_variables': anc_vars, 'area': swath_def}
+                                 attrs={"name": "anc_var", "area": swath_def})]
+        attrs = {"ancillary_variables": anc_vars, "area": swath_def}
         scene2["4a"] = xr.DataArray(np.zeros((5, 10)),
-                                    dims=('y', 'x'),
+                                    dims=("y", "x"),
                                     attrs=attrs)
         new_scn1 = scene1[2:5, 2:8]
         new_scn2 = scene2[2:5, 2:8]
         for new_scn in [new_scn1, new_scn2]:
             # datasets without an area don't get sliced
-            assert new_scn['1'].shape == (5, 10)
-            assert new_scn['2'].shape == (5, 10)
+            assert new_scn["1"].shape == (5, 10)
+            assert new_scn["2"].shape == (5, 10)
 
-        assert new_scn1['3'].shape == (3, 6)
-        assert 'area' in new_scn1['3'].attrs
-        assert new_scn1['3'].attrs['area'].shape == (3, 6)
-        assert new_scn1['3a'].shape == (3, 6)
-        a_var = new_scn1['3a'].attrs['ancillary_variables'][0]
+        assert new_scn1["3"].shape == (3, 6)
+        assert "area" in new_scn1["3"].attrs
+        assert new_scn1["3"].attrs["area"].shape == (3, 6)
+        assert new_scn1["3a"].shape == (3, 6)
+        a_var = new_scn1["3a"].attrs["ancillary_variables"][0]
         assert a_var.shape == (3, 6)
 
-        assert new_scn2['4'].shape == (3, 6)
-        assert 'area' in new_scn2['4'].attrs
-        assert new_scn2['4'].attrs['area'].shape == (3, 6)
-        assert new_scn2['4a'].shape == (3, 6)
-        a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
+        assert new_scn2["4"].shape == (3, 6)
+        assert "area" in new_scn2["4"].attrs
+        assert new_scn2["4"].attrs["area"].shape == (3, 6)
+        assert new_scn2["4a"].shape == (3, 6)
+        a_var = new_scn2["4a"].attrs["ancillary_variables"][0]
         assert a_var.shape == (3, 6)
 
     def test_contains(self):
         """Test contains."""
         scene = Scene()
         scene["1"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.1, 0.2, 0.3),
-                                         '_satpy_id_keys': default_id_keys_config})
-        assert '1' in scene
+                                  attrs={"wavelength": (0.1, 0.2, 0.3),
+                                         "_satpy_id_keys": default_id_keys_config})
+        assert "1" in scene
         assert 0.15 in scene
-        assert '2' not in scene
+        assert "2" not in scene
         assert 0.31 not in scene
 
         scene = Scene()
-        scene['blueberry'] = xr.DataArray(np.arange(5))
-        scene['blackberry'] = xr.DataArray(np.arange(5))
-        scene['strawberry'] = xr.DataArray(np.arange(5))
-        scene['raspberry'] = xr.DataArray(np.arange(5))
+        scene["blueberry"] = xr.DataArray(np.arange(5))
+        scene["blackberry"] = xr.DataArray(np.arange(5))
+        scene["strawberry"] = xr.DataArray(np.arange(5))
+        scene["raspberry"] = xr.DataArray(np.arange(5))
         #  deepcode ignore replace~keys~list~compare: This is on purpose
-        assert make_cid(name='blueberry') in scene.keys()
-        assert make_cid(name='blueberry') in scene
-        assert 'blueberry' in scene
-        assert 'blueberry' not in scene.keys()
+        assert make_cid(name="blueberry") in scene.keys()
+        assert make_cid(name="blueberry") in scene
+        assert "blueberry" in scene
+        assert "blueberry" not in scene.keys()
 
     def test_delitem(self):
         """Test deleting an item."""
         scene = Scene()
         scene["1"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.1, 0.2, 0.3),
-                                         '_satpy_id_keys': default_id_keys_config})
+                                  attrs={"wavelength": (0.1, 0.2, 0.3),
+                                         "_satpy_id_keys": default_id_keys_config})
         scene["2"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.4, 0.5, 0.6),
-                                         '_satpy_id_keys': default_id_keys_config})
+                                  attrs={"wavelength": (0.4, 0.5, 0.6),
+                                         "_satpy_id_keys": default_id_keys_config})
         scene["3"] = xr.DataArray(np.arange(5),
-                                  attrs={'wavelength': (0.7, 0.8, 0.9),
-                                         '_satpy_id_keys': default_id_keys_config})
-        del scene['1']
-        del scene['3']
+                                  attrs={"wavelength": (0.7, 0.8, 0.9),
+                                         "_satpy_id_keys": default_id_keys_config})
+        del scene["1"]
+        del scene["3"]
         del scene[0.45]
         assert not scene._wishlist
         assert not list(scene._datasets.keys())
@@ -268,7 +269,7 @@ def _create_coarest_finest_data_array(shape, area_def, attrs=None):
     data_arr = xr.DataArray(
         da.arange(math.prod(shape)).reshape(shape),
         attrs={
-            'area': area_def,
+            "area": area_def,
         })
     if attrs:
         data_arr.attrs.update(attrs)
@@ -277,11 +278,11 @@ def _create_coarest_finest_data_array(shape, area_def, attrs=None):
 
 def _create_coarsest_finest_area_def(shape, extents):
     from pyresample import AreaDefinition
-    proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'
+    proj_str = "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs"
     area_def = AreaDefinition(
-        'test',
-        'test',
-        'test',
+        "test",
+        "test",
+        "test",
         proj_str,
         shape[1],
         shape[0],
@@ -331,7 +332,7 @@ class TestFinestCoarsestArea:
 
         assert scn.coarsest_area() is coarse_area
         assert scn.finest_area() is fine_area
-        assert scn.coarsest_area(['2', '3']) is fine_area
+        assert scn.coarsest_area(["2", "3"]) is fine_area
 
     @pytest.mark.parametrize(
         ("area_def", "shifted_area"),
@@ -375,24 +376,24 @@ class TestComputePersist:
     def test_compute_pass_through(self):
         """Test pass through of xarray compute."""
         import numpy as np
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         scene = scene.compute()
-        assert isinstance(scene['ds1'].data, np.ndarray)
+        assert isinstance(scene["ds1"].data, np.ndarray)
 
     def test_persist_pass_through(self):
         """Test pass through of xarray persist."""
         from dask.array.utils import assert_eq
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         scenep = scene.persist()
-        assert_eq(scene['ds1'].data, scenep['ds1'].data)
-        assert set(scenep['ds1'].data.dask).issubset(scene['ds1'].data.dask)
-        assert len(scenep["ds1"].data.dask) == scenep['ds1'].data.npartitions
+        assert_eq(scene["ds1"].data, scenep["ds1"].data)
+        assert set(scenep["ds1"].data.dask).issubset(scene["ds1"].data.dask)
+        assert len(scenep["ds1"].data.dask) == scenep["ds1"].data.npartitions
 
     def test_chunk_pass_through(self):
         """Test pass through of xarray chunk."""
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         scene = scene.chunk(chunks=2)
-        assert scene['ds1'].data.chunksize == (2, 2)
+        assert scene["ds1"].data.chunksize == (2, 2)

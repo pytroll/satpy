@@ -2030,3 +2030,70 @@ msg_resample_area:
   area_extent:
     lower_left_xy: [-5570248.477339261, -5567248.074173444]
     upper_right_xy: [5567248.074173444, 5570248.477339261]
+
+# Global lat / lon gridded areas
+EPSG_4326_36000x18000:
+  description: Global equal latitude/longitude grid at 0.01 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 18000
+    width: 36000
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_7200x3600:
+  description: Global equal latitude/longitude grid at 0.05 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 3600
+    width: 7200
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_3600x1800:
+  description: Global equal latitude/longitude grid at 0.1 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 1800
+    width: 3600
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_1440x720:
+  description: Global equal latitude/longitude grid at 0.25 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 720
+    width: 1440
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_720x360:
+  description: Global equal latitude/longitude grid at 0.5 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 360
+    width: 720
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_360x180:
+  description: Global equal latitude/longitude grid at 1 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 180
+    width: 360
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]

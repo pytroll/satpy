@@ -44,18 +44,18 @@ CHUNK_SIZE = get_legacy_chunk_size()
 def read_writer_config(config_files, loader=UnsafeLoader):
     """Read the writer `config_files` and return the info extracted."""
     conf = {}
-    LOG.debug('Reading %s', str(config_files))
+    LOG.debug("Reading %s", str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
             conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
-        writer_info = conf['writer']
+        writer_info = conf["writer"]
     except KeyError:
         raise KeyError(
             "Malformed config file {}: missing writer 'writer'".format(
                 config_files))
-    writer_info['config_files'] = config_files
+    writer_info["config_files"] = config_files
     return writer_info
 
 
@@ -63,7 +63,7 @@ def load_writer_configs(writer_configs, **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
     try:
         writer_info = read_writer_config(writer_configs)
-        writer_class = writer_info['writer']
+        writer_class = writer_info["writer"]
     except (ValueError, KeyError, yaml.YAMLError):
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
@@ -78,11 +78,11 @@ def load_writer(writer, **writer_kwargs):
     config_fn = writer + ".yaml" if "." not in writer else writer
     config_files = config_search_paths(os.path.join("writers", config_fn))
     writer_kwargs.setdefault("config_files", config_files)
-    if not writer_kwargs['config_files']:
+    if not writer_kwargs["config_files"]:
         raise ValueError("Unknown writer '{}'".format(writer))
 
     try:
-        return load_writer_configs(writer_kwargs['config_files'],
+        return load_writer_configs(writer_kwargs["config_files"],
                                    **writer_kwargs)
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
@@ -102,15 +102,15 @@ def configs_for_writer(writer=None):
         if not isinstance(writer, (list, tuple)):
             writer = [writer]
         # given a config filename or writer name
-        config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
+        config_files = [w if w.endswith(".yaml") else w + ".yaml" for w in writer]
     else:
-        paths = get_entry_points_config_dirs('satpy.writers')
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'), search_dirs=paths)
+        paths = get_entry_points_config_dirs("satpy.writers")
+        writer_configs = glob_config(os.path.join("writers", "*.yaml"), search_dirs=paths)
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
-        paths = get_entry_points_config_dirs('satpy.writers')
+        paths = get_entry_points_config_dirs("satpy.writers")
         writer_configs = config_search_paths(
             os.path.join("writers", config_basename),
             search_dirs=paths,
@@ -143,7 +143,7 @@ def available_writers(as_dict=False):
             LOG.warning("Could not import writer config from: %s", writer_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
-        writers.append(writer_info if as_dict else writer_info['name'])
+        writers.append(writer_info if as_dict else writer_info["name"])
     return writers
 
 
@@ -231,11 +231,11 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
             DeprecationWarning,
             stacklevel=2
         )
-    if hasattr(orig_img, 'convert'):
+    if hasattr(orig_img, "convert"):
         # image must be in RGB space to work with pycoast/pydecorate
-        res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
+        res_mode = ("RGBA" if orig_img.final_mode(fill_value).endswith("A") else "RGB")
         orig_img = orig_img.convert(res_mode)
-    elif not orig_img.mode.startswith('RGB'):
+    elif not orig_img.mode.startswith("RGB"):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
 
@@ -244,7 +244,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
 
     cw_ = ContourWriterAGG(coast_dir)
     new_image = orig_img.apply_pil(_burn_overlay, res_mode,
-                                   None, {'fill_value': fill_value},
+                                   None, {"fill_value": fill_value},
                                    (area, cw_, overlays), None)
     return new_image
 
@@ -253,25 +253,25 @@ def _create_overlays_dict(color, width, grid, level_coast, level_borders):
     """Fill in the overlays dict."""
     overlays = dict()
     # fill with sensible defaults
-    general_params = {'outline': color or (0, 0, 0),
-                      'width': width or 0.5}
+    general_params = {"outline": color or (0, 0, 0),
+                      "width": width or 0.5}
     for key, val in general_params.items():
         if val is not None:
-            overlays.setdefault('coasts', {}).setdefault(key, val)
-            overlays.setdefault('borders', {}).setdefault(key, val)
+            overlays.setdefault("coasts", {}).setdefault(key, val)
+            overlays.setdefault("borders", {}).setdefault(key, val)
     if level_coast is None:
         level_coast = 1
-    overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+    overlays.setdefault("coasts", {}).setdefault("level", level_coast)
     if level_borders is None:
         level_borders = 1
-    overlays.setdefault('borders', {}).setdefault('level', level_borders)
+    overlays.setdefault("borders", {}).setdefault("level", level_borders)
     if grid is not None:
-        if 'major_lonlat' in grid and grid['major_lonlat']:
-            major_lonlat = grid.pop('major_lonlat')
-            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-            grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+        if "major_lonlat" in grid and grid["major_lonlat"]:
+            major_lonlat = grid.pop("major_lonlat")
+            minor_lonlat = grid.pop("minor_lonlat", major_lonlat)
+            grid.update({"Dlonlat": major_lonlat, "dlonlat": minor_lonlat})
         for key, val in grid.items():
-            overlays.setdefault('grid', {}).setdefault(key, val)
+            overlays.setdefault("grid", {}).setdefault(key, val)
     return overlays
 
 
@@ -288,10 +288,10 @@ def add_text(orig, dc, img, text):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                            coords={'y': orig.data.coords['y'],
-                                    'x': orig.data.coords['x'],
-                                    'bands': list(img.mode)},
+    new_data = xr.DataArray(arr, dims=["y", "x", "bands"],
+                            coords={"y": orig.data.coords["y"],
+                                    "x": orig.data.coords["x"],
+                                    "bands": list(img.mode)},
                             attrs=orig.data.attrs)
     return XRImage(new_data)
 
@@ -309,10 +309,10 @@ def add_logo(orig, dc, img, logo):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                            coords={'y': orig.data.coords['y'],
-                                    'x': orig.data.coords['x'],
-                                    'bands': list(img.mode)},
+    new_data = xr.DataArray(arr, dims=["y", "x", "bands"],
+                            coords={"y": orig.data.coords["y"],
+                                    "x": orig.data.coords["x"],
+                                    "bands": list(img.mode)},
                             attrs=orig.data.attrs)
     return XRImage(new_data)
 
@@ -330,10 +330,10 @@ def add_scale(orig, dc, img, scale):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                            coords={'y': orig.data.coords['y'],
-                                    'x': orig.data.coords['x'],
-                                    'bands': list(img.mode)},
+    new_data = xr.DataArray(arr, dims=["y", "x", "bands"],
+                            coords={"y": orig.data.coords["y"],
+                                    "x": orig.data.coords["x"],
+                                    "bands": list(img.mode)},
                             attrs=orig.data.attrs)
     return XRImage(new_data)
 
@@ -373,10 +373,10 @@ def add_decorate(orig, fill_value=None, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
-    if hasattr(orig, 'convert'):
+    if hasattr(orig, "convert"):
         # image must be in RGB space to work with pycoast/pydecorate
-        orig = orig.convert('RGBA' if orig.mode.endswith('A') else 'RGB')
-    elif not orig.mode.startswith('RGB'):
+        orig = orig.convert("RGBA" if orig.mode.endswith("A") else "RGB")
+    elif not orig.mode.startswith("RGB"):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
     img_orig = orig.pil_image(fill_value=fill_value)
@@ -386,14 +386,14 @@ def add_decorate(orig, fill_value=None, **decorate):
     # decorate need to be a list to maintain the alignment
     # as ordered in the list
     img = orig
-    if 'decorate' in decorate:
-        for dec in decorate['decorate']:
-            if 'logo' in dec:
-                img = add_logo(img, dc, img_orig, logo=dec['logo'])
-            elif 'text' in dec:
-                img = add_text(img, dc, img_orig, text=dec['text'])
-            elif 'scale' in dec:
-                img = add_scale(img, dc, img_orig, scale=dec['scale'])
+    if "decorate" in decorate:
+        for dec in decorate["decorate"]:
+            if "logo" in dec:
+                img = add_logo(img, dc, img_orig, logo=dec["logo"])
+            elif "text" in dec:
+                img = add_text(img, dc, img_orig, text=dec["text"])
+            elif "scale" in dec:
+                img = add_scale(img, dc, img_orig, scale=dec["scale"])
     return img
 
 
@@ -445,7 +445,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        img = add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
+        img = add_overlay(img, dataset.attrs["area"], fill_value=fill_value, **overlay)
 
     if decorate is not None:
         img = add_decorate(img, fill_value=fill_value, **decorate)
@@ -595,7 +595,7 @@ def compute_writer_results(results):
 
     if targets:
         for target in targets:
-            if hasattr(target, 'close'):
+            if hasattr(target, "close"):
                 target.close()
 
 
@@ -632,23 +632,23 @@ class Writer(Plugin, DataDownloadMixin):
         """
         # Load the config
         Plugin.__init__(self, **kwargs)
-        self.info = self.config.get('writer', {})
+        self.info = self.config.get("writer", {})
 
-        if 'file_pattern' in self.info:
+        if "file_pattern" in self.info:
             warnings.warn(
                 "Writer YAML config is using 'file_pattern' which "
                 "has been deprecated, use 'filename' instead.",
                 stacklevel=2
             )
-            self.info['filename'] = self.info.pop('file_pattern')
+            self.info["filename"] = self.info.pop("file_pattern")
 
-        if 'file_pattern' in kwargs:
+        if "file_pattern" in kwargs:
             warnings.warn(
                 "'file_pattern' has been deprecated, use 'filename' instead.",
                 DeprecationWarning,
                 stacklevel=2
             )
-            filename = kwargs.pop('file_pattern')
+            filename = kwargs.pop("file_pattern")
 
         # Use options from the config file if they weren't passed as arguments
         self.name = self.info.get("name", None) if name is None else name
@@ -679,7 +679,7 @@ class Writer(Plugin, DataDownloadMixin):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs = {}
         kwargs = kwargs.copy()
-        for kw in ['base_dir', 'filename', 'file_pattern']:
+        for kw in ["base_dir", "filename", "file_pattern"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
@@ -696,8 +696,8 @@ class Writer(Plugin, DataDownloadMixin):
 
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
-        if isinstance(attrs.get('sensor'), set):
-            attrs['sensor'] = '-'.join(sorted(attrs['sensor']))
+        if isinstance(attrs.get("sensor"), set):
+            attrs["sensor"] = "-".join(sorted(attrs["sensor"]))
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.
@@ -863,7 +863,7 @@ class ImageWriter(Writer):
         """Separate the init kwargs."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
-        for kw in ['enhancement_config', 'enhance']:
+        for kw in ["enhancement_config", "enhance"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
@@ -1179,7 +1179,7 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            paths = get_entry_points_config_dirs('satpy.enhancements')
+            paths = get_entry_points_config_dirs("satpy.enhancements")
             self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
 
         if not self.enhancement_config_file:
@@ -1199,7 +1199,7 @@ class Enhancer(object):
             # one single sensor
             sensor = [sensor]
 
-        paths = get_entry_points_config_dirs('satpy.enhancements')
+        paths = get_entry_points_config_dirs("satpy.enhancements")
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
             config_files = config_search_paths(config_fn, search_dirs=paths)
@@ -1227,8 +1227,8 @@ class Enhancer(object):
         backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
         data_id = info.get("_satpy_id", backup_id)
         LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
-        for operation in enh_kwargs['operations']:
-            fun = operation['method']
-            args = operation.get('args', [])
-            kwargs = operation.get('kwargs', {})
+        for operation in enh_kwargs["operations"]:
+            fun = operation["method"]
+            args = operation.get("args", [])
+            kwargs = operation.get("kwargs", {})
             fun(img, *args, **kwargs)

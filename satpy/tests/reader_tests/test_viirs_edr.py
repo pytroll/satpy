@@ -33,7 +33,7 @@ import numpy.typing as npt
 import pytest
 import xarray as xr
 from pyresample import SwathDefinition
-from pytest import TempPathFactory
+from pytest import TempPathFactory  # noqa: PT013
 from pytest_lazyfixture import lazy_fixture
 
 I_COLS = 6400
@@ -152,6 +152,7 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
         "750m Surface Reflectance Band M1": xr.DataArray(m_data, dims=m_dims, attrs=sr_attrs),
     }
     for data_arr in data_arrs.values():
+        data_arr.encoding["chunksizes"] = data_arr.shape
         if "scale_factor" not in data_arr.attrs:
             continue
         data_arr.encoding["dtype"] = np.int16
@@ -219,6 +220,14 @@ def aod_file(tmp_path_factory: TempPathFactory) -> Path:
     data_vars = _create_continuous_variables(
         ("AOD550",)
     )
+    qc_data = np.zeros(data_vars["AOD550"].shape, dtype=np.int8)
+    qc_data[-1, -1] = 2
+    data_vars["QCAll"] = xr.DataArray(
+        qc_data,
+        dims=data_vars["AOD550"].dims,
+        attrs={"valid_range": [0, 3]},
+    )
+    data_vars["QCAll"].encoding["_FillValue"] = -128
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
@@ -285,6 +294,33 @@ def _create_fake_dataset(vars_dict: dict[str, xr.DataArray]) -> xr.Dataset:
     return ds
 
 
+def test_available_datasets(aod_file):
+    """Test that available datasets doesn't claim non-filetype datasets.
+
+    For example, if a YAML-configured dataset's file type is not loaded
+    then the available status is `None` and should remain `None`. This
+    means no file type knows what to do with this dataset. If it is
+    `False` then that means that a file type knows of the dataset, but
+    that the variable is not available in the file. In the below test
+    this isn't the case so the YAML-configured dataset should be
+    provided once and have a `None` availability.
+
+    """
+    from satpy.readers.viirs_edr import VIIRSJRRFileHandler
+    file_handler = VIIRSJRRFileHandler(
+        aod_file,
+        {"platform_shortname": "npp"},
+        {"file_type": "jrr_aod"},
+    )
+    fake_yaml_datasets = [
+        (None, {"file_key": "fake", "file_type": "fake_file", "name": "fake"}),
+    ]
+    available_datasets = list(file_handler.available_datasets(configured_datasets=fake_yaml_datasets))
+    fake_availables = [avail_tuple for avail_tuple in available_datasets if avail_tuple[1]["name"] == "fake"]
+    assert len(fake_availables) == 1
+    assert fake_availables[0][0] is None
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
@@ -343,7 +379,6 @@ class TestVIIRSJRRReader:
         ("var_names", "data_file"),
         [
             (("CldTopTemp", "CldTopHght", "CldTopPres"), lazy_fixture("cloud_height_file")),
-            (("AOD550",), lazy_fixture("aod_file")),
             (("VLST",), lazy_fixture("lst_file")),
         ]
     )
@@ -356,6 +391,31 @@ class TestVIIRSJRRReader:
             scn.load(var_names)
         for var_name in var_names:
             _check_continuous_data_arr(scn[var_name])
+
+    @pytest.mark.parametrize(
+        ("aod_qc_filter", "exp_masked_pixel"),
+        [
+            (None, False),
+            (0, True),
+            (2, False)
+        ],
+    )
+    def test_get_aod_filtered(self, aod_file, aod_qc_filter, exp_masked_pixel):
+        """Test that the AOD product can be loaded and filtered."""
+        from satpy import Scene
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+            scn = Scene(reader="viirs_edr", filenames=[aod_file], reader_kwargs={"aod_qc_filter": aod_qc_filter})
+            scn.load(["AOD550"])
+        _check_continuous_data_arr(scn["AOD550"])
+        data_np = scn["AOD550"].data.compute()
+        pixel_is_nan = np.isnan(data_np[-1, -1])
+        assert pixel_is_nan if exp_masked_pixel else not pixel_is_nan
+
+        # filtering should never affect geolocation
+        lons, lats = scn["AOD550"].attrs["area"].get_lonlats()
+        assert not np.isnan(lons[-1, -1].compute())
+        assert not np.isnan(lats[-1, -1].compute())
 
     @pytest.mark.parametrize(
         ("data_file", "exp_available"),

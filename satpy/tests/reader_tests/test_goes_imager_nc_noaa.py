@@ -39,14 +39,14 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
-    @mock.patch('satpy.readers.goes_imager_nc.xr')
-    @mock.patch.multiple('satpy.readers.goes_imager_nc.GOESNCBaseFileHandler',
+    @mock.patch("satpy.readers.goes_imager_nc.xr")
+    @mock.patch.multiple("satpy.readers.goes_imager_nc.GOESNCBaseFileHandler",
                          _get_sector=mock.MagicMock())
     def setUp(self, xr_):
         """Set up the tests."""
         from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESNCBaseFileHandler
 
-        self.coefs = CALIB_COEFS['GOES-15']
+        self.coefs = CALIB_COEFS["GOES-15"]
 
         # Mock file access to return a fake dataset.
         self.time = datetime.datetime(2018, 8, 16, 16, 7)
@@ -54,29 +54,29 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         self.dummy2d = np.zeros((2, 2))
         self.band = 1
         self.nc = xr.Dataset(
-            {'data': xr.DataArray(self.dummy3d, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
-             'lat': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
-             'time': xr.DataArray(data=np.array([self.time],
-                                                dtype='datetime64[ms]'),
-                                  dims=('time',)),
-             'bands': xr.DataArray(data=np.array([self.band]))},
-            attrs={'Satellite Sensor': 'G-15'})
+            {"data": xr.DataArray(self.dummy3d, dims=("time", "yc", "xc")),
+             "lon": xr.DataArray(data=self.dummy2d, dims=("yc", "xc")),
+             "lat": xr.DataArray(data=self.dummy2d, dims=("yc", "xc")),
+             "time": xr.DataArray(data=np.array([self.time],
+                                                dtype="datetime64[ns]"),
+                                  dims=("time",)),
+             "bands": xr.DataArray(data=np.array([self.band]))},
+            attrs={"Satellite Sensor": "G-15"})
         xr_.open_dataset.return_value = self.nc
 
         # Instantiate reader using the mocked open_dataset() method. Also, make
         # the reader believe all abstract methods have been implemented.
-        self.reader = GOESNCBaseFileHandler(filename='dummy', filename_info={},
+        self.reader = GOESNCBaseFileHandler(filename="dummy", filename_info={},
                                             filetype_info={})
 
     def test_init(self):
         """Tests reader initialization."""
-        self.assertEqual(self.reader.nlines, self.dummy2d.shape[0])
-        self.assertEqual(self.reader.ncols, self.dummy2d.shape[1])
-        self.assertEqual(self.reader.platform_name, 'GOES-15')
-        self.assertEqual(self.reader.platform_shortname, 'goes15')
-        self.assertEqual(self.reader.gvar_channel, self.band)
-        self.assertIsInstance(self.reader.geo_data, xr.Dataset)
+        assert self.reader.nlines == self.dummy2d.shape[0]
+        assert self.reader.ncols == self.dummy2d.shape[1]
+        assert self.reader.platform_name == "GOES-15"
+        assert self.reader.platform_shortname == "goes15"
+        assert self.reader.gvar_channel == self.band
+        assert isinstance(self.reader.geo_data, xr.Dataset)
 
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel."""
@@ -89,23 +89,20 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                                [0, 0, 0, 0]])
         nadir_row, nadir_col = self.reader._get_nadir_pixel(
             earth_mask=earth_mask, sector=FULL_DISC)
-        self.assertEqual((nadir_row, nadir_col), (2, 1),
-                         msg='Incorrect nadir pixel')
+        assert (nadir_row, nadir_col) == (2, 1), "Incorrect nadir pixel"
 
     def test_viscounts2radiance(self):
         """Test conversion from VIS counts to radiance."""
         # Reference data is for detector #1
-        slope = self.coefs['00_7']['slope'][0]
-        offset = self.coefs['00_7']['offset'][0]
+        slope = self.coefs["00_7"]["slope"][0]
+        offset = self.coefs["00_7"]["offset"][0]
         counts = xr.DataArray([0, 100, 200, 500, 1000, 1023])
         rad_expected = xr.DataArray(
             [0., 41.54896, 100.06862,
              275.6276, 568.2259, 581.685422])
         rad = self.reader._viscounts2radiance(counts=counts, slope=slope,
                                               offset=offset)
-        self.assertTrue(np.allclose(rad.data, rad_expected.data, atol=1E-6),
-                        msg='Incorrect conversion from VIS counts to '
-                            'radiance')
+        assert np.allclose(rad.data, rad_expected.data, atol=1e-06), "Incorrect conversion from VIS counts to radiance"
 
     def test_ircounts2radiance(self):
         """Test conversion from IR counts to radiance."""
@@ -115,10 +112,10 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         # Reference Radiance from NOAA lookup tables (same for detectors 1 and
         # 2, see [IR])
         rad_expected = {
-            '03_9': np.array([0, 0.140, 1.899, 4.098, 4.199]),
-            '06_5': np.array([0, 1.825, 12.124, 24.998, 25.590]),
-            '10_7': np.array([0, 16.126, 92.630, 188.259, 192.658]),
-            '13_3': np.array([0, 15.084, 87.421, 177.842, 182.001])
+            "03_9": np.array([0, 0.140, 1.899, 4.098, 4.199]),
+            "06_5": np.array([0, 1.825, 12.124, 24.998, 25.590]),
+            "10_7": np.array([0, 16.126, 92.630, 188.259, 192.658]),
+            "13_3": np.array([0, 15.084, 87.421, 177.842, 182.001])
         }
 
         # The input counts are exact, but the accuracy of the output radiance is
@@ -128,64 +125,59 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         for ch in sorted(rad_expected.keys()):
             coefs = self.coefs[ch]
             rad = self.reader._ircounts2radiance(
-                counts=counts, scale=coefs['scale'], offset=coefs['offset'])
-            self.assertTrue(np.allclose(rad.data, rad_expected[ch], atol=atol),
-                            msg='Incorrect conversion from IR counts to '
-                                'radiance in channel {}'.format(ch))
+                counts=counts, scale=coefs["scale"], offset=coefs["offset"])
+            assert np.allclose(rad.data, rad_expected[ch], atol=atol), \
+                "Incorrect conversion from IR counts to radiance in channel {}".format(ch)
 
     def test_calibrate_vis(self):
         """Test VIS calibration."""
         rad = xr.DataArray([0, 1, 10, 100, 500])
         refl_expected = xr.DataArray([0., 0.188852, 1.88852, 18.8852, 94.426])
         refl = self.reader._calibrate_vis(radiance=rad,
-                                          k=self.coefs['00_7']['k'])
-        self.assertTrue(np.allclose(refl.data, refl_expected.data, atol=1E-6),
-                        msg='Incorrect conversion from radiance to '
-                            'reflectance')
+                                          k=self.coefs["00_7"]["k"])
+        assert np.allclose(refl.data, refl_expected.data, atol=1e-06), \
+            "Incorrect conversion from radiance to reflectance"
 
     def test_calibrate_ir(self):
         """Test IR calibration."""
         # Test radiance values and corresponding BT from NOAA lookup tables
         # rev. H (see [IR]).
         rad = {
-            '03_9': xr.DataArray([0, 0.1, 2, 3.997, 4.199]),
-            '06_5': xr.DataArray([0, 0.821, 12.201, 25.590, 100]),
-            '10_7': xr.DataArray([0, 11.727, 101.810, 189.407, 192.658]),
-            '13_3': xr.DataArray([0, 22.679, 90.133, 182.001, 500])
+            "03_9": xr.DataArray([0, 0.1, 2, 3.997, 4.199]),
+            "06_5": xr.DataArray([0, 0.821, 12.201, 25.590, 100]),
+            "10_7": xr.DataArray([0, 11.727, 101.810, 189.407, 192.658]),
+            "13_3": xr.DataArray([0, 22.679, 90.133, 182.001, 500])
         }
         bt_expected = {
-            '03_9': np.array([[np.nan, 253.213, 319.451, 339.983, np.nan],
+            "03_9": np.array([[np.nan, 253.213, 319.451, 339.983, np.nan],
                               [np.nan, 253.213, 319.451, 339.983, np.nan]]),
-            '06_5': np.array([[np.nan, 200.291, 267.860, 294.988, np.nan],
+            "06_5": np.array([[np.nan, 200.291, 267.860, 294.988, np.nan],
                               [np.nan, 200.308, 267.879, 295.008, np.nan]]),
-            '10_7': np.array([[np.nan, 200.105, 294.437, 339.960, np.nan],
+            "10_7": np.array([[np.nan, 200.105, 294.437, 339.960, np.nan],
                               [np.nan, 200.097, 294.429, 339.953, np.nan]]),
-            '13_3': np.array([[np.nan, 200.006, 267.517, 321.986, np.nan],
+            "13_3": np.array([[np.nan, 200.006, 267.517, 321.986, np.nan],
                               [np.nan, 200.014, 267.524, 321.990, np.nan]])
         }  # first row is for detector 1, second for detector 2.
 
         # The accuracy of the input radiance is limited to 3 digits so that
         # the results differ slightly.
-        atol = {'03_9': 0.04, '06_5': 0.03, '10_7': 0.01, '13_3': 0.01}
+        atol = {"03_9": 0.04, "06_5": 0.03, "10_7": 0.01, "13_3": 0.01}
 
         for ch in sorted(rad.keys()):
             coefs = self.coefs[ch]
             for det in [0, 1]:
                 bt = self.reader._calibrate_ir(radiance=rad[ch],
-                                               coefs={'a': coefs['a'][det],
-                                                      'b': coefs['b'][det],
-                                                      'n': coefs['n'][det],
-                                                      'btmin': coefs['btmin'],
-                                                      'btmax': coefs['btmax']})
-                self.assertTrue(
-                    np.allclose(bt.data, bt_expected[ch][det], equal_nan=True,
-                                atol=atol[ch]),
-                    msg='Incorrect conversion from radiance to brightness '
-                        'temperature in channel {} detector {}'.format(ch, det))
+                                               coefs={"a": coefs["a"][det],
+                                                      "b": coefs["b"][det],
+                                                      "n": coefs["n"][det],
+                                                      "btmin": coefs["btmin"],
+                                                      "btmax": coefs["btmax"]})
+                assert np.allclose(bt.data, bt_expected[ch][det], equal_nan=True, atol=atol[ch]), \
+                    f"Incorrect conversion from radiance to brightness temperature in channel {ch} detector {det}"
 
     def test_start_time(self):
         """Test dataset start time stamp."""
-        self.assertEqual(self.reader.start_time, self.time)
+        assert self.reader.start_time == self.time
 
     def test_end_time(self):
         """Test dataset end time stamp."""
@@ -196,7 +188,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         }
         for sector, end_time in expected.items():
             self.reader.sector = sector
-            self.assertEqual(self.reader.end_time, end_time)
+            assert self.reader.end_time == end_time
 
 
 class TestMetadata:
@@ -217,7 +209,7 @@ class TestMetadata:
             data_array.data = np.flipud(data_array.data)
         return data_array
 
-    @pytest.fixture
+    @pytest.fixture()
     def lons_lats(self, yaw_flip):
         """Get longitudes and latitudes."""
         lon = xr.DataArray(
@@ -235,7 +227,7 @@ class TestMetadata:
         self._apply_yaw_flip(lat, yaw_flip)
         return lon, lat
 
-    @pytest.fixture
+    @pytest.fixture()
     def dataset(self, lons_lats, channel_id):
         """Create a fake dataset."""
         lon, lat = lons_lats
@@ -246,22 +238,22 @@ class TestMetadata:
             dims=("time", "yc", "xc")
         )
         time = xr.DataArray(
-            [np.datetime64("2018-01-01 12:00:00")],
+            [np.datetime64("2018-01-01 12:00:00").astype("datetime64[ns]")],
             dims="time"
         )
         bands = xr.DataArray([channel_id], dims="bands")
         return xr.Dataset(
             {
-                'data': data,
-                'lon': lon,
-                'lat': lat,
-                'time': time,
-                'bands': bands,
+                "data": data,
+                "lon": lon,
+                "lat": lat,
+                "time": time,
+                "bands": bands,
             },
-            attrs={'Satellite Sensor': 'G-15'}
+            attrs={"Satellite Sensor": "G-15"}
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def earth_mask(self, yaw_flip):
         """Get expected earth mask."""
         earth_mask = xr.DataArray(
@@ -273,7 +265,7 @@ class TestMetadata:
         self._apply_yaw_flip(earth_mask, yaw_flip)
         return earth_mask
 
-    @pytest.fixture
+    @pytest.fixture()
     def geometry(self, channel_id, yaw_flip):
         """Get expected geometry."""
         shapes = {
@@ -286,20 +278,20 @@ class TestMetadata:
             "shape": shapes[channel_id]
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def expected(self, geometry, earth_mask, yaw_flip):
         """Define expected metadata."""
         proj_dict = {
-            'a': '6378169',
-            'h': '35785831',
-            'lon_0': '0',
-            'no_defs': 'None',
-            'proj': 'geos',
-            'rf': '295.488065897001',
-            'type': 'crs',
-            'units': 'm',
-            'x_0': '0',
-            'y_0': '0'
+            "a": "6378169",
+            "h": "35785831",
+            "lon_0": "0",
+            "no_defs": "None",
+            "proj": "geos",
+            "rf": "295.488065897001",
+            "type": "crs",
+            "units": "m",
+            "x_0": "0",
+            "y_0": "0"
         }
         area = AreaDefinition(
             area_id="goes_geos_uniform",
@@ -319,7 +311,7 @@ class TestMetadata:
             "nadir_col": 1
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def mocked_file_handler(self, dataset):
         """Mock file handler to load the given fake dataset."""
         from satpy.readers.goes_imager_nc import FULL_DISC, GOESNCFileHandler
@@ -329,7 +321,7 @@ class TestMetadata:
             GOESNCFileHandler.ir_sectors[(3, 4)] = FULL_DISC
             GOESNCFileHandler.yaw_flip_sampling_distance = 1
             return GOESNCFileHandler(
-                filename='dummy',
+                filename="dummy",
                 filename_info={},
                 filetype_info={},
             )
@@ -351,12 +343,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
-    @mock.patch('satpy.readers.goes_imager_nc.xr')
+    @mock.patch("satpy.readers.goes_imager_nc.xr")
     def setUp(self, xr_):
         """Set up the tests."""
         from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESNCFileHandler
 
-        self.coefs = CALIB_COEFS['GOES-15']
+        self.coefs = CALIB_COEFS["GOES-15"]
         self.all_coefs = CALIB_COEFS
         self.channels = sorted(self.coefs.keys())
         self.ir_channels = sorted([ch for ch in self.channels
@@ -374,114 +366,112 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             nrows, ncols)  # Includes invalid values to be masked
 
         xr_.open_dataset.return_value = xr.Dataset(
-            {'data': xr.DataArray(data=self.counts, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.lon, dims=('yc', 'xc')),
-             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc')),
-             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
-                                  dims=('time',)),
-             'bands': xr.DataArray(data=np.array([1]))},
-            attrs={'Satellite Sensor': 'G-15'})
+            {"data": xr.DataArray(data=self.counts, dims=("time", "yc", "xc")),
+             "lon": xr.DataArray(data=self.lon, dims=("yc", "xc")),
+             "lat": xr.DataArray(data=self.lat, dims=("yc", "xc")),
+             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
+                                  dims=("time",)),
+             "bands": xr.DataArray(data=np.array([1]))},
+            attrs={"Satellite Sensor": "G-15"})
 
         # Instantiate reader using the mocked open_dataset() method
-        self.reader = GOESNCFileHandler(filename='dummy', filename_info={},
+        self.reader = GOESNCFileHandler(filename="dummy", filename_info={},
                                         filetype_info={})
 
     def test_get_dataset_coords(self):
         """Test whether coordinates returned by get_dataset() are correct."""
-        lon = self.reader.get_dataset(key=make_dataid(name='longitude'),
+        lon = self.reader.get_dataset(key=make_dataid(name="longitude"),
                                       info={})
-        lat = self.reader.get_dataset(key=make_dataid(name='latitude'),
+        lat = self.reader.get_dataset(key=make_dataid(name="latitude"),
                                       info={})
         # ... this only compares the valid (unmasked) elements
-        self.assertTrue(np.all(lat.to_masked_array() == self.lat),
-                        msg='get_dataset() returns invalid latitude')
-        self.assertTrue(np.all(lon.to_masked_array() == self.lon),
-                        msg='get_dataset() returns invalid longitude')
+        assert np.all(lat.to_masked_array() == self.lat), "get_dataset() returns invalid latitude"
+        assert np.all(lon.to_masked_array() == self.lon), "get_dataset() returns invalid longitude"
 
     def test_get_dataset_counts(self):
         """Test whether counts returned by get_dataset() are correct."""
         from satpy.readers.goes_imager_nc import ALTITUDE, UNKNOWN_SECTOR
 
-        self.reader.meta.update({'lon0': -75.0,
-                                 'lat0': 0.0,
-                                 'sector': UNKNOWN_SECTOR,
-                                 'nadir_row': 1,
-                                 'nadir_col': 2,
-                                 'area_def_uni': 'some_area'})
-        attrs_exp = {'orbital_parameters': {'projection_longitude': -75.0,
-                                            'projection_latitude': 0.0,
-                                            'projection_altitude': ALTITUDE,
-                                            'yaw_flip': True},
-                     'platform_name': 'GOES-15',
-                     'sensor': 'goes_imager',
-                     'sector': UNKNOWN_SECTOR,
-                     'nadir_row': 1,
-                     'nadir_col': 2,
-                     'area_def_uniform_sampling': 'some_area'}
+        self.reader.meta.update({"lon0": -75.0,
+                                 "lat0": 0.0,
+                                 "sector": UNKNOWN_SECTOR,
+                                 "nadir_row": 1,
+                                 "nadir_col": 2,
+                                 "area_def_uni": "some_area"})
+        attrs_exp = {"orbital_parameters": {"projection_longitude": -75.0,
+                                            "projection_latitude": 0.0,
+                                            "projection_altitude": ALTITUDE,
+                                            "yaw_flip": True},
+                     "platform_name": "GOES-15",
+                     "sensor": "goes_imager",
+                     "sector": UNKNOWN_SECTOR,
+                     "nadir_row": 1,
+                     "nadir_col": 2,
+                     "area_def_uniform_sampling": "some_area"}
 
         for ch in self.channels:
             counts = self.reader.get_dataset(
-                key=make_dataid(name=ch, calibration='counts'), info={})
+                key=make_dataid(name=ch, calibration="counts"), info={})
             # ... this only compares the valid (unmasked) elements
-            self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
-                            msg='get_dataset() returns invalid counts for '
-                                'channel {}'.format(ch))
+            assert np.all(self.counts / 32.0 == counts.to_masked_array()), \
+                f"get_dataset() returns invalid counts for channel {ch}"
 
             # Check attributes
-            self.assertDictEqual(counts.attrs, attrs_exp)
+            assert counts.attrs == attrs_exp
 
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently."""
         # Requires that no element has been masked due to invalid
         # radiance/reflectance/BT (see setUp()).
-        lon = self.reader.get_dataset(key=make_dataid(name='longitude'),
+        lon = self.reader.get_dataset(key=make_dataid(name="longitude"),
                                       info={})
         lon_mask = lon.to_masked_array().mask
         for ch in self.channels:
-            for calib in ('counts', 'radiance', 'reflectance',
-                          'brightness_temperature'):
+            for calib in ("counts", "radiance", "reflectance",
+                          "brightness_temperature"):
                 try:
                     data = self.reader.get_dataset(
                         key=make_dataid(name=ch, calibration=calib), info={})
                 except ValueError:
                     continue
                 data_mask = data.to_masked_array().mask
-                self.assertTrue(np.all(data_mask == lon_mask),
-                                msg='get_dataset() returns inconsistently '
-                                    'masked {} in channel {}'.format(calib, ch))
+                assert np.all(data_mask == lon_mask), \
+                    f"get_dataset() returns inconsistently masked {calib} in channel {ch}"
 
     def test_get_dataset_invalid(self):
         """Test handling of invalid calibrations."""
         # VIS -> BT
-        args = dict(key=make_dataid(name='00_7',
-                                    calibration='brightness_temperature'),
+        args = dict(key=make_dataid(name="00_7",
+                                    calibration="brightness_temperature"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate VIS channel to 2"):
+            self.reader.get_dataset(**args)
 
         # IR -> Reflectance
-        args = dict(key=make_dataid(name='10_7',
-                                    calibration='reflectance'),
+        args = dict(key=make_dataid(name="10_7",
+                                    calibration="reflectance"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate IR channel to 1"):
+            self.reader.get_dataset(**args)
 
         # Unsupported calibration
-        with pytest.raises(ValueError):
-            args = dict(key=make_dataid(name='10_7',
-                                        calibration='invalid'),
-                        info={})
+        with pytest.raises(ValueError, match="invalid invalid value for <enum 'calibration'>"):
+            _ = dict(key=make_dataid(name="10_7",
+                                     calibration="invalid"),
+                     info={})
 
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
         for ch in self.channels:
             if is_vis_channel(ch):
-                calibs = {'radiance': '_viscounts2radiance',
-                          'reflectance': '_calibrate_vis'}
+                calibs = {"radiance": "_viscounts2radiance",
+                          "reflectance": "_calibrate_vis"}
             else:
-                calibs = {'radiance': '_ircounts2radiance',
-                          'brightness_temperature': '_calibrate_ir'}
+                calibs = {"radiance": "_ircounts2radiance",
+                          "brightness_temperature": "_calibrate_ir"}
             for calib, method in calibs.items():
                 with mock.patch.object(self.reader, method) as target_func:
-                    self.reader.calibrate(counts=self.reader.nc['data'],
+                    self.reader.calibrate(counts=self.reader.nc["data"],
                                           calibration=calib, channel=ch)
                     target_func.assert_called()
 
@@ -515,20 +505,19 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         shapes.update(shapes_vis)
         for (nlines, ncols), sector_ref in shapes.items():
             if (nlines, ncols) in shapes_vis:
-                channel = '00_7'
+                channel = "00_7"
             else:
-                channel = '10_7'
+                channel = "10_7"
             sector = self.reader._get_sector(channel=channel, nlines=nlines,
                                              ncols=ncols)
-            self.assertEqual(sector, sector_ref,
-                             msg='Incorrect sector identification')
+            assert sector == sector_ref, "Incorrect sector identification"
 
 
 class TestChannelIdentification:
     """Test identification of channel type."""
 
     @pytest.mark.parametrize(
-        "channel_name,expected",
+        ("channel_name", "expected"),
         [
             ("00_7", True),
             ("10_7", False),
@@ -542,5 +531,5 @@ class TestChannelIdentification:
 
     def test_invalid_channel(self):
         """Test handling of invalid channel type."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid channel"):
             is_vis_channel({"foo": "bar"})

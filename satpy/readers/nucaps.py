@@ -70,10 +70,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     def __init__(self, *args, **kwargs):
         """Initialize file handler."""
         # remove kwargs that reader instance used that file handler does not
-        kwargs.pop('mask_surface', None)
-        kwargs.pop('mask_quality', None)
-        kwargs.setdefault('xarray_kwargs', {}).setdefault(
-            'decode_times', False)
+        kwargs.pop("mask_surface", None)
+        kwargs.pop("mask_quality", None)
+        kwargs.setdefault("xarray_kwargs", {}).setdefault(
+            "decode_times", False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
 
     def __contains__(self, item):
@@ -88,25 +88,25 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     def start_time(self):
         """Get start time."""
         try:
-            return self._parse_datetime(self['/attr/time_coverage_start'])
+            return self._parse_datetime(self["/attr/time_coverage_start"])
         except KeyError:
             # If attribute not present, use time from file name
-            return self.filename_info['start_time']
+            return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
         try:
-            return self._parse_datetime(self['/attr/time_coverage_end'])
+            return self._parse_datetime(self["/attr/time_coverage_end"])
         except KeyError:
             # If attribute not present, use time from file name
-            return self.filename_info['end_time']
+            return self.filename_info["end_time"]
 
     @property
     def start_orbit_number(self):
         """Return orbit number for the beginning of the swath."""
         try:
-            return int(self['/attr/start_orbit_number'])
+            return int(self["/attr/start_orbit_number"])
         except KeyError:
             return 0
 
@@ -114,7 +114,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     def end_orbit_number(self):
         """Return orbit number for the end of the swath."""
         try:
-            return int(self['/attr/end_orbit_number'])
+            return int(self["/attr/end_orbit_number"])
         except KeyError:
             return 0
 
@@ -122,29 +122,29 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     def platform_name(self):
         """Return standard platform name for the file's data."""
         try:
-            res = self['/attr/platform_name']
+            res = self["/attr/platform_name"]
             if isinstance(res, np.ndarray):
                 return str(res.astype(str))
             return res
         except KeyError:
-            return self.filename_info['platform_shortname']
+            return self.filename_info["platform_shortname"]
 
     @property
     def sensor_names(self):
         """Return standard sensor or instrument name for the file's data."""
         try:
-            res = self['/attr/instrument_name']
-            res = [x.strip() for x in res.split(',')]
+            res = self["/attr/instrument_name"]
+            res = [x.strip() for x in res.split(",")]
             if len(res) == 1:
                 return res[0].lower()
         except KeyError:
-            res = ['CrIS', 'ATMS', 'VIIRS']
+            res = ["CrIS", "ATMS", "VIIRS"]
         return set(name.lower() for name in res)
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
-        var_path = ds_info.get('file_key', '{}'.format(ds_id['name']))
-        if var_path + '/shape' not in self:
+        var_path = ds_info.get("file_key", "{}".format(ds_id["name"]))
+        if var_path + "/shape" not in self:
             # loading a scalar value
             shape = 1
         else:
@@ -157,11 +157,11 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         shape = self.get_shape(dataset_id, ds_info)
-        file_units = ds_info.get('file_units',
-                                 self.get(var_path + '/attr/units'))
-        ds_info.update(getattr(self[var_path], 'attrs', {}))
+        file_units = ds_info.get("file_units",
+                                 self.get(var_path + "/attr/units"))
+        ds_info.update(getattr(self[var_path], "attrs", {}))
         # don't overwrite information in the files attrs because the same
         # `.attrs` is used for each separate Temperature pressure level dataset
         # Plus, if someone gets metadata multiple times then we are screwed
@@ -176,22 +176,22 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        if 'standard_name' not in info:
-            sname_path = var_path + '/attr/standard_name'
-            info['standard_name'] = self.get(sname_path)
-        if dataset_id['name'] != 'Quality_Flag':
-            anc_vars = info.get('ancillary_variables', [])
-            if 'Quality_Flag' not in anc_vars:
-                anc_vars.append('Quality_Flag')
-                info['ancillary_variables'] = anc_vars
+        if "standard_name" not in info:
+            sname_path = var_path + "/attr/standard_name"
+            info["standard_name"] = self.get(sname_path)
+        if dataset_id["name"] != "Quality_Flag":
+            anc_vars = info.get("ancillary_variables", [])
+            if "Quality_Flag" not in anc_vars:
+                anc_vars.append("Quality_Flag")
+                info["ancillary_variables"] = anc_vars
         return info
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata for specified dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
+        var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        valid_min, valid_max = self[var_path + '/attr/valid_range']
-        fill_value = self.get(var_path + '/attr/_FillValue')
+        valid_min, valid_max = self[var_path + "/attr/valid_range"]
+        fill_value = self.get(var_path + "/attr/_FillValue")
 
         d_tmp = self[var_path]
         if "index" in ds_info:
@@ -200,19 +200,19 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
             # this is a pressure based field
             # include surface_pressure as metadata
-            sp = self['Surface_Pressure']
+            sp = self["Surface_Pressure"]
             # Older format
-            if 'number_of_FORs' in sp.dims:
-                sp = sp.rename({'number_of_FORs': 'y'})
+            if "number_of_FORs" in sp.dims:
+                sp = sp.rename({"number_of_FORs": "y"})
             # Newer format
-            if 'Number_of_CrIS_FORs' in sp.dims:
-                sp = sp.rename({'Number_of_CrIS_FORs': 'y'})
-            if 'surface_pressure' in ds_info:
-                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp), dim='y')
+            if "Number_of_CrIS_FORs" in sp.dims:
+                sp = sp.rename({"Number_of_CrIS_FORs": "y"})
+            if "surface_pressure" in ds_info:
+                ds_info["surface_pressure"] = xr.concat((ds_info["surface_pressure"], sp), dim="y")
             else:
-                ds_info['surface_pressure'] = sp
+                ds_info["surface_pressure"] = sp
             # include all the pressure levels
-            ds_info.setdefault('pressure_levels', self['Pressure'][0])
+            ds_info.setdefault("pressure_levels", self["Pressure"][0])
         data = d_tmp
 
         if valid_min is not None and valid_max is not None:
@@ -221,23 +221,23 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if fill_value is not None:
             data = data.where(data != fill_value)
             # this _FillValue is no longer valid
-            metadata.pop('_FillValue', None)
-            data.attrs.pop('_FillValue', None)
+            metadata.pop("_FillValue", None)
+            data.attrs.pop("_FillValue", None)
 
         data.attrs.update(metadata)
         # Older format
-        if 'number_of_FORs' in data.dims:
-            data = data.rename({'number_of_FORs': 'y'})
+        if "number_of_FORs" in data.dims:
+            data = data.rename({"number_of_FORs": "y"})
         # Newer format
-        if 'Number_of_CrIS_FORs' in data.dims:
-            data = data.rename({'Number_of_CrIS_FORs': 'y'})
+        if "Number_of_CrIS_FORs" in data.dims:
+            data = data.rename({"Number_of_CrIS_FORs": "y"})
         return data
 
 
 class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files."""
 
-    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):  # noqa: D417
         """Configure reader behavior.
 
         Args:
@@ -248,8 +248,8 @@ class NUCAPSReader(FileYAMLReader):
         self.pressure_dataset_names = defaultdict(list)
         super(NUCAPSReader, self).__init__(config_files,
                                            **kwargs)
-        self.mask_surface = self.info.get('mask_surface', mask_surface)
-        self.mask_quality = self.info.get('mask_quality', mask_quality)
+        self.mask_surface = self.info.get("mask_surface", mask_surface)
+        self.mask_quality = self.info.get("mask_quality", mask_quality)
 
     def load_ds_ids_from_config(self):
         """Convert config dataset entries to DataIDs.
@@ -263,7 +263,7 @@ class NUCAPSReader(FileYAMLReader):
         super(NUCAPSReader, self).load_ds_ids_from_config()
         for ds_id in list(self.all_ids.keys()):
             ds_info = self.all_ids[ds_id]
-            if ds_info.get('pressure_based', False):
+            if ds_info.get("pressure_based", False):
                 for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
                     if lvl_num < 5.0:
                         suffix = "_{:0.03f}mb".format(lvl_num)
@@ -271,14 +271,14 @@ class NUCAPSReader(FileYAMLReader):
                         suffix = "_{:0.0f}mb".format(lvl_num)
 
                     new_info = ds_info.copy()
-                    new_info['pressure_level'] = lvl_num
-                    new_info['pressure_index'] = idx
-                    new_info['file_key'] = '{}'.format(ds_id['name'])
-                    new_info['name'] = ds_id['name'] + suffix
-                    new_ds_id = ds_id._replace(name=new_info['name'])
-                    new_info['id'] = new_ds_id
+                    new_info["pressure_level"] = lvl_num
+                    new_info["pressure_index"] = idx
+                    new_info["file_key"] = "{}".format(ds_id["name"])
+                    new_info["name"] = ds_id["name"] + suffix
+                    new_ds_id = ds_id._replace(name=new_info["name"])
+                    new_info["id"] = new_ds_id
                     self.all_ids[new_ds_id] = new_info
-                    self.pressure_dataset_names[ds_id['name']].append(new_info['name'])
+                    self.pressure_dataset_names[ds_id["name"]].append(new_info["name"])
 
     def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
         """Load data from one or more set of files.
@@ -294,7 +294,7 @@ class NUCAPSReader(FileYAMLReader):
 
             # Add pressure levels to the datasets to load if needed so
             # we can do further filtering after loading
-            plevels_ds_id = self.get_dataset_key('Pressure_Levels')
+            plevels_ds_id = self.get_dataset_key("Pressure_Levels")
             remove_plevels = False
             if plevels_ds_id not in dataset_keys:
                 dataset_keys.add(plevels_ds_id)
@@ -353,7 +353,7 @@ def _remove_data_at_pressure_levels(datasets_loaded, plevels_ds, pressure_levels
 
         if cond is not None:
             datasets_loaded[ds_id] = ds_obj.where(cond, drop=True)
-        datasets_loaded[ds_id].attrs['pressure_levels'] = new_plevels
+        datasets_loaded[ds_id].attrs["pressure_levels"] = new_plevels
 
 
 def _get_pressure_level_condition(plevels_ds, pressure_levels):
@@ -399,8 +399,8 @@ def _mask_data_with_quality_flag(datasets_loaded, dataset_keys):
     for ds_id in sorted(dataset_keys):
         ds = datasets_loaded[ds_id]
         quality_flag = [
-            x for x in ds.attrs.get('ancillary_variables', [])
-            if x.attrs.get('name') == 'Quality_Flag']
+            x for x in ds.attrs.get("ancillary_variables", [])
+            if x.attrs.get("name") == "Quality_Flag"]
         if not quality_flag:
             continue
 

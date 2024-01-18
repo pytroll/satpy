@@ -36,7 +36,6 @@ import logging
 import numpy as np
 from pyproj import Proj
 from pyresample import geometry
-from pyresample.utils import proj4_str_to_dict
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
@@ -44,14 +43,14 @@ LOG = logging.getLogger(__name__)
 
 
 CF_UNITS = {
-    'none': '1',
+    "none": "1",
 }
 
 # GEOCAT currently doesn't include projection information in it's files
 GEO_PROJS = {
-    'GOES-16': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
-    'GOES-17': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
-    'HIMAWARI-8': '+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs',
+    "GOES-16": "+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs",
+    "GOES-17": "+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs",
+    "HIMAWARI-8": "+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs",
 }
 
 
@@ -72,29 +71,29 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  **kwargs):
         """Open and perform initial investigation of NetCDF file."""
-        kwargs.setdefault('xarray_kwargs', {}).setdefault(
-            'engine', "netcdf4")
-        kwargs.setdefault('xarray_kwargs', {}).setdefault(
-            'decode_times', False)
+        kwargs.setdefault("xarray_kwargs", {}).setdefault(
+            "engine", "netcdf4")
+        kwargs.setdefault("xarray_kwargs", {}).setdefault(
+            "decode_times", False)
 
         super(GEOCATFileHandler, self).__init__(
             filename, filename_info, filetype_info,
             xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
-        'goes': 'goes_imager',
-        'himawari8': 'ahi',
-        'goes16': 'abi',  # untested
-        'goesr': 'abi',  # untested
+        "goes": "goes_imager",
+        "himawari8": "ahi",
+        "goes16": "abi",  # untested
+        "goesr": "abi",  # untested
     }
     platforms: dict[str, str] = {
     }
     resolutions = {
-        'abi': {
+        "abi": {
             1: 1002.0086577437705,
             2: 2004.0173154875411,
         },
-        'ahi': {
+        "ahi": {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
             4: 3999.99992812707,
@@ -121,7 +120,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return platform
 
     def _get_proj(self, platform, ref_lon):
-        if platform == 'GOES-16' and -76. < ref_lon < -74.:
+        if platform == "GOES-16" and -76. < ref_lon < -74.:
             # geocat file holds the *actual* subsatellite point, not the
             # projection (-75.2 actual versus -75 projection)
             ref_lon = -75.
@@ -130,33 +129,33 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     @property
     def sensor_names(self):
         """Get sensor names."""
-        return [self.get_sensor(self['/attr/Sensor_Name'])]
+        return [self.get_sensor(self["/attr/Sensor_Name"])]
 
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def is_geo(self):
         """Check platform."""
-        platform = self.get_platform(self['/attr/Platform_Name'])
+        platform = self.get_platform(self["/attr/Platform_Name"])
         return platform in GEO_PROJS
 
     @property
     def resolution(self):
         """Get resolution."""
-        elem_res = self['/attr/Element_Resolution']
+        elem_res = self["/attr/Element_Resolution"]
         return int(elem_res * 1000)
 
     def _calc_area_resolution(self, ds_res):
         elem_res = round(ds_res / 1000.)  # mimic 'Element_Resolution' attribute from above
-        sensor = self.get_sensor(self['/attr/Sensor_Name'])
+        sensor = self.get_sensor(self["/attr/Sensor_Name"])
         return self.resolutions.get(sensor, {}).get(int(elem_res),
                                                     elem_res * 1000.)
 
@@ -174,27 +173,27 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         """
         res = self.resolution
-        coordinates = ('pixel_longitude', 'pixel_latitude')
+        coordinates = ("pixel_longitude", "pixel_latitude")
         handled_variables = set()
 
         # update previously configured datasets
         for is_avail, ds_info in (configured_datasets or []):
-            this_res = ds_info.get('resolution')
-            this_coords = ds_info.get('coordinates')
+            this_res = ds_info.get("resolution")
+            this_coords = ds_info.get("coordinates")
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
 
-            var_name = ds_info.get('file_key', ds_info['name'])
-            matches = self.file_type_matches(ds_info['file_type'])
+            var_name = ds_info.get("file_key", ds_info["name"])
+            matches = self.file_type_matches(ds_info["file_type"])
             # we can confidently say that we can provide this dataset and can
             # provide more info
             if matches and var_name in self and this_res != res:
                 handled_variables.add(var_name)
                 new_info = ds_info.copy()  # don't mess up the above yielded
-                new_info['resolution'] = res
+                new_info["resolution"] = res
                 if not self.is_geo and this_coords is None:
-                    new_info['coordinates'] = coordinates
+                    new_info["coordinates"] = coordinates
                 yield True, new_info
             elif is_avail is None:
                 # if we didn't know how to handle this dataset and no one else did
@@ -207,21 +206,21 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 continue
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
-                    'file_type': self.filetype_info['file_type'],
-                    'resolution': res,
-                    'name': var_name,
+                    "file_type": self.filetype_info["file_type"],
+                    "resolution": res,
+                    "name": var_name,
                 }
                 if not self.is_geo:
-                    ds_info['coordinates'] = coordinates
+                    ds_info["coordinates"] = coordinates
                 yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
         """Get shape."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
-        return self[var_name + '/shape']
+        var_name = ds_info.get("file_key", dataset_id["name"])
+        return self[var_name + "/shape"]
 
     def _first_good_nav(self, lon_arr, lat_arr):
-        if hasattr(lon_arr, 'mask'):
+        if hasattr(lon_arr, "mask"):
             good_indexes = np.nonzero(~lon_arr.mask)
         else:
             # no masked values found in auto maskandscale
@@ -247,9 +246,9 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def _load_nav(self, name):
         nav = self[name]
-        factor = self[name + '/attr/scale_factor']
-        offset = self[name + '/attr/add_offset']
-        fill = self[name + '/attr/_FillValue']
+        factor = self[name + "/attr/scale_factor"]
+        offset = self[name + "/attr/add_offset"]
+        fill = self[name + "/attr/_FillValue"]
         nav = nav[:]
         mask = nav == fill
         nav = np.ma.masked_array(nav * factor + offset, mask=mask)
@@ -260,21 +259,21 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         if not self.is_geo:
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
-        platform = self.get_platform(self['/attr/Platform_Name'])
-        res = self._calc_area_resolution(dsid['resolution'])
-        proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
-        area_name = '{} {} Area at {}m'.format(
+        platform = self.get_platform(self["/attr/Platform_Name"])
+        res = self._calc_area_resolution(dsid["resolution"])
+        proj = self._get_proj(platform, float(self["/attr/Subsatellite_Longitude"]))
+        area_name = "{} {} Area at {}m".format(
             platform,
-            self.metadata.get('sector_id', ''),
+            self.metadata.get("sector_id", ""),
             int(res))
-        lon = self._load_nav('pixel_longitude')
-        lat = self._load_nav('pixel_latitude')
+        lon = self._load_nav("pixel_longitude")
+        lat = self._load_nav("pixel_latitude")
         extents = self._get_extents(proj, res, lon, lat)
         area_def = geometry.AreaDefinition(
             area_name,
             area_name,
             area_name,
-            proj4_str_to_dict(proj),
+            proj,
             lon.shape[1],
             lon.shape[0],
             area_extent=extents,
@@ -283,36 +282,36 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
+        var_name = ds_info.get("file_key", dataset_id["name"])
         shape = self.get_shape(dataset_id, ds_info)
-        info = getattr(self[var_name], 'attrs', {})
-        info['shape'] = shape
+        info = getattr(self[var_name], "attrs", {})
+        info["shape"] = shape
         info.update(ds_info)
-        u = info.get('units')
+        u = info.get("units")
         if u in CF_UNITS:
             # CF compliance
-            info['units'] = CF_UNITS[u]
+            info["units"] = CF_UNITS[u]
 
-        info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
-        info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
-        info['resolution'] = dataset_id['resolution']
-        if var_name == 'pixel_longitude':
-            info['standard_name'] = 'longitude'
-        elif var_name == 'pixel_latitude':
-            info['standard_name'] = 'latitude'
+        info["sensor"] = self.get_sensor(self["/attr/Sensor_Name"])
+        info["platform_name"] = self.get_platform(self["/attr/Platform_Name"])
+        info["resolution"] = dataset_id["resolution"]
+        if var_name == "pixel_longitude":
+            info["standard_name"] = "longitude"
+        elif var_name == "pixel_latitude":
+            info["standard_name"] = "latitude"
 
         return info
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
+        var_name = ds_info.get("file_key", dataset_id["name"])
         # FUTURE: Metadata retrieval may be separate
         info = self.get_metadata(dataset_id, ds_info)
         data = self[var_name]
-        fill = self[var_name + '/attr/_FillValue']
-        factor = self.get(var_name + '/attr/scale_factor')
-        offset = self.get(var_name + '/attr/add_offset')
-        valid_range = self.get(var_name + '/attr/valid_range')
+        fill = self[var_name + "/attr/_FillValue"]
+        factor = self.get(var_name + "/attr/scale_factor")
+        offset = self.get(var_name + "/attr/add_offset")
+        valid_range = self.get(var_name + "/attr/valid_range")
 
         data = data.where(data != fill)
         if valid_range is not None:
@@ -321,5 +320,5 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             data = data * factor + offset
 
         data.attrs.update(info)
-        data = data.rename({'lines': 'y', 'elements': 'x'})
+        data = data.rename({"lines": "y", "elements": "x"})
         return data

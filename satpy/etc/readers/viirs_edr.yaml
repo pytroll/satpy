@@ -25,7 +25,7 @@ file_types:
         file_patterns:
             - 'JRR-CloudHeight_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_aod:
-        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSAODHandler
         file_patterns:
             - 'JRR-AOD_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_lst:

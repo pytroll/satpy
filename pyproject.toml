@@ -12,3 +12,21 @@ skip_gitignore = true
 default_section = "THIRDPARTY"
 known_first_party = "satpy"
 line_length = 120
+
+[tool.ruff]
+# See https://docs.astral.sh/ruff/rules/
+# In the future, add "B", "S", "N"
+select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
+line-length = 120
+
+[tool.ruff.per-file-ignores]
+"satpy/tests/*" = ["S101"]  # assert allowed in tests
+"utils/coord2area_def.py" = ["T201"]  # allow print
+"fetch_avhrr_calcoeffs.py" = ["T201"]  # allow print
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10

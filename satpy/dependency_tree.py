@@ -327,7 +327,7 @@ class DependencyTree(Tree):
             LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node
 
-    def _find_reader_node(self, dataset_key, query):
+    def _find_reader_node(self, dataset_key, query):  # noqa: D417
         """Attempt to find a `DataID` in the available readers.
 
         Args:
@@ -431,7 +431,7 @@ class DependencyTree(Tree):
                 compositor = self.get_modifier(dataset_key)
             except KeyError:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-            compositor.attrs['prerequisites'] = [implicit_dependency_node] + list(compositor.attrs['prerequisites'])
+            compositor.attrs["prerequisites"] = [implicit_dependency_node] + list(compositor.attrs["prerequisites"])
         else:
             try:
                 compositor = self.get_compositor(dataset_key)
@@ -446,14 +446,14 @@ class DependencyTree(Tree):
         # Get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
         prereqs = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
-                   for prereq in compositor.attrs['prerequisites']]
+                   for prereq in compositor.attrs["prerequisites"]]
         prereqs = self._create_required_subtrees(root, prereqs, query=query)
         root.add_required_nodes(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optionals = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
-                     for prereq in compositor.attrs['optional_prerequisites']]
+                     for prereq in compositor.attrs["optional_prerequisites"]]
         optionals = self._create_optional_subtrees(root, optionals, query=query)
         root.add_optional_nodes(optionals)
 
@@ -501,7 +501,7 @@ class DependencyTree(Tree):
     def get_modifier(self, comp_id):
         """Get a modifer."""
         # create a DataID for the compositor we are generating
-        modifier = comp_id['modifiers'][-1]
+        modifier = comp_id["modifiers"][-1]
         for sensor_name in sorted(self.modifiers):
             modifiers = self.modifiers[sensor_name]
             compositors = self.compositors[sensor_name]
@@ -511,13 +511,13 @@ class DependencyTree(Tree):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            moptions['sensor'] = sensor_name
+            moptions["sensor"] = sensor_name
             compositors[comp_id] = mloader(_satpy_id=comp_id, **moptions)
             return compositors[comp_id]
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _create_required_subtrees(self, parent, prereqs, query=None):
+    def _create_required_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine required prerequisite Nodes for a composite.
 
         Args:
@@ -531,7 +531,7 @@ class DependencyTree(Tree):
             raise MissingDependencies(unknown_datasets)
         return prereq_nodes
 
-    def _create_optional_subtrees(self, parent, prereqs, query=None):
+    def _create_optional_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine optional prerequisite Nodes for a composite.
 
         Args:
@@ -544,12 +544,12 @@ class DependencyTree(Tree):
 
         for prereq, unknowns in unknown_datasets.items():
             u_str = ", ".join([str(x) for x in unknowns])
-            LOG.debug('Skipping optional %s: Unknown dataset %s',
+            LOG.debug("Skipping optional %s: Unknown dataset %s",
                       str(prereq), u_str)
 
         return prereq_nodes
 
-    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):
+    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine prerequisite Nodes for a composite.
 
         Args:

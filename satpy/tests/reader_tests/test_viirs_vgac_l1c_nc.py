@@ -29,13 +29,14 @@ import pytest
 from netCDF4 import Dataset
 
 
-@pytest.fixture
-def _nc_filename(tmp_path):
+@pytest.fixture()
+def nc_filename(tmp_path):
+    """Create an nc test data file and return its filename."""
     now = datetime.datetime.utcnow()
-    filename = f'VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc'
+    filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
     # Create test data
-    with Dataset(filename_str, 'w') as nc:
+    with Dataset(filename_str, "w") as nc:
         nscn = 7
         npix = 800
         n_lut = 12000
@@ -47,19 +48,19 @@ def _nc_filename(tmp_path):
         nc.EndTime = "2023-03-28T10:11:12"
         for ind in range(1, 11, 1):
             ch_name = "M{:02d}".format(ind)
-            r_a = nc.createVariable(ch_name, np.int16, dimensions=('nscn', 'npix'))
+            r_a = nc.createVariable(ch_name, np.int16, dimensions=("nscn", "npix"))
             r_a[:] = np.ones((nscn, npix)) * 10
-            attrs = {'scale_factor': 0.1, 'units': 'percent'}
+            attrs = {"scale_factor": 0.1, "units": "percent"}
             for attr in attrs:
                 setattr(r_a, attr, attrs[attr])
         for ind in range(12, 17, 1):
             ch_name = "M{:02d}".format(ind)
-            tb_b = nc.createVariable(ch_name, np.int16, dimensions=('nscn', 'npix'))
+            tb_b = nc.createVariable(ch_name, np.int16, dimensions=("nscn", "npix"))
             tb_b[:] = np.ones((nscn, npix)) * 800
-            attrs = {'units': 'radiances', 'scale_factor': 0.002}
+            attrs = {"units": "radiances", "scale_factor": 0.002}
             for attr in attrs:
                 setattr(tb_b, attr, attrs[attr])
-            tb_lut = nc.createVariable(ch_name + "_LUT", np.float32, dimensions=('n_lut'))
+            tb_lut = nc.createVariable(ch_name + "_LUT", np.float32, dimensions=("n_lut"))
             tb_lut[:] = np.array(range(0, n_lut)) * 0.5
             tb_lut.units = "Kelvin"
         reference_time = np.datetime64("2010-01-01T00:00:00")
@@ -84,7 +85,7 @@ def _nc_filename(tmp_path):
 class TestVGACREader:
     """Test the VGACFileHandler reader."""
 
-    def test_read_vgac(self, _nc_filename):
+    def test_read_vgac(self, nc_filename):
         """Test reading reflectances and BT."""
         from satpy.scene import Scene
 

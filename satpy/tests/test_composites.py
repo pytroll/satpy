@@ -30,33 +30,34 @@ import xarray as xr
 from pyresample import AreaDefinition
 
 import satpy
+from satpy.tests.utils import CustomScheduler
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
 
 
-class TestMatchDataArrays(unittest.TestCase):
+class TestMatchDataArrays:
     """Test the utility method 'match_data_arrays'."""
 
-    def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
+    def _get_test_ds(self, shape=(50, 100), dims=("y", "x")):
         """Get a fake DataArray."""
         from pyresample.geometry import AreaDefinition
         data = da.random.random(shape, chunks=25)
         area = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
-            shape[dims.index('x')], shape[dims.index('y')],
+            "test", "test", "test",
+            {"proj": "eqc", "lon_0": 0.0,
+             "lat_0": 0.0},
+            shape[dims.index("x")], shape[dims.index("y")],
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
-        attrs = {'area': area}
+        attrs = {"area": area}
         return xr.DataArray(data, dims=dims, attrs=attrs)
 
     def test_single_ds(self):
         """Test a single dataset is returned unharmed."""
         from satpy.composites import CompositeBase
         ds1 = self._get_test_ds()
-        comp = CompositeBase('test_comp')
+        comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays((ds1,))
         assert ret_datasets[0].identical(ds1)
 
@@ -65,7 +66,7 @@ class TestMatchDataArrays(unittest.TestCase):
         from satpy.composites import CompositeBase
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
-        comp = CompositeBase('test_comp')
+        comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays((ds1, ds2))
         assert ret_datasets[0].identical(ds1)
         assert ret_datasets[1].identical(ds2)
@@ -75,9 +76,10 @@ class TestMatchDataArrays(unittest.TestCase):
         from satpy.composites import CompositeBase
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
-        del ds2.attrs['area']
-        comp = CompositeBase('test_comp')
-        self.assertRaises(ValueError, comp.match_data_arrays, (ds1, ds2))
+        del ds2.attrs["area"]
+        comp = CompositeBase("test_comp")
+        with pytest.raises(ValueError, match="Missing 'area' attribute"):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
@@ -86,14 +88,15 @@ class TestMatchDataArrays(unittest.TestCase):
         from satpy.composites import CompositeBase, IncompatibleAreas
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
-        ds2.attrs['area'] = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
+        ds2.attrs["area"] = AreaDefinition(
+            "test", "test", "test",
+            {"proj": "eqc", "lon_0": 0.0,
+             "lat_0": 0.0},
             100, 50,
             (-30037508.34, -20018754.17, 10037508.34, 18754.17))
-        comp = CompositeBase('test_comp')
-        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
+        comp = CompositeBase("test_comp")
+        with pytest.raises(IncompatibleAreas):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
@@ -101,9 +104,9 @@ class TestMatchDataArrays(unittest.TestCase):
 
         # x is still 50, y is still 100, even though they are in
         # different order
-        ds1 = self._get_test_ds(shape=(50, 100), dims=('y', 'x'))
-        ds2 = self._get_test_ds(shape=(3, 100, 50), dims=('bands', 'x', 'y'))
-        comp = CompositeBase('test_comp')
+        ds1 = self._get_test_ds(shape=(50, 100), dims=("y", "x"))
+        ds2 = self._get_test_ds(shape=(3, 100, 50), dims=("bands", "x", "y"))
+        comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays((ds1, ds2))
         assert ret_datasets[0].identical(ds1)
         assert ret_datasets[1].identical(ds2)
@@ -114,19 +117,52 @@ class TestMatchDataArrays(unittest.TestCase):
 
         # x is 50 in this one, 100 in ds2
         # y is 100 in this one, 50 in ds2
-        ds1 = self._get_test_ds(shape=(50, 100), dims=('x', 'y'))
-        ds2 = self._get_test_ds(shape=(3, 50, 100), dims=('bands', 'y', 'x'))
-        comp = CompositeBase('test_comp')
-        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
+        ds1 = self._get_test_ds(shape=(50, 100), dims=("x", "y"))
+        ds2 = self._get_test_ds(shape=(3, 50, 100), dims=("bands", "y", "x"))
+        comp = CompositeBase("test_comp")
+        with pytest.raises(IncompatibleAreas):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_nondimensional_coords(self):
         """Test the removal of non-dimensional coordinates when compositing."""
         from satpy.composites import CompositeBase
         ds = self._get_test_ds(shape=(2, 2))
-        ds['acq_time'] = ('y', [0, 1])
-        comp = CompositeBase('test_comp')
+        ds["acq_time"] = ("y", [0, 1])
+        comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays([ds, ds])
-        self.assertNotIn('acq_time', ret_datasets[0].coords)
+        assert "acq_time" not in ret_datasets[0].coords
+
+    def test_almost_equal_geo_coordinates(self):
+        """Test that coordinates that are almost-equal still match.
+
+        See https://github.com/pytroll/satpy/issues/2668 for discussion.
+
+        Various operations like cropping and resampling can cause
+        geo-coordinates (y, x) to be very slightly unequal due to floating
+        point precision. This test makes sure that even in those cases we
+        can still generate composites from DataArrays with these coordinates.
+
+        """
+        from satpy.composites import CompositeBase
+        from satpy.resample import add_crs_xy_coords
+
+        comp = CompositeBase("test_comp")
+        data_arr1 = self._get_test_ds(shape=(2, 2))
+        data_arr1 = add_crs_xy_coords(data_arr1, data_arr1.attrs["area"])
+        data_arr2 = self._get_test_ds(shape=(2, 2))
+        data_arr2 = data_arr2.assign_coords(
+            x=data_arr1.coords["x"] + 0.000001,
+            y=data_arr1.coords["y"],
+            crs=data_arr1.coords["crs"],
+        )
+        # data_arr2 = add_crs_xy_coords(data_arr2, data_arr2.attrs["area"])
+        # data_arr2.assign_coords(x=data_arr2.coords["x"].copy() + 1.1)
+        # default xarray alignment would fail and collapse one of our dims
+        assert 0 in (data_arr2 - data_arr1).shape
+        new_data_arr1, new_data_arr2 = comp.match_data_arrays([data_arr1, data_arr2])
+        assert 0 not in new_data_arr1.shape
+        assert 0 not in new_data_arr2.shape
+        assert 0 not in (new_data_arr2 - new_data_arr1).shape
 
 
 class TestRatioSharpenedCompositors:
@@ -135,89 +171,89 @@ class TestRatioSharpenedCompositors:
     def setup_method(self):
         """Create test data."""
         from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'resolution': 1000,
-                 'calibration': 'reflectance',
-                 'units': '%',
-                 'name': 'test_vis'}
+        attrs = {"area": area,
+                 "start_time": datetime(2018, 1, 1, 18),
+                 "modifiers": tuple(),
+                 "resolution": 1000,
+                 "calibration": "reflectance",
+                 "units": "%",
+                 "name": "test_vis"}
         low_res_data = np.ones((2, 2), dtype=np.float64) + 4
         low_res_data[1, 1] = 0.0  # produces infinite ratio
         ds1 = xr.DataArray(da.from_array(low_res_data, chunks=2),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
         self.ds1 = ds1
 
         ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        ds2.attrs['name'] += '2'
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
+        ds2.attrs["name"] += "2"
         self.ds2 = ds2
 
         ds3 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 3,
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        ds3.attrs['name'] += '3'
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
+        ds3.attrs["name"] += "3"
         self.ds3 = ds3
 
         # high resolution version
         high_res_data = np.ones((2, 2), dtype=np.float64)
         high_res_data[1, 0] = np.nan  # invalid value in one band
         ds4 = xr.DataArray(da.from_array(high_res_data, chunks=2),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        ds4.attrs['name'] += '4'
-        ds4.attrs['resolution'] = 500
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
+        ds4.attrs["name"] += "4"
+        ds4.attrs["resolution"] = 500
         self.ds4 = ds4
 
         # high resolution version - but too big
         ds4_big = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                               attrs=attrs.copy(), dims=('y', 'x'),
-                               coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
-        ds4_big.attrs['name'] += '4'
-        ds4_big.attrs['resolution'] = 500
-        ds4_big.attrs['rows_per_scan'] = 1
-        ds4_big.attrs['area'] = AreaDefinition('test', 'test', 'test',
-                                               {'proj': 'merc'}, 4, 4,
+                               attrs=attrs.copy(), dims=("y", "x"),
+                               coords={"y": [0, 1, 2, 3], "x": [0, 1, 2, 3]})
+        ds4_big.attrs["name"] += "4"
+        ds4_big.attrs["resolution"] = 500
+        ds4_big.attrs["rows_per_scan"] = 1
+        ds4_big.attrs["area"] = AreaDefinition("test", "test", "test",
+                                               {"proj": "merc"}, 4, 4,
                                                (-2000, -2000, 2000, 2000))
         self.ds4_big = ds4_big
 
     @pytest.mark.parametrize(
         "init_kwargs",
         [
-            {'high_resolution_band': "bad", 'neutral_resolution_band': "red"},
-            {'high_resolution_band': "red", 'neutral_resolution_band': "bad"}
+            {"high_resolution_band": "bad", "neutral_resolution_band": "red"},
+            {"high_resolution_band": "red", "neutral_resolution_band": "bad"}
         ]
     )
     def test_bad_colors(self, init_kwargs):
         """Test that only valid band colors can be provided."""
         from satpy.composites import RatioSharpenedRGB
-        with pytest.raises(ValueError):
-            RatioSharpenedRGB(name='true_color', **init_kwargs)
+        with pytest.raises(ValueError, match="RatioSharpenedRGB..*_band must be one of .*"):
+            RatioSharpenedRGB(name="true_color", **init_kwargs)
 
     def test_match_data_arrays(self):
         """Test that all areas have to be the same resolution."""
         from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
+        comp = RatioSharpenedRGB(name="true_color")
         with pytest.raises(IncompatibleAreas):
             comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 
     def test_more_than_three_datasets(self):
         """Test that only 3 datasets can be passed."""
         from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color')
-        with pytest.raises(ValueError):
+        comp = RatioSharpenedRGB(name="true_color")
+        with pytest.raises(ValueError, match="Expected 3 datasets, got 4"):
             comp((self.ds1, self.ds2, self.ds3, self.ds1), optional_datasets=(self.ds4_big,))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
         from satpy.composites import SelfSharpenedRGB
-        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
-        with pytest.raises(ValueError):
+        comp = SelfSharpenedRGB(name="true_color", high_resolution_band=None)
+        with pytest.raises(ValueError, match="SelfSharpenedRGB requires at least one high resolution band, not 'None'"):
             comp((self.ds1, self.ds2, self.ds3))
 
     def test_basic_no_high_res(self):
@@ -266,7 +302,7 @@ class TestRatioSharpenedCompositors:
     def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b):
         """Test RatioSharpenedRGB by different groups of high_resolution_band and neutral_resolution_band."""
         from satpy.composites import RatioSharpenedRGB
-        comp = RatioSharpenedRGB(name='true_color', high_resolution_band=high_resolution_band,
+        comp = RatioSharpenedRGB(name="true_color", high_resolution_band=high_resolution_band,
                                  neutral_resolution_band=neutral_resolution_band)
         res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
 
@@ -291,7 +327,7 @@ class TestRatioSharpenedCompositors:
     def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import SelfSharpenedRGB
-        comp = SelfSharpenedRGB(name='true_color')
+        comp = SelfSharpenedRGB(name="true_color")
         res = comp((self.ds1, self.ds2, self.ds3))
         data = res.values
 
@@ -307,62 +343,64 @@ class TestDifferenceCompositor(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'resolution': 1000,
-                 'name': 'test_vis'}
+        attrs = {"area": area,
+                 "start_time": datetime(2018, 1, 1, 18),
+                 "modifiers": tuple(),
+                 "resolution": 1000,
+                 "name": "test_vis"}
         ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
         self.ds1 = ds1
         ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        ds2.attrs['name'] += '2'
+                           attrs=attrs, dims=("y", "x"),
+                           coords={"y": [0, 1], "x": [0, 1]})
+        ds2.attrs["name"] += "2"
         self.ds2 = ds2
 
         # high res version
         ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
-                           attrs=attrs.copy(), dims=('y', 'x'),
-                           coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
-        ds2.attrs['name'] += '2'
-        ds2.attrs['resolution'] = 500
-        ds2.attrs['rows_per_scan'] = 1
-        ds2.attrs['area'] = AreaDefinition('test', 'test', 'test',
-                                           {'proj': 'merc'}, 4, 4,
+                           attrs=attrs.copy(), dims=("y", "x"),
+                           coords={"y": [0, 1, 2, 3], "x": [0, 1, 2, 3]})
+        ds2.attrs["name"] += "2"
+        ds2.attrs["resolution"] = 500
+        ds2.attrs["rows_per_scan"] = 1
+        ds2.attrs["area"] = AreaDefinition("test", "test", "test",
+                                           {"proj": "merc"}, 4, 4,
                                            (-2000, -2000, 2000, 2000))
         self.ds2_big = ds2
 
     def test_basic_diff(self):
         """Test that a basic difference composite works."""
         from satpy.composites import DifferenceCompositor
-        comp = DifferenceCompositor(name='diff', standard_name='temperature_difference')
+        comp = DifferenceCompositor(name="diff", standard_name="temperature_difference")
         res = comp((self.ds1, self.ds2))
         np.testing.assert_allclose(res.values, -2)
-        assert res.attrs.get('standard_name') == 'temperature_difference'
+        assert res.attrs.get("standard_name") == "temperature_difference"
 
     def test_bad_areas_diff(self):
         """Test that a difference where resolutions are different fails."""
         from satpy.composites import DifferenceCompositor, IncompatibleAreas
-        comp = DifferenceCompositor(name='diff')
+        comp = DifferenceCompositor(name="diff")
         # too many arguments
-        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds2_big))
+        with pytest.raises(ValueError, match="Expected 2 datasets, got 3"):
+            comp((self.ds1, self.ds2, self.ds2_big))
         # different resolution
-        self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
+        with pytest.raises(IncompatibleAreas):
+            comp((self.ds1, self.ds2_big))
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def
     return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
     ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
@@ -391,30 +429,30 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def setUp(self):
         """Create test data."""
-        bands = ['R', 'G', 'B']
+        bands = ["R", "G", "B"]
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
-        a = np.zeros((3, 2, 2), dtype=np.float64)
+        a = np.zeros((3, 2, 2), dtype=np.float32)
         a[:, 0, 0] = 0.1
         a[:, 0, 1] = 0.2
         a[:, 1, 0] = 0.3
         a[:, 1, 1] = 0.4
         a = da.from_array(a, a.shape)
-        self.data_a = xr.DataArray(a, attrs={'test': 'a', 'start_time': start_time},
-                                   coords={'bands': bands}, dims=('bands', 'y', 'x'))
-        b = np.zeros((3, 2, 2), dtype=np.float64)
+        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time},
+                                   coords={"bands": bands}, dims=("bands", "y", "x"))
+        b = np.zeros((3, 2, 2), dtype=np.float32)
         b[:, 0, 0] = np.nan
         b[:, 0, 1] = 0.25
         b[:, 1, 0] = 0.50
         b[:, 1, 1] = 0.75
         b = da.from_array(b, b.shape)
-        self.data_b = xr.DataArray(b, attrs={'test': 'b', 'start_time': start_time},
-                                   coords={'bands': bands}, dims=('bands', 'y', 'x'))
+        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time},
+                                   coords={"bands": bands}, dims=("bands", "y", "x"))
 
-        sza = np.array([[80., 86.], [94., 100.]])
+        sza = np.array([[80., 86.], [94., 100.]], dtype=np.float32)
         sza = da.from_array(sza, sza.shape)
-        self.sza = xr.DataArray(sza, dims=('y', 'x'))
+        self.sza = xr.DataArray(sza, dims=("y", "x"))
 
         # fake area
         my_area = AreaDefinition(
@@ -423,125 +461,158 @@ class TestDayNightCompositor(unittest.TestCase):
             2, 2,
             (-95.0, 40.0, -92.0, 43.0),
         )
-        self.data_a.attrs['area'] = my_area
-        self.data_b.attrs['area'] = my_area
+        self.data_a.attrs["area"] = my_area
+        self.data_b.attrs["area"] = my_area
         # not used except to check that it matches the data arrays
-        self.sza.attrs['area'] = my_area
+        self.sza.attrs["area"] = my_area
 
     def test_daynight_sza(self):
         """Test compositor with both day and night portions when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_night")
-        res = comp((self.data_a, self.data_b, self.sza))
-        res = res.compute()
-        expected = np.array([[0., 0.22122352], [0.5, 1.]])
-        np.testing.assert_allclose(res.values[0], expected)
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_night")
+            res = comp((self.data_a, self.data_b, self.sza))
+            res = res.compute()
+        expected = np.array([[0., 0.22122374], [0.5, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
+        np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
 
     def test_daynight_area(self):
         """Test compositor both day and night portions when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_night")
-        res = comp((self.data_a, self.data_b))
-        res = res.compute()
-        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_night")
+            res = comp((self.data_a, self.data_b))
+            res = res.compute()
+        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel)
 
     def test_night_only_sza_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
-        res = comp((self.data_b, self.sza))
-        res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[0., 0.33296056], [1., 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
+            res = comp((self.data_b, self.sza))
+            res = res.compute()
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[0., 0.3329599], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_night_only_sza_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
-        res = comp((self.data_a, self.sza))
-        res = res.compute()
-        expected = np.array([[0., 0.11042631], [0.66835017, 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
+            res = comp((self.data_a, self.sza))
+            res = res.compute()
+        expected = np.array([[0., 0.11042609], [0.6683502, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
-        assert 'A' not in res.bands
+        assert "A" not in res.bands
 
     def test_night_only_area_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=True)
-        res = comp((self.data_b,))
-        res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[np.nan, 0.], [0., 0.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
+            res = comp((self.data_b,))
+            res = res.compute()
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_night_only_area_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="night_only", include_alpha=False)
-        res = comp((self.data_b,))
-        res = res.compute()
-        expected = np.array([[np.nan, 0.], [0., 0.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
+            res = comp((self.data_b,))
+            res = res.compute()
+        expected = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
-        assert 'A' not in res.bands
+        assert "A" not in res.bands
 
     def test_day_only_sza_with_alpha(self):
         """Test compositor with day portion with alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp((self.data_a, self.sza))
-        res = res.compute()
-        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        expected_alpha = np.array([[1., 0.66703944], [0., 0.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
+            res = comp((self.data_a, self.sza))
+            res = res.compute()
+        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[1., 0.6670401], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_sza_without_alpha(self):
         """Test compositor with day portion without alpha band when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
-        res = comp((self.data_a, self.sza))
-        res = res.compute()
-        expected_channel_data = np.array([[0., 0.22122352], [0., 0.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+            res = comp((self.data_a, self.sza))
+            res = res.compute()
+        expected_channel_data = np.array([[0., 0.22122373], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel_data)
-        assert 'A' not in res.bands
+        assert "A" not in res.bands
 
     def test_day_only_area_with_alpha(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp((self.data_a,))
-        res = res.compute()
-        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]])
-        expected_alpha = np.array([[1., 1.], [1., 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
+            res = comp((self.data_a,))
+            res = res.compute()
+        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[1., 1.], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_area_with_alpha_and_missing_data(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=True)
-        res = comp((self.data_b,))
-        res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]])
-        expected_alpha = np.array([[np.nan, 1.], [1., 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
+            res = comp((self.data_b,))
+            res = res.compute()
+        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 1.], [1., 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
 
     def test_day_only_area_without_alpha(self):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test', day_night="day_only", include_alpha=False)
-        res = comp((self.data_a,))
-        res = res.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+            res = comp((self.data_a,))
+            res = res.compute()
+        expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
-        assert 'A' not in res.bands
+        assert "A" not in res.bands
 
 
 class TestFillingCompositor(unittest.TestCase):
@@ -550,15 +621,15 @@ class TestFillingCompositor(unittest.TestCase):
     def test_fill(self):
         """Test filling."""
         from satpy.composites import FillingCompositor
-        comp = FillingCompositor(name='fill_test')
+        comp = FillingCompositor(name="fill_test")
         filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
         red = xr.DataArray(np.array([1, 2, 3, np.nan, 3, 2, 1]))
         green = xr.DataArray(np.array([np.nan, 2, 3, 4, 3, 2, np.nan]))
         blue = xr.DataArray(np.array([4, 3, 2, 1, 2, 3, 4]))
         res = comp([filler, red, green, blue])
-        np.testing.assert_allclose(res.sel(bands='R').data, filler.data)
-        np.testing.assert_allclose(res.sel(bands='G').data, filler.data)
-        np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
+        np.testing.assert_allclose(res.sel(bands="R").data, filler.data)
+        np.testing.assert_allclose(res.sel(bands="G").data, filler.data)
+        np.testing.assert_allclose(res.sel(bands="B").data, blue.data)
 
 
 class TestMultiFiller(unittest.TestCase):
@@ -567,7 +638,7 @@ class TestMultiFiller(unittest.TestCase):
     def test_fill(self):
         """Test filling."""
         from satpy.composites import MultiFiller
-        comp = MultiFiller(name='fill_test')
+        comp = MultiFiller(name="fill_test")
         attrs = {"units": "K"}
         a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
         b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())
@@ -587,29 +658,29 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
     def test_compositor(self):
         """Test luminance sharpening compositor."""
         from satpy.composites import LuminanceSharpeningCompositor
-        comp = LuminanceSharpeningCompositor(name='test')
+        comp = LuminanceSharpeningCompositor(name="test")
         # Three shades of grey
         rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
         rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
-                           dims=['bands', 'y', 'x'], coords={'bands': ['R', 'G', 'B']})
+                           dims=["bands", "y", "x"], coords={"bands": ["R", "G", "B"]})
         # 100 % luminance -> all result values ~1.0
         lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
-                           dims=['y', 'x'])
+                           dims=["y", "x"])
         res = comp([lum, rgb])
         np.testing.assert_allclose(res.data, 1., atol=1e-9)
         # 50 % luminance, all result values ~0.5
         lum = xr.DataArray(np.array([[50., 50.], [50., 50.]]),
-                           dims=['y', 'x'])
+                           dims=["y", "x"])
         res = comp([lum, rgb])
         np.testing.assert_allclose(res.data, 0.5, atol=1e-9)
         # 30 % luminance, all result values ~0.3
         lum = xr.DataArray(np.array([[30., 30.], [30., 30.]]),
-                           dims=['y', 'x'])
+                           dims=["y", "x"])
         res = comp([lum, rgb])
         np.testing.assert_allclose(res.data, 0.3, atol=1e-9)
         # 0 % luminance, all values ~0.0
         lum = xr.DataArray(np.array([[0., 0.], [0., 0.]]),
-                           dims=['y', 'x'])
+                           dims=["y", "x"])
         res = comp([lum, rgb])
         np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
 
@@ -619,31 +690,31 @@ class TestSandwichCompositor:
 
     # Test RGB and RGBA
     @pytest.mark.parametrize(
-        "input_shape,bands",
+        ("input_shape", "bands"),
         [
-            ((3, 2, 2), ['R', 'G', 'B']),
-            ((4, 2, 2), ['R', 'G', 'B', 'A'])
+            ((3, 2, 2), ["R", "G", "B"]),
+            ((4, 2, 2), ["R", "G", "B", "A"])
         ]
     )
-    @mock.patch('satpy.composites.enhance2dataset')
+    @mock.patch("satpy.composites.enhance2dataset")
     def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
         rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
-        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'],
-                           coords={'bands': bands})
+        rgb = xr.DataArray(rgb_arr, dims=["bands", "y", "x"],
+                           coords={"bands": bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
-        lum = xr.DataArray(lum_arr, dims=['y', 'x'])
+        lum = xr.DataArray(lum_arr, dims=["y", "x"])
 
         # Make enhance2dataset return unmodified dataset
         e2d.return_value = rgb
-        comp = SandwichCompositor(name='test')
+        comp = SandwichCompositor(name="test")
 
         res = comp([lum, rgb])
 
         for band in rgb:
-            if band.bands != 'A':
+            if band.bands != "A":
                 # Check compositor has modified this band
                 np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
                                            band.to_numpy() * lum_arr / 100.)
@@ -661,32 +732,28 @@ class TestInlineComposites(unittest.TestCase):
     def test_inline_composites(self):
         """Test that inline composites are working."""
         from satpy.composites.config_loader import load_compositor_configs_for_sensors
-        comps = load_compositor_configs_for_sensors(['visir'])[0]
+        comps = load_compositor_configs_for_sensors(["visir"])[0]
         # Check that "fog" product has all its prerequisites defined
-        keys = comps['visir'].keys()
-        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid['name']][0]
-        self.assertEqual(fog.attrs['prerequisites'][0]['name'], '_fog_dep_0')
-        self.assertEqual(fog.attrs['prerequisites'][1]['name'], '_fog_dep_1')
-        self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
+        keys = comps["visir"].keys()
+        fog = [comps["visir"][dsid] for dsid in keys if "fog" == dsid["name"]][0]
+        assert fog.attrs["prerequisites"][0]["name"] == "_fog_dep_0"
+        assert fog.attrs["prerequisites"][1]["name"] == "_fog_dep_1"
+        assert fog.attrs["prerequisites"][2] == 10.8
 
         # Check that the sub-composite dependencies use wavelengths
         # (numeric values)
-        keys = comps['visir'].keys()
-        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
-        self.assertEqual(comps['visir'][fog_dep_ids[0]].attrs['prerequisites'],
-                         [12.0, 10.8])
-        self.assertEqual(comps['visir'][fog_dep_ids[1]].attrs['prerequisites'],
-                         [10.8, 8.7])
+        keys = comps["visir"].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid["name"]]
+        assert comps["visir"][fog_dep_ids[0]].attrs["prerequisites"] == [12.0, 10.8]
+        assert comps["visir"][fog_dep_ids[1]].attrs["prerequisites"] == [10.8, 8.7]
 
         # Check the same for SEVIRI and verify channel names are used
         # in the sub-composite dependencies instead of wavelengths
-        comps = load_compositor_configs_for_sensors(['seviri'])[0]
-        keys = comps['seviri'].keys()
-        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
-        self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],
-                         ['IR_120', 'IR_108'])
-        self.assertEqual(comps['seviri'][fog_dep_ids[1]].attrs['prerequisites'],
-                         ['IR_108', 'IR_087'])
+        comps = load_compositor_configs_for_sensors(["seviri"])[0]
+        keys = comps["seviri"].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid["name"]]
+        assert comps["seviri"][fog_dep_ids[0]].attrs["prerequisites"] == ["IR_120", "IR_108"]
+        assert comps["seviri"][fog_dep_ids[1]].attrs["prerequisites"] == ["IR_108", "IR_087"]
 
 
 class TestColormapCompositor(unittest.TestCase):
@@ -695,23 +762,23 @@ class TestColormapCompositor(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         from satpy.composites import ColormapCompositor
-        self.colormap_compositor = ColormapCompositor('test_cmap_compositor')
+        self.colormap_compositor = ColormapCompositor("test_cmap_compositor")
 
     def test_build_colormap_with_int_data_and_without_meanings(self):
         """Test colormap building."""
         palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
         colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(colormap.values, [0, 1]))
-        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+        assert np.allclose(colormap.values, [0, 1])
+        assert np.allclose(squeezed_palette, palette / 255.0)
 
     def test_build_colormap_with_int_data_and_with_meanings(self):
         """Test colormap building."""
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                               dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = [2, 3, 4]
+                               dims=["value", "band"])
+        palette.attrs["palette_meanings"] = [2, 3, 4]
         colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(colormap.values, [2, 3, 4]))
-        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+        assert np.allclose(colormap.values, [2, 3, 4])
+        assert np.allclose(squeezed_palette, palette / 255.0)
 
 
 class TestPaletteCompositor(unittest.TestCase):
@@ -720,12 +787,12 @@ class TestPaletteCompositor(unittest.TestCase):
     def test_call(self):
         """Test palette compositing."""
         from satpy.composites import PaletteCompositor
-        cmap_comp = PaletteCompositor('test_cmap_compositor')
+        cmap_comp = PaletteCompositor("test_cmap_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                               dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = [2, 3, 4]
+                               dims=["value", "band"])
+        palette.attrs["palette_meanings"] = [2, 3, 4]
 
-        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)), dims=['y', 'x'])
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)), dims=["y", "x"])
         res = cmap_comp([data, palette])
         exp = np.array([[[1., 0.498039, 0.],
                          [0., 0.498039, 1.]],
@@ -733,7 +800,7 @@ class TestPaletteCompositor(unittest.TestCase):
                          [0., 0.498039, 1.]],
                         [[1., 0.498039, 0.],
                          [0., 0.498039, 1.]]])
-        self.assertTrue(np.allclose(res, exp))
+        assert np.allclose(res, exp)
 
 
 class TestColorizeCompositor(unittest.TestCase):
@@ -742,15 +809,15 @@ class TestColorizeCompositor(unittest.TestCase):
     def test_colorize_no_fill(self):
         """Test colorizing."""
         from satpy.composites import ColorizeCompositor
-        colormap_composite = ColorizeCompositor('test_color_compositor')
+        colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                               dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = [2, 3, 4]
+                               dims=["value", "band"])
+        palette.attrs["palette_meanings"] = [2, 3, 4]
 
         data = xr.DataArray(np.array([[4, 3, 2],
                                       [2, 3, 4]],
                                      dtype=np.uint8),
-                            dims=['y', 'x'])
+                            dims=["y", "x"])
         res = colormap_composite([data, palette])
         exp = np.array([[[1., 0.498039, 0.],
                          [0., 0.498039, 1.]],
@@ -758,20 +825,20 @@ class TestColorizeCompositor(unittest.TestCase):
                          [0., 0.498039, 1.]],
                         [[1., 0.498039, 0.],
                          [0., 0.498039, 1.]]])
-        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+        assert np.allclose(res, exp, atol=0.0001)
 
     def test_colorize_with_interpolation(self):
         """Test colorizing with interpolation."""
         from satpy.composites import ColorizeCompositor
-        colormap_composite = ColorizeCompositor('test_color_compositor')
+        colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
-                               dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = [2, 3, 4]
+                               dims=["value", "band"])
+        palette.attrs["palette_meanings"] = [2, 3, 4]
 
         data = xr.DataArray(da.from_array(np.array([[4, 3, 2.5],
                                                     [2, 3.2, 4]])),
-                            dims=['y', 'x'],
-                            attrs={'valid_range': np.array([2, 4])})
+                            dims=["y", "x"],
+                            attrs={"valid_range": np.array([2, 4])})
         res = colormap_composite([data, palette])
         exp = np.array([[[1.0, 0.498039, 0.246575],
                          [0., 0.59309977, 1.0]],
@@ -788,7 +855,7 @@ class TestCloudCompositorWithoutCloudfree:
     def setup_method(self):
         """Set up the test case."""
         from satpy.composites.cloud_products import CloudCompositorWithoutCloudfree
-        self.colormap_composite = CloudCompositorWithoutCloudfree('test_cmap_compositor')
+        self.colormap_composite = CloudCompositorWithoutCloudfree("test_cmap_compositor")
 
         self.exp = np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, 655350]])
         self.exp_bad_oc = np.array([[4, 3, 2],
@@ -797,45 +864,45 @@ class TestCloudCompositorWithoutCloudfree:
 
     def test_call_numpy_with_invalid_value_in_status(self):
         """Test the CloudCompositorWithoutCloudfree composite generation."""
-        status = xr.DataArray(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]]), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
+        status = xr.DataArray(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]]), dims=["y", "x"],
+                              attrs={"_FillValue": 65535})
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 65535,
-                                   'scaled_FillValue': 655350})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 65535,
+                                   "scaled_FillValue": 655350})
         res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
     def test_call_dask_with_invalid_value_in_status(self):
         """Test the CloudCompositorWithoutCloudfree composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535})
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [0, 0, 65535], [0, 0, 1]])), dims=["y", "x"],
+                              attrs={"_FillValue": 65535})
         data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, np.nan], [8, 7, np.nan]], dtype=np.float32)),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 99,
-                                   'scaled_FillValue': 655350})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 99,
+                                   "scaled_FillValue": 655350})
         res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
     def test_call_bad_optical_conditions(self):
         """Test the CloudCompositorWithoutCloudfree composite generation."""
-        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [3, 3, 3], [0, 0, 1]])), dims=['y', 'x'],
-                              attrs={'_FillValue': 65535,
-                                     "flag_meanings": 'bad_optical_conditions'})
+        status = xr.DataArray(da.from_array(np.array([[0, 0, 0], [3, 3, 3], [0, 0, 1]])), dims=["y", "x"],
+                              attrs={"_FillValue": 65535,
+                                     "flag_meanings": "bad_optical_conditions"})
         data = xr.DataArray(np.array([[4, 3, 2], [2, 255, 4], [255, 7, 255]], dtype=np.uint8),
-                            dims=['y', 'x'],
-                            name='cmic_cre',
-                            attrs={'_FillValue': 255,
-                                   'scaled_FillValue': 255})
+                            dims=["y", "x"],
+                            name="cmic_cre",
+                            attrs={"_FillValue": 255,
+                                   "scaled_FillValue": 255})
         res = self.colormap_composite([data, status])
         np.testing.assert_allclose(res, self.exp_bad_oc, atol=1e-4)
 
     def test_bad_indata(self):
         """Test the CloudCompositorWithoutCloudfree composite generation without status."""
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4], [255, 7, 255]], dtype=np.uint8),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 255,
-                                   'scaled_FillValue': 255})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 255,
+                                   "scaled_FillValue": 255})
         np.testing.assert_raises(ValueError, self.colormap_composite, [data])
 
 
@@ -852,36 +919,36 @@ class TestCloudCompositorCommonMask:
         self.exp_b = np.array([[4, 3, 2],
                                [2, 3, 255],
                                [np.nan, np.nan, np.nan]])
-        self.colormap_composite = CloudCompositorCommonMask('test_cmap_compositor')
+        self.colormap_composite = CloudCompositorCommonMask("test_cmap_compositor")
 
     def test_call_numpy(self):
         """Test the CloudCompositorCommonMask with numpy."""
-        mask = xr.DataArray(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]]), dims=['y', 'x'],
-                            attrs={'_FillValue': 255})
+        mask = xr.DataArray(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]]), dims=["y", "x"],
+                            attrs={"_FillValue": 255})
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, np.nan], [np.nan, np.nan, np.nan]], dtype=np.float32),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 65535,
-                                   'scaled_FillValue': 655350})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 65535,
+                                   "scaled_FillValue": 655350})
         res = self.colormap_composite([data, mask])
         np.testing.assert_allclose(res, self.exp_a, atol=1e-4)
 
     def test_call_dask(self):
         """Test the CloudCompositorCommonMask with dask."""
-        mask = xr.DataArray(da.from_array(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]])), dims=['y', 'x'],
-                            attrs={'_FillValue': 255})
+        mask = xr.DataArray(da.from_array(np.array([[0, 0, 0], [1, 1, 1], [255, 255, 255]])), dims=["y", "x"],
+                            attrs={"_FillValue": 255})
         data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16)),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 255,
-                                   'scaled_FillValue': 255})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 255,
+                                   "scaled_FillValue": 255})
         res = self.colormap_composite([data, mask])
         np.testing.assert_allclose(res, self.exp_b, atol=1e-4)
 
     def test_bad_call(self):
         """Test the CloudCompositorCommonMask without mask."""
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 255], [255, 255, 255]], dtype=np.int16),
-                            dims=['y', 'x'],
-                            attrs={'_FillValue': 255,
-                                   'scaled_FillValue': 255})
+                            dims=["y", "x"],
+                            attrs={"_FillValue": 255,
+                                   "scaled_FillValue": 255})
         np.testing.assert_raises(ValueError, self.colormap_composite, [data])
 
 
@@ -891,16 +958,16 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
     def test_call(self):
         """Test the precip composite generation."""
         from satpy.composites.cloud_products import PrecipCloudsRGB
-        colormap_compositor = PrecipCloudsRGB('test_precip_compositor')
+        colormap_compositor = PrecipCloudsRGB("test_precip_compositor")
 
         data_light = xr.DataArray(np.array([[80, 70, 60, 0], [20, 30, 40, 255]], dtype=np.uint8),
-                                  dims=['y', 'x'], attrs={'_FillValue': 255})
+                                  dims=["y", "x"], attrs={"_FillValue": 255})
         data_moderate = xr.DataArray(np.array([[60, 50, 40, 0], [20, 30, 40, 255]], dtype=np.uint8),
-                                     dims=['y', 'x'], attrs={'_FillValue': 255})
+                                     dims=["y", "x"], attrs={"_FillValue": 255})
         data_intense = xr.DataArray(np.array([[40, 30, 20, 0], [20, 30, 40, 255]], dtype=np.uint8),
-                                    dims=['y', 'x'], attrs={'_FillValue': 255})
+                                    dims=["y", "x"], attrs={"_FillValue": 255})
         data_flags = xr.DataArray(np.array([[0, 0, 4, 0], [0, 0, 0, 0]], dtype=np.uint8),
-                                  dims=['y', 'x'])
+                                  dims=["y", "x"])
         res = colormap_compositor([data_light, data_moderate, data_intense, data_flags])
 
         exp = np.array([[[0.24313725, 0.18235294, 0.12156863, np.nan],
@@ -913,41 +980,155 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
         np.testing.assert_allclose(res, exp)
 
 
+class TestHighCloudCompositor:
+    """Test HighCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        from pyresample.geometry import create_area_def
+        area = create_area_def(area_id="test", projection={"proj": "latlong"},
+                               center=(0, 45), width=3, height=3, resolution=35)
+        self.dtype = np.float32
+        self.data = xr.DataArray(
+            da.from_array(np.array([[200, 250, 300], [200, 250, 300], [200, 250, 300]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]},
+            attrs={"area": area}
+        )
+
+    def test_high_cloud_compositor(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import HighCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = HighCloudCompositor(name="test")
+            res = comp([self.data])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expexted_alpha = np.array([[1.0, 0.7142857, 0.0], [1.0, 0.625, 0.0], [1.0, 0.5555555, 0.0]])
+        expected = np.stack([self.data, expexted_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+    def test_high_cloud_compositor_multiple_calls(self):
+        """Test that the modified init variables are reset properly when calling the compositor multiple times."""
+        from satpy.composites import HighCloudCompositor
+        comp = HighCloudCompositor(name="test")
+        res = comp([self.data])
+        res2 = comp([self.data])
+        np.testing.assert_equal(res.values, res2.values)
+
+    def test_high_cloud_compositor_dtype(self):
+        """Test that the datatype is not altered by the compositor."""
+        from satpy.composites import HighCloudCompositor
+        comp = HighCloudCompositor(name="test")
+        res = comp([self.data])
+        assert res.data.dtype == self.dtype
+
+    def test_high_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import HighCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `transition_min_limits` values, got 1"):
+            _ = HighCloudCompositor("test", transition_min_limits=(210., ))
+
+        with pytest.raises(ValueError, match="Expected 2 `latitude_min_limits` values, got 3"):
+            _ = HighCloudCompositor("test", latitude_min_limits=(20., 40., 60.))
+
+        with pytest.raises(ValueError, match="Expected `transition_max` to be of type float, "
+                                             "is of type <class 'tuple'>"):
+            _ = HighCloudCompositor("test", transition_max=(250., 300.))
+
+        comp = HighCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 1 dataset, got 2"):
+            _ = comp([self.data, self.data])
+
+
+class TestLowCloudCompositor:
+    """Test LowCloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        self.dtype = np.float32
+        self.btd = xr.DataArray(
+            da.from_array(np.array([[0.0, 1.0, 10.0], [0.0, 1.0, 10.0], [0.0, 1.0, 10.0]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+        self.bt_win = xr.DataArray(
+            da.from_array(np.array([[250, 250, 250], [250, 250, 250], [150, 150, 150]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+        self.lsm = xr.DataArray(
+            da.from_array(np.array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+
+    def test_low_cloud_compositor(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites import LowCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = LowCloudCompositor(name="test")
+            res = comp([self.btd, self.bt_win, self.lsm])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expexted_alpha])
+        np.testing.assert_equal(res.values, expected)
+
+    def test_low_cloud_compositor_dtype(self):
+        """Test that the datatype is not altered by the compositor."""
+        from satpy.composites import LowCloudCompositor
+        comp = LowCloudCompositor(name="test")
+        res = comp([self.btd, self.bt_win, self.lsm])
+        assert res.data.dtype == self.dtype
+
+    def test_low_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites import LowCloudCompositor
+
+        with pytest.raises(ValueError, match="Expected 2 `range_land` values, got 1"):
+            _ = LowCloudCompositor("test", range_land=(2.0, ))
+
+        with pytest.raises(ValueError, match="Expected 2 `range_water` values, got 1"):
+            _ = LowCloudCompositor("test", range_water=(2.0,))
+
+        comp = LowCloudCompositor("test")
+        with pytest.raises(ValueError, match="Expected 3 datasets, got 2"):
+            _ = comp([self.btd, self.lsm])
+
+
 class TestSingleBandCompositor(unittest.TestCase):
     """Test the single-band compositor."""
 
     def setUp(self):
         """Create test data."""
         from satpy.composites import SingleBandCompositor
-        self.comp = SingleBandCompositor(name='test')
+        self.comp = SingleBandCompositor(name="test")
 
         all_valid = np.ones((2, 2))
-        self.all_valid = xr.DataArray(all_valid, dims=['y', 'x'])
+        self.all_valid = xr.DataArray(all_valid, dims=["y", "x"])
 
     def test_call(self):
         """Test calling the compositor."""
         # Dataset with extra attributes
         all_valid = self.all_valid
-        all_valid.attrs['sensor'] = 'foo'
+        all_valid.attrs["sensor"] = "foo"
         attrs = {
-            'foo': 'bar',
-            'resolution': 333,
-            'units': 'K',
-            'sensor': {'fake_sensor1', 'fake_sensor2'},
-            'calibration': 'BT',
-            'wavelength': 10.8
+            "foo": "bar",
+            "resolution": 333,
+            "units": "K",
+            "sensor": {"fake_sensor1", "fake_sensor2"},
+            "calibration": "BT",
+            "wavelength": 10.8
         }
-        self.comp.attrs['resolution'] = None
+        self.comp.attrs["resolution"] = None
         res = self.comp([all_valid], **attrs)
         # Verify attributes
-        self.assertEqual(res.attrs.get('sensor'), 'foo')
-        self.assertTrue('foo' in res.attrs)
-        self.assertEqual(res.attrs.get('foo'), 'bar')
-        self.assertTrue('units' in res.attrs)
-        self.assertTrue('calibration' in res.attrs)
-        self.assertFalse('modifiers' in res.attrs)
-        self.assertEqual(res.attrs['wavelength'], 10.8)
-        self.assertEqual(res.attrs['resolution'], 333)
+        assert res.attrs.get("sensor") == "foo"
+        assert "foo" in res.attrs
+        assert res.attrs.get("foo") == "bar"
+        assert "units" in res.attrs
+        assert "calibration" in res.attrs
+        assert "modifiers" not in res.attrs
+        assert res.attrs["wavelength"] == 10.8
+        assert res.attrs["resolution"] == 333
 
 
 class TestCategoricalDataCompositor(unittest.TestCase):
@@ -955,9 +1136,9 @@ class TestCategoricalDataCompositor(unittest.TestCase):
 
     def setUp(self):
         """Create test data."""
-        attrs = {'name': 'foo'}
+        attrs = {"name": "foo"}
         data = xr.DataArray(da.from_array([[2., 1.], [3., 0.]]), attrs=attrs,
-                            dims=('y', 'x'), coords={'y': [0, 1], 'x': [0, 1]})
+                            dims=("y", "x"), coords={"y": [0, 1], "x": [0, 1]})
 
         self.data = data
 
@@ -965,20 +1146,20 @@ class TestCategoricalDataCompositor(unittest.TestCase):
         """Test general functionality of compositor incl. attributes."""
         from satpy.composites import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
-        name = 'bar'
+        name = "bar"
         comp = CategoricalDataCompositor(name=name, lut=lut)
         res = comp([self.data])
         res = res.compute()
         expected = np.array([[1., 0.], [1., np.nan]])
         np.testing.assert_equal(res.values, expected)
-        np.testing.assert_equal(res.attrs['name'], name)
-        np.testing.assert_equal(res.attrs['composite_lut'], lut)
+        np.testing.assert_equal(res.attrs["name"], name)
+        np.testing.assert_equal(res.attrs["composite_lut"], lut)
 
     def test_too_many_datasets(self):
         """Test that ValueError is raised if more than one dataset is provided."""
         from satpy.composites import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
-        comp = CategoricalDataCompositor(name='foo', lut=lut)
+        comp = CategoricalDataCompositor(name="foo", lut=lut)
         np.testing.assert_raises(ValueError, comp, [self.data, self.data])
 
 
@@ -988,19 +1169,19 @@ class TestGenericCompositor(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         from satpy.composites import GenericCompositor
-        self.comp = GenericCompositor(name='test')
-        self.comp2 = GenericCompositor(name='test2', common_channel_mask=False)
+        self.comp = GenericCompositor(name="test")
+        self.comp2 = GenericCompositor(name="test2", common_channel_mask=False)
 
         all_valid = np.ones((1, 2, 2))
-        self.all_valid = xr.DataArray(all_valid, dims=['bands', 'y', 'x'])
+        self.all_valid = xr.DataArray(all_valid, dims=["bands", "y", "x"])
         first_invalid = np.reshape(np.array([np.nan, 1., 1., 1.]), (1, 2, 2))
         self.first_invalid = xr.DataArray(first_invalid,
-                                          dims=['bands', 'y', 'x'])
+                                          dims=["bands", "y", "x"])
         second_invalid = np.reshape(np.array([1., np.nan, 1., 1.]), (1, 2, 2))
         self.second_invalid = xr.DataArray(second_invalid,
-                                           dims=['bands', 'y', 'x'])
+                                           dims=["bands", "y", "x"])
         wrong_shape = np.reshape(np.array([1., 1., 1.]), (1, 3, 1))
-        self.wrong_shape = xr.DataArray(wrong_shape, dims=['bands', 'y', 'x'])
+        self.wrong_shape = xr.DataArray(wrong_shape, dims=["bands", "y", "x"])
 
     def test_masking(self):
         """Test masking in generic compositor."""
@@ -1021,49 +1202,49 @@ class TestGenericCompositor(unittest.TestCase):
     def test_concat_datasets(self):
         """Test concatenation of datasets."""
         from satpy.composites import IncompatibleAreas
-        res = self.comp._concat_datasets([self.all_valid], 'L')
+        res = self.comp._concat_datasets([self.all_valid], "L")
         num_bands = len(res.bands)
-        self.assertEqual(num_bands, 1)
-        self.assertEqual(res.shape[0], num_bands)
-        self.assertEqual(res.bands[0], 'L')
-        res = self.comp._concat_datasets([self.all_valid, self.all_valid], 'LA')
+        assert num_bands == 1
+        assert res.shape[0] == num_bands
+        assert res.bands[0] == "L"
+        res = self.comp._concat_datasets([self.all_valid, self.all_valid], "LA")
         num_bands = len(res.bands)
-        self.assertEqual(num_bands, 2)
-        self.assertEqual(res.shape[0], num_bands)
-        self.assertEqual(res.bands[0], 'L')
-        self.assertEqual(res.bands[1], 'A')
-        self.assertRaises(IncompatibleAreas, self.comp._concat_datasets,
-                          [self.all_valid, self.wrong_shape], 'LA')
+        assert num_bands == 2
+        assert res.shape[0] == num_bands
+        assert res.bands[0] == "L"
+        assert res.bands[1] == "A"
+        with pytest.raises(IncompatibleAreas):
+            self.comp._concat_datasets([self.all_valid, self.wrong_shape], "LA")
 
     def test_get_sensors(self):
         """Test getting sensors from the dataset attributes."""
         res = self.comp._get_sensors([self.all_valid])
-        self.assertIsNone(res)
+        assert res is None
         dset1 = self.all_valid
-        dset1.attrs['sensor'] = 'foo'
+        dset1.attrs["sensor"] = "foo"
         res = self.comp._get_sensors([dset1])
-        self.assertEqual(res, 'foo')
+        assert res == "foo"
         dset2 = self.first_invalid
-        dset2.attrs['sensor'] = 'bar'
+        dset2.attrs["sensor"] = "bar"
         res = self.comp._get_sensors([dset1, dset2])
-        self.assertIn('foo', res)
-        self.assertIn('bar', res)
-        self.assertEqual(len(res), 2)
-        self.assertIsInstance(res, set)
+        assert "foo" in res
+        assert "bar" in res
+        assert len(res) == 2
+        assert isinstance(res, set)
 
-    @mock.patch('satpy.composites.GenericCompositor._get_sensors')
-    @mock.patch('satpy.composites.combine_metadata')
-    @mock.patch('satpy.composites.check_times')
-    @mock.patch('satpy.composites.GenericCompositor.match_data_arrays')
+    @mock.patch("satpy.composites.GenericCompositor._get_sensors")
+    @mock.patch("satpy.composites.combine_metadata")
+    @mock.patch("satpy.composites.check_times")
+    @mock.patch("satpy.composites.GenericCompositor.match_data_arrays")
     def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
         """Test calling generic compositor."""
         from satpy.composites import IncompatibleAreas
         combine_metadata.return_value = dict()
-        get_sensors.return_value = 'foo'
+        get_sensors.return_value = "foo"
         # One dataset, no mode given
         res = self.comp([self.all_valid])
-        self.assertEqual(res.shape[0], 1)
-        self.assertEqual(res.attrs['mode'], 'L')
+        assert res.shape[0] == 1
+        assert res.attrs["mode"] == "L"
         match_data_arrays.assert_not_called()
         # This compositor has been initialized without common masking, so the
         # masking shouldn't have been called
@@ -1080,33 +1261,33 @@ class TestGenericCompositor(unittest.TestCase):
         match_data_arrays.reset_mock()
         # When areas are incompatible, masking shouldn't happen
         match_data_arrays.side_effect = IncompatibleAreas()
-        self.assertRaises(IncompatibleAreas,
-                          self.comp, [self.all_valid, self.wrong_shape])
+        with pytest.raises(IncompatibleAreas):
+            self.comp([self.all_valid, self.wrong_shape])
         match_data_arrays.assert_called_once()
 
     def test_call(self):
         """Test calling generic compositor."""
         # Multiple datasets with extra attributes
         all_valid = self.all_valid
-        all_valid.attrs['sensor'] = 'foo'
-        attrs = {'foo': 'bar', 'resolution': 333}
-        self.comp.attrs['resolution'] = None
+        all_valid.attrs["sensor"] = "foo"
+        attrs = {"foo": "bar", "resolution": 333}
+        self.comp.attrs["resolution"] = None
         res = self.comp([self.all_valid, self.first_invalid], **attrs)
         # Verify attributes
-        self.assertEqual(res.attrs.get('sensor'), 'foo')
-        self.assertIn('foo', res.attrs)
-        self.assertEqual(res.attrs.get('foo'), 'bar')
-        self.assertNotIn('units', res.attrs)
-        self.assertNotIn('calibration', res.attrs)
-        self.assertNotIn('modifiers', res.attrs)
-        self.assertIsNone(res.attrs['wavelength'])
-        self.assertEqual(res.attrs['mode'], 'LA')
-        self.assertEqual(res.attrs['resolution'], 333)
+        assert res.attrs.get("sensor") == "foo"
+        assert "foo" in res.attrs
+        assert res.attrs.get("foo") == "bar"
+        assert "units" not in res.attrs
+        assert "calibration" not in res.attrs
+        assert "modifiers" not in res.attrs
+        assert res.attrs["wavelength"] is None
+        assert res.attrs["mode"] == "LA"
+        assert res.attrs["resolution"] == 333
 
     def test_deprecation_warning(self):
         """Test deprecation warning for dcprecated composite recipes."""
-        warning_message = 'foo is a deprecated composite. Use composite bar instead.'
-        self.comp.attrs['deprecation_warning'] = warning_message
+        warning_message = "foo is a deprecated composite. Use composite bar instead."
+        self.comp.attrs["deprecation_warning"] = warning_message
         with pytest.warns(UserWarning, match=warning_message):
             self.comp([self.all_valid])
 
@@ -1119,72 +1300,72 @@ class TestAddBands(unittest.TestCase):
         from satpy.composites import add_bands
 
         # L + RGB -> RGB
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
-                            coords={'bands': ['L']})
-        new_bands = xr.DataArray(da.array(['R', 'G', 'B']), dims=('bands'),
-                                 coords={'bands': ['R', 'G', 'B']})
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+                            coords={"bands": ["L"]})
+        new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
+                                 coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
-        res_bands = ['R', 'G', 'B']
-        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
+        res_bands = ["R", "G", "B"]
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+        np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # L + RGBA -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
-                            coords={'bands': ['L']}, attrs={'mode': 'L'})
-        new_bands = xr.DataArray(da.array(['R', 'G', 'B', 'A']), dims=('bands'),
-                                 coords={'bands': ['R', 'G', 'B', 'A']})
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+                            coords={"bands": ["L"]}, attrs={"mode": "L"})
+        new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
+                                 coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
-        res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
+        res_bands = ["R", "G", "B", "A"]
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+        np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # LA + RGB -> RGBA
-        data = xr.DataArray(da.ones((2, 3, 3)), dims=('bands', 'y', 'x'),
-                            coords={'bands': ['L', 'A']}, attrs={'mode': 'LA'})
-        new_bands = xr.DataArray(da.array(['R', 'G', 'B']), dims=('bands'),
-                                 coords={'bands': ['R', 'G', 'B']})
+        data = xr.DataArray(da.ones((2, 3, 3)), dims=("bands", "y", "x"),
+                            coords={"bands": ["L", "A"]}, attrs={"mode": "LA"})
+        new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
+                                 coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
-        res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
+        res_bands = ["R", "G", "B", "A"]
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+        np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # RGB + RGBA -> RGBA
-        data = xr.DataArray(da.ones((3, 3, 3)), dims=('bands', 'y', 'x'),
-                            coords={'bands': ['R', 'G', 'B']},
-                            attrs={'mode': 'RGB'})
-        new_bands = xr.DataArray(da.array(['R', 'G', 'B', 'A']), dims=('bands'),
-                                 coords={'bands': ['R', 'G', 'B', 'A']})
+        data = xr.DataArray(da.ones((3, 3, 3)), dims=("bands", "y", "x"),
+                            coords={"bands": ["R", "G", "B"]},
+                            attrs={"mode": "RGB"})
+        new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
+                                 coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
-        res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
+        res_bands = ["R", "G", "B", "A"]
+        assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+        np.testing.assert_array_equal(res.coords["bands"], res_bands)
 
     def test_add_bands_p_l(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # P(RGBA) + L -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
-                            coords={'bands': ['P']},
-                            attrs={'mode': 'P'})
-        new_bands = xr.DataArray(da.array(['L']), dims=('bands'),
-                                 coords={'bands': ['L']})
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+                            coords={"bands": ["P"]},
+                            attrs={"mode": "P"})
+        new_bands = xr.DataArray(da.array(["L"]), dims=("bands"),
+                                 coords={"bands": ["L"]})
         with pytest.raises(NotImplementedError):
             add_bands(data, new_bands)
 
@@ -1192,35 +1373,35 @@ class TestAddBands(unittest.TestCase):
 class TestStaticImageCompositor(unittest.TestCase):
     """Test case for the static compositor."""
 
-    @mock.patch('satpy.resample.get_area_def')
+    @mock.patch("satpy.resample.get_area_def")
     def test_init(self, get_area_def):
         """Test the initializiation of static compositor."""
         from satpy.composites import StaticImageCompositor
 
         # No filename given raises ValueError
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="StaticImageCompositor needs a .*"):
             StaticImageCompositor("name")
 
         # No area defined
         comp = StaticImageCompositor("name", filename="/foo.tif")
-        self.assertEqual(comp._cache_filename, "/foo.tif")
-        self.assertIsNone(comp.area)
+        assert comp._cache_filename == "/foo.tif"
+        assert comp.area is None
 
         # Area defined
         get_area_def.return_value = "bar"
         comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
-        self.assertEqual(comp._cache_filename, "/foo.tif")
-        self.assertEqual(comp.area, "bar")
+        assert comp._cache_filename == "/foo.tif"
+        assert comp.area == "bar"
         get_area_def.assert_called_once_with("euro4")
 
-    @mock.patch('satpy.aux_download.retrieve')
-    @mock.patch('satpy.aux_download.register_file')
-    @mock.patch('satpy.Scene')
+    @mock.patch("satpy.aux_download.retrieve")
+    @mock.patch("satpy.aux_download.register_file")
+    @mock.patch("satpy.Scene")
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
 
-        satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
+        satpy.config.set(data_dir=os.path.join(os.path.sep, "path", "to", "image"))
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -1230,20 +1411,20 @@ class TestStaticImageCompositor(unittest.TestCase):
         img = mock.MagicMock()
         img.attrs = {}
         scn = MockScene()
-        scn['image'] = img
+        scn["image"] = img
         Scene.return_value = scn
         # absolute path to local file
         comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
         res = comp()
-        Scene.assert_called_once_with(reader='generic_image',
-                                      filenames=['/foo.tif'])
+        Scene.assert_called_once_with(reader="generic_image",
+                                      filenames=["/foo.tif"])
         register.assert_not_called()
         retrieve.assert_not_called()
-        self.assertIn("start_time", res.attrs)
-        self.assertIn("end_time", res.attrs)
-        self.assertIsNone(res.attrs['sensor'])
-        self.assertNotIn('modifiers', res.attrs)
-        self.assertNotIn('calibration', res.attrs)
+        assert "start_time" in res.attrs
+        assert "end_time" in res.attrs
+        assert res.attrs["sensor"] is None
+        assert "modifiers" not in res.attrs
+        assert "calibration" not in res.attrs
 
         # remote file with local cached version
         Scene.reset_mock()
@@ -1251,42 +1432,41 @@ class TestStaticImageCompositor(unittest.TestCase):
         retrieve.return_value = "data_dir/foo.tif"
         comp = StaticImageCompositor("name", url=remote_tif, area="euro4")
         res = comp()
-        Scene.assert_called_once_with(reader='generic_image',
-                                      filenames=['data_dir/foo.tif'])
-        self.assertIn("start_time", res.attrs)
-        self.assertIn("end_time", res.attrs)
-        self.assertIsNone(res.attrs['sensor'])
-        self.assertNotIn('modifiers', res.attrs)
-        self.assertNotIn('calibration', res.attrs)
+        Scene.assert_called_once_with(reader="generic_image",
+                                      filenames=["data_dir/foo.tif"])
+        assert "start_time" in res.attrs
+        assert "end_time" in res.attrs
+        assert res.attrs["sensor"] is None
+        assert "modifiers" not in res.attrs
+        assert "calibration" not in res.attrs
 
         # Non-georeferenced image, no area given
-        img.attrs.pop('area')
+        img.attrs.pop("area")
         comp = StaticImageCompositor("name", filename="/foo.tif")
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             comp()
 
         # Non-georeferenced image, area given
-        comp = StaticImageCompositor("name", filename="/foo.tif", area='euro4')
+        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
         res = comp()
-        self.assertEqual(res.attrs['area'].area_id, 'euro4')
+        assert res.attrs["area"].area_id == "euro4"
 
         # Filename contains environment variable
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
-        comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
-        self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+        comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area="euro4")
+        assert comp._cache_filename == "/path/to/image/foo.tif"
 
         # URL and filename without absolute path
         comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
-        self.assertEqual(comp._url, remote_tif)
-        self.assertEqual(comp._cache_filename, "bar.tif")
+        assert comp._url == remote_tif
+        assert comp._cache_filename == "bar.tif"
 
         # No URL, filename without absolute path, use default data_dir from config
-        with mock.patch('os.path.exists') as exists:
+        with mock.patch("os.path.exists") as exists:
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
-            self.assertEqual(comp._url, None)
-            self.assertEqual(comp._cache_filename,
-                             os.path.join(os.path.sep, 'path', 'to', 'image', 'foo.tif'))
+            assert comp._url is None
+            assert comp._cache_filename == os.path.join(os.path.sep, "path", "to", "image", "foo.tif")
 
 
 def _enhance2dataset(dataset, convert_p=False):
@@ -1315,21 +1495,21 @@ class TestBackgroundCompositor:
         }
         cls.foreground_data = foreground_data
 
-    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
+    @mock.patch("satpy.composites.enhance2dataset", _enhance2dataset)
     @pytest.mark.parametrize(
-        ('foreground_bands', 'background_bands', 'exp_bands', 'exp_result'),
+        ("foreground_bands", "background_bands", "exp_bands", "exp_result"),
         [
-            ('L', 'L', 'L', np.array([[1.0, 0.5], [0.0, 1.0]])),
-            ('LA', 'LA', 'L', np.array([[1.0, 0.75], [0.5, 1.0]])),
-            ('RGB', 'RGB', 'RGB', np.array([
+            ("L", "L", "L", np.array([[1.0, 0.5], [0.0, 1.0]])),
+            ("LA", "LA", "L", np.array([[1.0, 0.75], [0.5, 1.0]])),
+            ("RGB", "RGB", "RGB", np.array([
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]]])),
-            ('RGBA', 'RGBA', 'RGB', np.array([
+            ("RGBA", "RGBA", "RGB", np.array([
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]]])),
-            ('RGBA', 'RGB', 'RGB', np.array([
+            ("RGBA", "RGB", "RGB", np.array([
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 0.75], [0.5, 1.]]])),
@@ -1342,119 +1522,119 @@ class TestBackgroundCompositor:
 
         # L mode images
         foreground_data = self.foreground_data[foreground_bands]
-        attrs = {'mode': foreground_bands, 'area': 'foo'}
+        attrs = {"mode": foreground_bands, "area": "foo"}
         foreground = xr.DataArray(da.from_array(foreground_data),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
+                                  dims=("bands", "y", "x"),
+                                  coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs)
-        attrs = {'mode': background_bands, 'area': 'foo'}
-        background = xr.DataArray(da.ones((len(background_bands), 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
+        attrs = {"mode": background_bands, "area": "foo"}
+        background = xr.DataArray(da.ones((len(background_bands), 2, 2)), dims=("bands", "y", "x"),
+                                  coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs)
         res = comp([foreground, background])
-        assert res.attrs['area'] == 'foo'
+        assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, exp_result)
-        assert res.attrs['mode'] == exp_bands
+        assert res.attrs["mode"] == exp_bands
 
-    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
+    @mock.patch("satpy.composites.enhance2dataset", _enhance2dataset)
     def test_multiple_sensors(self):
         """Test the background compositing from multiple sensor data."""
         from satpy.composites import BackgroundCompositor
         comp = BackgroundCompositor("name")
 
         # L mode images
-        attrs = {'mode': 'L', 'area': 'foo'}
+        attrs = {"mode": "L", "area": "foo"}
         foreground_data = self.foreground_data["L"]
         foreground = xr.DataArray(da.from_array(foreground_data),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
+                                  dims=("bands", "y", "x"),
+                                  coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs.copy())
-        foreground.attrs['sensor'] = 'abi'
-        background = xr.DataArray(da.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
+        foreground.attrs["sensor"] = "abi"
+        background = xr.DataArray(da.ones((1, 2, 2)), dims=("bands", "y", "x"),
+                                  coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs.copy())
-        background.attrs['sensor'] = 'glm'
+        background.attrs["sensor"] = "glm"
         res = comp([foreground, background])
-        assert res.attrs['area'] == 'foo'
+        assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
-        assert res.attrs['mode'] == 'L'
-        assert res.attrs['sensor'] == {'abi', 'glm'}
+        assert res.attrs["mode"] == "L"
+        assert res.attrs["sensor"] == {"abi", "glm"}
 
 
 class TestMaskingCompositor:
     """Test case for the simple masking compositor."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def conditions_v1(self):
         """Masking conditions with string values."""
-        return [{'method': 'equal',
-                 'value': 'Cloud-free_land',
-                 'transparency': 100},
-                {'method': 'equal',
-                 'value': 'Cloud-free_sea',
-                 'transparency': 50}]
+        return [{"method": "equal",
+                 "value": "Cloud-free_land",
+                 "transparency": 100},
+                {"method": "equal",
+                 "value": "Cloud-free_sea",
+                 "transparency": 50}]
 
-    @pytest.fixture
+    @pytest.fixture()
     def conditions_v2(self):
         """Masking conditions with numerical values."""
-        return [{'method': 'equal',
-                 'value': 1,
-                 'transparency': 100},
-                {'method': 'equal',
-                 'value': 2,
-                 'transparency': 50}]
+        return [{"method": "equal",
+                 "value": 1,
+                 "transparency": 100},
+                {"method": "equal",
+                 "value": 2,
+                 "transparency": 50}]
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_data(self):
         """Test data to use with masking compositors."""
-        return xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
+        return xr.DataArray(da.random.random((3, 3)), dims=["y", "x"])
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_ct_data(self):
         """Test 2D CT data array."""
-        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        flag_meanings = ["Cloud-free_land", "Cloud-free_sea"]
         flag_values = da.array([1, 2])
         ct_data = da.array([[1, 2, 2],
                             [2, 1, 2],
                             [2, 2, 1]])
-        ct_data = xr.DataArray(ct_data, dims=['y', 'x'])
-        ct_data.attrs['flag_meanings'] = flag_meanings
-        ct_data.attrs['flag_values'] = flag_values
+        ct_data = xr.DataArray(ct_data, dims=["y", "x"])
+        ct_data.attrs["flag_meanings"] = flag_meanings
+        ct_data.attrs["flag_values"] = flag_values
         return ct_data
 
-    @pytest.fixture
+    @pytest.fixture()
     def test_ct_data_v3(self, test_ct_data):
         """Set ct data to NaN where it originally is 1."""
         return test_ct_data.where(test_ct_data == 1)
 
-    @pytest.fixture
+    @pytest.fixture()
     def reference_data(self, test_data, test_ct_data):
         """Get reference data to use in masking compositor tests."""
         # The data are set to NaN where ct is `1`
         return test_data.where(test_ct_data > 1)
 
-    @pytest.fixture
+    @pytest.fixture()
     def reference_alpha(self):
         """Get reference alpha to use in masking compositor tests."""
         ref_alpha = da.array([[0, 0.5, 0.5],
                               [0.5, 0, 0.5],
                               [0.5, 0.5, 0]])
-        return xr.DataArray(ref_alpha, dims=['y', 'x'])
+        return xr.DataArray(ref_alpha, dims=["y", "x"])
 
     def test_init(self):
         """Test the initializiation of compositor."""
         from satpy.composites import MaskingCompositor
 
         # No transparency or conditions given raises ValueError
-        with pytest.raises(ValueError):
-            comp = MaskingCompositor("name")
+        with pytest.raises(ValueError, match="Masking conditions not defined."):
+            _ = MaskingCompositor("name")
 
         # transparency defined
         transparency = {0: 100, 1: 50}
-        conditions = [{'method': 'equal', 'value': 0, 'transparency': 100},
-                      {'method': 'equal', 'value': 1, 'transparency': 50}]
+        conditions = [{"method": "equal", "value": 0, "transparency": 100},
+                      {"method": "equal", "value": 1, "transparency": 50}]
         comp = MaskingCompositor("name", transparency=transparency.copy())
-        assert not hasattr(comp, 'transparency')
+        assert not hasattr(comp, "transparency")
         # Transparency should be converted to conditions
         assert comp.conditions == conditions
 
@@ -1470,18 +1650,18 @@ class TestMaskingCompositor:
         mask = da.array([[1, 2, 2],
                          [2, 1, 2],
                          [2, 2, 1]])
-        mask = xr.DataArray(mask, dims=['y', 'x'])
-        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
-        mask.attrs['flag_meanings'] = flag_meanings
-        mask.attrs['flag_values'] = flag_values
+        mask = xr.DataArray(mask, dims=["y", "x"])
+        flag_meanings = ["Cloud-free_land", "Cloud-free_sea"]
+        mask.attrs["flag_meanings"] = flag_meanings
+        mask.attrs["flag_values"] = flag_values
 
-        assert _get_flag_value(mask, 'Cloud-free_land') == 1
-        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
+        assert _get_flag_value(mask, "Cloud-free_land") == 1
+        assert _get_flag_value(mask, "Cloud-free_sea") == 2
 
-        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
-        mask.attrs['flag_meanings'] = flag_meanings_str
-        assert _get_flag_value(mask, 'Cloud-free_land') == 1
-        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
+        flag_meanings_str = "Cloud-free_land Cloud-free_sea"
+        mask.attrs["flag_meanings"] = flag_meanings_str
+        assert _get_flag_value(mask, "Cloud-free_land") == 1
+        assert _get_flag_value(mask, "Cloud-free_sea") == 2
 
     @pytest.mark.parametrize("mode", ["LA", "RGBA"])
     def test_call_numerical_transparency_data(
@@ -1502,7 +1682,7 @@ class TestMaskingCompositor:
         assert res.mode == mode
         for m in mode.rstrip("A"):
             np.testing.assert_allclose(res.sel(bands=m), reference_data)
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
 
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
                                reference_data, reference_alpha):
@@ -1514,8 +1694,8 @@ class TestMaskingCompositor:
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([test_data, test_ct_data])
         assert res.mode == "LA"
-        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+        np.testing.assert_allclose(res.sel(bands="L"), reference_data)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
 
     def test_call_named_fields_string(
             self, conditions_v2, test_data, test_ct_data, reference_data,
@@ -1524,14 +1704,14 @@ class TestMaskingCompositor:
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
-        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
-        test_ct_data.attrs['flag_meanings'] = flag_meanings_str
+        flag_meanings_str = "Cloud-free_land Cloud-free_sea"
+        test_ct_data.attrs["flag_meanings"] = flag_meanings_str
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([test_data, test_ct_data])
         assert res.mode == "LA"
-        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+        np.testing.assert_allclose(res.sel(bands="L"), reference_data)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
 
     def test_method_isnan(self, test_data,
                           test_ct_data, test_ct_data_v3):
@@ -1539,27 +1719,27 @@ class TestMaskingCompositor:
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
-        conditions_v3 = [{'method': 'isnan', 'transparency': 100}]
+        conditions_v3 = [{"method": "isnan", "transparency": 100}]
 
         # The data are set to NaN where ct is NaN
         reference_data_v3 = test_data.where(test_ct_data == 1)
         reference_alpha_v3 = da.array([[1., 0., 0.],
                                        [0., 1., 0.],
                                        [0., 0., 1.]])
-        reference_alpha_v3 = xr.DataArray(reference_alpha_v3, dims=['y', 'x'])
+        reference_alpha_v3 = xr.DataArray(reference_alpha_v3, dims=["y", "x"])
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v3)
             res = comp([test_data, test_ct_data_v3])
         assert res.mode == "LA"
-        np.testing.assert_allclose(res.sel(bands='L'), reference_data_v3)
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha_v3)
+        np.testing.assert_allclose(res.sel(bands="L"), reference_data_v3)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha_v3)
 
     def test_method_absolute_import(self, test_data, test_ct_data_v3):
         """Test "absolute_import" as method."""
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
-        conditions_v4 = [{'method': 'absolute_import', 'transparency': 'satpy.resample'}]
+        conditions_v4 = [{"method": "absolute_import", "transparency": "satpy.resample"}]
         # This should raise AttributeError
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v4)
@@ -1573,55 +1753,55 @@ class TestMaskingCompositor:
 
         # 3D data array
         data = xr.DataArray(da.random.random((3, 3, 3)),
-                            dims=['bands', 'y', 'x'],
-                            coords={'bands': ['R', 'G', 'B'],
-                                    'y': np.arange(3),
-                                    'x': np.arange(3)})
+                            dims=["bands", "y", "x"],
+                            coords={"bands": ["R", "G", "B"],
+                                    "y": np.arange(3),
+                                    "x": np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, test_ct_data])
         assert res.mode == "RGBA"
-        np.testing.assert_allclose(res.sel(bands='R'),
-                                   data.sel(bands='R').where(test_ct_data > 1))
-        np.testing.assert_allclose(res.sel(bands='G'),
-                                   data.sel(bands='G').where(test_ct_data > 1))
-        np.testing.assert_allclose(res.sel(bands='B'),
-                                   data.sel(bands='B').where(test_ct_data > 1))
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+        np.testing.assert_allclose(res.sel(bands="R"),
+                                   data.sel(bands="R").where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="G"),
+                                   data.sel(bands="G").where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="B"),
+                                   data.sel(bands="B").where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
 
     def test_rgba_dataset(self, conditions_v2, test_ct_data, reference_alpha):
         """Test RGBA dataset."""
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
         data = xr.DataArray(da.random.random((4, 3, 3)),
-                            dims=['bands', 'y', 'x'],
-                            coords={'bands': ['R', 'G', 'B', 'A'],
-                                    'y': np.arange(3),
-                                    'x': np.arange(3)})
+                            dims=["bands", "y", "x"],
+                            coords={"bands": ["R", "G", "B", "A"],
+                                    "y": np.arange(3),
+                                    "x": np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, test_ct_data])
         assert res.mode == "RGBA"
-        np.testing.assert_allclose(res.sel(bands='R'),
-                                   data.sel(bands='R').where(test_ct_data > 1))
-        np.testing.assert_allclose(res.sel(bands='G'),
-                                   data.sel(bands='G').where(test_ct_data > 1))
-        np.testing.assert_allclose(res.sel(bands='B'),
-                                   data.sel(bands='B').where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="R"),
+                                   data.sel(bands="R").where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="G"),
+                                   data.sel(bands="G").where(test_ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands="B"),
+                                   data.sel(bands="B").where(test_ct_data > 1))
         # The compositor should drop the original alpha band
-        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
 
     def test_incorrect_method(self, test_data, test_ct_data):
         """Test incorrect method."""
         from satpy.composites import MaskingCompositor
-        conditions = [{'method': 'foo', 'value': 0, 'transparency': 100}]
+        conditions = [{"method": "foo", "value": 0, "transparency": 100}]
         comp = MaskingCompositor("name", conditions=conditions)
         with pytest.raises(AttributeError):
             comp([test_data, test_ct_data])
         # Test with too few projectables.
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expected 2 datasets, got 1"):
             comp([test_data])
 
     def test_incorrect_mode(self, conditions_v1):
@@ -1629,7 +1809,7 @@ class TestMaskingCompositor:
         from satpy.composites import MaskingCompositor
 
         # Incorrect mode raises ValueError
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid mode YCbCrA.  Supported modes: .*"):
             MaskingCompositor("name", conditions=conditions_v1,
                               mode="YCbCrA")
 
@@ -1646,12 +1826,12 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         self.ch08_w = 3.0
         self.ch06_w = 4.0
 
-    @mock.patch('satpy.composites.NaturalEnh.__repr__')
-    @mock.patch('satpy.composites.NaturalEnh.match_data_arrays')
+    @mock.patch("satpy.composites.NaturalEnh.__repr__")
+    @mock.patch("satpy.composites.NaturalEnh.match_data_arrays")
     def test_natural_enh(self, match_data_arrays, repr_):
         """Test NaturalEnh compositor."""
         from satpy.composites import NaturalEnh
-        repr_.return_value = ''
+        repr_.return_value = ""
         projectables = [self.ch1, self.ch2, self.ch3]
 
         def temp_func(*args):
@@ -1660,73 +1840,73 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         match_data_arrays.side_effect = temp_func
         comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
                           ch06_w=self.ch06_w)
-        self.assertEqual(comp.ch16_w, self.ch16_w)
-        self.assertEqual(comp.ch08_w, self.ch08_w)
-        self.assertEqual(comp.ch06_w, self.ch06_w)
+        assert comp.ch16_w == self.ch16_w
+        assert comp.ch08_w == self.ch08_w
+        assert comp.ch06_w == self.ch06_w
         res = comp(projectables)
         assert mock.call(projectables) in match_data_arrays.mock_calls
         correct = (self.ch16_w * projectables[0] +
                    self.ch08_w * projectables[1] +
                    self.ch06_w * projectables[2])
-        self.assertEqual(res[0], correct)
-        self.assertEqual(res[1], projectables[1])
-        self.assertEqual(res[2], projectables[2])
+        assert res[0] == correct
+        assert res[1] == projectables[1]
+        assert res[2] == projectables[2]
 
 
 class TestEnhance2Dataset(unittest.TestCase):
     """Test the enhance2dataset utility."""
 
-    @mock.patch('satpy.composites.get_enhanced_image')
+    @mock.patch("satpy.composites.get_enhanced_image")
     def test_enhance_p_to_rgb(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGB mode."""
         from trollimage.xrimage import XRImage
-        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=("bands", "y", "x"), coords={"bands": ["P"]}))
         img.palette = ((0, 0, 0), (4, 4, 4), (8, 8, 8))
         get_enhanced_image.return_value = img
 
         from satpy.composites import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset, convert_p=True)
-        assert res.attrs['mode'] == 'RGB'
+        assert res.attrs["mode"] == "RGB"
 
-    @mock.patch('satpy.composites.get_enhanced_image')
+    @mock.patch("satpy.composites.get_enhanced_image")
     def test_enhance_p_to_rgba(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGBA mode."""
         from trollimage.xrimage import XRImage
-        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=("bands", "y", "x"), coords={"bands": ["P"]}))
         img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
         get_enhanced_image.return_value = img
 
         from satpy.composites import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset, convert_p=True)
-        assert res.attrs['mode'] == 'RGBA'
+        assert res.attrs["mode"] == "RGBA"
 
-    @mock.patch('satpy.composites.get_enhanced_image')
+    @mock.patch("satpy.composites.get_enhanced_image")
     def test_enhance_p(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage
-        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=("bands", "y", "x"), coords={"bands": ["P"]}))
         img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
         get_enhanced_image.return_value = img
 
         from satpy.composites import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset)
-        assert res.attrs['mode'] == 'P'
+        assert res.attrs["mode"] == "P"
         assert res.max().values == 2
 
-    @mock.patch('satpy.composites.get_enhanced_image')
+    @mock.patch("satpy.composites.get_enhanced_image")
     def test_enhance_l(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage
-        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['L']}))
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=("bands", "y", "x"), coords={"bands": ["L"]}))
         get_enhanced_image.return_value = img
 
         from satpy.composites import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset)
-        assert res.attrs['mode'] == 'L'
+        assert res.attrs["mode"] == "L"
         assert res.max().values == 1
 
 
@@ -1736,29 +1916,29 @@ class TestInferMode(unittest.TestCase):
     def test_bands_coords_is_used(self):
         """Test that the `bands` coord is used."""
         from satpy.composites import GenericCompositor
-        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['P']})
-        assert GenericCompositor.infer_mode(arr) == 'P'
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=("bands", "x", "y"), coords={"bands": ["P"]})
+        assert GenericCompositor.infer_mode(arr) == "P"
 
-        arr = xr.DataArray(np.ones((3, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['Y', 'Cb', 'Cr']})
-        assert GenericCompositor.infer_mode(arr) == 'YCbCr'
+        arr = xr.DataArray(np.ones((3, 5, 5)), dims=("bands", "x", "y"), coords={"bands": ["Y", "Cb", "Cr"]})
+        assert GenericCompositor.infer_mode(arr) == "YCbCr"
 
     def test_mode_is_used(self):
         """Test that the `mode` attribute is used."""
         from satpy.composites import GenericCompositor
-        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), attrs={'mode': 'P'})
-        assert GenericCompositor.infer_mode(arr) == 'P'
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=("bands", "x", "y"), attrs={"mode": "P"})
+        assert GenericCompositor.infer_mode(arr) == "P"
 
     def test_band_size_is_used(self):
         """Test that the band size is used."""
         from satpy.composites import GenericCompositor
-        arr = xr.DataArray(np.ones((2, 5, 5)), dims=('bands', 'x', 'y'))
-        assert GenericCompositor.infer_mode(arr) == 'LA'
+        arr = xr.DataArray(np.ones((2, 5, 5)), dims=("bands", "x", "y"))
+        assert GenericCompositor.infer_mode(arr) == "LA"
 
     def test_no_bands_is_l(self):
         """Test that default (no band) is L."""
         from satpy.composites import GenericCompositor
-        arr = xr.DataArray(np.ones((5, 5)), dims=('x', 'y'))
-        assert GenericCompositor.infer_mode(arr) == 'L'
+        arr = xr.DataArray(np.ones((5, 5)), dims=("x", "y"))
+        assert GenericCompositor.infer_mode(arr) == "L"
 
 
 class TestLongitudeMaskingCompositor(unittest.TestCase):
@@ -1772,26 +1952,26 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
         area.get_lonlats = mock.MagicMock(return_value=[lons, []])
         a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]),
-                         attrs={'area': area, 'units': 'K'})
+                         attrs={"area": area, "units": "K"})
 
-        comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
+        comp = LongitudeMaskingCompositor(name="test", lon_min=-40., lon_max=120.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
         assert "units" in res.attrs
         assert res.attrs["units"] == "K"
 
-        comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
+        comp = LongitudeMaskingCompositor(name="test", lon_min=-40.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
 
-        comp = LongitudeMaskingCompositor(name='test', lon_max=120.)
+        comp = LongitudeMaskingCompositor(name="test", lon_max=120.)
         expected = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, np.nan]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
 
-        comp = LongitudeMaskingCompositor(name='test', lon_min=120., lon_max=-40.)
+        comp = LongitudeMaskingCompositor(name="test", lon_min=120., lon_max=-40.)
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
@@ -1833,3 +2013,37 @@ def _create_fake_composite_config(yaml_filename: str):
         },
             comp_file,
         )
+
+
+class TestRealisticColors:
+    """Test the SEVIRI Realistic Colors compositor."""
+
+    def test_realistic_colors(self):
+        """Test the compositor."""
+        from satpy.composites import RealisticColors
+
+        vis06 = xr.DataArray(da.arange(0, 15, dtype=np.float32).reshape(3, 5), dims=("y", "x"),
+                             attrs={"foo": "foo"})
+        vis08 = xr.DataArray(da.arange(15, 0, -1, dtype=np.float32).reshape(3, 5), dims=("y", "x"),
+                             attrs={"bar": "bar"})
+        hrv = xr.DataArray(6 * da.ones((3, 5), dtype=np.float32), dims=("y", "x"),
+                           attrs={"baz": "baz"})
+
+        expected_red = np.array([[0.0, 2.733333, 4.9333334, 6.6, 7.733333],
+                                 [8.333333, 8.400001, 7.9333334, 7.0, 6.0],
+                                 [5.0, 4.0, 3.0, 2.0, 1.0]], dtype=np.float32)
+        expected_green = np.array([
+            [15.0, 12.266666, 10.066668, 8.400001, 7.2666664],
+            [6.6666665, 6.6000004, 7.0666666, 8.0, 9.0],
+            [10.0, 11.0, 12.0, 13.0, 14.0]], dtype=np.float32)
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = RealisticColors("Ni!")
+            res = comp((vis06, vis08, hrv))
+
+        arr = res.values
+
+        assert res.dtype == np.float32
+        np.testing.assert_allclose(arr[0, :, :], expected_red)
+        np.testing.assert_allclose(arr[1, :, :], expected_green)
+        np.testing.assert_allclose(arr[2, :, :], 3.0)

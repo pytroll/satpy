@@ -84,7 +84,7 @@ AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
                      "11", "12", "13", "14", "15", "16")
 
-logger = logging.getLogger('ahi_hsd')
+logger = logging.getLogger("ahi_hsd")
 
 # Basic information block:
 _BASIC_INFO_TYPE = np.dtype([("hblock_number", "u1"),
@@ -350,14 +350,14 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='update',
+                 mask_space=True, calib_mode="update",
                  user_calibration=None, round_actual_position=True):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
         self.is_zipped = False
-        self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
+        self._unzipped = unzip_file(self.filename, prefix=str(filename_info["segment"]).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file
@@ -365,14 +365,14 @@ class AHIHSDFileHandler(BaseFileHandler):
             self.filename = self._unzipped
 
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
-        self.units = dict([(i, 'counts') for i in AHI_CHANNEL_NAMES])
+        self.units = dict([(i, "counts") for i in AHI_CHANNEL_NAMES])
 
         self._data = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.lons = None
         self.lats = None
-        self.segment_number = filename_info['segment']
-        self.total_segments = filename_info['total_segments']
+        self.segment_number = filename_info["segment"]
+        self.total_segments = filename_info["total_segments"]
 
         with open(self.filename) as fd:
             self.basic_info = np.fromfile(fd,
@@ -387,14 +387,14 @@ class AHIHSDFileHandler(BaseFileHandler):
             self.nav_info = np.fromfile(fd,
                                         dtype=_NAV_INFO_TYPE,
                                         count=1)[0]
-        self.platform_name = np2str(self.basic_info['satellite'])
-        self.observation_area = np2str(self.basic_info['observation_area'])
-        self.sensor = 'ahi'
+        self.platform_name = np2str(self.basic_info["satellite"])
+        self.observation_area = np2str(self.basic_info["observation_area"])
+        self.sensor = "ahi"
         self.mask_space = mask_space
-        self.band_name = filetype_info['file_type'][4:].upper()
-        calib_mode_choices = ('NOMINAL', 'UPDATE')
+        self.band_name = filetype_info["file_type"][4:].upper()
+        calib_mode_choices = ("NOMINAL", "UPDATE")
         if calib_mode.upper() not in calib_mode_choices:
-            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+            raise ValueError("Invalid calibration mode: {}. Choose one of {}".format(
                 calib_mode, calib_mode_choices))
 
         self.calib_mode = calib_mode.upper()
@@ -419,12 +419,12 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"].item()))
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
 
     @property
     def nominal_start_time(self):
@@ -456,7 +456,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         2.5 minutes apart, then the result should be 13:32:30.
 
         """
-        timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
         if not self._is_valid_timeline(timeline):
             warnings.warn(
                 "Observation timeline is fill value, not rounding observation time.",
@@ -464,10 +464,10 @@ class AHIHSDFileHandler(BaseFileHandler):
             )
             return observation_time
 
-        if self.observation_area == 'FLDK':
+        if self.observation_area == "FLDK":
             dt = 0
         else:
-            observation_frequency_seconds = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
+            observation_frequency_seconds = {"JP": 150, "R3": 150, "R4": 30, "R5": 30}[self.observation_area[:2]]
             dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
 
         return observation_time.replace(
@@ -490,25 +490,25 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _get_area_def(self):
         pdict = {}
-        pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
-        pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
-        pdict['coff'] = np.float32(self.proj_info['COFF'])
-        pdict['loff'] = -np.float32(self.proj_info['LOFF']) + 1
-        pdict['a'] = float(self.proj_info['earth_equatorial_radius'] * 1000)
-        pdict['h'] = float(self.proj_info['distance_from_earth_center'] * 1000 - pdict['a'])
-        pdict['b'] = float(self.proj_info['earth_polar_radius'] * 1000)
-        pdict['ssp_lon'] = float(self.proj_info['sub_lon'])
-        pdict['nlines'] = int(self.data_info['number_of_lines'])
-        pdict['ncols'] = int(self.data_info['number_of_columns'])
-        pdict['scandir'] = 'N2S'
+        pdict["cfac"] = np.uint32(self.proj_info["CFAC"])
+        pdict["lfac"] = np.uint32(self.proj_info["LFAC"])
+        pdict["coff"] = np.float32(self.proj_info["COFF"])
+        pdict["loff"] = -np.float32(self.proj_info["LOFF"]) + 1
+        pdict["a"] = float(self.proj_info["earth_equatorial_radius"] * 1000)
+        pdict["h"] = float(self.proj_info["distance_from_earth_center"] * 1000 - pdict["a"])
+        pdict["b"] = float(self.proj_info["earth_polar_radius"] * 1000)
+        pdict["ssp_lon"] = float(self.proj_info["sub_lon"])
+        pdict["nlines"] = int(self.data_info["number_of_lines"].item())
+        pdict["ncols"] = int(self.data_info["number_of_columns"].item())
+        pdict["scandir"] = "N2S"
 
-        pdict['loff'] = pdict['loff'] + (self.segment_number * pdict['nlines'])
+        pdict["loff"] = pdict["loff"] + (self.segment_number * pdict["nlines"])
 
         aex = get_area_extent(pdict)
 
-        pdict['a_name'] = self.observation_area
-        pdict['a_desc'] = "AHI {} area".format(self.observation_area)
-        pdict['p_id'] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
+        pdict["a_name"] = self.observation_area
+        pdict["a_desc"] = "AHI {} area".format(self.observation_area)
+        pdict["p_id"] = f'geosh{self.basic_info["satellite"][0].decode()[-1]}'
 
         return get_area_definition(pdict, aex)
 
@@ -526,99 +526,99 @@ class AHIHSDFileHandler(BaseFileHandler):
         header = {}
 
         fpos = 0
-        header['block1'] = np.fromfile(
+        header["block1"] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block1']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block1')
+        fpos = fpos + int(header["block1"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block1")
         fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block2']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block2')
+        fpos = fpos + int(header["block2"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block2")
         fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block3']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block3')
+        fpos = fpos + int(header["block3"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block3")
         fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block4']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block4')
+        fpos = fpos + int(header["block4"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block4")
         fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
         logger.debug("Band number = " +
-                     str(header["block5"]['band_number'][0]))
-        logger.debug('Time_interval: %s - %s',
+                     str(header["block5"]["band_number"][0]))
+        logger.debug("Time_interval: %s - %s",
                      str(self.start_time), str(self.end_time))
-        band_number = header["block5"]['band_number'][0]
+        band_number = header["block5"]["band_number"][0]
         if band_number < 7:
             cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block5']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block5')
+        fpos = fpos + int(header["block5"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block5")
         fp_.seek(fpos, 0)
 
-        header['calibration'] = cal
+        header["calibration"] = cal
 
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block6']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block6')
+        fpos = fpos + int(header["block6"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block6")
         fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
-        fpos = fpos + int(header['block7']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block7')
+        fpos = fpos + int(header["block7"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block7")
         fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
         # 8 The navigation corrections:
-        ncorrs = header["block8"]['numof_correction_info_data'][0]
+        ncorrs = header["block8"]["numof_correction_info_data"][0]
         corrections = []
         for _i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=_NAVIGATION_CORRECTION_SUBINFO_TYPE, count=1))
-        fpos = fpos + int(header['block8']['blocklength'])
-        self._check_fpos(fp_, fpos, 40, 'block8')
+        fpos = fpos + int(header["block8"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 40, "block8")
         fp_.seek(fpos, 0)
-        header['navigation_corrections'] = corrections
+        header["navigation_corrections"] = corrections
         header["block9"] = np.fromfile(fp_,
                                        dtype=_OBSERVATION_TIME_INFO_TYPE,
                                        count=1)
-        numobstimes = header["block9"]['number_of_observation_times'][0]
+        numobstimes = header["block9"]["number_of_observation_times"][0]
 
         lines_and_times = []
         for _i in range(numobstimes):
             lines_and_times.append(np.fromfile(fp_,
                                                dtype=_OBSERVATION_LINE_TIME_INFO_TYPE,
                                                count=1))
-        header['observation_time_information'] = lines_and_times
-        fpos = fpos + int(header['block9']['blocklength'])
-        self._check_fpos(fp_, fpos, 40, 'block9')
+        header["observation_time_information"] = lines_and_times
+        fpos = fpos + int(header["block9"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 40, "block9")
         fp_.seek(fpos, 0)
 
         header["block10"] = np.fromfile(fp_,
                                         dtype=_ERROR_INFO_TYPE,
                                         count=1)
         num_err_info_data = header["block10"][
-            'number_of_error_info_data'][0]
+            "number_of_error_info_data"][0]
         err_info_data = []
         for _i in range(num_err_info_data):
             err_info_data.append(np.fromfile(fp_, dtype=_ERROR_LINE_INFO_TYPE, count=1))
-        header['error_information_data'] = err_info_data
-        fpos = fpos + int(header['block10']['blocklength'])
-        self._check_fpos(fp_, fpos, 40, 'block10')
+        header["error_information_data"] = err_info_data
+        fpos = fpos + int(header["block10"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 40, "block10")
         fp_.seek(fpos, 0)
 
         header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
-        fpos = fpos + int(header['block11']['blocklength'])
-        self._check_fpos(fp_, fpos, 0, 'block11')
+        fpos = fpos + int(header["block11"]["blocklength"].item())
+        self._check_fpos(fp_, fpos, 0, "block11")
         fp_.seek(fpos, 0)
 
         return header
 
     def _read_data(self, fp_, header, resolution):
         """Read data block."""
-        nlines = int(header["block2"]['number_of_lines'][0])
-        ncols = int(header["block2"]['number_of_columns'][0])
+        nlines = int(header["block2"]["number_of_lines"].item())
+        ncols = int(header["block2"]["number_of_columns"].item())
         chunks = normalize_low_res_chunks(
             ("auto", "auto"),
             (nlines, ncols),
@@ -628,13 +628,13 @@ class AHIHSDFileHandler(BaseFileHandler):
             np.float32,
         )
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
-                                       dtype='<u2', shape=(nlines, ncols), mode='r'),
+                                       dtype="<u2", shape=(nlines, ncols), mode="r"),
                              chunks=chunks)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data."""
-        invalid = da.logical_or(data == header['block5']["count_value_outside_scan_pixels"][0],
-                                data == header['block5']["count_value_error_pixels"][0])
+        invalid = da.logical_or(data == header["block5"]["count_value_outside_scan_pixels"][0],
+                                data == header["block5"]["count_value_error_pixels"][0])
         return da.where(invalid, np.float32(np.nan), data)
 
     def _mask_space(self, data):
@@ -647,22 +647,22 @@ class AHIHSDFileHandler(BaseFileHandler):
             self._header = self._read_header(fp_)
             res = self._read_data(fp_, self._header, key["resolution"])
         res = self._mask_invalid(data=res, header=self._header)
-        res = self.calibrate(res, key['calibration'])
+        res = self.calibrate(res, key["calibration"])
 
         new_info = self._get_metadata(key, ds_info)
-        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
+        res = xr.DataArray(res, attrs=new_info, dims=["y", "x"])
         if self.mask_space:
             res = self._mask_space(res)
         return res
 
     def _get_metadata(self, key, ds_info):
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
-        actual_lon = float(self.nav_info['SSP_longitude'])
-        actual_lat = float(self.nav_info['SSP_latitude'])
+        actual_lon = float(self.nav_info["SSP_longitude"])
+        actual_lat = float(self.nav_info["SSP_latitude"])
         re = get_earth_radius(lon=actual_lon, lat=actual_lat,
-                              a=float(self.proj_info['earth_equatorial_radius'] * 1000),
-                              b=float(self.proj_info['earth_polar_radius'] * 1000))
-        actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
+                              a=float(self.proj_info["earth_equatorial_radius"] * 1000),
+                              b=float(self.proj_info["earth_polar_radius"] * 1000))
+        actual_alt = float(self.nav_info["distance_earth_center_to_satellite"]) * 1000 - re
 
         if self._round_actual_position:
             actual_lon = round(actual_lon, 3)
@@ -671,12 +671,12 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         # Update metadata
         new_info = dict(
-            units=ds_info['units'],
-            standard_name=ds_info['standard_name'],
-            wavelength=ds_info['wavelength'],
-            resolution=ds_info['resolution'],
+            units=ds_info["units"],
+            standard_name=ds_info["standard_name"],
+            wavelength=ds_info["wavelength"],
+            resolution=ds_info["resolution"],
             id=key,
-            name=key['name'],
+            name=key["name"],
             platform_name=self.platform_name,
             sensor=self.sensor,
             time_parameters=dict(
@@ -686,39 +686,39 @@ class AHIHSDFileHandler(BaseFileHandler):
                 observation_end_time=self.observation_end_time,
             ),
             orbital_parameters={
-                'projection_longitude': float(self.proj_info['sub_lon']),
-                'projection_latitude': 0.,
-                'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
-                                             self.proj_info['earth_equatorial_radius']) * 1000,
-                'satellite_actual_longitude': actual_lon,
-                'satellite_actual_latitude': actual_lat,
-                'satellite_actual_altitude': actual_alt,
-                'nadir_longitude': float(self.nav_info['nadir_longitude']),
-                'nadir_latitude': float(self.nav_info['nadir_latitude']),
+                "projection_longitude": float(self.proj_info["sub_lon"]),
+                "projection_latitude": 0.,
+                "projection_altitude": float(self.proj_info["distance_from_earth_center"] -
+                                             self.proj_info["earth_equatorial_radius"]) * 1000,
+                "satellite_actual_longitude": actual_lon,
+                "satellite_actual_latitude": actual_lat,
+                "satellite_actual_altitude": actual_alt,
+                "nadir_longitude": float(self.nav_info["nadir_longitude"]),
+                "nadir_latitude": float(self.nav_info["nadir_latitude"]),
             },
         )
         return new_info
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        if calibration == 'counts':
+        if calibration == "counts":
             return data
 
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+        if calibration in ["radiance", "reflectance", "brightness_temperature"]:
             data = self.convert_to_radiance(data)
-        if calibration == 'reflectance':
+        if calibration == "reflectance":
             data = self._vis_calibrate(data)
-        elif calibration == 'brightness_temperature':
+        elif calibration == "brightness_temperature":
             data = self._ir_calibrate(data)
         return data
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
-        bnum = self._header["block5"]['band_number'][0]
+        bnum = self._header["block5"]["band_number"][0]
         # Check calibration mode and select corresponding coefficients
         if self.calib_mode == "UPDATE" and bnum < 7:
-            dn_gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
-            dn_offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
+            dn_gain = self._header["calibration"]["cali_gain_count2rad_conversion"][0]
+            dn_offset = self._header["calibration"]["cali_offset_count2rad_conversion"][0]
             if dn_gain == 0 and dn_offset == 0:
                 logger.info(
                     "No valid updated coefficients, fall back to default values.")
@@ -730,14 +730,14 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         # Assume no user correction
         correction_type = self._get_user_calibration_correction_type()
-        if correction_type == 'DN':
+        if correction_type == "DN":
             # Replace file calibration with user calibration
             dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
                                                               self.user_calibration)
 
         data = (data * np.float32(dn_gain) + np.float32(dn_offset))
         # If using radiance correction factors from GSICS or similar, apply here
-        if correction_type == 'RAD':
+        if correction_type == "RAD":
             user_slope, user_offset = get_user_calibration_factors(self.band_name,
                                                                    self.user_calibration)
             data = apply_rad_correction(data, np.float32(user_slope), np.float32(user_offset))
@@ -747,7 +747,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         correction_type = None
         if isinstance(self.user_calibration, dict):
             # Check if we have DN correction coeffs
-            correction_type = self.user_calibration.get('type', 'RAD')
+            correction_type = self.user_calibration.get("type", "RAD")
         return correction_type
 
     def _vis_calibrate(self, data):
@@ -760,18 +760,18 @@ class AHIHSDFileHandler(BaseFileHandler):
         # No radiance -> no temperature
         data = da.where(data == 0, np.float32(np.nan), data)
 
-        cwl = self._header['block5']["central_wave_length"][0] * 1e-6
-        c__ = self._header['calibration']["speed_of_light"][0]
-        h__ = self._header['calibration']["planck_constant"][0]
-        k__ = self._header['calibration']["boltzmann_constant"][0]
+        cwl = self._header["block5"]["central_wave_length"][0] * 1e-6
+        c__ = self._header["calibration"]["speed_of_light"][0]
+        h__ = self._header["calibration"]["planck_constant"][0]
+        k__ = self._header["calibration"]["boltzmann_constant"][0]
         a__ = (h__ * c__) / (k__ * cwl)
 
         b__ = ((2 * h__ * c__ ** 2) / (data * 1.0e6 * cwl ** 5)) + 1
 
         Te_ = a__ / da.log(b__)
 
-        c0_ = self._header['calibration']["c0_rad2tb_conversion"][0]
-        c1_ = self._header['calibration']["c1_rad2tb_conversion"][0]
-        c2_ = self._header['calibration']["c2_rad2tb_conversion"][0]
+        c0_ = self._header["calibration"]["c0_rad2tb_conversion"][0]
+        c1_ = self._header["calibration"]["c1_rad2tb_conversion"][0]
+        c2_ = self._header["calibration"]["c2_rad2tb_conversion"][0]
 
         return (c0_ + c1_ * Te_ + c2_ * Te_ ** 2).clip(0)
