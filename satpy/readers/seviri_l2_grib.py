@@ -57,7 +57,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Return the sensing start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
@@ -66,8 +66,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
-        self._area_dict['column_step'] = dataset_id["resolution"]
-        self._area_dict['line_step'] = dataset_id["resolution"]
+        self._area_dict["column_step"] = dataset_id["resolution"]
+        self._area_dict["line_step"] = dataset_id["resolution"]
 
         area_extent = calculate_area_extent(self._area_dict)
 
@@ -86,12 +86,12 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         dimensions within a given message if the file was only partly read (not looping over all messages) in an earlier
         instance.
         """
-        logger.debug('Reading in file to get dataset with parameter number %d.',
-                     dataset_info['parameter_number'])
+        logger.debug("Reading in file to get dataset with parameter number %d.",
+                     dataset_info["parameter_number"])
 
         xarr = None
         message_found = False
-        with open(self.filename, 'rb') as fh:
+        with open(self.filename, "rb") as fh:
 
             # Iterate over all messages and fetch data when the correct parameter number is found
             while True:
@@ -101,19 +101,19 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                     if not message_found:
                         # Could not obtain a valid message ID from the grib file
                         logger.warning("Could not find parameter_number %d in GRIB file, no valid Dataset created",
-                                       dataset_info['parameter_number'])
+                                       dataset_info["parameter_number"])
                     break
 
                 # Check if the parameter number in the GRIB message corresponds to the required key
-                parameter_number = self._get_from_msg(gid, 'parameterNumber')
+                parameter_number = self._get_from_msg(gid, "parameterNumber")
 
-                if parameter_number == dataset_info['parameter_number']:
+                if parameter_number == dataset_info["parameter_number"]:
 
                     self._res = dataset_id["resolution"]
                     self._read_attributes(gid)
 
                     # Read the missing value
-                    missing_value = self._get_from_msg(gid, 'missingValue')
+                    missing_value = self._get_from_msg(gid, "missingValue")
 
                     # Retrieve values and metadata from the GRIB message, masking the values equal to missing_value
                     xarr = self._get_xarray_from_msg(gid)
@@ -137,11 +137,11 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     def _read_attributes(self, gid):
         """Read the parameter attributes from the message and create the projection and area dictionaries."""
         # Read SSP and date/time
-        self._ssp_lon = self._get_from_msg(gid, 'longitudeOfSubSatellitePointInDegrees')
+        self._ssp_lon = self._get_from_msg(gid, "longitudeOfSubSatellitePointInDegrees")
 
         # Read number of points on the x and y axes
-        self._nrows = self._get_from_msg(gid, 'Ny')
-        self._ncols = self._get_from_msg(gid, 'Nx')
+        self._nrows = self._get_from_msg(gid, "Ny")
+        self._ncols = self._get_from_msg(gid, "Nx")
 
         # Creates the projection and area dictionaries
         self._pdict, self._area_dict = self._get_proj_area(gid)
@@ -151,6 +151,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         Args:
             gid: The ID of the GRIB message.
+
         Returns:
             tuple: A tuple of two dictionaries for the projection and the area definition.
                 pdict:
@@ -171,45 +172,45 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                     south: coodinate of the south limit
         """
         # Get name of area definition
-        area_naming_input_dict = {'platform_name': 'msg',
-                                  'instrument_name': 'seviri',
-                                  'resolution': self._res,
+        area_naming_input_dict = {"platform_name": "msg",
+                                  "instrument_name": "seviri",
+                                  "resolution": self._res,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('seviri', self._ssp_lon)})
+                                            **get_service_mode("seviri", self._ssp_lon)})
 
         # Read all projection and area parameters from the message
-        earth_major_axis_in_meters = self._get_from_msg(gid, 'earthMajorAxis') * 1000.0  # [m]
-        earth_minor_axis_in_meters = self._get_from_msg(gid, 'earthMinorAxis') * 1000.0  # [m]
+        earth_major_axis_in_meters = self._get_from_msg(gid, "earthMajorAxis") * 1000.0  # [m]
+        earth_minor_axis_in_meters = self._get_from_msg(gid, "earthMinorAxis") * 1000.0  # [m]
 
         earth_major_axis_in_meters = self._scale_earth_axis(earth_major_axis_in_meters)
         earth_minor_axis_in_meters = self._scale_earth_axis(earth_minor_axis_in_meters)
 
-        nr_in_radius_of_earth = self._get_from_msg(gid, 'NrInRadiusOfEarth')
-        xp_in_grid_lengths = self._get_from_msg(gid, 'XpInGridLengths')
+        nr_in_radius_of_earth = self._get_from_msg(gid, "NrInRadiusOfEarth")
+        xp_in_grid_lengths = self._get_from_msg(gid, "XpInGridLengths")
         h_in_meters = earth_major_axis_in_meters * (nr_in_radius_of_earth - 1.0)  # [m]
 
         # Create the dictionary with the projection data
         pdict = {
-            'a': earth_major_axis_in_meters,
-            'b': earth_minor_axis_in_meters,
-            'h': h_in_meters,
-            'ssp_lon': self._ssp_lon,
-            'nlines': self._ncols,
-            'ncols': self._nrows,
-            'a_name': area_naming['area_id'],
-            'a_desc': area_naming['description'],
-            'p_id': "",
+            "a": earth_major_axis_in_meters,
+            "b": earth_minor_axis_in_meters,
+            "h": h_in_meters,
+            "ssp_lon": self._ssp_lon,
+            "nlines": self._ncols,
+            "ncols": self._nrows,
+            "a_name": area_naming["area_id"],
+            "a_desc": area_naming["description"],
+            "p_id": "",
         }
 
         # Compute the dictionary with the area extension
         area_dict = {
-            'center_point': xp_in_grid_lengths,
-            'north': self._nrows,
-            'east': 1,
-            'west': self._ncols,
-            'south': 1,
+            "center_point": xp_in_grid_lengths,
+            "north": self._nrows,
+            "east": 1,
+            "west": self._ncols,
+            "south": 1,
         }
 
         return pdict, area_dict
@@ -232,12 +233,13 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         Args:
             gid: The ID of the GRIB message.
+
         Returns:
             DataArray: The array containing the retrieved values.
         """
         # Data from GRIB message are read into an Xarray...
         xarr = xr.DataArray(da.from_array(ec.codes_get_values(
-            gid).reshape(self._nrows, self._ncols), CHUNK_SIZE), dims=('y', 'x'))
+            gid).reshape(self._nrows, self._ncols), CHUNK_SIZE), dims=("y", "x"))
 
         return xarr
 
@@ -251,13 +253,13 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 platform_name: name of the platform
         """
         orbital_parameters = {
-            'projection_longitude': self._ssp_lon
+            "projection_longitude": self._ssp_lon
         }
 
         attributes = {
-            'orbital_parameters': orbital_parameters,
-            'sensor': 'seviri',
-            'platform_name': PLATFORM_DICT[self.filename_info['spacecraft']]
+            "orbital_parameters": orbital_parameters,
+            "sensor": "seviri",
+            "platform_name": PLATFORM_DICT[self.filename_info["spacecraft"]]
         }
         return attributes
 
@@ -268,6 +270,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         Args:
             gid: The ID of the GRIB message.
             key: The key of the required attribute.
+
         Returns:
             The retrieved attribute or None if the key is missing.
         """

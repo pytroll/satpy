@@ -16,11 +16,10 @@ reader:
 file_types:
   fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-FD-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
+    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
     expected_segments: 40
     required_netcdf_variables:
     - attr/platform
-    - data/mtg_geos_projection
     - data/{channel_name}/measured/start_position_row
     - data/{channel_name}/measured/end_position_row
     - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
@@ -35,17 +34,10 @@ file_types:
     - data/{channel_name}/measured/y
     - data/{channel_name}/measured/pixel_quality
     - data/{channel_name}/measured/index_map
-    - data/mtg_geos_projection/attr/inverse_flattening
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/semi_major_axis
+    - data/mtg_geos_projection
     - data/swath_direction
     - data/swath_number
     - index
-    - state/celestial/earth_sun_distance
     - state/celestial/earth_sun_distance
     - state/celestial/subsolar_latitude
     - state/celestial/subsolar_longitude
@@ -74,11 +66,10 @@ file_types:
       - ir_133
   fci_l1c_hrfi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-HRFI-FD-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
+    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-HRFI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
     expected_segments: 40
     required_netcdf_variables:
     - attr/platform
-    - data/mtg_geos_projection
     - data/{channel_name}/measured/start_position_row
     - data/{channel_name}/measured/end_position_row
     - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
@@ -93,17 +84,10 @@ file_types:
     - data/{channel_name}/measured/y
     - data/{channel_name}/measured/pixel_quality
     - data/{channel_name}/measured/index_map
-    - data/mtg_geos_projection/attr/inverse_flattening
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/longitude_of_projection_origin
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/perspective_point_height
-    - data/mtg_geos_projection/attr/semi_major_axis
+    - data/mtg_geos_projection
     - data/swath_direction
     - data/swath_number
     - index
-    - state/celestial/earth_sun_distance
     - state/celestial/earth_sun_distance
     - state/celestial/subsolar_latitude
     - state/celestial/subsolar_longitude

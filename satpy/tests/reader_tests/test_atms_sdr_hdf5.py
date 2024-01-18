@@ -53,14 +53,14 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
 
     @staticmethod
     def _add_basic_metadata_to_file_content(file_content, filename_info, num_grans):
-        start_time = filename_info['start_time']
-        end_time = filename_info['end_time'].replace(year=start_time.year,
+        start_time = filename_info["start_time"]
+        end_time = filename_info["end_time"].replace(year=start_time.year,
                                                      month=start_time.month,
                                                      day=start_time.day)
-        begin_date = start_time.strftime('%Y%m%d')
-        begin_time = start_time.strftime('%H%M%S.%fZ')
-        ending_date = end_time.strftime('%Y%m%d')
-        ending_time = end_time.strftime('%H%M%S.%fZ')
+        begin_date = start_time.strftime("%Y%m%d")
+        begin_time = start_time.strftime("%H%M%S.%fZ")
+        ending_date = end_time.strftime("%Y%m%d")
+        ending_time = end_time.strftime("%H%M%S.%fZ")
         new_file_content = {
             "{prefix2}/attr/AggregateNumberGranules": num_grans,
             "{prefix2}/attr/AggregateBeginningDate": begin_date,
@@ -69,8 +69,8 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
             "{prefix2}/attr/AggregateEndingTime": ending_time,
             "{prefix2}/attr/G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
             "{prefix2}/attr/G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
-            "{prefix2}/attr/AggregateBeginningOrbitNumber": "{0:d}".format(filename_info['orbit']),
-            "{prefix2}/attr/AggregateEndingOrbitNumber": "{0:d}".format(filename_info['orbit']),
+            "{prefix2}/attr/AggregateBeginningOrbitNumber": "{0:d}".format(filename_info["orbit"]),
+            "{prefix2}/attr/AggregateEndingOrbitNumber": "{0:d}".format(filename_info["orbit"]),
             "{prefix1}/attr/Instrument_Short_Name": "ATMS",
             "/attr/Platform_Short_Name": "J01",
         }
@@ -82,13 +82,13 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
         lats_lists = self._get_per_granule_lats()
         file_content["{prefix3}/NumberOfScans"] = np.array([1] * num_granules)
         for granule_idx in range(num_granules):
-            prefix_gran = '{prefix}/{dataset_group}_Gran_{idx}'.format(prefix=gran_group_prefix,
+            prefix_gran = "{prefix}/{dataset_group}_Gran_{idx}".format(prefix=gran_group_prefix,
                                                                        dataset_group=dataset_group,
                                                                        idx=granule_idx)
             num_scans = num_scans_per_granule[granule_idx]
-            file_content[prefix_gran + '/attr/N_Number_Of_Scans'] = num_scans
-            file_content[prefix_gran + '/attr/G-Ring_Longitude'] = lons_lists[granule_idx]
-            file_content[prefix_gran + '/attr/G-Ring_Latitude'] = lats_lists[granule_idx]
+            file_content[prefix_gran + "/attr/N_Number_Of_Scans"] = num_scans
+            file_content[prefix_gran + "/attr/G-Ring_Longitude"] = lons_lists[granule_idx]
+            file_content[prefix_gran + "/attr/G-Ring_Latitude"] = lats_lists[granule_idx]
 
     @staticmethod
     def _get_per_granule_lons():
@@ -152,7 +152,7 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
         # ATMS SDR files always produce data with 12 scans per granule even if there are less? FIXME!
         total_rows = DEFAULT_FILE_SHAPE[0] * 12 * num_grans
         new_shape = (total_rows, DEFAULT_FILE_SHAPE[1], self._num_of_bands)
-        key = 'BrightnessTemperature'
+        key = "BrightnessTemperature"
         key = data_var_prefix + "/" + key
         file_content[key] = np.repeat(DEFAULT_FILE_DATA.copy(), 12 * num_grans, axis=0)
         file_content[key] = np.repeat(file_content[key][:, :, np.newaxis], self._num_of_bands, axis=2)
@@ -181,10 +181,10 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
             file_content[k] = np.repeat([file_content[k]], total_rows, axis=0)
             file_content[k + "/shape"] = new_shape
 
-        angles = ['SolarZenithAngle',
-                  'SolarAzimuthAngle',
-                  'SatelliteZenithAngle',
-                  'SatelliteAzimuthAngle']
+        angles = ["SolarZenithAngle",
+                  "SolarAzimuthAngle",
+                  "SatelliteZenithAngle",
+                  "SatelliteAzimuthAngle"]
         for k in angles:
             k = data_var_prefix + "/" + k
             file_content[k] = lon_data  # close enough to SZA
@@ -193,8 +193,8 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
 
     @staticmethod
     def _add_geo_ref(file_content, filename):
-        geo_prefix = 'GATMO'
-        file_content['/attr/N_GEO_Ref'] = geo_prefix + filename[5:]
+        geo_prefix = "GATMO"
+        file_content["/attr/N_GEO_Ref"] = geo_prefix + filename[5:]
 
     @staticmethod
     def _convert_numpy_content_to_dataarray(final_content):
@@ -204,9 +204,9 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
             if isinstance(val, np.ndarray):
                 val = da.from_array(val, chunks=val.shape)
                 if val.ndim > 2:
-                    final_content[key] = DataArray(val, dims=('y', 'x', 'z'))
+                    final_content[key] = DataArray(val, dims=("y", "x", "z"))
                 elif val.ndim > 1:
-                    final_content[key] = DataArray(val, dims=('y', 'x'))
+                    final_content[key] = DataArray(val, dims=("y", "x"))
                 else:
                     final_content[key] = DataArray(val)
 
@@ -215,9 +215,9 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
         final_content = {}
         for dataset in self.datasets:
             dataset_group = DATASET_KEYS[dataset]
-            prefix1 = 'Data_Products/{dataset_group}'.format(dataset_group=dataset_group)
-            prefix2 = '{prefix}/{dataset_group}_Aggr'.format(prefix=prefix1, dataset_group=dataset_group)
-            prefix3 = 'All_Data/{dataset_group}_All'.format(dataset_group=dataset_group)
+            prefix1 = "Data_Products/{dataset_group}".format(dataset_group=dataset_group)
+            prefix2 = "{prefix}/{dataset_group}_Aggr".format(prefix=prefix1, dataset_group=dataset_group)
+            prefix3 = "All_Data/{dataset_group}_All".format(dataset_group=dataset_group)
 
             file_content = {}
             self._add_basic_metadata_to_file_content(file_content, filename_info, self._num_test_granules)
@@ -229,10 +229,10 @@ class FakeHDF5_ATMS_SDR_FileHandler(FakeHDF5FileHandler):
             for k, v in list(file_content.items()):
                 file_content[k.format(prefix1=prefix1, prefix2=prefix2, prefix3=prefix3)] = v
 
-            if filename[:5] in ['SATMS', 'TATMS']:
+            if filename[:5] in ["SATMS", "TATMS"]:
                 self._add_data_info_to_file_content(file_content, filename, prefix3,
                                                     self._num_test_granules)
-            elif filename[0] == 'G':
+            elif filename[0] == "G":
                 self._add_geolocation_info_to_file_content(file_content, filename, prefix3,
                                                            self._num_test_granules)
             final_content.update(file_content)
@@ -248,23 +248,23 @@ class TestATMS_SDR_Reader:
     def _assert_bt_properties(self, data_arr, num_scans=1, with_area=True):
         assert np.issubdtype(data_arr.dtype, np.float32)
 
-        assert data_arr.attrs['calibration'] == 'brightness_temperature'
-        assert data_arr.attrs['units'] == 'K'
-        assert data_arr.attrs['rows_per_scan'] == num_scans
+        assert data_arr.attrs["calibration"] == "brightness_temperature"
+        assert data_arr.attrs["units"] == "K"
+        assert data_arr.attrs["rows_per_scan"] == num_scans
         if with_area:
-            assert 'area' in data_arr.attrs
-            assert data_arr.attrs['area'] is not None
-            assert data_arr.attrs['area'].shape == data_arr.shape
+            assert "area" in data_arr.attrs
+            assert data_arr.attrs["area"] is not None
+            assert data_arr.attrs["area"].shape == data_arr.shape
         else:
-            assert 'area' not in data_arr.attrs
+            assert "area" not in data_arr.attrs
 
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
 
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(JPSS_SDR_FileHandler, '__bases__', (FakeHDF5_ATMS_SDR_FileHandler,))
+        self.p = mock.patch.object(JPSS_SDR_FileHandler, "__bases__", (FakeHDF5_ATMS_SDR_FileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -277,7 +277,7 @@ class TestATMS_SDR_Reader:
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            '/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
+            "/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
         ])
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
@@ -288,22 +288,22 @@ class TestATMS_SDR_Reader:
         """Test basic init with start and end times around the start/end times of the provided file."""
         r = load_reader(self.reader_configs,
                         filter_parameters={
-                            'start_time': datetime(2022, 12, 19),
-                            'end_time': datetime(2022, 12, 21)
+                            "start_time": datetime(2022, 12, 19),
+                            "end_time": datetime(2022, 12, 21)
                         })
         loadables = r.select_files_from_pathnames([
-            'SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
+            "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
         ])
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
         assert r.file_handlers
 
-    @pytest.mark.parametrize("files, expected",
-                             [(['SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5',
-                                'GATMO_j01_d20221220_t0910240_e0921356_b26361_c20221220100456680030_cspp_dev.h5'],
+    @pytest.mark.parametrize(("files", "expected"),
+                             [(["SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
+                                "GATMO_j01_d20221220_t0910240_e0921356_b26361_c20221220100456680030_cspp_dev.h5"],
                                True),
-                              (['SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5', ],
+                              (["SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5", ],
                                False)]
                              )
     def test_load_all_bands(self, files, expected):

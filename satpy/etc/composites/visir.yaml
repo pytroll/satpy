@@ -16,6 +16,11 @@ modifiers:
     optional_prerequisites:
       - solar_zenith_angle
 
+  sunz_reduced:
+    modifier: !!python/name:satpy.modifiers.SunZenithReducer
+    optional_prerequisites:
+    - solar_zenith_angle
+
   co2_corrected:
     modifier: !!python/name:satpy.modifiers.CO2Corrector
     prerequisites:
@@ -95,6 +100,11 @@ modifiers:
     - satellite_zenith_angle
     - solar_azimuth_angle
     - solar_zenith_angle
+
+  median5x5:
+    modifier: !!python/name:satpy.modifiers.filters.Median
+    median_filter_params:
+      size: 5
 
 composites:
 

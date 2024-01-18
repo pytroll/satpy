@@ -15,6 +15,15 @@ enhancements:
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: 1.5}
+  surface_reflectance_default:
+    standard_name: surface_bidirectional_reflectance
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 1.5}
   true_color_default:
     standard_name: true_color
     operations:
@@ -353,6 +362,19 @@ enhancements:
       method: !!python/name:satpy.enhancements.invert
       args:
       - [true, true, true]
+
+  green-sar:
+    standard_name: green-sar
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        # R -- VH: 0.00109 to 0.0594
+        # G -- VV_db: -17.57 to -3.3
+        # B -- VV: 0.00332 to 0.3
+        min_stretch: [0.00109, -17.57, 0.00332]
+        max_stretch: [0.0594, -3.3, .3]
 
   sar-quick:
     standard_name: sar-quick
@@ -954,6 +976,41 @@ enhancements:
         method: !!python/name:satpy.enhancements.three_d_effect
         kwargs:
           weight: 1.0
+
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert
+        args:
+          - [True, false]
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: [[140.25, 191.25, 249.9]]}
+
+  geo_color_day_night_blend:
+    standard_name: geo_color_day_night_blend
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,0,0 ]
+          max_stretch: [ 1,1,1 ]
 
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds

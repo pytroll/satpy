@@ -60,6 +60,37 @@ composites:
     standard_name: toa_reflectance
     fraction: 0.15
 
+  ndvi_hybrid_green:
+    description: >
+      The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
+      the signal comes from aerosols and ash rather than vegetation. An effect
+      is that vegetation in a true colour RGB looks rather brown than green and barren rather red. Mixing in
+      some part of the NIR 0.8 channel reduced this effect.  Note that the fractions
+      currently implemented are experimental and may change in future versions of Satpy.
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI006
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+  ndvi_hybrid_green_raw:
+    description: >
+      Alternative to ndvi_hybrid_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
+    prerequisites:
+      - name: VI005
+      - name: VI006
+      - name: VI008
+    standard_name: toa_bidirectional_reflectance
+
   true_color_raw:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -278,7 +309,7 @@ composites:
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: green
+      - name: ndvi_hybrid_green
       - name: VI004
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color_reproduction_color_stretch
@@ -288,6 +319,6 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: VI006
-      - name: green_nocorr
+      - name: ndvi_hybrid_green_raw
       - name: VI004
     standard_name: true_color_reproduction_color_stretch

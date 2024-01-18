@@ -22,6 +22,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy._compat import cached_property
 from satpy.readers._geos_area import get_geos_area_naming, make_ext
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.file_handlers import BaseFileHandler
@@ -41,18 +42,18 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs['platform']
+        return self.nc.attrs["platform"]
 
     @property
     def sensor_name(self):
         """Return instrument name."""
-        return self.nc.attrs['data_source']
+        return self.nc.attrs["data_source"]
 
     @property
     def ssp_lon(self):
         """Return longitude at subsatellite point."""
         try:
-            return float(self.nc['mtg_geos_projection'].attrs['longitude_of_projection_origin'])
+            return float(self.nc["mtg_geos_projection"].attrs["longitude_of_projection_origin"])
         except (KeyError, AttributeError):
             logger.warning(f"ssp_lon could not be obtained from file content, using default value "
                            f"of {SSP_DEFAULT} degrees east instead")
@@ -71,11 +72,11 @@ class FciL2CommonFunctions(object):
 
         """
         attributes = {
-            'filename': self.filename,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor_name,
-            'platform_name': self.spacecraft_name,
+            "filename": self.filename,
+            "spacecraft_name": self.spacecraft_name,
+            "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor_name,
+            "platform_name": self.spacecraft_name,
         }
         return attributes
 
@@ -86,10 +87,10 @@ class FciL2CommonFunctions(object):
         else:
             xdim, ydim = "number_of_columns", "number_of_rows"
 
-        if dataset_info['file_key'] not in ['product_quality', 'product_completeness', 'product_timeliness']:
-            variable = variable.rename({ydim: 'y', xdim: 'x'})
+        if dataset_info["file_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
+            variable = variable.rename({ydim: "y", xdim: "x"})
 
-        variable.attrs.setdefault('units', None)
+        variable.attrs.setdefault("units", None)
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
 
@@ -116,7 +117,7 @@ class FciL2CommonFunctions(object):
             fill_value = [fill_value]
 
         for val in fill_value:
-            variable = variable.where(variable != val).astype('float32')
+            variable = variable.where(variable != val).astype("float32")
 
         return variable
 
@@ -139,8 +140,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             decode_cf=True,
             mask_and_scale=True,
             chunks={
-                'number_of_columns': CHUNK_SIZE,
-                'number_of_rows': CHUNK_SIZE
+                "number_of_columns": CHUNK_SIZE,
+                "number_of_rows": CHUNK_SIZE
             }
         )
 
@@ -148,10 +149,11 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             logger.info("Setting `with_area_defintion=False` has no effect on pixel-based products.")
 
         # Read metadata which are common to all datasets
-        self.nlines = self.nc['y'].size
-        self.ncols = self.nc['x'].size
-        self._projection = self.nc['mtg_geos_projection']
-        self.multi_dims = {'maximum_number_of_layers': 'layer', 'number_of_vis_channels': 'vis_channel_id'}
+        self.nlines = self.nc["y"].size
+        self.ncols = self.nc["x"].size
+        self._projection = self.nc["mtg_geos_projection"]
+        self.multi_dims = {"maximum_number_of_layers": "layer", "number_of_vis_channels": "vis_channel_id"}
+
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -162,9 +164,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        par_name = dataset_info['name']
-        logger.debug('Reading in file to get dataset with key %s.', var_key)
+        var_key = dataset_info["file_key"]
+        par_name = dataset_info["name"]
+        logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:
             variable = self.nc[var_key]
@@ -173,20 +175,20 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Compute the area definition
-        if var_key not in ['product_quality', 'product_completeness', 'product_timeliness']:
+        if var_key not in ["product_quality", "product_completeness", "product_timeliness"]:
             self._area_def = self._compute_area_def(dataset_id)
 
         if any(dim_id in dataset_info.keys() for dim_id in self.multi_dims.values()):
             variable = self._slice_dataset(variable, dataset_info, self.multi_dims)
 
-        if par_name == 'retrieved_cloud_optical_thickness':
+        if par_name == "retrieved_cloud_optical_thickness":
             variable = self.get_total_cot(variable)
 
-        if dataset_info['file_type'] == 'nc_fci_test_clm':
+        if dataset_info["file_type"] == "nc_fci_test_clm":
             variable = self._decode_clm_test_data(variable, dataset_info)
 
-        if 'fill_value' in dataset_info:
-            variable = self._mask_data(variable, dataset_info['fill_value'])
+        if "fill_value" in dataset_info:
+            variable = self._mask_data(variable, dataset_info["fill_value"])
 
         variable = self._set_attributes(variable, dataset_info)
 
@@ -194,9 +196,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
     @staticmethod
     def _decode_clm_test_data(variable, dataset_info):
-        if dataset_info['file_key'] != 'cloud_mask_cmrt6_test_result':
-            variable = variable.astype('uint32')
-            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31).astype('int8')
+        if dataset_info["file_key"] != "cloud_mask_cmrt6_test_result":
+            variable = variable.astype("uint32")
+            variable.values = (variable.values >> dataset_info["extract_byte"] << 31 >> 31).astype("int8")
 
         return variable
 
@@ -210,8 +212,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent = self._get_area_extent()
         area_naming, proj_dict = self._get_proj_area(dataset_id)
         area_def = geometry.AreaDefinition(
-            area_naming['area_id'],
-            area_naming['description'],
+            area_naming["area_id"],
+            area_naming["description"],
             "",
             proj_dict,
             self.ncols,
@@ -223,15 +225,15 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def _get_area_extent(self):
         """Calculate area extent of dataset."""
         # Load and convert x/y coordinates to degrees as required by the make_ext function
-        x = self.nc['x']
-        y = self.nc['y']
+        x = self.nc["x"]
+        y = self.nc["y"]
         x_deg = np.degrees(x)
         y_deg = np.degrees(y)
 
         # Select the extreme points and calcualte area extent (not: these refer to pixel center)
         ll_x, ur_x = -x_deg.values[0], -x_deg.values[-1]
         ll_y, ur_y = y_deg.values[-1], y_deg.values[0]
-        h = float(self._projection.attrs['perspective_point_height'])
+        h = float(self._projection.attrs["perspective_point_height"])
         area_extent_pixel_center = make_ext(ll_x, ur_x, ll_y, ur_y, h)
 
         # Shift area extent by half a pixel to get the area extent w.r.t. the dataset/pixel corners
@@ -244,30 +246,30 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def _get_proj_area(self, dataset_id):
         """Extract projection and area information."""
         # Read the projection data from the mtg_geos_projection variable
-        a = float(self._projection.attrs['semi_major_axis'])
-        h = float(self._projection.attrs['perspective_point_height'])
+        a = float(self._projection.attrs["semi_major_axis"])
+        h = float(self._projection.attrs["perspective_point_height"])
 
         # Some L2PF test data files have a typo in the keyname for the inverse flattening parameter. Use a default value
         # as fallback until all L2PF test files are correctly formatted.
-        rf = float(self._projection.attrs.get('inverse_flattening', 298.257223563))
+        rf = float(self._projection.attrs.get("inverse_flattening", 298.257223563))
 
         res = dataset_id["resolution"]
 
-        area_naming_input_dict = {'platform_name': 'mtg',
-                                  'instrument_name': 'fci',
-                                  'resolution': res,
+        area_naming_input_dict = {"platform_name": "mtg",
+                                  "instrument_name": "fci",
+                                  "resolution": res,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('fci', self.ssp_lon)})
+                                            **get_service_mode("fci", self.ssp_lon)})
 
-        proj_dict = {'a': a,
-                     'lon_0': self.ssp_lon,
-                     'h': h,
+        proj_dict = {"a": a,
+                     "lon_0": self.ssp_lon,
+                     "h": h,
                      "rf": rf,
-                     'proj': 'geos',
-                     'units': 'm',
-                     "sweep": 'y'}
+                     "proj": "geos",
+                     "units": "m",
+                     "sweep": "y"}
 
         return area_naming, proj_dict
 
@@ -281,7 +283,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         attrs = variable.attrs
         variable = 10 ** variable
         variable = variable.fillna(0.)
-        variable = variable.sum(dim='maximum_number_of_layers', keep_attrs=True)
+        variable = variable.sum(dim="maximum_number_of_layers", keep_attrs=True)
         variable = variable.where(variable != 0., np.nan)
         variable = np.log10(variable)
         variable.attrs = attrs
@@ -301,19 +303,19 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             decode_cf=True,
             mask_and_scale=True,
             chunks={
-                'number_of_FoR_cols': CHUNK_SIZE,
-                'number_of_FoR_rows': CHUNK_SIZE
+                "number_of_FoR_cols": CHUNK_SIZE,
+                "number_of_FoR_rows": CHUNK_SIZE
             }
         )
 
         # Read metadata which are common to all datasets
-        self.nlines = self.nc['number_of_FoR_rows'].size
-        self.ncols = self.nc['number_of_FoR_cols'].size
+        self.nlines = self.nc["number_of_FoR_rows"].size
+        self.ncols = self.nc["number_of_FoR_cols"].size
         self.with_adef = with_area_definition
         self.multi_dims = {
-            'number_of_categories': 'category_id', 'number_of_channels': 'channel_id',
-            'number_of_vis_channels': 'vis_channel_id', 'number_of_ir_channels': 'ir_channel_id',
-            'number_test': 'test_id',
+            "number_of_categories": "category_id", "number_of_channels": "channel_id",
+            "number_of_vis_channels": "vis_channel_id", "number_of_ir_channels": "ir_channel_id",
+            "number_test": "test_id",
         }
 
     def get_area_def(self, key):
@@ -325,8 +327,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        logger.debug('Reading in file to get dataset with key %s.', var_key)
+        var_key = dataset_info["file_key"]
+        logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:
             variable = self.nc[var_key]
@@ -337,16 +339,16 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if any(dim_id in dataset_info.keys() for dim_id in self.multi_dims.values()):
             variable = self._slice_dataset(variable, dataset_info, self.multi_dims)
 
-        if self.with_adef and var_key not in ['longitude', 'latitude',
-                                              'product_quality', 'product_completeness', 'product_timeliness']:
+        if self.with_adef and var_key not in ["longitude", "latitude",
+                                              "product_quality", "product_completeness", "product_timeliness"]:
             self._area_def = self._construct_area_def(dataset_id)
 
             # coordinates are not relevant when returning data with an AreaDefinition
-            if 'coordinates' in dataset_info.keys():
-                del dataset_info['coordinates']
+            if "coordinates" in dataset_info.keys():
+                del dataset_info["coordinates"]
 
-        if 'fill_value' in dataset_info:
-            variable = self._mask_data(variable, dataset_info['fill_value'])
+        if "fill_value" in dataset_info:
+            variable = self._mask_data(variable, dataset_info["fill_value"])
 
         variable = self._set_attributes(variable, dataset_info, segmented=True)
 
@@ -361,19 +363,19 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """
         res = dataset_id["resolution"]
 
-        area_naming_input_dict = {'platform_name': 'mtg',
-                                  'instrument_name': 'fci',
-                                  'resolution': res,
+        area_naming_input_dict = {"platform_name": "mtg",
+                                  "instrument_name": "fci",
+                                  "resolution": res,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('fci', self.ssp_lon)})
+                                            **get_service_mode("fci", self.ssp_lon)})
 
         # Construct area definition from standardized area definition.
-        stand_area_def = get_area_def(area_naming['area_id'])
+        stand_area_def = get_area_def(area_naming["area_id"])
 
-        if (stand_area_def.x_size != self.ncols) | (stand_area_def.y_size != self.nlines):
-            raise NotImplementedError('Unrecognised AreaDefinition.')
+        if (stand_area_def.width != self.ncols) | (stand_area_def.height != self.nlines):
+            raise NotImplementedError("Unrecognised AreaDefinition.")
 
         mod_area_extent = self._modify_area_extent(stand_area_def.area_extent)
 
@@ -381,9 +383,9 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             stand_area_def.area_id,
             stand_area_def.description,
             "",
-            stand_area_def.proj_dict,
-            stand_area_def.x_size,
-            stand_area_def.y_size,
+            stand_area_def.crs,
+            stand_area_def.width,
+            stand_area_def.height,
             mod_area_extent)
 
         return area_def
@@ -401,3 +403,59 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent = tuple([ll_x, ll_y, ur_x, ur_y])
 
         return area_extent
+
+class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
+    """Reader class for FCI L2 AMV products in NetCDF4 format."""
+    def __init__(self, filename, filename_info, filetype_info):
+        """Open the NetCDF file with xarray and prepare for dataset reading."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @cached_property
+    def nc(self):
+        """Read the file."""
+        return xr.open_dataset(
+            self.filename,
+            decode_cf=True,
+            mask_and_scale=True,
+            chunks={
+                "number_of_images": CHUNK_SIZE,
+                "number_of_winds": CHUNK_SIZE
+            }
+        )
+
+    def _get_global_attributes(self):
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        Returns:
+            dict: A dictionary of global attributes.
+                filename: name of the product file
+                spacecraft_name: name of the spacecraft
+                sensor: name of sensor
+                platform_name: name of the platform
+
+        """
+        attributes = {
+            "filename": self.filename,
+            "spacecraft_name": self.spacecraft_name,
+            "sensor": self.sensor_name,
+            "platform_name": self.spacecraft_name,
+            "channel":self.filename_info["channel"]
+        }
+        return attributes
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using the file_key in dataset_info."""
+        var_key = dataset_info["file_key"]
+        logger.debug("Reading in file to get dataset with key %s.", var_key)
+
+        try:
+            variable = self.nc[var_key]
+        except KeyError:
+            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
+            return None
+
+        # Manage the attributes of the dataset
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+
+        return variable

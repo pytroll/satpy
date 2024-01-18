@@ -80,10 +80,10 @@ def before_all(context):
         debug_on()
 
 
-@given(u'{dformat} data is available')
+@given(u"{dformat} data is available")
 def step_impl_input_files_exists(context, dformat):
     """Check that input data exists on disk."""
-    data_path = os.path.join('test_data', dformat)
+    data_path = os.path.join("test_data", dformat)
     data_available = os.path.exists(data_path)
     if not data_available:
         context.scenario.skip(reason="No test data available for " + dformat)
@@ -92,40 +92,40 @@ def step_impl_input_files_exists(context, dformat):
         context.data_path = data_path
 
 
-@when(u'the user loads the {composite} composite')
+@when(u"the user loads the {composite} composite")
 def step_impl_create_scene_and_load_single(context, composite):
     """Create a Scene and load a single composite."""
     from satpy import Scene
     scn = Scene(reader=context.dformat,
-                filenames=get_all_files(os.path.join(context.data_path, 'data'),
-                                        '*'))
+                filenames=get_all_files(os.path.join(context.data_path, "data"),
+                                        "*"))
     scn.load([composite])
     context.scn = scn
     context.composite = composite
 
 
-@when(u'the user resamples the data to {area}')
+@when(u"the user resamples the data to {area}")
 def step_impl_resample_scene(context, area):
     """Resample the scene to an area or use the native resampler."""
-    if area != '-':
+    if area != "-":
         context.lscn = context.scn.resample(area)
     else:
-        context.lscn = context.scn.resample(resampler='native')
+        context.lscn = context.scn.resample(resampler="native")
     context.area = area
 
 
-@when(u'the user saves the composite to disk')
+@when(u"the user saves the composite to disk")
 def step_impl_save_to_png(context):
     """Call Scene.save_dataset to write a PNG image."""
-    with NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+    with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
         context.lscn.save_dataset(context.composite, filename=tmp_file.name)
         context.new_filename = tmp_file.name
 
 
-@then(u'the resulting image should match the reference image')
+@then(u"the resulting image should match the reference image")
 def step_impl_compare_two_png_images(context):
     """Compare two PNG image files."""
-    if context.area == '-':
+    if context.area == "-":
         ref_filename = context.composite + ".png"
     else:
         ref_filename = context.composite + "_" + context.area + ".png"
