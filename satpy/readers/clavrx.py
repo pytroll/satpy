@@ -154,6 +154,7 @@ class _CLAVRxHelper:
         offset = attrs.pop("add_offset", (np.zeros(1, dtype=data.dtype))[0])
         flag_values = data.attrs.get("flag_values", [None])
         valid_range = attrs.get("valid_range", [None])
+
         if isinstance(valid_range, np.ndarray):
             attrs["valid_range"] = valid_range.tolist()
 

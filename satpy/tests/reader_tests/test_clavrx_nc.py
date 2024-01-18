@@ -94,8 +94,6 @@ def fake_test_content(filename, **kwargs):
                                     "add_offset": 59.,
                                     "units": "%",
                                     "valid_range": [-32767, 32767],
-        "platform": "HIM8",
-        "sensor": "AHI",
         # this is a Level 2 file that came from a L1B file
         "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
     }
