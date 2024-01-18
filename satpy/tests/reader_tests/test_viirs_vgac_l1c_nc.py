@@ -40,10 +40,10 @@ def nc_filename(tmp_path):
         nscn = 7
         npix = 800
         n_lut = 12000
-        nc.createDimension('npix', npix)
-        nc.createDimension('nscn', nscn)
-        nc.createDimension('n_lut', n_lut)
-        nc.createDimension('one', 1)
+        nc.createDimension("npix", npix)
+        nc.createDimension("nscn", nscn)
+        nc.createDimension("n_lut", n_lut)
+        nc.createDimension("one", 1)
         nc.StartTime = "2023-03-28T09:08:07"
         nc.EndTime = "2023-03-28T10:11:12"
         for ind in range(1, 11, 1):
@@ -66,18 +66,18 @@ def nc_filename(tmp_path):
         reference_time = np.datetime64("2010-01-01T00:00:00")
         start_time = np.datetime64("2023-03-28T09:08:07") + np.timedelta64(123, "ms")
         delta_days = start_time - reference_time
-        delta_full_days = delta_days.astype('timedelta64[D]')
+        delta_full_days = delta_days.astype("timedelta64[D]")
         hidden_reference_time = reference_time + delta_full_days
         delta_part_of_days = start_time - hidden_reference_time
-        proj_time0 = nc.createVariable('proj_time0', np.float64, ("one",))
+        proj_time0 = nc.createVariable("proj_time0", np.float64, ("one",))
         proj_time0[:] = (delta_full_days.astype(int) +
-                         0.000001 * delta_part_of_days.astype('timedelta64[us]').astype(np.int64) / (60 * 60 * 24))
-        proj_time0.units = 'days since 01/01/2010T00:00:00'
-        time_v = nc.createVariable('time', np.float64, ('nscn',))
+                         0.000001 * delta_part_of_days.astype("timedelta64[us]").astype(np.int64) / (60 * 60 * 24))
+        proj_time0.units = "days since 01/01/2010T00:00:00"
+        time_v = nc.createVariable("time", np.float64, ("nscn",))
         delta_h = np.datetime64(nc.EndTime) - start_time
-        delta_hours = 0.000001 * delta_h.astype('timedelta64[us]').astype(int) / (60 * 60)
+        delta_hours = 0.000001 * delta_h.astype("timedelta64[us]").astype(int) / (60 * 60)
         time_v[:] = np.linspace(0, delta_hours, num=nscn)
-        time_v.units = 'hours since proj_time0'
+        time_v.units = "hours since proj_time0"
 
     return filename_str
 
@@ -91,10 +91,9 @@ class TestVGACREader:
 
         # Read data
         scn_ = Scene(
-            reader='viirs_vgac_l1c_nc',
-            filenames=[_nc_filename])
+            reader="viirs_vgac_l1c_nc",
+            filenames=[nc_filename])
         scn_.load(["M05", "M15", "scanline_timestamps"])
-        print(scn_["scanline_timestamps"][-1])
         assert ((scn_["scanline_timestamps"][0] -
                  np.datetime64("2023-03-28T09:08:07") - np.timedelta64(123, "ms")) < np.timedelta64(5, "us"))
         assert ((scn_["scanline_timestamps"][-1] - np.datetime64("2023-03-28T10:11:12")) < np.timedelta64(5, "us"))
