@@ -156,7 +156,8 @@ class _CLAVRxHelper:
         valid_range = attrs.get("valid_range", [None])
 
         if isinstance(valid_range, np.ndarray):
-            attrs["valid_range"] = valid_range.tolist()
+            valid_range = valid_range.tolist()
+            attrs["valid_range"] = valid_range
 
         flags = not data.attrs.get("SCALED", 1) and any(flag_values)
         if flags:

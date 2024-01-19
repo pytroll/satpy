@@ -210,7 +210,7 @@ class TestCLAVRXReaderGeo:
                 # should have file variable and one alias for reflectance
                 assert "valid_range" not in datasets["variable1"].attrs
                 assert "_FillValue" not in datasets["variable1"].attrs
-                assert np.float64 == datasets["variable1"].dtype
+                assert np.float32 == datasets["variable1"].dtype
                 assert "valid_range" not in datasets["variable1"].attrs
 
                 assert np.issubdtype(datasets["var_flags"].dtype, np.integer)
@@ -220,7 +220,7 @@ class TestCLAVRXReaderGeo:
                 assert "valid_range" not in datasets["out_of_range_flags"].attrs
 
                 assert isinstance(datasets["refl_0_65um_nom"].valid_range, list)
-                assert np.float64 == datasets["refl_0_65um_nom"].dtype
+                assert np.float32 == datasets["refl_0_65um_nom"].dtype
                 assert "_FillValue" not in datasets["refl_0_65um_nom"].attrs
                 assert "valid_range" in datasets["refl_0_65um_nom"].attrs
 
