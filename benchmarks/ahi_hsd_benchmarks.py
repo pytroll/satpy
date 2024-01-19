@@ -33,7 +33,7 @@ class HimawariHSD(GeoBenchmarks):
     timeout = 600
     data_files: list[str] = []
     subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
-    reader = 'ahi_hsd'
+    reader = "ahi_hsd"
 
     def setup_cache(self):
         """Fetch the data files."""
@@ -43,7 +43,7 @@ class HimawariHSD(GeoBenchmarks):
         except ImportError:
             assert len(get_filenames(self.subdir)) == 4  # nosec
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_type="rayleigh_only")
 
     def setup(self):
         """Set up the benchmarks."""

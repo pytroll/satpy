@@ -57,9 +57,9 @@ class _SEADASL2Base:
 
     def _platform_name(self):
         platform = self[self.platform_attr_name]
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21'}
+        platform_dict = {"NPP": "Suomi-NPP",
+                         "JPSS-1": "NOAA-20",
+                         "JPSS-2": "NOAA-21"}
         return platform_dict.get(platform, platform)
 
     @property

@@ -41,31 +41,31 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def _get_geo_data(self, num_rows, num_cols):
         geo = {
-            'Grid/lon':
+            "Grid/lon":
                 xr.DataArray(DEFAULT_LON_DATA,
-                             attrs={'units': 'degrees_east', },
-                             dims=('lon')),
-            'Grid/lat':
+                             attrs={"units": "degrees_east", },
+                             dims=("lon")),
+            "Grid/lat":
                 xr.DataArray(DEFAULT_LAT_DATA,
-                             attrs={'units': 'degrees_north', },
-                             dims=('lat')),
+                             attrs={"units": "degrees_north", },
+                             dims=("lat")),
         }
         return geo
 
     def _get_precip_data(self, num_rows, num_cols):
         selection = {
-            'Grid/IRprecipitation':
+            "Grid/IRprecipitation":
             xr.DataArray(
                 da.ones((1, num_cols, num_rows), chunks=1024,
                         dtype=np.float32),
                 attrs={
-                    '_FillValue': -9999.9,
-                    'units': 'mm/hr',
-                    'Units': 'mm/hr',
-                    'badval': h5py.h5r.Reference(),
-                    'badvals': np.array([[h5py.h5r.Reference()]])
+                    "_FillValue": -9999.9,
+                    "units": "mm/hr",
+                    "Units": "mm/hr",
+                    "badval": h5py.h5r.Reference(),
+                    "badvals": np.array([[h5py.h5r.Reference()]])
                 },
-                dims=('time', 'lon', 'lat')),
+                dims=("time", "lon", "lat")),
         }
         return selection
 
@@ -93,9 +93,9 @@ class TestHdf5IMERG(unittest.TestCase):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.gpm_imerg import Hdf5IMERG
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(Hdf5IMERG, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(Hdf5IMERG, "__bases__", (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -105,37 +105,33 @@ class TestHdf5IMERG(unittest.TestCase):
 
     def test_load_data(self):
         """Test loading data."""
+        from pyproj import CRS
+
         from satpy.readers import load_reader
 
         # Filename to test, needed for start and end times
         filenames = [
-            '3B-HHR.MS.MRG.3IMERG.20200131-S233000-E235959.1410.V06B.HDF5', ]
+            "3B-HHR.MS.MRG.3IMERG.20200131-S233000-E235959.1410.V06B.HDF5", ]
 
         # Expected projection in area def
-        pdict = {'proj': 'longlat',
-                 'datum': 'WGS84',
-                 'no_defs': None,
-                 'type': 'crs'}
+        pdict = {"proj": "longlat",
+                 "datum": "WGS84",
+                 "no_defs": None,
+                 "type": "crs"}
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(1, len(files))
+        assert 1 == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
-        res = reader.load(['IRprecipitation'])
-        self.assertEqual(1, len(res))
-        self.assertEqual(res['IRprecipitation'].start_time,
-                         datetime(2020, 1, 31, 23, 30, 0))
-        self.assertEqual(res['IRprecipitation'].end_time,
-                         datetime(2020, 1, 31, 23, 59, 59))
-        self.assertEqual(res['IRprecipitation'].resolution,
-                         0.1)
-        self.assertEqual(res['IRprecipitation'].area.width,
-                         3600)
-        self.assertEqual(res['IRprecipitation'].area.height,
-                         1800)
-        self.assertEqual(res['IRprecipitation'].area.proj_dict,
-                         pdict)
-        np.testing.assert_almost_equal(res['IRprecipitation'].area.area_extent,
+        assert reader.file_handlers
+        res = reader.load(["IRprecipitation"])
+        assert 1 == len(res)
+        assert res["IRprecipitation"].start_time == datetime(2020, 1, 31, 23, 30, 0)
+        assert res["IRprecipitation"].end_time == datetime(2020, 1, 31, 23, 59, 59)
+        assert res["IRprecipitation"].resolution == 0.1
+        assert res["IRprecipitation"].area.width == 3600
+        assert res["IRprecipitation"].area.height == 1800
+        assert res["IRprecipitation"].area.crs == CRS(pdict)
+        np.testing.assert_almost_equal(res["IRprecipitation"].area.area_extent,
                                        (-179.95, -89.95, 179.95, 89.95), 5)

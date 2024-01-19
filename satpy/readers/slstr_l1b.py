@@ -34,30 +34,30 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
-PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
-                  'S3B': 'Sentinel-3B'}
+PLATFORM_NAMES = {"S3A": "Sentinel-3A",
+                  "S3B": "Sentinel-3B"}
 
 # These are the default channel adjustment factors.
 # Defined in the product notice: S3.PN-SLSTR-L1.08
 # https://sentinel.esa.int/documents/247904/2731673/Sentinel-3A-and-3B-SLSTR-Product-Notice-Level-1B-SL-1-RBT-at-NRT-and-NTC.pdf
-CHANCALIB_FACTORS = {'S1_nadir': 0.97,
-                     'S2_nadir': 0.98,
-                     'S3_nadir': 0.98,
-                     'S4_nadir': 1.0,
-                     'S5_nadir': 1.11,
-                     'S6_nadir': 1.13,
-                     'S7_nadir': 1.0,
-                     'S8_nadir': 1.0,
-                     'S9_nadir': 1.0,
-                     'S1_oblique': 0.94,
-                     'S2_oblique': 0.95,
-                     'S3_oblique': 0.95,
-                     'S4_oblique': 1.0,
-                     'S5_oblique': 1.04,
-                     'S6_oblique': 1.07,
-                     'S7_oblique': 1.0,
-                     'S8_oblique': 1.0,
-                     'S9_oblique': 1.0, }
+CHANCALIB_FACTORS = {"S1_nadir": 0.97,
+                     "S2_nadir": 0.98,
+                     "S3_nadir": 0.98,
+                     "S4_nadir": 1.0,
+                     "S5_nadir": 1.11,
+                     "S6_nadir": 1.13,
+                     "S7_nadir": 1.0,
+                     "S8_nadir": 1.0,
+                     "S9_nadir": 1.0,
+                     "S1_oblique": 0.94,
+                     "S2_oblique": 0.95,
+                     "S3_oblique": 0.95,
+                     "S4_oblique": 1.0,
+                     "S5_oblique": 1.04,
+                     "S6_oblique": 1.07,
+                     "S7_oblique": 1.0,
+                     "S8_oblique": 1.0,
+                     "S9_oblique": 1.0, }
 
 
 class NCSLSTRGeo(BaseFileHandler):
@@ -70,17 +70,17 @@ class NCSLSTRGeo(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
 
         self.cache = {}
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key['name'])
-        file_key = info['file_key'].format(view=key['view'].name[0],
-                                           stripe=key['stripe'].name)
+        logger.debug("Reading %s.", key["name"])
+        file_key = info["file_key"].format(view=key["view"].name[0],
+                                           stripe=key["stripe"].name)
         try:
             variable = self.nc[file_key]
         except KeyError:
@@ -95,12 +95,12 @@ class NCSLSTRGeo(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTR1B(BaseFileHandler):
@@ -132,29 +132,29 @@ class NCSLSTR1B(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-        self.channel = filename_info['dataset_name']
-        self.stripe = filename_info['stripe']
-        views = {'n': 'nadir', 'o': 'oblique'}
-        self.view = views[filename_info['view']]
-        cal_file = os.path.join(os.path.dirname(self.filename), 'viscal.nc')
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.channel = filename_info["dataset_name"]
+        self.stripe = filename_info["stripe"]
+        views = {"n": "nadir", "o": "oblique"}
+        self.view = views[filename_info["view"]]
+        cal_file = os.path.join(os.path.dirname(self.filename), "viscal.nc")
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
                                    mask_and_scale=True,
-                                   chunks={'views': CHUNK_SIZE})
+                                   chunks={"views": CHUNK_SIZE})
         indices_file = os.path.join(os.path.dirname(self.filename),
-                                    'indices_{}{}.nc'.format(self.stripe, self.view[0]))
+                                    "indices_{}{}.nc".format(self.stripe, self.view[0]))
         self.indices = xr.open_dataset(indices_file,
                                        decode_cf=True,
                                        mask_and_scale=True,
-                                       chunks={'columns': CHUNK_SIZE,
-                                               'rows': CHUNK_SIZE})
-        self.indices = self.indices.rename({'columns': 'x', 'rows': 'y'})
+                                       chunks={"columns": CHUNK_SIZE,
+                                               "rows": CHUNK_SIZE})
+        self.indices = self.indices.rename({"columns": "x", "rows": "y"})
 
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'slstr'
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "slstr"
         if isinstance(user_calibration, dict):
             self.usercalib = user_calibration
         else:
@@ -162,7 +162,7 @@ class NCSLSTR1B(BaseFileHandler):
 
     def _apply_radiance_adjustment(self, radiances):
         """Adjust SLSTR radiances with default or user supplied values."""
-        chan_name = self.channel + '_' + self.view
+        chan_name = self.channel + "_" + self.view
         adjust_fac = None
         if self.usercalib is not None:
             # If user supplied adjustment, use it.
@@ -189,26 +189,26 @@ class NCSLSTR1B(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if (self.channel not in key['name'] or
-                self.stripe != key['stripe'].name or
-                self.view != key['view'].name):
+        if (self.channel not in key["name"] or
+                self.stripe != key["stripe"].name or
+                self.view != key["view"].name):
             return
-        logger.debug('Reading %s.', key['name'])
-        if key['calibration'] == 'brightness_temperature':
-            variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view[0])]
+        logger.debug("Reading %s.", key["name"])
+        if key["calibration"] == "brightness_temperature":
+            variable = self.nc["{}_BT_{}{}".format(self.channel, self.stripe, self.view[0])]
         else:
-            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
+            variable = self.nc["{}_radiance_{}{}".format(self.channel, self.stripe, self.view[0])]
         radiances = self._apply_radiance_adjustment(variable)
-        units = variable.attrs['units']
-        if key['calibration'] == 'reflectance':
+        units = variable.attrs["units"]
+        if key["calibration"] == "reflectance":
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[re.sub('_[^_]*$', '', key['name']) + '_solar_irradiances']
-            d_index = self.indices['detector_{}{}'.format(self.stripe, self.view[0])]
-            idx = 0 if self.view[0] == 'n' else 1  # 0: Nadir view, 1: oblique (check).
+            solar_flux = self.cal[re.sub("_[^_]*$", "", key["name"]) + "_solar_irradiances"]
+            d_index = self.indices["detector_{}{}".format(self.stripe, self.view[0])]
+            idx = 0 if self.view[0] == "n" else 1  # 0: Nadir view, 1: oblique (check).
             radiances.data = da.map_blocks(
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
             radiances *= np.pi * 100
-            units = '%'
+            units = "%"
 
         info = info.copy()
         info.update(radiances.attrs)
@@ -224,12 +224,12 @@ class NCSLSTR1B(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRAngles(BaseFileHandler):
@@ -240,8 +240,8 @@ class NCSLSTRAngles(BaseFileHandler):
         cartf = xr.open_dataset(fname,
                                 decode_cf=True,
                                 mask_and_scale=True,
-                                chunks={'columns': CHUNK_SIZE,
-                                        'rows': CHUNK_SIZE})
+                                chunks={"columns": CHUNK_SIZE,
+                                        "rows": CHUNK_SIZE})
         return cartf
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -252,57 +252,57 @@ class NCSLSTRAngles(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
 
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'slstr'
-        self.view = filename_info['view']
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "slstr"
+        self.view = filename_info["view"]
+        self._start_time = filename_info["start_time"]
+        self._end_time = filename_info["end_time"]
 
         carta_file = os.path.join(
-            os.path.dirname(self.filename), 'cartesian_a{}.nc'.format(self.view[0]))
+            os.path.dirname(self.filename), "cartesian_a{}.nc".format(self.view[0]))
         carti_file = os.path.join(
-            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view[0]))
+            os.path.dirname(self.filename), "cartesian_i{}.nc".format(self.view[0]))
         cartx_file = os.path.join(
-            os.path.dirname(self.filename), 'cartesian_tx.nc')
+            os.path.dirname(self.filename), "cartesian_tx.nc")
         self.carta = self._loadcart(carta_file)
         self.carti = self._loadcart(carti_file)
         self.cartx = self._loadcart(cartx_file)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if not key['view'].name.startswith(self.view[0]):
+        if not key["view"].name.startswith(self.view[0]):
             return
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
         # Check if file_key is specified in the yaml
-        file_key = info['file_key'].format(view=key['view'].name[0])
+        file_key = info["file_key"].format(view=key["view"].name[0])
 
         variable = self.nc[file_key]
-        l_step = self.nc.attrs.get('al_subsampling_factor', 1)
-        c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
+        l_step = self.nc.attrs.get("al_subsampling_factor", 1)
+        c_step = self.nc.attrs.get("ac_subsampling_factor", 16)
 
-        if key.get('resolution', 1000) == 500:
+        if key.get("resolution", 1000) == 500:
             l_step *= 2
             c_step *= 2
 
         if c_step != 1 or l_step != 1:
-            logger.debug('Interpolating %s.', key['name'])
+            logger.debug("Interpolating %s.", key["name"])
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
-            tie_x = self.cartx['x_tx'].data[0, :][::-1]
-            tie_y = self.cartx['y_tx'].data[:, 0]
-            if key.get('resolution', 1000) == 500:
-                full_x = self.carta['x_a' + self.view[0]].data
-                full_y = self.carta['y_a' + self.view[0]].data
+            tie_x = self.cartx["x_tx"].data[0, :][::-1]
+            tie_y = self.cartx["y_tx"].data[:, 0]
+            if key.get("resolution", 1000) == 500:
+                full_x = self.carta["x_a" + self.view[0]].data
+                full_y = self.carta["y_a" + self.view[0]].data
             else:
-                full_x = self.carti['x_i' + self.view[0]].data
-                full_y = self.carti['y_i' + self.view[0]].data
+                full_x = self.carti["x_i" + self.view[0]].data
+                full_y = self.carti["y_i" + self.view[0]].data
 
             variable = variable.fillna(0)
-            variable.attrs['resolution'] = key.get('resolution', 1000)
+            variable.attrs["resolution"] = key.get("resolution", 1000)
 
             from scipy.interpolate import RectBivariateSpline
             spl = RectBivariateSpline(
@@ -311,13 +311,13 @@ class NCSLSTRAngles(BaseFileHandler):
             values = spl.ev(full_y, full_x)
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                                    dims=['y', 'x'], attrs=variable.attrs)
+                                    dims=["y", "x"], attrs=variable.attrs)
 
-        variable.attrs['platform_name'] = self.platform_name
-        variable.attrs['sensor'] = self.sensor
+        variable.attrs["platform_name"] = self.platform_name
+        variable.attrs["sensor"] = self.sensor
 
-        if 'units' not in variable.attrs:
-            variable.attrs['units'] = 'degrees'
+        if "units" not in variable.attrs:
+            variable.attrs["units"] = "degrees"
 
         variable.attrs.update(key.to_dict())
 
@@ -326,12 +326,12 @@ class NCSLSTRAngles(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRFlag(BaseFileHandler):
@@ -344,24 +344,24 @@ class NCSLSTRFlag(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-        self.stripe = filename_info['stripe']
-        views = {'n': 'nadir', 'o': 'oblique'}
-        self.view = views[filename_info['view']]
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.stripe = filename_info["stripe"]
+        views = {"n": "nadir", "o": "oblique"}
+        self.view = views[filename_info["view"]]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'slstr'
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "slstr"
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if (self.stripe != key['stripe'].name or
-                self.view != key['view'].name):
+        if (self.stripe != key["stripe"].name or
+                self.view != key["view"].name):
             return
-        logger.debug('Reading %s.', key['name'])
-        file_key = info['file_key'].format(view=key['view'].name[0],
-                                           stripe=key['stripe'].name)
+        logger.debug("Reading %s.", key["name"])
+        file_key = info["file_key"].format(view=key["view"].name[0],
+                                           stripe=key["stripe"].name)
         variable = self.nc[file_key]
 
         info = info.copy()
@@ -376,9 +376,9 @@ class NCSLSTRFlag(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")

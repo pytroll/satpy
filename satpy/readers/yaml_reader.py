@@ -87,13 +87,13 @@ def _match_filenames(filenames, pattern):
 
 def _verify_reader_info_assign_config_files(config, config_files):
     try:
-        reader_info = config['reader']
+        reader_info = config["reader"]
     except KeyError:
         raise KeyError(
             "Malformed config file {}: missing reader 'reader'".format(
                 config_files))
     else:
-        reader_info['config_files'] = config_files
+        reader_info["config_files"] = config_files
 
 
 def load_yaml_configs(*config_files, loader=Loader):
@@ -113,9 +113,9 @@ def load_yaml_configs(*config_files, loader=Loader):
 
     """
     config = {}
-    logger.debug('Reading %s', str(config_files))
+    logger.debug("Reading %s", str(config_files))
     for config_file in config_files:
-        with open(config_file, 'r', encoding='utf-8') as fd:
+        with open(config_file, "r", encoding="utf-8") as fd:
             config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
     _verify_reader_info_assign_config_files(config, config_files)
     return config
@@ -136,23 +136,23 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                              "deprecated. Use ReaderClass.from_config_files "
                              "instead.")
         self.config = config_dict
-        self.info = self.config['reader']
-        self.name = self.info['name']
+        self.info = self.config["reader"]
+        self.name = self.info["name"]
         self.file_patterns = []
-        for file_type, filetype_info in self.config['file_types'].items():
-            filetype_info.setdefault('file_type', file_type)
+        for file_type, filetype_info in self.config["file_types"].items():
+            filetype_info.setdefault("file_type", file_type)
             # correct separator if needed
-            file_patterns = [os.path.join(*pattern.split('/'))
-                             for pattern in filetype_info['file_patterns']]
-            filetype_info['file_patterns'] = file_patterns
+            file_patterns = [os.path.join(*pattern.split("/"))
+                             for pattern in filetype_info["file_patterns"]]
+            filetype_info["file_patterns"] = file_patterns
             self.file_patterns.extend(file_patterns)
 
-        if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
-            self.info['sensors'] = [self.info['sensors']]
-        self.datasets = self.config.get('datasets', {})
-        self._id_keys = self.info.get('data_identification_keys', default_id_keys_config)
-        self._co_keys = self.info.get('coord_identification_keys', default_co_keys_config)
-        self.info['filenames'] = []
+        if "sensors" in self.info and not isinstance(self.info["sensors"], (list, tuple)):
+            self.info["sensors"] = [self.info["sensors"]]
+        self.datasets = self.config.get("datasets", {})
+        self._id_keys = self.info.get("data_identification_keys", default_id_keys_config)
+        self._co_keys = self.info.get("coord_identification_keys", default_co_keys_config)
+        self.info["filenames"] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
 
@@ -160,12 +160,12 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     def from_config_files(cls, *config_files, **reader_kwargs):
         """Create a reader instance from one or more YAML configuration files."""
         config_dict = load_yaml_configs(*config_files)
-        return config_dict['reader']['reader'](config_dict, **reader_kwargs)
+        return config_dict["reader"]["reader"](config_dict, **reader_kwargs)
 
     @property
     def sensor_names(self):
         """Names of sensors whose data is being loaded by this reader."""
-        return self.info['sensors'] or []
+        return self.info["sensors"] or []
 
     @property
     def all_dataset_ids(self):
@@ -176,7 +176,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     def all_dataset_names(self):
         """Get names of all datasets known to this reader."""
         # remove the duplicates from various calibration and resolutions
-        return set(ds_id['name'] for ds_id in self.all_dataset_ids)
+        return set(ds_id["name"] for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
@@ -188,7 +188,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     @property
     def available_dataset_names(self):
         """Get names of datasets that are loadable by this reader."""
-        return (ds_id['name'] for ds_id in self.available_dataset_ids)
+        return (ds_id["name"] for ds_id in self.available_dataset_ids)
 
     @property
     @abstractmethod
@@ -243,7 +243,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         """
         filenames = set()
         if directory is None:
-            directory = ''
+            directory = ""
         # all the glob patterns that we are going to look at
         all_globs = {os.path.join(directory, globify(pattern))
                      for pattern in self.file_patterns}
@@ -286,9 +286,9 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         for dataset in self.datasets.values():
             # xarray doesn't like concatenating attributes that are lists
             # https://github.com/pydata/xarray/issues/2060
-            if 'coordinates' in dataset and \
-                    isinstance(dataset['coordinates'], list):
-                dataset['coordinates'] = tuple(dataset['coordinates'])
+            if "coordinates" in dataset and \
+                    isinstance(dataset["coordinates"], list):
+                dataset["coordinates"] = tuple(dataset["coordinates"])
             id_keys = get_keys_from_config(self._id_keys, dataset)
 
             # Build each permutation/product of the dataset
@@ -316,10 +316,10 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         """Build each permutation/product of the dataset."""
         id_kwargs = []
         for key, idval in id_keys.items():
-            val = dataset.get(key, idval.get('default') if idval is not None else None)
+            val = dataset.get(key, idval.get("default") if idval is not None else None)
             val_type = None
             if idval is not None:
-                val_type = idval.get('type')
+                val_type = idval.get("type")
             if val_type is not None and issubclass(val_type, tuple):
                 # special case: wavelength can be [min, nominal, max]
                 # but is still considered 1 option
@@ -363,7 +363,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
         self.file_handlers = {}
         self.available_ids = {}
-        self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
+        self.filter_filenames = self.info.get("filter_filenames", filter_filenames)
         self.filter_parameters = filter_parameters or {}
         self.register_data_files()
 
@@ -371,7 +371,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     def sensor_names(self):
         """Names of sensors whose data is being loaded by this reader."""
         if not self.file_handlers:
-            return self.info['sensors']
+            return self.info["sensors"]
 
         file_handlers = (handlers[0] for handlers in
                          self.file_handlers.values())
@@ -382,7 +382,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             except NotImplementedError:
                 continue
         if not sensor_names:
-            return self.info['sensors']
+            return self.info["sensors"]
         return sorted(sensor_names)
 
     @property
@@ -453,11 +453,11 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     def sorted_filetype_items(self):
         """Sort the instance's filetypes in using order."""
         processed_types = []
-        file_type_items = deque(self.config['file_types'].items())
+        file_type_items = deque(self.config["file_types"].items())
         while len(file_type_items):
             filetype, filetype_info = file_type_items.popleft()
 
-            requirements = filetype_info.get('requires')
+            requirements = filetype_info.get("requires")
             if requirements is not None:
                 # requirements have not been processed yet -> wait
                 missing = [req for req in requirements
@@ -475,7 +475,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         if not isinstance(filenames, set):
             # we perform set operations later on to improve performance
             filenames = set(filenames)
-        for pattern in filetype_info['file_patterns']:
+        for pattern in filetype_info["file_patterns"]:
             matched_files = set()
             matches = _match_filenames(filenames, pattern)
             for filename in matches:
@@ -491,8 +491,8 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
     def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
-        requirements = filetype_info.get('requires')
-        filetype_cls = filetype_info['file_reader']
+        requirements = filetype_info.get("requires")
+        filetype_cls = filetype_info["file_reader"]
 
         if fh_kwargs is None:
             fh_kwargs = {}
@@ -507,15 +507,15 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                 warnings.warn(msg, stacklevel=4)
                 continue
             except RuntimeError as err:
-                warnings.warn(str(err) + ' for {}'.format(filename), stacklevel=4)
+                warnings.warn(str(err) + " for {}".format(filename), stacklevel=4)
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
     def time_matches(self, fstart, fend):
         """Check that a file's start and end time mtach filter_parameters of this reader."""
-        start_time = self.filter_parameters.get('start_time')
-        end_time = self.filter_parameters.get('end_time')
+        start_time = self.filter_parameters.get("start_time")
+        end_time = self.filter_parameters.get("end_time")
         fend = fend or fstart
         if start_time and fend and fend < start_time:
             return False
@@ -527,17 +527,17 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Check that file metadata matches filter_parameters of this reader."""
         # special handling of start/end times
         if not self.time_matches(
-                sample_dict.get('start_time'), sample_dict.get('end_time')):
+                sample_dict.get("start_time"), sample_dict.get("end_time")):
             return False
         for key, val in self.filter_parameters.items():
-            if key != 'area' and key not in sample_dict:
+            if key != "area" and key not in sample_dict:
                 continue
 
-            if key in ['start_time', 'end_time']:
+            if key in ["start_time", "end_time"]:
                 continue
-            elif key == 'area' and file_handler:
+            elif key == "area" and file_handler:
                 if not self.check_file_covers_area(file_handler, val):
-                    logger.info('Filtering out %s based on area',
+                    logger.info("Filtering out %s based on area",
                                 file_handler.filename)
                     break
             elif key in sample_dict and val != sample_dict[key]:
@@ -556,22 +556,22 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         the requested end time.
         """
         for filename, filename_info in filename_items:
-            fend = filename_info.get('end_time')
-            fstart = filename_info.setdefault('start_time', fend)
+            fend = filename_info.get("end_time")
+            fstart = filename_info.setdefault("start_time", fend)
             if fend and fend < fstart:
                 # correct for filenames with 1 date and 2 times
                 fend = fend.replace(year=fstart.year,
                                     month=fstart.month,
                                     day=fstart.day)
-                filename_info['end_time'] = fend
+                filename_info["end_time"] = fend
             if self.metadata_matches(filename_info):
                 yield filename, filename_info
 
     def filter_fh_by_metadata(self, filehandlers):
         """Filter out filehandlers using provide filter parameters."""
         for filehandler in filehandlers:
-            filehandler.metadata['start_time'] = filehandler.start_time
-            filehandler.metadata['end_time'] = filehandler.end_time
+            filehandler.metadata["start_time"] = filehandler.start_time
+            filehandler.metadata["end_time"] = filehandler.end_time
             if self.metadata_matches(filehandler.metadata, filehandler):
                 yield filehandler
 
@@ -606,9 +606,9 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
-        logger.debug("Assigning to %s: %s", self.info['name'], filenames)
+        logger.debug("Assigning to %s: %s", self.info["name"], filenames)
 
-        self.info.setdefault('filenames', []).extend(filenames)
+        self.info.setdefault("filenames", []).extend(filenames)
         filename_set = set(filenames)
         created_fhs = {}
         # load files that we know about by creating the file handlers
@@ -670,13 +670,13 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         new_ids = {}
         for is_avail, ds_info in avail_datasets:
             # especially from the yaml config
-            coordinates = ds_info.get('coordinates')
+            coordinates = ds_info.get("coordinates")
             if isinstance(coordinates, list):
                 # xarray doesn't like concatenating attributes that are
                 # lists: https://github.com/pydata/xarray/issues/2060
-                ds_info['coordinates'] = tuple(ds_info['coordinates'])
+                ds_info["coordinates"] = tuple(ds_info["coordinates"])
 
-            ds_info.setdefault('modifiers', tuple())  # default to no mods
+            ds_info.setdefault("modifiers", tuple())  # default to no mods
 
             # Create DataID for this dataset
             ds_id = DataID(self._id_keys, **ds_info)
@@ -690,7 +690,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         self.all_ids = new_ids
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y', **kwargs):
+    def _load_dataset(dsid, ds_info, file_handlers, dim="y", **kwargs):
         """Load only a piece of the dataset."""
         slice_list = []
         failure = True
@@ -723,9 +723,9 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         proj = self._load_dataset(dsid, ds_info, file_handlers, **kwargs)
         # FIXME: areas could be concatenated here
         # Update the metadata
-        proj.attrs['start_time'] = file_handlers[0].start_time
-        proj.attrs['end_time'] = file_handlers[-1].end_time
-        proj.attrs['reader'] = self.name
+        proj.attrs["start_time"] = file_handlers[0].start_time
+        proj.attrs["end_time"] = file_handlers[-1].end_time
+        proj.attrs["reader"] = self.name
         return proj
 
     def _preferred_filetype(self, filetypes):
@@ -750,10 +750,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Get the file handler to load this dataset."""
         ds_info = self.all_ids[dsid]
 
-        filetype = self._preferred_filetype(ds_info['file_type'])
+        filetype = self._preferred_filetype(ds_info["file_type"])
         if filetype is None:
             logger.warning("Required file type '%s' not found or loaded for "
-                           "'%s'", ds_info['file_type'], dsid['name'])
+                           "'%s'", ds_info["file_type"], dsid["name"])
         else:
             return self.file_handlers[filetype]
 
@@ -786,12 +786,12 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Get lons and lats from the coords list."""
         lons, lats = None, None
         for coord in coords:
-            if coord.attrs.get('standard_name') == 'longitude':
+            if coord.attrs.get("standard_name") == "longitude":
                 lons = coord
-            elif coord.attrs.get('standard_name') == 'latitude':
+            elif coord.attrs.get("standard_name") == "latitude":
                 lats = coord
         if lons is None or lats is None:
-            raise ValueError('Missing longitude or latitude coordinate: ' + str(coords))
+            raise ValueError("Missing longitude or latitude coordinate: " + str(coords))
         return lons, lats
 
     def _make_swath_definition_from_lons_lats(self, lons, lats):
@@ -804,11 +804,11 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             sdef = None
         if sdef is None:
             sdef = SwathDefinition(lons, lats)
-            sensor_str = '_'.join(self.info['sensors'])
-            shape_str = '_'.join(map(str, lons.shape))
+            sensor_str = "_".join(self.info["sensors"])
+            shape_str = "_".join(map(str, lons.shape))
             sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                             lons.attrs.get('name', lons.name),
-                                             lats.attrs.get('name', lats.name))
+                                             lons.attrs.get("name", lons.name),
+                                             lats.attrs.get("name", lats.name))
             if key is not None:
                 FileYAMLReader._coords_cache[key] = sdef
         return sdef
@@ -830,7 +830,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
 
         if area is not None:
-            ds.attrs['area'] = area
+            ds.attrs["area"] = area
             ds = add_crs_xy_coords(ds, area)
         return ds
 
@@ -840,7 +840,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         if not coords:
             coords = []
             for coord in ds.coords.values():
-                if coord.attrs.get('standard_name') in ['longitude', 'latitude']:
+                if coord.attrs.get("standard_name") in ["longitude", "latitude"]:
                     coords.append(coord)
         return coords
 
@@ -855,12 +855,12 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
         for dataset in datasets.values():
             new_vars = []
-            for av_id in dataset.attrs.get('ancillary_variables', []):
+            for av_id in dataset.attrs.get("ancillary_variables", []):
                 if isinstance(av_id, DataID):
                     new_vars.append(datasets[av_id])
                 else:
                     new_vars.append(av_id)
-            dataset.attrs['ancillary_variables'] = new_vars
+            dataset.attrs["ancillary_variables"] = new_vars
 
     def _gather_ancillary_variables_ids(self, datasets):
         """Gather ancillary variables' ids.
@@ -869,9 +869,9 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """
         all_av_ids = set()
         for dataset in datasets.values():
-            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            ancillary_variables = dataset.attrs.get("ancillary_variables", [])
             if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(' ')
+                ancillary_variables = ancillary_variables.split(" ")
             av_ids = []
             for key in ancillary_variables:
                 try:
@@ -880,7 +880,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                     logger.warning("Can't load ancillary dataset %s", str(key))
 
             all_av_ids |= set(av_ids)
-            dataset.attrs['ancillary_variables'] = av_ids
+            dataset.attrs["ancillary_variables"] = av_ids
         return all_av_ids
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
@@ -953,12 +953,12 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Get the coordinate dataset keys for *dsid*."""
         ds_info = self.all_ids[dsid]
         cids = []
-        for cinfo in ds_info.get('coordinates', []):
+        for cinfo in ds_info.get("coordinates", []):
             if not isinstance(cinfo, dict):
-                cinfo = {'name': cinfo}
+                cinfo = {"name": cinfo}
 
             for key in self._co_keys:
-                if key == 'name':
+                if key == "name":
                     continue
                 if key in ds_info:
                     if ds_info[key] is not None:
@@ -995,52 +995,52 @@ def _set_orientation(dataset, upper_right_corner):
 
     """
     # do some checks and early returns
-    if upper_right_corner == 'native':
+    if upper_right_corner == "native":
         logger.debug("Requested orientation for Dataset {} is 'native' (default). "
-                     "No flipping is applied.".format(dataset.attrs.get('name')))
+                     "No flipping is applied.".format(dataset.attrs.get("name")))
         return dataset
 
-    if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
+    if upper_right_corner not in ["NW", "NE", "SE", "SW", "native"]:
         raise ValueError("Target orientation for Dataset {} not recognized. "
                          "Kwarg upper_right_corner should be "
-                         "'NW', 'NE', 'SW', 'SE' or 'native'.".format(dataset.attrs.get('name', 'unknown_name')))
+                         "'NW', 'NE', 'SW', 'SE' or 'native'.".format(dataset.attrs.get("name", "unknown_name")))
 
-    if 'area' not in dataset.attrs:
+    if "area" not in dataset.attrs:
         logger.info("Dataset {} is missing the area attribute "
-                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+                    "and will not be flipped.".format(dataset.attrs.get("name", "unknown_name")))
         return dataset
 
-    if isinstance(dataset.attrs['area'], SwathDefinition):
+    if isinstance(dataset.attrs["area"], SwathDefinition):
         logger.info("Dataset {} is in a SwathDefinition "
-                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+                    "and will not be flipped.".format(dataset.attrs.get("name", "unknown_name")))
         return dataset
 
-    projection_type = _get_projection_type(dataset.attrs['area'])
-    accepted_geos_proj_types = ['Geostationary Satellite (Sweep Y)', 'Geostationary Satellite (Sweep X)']
+    projection_type = _get_projection_type(dataset.attrs["area"])
+    accepted_geos_proj_types = ["Geostationary Satellite (Sweep Y)", "Geostationary Satellite (Sweep X)"]
     if projection_type not in accepted_geos_proj_types:
         logger.info("Dataset {} is not in one of the known geostationary projections {} "
-                    "and cannot be flipped.".format(dataset.attrs.get('name', 'unknown_name'),
+                    "and cannot be flipped.".format(dataset.attrs.get("name", "unknown_name"),
                                                     accepted_geos_proj_types))
         return dataset
 
     target_eastright, target_northup = _get_target_scene_orientation(upper_right_corner)
 
-    area_extents_to_update = _get_dataset_area_extents_array(dataset.attrs['area'])
+    area_extents_to_update = _get_dataset_area_extents_array(dataset.attrs["area"])
     current_eastright, current_northup = _get_current_scene_orientation(area_extents_to_update)
 
     if target_northup == current_northup and target_eastright == current_eastright:
         logger.info("Dataset {} is already in the target orientation "
-                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+                    "and will not be flipped.".format(dataset.attrs.get("name", "unknown_name")))
         return dataset
 
     if target_northup != current_northup:
         dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
-                                                                              'upsidedown')
+                                                                              "upsidedown")
     if target_eastright != current_eastright:
         dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
-                                                                              'leftright')
+                                                                              "leftright")
 
-    dataset.attrs['area'] = _get_new_flipped_area_definition(dataset.attrs['area'], area_extents_to_update,
+    dataset.attrs["area"] = _get_new_flipped_area_definition(dataset.attrs["area"], area_extents_to_update,
                                                              flip_areadef_stacking=target_northup != current_northup)
 
     return dataset
@@ -1062,9 +1062,9 @@ def _get_target_scene_orientation(upper_right_corner):
 
     'NE' corresponds to target_eastright and target_northup being True.
     """
-    target_northup = upper_right_corner in ['NW', 'NE']
+    target_northup = upper_right_corner in ["NW", "NE"]
 
-    target_eastright = upper_right_corner in ['NE', 'SE']
+    target_eastright = upper_right_corner in ["NE", "SE"]
 
     return target_eastright, target_northup
 
@@ -1091,11 +1091,11 @@ def _get_current_scene_orientation(area_extents_to_update):
 
 def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_direction):
     """Flip the data and area extents array for a dataset."""
-    logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
-    if flip_direction == 'upsidedown':
+    logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get("name", "unknown_name"), flip_direction))
+    if flip_direction == "upsidedown":
         dataset = dataset[::-1, :]
         area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
-    elif flip_direction == 'leftright':
+    elif flip_direction == "leftright":
         dataset = dataset[:, ::-1]
         area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
     else:
@@ -1128,7 +1128,7 @@ def _get_new_flipped_area_definition(dataset_area_attr, area_extents_to_update, 
 class GEOFlippableFileYAMLReader(FileYAMLReader):
     """Reader for flippable geostationary data."""
 
-    def _load_dataset_with_area(self, dsid, coords, upper_right_corner='native', **kwargs):
+    def _load_dataset_with_area(self, dsid, coords, upper_right_corner="native", **kwargs):
         ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
 
         if ds is not None:
@@ -1157,7 +1157,13 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     """
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
-        """Create file handler objects and determine expected segments for each."""
+        """Create file handler objects and determine expected segments for each.
+
+        Additionally, sort the filehandlers by segment number to avoid
+        issues with filenames where start_time or alphabetic sorting does not
+        produce the correct order.
+
+        """
         created_fhs = super(GEOSegmentYAMLReader, self).create_filehandlers(
             filenames, fh_kwargs=fh_kwargs)
 
@@ -1165,15 +1171,23 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         for fhs in created_fhs.values():
             for fh in fhs:
                 # check the filename for total_segments parameter as a fallback
-                ts = fh.filename_info.get('total_segments', 1)
+                ts = fh.filename_info.get("total_segments", 1)
                 # if the YAML has segments explicitly specified then use that
-                fh.filetype_info.setdefault('expected_segments', ts)
+                fh.filetype_info.setdefault("expected_segments", ts)
                 # add segment key-values for FCI filehandlers
-                if 'segment' not in fh.filename_info:
-                    fh.filename_info['segment'] = fh.filename_info.get('count_in_repeat_cycle', 1)
+                if "segment" not in fh.filename_info:
+                    fh.filename_info["segment"] = fh.filename_info.get("count_in_repeat_cycle", 1)
+
+        self._sort_segment_filehandler_by_segment_number()
         return created_fhs
 
-    def _load_dataset(self, dsid, ds_info, file_handlers, dim='y', pad_data=True):
+    def _sort_segment_filehandler_by_segment_number(self):
+        if hasattr(self, "file_handlers"):
+            for file_type in self.file_handlers.keys():
+                self.file_handlers[file_type] = sorted(self.file_handlers[file_type],
+                                                       key=lambda x: x.filename_info.get("segment", 0))
+
+    def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
             return FileYAMLReader._load_dataset(dsid, ds_info,
@@ -1186,7 +1200,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        filetype = file_handlers[0].filetype_info['file_type']
+        filetype = file_handlers[0].filetype_info["file_type"]
         self.empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
@@ -1230,9 +1244,9 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def _pad_later_segments_area(self, file_handlers, dsid):
         """Pad area definitions for missing segments that are later in sequence than the first available."""
-        expected_segments = file_handlers[0].filetype_info['expected_segments']
-        filetype = file_handlers[0].filetype_info['file_type']
-        available_segments = [int(fh.filename_info.get('segment', 1)) for
+        expected_segments = file_handlers[0].filetype_info["expected_segments"]
+        filetype = file_handlers[0].filetype_info["file_type"]
+        available_segments = [int(fh.filename_info.get("segment", 1)) for
                               fh in file_handlers]
 
         area_defs = self._get_segments_areadef_with_later_padded(file_handlers, filetype, dsid, available_segments,
@@ -1250,7 +1264,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 fh = file_handlers[idx]
                 area = fh.get_area_def(dsid)
             except ValueError:
-                area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='later')
+                area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type="later")
 
             area_defs[segment] = area
             seg_size = area.shape
@@ -1258,14 +1272,14 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def _pad_earlier_segments_area(self, file_handlers, dsid, area_defs):
         """Pad area definitions for missing segments that are earlier in sequence than the first available."""
-        available_segments = [int(fh.filename_info.get('segment', 1)) for
+        available_segments = [int(fh.filename_info.get("segment", 1)) for
                               fh in file_handlers]
         area = file_handlers[0].get_area_def(dsid)
         seg_size = area.shape
-        filetype = file_handlers[0].filetype_info['file_type']
+        filetype = file_handlers[0].filetype_info["file_type"]
 
         for segment in range(available_segments[0] - 1, 0, -1):
-            area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='earlier')
+            area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type="earlier")
             area_defs[segment] = area
             seg_size = area.shape
 
@@ -1278,7 +1292,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
-        area = AreaDefinition('fill', 'fill', 'fill', area.crs,
+        area = AreaDefinition("fill", "fill", "fill", area.crs,
                               seg_size[1], new_height_px,
                               fill_extent)
         return area
@@ -1287,10 +1301,10 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
                                                                              segment_n=segment,
                                                                              filetype=filetype)
-        if padding_type == 'later':
+        if padding_type == "later":
             new_ll_y = area.area_extent[1] + new_height_proj_coord
             new_ur_y = area.area_extent[1]
-        elif padding_type == 'earlier':
+        elif padding_type == "earlier":
             new_ll_y = area.area_extent[3]
             new_ur_y = area.area_extent[3] - new_height_proj_coord
         else:
@@ -1322,15 +1336,13 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     failure = True
     counter = 1
     expected_segments = 1
-    # get list of file handlers in segment order
-    # (ex. first segment, second segment, etc)
-    handlers = sorted(file_handlers, key=lambda x: x.filename_info.get('segment', 1))
-    projectable = None
-    for fh in handlers:
-        if fh.filetype_info['file_type'] in ds_info['file_type']:
-            expected_segments = fh.filetype_info['expected_segments']
 
-        while int(fh.filename_info.get('segment', 1)) > counter:
+    projectable = None
+    for fh in file_handlers:
+        if fh.filetype_info["file_type"] in ds_info["file_type"]:
+            expected_segments = fh.filetype_info["expected_segments"]
+
+        while int(fh.filename_info.get("segment", 1)) > counter:
             slice_list.append(None)
             counter += 1
         try:
@@ -1396,17 +1408,17 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         # collect the segment positioning infos for all available segments
         for fh in self.file_handlers[filetype]:
             chk_infos = fh.get_segment_position_info()
-            chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
-            self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
+            chk_infos.update({"segment_nr": fh.filename_info["segment"] - 1})
+            self.segment_infos[filetype]["available_segment_infos"].append(chk_infos)
 
     def _initialise_segment_infos(self, filetype):
         # initialise the segment info for this filetype
         filetype_fhs_sample = self.file_handlers[filetype][0]
-        exp_segment_nr = filetype_fhs_sample.filetype_info['expected_segments']
+        exp_segment_nr = filetype_fhs_sample.filetype_info["expected_segments"]
         grid_width_to_grid_type = _get_grid_width_to_grid_type(filetype_fhs_sample.get_segment_position_info())
-        self.segment_infos.update({filetype: {'available_segment_infos': [],
-                                              'expected_segments': exp_segment_nr,
-                                              'grid_width_to_grid_type': grid_width_to_grid_type}})
+        self.segment_infos.update({filetype: {"available_segment_infos": [],
+                                              "expected_segments": exp_segment_nr,
+                                              "grid_width_to_grid_type": grid_width_to_grid_type}})
 
     def _get_empty_segment(self, dim=None, idx=None, filetype=None):
         grid_width = self.empty_segment.shape[1]
@@ -1416,7 +1428,7 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     def _segment_heights(self, filetype, grid_width):
         """Compute optimal padded segment heights (in number of pixels) based on the location of available segments."""
         self._extract_segment_location_dicts(filetype)
-        grid_type = self.segment_infos[filetype]['grid_width_to_grid_type'][grid_width]
+        grid_type = self.segment_infos[filetype]["grid_width_to_grid_type"][grid_width]
         segment_heights = _compute_optimal_missing_segment_heights(self.segment_infos[filetype], grid_type, grid_width)
         return segment_heights
 
@@ -1434,18 +1446,18 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
 def _get_grid_width_to_grid_type(seg_info):
     grid_width_to_grid_type = dict()
     for grid_type, grid_type_seg_info in seg_info.items():
-        grid_width_to_grid_type.update({grid_type_seg_info['grid_width']: grid_type})
+        grid_width_to_grid_type.update({grid_type_seg_info["grid_width"]: grid_type})
     return grid_width_to_grid_type
 
 
 def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vertical_size):
     # initialise positioning arrays
     segment_start_rows, segment_end_rows, segment_heights = _init_positioning_arrays_for_variable_padding(
-        seg_infos['available_segment_infos'], grid_type, seg_infos['expected_segments'])
+        seg_infos["available_segment_infos"], grid_type, seg_infos["expected_segments"])
 
     # populate start row of first segment and end row of last segment with known values
     segment_start_rows[0] = 1
-    segment_end_rows[seg_infos['expected_segments'] - 1] = expected_vertical_size
+    segment_end_rows[seg_infos["expected_segments"] - 1] = expected_vertical_size
 
     # find missing segments and group contiguous missing segments together
     missing_segments = np.where(segment_heights == 0)[0]
@@ -1454,7 +1466,7 @@ def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vert
     for group in groups_missing_segments:
         _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group)
 
-    return segment_heights.astype('int')
+    return segment_heights.astype("int")
 
 
 def _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group):
@@ -1513,20 +1525,20 @@ def _init_positioning_arrays_for_variable_padding(chk_infos, grid_type, exp_segm
 def _populate_positioning_arrays_with_available_segment_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
                                                              segment_heights):
     for chk_info in chk_infos:
-        current_fh_segment_nr = chk_info['segment_nr']
-        segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']
-        segment_start_rows[current_fh_segment_nr] = chk_info[grid_type]['start_position_row']
-        segment_end_rows[current_fh_segment_nr] = chk_info[grid_type]['end_position_row']
+        current_fh_segment_nr = chk_info["segment_nr"]
+        segment_heights[current_fh_segment_nr] = chk_info[grid_type]["segment_height"]
+        segment_start_rows[current_fh_segment_nr] = chk_info[grid_type]["start_position_row"]
+        segment_end_rows[current_fh_segment_nr] = chk_info[grid_type]["end_position_row"]
 
 
 def split_integer_in_most_equal_parts(x, n):
     """Split an integer number x in n parts that are as equally-sizes as possible."""
     if x % n == 0:
-        return np.repeat(x // n, n).astype('int')
+        return np.repeat(x // n, n).astype("int")
     else:
         # split the remainder amount over the last remainder parts
         remainder = int(x % n)
         mod = int(x // n)
         ar = np.repeat(mod, n)
         ar[-remainder:] = mod + 1
-        return ar.astype('int')
+        return ar.astype("int")

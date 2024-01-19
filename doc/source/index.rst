@@ -63,12 +63,12 @@ Documentation
     data_download
     examples/index
     quickstart
-    readers
+    reading
     remote_reading
     composites
     resample
     enhancements
-    writers
+    writing
     multiscene
     dev_guide/index
 

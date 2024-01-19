@@ -28,15 +28,15 @@ from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = {'spectral_channel_id': 1}
-    instance.mda.setdefault('number_of_bits_per_pixel', 10)
+    instance.mda = {"spectral_channel_id": 1}
+    instance.mda.setdefault("number_of_bits_per_pixel", 10)
 
-    instance.mda['projection_parameters'] = {'a': 6378169.00,
-                                             'b': 6356583.80,
-                                             'h': 35785831.00,
-                                             'SSP_longitude': 0.0}
-    instance.mda['orbital_parameters'] = {}
-    instance.mda['total_header_length'] = 12
+    instance.mda["projection_parameters"] = {"a": 6378169.00,
+                                             "b": 6356583.80,
+                                             "h": 35785831.00,
+                                             "SSP_longitude": 0.0}
+    instance.mda["orbital_parameters"] = {}
+    instance.mda["total_header_length"] = 12
 
 
 def get_new_read_prologue(prologue):
@@ -49,24 +49,26 @@ def get_new_read_prologue(prologue):
 def get_fake_file_handler(observation_start_time, nlines, ncols, projection_longitude=0,
                           orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
+    import warnings
+
     prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
     mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=observation_start_time)
     filename_info = get_fake_filename_info(observation_start_time)
     epilogue = get_fake_epilogue()
 
     m = mock.mock_open()
-    with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile, \
-            mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
-            mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
-            mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'), \
-            mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd), \
-            mock.patch.object(HRITMSGPrologueFileHandler, 'read_prologue',
+    with mock.patch("satpy.readers.seviri_l1b_hrit.np.fromfile") as fromfile, \
+            mock.patch("satpy.readers.hrit_base.open", m, create=True) as newopen, \
+            mock.patch("satpy.readers.utils.open", m, create=True) as utilopen, \
+            mock.patch("satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES"), \
+            mock.patch.object(HRITMSGFileHandler, "_get_hd", new=new_get_hd), \
+            mock.patch.object(HRITMSGPrologueFileHandler, "read_prologue",
                               new=get_new_read_prologue(prologue)):
 
         fromfile.return_value = np.array(
             [(1, 2)],
-            dtype=[('total_header_length', int),
-                   ('hdr_id', int)]
+            dtype=[("total_header_length", int),
+                   ("hdr_id", int)]
         )
         newopen.return_value.__enter__.return_value.tell.return_value = 1
         # The size of the return value hereafter was chosen arbitrarily with the expectation
@@ -74,19 +76,22 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
         # files.
         utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
         prologue = HRITMSGPrologueFileHandler(
-            filename='dummy_prologue_filename',
+            filename="dummy_prologue_filename",
             filename_info=filename_info,
             filetype_info={}
         )
         epilogue = mock.MagicMock(epilogue=epilogue)
 
-        reader = HRITMSGFileHandler(
-            'filename',
-            filename_info,
-            {'filetype': 'info'},
-            prologue,
-            epilogue
-        )
+        with warnings.catch_warnings():
+            # Orbit polynomial has no exact match, so filter the unnecessary warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid for")
+            reader = HRITMSGFileHandler(
+                "filename",
+                filename_info,
+                {"filetype": "info"},
+                prologue,
+                epilogue
+            )
         reader.mda.update(mda)
         return reader
 
@@ -99,30 +104,30 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
                  "SatelliteId": 324,
                  "NominalLongitude": -3.5
              },
-             'Orbit': {
-                 'OrbitPolynomial': orbit_polynomials,
+             "Orbit": {
+                 "OrbitPolynomial": orbit_polynomials,
              }
          },
-         'GeometricProcessing': {
-             'EarthModel': {
-                 'TypeOfEarthModel': 2,
-                 'EquatorialRadius': 6378.169,
-                 'NorthPolarRadius': 6356.5838,
-                 'SouthPolarRadius': 6356.5838
+         "GeometricProcessing": {
+             "EarthModel": {
+                 "TypeOfEarthModel": 2,
+                 "EquatorialRadius": 6378.169,
+                 "NorthPolarRadius": 6356.5838,
+                 "SouthPolarRadius": 6356.5838
              }
          },
-         'ImageDescription': {
-             'ProjectionDescription': {
-                 'LongitudeOfSSP': projection_longitude
+         "ImageDescription": {
+             "ProjectionDescription": {
+                 "LongitudeOfSSP": projection_longitude
              },
-             'Level15ImageProduction': {
-                 'ImageProcDirection': 1
+             "Level15ImageProduction": {
+                 "ImageProcDirection": 1
              }
          },
-         'ImageAcquisition': {
-            'PlannedAcquisitionTime': {
-                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
+         "ImageAcquisition": {
+            "PlannedAcquisitionTime": {
+                "TrueRepeatCycleStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
+                "PlannedRepeatCycleEnd": datetime(2006, 1, 1, 12, 30, 0, 0)
             }
          }
     }
@@ -131,21 +136,21 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
 def get_fake_epilogue():
     """Create a fake HRIT epilogue."""
     return {
-            'ImageProductionStats': {
-                'ActualL15CoverageHRV': {
-                    'LowerSouthLineActual': 1,
-                    'LowerNorthLineActual': 8256,
-                    'LowerEastColumnActual': 2877,
-                    'LowerWestColumnActual': 8444,
-                    'UpperSouthLineActual': 8257,
-                    'UpperNorthLineActual': 11136,
-                    'UpperEastColumnActual': 1805,
-                    'UpperWestColumnActual': 7372
+            "ImageProductionStats": {
+                "ActualL15CoverageHRV": {
+                    "LowerSouthLineActual": 1,
+                    "LowerNorthLineActual": 8256,
+                    "LowerEastColumnActual": 2877,
+                    "LowerWestColumnActual": 8444,
+                    "UpperSouthLineActual": 8257,
+                    "UpperNorthLineActual": 11136,
+                    "UpperEastColumnActual": 1805,
+                    "UpperWestColumnActual": 7372
                 },
-                'ActualScanningSummary': {
-                    'ReducedScan': 0,
-                    'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                    'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 39, 0)
+                "ActualScanningSummary": {
+                    "ReducedScan": 0,
+                    "ForwardScanStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    "ForwardScanEnd": datetime(2006, 1, 1, 12, 27, 39, 0)
                 }
             }
         }
@@ -156,19 +161,19 @@ def get_fake_mda(nlines, ncols, start_time):
     nbits = 10
     tline = get_acq_time_cds(start_time, nlines)
     return {
-        'number_of_bits_per_pixel': nbits,
-        'number_of_lines': nlines,
-        'number_of_columns': ncols,
-        'data_field_length': nlines * ncols * nbits,
-        'cfac': 5,
-        'lfac': 5,
-        'coff': 10,
-        'loff': 10,
-        'image_segment_line_quality': {
-            'line_mean_acquisition': tline,
-            'line_validity': np.full(nlines, 3),
-            'line_radiometric_quality': np.full(nlines, 4),
-            'line_geometric_quality': np.full(nlines, 4)
+        "number_of_bits_per_pixel": nbits,
+        "number_of_lines": nlines,
+        "number_of_columns": ncols,
+        "data_field_length": nlines * ncols * nbits,
+        "cfac": 5,
+        "lfac": 5,
+        "coff": 10,
+        "loff": 10,
+        "image_segment_line_quality": {
+            "line_mean_acquisition": tline,
+            "line_validity": np.full(nlines, 3),
+            "line_radiometric_quality": np.full(nlines, 4),
+            "line_geometric_quality": np.full(nlines, 4)
         }
     }
 
@@ -176,18 +181,18 @@ def get_fake_mda(nlines, ncols, start_time):
 def get_fake_filename_info(start_time):
     """Create fake filename information."""
     return {
-        'platform_shortname': 'MSG3',
-        'start_time': start_time,
-        'service': 'MSG'
+        "platform_shortname": "MSG3",
+        "start_time": start_time,
+        "service": "MSG"
     }
 
 
 def get_fake_dataset_info():
     """Create fake dataset info."""
     return {
-        'units': 'units',
-        'wavelength': 'wavelength',
-        'standard_name': 'standard_name'
+        "units": "units",
+        "wavelength": "wavelength",
+        "standard_name": "standard_name"
     }
 
 
@@ -196,47 +201,49 @@ def get_acq_time_cds(start_time, nlines):
     days_since_1958 = (start_time - datetime(1958, 1, 1)).days
     tline = np.zeros(
         nlines,
-        dtype=[('days', '>u2'), ('milliseconds', '>u4')]
+        dtype=[("days", ">u2"), ("milliseconds", ">u4")]
     )
-    tline['days'][1:-1] = days_since_1958 * np.ones(nlines - 2)
+    tline["days"][1:-1] = days_since_1958 * np.ones(nlines - 2)
     offset_second = (start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()*1000
-    tline['milliseconds'][1:-1] = np.arange(nlines - 2)+offset_second
+    tline["milliseconds"][1:-1] = np.arange(nlines - 2)+offset_second
+
     return tline
 
 
 def get_acq_time_exp(start_time, nlines):
     """Get expected scanline acquisition times."""
-    tline_exp = np.zeros(464, dtype='datetime64[ms]')
-    tline_exp[0] = np.datetime64('NaT')
-    tline_exp[-1] = np.datetime64('NaT')
+    tline_exp = np.zeros(464, dtype="datetime64[ms]")
+    tline_exp[0] = np.datetime64("NaT")
+    tline_exp[-1] = np.datetime64("NaT")
     tline_exp[1:-1] = np.datetime64(start_time)
-    tline_exp[1:-1] += np.arange(nlines - 2).astype('timedelta64[ms]')
-    return tline_exp
+    tline_exp[1:-1] += np.arange(nlines - 2).astype("timedelta64[ms]")
+
+    return tline_exp.astype("datetime64[ns]")
 
 
 def get_attrs_exp(projection_longitude=0.0):
     """Get expected dataset attributes."""
     return {
-        'units': 'units',
-        'wavelength': 'wavelength',
-        'standard_name': 'standard_name',
-        'platform_name': 'Meteosat-11',
-        'sensor': 'seviri',
-        'orbital_parameters': {'projection_longitude': projection_longitude,
-                               'projection_latitude': 0.,
-                               'projection_altitude': 35785831.0,
-                               'satellite_nominal_longitude': -3.5,
-                               'satellite_nominal_latitude': 0.0,
-                               'satellite_actual_longitude': -3.55117540817073,
-                               'satellite_actual_latitude': -0.5711243456528018,
-                               'satellite_actual_altitude': 35783296.150123544},
-        'georef_offset_corrected': True,
-        'nominal_start_time': (datetime(2006, 1, 1, 12, 15),),
-        'nominal_end_time': (datetime(2006, 1, 1, 12, 30),),
-        'time_parameters': {
-            'nominal_start_time': datetime(2006, 1, 1, 12, 15),
-            'nominal_end_time': datetime(2006, 1, 1, 12, 30),
-            'observation_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
-            'observation_end_time': datetime(2006, 1, 1, 12, 27, 39, 0)
+        "units": "units",
+        "wavelength": "wavelength",
+        "standard_name": "standard_name",
+        "platform_name": "Meteosat-11",
+        "sensor": "seviri",
+        "orbital_parameters": {"projection_longitude": projection_longitude,
+                               "projection_latitude": 0.,
+                               "projection_altitude": 35785831.0,
+                               "satellite_nominal_longitude": -3.5,
+                               "satellite_nominal_latitude": 0.0,
+                               "satellite_actual_longitude": -3.55117540817073,
+                               "satellite_actual_latitude": -0.5711243456528018,
+                               "satellite_actual_altitude": 35783296.150123544},
+        "georef_offset_corrected": True,
+        "nominal_start_time": (datetime(2006, 1, 1, 12, 15),),
+        "nominal_end_time": (datetime(2006, 1, 1, 12, 30),),
+        "time_parameters": {
+            "nominal_start_time": datetime(2006, 1, 1, 12, 15),
+            "nominal_end_time": datetime(2006, 1, 1, 12, 30),
+            "observation_start_time": datetime(2006, 1, 1, 12, 15, 9, 304888),
+            "observation_end_time": datetime(2006, 1, 1, 12, 27, 39, 0)
             }
     }

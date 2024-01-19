@@ -35,8 +35,8 @@ class TestSceneSerialization:
         """Test that dask can serialize a Scene with readers."""
         from distributed.protocol import deserialize, serialize
 
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene.load(['ds1'])
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["ds1"])
         cloned_scene = deserialize(*serialize(scene))
         assert scene._readers.keys() == cloned_scene._readers.keys()
         assert scene.all_dataset_ids == scene.all_dataset_ids
@@ -57,12 +57,12 @@ class TestSceneConversions:
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from pyresample.geometry import AreaDefinition
         scn = Scene()
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                               2, 2, [-200, -200, 200, 200])
-        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                                  attrs={'start_time': datetime(2018, 1, 1),
-                                         'area': area})
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
@@ -74,13 +74,60 @@ class TestSceneConversions:
         lons = xr.DataArray(da.zeros((2, 2)))
         lats = xr.DataArray(da.zeros((2, 2)))
         area = SwathDefinition(lons, lats)
-        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                                  attrs={'start_time': datetime(2018, 1, 1),
-                                         'area': area})
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
 
+    def test_hvplot_basic_with_area(self):
+        """Test converting a Scene to hvplot with a AreaDefinition."""
+        from pyresample.geometry import AreaDefinition
+        scn = Scene()
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
+
+    def test_hvplot_rgb_with_area(self):
+        """Test converting a Scene to hvplot with a AreaDefinition."""
+        from pyresample.geometry import AreaDefinition
+        scn = Scene()
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        scn["ds2"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        scn["ds3"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
+
+    def test_hvplot_basic_with_swath(self):
+        """Test converting a Scene to hvplot with a SwathDefinition."""
+        from pyresample.geometry import SwathDefinition
+        scn = Scene()
+        longitude = xr.DataArray(da.zeros((2, 2)))
+        latitude = xr.DataArray(da.zeros((2, 2)))
+        area = SwathDefinition(longitude, latitude)
+        scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1),
+                                         "area": area, "units": "m"})
+        hv_obj = scn.to_hvplot()
+        # we assume that if we got something back, hvplot can use it
+        assert hv_obj is not None
 
 class TestToXarrayConversion:
     """Test Scene.to_xarray() conversion."""
@@ -93,42 +140,42 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture
+    @pytest.fixture()
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
 
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                               2, 2, [-200, -200, 200, 200])
         data_array = xr.DataArray(da.zeros((2, 2), chunks=-1),
-                                  dims=('y', 'x'),
-                                  attrs={'start_time': datetime(2018, 1, 1), 'area': area})
+                                  dims=("y", "x"),
+                                  attrs={"start_time": datetime(2018, 1, 1), "area": area})
         scn = Scene()
-        scn['var1'] = data_array
+        scn["var1"] = data_array
         return scn
 
-    @pytest.fixture
+    @pytest.fixture()
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition
 
-        area1 = AreaDefinition('test', 'test', 'test',
-                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+        area1 = AreaDefinition("test", "test", "test",
+                               {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                                2, 2, [-200, -200, 200, 200])
-        area2 = AreaDefinition('test', 'test', 'test',
-                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+        area2 = AreaDefinition("test", "test", "test",
+                               {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                                4, 4, [-200, -200, 200, 200])
 
         data_array1 = xr.DataArray(da.zeros((2, 2), chunks=-1),
-                                   dims=('y', 'x'),
-                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area1})
+                                   dims=("y", "x"),
+                                   attrs={"start_time": datetime(2018, 1, 1), "area": area1})
         data_array2 = xr.DataArray(da.zeros((4, 4), chunks=-1),
-                                   dims=('y', 'x'),
-                                   attrs={'start_time': datetime(2018, 1, 1), 'area': area2})
+                                   dims=("y", "x"),
+                                   attrs={"start_time": datetime(2018, 1, 1), "area": area2})
         scn = Scene()
-        scn['var1'] = data_array1
-        scn['var2'] = data_array2
+        scn["var1"] = data_array1
+        scn["var2"] = data_array2
         return scn
 
     def test_with_single_area_scene_type(self, single_area_scn):
@@ -162,5 +209,5 @@ class TestToXarrayConversion:
     def test_to_xarray_with_multiple_area_scene(self, multi_area_scn):
         """Test converting muiltple area Scene to xarray."""
         # TODO: in future adapt for DataTree implementation
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Datasets to be saved .* must have identical projection coordinates."):
             _ = multi_area_scn.to_xarray()

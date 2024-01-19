@@ -29,8 +29,8 @@ This is how to read them with Satpy:
     scene.load(["VIS", "IR1"])
 
 
-References
-~~~~~~~~~~
+References:
+~~~~~~~~~~~
 
 Details about platform, instrument and data format can be found in the
 following references:
@@ -307,7 +307,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def _get_time_parameters(self):
-        start_time = mjd2datetime64(self._mode_block["observation_time_mjd"])
+        start_time = mjd2datetime64(self._mode_block["observation_time_mjd"]).astype("datetime64[us]")
         start_time = start_time.astype(dt.datetime).replace(second=0, microsecond=0)
         end_time = start_time + dt.timedelta(
             minutes=25

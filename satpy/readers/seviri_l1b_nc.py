@@ -41,7 +41,7 @@ from satpy.readers.seviri_base import (
 )
 from satpy.utils import get_legacy_chunk_size
 
-logger = logging.getLogger('nc_msg')
+logger = logging.getLogger("nc_msg")
 CHUNK_SIZE = get_legacy_chunk_size()
 
 
@@ -73,9 +73,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     @property
     def _repeat_cycle_duration(self):
         """Get repeat cycle duration from the metadata."""
-        if self.nc.attrs['nominal_image_scanning'] == 'T':
+        if self.nc.attrs["nominal_image_scanning"] == "T":
             return 15
-        elif self.nc.attrs['reduced_scanning'] == 'T':
+        elif self.nc.attrs["reduced_scanning"] == "T":
             return 5
 
     @property
@@ -114,55 +114,55 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     def nc(self):
         """Read the file."""
         return open_dataset(self.filename, decode_cf=True, mask_and_scale=False,
-                            chunks=CHUNK_SIZE).rename({'num_columns_vis_ir': 'x',
-                                                      'num_rows_vis_ir': 'y'})
+                            chunks=CHUNK_SIZE).rename({"num_columns_vis_ir": "x",
+                                                      "num_rows_vis_ir": "y"})
 
     def get_metadata(self):
         """Get metadata."""
         # Obtain some area definition attributes
-        equatorial_radius = self.nc.attrs['equatorial_radius'] * 1000.
-        polar_radius = (self.nc.attrs['north_polar_radius'] * 1000 + self.nc.attrs['south_polar_radius'] * 1000) * 0.5
-        ssp_lon = self.nc.attrs['longitude_of_SSP']
-        self.mda['vis_ir_grid_origin'] = self.nc.attrs['vis_ir_grid_origin']
-        self.mda['vis_ir_column_dir_grid_step'] = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
-        self.mda['vis_ir_line_dir_grid_step'] = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
+        equatorial_radius = self.nc.attrs["equatorial_radius"] * 1000.
+        polar_radius = (self.nc.attrs["north_polar_radius"] * 1000 + self.nc.attrs["south_polar_radius"] * 1000) * 0.5
+        ssp_lon = self.nc.attrs["longitude_of_SSP"]
+        self.mda["vis_ir_grid_origin"] = self.nc.attrs["vis_ir_grid_origin"]
+        self.mda["vis_ir_column_dir_grid_step"] = self.nc.attrs["vis_ir_column_dir_grid_step"] * 1000.0
+        self.mda["vis_ir_line_dir_grid_step"] = self.nc.attrs["vis_ir_line_dir_grid_step"] * 1000.0
         # if FSFile is used h5netcdf engine is used which outputs arrays instead of floats for attributes
         if isinstance(equatorial_radius, np.ndarray):
             equatorial_radius = equatorial_radius.item()
             polar_radius = polar_radius.item()
             ssp_lon = ssp_lon.item()
-            self.mda['vis_ir_column_dir_grid_step'] = self.mda['vis_ir_column_dir_grid_step'].item()
-            self.mda['vis_ir_line_dir_grid_step'] = self.mda['vis_ir_line_dir_grid_step'].item()
+            self.mda["vis_ir_column_dir_grid_step"] = self.mda["vis_ir_column_dir_grid_step"].item()
+            self.mda["vis_ir_line_dir_grid_step"] = self.mda["vis_ir_line_dir_grid_step"].item()
 
-        self.mda['projection_parameters'] = {'a': equatorial_radius,
-                                             'b': polar_radius,
-                                             'h': 35785831.00,
-                                             'ssp_longitude': ssp_lon}
+        self.mda["projection_parameters"] = {"a": equatorial_radius,
+                                             "b": polar_radius,
+                                             "h": 35785831.00,
+                                             "ssp_longitude": ssp_lon}
 
-        self.mda['number_of_lines'] = int(self.nc.dims['y'])
-        self.mda['number_of_columns'] = int(self.nc.dims['x'])
+        self.mda["number_of_lines"] = int(self.nc.sizes["y"])
+        self.mda["number_of_columns"] = int(self.nc.sizes["x"])
 
         # only needed for HRV channel which is not implemented yet
         # self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])
         # self.mda['hrv_number_of_columns'] = int(self.nc.dims['num_columns_hrv'])
 
         self.deltaSt = self.reference + datetime.timedelta(
-            days=int(self.nc.attrs['true_repeat_cycle_start_day']),
-            milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
+            days=int(self.nc.attrs["true_repeat_cycle_start_day"]),
+            milliseconds=int(self.nc.attrs["true_repeat_cycle_start_mi_sec"]))
 
         self.deltaEnd = self.reference + datetime.timedelta(
-            days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
-            milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
+            days=int(self.nc.attrs["planned_repeat_cycle_end_day"]),
+            milliseconds=int(self.nc.attrs["planned_repeat_cycle_end_mi_sec"]))
 
-        self.north = int(self.nc.attrs['north_most_line'])
-        self.east = int(self.nc.attrs['east_most_pixel'])
-        self.west = int(self.nc.attrs['west_most_pixel'])
-        self.south = int(self.nc.attrs['south_most_line'])
-        self.platform_id = int(self.nc.attrs['satellite_id'])
+        self.north = int(self.nc.attrs["north_most_line"])
+        self.east = int(self.nc.attrs["east_most_pixel"])
+        self.west = int(self.nc.attrs["west_most_pixel"])
+        self.south = int(self.nc.attrs["south_most_line"])
+        self.platform_id = int(self.nc.attrs["satellite_id"])
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        dataset = self.nc[dataset_info['nc_key']]
+        dataset = self.nc[dataset_info["nc_key"]]
 
         # Correct for the scan line order
         # TODO: Move _add_scanline_acq_time() call to the end of the method
@@ -171,7 +171,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
-        is_calibration = dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']
+        is_calibration = dataset_id["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
         if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
             dataset = self._mask_bad_quality(dataset, dataset_info)
 
@@ -180,17 +180,17 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     def calibrate(self, dataset, dataset_id):
         """Calibrate the data."""
-        channel = dataset_id['name']
-        calibration = dataset_id['calibration']
+        channel = dataset_id["name"]
+        calibration = dataset_id["calibration"]
 
-        if dataset_id['calibration'] == 'counts':
-            dataset.attrs['_FillValue'] = 0
+        if dataset_id["calibration"] == "counts":
+            dataset.attrs["_FillValue"] = 0
 
         calib = SEVIRICalibrationHandler(
             platform_id=int(self.platform_id),
             channel_name=channel,
             coefs=self._get_calib_coefs(dataset, channel),
-            calib_mode='NOMINAL',
+            calib_mode="NOMINAL",
             scan_time=self.observation_start_time
         )
 
@@ -199,59 +199,59 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     def _get_calib_coefs(self, dataset, channel):
         """Get coefficients for calibration from counts to radiance."""
         band_idx = list(CHANNEL_NAMES.values()).index(channel)
-        offset = dataset.attrs['add_offset'].astype('float32')
-        gain = dataset.attrs['scale_factor'].astype('float32')
+        offset = dataset.attrs["add_offset"].astype("float32")
+        gain = dataset.attrs["scale_factor"].astype("float32")
         # Only one calibration available here
         return {
-            'coefs': {
-                'NOMINAL': {
-                    'gain': gain,
-                    'offset': offset
+            "coefs": {
+                "NOMINAL": {
+                    "gain": gain,
+                    "offset": offset
                 },
-                'EXTERNAL': self.ext_calib_coefs.get(channel, {})
+                "EXTERNAL": self.ext_calib_coefs.get(channel, {})
             },
-            'radiance_type': self.nc['planned_chan_processing'].values[band_idx]
+            "radiance_type": self.nc["planned_chan_processing"].values[band_idx]
         }
 
     def _mask_bad_quality(self, dataset, dataset_info):
         """Mask scanlines with bad quality."""
-        ch_number = int(dataset_info['nc_key'][2:])
-        line_validity = self.nc['channel_data_visir_data_line_validity'][:, ch_number - 1].data
-        line_geometric_quality = self.nc['channel_data_visir_data_line_geometric_quality'][:, ch_number - 1].data
-        line_radiometric_quality = self.nc['channel_data_visir_data_line_radiometric_quality'][:, ch_number - 1].data
+        ch_number = int(dataset_info["nc_key"][2:])
+        line_validity = self.nc["channel_data_visir_data_line_validity"][:, ch_number - 1].data
+        line_geometric_quality = self.nc["channel_data_visir_data_line_geometric_quality"][:, ch_number - 1].data
+        line_radiometric_quality = self.nc["channel_data_visir_data_line_radiometric_quality"][:, ch_number - 1].data
         return mask_bad_quality(dataset, line_validity, line_geometric_quality, line_radiometric_quality)
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""
-        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
+        dataset.attrs.update(self.nc[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
-        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h'],
-            'satellite_nominal_longitude': float(
-                self.nc.attrs['nominal_longitude']
+        dataset.attrs["platform_name"] = "Meteosat-" + SATNUM[self.platform_id]
+        dataset.attrs["sensor"] = "seviri"
+        dataset.attrs["orbital_parameters"] = {
+            "projection_longitude": self.mda["projection_parameters"]["ssp_longitude"],
+            "projection_latitude": 0.,
+            "projection_altitude": self.mda["projection_parameters"]["h"],
+            "satellite_nominal_longitude": float(
+                self.nc.attrs["nominal_longitude"]
             ),
-            'satellite_nominal_latitude': 0.0,
+            "satellite_nominal_latitude": 0.0,
         }
-        dataset.attrs['time_parameters'] = {
-            'nominal_start_time': self.nominal_start_time,
-            'nominal_end_time': self.nominal_end_time,
-            'observation_start_time': self.observation_start_time,
-            'observation_end_time': self.observation_end_time,
+        dataset.attrs["time_parameters"] = {
+            "nominal_start_time": self.nominal_start_time,
+            "nominal_end_time": self.nominal_end_time,
+            "observation_start_time": self.observation_start_time,
+            "observation_end_time": self.observation_end_time,
         }
         try:
             actual_lon, actual_lat, actual_alt = self.satpos
-            dataset.attrs['orbital_parameters'].update({
-                'satellite_actual_longitude': actual_lon,
-                'satellite_actual_latitude': actual_lat,
-                'satellite_actual_altitude': actual_alt,
+            dataset.attrs["orbital_parameters"].update({
+                "satellite_actual_longitude": actual_lon,
+                "satellite_actual_latitude": actual_lat,
+                "satellite_actual_altitude": actual_alt,
             })
         except NoValidOrbitParams as err:
             logger.warning(err)
-        dataset.attrs['georef_offset_corrected'] = self._get_earth_model() == 2
+        dataset.attrs["georef_offset_corrected"] = self._get_earth_model() == 2
 
         # remove attributes from original file which don't apply anymore
         strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
@@ -277,30 +277,30 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         """
         pdict = {}
-        pdict['a'] = self.mda['projection_parameters']['a']
-        pdict['b'] = self.mda['projection_parameters']['b']
-        pdict['h'] = self.mda['projection_parameters']['h']
-        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
+        pdict["a"] = self.mda["projection_parameters"]["a"]
+        pdict["b"] = self.mda["projection_parameters"]["b"]
+        pdict["h"] = self.mda["projection_parameters"]["h"]
+        pdict["ssp_lon"] = self.mda["projection_parameters"]["ssp_longitude"]
 
-        area_naming_input_dict = {'platform_name': 'msg',
-                                  'instrument_name': 'seviri',
-                                  'resolution': int(dataset_id['resolution'])
+        area_naming_input_dict = {"platform_name": "msg",
+                                  "instrument_name": "seviri",
+                                  "resolution": int(dataset_id["resolution"])
                                   }
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+                                            **get_service_mode("seviri", pdict["ssp_lon"])})
 
-        if dataset_id['name'] == 'HRV':
-            pdict['nlines'] = self.mda['hrv_number_of_lines']
-            pdict['ncols'] = self.mda['hrv_number_of_columns']
-            pdict['a_name'] = area_naming['area_id']
-            pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = ""
+        if dataset_id["name"] == "HRV":
+            pdict["nlines"] = self.mda["hrv_number_of_lines"]
+            pdict["ncols"] = self.mda["hrv_number_of_columns"]
+            pdict["a_name"] = area_naming["area_id"]
+            pdict["a_desc"] = area_naming["description"]
+            pdict["p_id"] = ""
         else:
-            pdict['nlines'] = self.mda['number_of_lines']
-            pdict['ncols'] = self.mda['number_of_columns']
-            pdict['a_name'] = area_naming['area_id']
-            pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = ""
+            pdict["nlines"] = self.mda["number_of_lines"]
+            pdict["ncols"] = self.mda["number_of_columns"]
+            pdict["a_name"] = area_naming["area_id"]
+            pdict["a_desc"] = area_naming["description"]
+            pdict["p_id"] = ""
 
         area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
@@ -310,20 +310,20 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         """Get the area extent."""
         # following calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
-        origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
-        grid_origin = self.mda['vis_ir_grid_origin']
+        origins = {0: "NW", 1: "SW", 2: "SE", 3: "NE"}
+        grid_origin = self.mda["vis_ir_grid_origin"]
         grid_origin = int(grid_origin, 16)
         if grid_origin != 2:
             raise NotImplementedError(
-                'Grid origin not supported number: {}, {} corner'
+                "Grid origin not supported number: {}, {} corner"
                 .format(grid_origin, origins[grid_origin])
             )
 
         center_point = 3712 / 2
 
-        column_step = self.mda['vis_ir_column_dir_grid_step']
+        column_step = self.mda["vis_ir_column_dir_grid_step"]
 
-        line_step = self.mda['vis_ir_line_dir_grid_step']
+        line_step = self.mda["vis_ir_line_dir_grid_step"]
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -337,7 +337,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             we_offset = 0.5  # west +ve
         else:
             raise NotImplementedError(
-                'unrecognised earth model: {}'.format(earth_model)
+                "unrecognised earth model: {}".format(earth_model)
             )
         # section 3.1.5 of MSG Level 1.5 Image Data Format Description
         ll_c = (center_point - self.west - 0.5 + we_offset) * column_step
@@ -349,7 +349,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         return area_extent
 
     def _add_scanline_acq_time(self, dataset, dataset_id):
-        if dataset_id['name'] == 'HRV':
+        if dataset_id["name"] == "HRV":
             # TODO: Enable once HRV reading has been fixed.
             return
             # days, msecs = self._get_acq_time_hrv()
@@ -359,16 +359,16 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         add_scanline_acq_time(dataset, acq_time)
 
     def _get_acq_time_hrv(self):
-        day_key = 'channel_data_hrv_data_l10_line_mean_acquisition_time_day'
-        msec_key = 'channel_data_hrv_data_l10_line_mean_acquisition_msec'
+        day_key = "channel_data_hrv_data_l10_line_mean_acquisition_time_day"
+        msec_key = "channel_data_hrv_data_l10_line_mean_acquisition_msec"
         days = self.nc[day_key].isel(channels_hrv_dim=0)
         msecs = self.nc[msec_key].isel(channels_hrv_dim=0)
         return days, msecs
 
     def _get_acq_time_visir(self, dataset_id):
-        band_idx = list(CHANNEL_NAMES.values()).index(dataset_id['name'])
-        day_key = 'channel_data_visir_data_l10_line_mean_acquisition_time_day'
-        msec_key = 'channel_data_visir_data_l10_line_mean_acquisition_msec'
+        band_idx = list(CHANNEL_NAMES.values()).index(dataset_id["name"])
+        day_key = "channel_data_visir_data_l10_line_mean_acquisition_time_day"
+        msec_key = "channel_data_visir_data_l10_line_mean_acquisition_msec"
         days = self.nc[day_key].isel(channels_vis_ir_dim=band_idx)
         msecs = self.nc[msec_key].isel(channels_vis_ir_dim=band_idx)
         return days, msecs
@@ -382,31 +382,31 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         start_times_poly = get_cds_time(
-            days=self.nc['orbit_polynomial_start_time_day'].values,
-            msecs=self.nc['orbit_polynomial_start_time_msec'].values
+            days=self.nc["orbit_polynomial_start_time_day"].values,
+            msecs=self.nc["orbit_polynomial_start_time_msec"].values
         )
         end_times_poly = get_cds_time(
-            days=self.nc['orbit_polynomial_end_time_day'].values,
-            msecs=self.nc['orbit_polynomial_end_time_msec'].values
+            days=self.nc["orbit_polynomial_end_time_day"].values,
+            msecs=self.nc["orbit_polynomial_end_time_msec"].values
         )
         orbit_polynomials = {
-            'StartTime': np.array([start_times_poly]),
-            'EndTime': np.array([end_times_poly]),
-            'X': self.nc['orbit_polynomial_x'].values,
-            'Y': self.nc['orbit_polynomial_y'].values,
-            'Z': self.nc['orbit_polynomial_z'].values,
+            "StartTime": np.array([start_times_poly]),
+            "EndTime": np.array([end_times_poly]),
+            "X": self.nc["orbit_polynomial_x"].values,
+            "Y": self.nc["orbit_polynomial_y"].values,
+            "Z": self.nc["orbit_polynomial_z"].values,
         }
         poly_finder = OrbitPolynomialFinder(orbit_polynomials)
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
             time=self.start_time,
-            semi_major_axis=self.mda['projection_parameters']['a'],
-            semi_minor_axis=self.mda['projection_parameters']['b'],
+            semi_major_axis=self.mda["projection_parameters"]["a"],
+            semi_minor_axis=self.mda["projection_parameters"]["b"],
         )
 
     def _get_earth_model(self):
-        return int(self.nc.attrs['type_of_earth_model'], 16)
+        return int(self.nc.attrs["type_of_earth_model"], 16)
 
 
 class NCSEVIRIHRVFileHandler(NCSEVIRIFileHandler, SEVIRICalibrationHandler):

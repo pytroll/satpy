@@ -23,6 +23,7 @@ from collections import OrderedDict
 
 import h5py
 import numpy as np
+import pytest
 
 from satpy.tests.reader_tests.utils import fill_h5
 
@@ -428,9 +429,9 @@ PROJ = {
 }
 
 AREA_DEF_DICT = {
-    "proj_dict": {'proj': 'geos', 'lon_0': 0, 'h': 35785831, 'x_0': 0, 'y_0': 0,
-                  'a': 6378169, 'b': 6356583.8, 'units': 'm', 'no_defs': None, 'type': 'crs'},
-    "area_id": 'MSG-N',
+    "proj_dict": {"proj": "geos", "lon_0": 0, "h": 35785831, "x_0": 0, "y_0": 0,
+                  "a": 6378169, "b": 6356583.8, "units": "m", "no_defs": None, "type": "crs"},
+    "area_id": "MSG-N",
     "x_size": 3712,
     "y_size": 1856,
     "area_extent": (-5570248.2825, 1501.0099, 5567247.8793, 5570247.8784)
@@ -471,6 +472,8 @@ class TestH5NWCSAF(unittest.TestCase):
 
     def test_get_area_def(self):
         """Get the area definition."""
+        from pyproj import CRS
+
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
         from satpy.tests.utils import make_dataid
 
@@ -481,20 +484,17 @@ class TestH5NWCSAF(unittest.TestCase):
 
         area_def = test.get_area_def(dsid)
 
-        aext_res = AREA_DEF_DICT['area_extent']
+        aext_res = AREA_DEF_DICT["area_extent"]
         for i in range(4):
-            self.assertAlmostEqual(area_def.area_extent[i], aext_res[i], 4)
+            assert area_def.area_extent[i] == pytest.approx(aext_res[i], abs=1e-4)
 
-        proj_dict = AREA_DEF_DICT['proj_dict']
-        self.assertEqual(proj_dict['proj'], area_def.proj_dict['proj'])
-        # Not all elements passed on Appveyor, so skip testing every single element of the proj-dict:
-        # for key in proj_dict:
-        #    self.assertEqual(proj_dict[key], area_def.proj_dict[key])
+        expected_crs = CRS(AREA_DEF_DICT["proj_dict"])
+        assert expected_crs == area_def.crs
 
-        self.assertEqual(AREA_DEF_DICT['x_size'], area_def.width)
-        self.assertEqual(AREA_DEF_DICT['y_size'], area_def.height)
+        assert AREA_DEF_DICT["x_size"] == area_def.width
+        assert AREA_DEF_DICT["y_size"] == area_def.height
 
-        self.assertEqual(AREA_DEF_DICT['area_id'], area_def.area_id)
+        assert AREA_DEF_DICT["area_id"] == area_def.area_id
 
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
@@ -506,8 +506,8 @@ class TestH5NWCSAF(unittest.TestCase):
         dsid = make_dataid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CT"})
-        self.assertEqual(ds.shape, (1856, 3712))
-        self.assertEqual(ds.dtype, np.uint8)
+        assert ds.shape == (1856, 3712)
+        assert ds.dtype == np.uint8
         np.testing.assert_allclose(ds.data[1000:1010, 1000:1010].compute(), CTYPE_TEST_FRAME)
 
         filename_info = {}
@@ -515,8 +515,8 @@ class TestH5NWCSAF(unittest.TestCase):
         dsid = make_dataid(name="ctth_alti")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
-        self.assertEqual(ds.shape, (1856, 3712))
-        self.assertEqual(ds.dtype, np.float32)
+        assert ds.shape == (1856, 3712)
+        assert ds.dtype == np.float32
         np.testing.assert_allclose(ds.data[1000:1010, 1000:1010].compute(), CTTH_HEIGHT_TEST_FRAME_RES)
 
         filename_info = {}
@@ -524,8 +524,8 @@ class TestH5NWCSAF(unittest.TestCase):
         dsid = make_dataid(name="ctth_pres")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_PRESS"})
-        self.assertEqual(ds.shape, (1856, 3712))
-        self.assertEqual(ds.dtype, np.float32)
+        assert ds.shape == (1856, 3712)
+        assert ds.dtype == np.float32
         np.testing.assert_allclose(ds.data[1000:1010, 1000:1010].compute(), CTTH_PRESSURE_TEST_FRAME_RES)
 
         filename_info = {}
@@ -533,8 +533,8 @@ class TestH5NWCSAF(unittest.TestCase):
         dsid = make_dataid(name="ctth_tempe")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_TEMPER"})
-        self.assertEqual(ds.shape, (1856, 3712))
-        self.assertEqual(ds.dtype, np.float32)
+        assert ds.shape == (1856, 3712)
+        assert ds.dtype == np.float32
         np.testing.assert_allclose(ds.data[1000:1010, 1000:1010].compute(), CTTH_TEMPERATURE_TEST_FRAME_RES)
 
     def tearDown(self):

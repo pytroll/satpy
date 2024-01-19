@@ -296,11 +296,11 @@ def nrl_colors(img, **kwargs):
                                  [74.72527472527473, [218, 131, 185]],
                                  [75.0, [220, 135, 189]],
                                  ]}
-    kwargs['palettes'].update(nrl_tpw_colors)
-    palette = kwargs['palettes']
-    palette['colors'] = tuple(map(tuple, palette['colors']))
+    kwargs["palettes"].update(nrl_tpw_colors)
+    palette = kwargs["palettes"]
+    palette["colors"] = tuple(map(tuple, palette["colors"]))
 
-    cm = Colormap(*palette['colors'])
+    cm = Colormap(*palette["colors"])
     img.palettize(cm)
 
 
@@ -310,8 +310,8 @@ def total_precipitable_water(img, **kwargs):
     This modifies the image's data so the correct colors
     can be applied to it, and then palettizes the image.
     """
-    palette = kwargs['palettes']
-    palette['colors'] = tuple(map(tuple, palette['colors']))
+    palette = kwargs["palettes"]
+    palette["colors"] = tuple(map(tuple, palette["colors"]))
 
-    cm = Colormap(*palette['colors'])
+    cm = Colormap(*palette["colors"])
     img.palettize(cm)
