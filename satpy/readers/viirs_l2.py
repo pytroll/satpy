@@ -76,7 +76,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
         valid_max = self.get(var_path + "/attr/valid_max")
         if not valid_min and not valid_max:
             valid_range = self.get(var_path + "/attr/valid_range")
-            if valid_range:
+            if valid_range is not None:
                 valid_min = valid_range[0]
                 valid_max = valid_range[1]
         scale_factor = self.get(var_path + "/attr/scale_factor")
