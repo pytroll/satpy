@@ -98,14 +98,15 @@ class FY4Base(HDF5FileHandler):
         """
         # append nan to the end of lut for fillvalue
         fill_value = data.attrs.get("FillValue")
-        if fill_value is not None:
-            if fill_value.item() > lut.shape[0] - 1:
-                lut = np.append(lut, np.nan)
-                data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
-            else:
-                # Ex. C07 has a LUT of 65536 elements, but fill value is 65535
-                # This is considered a bug in the input file format
-                lut[fill_value] = np.nan
+        if fill_value is not None and fill_value.item() <= lut.shape[0] - 1:
+            # If LUT includes the fill_value, remove that entry and everything
+            # after it.
+            # Ex. C07 has a LUT of 65536 elements, but fill value is 65535
+            # This is considered a bug in the input file format
+            lut = lut[:fill_value.item()]
+
+        lut = np.append(lut, np.nan)
+        data.data = da.where(data.data >= lut.shape[0], lut.shape[0] - 1, data.data)
         res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
@@ -146,8 +147,8 @@ class FY4Base(HDF5FileHandler):
             raise NotImplementedError("Calibration to radiance is not supported.")
         # Apply range limits, but not for counts or we convert to float!
         if calibration != "counts":
-            data = data.where((data >= min(data.attrs["valid_range"])) &
-                              (data <= max(data.attrs["valid_range"])))
+            data = data.where((data >= min(ds_info["valid_range"])) &
+                              (data <= max(ds_info["valid_range"])))
         else:
             data.attrs["_FillValue"] = data.attrs["FillValue"].item()
         return data
