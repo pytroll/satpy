@@ -28,6 +28,7 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 
 from satpy._compat import cached_property
@@ -86,7 +87,7 @@ class FY4Base(HDF5FileHandler):
 
         return ref
 
-    def apply_lut(self, data, lut):
+    def _apply_lut(self, data: xr.DataArray, lut: npt.NDArray[np.float32]) -> xr.DataArray:
         """Calibrate digital number (DN) by applying a LUT.
 
         Args:
@@ -96,8 +97,15 @@ class FY4Base(HDF5FileHandler):
             Calibrated quantity
         """
         # append nan to the end of lut for fillvalue
-        lut = np.append(lut, np.nan)
-        data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
+        fill_value = data.attrs.get("FillValue")
+        if fill_value is not None:
+            if fill_value.item() > lut.shape[0] - 1:
+                lut = np.append(lut, np.nan)
+                data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
+            else:
+                # Ex. C07 has a LUT of 65536 elements, but fill value is 65535
+                # This is considered a bug in the input file format
+                lut[fill_value] = np.nan
         res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
@@ -182,7 +190,7 @@ class FY4Base(HDF5FileHandler):
             lut = self[lut_key]
 
         # the value of dn is the index of brightness_temperature
-        data = self.apply_lut(data, lut)
+        data = self._apply_lut(data, lut.compute().data)
         ds_info["valid_range"] = lut.attrs["valid_range"]
         return data
 
