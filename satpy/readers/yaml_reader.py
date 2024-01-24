@@ -261,7 +261,6 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         """Select the files from *filenames* this reader can handle."""
         selected_filenames = []
         filenames = set(filenames)  # make a copy of the inputs
-
         for pattern in self.file_patterns:
             matching = _match_filenames(filenames, pattern)
             filenames -= matching
@@ -493,7 +492,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Generate new filehandler instances."""
         requirements = filetype_info.get("requires")
         filetype_cls = filetype_info["file_reader"]
-
         if fh_kwargs is None:
             fh_kwargs = {}
 
@@ -509,7 +507,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             except RuntimeError as err:
                 warnings.warn(str(err) + " for {}".format(filename), stacklevel=4)
                 continue
-
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
     def time_matches(self, fstart, fend):
@@ -786,9 +783,9 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Get lons and lats from the coords list."""
         lons, lats = None, None
         for coord in coords:
-            if coord.attrs.get("standard_name") == "longitude":
+            if coord.attrs.get("standard_name").lower() == "longitude":
                 lons = coord
-            elif coord.attrs.get("standard_name") == "latitude":
+            elif coord.attrs.get("standard_name").lower() == "latitude":
                 lats = coord
         if lons is None or lats is None:
             raise ValueError("Missing longitude or latitude coordinate: " + str(coords))
@@ -826,7 +823,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             return None
 
         coords = self._assign_coords_from_dataarray(coords, ds)
-
         area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
 
         if area is not None:
