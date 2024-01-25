@@ -370,7 +370,6 @@ class Test_HDF_AGRI_L1_cal:
         available_datasets = reader.available_dataset_ids
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-        # band_names = ["C07"]
         res = reader.load(band_names)
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
