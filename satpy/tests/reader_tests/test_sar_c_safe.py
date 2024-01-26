@@ -18,6 +18,7 @@
 """Module for testing the satpy.readers.sar-c_safe module."""
 
 import os
+from datetime import datetime
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
@@ -29,13 +30,14 @@ import yaml
 from satpy._config import PACKAGE_CONFIG_PATH
 from satpy.dataset import DataQuery
 from satpy.dataset.dataid import DataID
-from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFEXMLNoise
+from satpy.readers.sar_c_safe import Calibrator, Denoiser, SAFEXMLAnnotation
 
 rasterio = pytest.importorskip("rasterio")
 
 
 dirname_suffix = "20190201T024655_20190201T024720_025730_02DC2A_AE07"
 filename_suffix = "20190201t024655-20190201t024720-025730-02dc2a"
+
 
 @pytest.fixture(scope="module")
 def granule_directory(tmp_path_factory):
@@ -78,10 +80,10 @@ def calibration_file(granule_directory):
 def calibration_filehandler(calibration_file, annotation_filehandler):
   """Create a calibration filehandler."""
   filename_info = dict(start_time=None, end_time=None, polarization="vv")
-  return SAFEXMLCalibration(calibration_file,
+  return Calibrator(calibration_file,
                             filename_info,
                             None,
-                            annotation_filehandler)
+                            image_shape=annotation_filehandler.image_shape)
 
 @pytest.fixture(scope="module")
 def noise_file(granule_directory):
@@ -98,16 +100,16 @@ def noise_file(granule_directory):
 def noise_filehandler(noise_file, annotation_filehandler):
   """Create a noise filehandler."""
   filename_info = dict(start_time=None, end_time=None, polarization="vv")
-  return SAFEXMLNoise(noise_file, filename_info, None, annotation_filehandler)
+  return Denoiser(noise_file, filename_info, None, image_shape=annotation_filehandler.image_shape)
 
 
 @pytest.fixture(scope="module")
 def noise_with_holes_filehandler(annotation_filehandler):
   """Create a noise filehandler from data with holes."""
   filename_info = dict(start_time=None, end_time=None, polarization="vv")
-  noise_filehandler = SAFEXMLNoise(BytesIO(noise_xml_with_holes),
+  noise_filehandler = Denoiser(BytesIO(noise_xml_with_holes),
                                    filename_info, None,
-                                   annotation_filehandler)
+                                   image_shape=annotation_filehandler.image_shape)
   return noise_filehandler
 
 
@@ -153,7 +155,7 @@ def measurement_file(granule_directory):
 
 
 @pytest.fixture(scope="module")
-def measurement_filehandler(measurement_file, annotation_filehandler, noise_filehandler, calibration_filehandler):
+def measurement_filehandler(measurement_file, noise_filehandler, calibration_filehandler):
   """Create a measurement filehandler."""
   filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": 0, "end_time": 0,
                    "polarization": "vv"}
@@ -163,8 +165,7 @@ def measurement_filehandler(measurement_file, annotation_filehandler, noise_file
                          filename_info,
                          filetype_info,
                          calibration_filehandler,
-                         noise_filehandler,
-                         annotation_filehandler)
+                         noise_filehandler)
   return filehandler
 
 
@@ -835,10 +836,10 @@ class TestSAFEXMLCalibration:
 
 
 def test_incidence_angle(annotation_filehandler):
-    """Test reading the incidence angle in an annotation file."""
-    query = DataQuery(name="incidence_angle", polarization="vv")
-    res = annotation_filehandler.get_dataset(query, {})
-    np.testing.assert_allclose(res, 19.18318046)
+  """Test reading the incidence angle in an annotation file."""
+  query = DataQuery(name="incidence_angle", polarization="vv")
+  res = annotation_filehandler.get_dataset(query, {})
+  np.testing.assert_allclose(res, 19.18318046)
 
 
 def test_reading_from_reader(measurement_file, calibration_file, noise_file, annotation_file):
@@ -849,7 +850,7 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   reader = reader_class(config)
 
   files = [measurement_file, calibration_file, noise_file, annotation_file]
-  reader.create_filehandlers(files)
+  reader.create_storage_items(files)
   query = DataQuery(name="measurement", polarization="vv",
                     calibration="sigma_nought", quantity="dB")
   query = DataID(reader._id_keys, **query.to_dict())
@@ -858,3 +859,44 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10])
   expected_db = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
   np.testing.assert_allclose(array.values[:2, :2], expected_db)
+
+
+def test_filename_filtering_from_reader(measurement_file, calibration_file, noise_file, annotation_file, tmp_path):
+  """Test that filenames get filtered before filehandlers are created."""
+  with open(Path(PACKAGE_CONFIG_PATH) / "readers" / "sar-c_safe.yaml") as fd:
+    config = yaml.load(fd, Loader=yaml.UnsafeLoader)
+  reader_class = config["reader"]["reader"]
+  filter_parameters = {"start_time": datetime(2019, 2, 1, 0, 0, 0),
+                       "end_time": datetime(2019, 2, 1, 12, 0, 0)}
+  reader = reader_class(config, filter_parameters)
+
+  spurious_file = (tmp_path / "S1A_IW_GRDH_1SDV_20190202T024655_20190202T024720_025730_02DC2A_AE07.SAFE" /
+                   "measurement" /
+                   "s1a-iw-grd-vv-20190202t024655-20190202t024720-025730-02dc2a-001.tiff")
+
+
+  files = [spurious_file, measurement_file, calibration_file, noise_file, annotation_file]
+
+  files = reader.filter_selected_filenames(files)
+  assert spurious_file not in files
+  try:
+    reader.create_storage_items(files)
+  except rasterio.RasterioIOError as err:
+     pytest.fail(str(err))
+
+
+def test_swath_def_contains_gcps(measurement_file, calibration_file, noise_file, annotation_file):
+  """Test reading using the reader defined in the config."""
+  with open(Path(PACKAGE_CONFIG_PATH) / "readers" / "sar-c_safe.yaml") as fd:
+    config = yaml.load(fd, Loader=yaml.UnsafeLoader)
+  reader_class = config["reader"]["reader"]
+  reader = reader_class(config)
+
+  files = [measurement_file, calibration_file, noise_file, annotation_file]
+  reader.create_storage_items(files)
+  query = DataQuery(name="measurement", polarization="vv",
+                    calibration="sigma_nought", quantity="dB")
+  query = DataID(reader._id_keys, **query.to_dict())
+  dataset_dict = reader.load([query])
+  array = dataset_dict["measurement"]
+  assert array.attrs["area"].attrs["gcps"] is not None

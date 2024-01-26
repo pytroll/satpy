@@ -36,6 +36,8 @@ References:
 
 import functools
 import logging
+import os
+from collections import defaultdict
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -46,7 +48,10 @@ from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
 
+from satpy.dataset.data_dict import DatasetDict
+from satpy.dataset.dataid import DataID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.yaml_reader import GenericYAMLReader
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -92,21 +97,15 @@ class SAFEXML(BaseFileHandler):
     """XML file reader for the SAFE format."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 header_file=None):
+                 header_file=None, image_shape=None):
         """Init the xml filehandler."""
-        super(SAFEXML, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self._start_time = filename_info["start_time"]
         self._end_time = filename_info["end_time"]
         self._polarization = filename_info["polarization"]
         self.root = ET.parse(self.filename)
-        self.hdr = {}
-        if header_file is not None:
-            self.hdr = header_file.get_metadata()
-        else:
-            self.hdr = self.get_metadata()
-        self._image_shape = (self.hdr["product"]["imageAnnotation"]["imageInformation"]["numberOfLines"],
-                             self.hdr["product"]["imageAnnotation"]["imageInformation"]["numberOfSamples"])
+        self._image_shape = image_shape
 
     def get_metadata(self):
         """Convert the xml metadata to dict."""
@@ -133,6 +132,14 @@ class SAFEXMLAnnotation(SAFEXML):
         self.get_incidence_angle = functools.lru_cache(maxsize=10)(
             self._get_incidence_angle_uncached
         )
+        self.hdr = self.get_metadata()
+        self._image_shape = (self.hdr["product"]["imageAnnotation"]["imageInformation"]["numberOfLines"],
+                             self.hdr["product"]["imageAnnotation"]["imageInformation"]["numberOfSamples"])
+
+    @property
+    def image_shape(self):
+        """Return the image shape of this dataset."""
+        return self._image_shape
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -148,13 +155,13 @@ class SAFEXMLAnnotation(SAFEXML):
         return incidence_angle.expand(self._image_shape, chunks=chunks)
 
 
-class SAFEXMLCalibration(SAFEXML):
+class Calibrator(SAFEXML):
     """XML file reader for the SAFE format, Calibration file."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 header_file=None):
+                 header_file=None, image_shape=None):
         """Init the XML calibration reader."""
-        super().__init__(filename, filename_info, filetype_info, header_file)
+        super().__init__(filename, filename_info, filetype_info, header_file, image_shape)
         self.get_calibration = functools.lru_cache(maxsize=10)(
             self._get_calibration_uncached
         )
@@ -182,14 +189,22 @@ class SAFEXMLCalibration(SAFEXML):
         calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
         return calibration_vector.expand(self._image_shape, chunks=chunks)
 
+    def __call__(self, dn, calibration_type, chunks=None):
+        """Calibrate the data."""
+        logger.debug("Reading calibration data.")
+        cal = self.get_calibration(calibration_type, chunks=chunks)
+        cal_constant = self.get_calibration_constant()
+        logger.debug("Calibrating.")
+        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
+        return data
 
-class SAFEXMLNoise(SAFEXML):
+class Denoiser(SAFEXML):
     """XML file reader for the SAFE format, Noise file."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 header_file=None):
+                 header_file=None, image_shape=None):
         """Init the xml filehandler."""
-        super().__init__(filename, filename_info, filetype_info, header_file)
+        super().__init__(filename, filename_info, filetype_info, header_file, image_shape)
 
         self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
         self.get_noise_correction = functools.lru_cache(maxsize=10)(
@@ -222,6 +237,14 @@ class SAFEXMLNoise(SAFEXML):
         """Read the range-noise array."""
         range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
         return range_noise.expand(self._image_shape, chunks)
+
+    def __call__(self, dn, chunks):
+        """Denoise the data."""
+        logger.debug("Reading noise data.")
+        noise = self.get_noise_correction(chunks=chunks).fillna(0)
+        dn = dn - noise
+        return dn
+
 
 
 class AzimuthNoiseReader:
@@ -547,10 +570,9 @@ class SAFEGRD(BaseFileHandler):
     block size.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh, annotationfh):
+    def __init__(self, filename, filename_info, filetype_info, calibrator, denoiser):
         """Init the grd filehandler."""
-        super(SAFEGRD, self).__init__(filename, filename_info,
-                                      filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self._start_time = filename_info["start_time"]
         self._end_time = filename_info["end_time"]
@@ -559,9 +581,8 @@ class SAFEGRD(BaseFileHandler):
 
         self._mission_id = filename_info["mission_id"]
 
-        self.calibration = calfh
-        self.noise = noisefh
-        self.annotation = annotationfh
+        self.calibrator = calibrator
+        self.denoiser = denoiser
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, "r", sharing=False)
@@ -585,8 +606,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = xr.open_dataset(self.filename, engine="rasterio",
-                                   chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE})["band_data"].squeeze()
+            data = xr.open_dataarray(self.filename, engine="rasterio",
+                                     chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}).squeeze()
             data = data.assign_coords(x=np.arange(len(data.coords["x"])),
                                       y=np.arange(len(data.coords["y"])))
             data = self._calibrate_and_denoise(data, key)
@@ -613,8 +634,8 @@ class SAFEGRD(BaseFileHandler):
         chunks = CHUNK_SIZE
 
         dn = self._get_digital_number(data)
-        dn = self._denoise(dn, chunks)
-        data = self._calibrate(dn, chunks, key)
+        dn = self.denoiser(dn, chunks)
+        data = self.calibrator(dn, key["calibration"], chunks)
 
         return data
 
@@ -631,15 +652,6 @@ class SAFEGRD(BaseFileHandler):
         noise = self.noise.get_noise_correction(chunks=chunks).fillna(0)
         dn = dn - noise
         return dn
-
-    def _calibrate(self, dn, chunks, key):
-        """Calibrate the data."""
-        logger.debug("Reading calibration data.")
-        cal = self.calibration.get_calibration(key["calibration"], chunks=chunks)
-        cal_constant = self.calibration.get_calibration_constant()
-        logger.debug("Calibrating.")
-        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
-        return data
 
     def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
@@ -704,3 +716,85 @@ class SAFEGRD(BaseFileHandler):
     def end_time(self):
         """Get the end time."""
         return self._end_time
+
+
+class SAFESARReader(GenericYAMLReader):
+    """A reader for SAFE SAR-C data for Sentinel 1 satellites."""
+
+    def __init__(self, config, filter_parameters=None):
+        """Set up the SAR reader."""
+        super().__init__(config)
+        self.filter_parameters = filter_parameters
+        self.files_by_type = defaultdict(list)
+        self.storage_items = []
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return self.storage_items.values()[0].filename_info["start_time"]
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return self.storage_items.values()[0].filename_info["end_time"]
+
+    def load(self, dataset_keys, **kwargs):
+        """Load some data."""
+        if kwargs:
+            raise NotImplementedError(f"Don't know how to handle kwargs {kwargs}")
+        datasets = DatasetDict()
+        for key in dataset_keys:
+            for handler in self.storage_items.values():
+                val = handler.get_dataset(key, info=dict())
+                if val is not None:
+                    val.attrs["start_time"] = handler.start_time
+                    # val.attrs["footprint"] = self.footprint
+                    if key["name"] not in ["longitude", "latitude"]:
+                        lonlats = self.load([DataID(self._id_keys, name="longitude", polarization=key["polarization"]),
+                                             DataID(self._id_keys, name="latitude", polarization=key["polarization"])])
+                        from pyresample.future.geometry import SwathDefinition
+                        val.attrs["area"] = SwathDefinition(lonlats["longitude"], lonlats["latitude"],
+                                                            attrs=dict(gcps=None))
+                    datasets[key] = val
+                    continue
+        return datasets
+
+    def create_storage_items(self, files, **kwargs):
+        """Create the storage items."""
+        filenames = [os.fspath(filename) for filename in files]
+        files_by_type = defaultdict(list)
+        for file_type, type_info in self.config["file_types"].items():
+            files_by_type[file_type].extend(self.filename_items_for_filetype(filenames, type_info))
+
+        image_shapes = dict()
+        for annotation_file, annotation_info in files_by_type["safe_annotation"]:
+            annotation_fh = SAFEXMLAnnotation(annotation_file,
+                                              filename_info=annotation_info,
+                                              filetype_info=None)
+            image_shapes[annotation_info["polarization"]] = annotation_fh.image_shape
+
+        calibration_handlers = dict()
+        for calibration_file, calibration_info in files_by_type["safe_calibration"]:
+            polarization = calibration_info["polarization"]
+            calibration_handlers[polarization] = Calibrator(calibration_file,
+                                                            filename_info=calibration_info,
+                                                            filetype_info=None,
+                                                            image_shape=image_shapes[polarization])
+
+        noise_handlers = dict()
+        for noise_file, noise_info in files_by_type["safe_noise"]:
+            polarization = noise_info["polarization"]
+            noise_handlers[polarization] = Denoiser(noise_file,
+                                                    filename_info=noise_info,
+                                                    filetype_info=None,
+                                                    image_shape=image_shapes[polarization])
+
+        measurement_handlers = dict()
+        for measurement_file, measurement_info in files_by_type["safe_measurement"]:
+            polarization = measurement_info["polarization"]
+            measurement_handlers[polarization] = SAFEGRD(measurement_file,
+                                                         filename_info=measurement_info,
+                                                         calibrator=calibration_handlers[polarization],
+                                                         denoiser=noise_handlers[polarization],
+                                                         filetype_info=None)
+        self.storage_items = measurement_handlers

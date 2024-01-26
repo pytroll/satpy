@@ -572,7 +572,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(
+            reader_instance.create_storage_items(
                     loadables,
                     fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
@@ -634,6 +634,9 @@ def _get_reader_kwargs(reader, reader_kwargs):
     reader_kwargs_without_filter in the desirable form.
     """
     reader_kwargs = reader_kwargs or {}
+
+    if isinstance(reader, str):
+        reader = list(reader)
 
     # ensure one reader_kwargs per reader, None if not provided
     if reader is None:
