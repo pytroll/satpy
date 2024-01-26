@@ -166,3 +166,34 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
         if "number_of_lines" in data.dims:
             data = data.rename({"number_of_lines": "y", "number_of_pixels": "x"})
         return data
+
+    def get_area_def(self, ds_id):
+        """Get area definition."""
+        proj_dict = {
+            "proj": "latlong",
+            "datum": "WGS84",
+            "ellps": "WGS84",
+            "no_defs": True
+        }
+
+        area_extent = [self["/attr/geospatial_lon_min"], self["/attr/geospatial_lat_min"],
+                       self["/attr/geospatial_lon_max"], self["/attr/geospatial_lat_max"]]
+
+        if '/dimension/number_of_pixels' in self:
+            width = int(self['/dimension/number_of_pixels'])
+            height = int(self['/dimension/number_of_lines'])
+        else:
+            width = int(self['/dimension/Idx_Xtrack']) # ncols
+            height = int(self['/dimension/Idx_Atrack'])
+
+        area = AreaDefinition(
+            "viirs_l2_area",
+            "name_of_proj",
+            "id_of_proj",
+            proj_dict,
+            width,
+            height,
+            np.asarray(area_extent)
+        )
+
+        return area
