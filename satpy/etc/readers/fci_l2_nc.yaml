@@ -77,6 +77,61 @@ file_types:
 
 datasets:
 
+# COMMON
+  product_quality:
+    name: product_quality
+    standard_name: product_quality
+    file_type: [nc_fci_amv, nc_fci_clm, nc_fci_ct, nc_fci_ctth, nc_fci_fir, nc_fci_gii, nc_fci_oca, nc_fci_olr, nc_fci_crm, nc_fci_asr]
+    nc_key: product_quality
+
+  product_completeness:
+    name: product_completeness
+    standard_name: product_completeness
+    file_type: [nc_fci_amv, nc_fci_clm, nc_fci_ct, nc_fci_ctth, nc_fci_fir, nc_fci_gii, nc_fci_oca, nc_fci_olr, nc_fci_crm, nc_fci_asr]
+    nc_key: product_completeness
+
+  product_timeliness:
+    name: product_timeliness
+    standard_name: product_timeliness
+    file_type: [nc_fci_amv, nc_fci_clm, nc_fci_ct, nc_fci_ctth, nc_fci_fir, nc_fci_gii, nc_fci_oca, nc_fci_olr, nc_fci_crm, nc_fci_asr]
+    nc_key: product_timeliness
+
+  quality_illumination:
+    name: quality_illumination
+    standard_name: status_flag
+    resolution: 2000
+    file_type: [nc_fci_clm, nc_fci_ct]
+    nc_key: quality_illumination
+    fill_value: -127
+    import_enum_information: True
+
+  quality_nwp_parameters:
+    name: quality_nwp_parameters
+    standard_name: status_flag
+    resolution: 2000
+    file_type: [nc_fci_clm, nc_fci_ct, nc_fci_ctth]
+    nc_key: quality_nwp_parameters
+    fill_value: -127
+    import_enum_information: True
+
+  quality_MTG_parameters:
+    name: quality_MTG_parameters
+    standard_name: status_flag
+    resolution: 2000
+    file_type: [nc_fci_clm, nc_fci_ct, nc_fci_ctth]
+    nc_key: quality_MTG_parameters
+    fill_value: -127
+    import_enum_information: True
+
+  quality_overall_processing:
+    name: quality_overall_processing
+    standard_name: quality_flag
+    resolution: 2000
+    file_type: [nc_fci_clm, nc_fci_ct, nc_fci_ctth, nc_fci_olr]
+    nc_key: quality_overall_processing
+    fill_value: -127
+    import_enum_information: True
+
 # AMV Intermediate - Atmospheric Motion Vectors Intermediate
   intm_latitude:
     name: intm_latitude
@@ -317,24 +372,6 @@ datasets:
       - longitude
       - latitude
 
-  product_quality:
-    name: product_quality
-    standard_name: product_quality
-    file_type: nc_fci_amv
-    nc_key: product_quality
-
-  product_completeness:
-    name: product_completeness
-    standard_name: product_completeness
-    file_type: nc_fci_amv
-    nc_key: product_completeness
-
-  product_timeliness:
-    name: product_timeliness
-    standard_name: product_timeliness
-    file_type: nc_fci_amv
-    nc_key: product_timeliness
-
 
 # CLM - Cloud Mask
   cloud_state:
@@ -345,60 +382,6 @@ datasets:
     nc_key: cloud_state
     fill_value: -127
     import_enum_information: True
-
-  quality_illumination_clm:
-    name: quality_illumination_clm
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_clm
-    nc_key: quality_illumination
-    fill_value: -127
-    import_enum_information: True
-
-  quality_nwp_parameters_clm:
-    name: quality_nwp_parameters_clm
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_clm
-    nc_key: quality_nwp_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_MTG_parameters_clm:
-    name: quality_MTG_parameters_clm
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_clm
-    nc_key: quality_MTG_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_overall_processing_clm:
-    name: quality_overall_processing_clm
-    standard_name: quality_flag
-    resolution: 2000
-    file_type: nc_fci_clm
-    nc_key: quality_overall_processing
-    fill_value: -127
-    import_enum_information: True
-
-  product_quality_clm:
-    name: product_quality_clm
-    standard_name: product_quality
-    file_type: nc_fci_clm
-    nc_key: product_quality
-
-  product_completeness_clm:
-    name: product_completeness_clm
-    standard_name: product_completeness
-    file_type: nc_fci_clm
-    nc_key: product_completeness
-
-  product_timeliness_clm:
-    name: product_timeliness_clm
-    standard_name: product_timeliness
-    file_type: nc_fci_clm
-    nc_key: product_timeliness
 
 
 # CT - Cloud Type
@@ -419,60 +402,6 @@ datasets:
     nc_key: cloud_type
     fill_value: -127
     import_enum_information: True
-
-  quality_illumination_ct:
-    name: quality_illumination_ct
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_ct
-    nc_key: quality_illumination
-    fill_value: -127
-    import_enum_information: True
-
-  quality_nwp_parameters_ct:
-    name: quality_nwp_parameters_ct
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_ct
-    nc_key: quality_nwp_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_MTG_parameters_ct:
-    name: quality_MTG_parameters_ct
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_ct
-    nc_key: quality_MTG_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_overall_processing_ct:
-    name: quality_overall_processing_ct
-    standard_name: quality_flag
-    resolution: 2000
-    file_type: nc_fci_ct
-    nc_key: quality_overall_processing
-    fill_value: -127
-    import_enum_information: True
-
-  product_quality_ct:
-    name: product_quality_ct
-    standard_name: product_quality
-    file_type: nc_fci_ct
-    nc_key: product_quality
-
-  product_completeness_ct:
-    name: product_completeness_ct
-    standard_name: product_completeness
-    file_type: nc_fci_ct
-    nc_key: product_completeness
-
-  product_timeliness_ct:
-    name: product_timeliness_ct
-    standard_name: product_timeliness
-    file_type: nc_fci_ct
-    nc_key: product_timeliness
 
 
   # CTTH - Cloud Top Temperature and Height
@@ -538,33 +467,6 @@ datasets:
     fill_value: -127
     import_enum_information: True
 
-  quality_nwp_parameters_ctth:
-    name: quality_nwp_parameters_ctth
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_ctth
-    nc_key: quality_nwp_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_MTG_parameters_ctth:
-    name: quality_MTG_parameters_ctth
-    standard_name: status_flag
-    resolution: 2000
-    file_type: nc_fci_ctth
-    nc_key: quality_MTG_parameters
-    fill_value: -127
-    import_enum_information: True
-
-  quality_overall_processing_ctth:
-    name: quality_overall_processing_ctth
-    standard_name: quality_flag
-    resolution: 2000
-    file_type: nc_fci_ctth
-    nc_key: quality_overall_processing
-    fill_value: -127
-    import_enum_information: True
-
   quality_overall_processing_aviation_ctth:
     name: quality_overall_processing_aviation_ctth
     standard_name: quality_flag
@@ -573,24 +475,6 @@ datasets:
     nc_key: quality_overall_processing_aviation
     fill_value: -127
     import_enum_information: True
-
-  product_quality_ctth:
-    name: product_quality_ctth
-    standard_name: product_quality
-    file_type: nc_fci_ctth
-    nc_key: product_quality
-
-  product_completeness_ctth:
-    name: product_completeness_ctth
-    standard_name: product_completeness
-    file_type: nc_fci_ctth
-    nc_key: product_completeness
-
-  product_timeliness_ctth:
-    name: product_timeliness_ctth
-    standard_name: product_timeliness
-    file_type: nc_fci_ctth
-    nc_key: product_timeliness
 
 
   # FIR - Active Fire Monitoring
@@ -609,24 +493,6 @@ datasets:
     nc_key: fire_result
     fill_value: -127
     import_enum_information: True
-
-  product_quality_fir:
-    name: product_quality_fir
-    standard_name: product_quality
-    file_type: nc_fci_fir
-    nc_key: product_quality
-
-  product_completeness_fir:
-    name: product_completeness_fir
-    standard_name: product_completeness
-    file_type: nc_fci_fir
-    nc_key: product_completeness
-
-  product_timeliness_fir:
-    name: product_timeliness_fir
-    standard_name: product_timeliness
-    file_type: nc_fci_fir
-    nc_key: product_timeliness
 
 
   # GII - Global Instability Index
@@ -711,24 +577,6 @@ datasets:
     coordinates:
     - longitude
     - latitude
-
-  product_quality_gii:
-    name: product_quality_gii
-    standard_name: product_quality
-    file_type: nc_fci_gii
-    nc_key: product_quality
-
-  product_completeness_gii:
-    name: product_completeness_gii
-    standard_name: product_completeness
-    file_type: nc_fci_gii
-    nc_key: product_completeness
-
-  product_timeliness_gii:
-    name: product_timeliness_gii
-    standard_name: product_timeliness
-    file_type: nc_fci_gii
-    nc_key: product_timeliness
 
 
   # OCA - Optimal Cloud Analysis
@@ -855,24 +703,6 @@ datasets:
     file_type: nc_fci_oca
     nc_key: quality_jmeas
 
-  product_quality_oca:
-    name: product_quality_oca
-    standard_name: product_quality
-    file_type: nc_fci_oca
-    nc_key: product_quality
-
-  product_completeness_oca:
-    name: product_completeness_oca
-    standard_name: product_completeness
-    file_type: nc_fci_oca
-    nc_key: product_completeness
-
-  product_timeliness_oca:
-    name: product_timeliness_oca
-    standard_name: product_timeliness
-    file_type: nc_fci_oca
-    nc_key: product_timeliness
-
 
   # OLR - Outgoing Longwave Radiation
   olr:
@@ -890,33 +720,6 @@ datasets:
     nc_key: cloud_type
     fill_value: -127
     import_enum_information: True
-
-  quality_overall_processing_olr:
-    name: quality_overall_processing_olr
-    standard_name: quality_flag
-    resolution: 2000
-    file_type: nc_fci_olr
-    nc_key: quality_overall_processing
-    fill_value: -127
-    import_enum_information: True
-
-  product_quality_olr:
-    name: product_quality_olr
-    standard_name: product_quality
-    file_type: nc_fci_olr
-    nc_key: product_quality
-
-  product_completeness_olr:
-    name: product_completeness_olr
-    standard_name: product_completeness
-    file_type: nc_fci_olr
-    nc_key: product_completeness
-
-  product_timeliness_olr:
-    name: product_timeliness_olr
-    standard_name: product_timeliness
-    file_type: nc_fci_olr
-    nc_key: product_timeliness
 
 
   # CRM - Clear-Sky Reflectance Maps
@@ -1047,24 +850,6 @@ datasets:
     file_type: nc_fci_crm
     nc_key: historical_data
     import_enum_information: True
-
-  product_quality_crm:
-    name: product_quality_crm
-    standard_name: product_quality
-    file_type: nc_fci_crm
-    nc_key: product_quality
-
-  product_completeness_crm:
-    name: product_completeness_crm
-    standard_name: product_completeness
-    file_type: nc_fci_crm
-    nc_key: product_completeness
-
-  product_timeliness_crm:
-    name: product_timeliness_crm
-    standard_name: product_timeliness
-    file_type: nc_fci_crm
-    nc_key: product_timeliness
 
 
   # LAT/LON FOR SEGMENTED PRODUCTS
@@ -3356,21 +3141,3 @@ datasets:
     coordinates:
     - longitude
     - latitude
-
-  product_quality_asr:
-    name: product_quality_asr
-    standard_name: product_quality
-    file_type: nc_fci_asr
-    nc_key: product_quality
-
-  product_completeness_asr:
-    name: product_completeness_asr
-    standard_name: product_completeness
-    file_type: nc_fci_asr
-    nc_key: product_completeness
-
-  product_timeliness_asr:
-    name: product_timeliness_asr
-    standard_name: product_timeliness
-    file_type: nc_fci_asr
-    nc_key: product_timeliness
