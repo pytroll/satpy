@@ -6,7 +6,6 @@ import numpy as np
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-import numpy as np
 
 LOG = logging.getLogger(__name__)
 
@@ -183,7 +182,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             width = int(self['/dimension/number_of_pixels'])
             height = int(self['/dimension/number_of_lines'])
         else:
-            width = int(self['/dimension/Idx_Xtrack']) # ncols
+            width = int(self['/dimension/Idx_Xtrack'])
             height = int(self['/dimension/Idx_Atrack'])
 
         area = AreaDefinition(
