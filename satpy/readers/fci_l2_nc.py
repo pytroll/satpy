@@ -89,7 +89,7 @@ class FciL2CommonFunctions(object):
             xdim, ydim = "number_of_columns", "number_of_rows"
 
         if dataset_info["nc_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
-            variable = variable.rename({ydim: "y", xdim: "x"})
+            variable = variable.swap_dims({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
         if "unit" in variable.attrs:
