@@ -449,8 +449,8 @@ datasets:
     fill_value: -127
     import_enum_information: True
 
-  quality_rtm_ctth:
-    name: quality_rtm_ctth
+  quality_rtm:
+    name: quality_rtm
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
@@ -458,8 +458,8 @@ datasets:
     fill_value: -127
     import_enum_information: True
 
-  quality_method_ctth:
-    name: quality_method_ctth
+  quality_method:
+    name: quality_method
     standard_name: status_flag
     resolution: 2000
     file_type: nc_fci_ctth
@@ -467,8 +467,8 @@ datasets:
     fill_value: -127
     import_enum_information: True
 
-  quality_overall_processing_aviation_ctth:
-    name: quality_overall_processing_aviation_ctth
+  quality_overall_processing_aviation:
+    name: quality_overall_processing_aviation
     standard_name: quality_flag
     resolution: 2000
     file_type: nc_fci_ctth
@@ -556,8 +556,8 @@ datasets:
     - longitude
     - latitude
 
-  percent_cloud_free_gii:
-    name: percent_cloud_free_gii
+  percent_cloud_free:
+    name: percent_cloud_free
     long_name: Percentage of Cloud Free Pixels Processed in FoR
     standard_name: cloud_free_area_fraction
     resolution: 6000
@@ -568,8 +568,8 @@ datasets:
     - longitude
     - latitude
 
-  number_of_iterations_gii:
-    name: number_of_iterations_gii
+  number_of_iterations:
+    name: number_of_iterations
     standard_name: number_of_iterations
     resolution: 6000
     file_type: nc_fci_gii
@@ -712,8 +712,8 @@ datasets:
     file_type: nc_fci_olr
     nc_key: olr_value
 
-  cloud_type_olr:
-    name: cloud_type_olr
+  olr_cloud_type:
+    name: olr_cloud_type
     standard_name: cloud_type_classification
     resolution: 2000
     file_type: nc_fci_olr
