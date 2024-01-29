@@ -101,8 +101,8 @@ class FciL2CommonFunctions(object):
         variable.attrs.update(self._get_global_attributes())
 
         import_enum_information = dataset_info.get("import_enum_information", False)
-        if (import_enum_information):
-            variable = self._add_flag_values_and_meamings(self.filename,dataset_info["nc_key"], variable)
+        if import_enum_information:
+            variable = self._add_flag_values_and_meamings(self.filename, dataset_info["nc_key"], variable)
 
         if variable.attrs["units"] == "none":
             variable.attrs.update({"units": None})
@@ -110,13 +110,13 @@ class FciL2CommonFunctions(object):
         return variable
 
     @staticmethod
-    def _add_flag_values_and_meamings(filename,key,variable):
-        #"""Build flag values and meaning from enum datatype """
-        netCDF4_dataset = netCDF4.Dataset(filename, "r")
+    def _add_flag_values_and_meamings(filename, key, variable):
+        """Build flag values and meaning from enum datatype."""
+        nc_dataset = netCDF4.Dataset(filename, "r")
         # This currently assumes a flat netCDF file
-        dataType=netCDF4_dataset.variables[key].datatype
-        if (hasattr(dataType,"enum_dict")):
-            enum = dataType.enum_dict
+        data_type = nc_dataset.variables[key].datatype
+        if hasattr(data_type, "enum_dict"):
+            enum = data_type.enum_dict
             flag_values = []
             flag_meanings = []
             for meaning, value in enum.items():
@@ -125,7 +125,7 @@ class FciL2CommonFunctions(object):
 
             variable.attrs["flag_values"] = flag_values
             variable.attrs["flag_meanings"] = flag_meanings
-            netCDF4_dataset.close()
+            nc_dataset.close()
 
         return variable
 
@@ -186,7 +186,6 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.ncols = self.nc["x"].size
         self._projection = self.nc["mtg_geos_projection"]
         self.multi_dims = {"maximum_number_of_layers": "layer", "number_of_vis_channels": "vis_channel_id"}
-
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -270,9 +269,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent_pixel_center = make_ext(ll_x, ur_x, ll_y, ur_y, h)
 
         # Shift area extent by half a pixel to get the area extent w.r.t. the dataset/pixel corners
-        scale_factor = (x[1:]-x[0:-1]).values.mean()
+        scale_factor = (x[1:] - x[0:-1]).values.mean()
         res = abs(scale_factor) * h
-        area_extent = tuple(i + res/2 if i > 0 else i - res/2 for i in area_extent_pixel_center)
+        area_extent = tuple(i + res / 2 if i > 0 else i - res / 2 for i in area_extent_pixel_center)
 
         return area_extent
 
@@ -437,8 +436,10 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
         return area_extent
 
+
 class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 AMV products in NetCDF4 format."""
+
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
@@ -472,7 +473,7 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             "spacecraft_name": self.spacecraft_name,
             "sensor": self.sensor_name,
             "platform_name": self.spacecraft_name,
-            "channel":self.filename_info["channel"]
+            "channel": self.filename_info["channel"]
         }
         return attributes
 
