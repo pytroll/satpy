@@ -80,55 +80,5 @@ enhancements:
           min_value: 0,
           max_value: 201}
 
-    Cloud_Top_Height:
-    name: Cloud_Top_Height 
-    operations:
-      - name: palettize
-        method: !!python/name:satpy.enhancements.palettize
-        kwargs:
-          palettes:
-             - {
-              filename: cth.txt,
-                min_value: 0,
-                max_value: 18000,
-               } 
 
-  Clear_Sky_Confidence:
-    name: Clear_Sky_Confidence
-    operations:
-      - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
-        kwargs:
-          palettes:
-          - {
-            filename: csc.txt,
-              min_value: 0.0,
-              max_value: 1.0
-              }
-
-
-  Aerosol_Optical_Thickness_550_Land_Ocean:
-    name: Aerosol_Optical_Thickness_550_Land_Ocean
-    operations:
-      - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
-        kwargs:
-          palettes:
-            - {filename: aod.txt,
-                min_value: 0.0,
-                max_value: 5.0,
-               }
-  
-  Angstrom_Exponent_Land_Ocean:
-    name: Angstrom_Exponent_Land_Ocean
-    operations:
-      - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
-        kwargs:
-          palettes:
-             - {
-              filename: aelo.txt,
-                min_value: -0.5,
-                max_value: 2.5,
-               }
 
