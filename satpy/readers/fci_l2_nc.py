@@ -119,9 +119,9 @@ class FciL2CommonFunctions(object):
             enum = dataType.enum_dict
             flag_values = []
             flag_meanings = []
-            for item in enumerate(enum):
-                flag_values.append(item[0])
-                flag_meanings.append(item[1])
+            for meaning, value in enum.items():
+                flag_values.append(value)
+                flag_meanings.append(meaning)
 
             variable.attrs["flag_values"] = flag_values
             variable.attrs["flag_meanings"] = flag_meanings
