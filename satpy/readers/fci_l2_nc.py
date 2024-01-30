@@ -102,7 +102,7 @@ class FciL2CommonFunctions(object):
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
-            variable = self._add_flag_values_and_meamings(self.filename, dataset_info["nc_key"], variable)
+            variable = self._add_flag_values_and_meanings(self.filename, dataset_info["nc_key"], variable)
 
         if variable.attrs["units"] == "none":
             variable.attrs.update({"units": None})
@@ -110,7 +110,7 @@ class FciL2CommonFunctions(object):
         return variable
 
     @staticmethod
-    def _add_flag_values_and_meamings(filename, key, variable):
+    def _add_flag_values_and_meanings(filename, key, variable):
         """Build flag values and meaning from enum datatype."""
         nc_dataset = netCDF4.Dataset(filename, "r")
         # This currently assumes a flat netCDF file
