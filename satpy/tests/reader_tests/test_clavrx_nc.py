@@ -98,7 +98,6 @@ def fake_test_content(filename, **kwargs):
         "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
     }
     )
-
     variable2 = variable2.where(variable2 % 2 != 0, FILL_VALUE)
 
     # category
@@ -126,7 +125,6 @@ def fake_test_content(filename, **kwargs):
         "var_flags": var_flags,
         "out_of_range_flags": out_of_range_flags,
     }
-
     ds = xr.Dataset(ds_vars, attrs=attrs)
     ds = ds.assign_coords({"latitude": latitude, "longitude": longitude})
 
