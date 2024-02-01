@@ -79,7 +79,10 @@ def _combine_shared_info(shared_keys, info_dicts):
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
         if "time" in key:
-            shared_info[key] = _combine_times(key, values)
+            times = _combine_times(key, values)
+            if times is None:
+                continue
+            shared_info[key] = times
         elif _are_values_combinable(values):
             shared_info[key] = values[0]
     return shared_info
@@ -88,7 +91,7 @@ def _combine_shared_info(shared_keys, info_dicts):
 def _combine_times(key, values):
     filtered_values = _filter_time_values(values)
     if not filtered_values:
-        return values
+        return None
     if key == "end_time":
         return max(filtered_values)
     elif key == "start_time":
