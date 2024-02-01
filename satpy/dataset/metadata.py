@@ -32,15 +32,14 @@ def combine_metadata(*metadata_objects):
 
     If the values corresponding to any keys are not equal or do not
     exist in all provided dictionaries then they are not included in
-    the returned dictionary.  By default any keys with the word 'time'
-    in them and consisting of datetime objects will be averaged. This
-    is to handle cases where data were observed at almost the same time
-    but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents.
+    the returned dictionary.  The 'start_time' values will be set to the
+    earliest value and 'end_time' to latest time.  All other keys containing
+    the word 'time' are averaged.  Before these adjustments, non-datetime
+    objects are filtered out.  In the interest of time, lazy arrays are compared
+    by object identity rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
-        average_times (bool): Average any keys with 'time' in the name
 
     Returns:
         dict: the combined metadata
