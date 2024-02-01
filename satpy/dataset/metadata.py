@@ -79,7 +79,7 @@ def _combine_shared_info(shared_keys, info_dicts):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if "time" in key and isinstance(values[0], datetime):
+        if "time" in key:
             shared_info[key] = _combine_times(key, values)
         elif _are_values_combinable(values):
             shared_info[key] = values[0]
@@ -87,11 +87,19 @@ def _combine_shared_info(shared_keys, info_dicts):
 
 
 def _combine_times(key, values):
+    filtered_values = _filter_time_values(values)
+    if not filtered_values:
+        return values
     if key == "end_time":
-        return max(values)
+        return max(filtered_values)
     elif key == "start_time":
-        return min(values)
-    return average_datetimes(values)
+        return min(filtered_values)
+    return average_datetimes(filtered_values)
+
+
+def _filter_time_values(values):
+     """Remove values that are not datetime objects."""
+     return [v for v in values if isinstance(v, datetime)]
 
 
 def average_datetimes(datetime_list):

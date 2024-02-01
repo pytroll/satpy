@@ -123,6 +123,20 @@ class TestCombineMetadata(unittest.TestCase):
             {"other_time": datetime(2018, 2, 1, 12, 1, 0)},
             {"other_time": datetime(2018, 2, 1, 12, 2, 0)},
         )
+        self.start_time_dts_with_none = (
+            {"start_time": None},
+            {"start_time": datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        self.end_time_dts_with_none = (
+            {"end_time": datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": None},
+        )
 
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
@@ -148,6 +162,18 @@ class TestCombineMetadata(unittest.TestCase):
         from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.end_time_dts)
         assert ret["end_time"] == self.end_time_dts[-1]["end_time"]
+
+    def test_combine_start_times_with_none(self):
+        """Test the combine_metadata with start times when there's a None included."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.start_time_dts_with_none)
+        assert ret["start_time"] == self.start_time_dts_with_none[1]["start_time"]
+
+    def test_combine_end_times_with_none(self):
+        """Test the combine_metadata with end times when there's a None included."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.end_time_dts_with_none)
+        assert ret["end_time"] == self.end_time_dts_with_none[-2]["end_time"]
 
     def test_combine_other_times(self):
         """Test the combine_metadata with other time values than start or end times."""
