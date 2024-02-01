@@ -27,7 +27,7 @@ import numpy as np
 from satpy.writers.utils import flatten_dict
 
 
-def combine_metadata(*metadata_objects, average_times=True):
+def combine_metadata(*metadata_objects):
     """Combine the metadata of two or more Datasets.
 
     If the values corresponding to any keys are not equal or do not
@@ -53,7 +53,7 @@ def combine_metadata(*metadata_objects, average_times=True):
 
     shared_keys = _shared_keys(info_dicts)
 
-    return _combine_shared_info(shared_keys, info_dicts, average_times)
+    return _combine_shared_info(shared_keys, info_dicts)
 
 
 def _get_valid_dicts(metadata_objects):
@@ -75,15 +75,23 @@ def _shared_keys(info_dicts):
     return reduce(set.intersection, key_sets)
 
 
-def _combine_shared_info(shared_keys, info_dicts, average_times):
+def _combine_shared_info(shared_keys, info_dicts):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if "time" in key and isinstance(values[0], datetime) and average_times:
-            shared_info[key] = average_datetimes(values)
+        if "time" in key and isinstance(values[0], datetime):
+            shared_info[key] = _combine_times(key, values)
         elif _are_values_combinable(values):
             shared_info[key] = values[0]
     return shared_info
+
+
+def _combine_times(key, values):
+    if key == "end_time":
+        return max(values)
+    elif key == "start_time":
+        return min(values)
+    return average_datetimes(values)
 
 
 def average_datetimes(datetime_list):

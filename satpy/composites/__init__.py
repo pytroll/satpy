@@ -1666,12 +1666,10 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         img.attrs.pop("modifiers", None)
         img.attrs.pop("calibration", None)
         # Add start time if not present in the filename
-        if "start_time" not in img.attrs or not img.attrs["start_time"]:
-            import datetime as dt
-            img.attrs["start_time"] = dt.datetime.utcnow()
-        if "end_time" not in img.attrs or not img.attrs["end_time"]:
-            import datetime as dt
-            img.attrs["end_time"] = dt.datetime.utcnow()
+        if "start_time" not in img.attrs:
+            img.attrs["start_time"] = None
+        if "end_time" not in img.attrs:
+            img.attrs["end_time"] = None
 
         return img
 
