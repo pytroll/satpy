@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import pandas as pd
@@ -138,18 +137,6 @@ def _stack_no_weights(
 
 def _combine_stacked_attrs(collected_attrs: Sequence[Mapping]) -> dict:
     return combine_metadata(*collected_attrs)
-
-
-def _get_combined_start_end_times(metadata_objects: Iterable[Mapping]) -> tuple[datetime | None, datetime | None]:
-    """Get the start and end times attributes valid for the entire dataset series."""
-    start_time = None
-    end_time = None
-    for md_obj in metadata_objects:
-        if "start_time" in md_obj and (start_time is None or md_obj["start_time"] < start_time):
-            start_time = md_obj["start_time"]
-        if "end_time" in md_obj and (end_time is None or md_obj["end_time"] > end_time):
-            end_time = md_obj["end_time"]
-    return start_time, end_time
 
 
 def timeseries(datasets):
