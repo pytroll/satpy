@@ -285,10 +285,10 @@ enhancements:
                              2, # Probably Cloudy
                              3, # Cloudy
                          ],
-               'colors': [[  0,   0,   0], # black,-127 = Fill Value
-                          [ 94,  79, 162], # blue,    0 = Clear
-                          [ 73, 228, 242], # cyan,    1 = Probably Clear
-                          [158,   1,  66], # red,     2 = Probably Cloudy
+               'colors': [[0, 0, 0], # black,-127 = Fill Value
+                          [94, 79, 162], # blue,    0 = Clear
+                          [73, 228, 242], # cyan,    1 = Probably Clear
+                          [158, 1, 66], # red,     2 = Probably Cloudy
                           [255, 255, 255], # white,   3 = Cloudy
                          ],
                'color_scale': 255,
