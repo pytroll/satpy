@@ -150,6 +150,14 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             scale_offset,
         ) = self._get_dataset_valid_range(ds_id, ds_info, var_path)
         data = self[var_path]
+
+        # For aerdb Longitude and Latitude datasets have coordinates
+        # This check is needed to work with yaml_reader
+        if 'long_name' in metadata and metadata['long_name'] == 'Longitude':
+            data.coords['Latitude'].attrs['standard_name'] = 'latitude'
+        elif 'long_name' in metadata and metadata['long_name'] == 'Latitude':
+            data.coords['Longitude'].attrs['standard_name'] = 'longitude'
+
         data.attrs.update(metadata)
         if valid_min is not None and valid_max is not None:
             data = data.where((data >= valid_min) & (data <= valid_max))

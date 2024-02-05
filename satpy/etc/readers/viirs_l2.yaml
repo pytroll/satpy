@@ -42,42 +42,42 @@ file_types:
 datasets:
   cld_lon:
     name: cld_lon
-    resolution:
+    resolution: 1000
     file_type: [cldmsk_l2_viirs, cldprop_l2_viirs]
     file_key: geolocation_data/longitude
     units: degrees
     standard_name: longitude
   cld_lat:
     name: cld_lat
-    resolution:
+    resolution: 1000
     file_type: [cldmsk_l2_viirs, cldprop_l2_viirs]
     file_key: geolocation_data/latitude
     units: degrees
     standard_name: latitude
   aerdb_lon:
     name: aerdb_lon
-    resolution:
+    resolution: 1000
     file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
     file_key: Longitude
     units: degrees
-    standard_name: Longitude
+    standard_name: longitude
   aerdb_lat:
     name: aerdb_lat
-    resolution:
+    resolution: 1000
     file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
     file_key: Latitude
     units: degrees
-    standard_name: Latitude
+    standard_name: latitude
   aerdt_lon:
     name: aerdt_lon
-    resolution:
+    resolution: 1000
     file_type: [aerdt_l2_viirs]
     file_key: longitude
     units: degrees
     standard_name: longitude
   aerdt_lat:
     name: aerdt_lat
-    resolution:
+    resolution: 1000
     file_type: [aerdt_l2_viirs]
     file_key: latitude
     units: degrees
