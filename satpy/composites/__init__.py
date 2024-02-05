@@ -1665,11 +1665,6 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         img.attrs["mode"] = "".join(img.bands.data)
         img.attrs.pop("modifiers", None)
         img.attrs.pop("calibration", None)
-        # Add start time if not present in the filename
-        if "start_time" not in img.attrs:
-            img.attrs["start_time"] = None
-        if "end_time" not in img.attrs:
-            img.attrs["end_time"] = None
 
         return img
 
