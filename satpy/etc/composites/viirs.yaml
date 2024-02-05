@@ -685,3 +685,23 @@ composites:
       - name: I01
       - name: I03
     standard_name: cimss_cloud_type
+  
+  cth:
+    description: >
+      VIIRS Cloud Top Height with colormap applied
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - Cloud_Top_Height
+    standard_name: cth
+
+  viirs_cloud_top_height:
+    description: >
+      Cloud Top Height composite from NOAA/SNPP
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+      - Cloud_Top_Height
+      - cth
+    conditions:
+      - method: isnan 
+        transparency: 100
+    standard_name: viirs_cloud_top_height

@@ -61,8 +61,8 @@ class FakeNetCDF4FileHandlerVIIRSL2(FakeNetCDF4FileHandler):
         elif file_type == "AERDB_":
             file_content["Latitude"] = DEFAULT_LAT_DATA
             file_content["Longitude"] = DEFAULT_LON_DATA
-            file_content["Angstrom_Exponent_Land_Ocean"] = DEFAULT_FILE_DATA
-            file_content["Aerosol_Optical_Thickness_550_Land_Ocean"] = DEFAULT_FILE_DATA
+            file_content["Angstrom_Exponent_Land_Ocean_Best_Estimate"] = DEFAULT_FILE_DATA
+            file_content["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate"] = DEFAULT_FILE_DATA
 
 
 class TestVIIRSL2FileHandler:
@@ -114,7 +114,7 @@ class TestVIIRSL2FileHandler:
         )
         r.create_filehandlers(loadables)
         datasets = r.load(
-            ["Aerosol_Optical_Thickness_550_Land_Ocean", "Angstrom_Exponent_Land_Ocean"]
+            ["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate", "Angstrom_Exponent_Land_Ocean_Best_Estimate"]
         )
         assert len(datasets) == 2
         for d in datasets.values():

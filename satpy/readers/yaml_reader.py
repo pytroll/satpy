@@ -1011,14 +1011,13 @@ def _set_orientation(dataset, upper_right_corner):
                     "and will not be flipped.".format(dataset.attrs.get("name", "unknown_name")))
         return dataset
 
-    if dataset.attrs['area'].area_id != 'viirs_l2_area':
-        projection_type = _get_projection_type(dataset.attrs["area"])
-        accepted_geos_proj_types = ["Geostationary Satellite (Sweep Y)", "Geostationary Satellite (Sweep X)"]
-        if projection_type not in accepted_geos_proj_types:
-            logger.info("Dataset {} is not in one of the known geostationary projections {} "
-                        "and cannot be flipped.".format(dataset.attrs.get("name", "unknown_name"),
-                                                        accepted_geos_proj_types))
-            return dataset
+    projection_type = _get_projection_type(dataset.attrs["area"])
+    accepted_geos_proj_types = ["Geostationary Satellite (Sweep Y)", "Geostationary Satellite (Sweep X)"]
+    if projection_type not in accepted_geos_proj_types:
+        logger.info("Dataset {} is not in one of the known geostationary projections {} "
+                    "and cannot be flipped.".format(dataset.attrs.get("name", "unknown_name"),
+                                                    accepted_geos_proj_types))
+        return dataset
 
     target_eastright, target_northup = _get_target_scene_orientation(upper_right_corner)
 
