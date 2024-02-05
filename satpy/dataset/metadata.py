@@ -89,14 +89,26 @@ def _combine_shared_info(shared_keys, info_dicts):
 
 
 def _combine_times(key, values):
+    if key == "time_parameters":
+        return _combine_time_parameters(values)
     filtered_values = _filter_time_values(values)
     if not filtered_values:
         return None
-    if key == "end_time":
+    if "end_time" in key:
         return max(filtered_values)
-    elif key == "start_time":
+    elif "start_time" in key:
         return min(filtered_values)
     return average_datetimes(filtered_values)
+
+
+def _combine_time_parameters(values):
+    # Assume the first item has all the keys
+    keys = values[0].keys()
+    res = {}
+    for key in keys:
+        sub_values = [itm[key] for itm in values]
+        res[key] = _combine_times(key, sub_values)
+    return res
 
 
 def _filter_time_values(values):
