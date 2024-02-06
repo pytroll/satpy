@@ -38,19 +38,19 @@ from satpy.tests.utils import convert_file_content_to_data_array
 DEFAULT_FILE_SHAPE = (1, 100)
 
 DEFAULT_LATLON_FILE_DTYPE = np.float32
-DEFAULT_LATLON_FILE_DATA = np.arange(start=43, stop=45, step=0.02,
+DEFAULT_LATLON_FILE_DATA = np.arange(43, stop=45, step=0.02,
                                      dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_DETECTION_FILE_DTYPE = np.uint8
-DEFAULT_DETECTION_FILE_DATA = np.arange(start=60, stop=100, step=0.4,
+DEFAULT_DETECTION_FILE_DATA = np.arange(60, stop=100, step=0.4,
                                         dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_M13_FILE_DTYPE = np.float32
-DEFAULT_M13_FILE_DATA = np.arange(start=300, stop=340, step=0.4,
+DEFAULT_M13_FILE_DATA = np.arange(300, stop=340, step=0.4,
                                   dtype=DEFAULT_M13_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_POWER_FILE_DTYPE = np.float32
-DEFAULT_POWER_FILE_DATA = np.arange(start=1, stop=25, step=0.24,
+DEFAULT_POWER_FILE_DATA = np.arange(1, stop=25, step=0.24,
                                     dtype=DEFAULT_POWER_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 
