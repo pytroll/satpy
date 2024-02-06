@@ -685,7 +685,7 @@ composites:
       - name: I01
       - name: I03
     standard_name: cimss_cloud_type
-  
+
   cth:
     description: >
       VIIRS Cloud Top Height with colormap applied
@@ -702,6 +702,6 @@ composites:
       - Cloud_Top_Height
       - cth
     conditions:
-      - method: isnan 
+      - method: isnan
         transparency: 100
     standard_name: viirs_cloud_top_height

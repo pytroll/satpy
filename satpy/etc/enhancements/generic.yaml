@@ -1399,7 +1399,7 @@ enhancements:
               1.99, 2.42, 2.85, 3.28, 3.71, 4.14, 4.57, 5
               ],
             }
-  
+
   Angstrom_Exponent_Land_Ocean_Best_Estimate:
     name: Angstrom_Exponent_Land_Ocean_Best_Estimate
     operations:

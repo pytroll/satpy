@@ -3,7 +3,7 @@ reader:
   short_name: VIIRS L2
   long_name: SNPP VIIRS Level 2 data in netCDF4 format
   description: Generic NASA VIIRS L2 Reader
-  status: Alpha 
+  status: Alpha
   supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
   sensors: [viirs]
@@ -12,32 +12,32 @@ reader:
 file_types:
   cldprop_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'CLDPROP_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc' 
+    file_patterns:
+      - 'CLDPROP_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
   cldmsk_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'CLDMSK_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc' 
+    file_patterns:
+      - 'CLDMSK_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
   aerdb_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc' 
+    file_patterns:
+      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
   aerdb_l2_viirs_nrt:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.nrt.nc' 
+    file_patterns:
+      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.nrt.nc'
   cldir_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'CLDIR_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf' 
+    file_patterns:
+      - 'CLDIR_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
   aerdt_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'AERDT_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc' 
+    file_patterns:
+      - 'AERDT_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
   fsnrad_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns: 
-      - 'FSNRAD_L2_VIIRS_CRIS_SS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc' 
+    file_patterns:
+      - 'FSNRAD_L2_VIIRS_CRIS_SS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
 
 datasets:
   cld_lon:
@@ -82,7 +82,7 @@ datasets:
     file_key: latitude
     units: degrees
     standard_name: latitude
- 
+
 ##################################
 # Datasets in file cldmsk_l2_viirs
 ##################################
