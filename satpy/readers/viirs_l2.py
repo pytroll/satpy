@@ -13,7 +13,6 @@ import logging
 from datetime import datetime
 
 import numpy as np
-import xarray as xr
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -73,7 +72,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
         """Get sensor name."""
         return self["/attr/instrument"].lower()
 
-    def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
+    def _get_dataset_file_units(self, ds_info, var_path):
         file_units = ds_info.get("units")
         if file_units is None:
             file_units = self.get(var_path + "/attr/units")
@@ -81,7 +80,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             file_units = "1"
         return file_units
 
-    def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
+    def _get_dataset_valid_range(self, ds_info, var_path):
         valid_min = self.get(var_path + "/attr/valid_min")
         valid_max = self.get(var_path + "/attr/valid_max")
         if not valid_min and not valid_max:
@@ -152,7 +151,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             is_in_file = var_path in self
             yield ft_matches and is_in_file, ds_info
 
-    def get_dataset(self, ds_id: int, ds_info: str) -> xr.DataArray:
+    def get_dataset(self, ds_id, ds_info):
         """Get DataArray for specified dataset."""
         var_path = ds_info.get("file_key", ds_info["name"])
         metadata = self.get_metadata(ds_id, ds_info)
