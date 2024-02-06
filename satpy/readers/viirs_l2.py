@@ -95,7 +95,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
         var_path = ds_info.get("file_key", ds_info["name"])
-        file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
+        file_units = self._get_dataset_file_units(ds_info, var_path)
 
         # Get extra metadata
         i = getattr(self[var_path], "attrs", {})
@@ -160,9 +160,8 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             valid_max,
             scale_factor,
             scale_offset,
-        ) = self._get_dataset_valid_range(ds_id, ds_info, var_path)
+        ) = self._get_dataset_valid_range(ds_info, var_path)
         data = self[var_path]
-
         # For aerdb Longitude and Latitude datasets have coordinates
         # This check is needed to work with yaml_reader
         if "long_name" in metadata and metadata["long_name"] == "Longitude":

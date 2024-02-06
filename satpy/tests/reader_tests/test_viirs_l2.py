@@ -10,7 +10,7 @@ from satpy.readers import load_reader
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-DEFAULT_FILE_DTYPE = np.uint16
+DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(
     DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE
@@ -107,46 +107,27 @@ class TestVIIRSL2FileHandler:
         # make sure we have some files
         assert r.file_handlers
 
-    def test_load_aerdb(self):
-        """Test Aerdb File Loading."""
+    @pytest.mark.parametrize(
+        ("filename", "datasets"),
+        [
+            pytest.param("CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc",["Cloud_Top_Height"],id="CLDPROP"),
+            pytest.param("CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc",["Clear_Sky_Confidence"],id="CLDMSK"),
+            pytest.param("AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc",
+                         ["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate",
+                          "Angstrom_Exponent_Land_Ocean_Best_Estimate"],id="AERDB"),
+        ],
+    )
+    def test_load_l2_files(self,filename,datasets):
+        """Test L2 File Loading."""
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(
-            ["AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc"]
-        )
+        loadables = r.select_files_from_pathnames([filename])
         r.create_filehandlers(loadables)
-        datasets = r.load(
-            ["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate", "Angstrom_Exponent_Land_Ocean_Best_Estimate"]
-        )
-        assert len(datasets) == 2
-        for d in datasets.values():
+        loaded_datasets = r.load(datasets)
+        assert len(loaded_datasets) == len(datasets)
+        for d in loaded_datasets.values():
             assert d.shape == DEFAULT_FILE_SHAPE
             assert d.dims == ("y", "x")
             assert d.attrs["sensor"] == "viirs"
-
-    def test_load_cldprop(self):
-        """Test CLDPROP File Loading."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(
-            ["CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc"]
-        )
-        r.create_filehandlers(loadables)
-        datasets = r.load(["Cloud_Top_Height"])
-        assert len(datasets) == 1
-        for d in datasets.values():
-            assert d.shape == DEFAULT_FILE_SHAPE
-            assert d.dims == ("y", "x")
-            assert d.attrs["sensor"] == "viirs"
-
-    def test_load_cldmsk(self):
-        """Test CLDMSK File Loading."""
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(
-            ["CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc"]
-        )
-        r.create_filehandlers(loadables)
-        datasets = r.load(["Clear_Sky_Confidence"])
-        assert len(datasets) == 1
-        for d in datasets.values():
-            assert d.shape == DEFAULT_FILE_SHAPE
-            assert d.dims == ("y", "x")
-            assert d.attrs["sensor"] == "viirs"
+            d_np = d.compute()
+            assert d.dtype == d_np.dtype
+            assert d.dtype == np.float32
