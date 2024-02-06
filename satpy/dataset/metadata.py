@@ -78,14 +78,18 @@ def _combine_shared_info(shared_keys, info_dicts):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if "time" in key:
-            times = _combine_times(key, values)
-            if times is None:
-                continue
-            shared_info[key] = times
-        elif _are_values_combinable(values):
-            shared_info[key] = values[0]
+        _combine_values(key, values, shared_info)
     return shared_info
+
+
+def _combine_values(key, values, shared_info):
+    if "time" in key:
+        times = _combine_times(key, values)
+        if times is None:
+            return
+        shared_info[key] = times
+    elif _are_values_combinable(values):
+        shared_info[key] = values[0]
 
 
 def _combine_times(key, values):
