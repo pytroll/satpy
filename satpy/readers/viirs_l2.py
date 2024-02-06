@@ -1,15 +1,27 @@
+"""Interface to VIIRS L2 format.
+
+This reader implements the support of L2 files generated using the VIIRS instrument on SNPP and NOAA satellite files.
+The intent of this reader is to be able to reproduce images from L2 layers in NASA worldview with identical colormaps.
+
+Currently a subset of four of these layers are supported
+1. Deep Blue Aerosol Angstrom Exponent (Land and Ocean)
+2. Clear Sky Confidence
+3. Cloud Top Height
+4. Deep Blue Aerosol Optical Thickness (Land and Ocean)
+"""
 import logging
 from datetime import datetime
 
 import numpy as np
+import xarray as xr
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-import xarray as xr
 
 LOG = logging.getLogger(__name__)
 
 
 class VIIRSL2FileHandler(NetCDF4FileHandler):
+    """NetCDF File Handler for VIIRS L2 Products."""
     def _parse_datetime(self, datestr):
         """Parse datetime."""
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
@@ -141,6 +153,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             yield ft_matches and is_in_file, ds_info
 
     def get_dataset(self, ds_id: int, ds_info: str) -> xr.DataArray:
+        """Get DataArray for specified dataset."""
         var_path = ds_info.get("file_key", ds_info["name"])
         metadata = self.get_metadata(ds_id, ds_info)
         (
@@ -153,10 +166,10 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
 
         # For aerdb Longitude and Latitude datasets have coordinates
         # This check is needed to work with yaml_reader
-        if 'long_name' in metadata and metadata['long_name'] == 'Longitude':
-            data.coords['Latitude'].attrs['standard_name'] = 'latitude'
-        elif 'long_name' in metadata and metadata['long_name'] == 'Latitude':
-            data.coords['Longitude'].attrs['standard_name'] = 'longitude'
+        if "long_name" in metadata and metadata["long_name"] == "Longitude":
+            data.coords["Latitude"].attrs["standard_name"] = "latitude"
+        elif "long_name" in metadata and metadata["long_name"] == "Latitude":
+            data.coords["Longitude"].attrs["standard_name"] = "longitude"
 
         data.attrs.update(metadata)
         if valid_min is not None and valid_max is not None:

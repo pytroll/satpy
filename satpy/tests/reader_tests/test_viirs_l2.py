@@ -1,3 +1,4 @@
+"""Module for testing the satpy.readers.viirs_l2 module."""
 import os
 from datetime import datetime, timedelta
 from unittest import mock
@@ -5,9 +6,9 @@ from unittest import mock
 import numpy as np
 import pytest
 
+from satpy.readers import load_reader
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-from satpy.readers import load_reader
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -66,8 +67,7 @@ class FakeNetCDF4FileHandlerVIIRSL2(FakeNetCDF4FileHandler):
 
 
 class TestVIIRSL2FileHandler:
-    """Test VIIRS_L2 Reader"""
-
+    """Test VIIRS_L2 Reader."""
     yaml_file = "viirs_l2.yaml"
 
     def setup_method(self):
@@ -108,6 +108,7 @@ class TestVIIRSL2FileHandler:
         assert r.file_handlers
 
     def test_load_aerdb(self):
+        """Test Aerdb File Loading."""
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(
             ["AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc"]
@@ -123,6 +124,7 @@ class TestVIIRSL2FileHandler:
             assert d.attrs["sensor"] == "viirs"
 
     def test_load_cldprop(self):
+        """Test CLDPROP File Loading."""
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(
             ["CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc"]
@@ -136,6 +138,7 @@ class TestVIIRSL2FileHandler:
             assert d.attrs["sensor"] == "viirs"
 
     def test_load_cldmsk(self):
+        """Test CLDMSK File Loading."""
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(
             ["CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc"]
