@@ -147,8 +147,11 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
                 yield is_avail, ds_info
                 continue
             ft_matches = self.file_type_matches(ds_info["file_type"])
-            var_path = ds_info.get("file_key", ds_info["name"])
-            is_in_file = var_path in self
+            if not ft_matches:
+                is_in_file = None
+            else:
+                var_path = ds_info.get("file_key", ds_info["name"])
+                is_in_file = var_path in self
             yield ft_matches and is_in_file, ds_info
 
     def get_dataset(self, ds_id, ds_info):
