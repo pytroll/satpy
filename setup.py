@@ -165,7 +165,7 @@ setup(name=NAME,
                               ]},
       zip_safe=False,
       install_requires=requires,
-      python_requires=">=3.9",
+      python_requires=">=3.10",
       extras_require=extras_require,
       entry_points=entry_points,
       )
