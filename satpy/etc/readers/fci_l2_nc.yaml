@@ -115,7 +115,7 @@ datasets:
     import_enum_information: True
 
   quality_mtg_parameters:
-    name: quality_MTG_parameters
+    name: quality_mtg_parameters
     standard_name: status_flag
     resolution: 2000
     file_type: [nc_fci_clm, nc_fci_ct, nc_fci_ctth]
