@@ -32,11 +32,15 @@ def combine_metadata(*metadata_objects):
 
     If the values corresponding to any keys are not equal or do not
     exist in all provided dictionaries then they are not included in
-    the returned dictionary.  The 'start_time' values will be set to the
-    earliest value and 'end_time' to latest time.  All other keys containing
-    the word 'time' are averaged.  Before these adjustments, non-datetime
-    objects are filtered out.  In the interest of time, lazy arrays are compared
-    by object identity rather than by their contents.
+    the returned dictionary.  All values of the keys containing the substring
+    'start_time' will be set to the earliest value and similarly for 'end_time'
+    to latest time.  All other keys containing the word 'time' are averaged.
+    Before these adjustments, non-datetime objects are filtered out.
+
+    The same rules are applied to 'time_parameters' dictionary.
+
+    In the interest of processing time, lazy arrays are compared by object
+    identity rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
