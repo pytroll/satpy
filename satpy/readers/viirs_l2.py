@@ -121,18 +121,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         factors = np.array(factors)
-
-        if file_units == "1" and output_units == "%":
-            LOG.debug(
-                "Adjusting scaling factors to convert '%s' to '%s'",
-                file_units,
-                output_units,
-            )
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
-            return factors
-        else:
-            return factors
+        return factors
 
     def available_datasets(self, configured_datasets=None):
         """Generate dataset info and their availablity.
@@ -147,12 +136,11 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
                 yield is_avail, ds_info
                 continue
             ft_matches = self.file_type_matches(ds_info["file_type"])
-            if not ft_matches:
-                is_in_file = None
-            else:
-                var_path = ds_info.get("file_key", ds_info["name"])
-                is_in_file = var_path in self
-            yield ft_matches and is_in_file, ds_info
+            if ft_matches is None:
+                yield None, ds_info
+                continue
+            var_path = ds_info.get("file_key", ds_info["name"])
+            yield var_path in self, ds_info
 
     def get_dataset(self, ds_id, ds_info):
         """Get DataArray for specified dataset."""

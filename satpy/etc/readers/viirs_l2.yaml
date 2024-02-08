@@ -7,7 +7,6 @@ reader:
   supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
   sensors: [viirs]
-  default_datasets:
 
 file_types:
   cldprop_l2_viirs:
@@ -22,9 +21,6 @@ file_types:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
     file_patterns:
       - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
-  aerdb_l2_viirs_nrt:
-    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
-    file_patterns:
       - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.nrt.nc'
   cldir_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
@@ -57,14 +53,14 @@ datasets:
   aerdb_lon:
     name: aerdb_lon
     resolution: 1000
-    file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
+    file_type: [aerdb_l2_viirs]
     file_key: Longitude
     units: degrees
     standard_name: longitude
   aerdb_lat:
     name: aerdb_lat
     resolution: 1000
-    file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
+    file_type: [aerdb_l2_viirs]
     file_key: Latitude
     units: degrees
     standard_name: latitude
@@ -93,7 +89,7 @@ datasets:
     coordinates: [cld_lon, cld_lat]
     file_key: geophysical_data/Clear_Sky_Confidence
     file_type: cldmsk_l2_viirs
-
+    standard_name: cldmsk_clear_sky_confidence
 
 ###################################
 # Datasets in file cldprop_l2_viirs
@@ -105,9 +101,10 @@ datasets:
     coordinates: [cld_lon,cld_lat]
     file_key: geophysical_data/Cloud_Top_Height
     file_type: cldprop_l2_viirs
+    standard_name: cldprop_cloud_top_height
 
 ##########################################
-# Datasets in files aerdb_l2_viirs and nrt
+# Datasets in files aerdb_l2_viirs
 ##########################################
   Angstrom_Exponent_Land_Ocean_Best_Estimate:
     name: Angstrom_Exponent_Land_Ocean_Best_Estimate
@@ -115,7 +112,8 @@ datasets:
     units: "1"
     coordinates: [aerdb_lon,aerdb_lat]
     file_key: Angstrom_Exponent_Land_Ocean_Best_Estimate
-    file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
+    file_type: [aerdb_l2_viirs]
+    standard_name: aerdb_angstrom_exponent_land_ocean_best_estimate
 
   Aerosol_Optical_Thickness_550_Land_Ocean:
     name: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
@@ -123,4 +121,5 @@ datasets:
     units: "1"
     coordinates: [aerdb_lon,aerdb_lat]
     file_key: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
-    file_type: [aerdb_l2_viirs, aerdb_l2_viirs_nrt]
+    file_type: [aerdb_l2_viirs]
+    standard_name: aerdb_aerosol_optical_thickness_500_land_ocean

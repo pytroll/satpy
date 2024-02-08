@@ -110,14 +110,16 @@ class TestVIIRSL2FileHandler:
     @pytest.mark.parametrize(
         ("filename", "datasets"),
         [
-            pytest.param("CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc",["Cloud_Top_Height"],id="CLDPROP"),
-            pytest.param("CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc",["Clear_Sky_Confidence"],id="CLDMSK"),
+            pytest.param("CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc",
+                         ["Cloud_Top_Height"], id="CLDPROP"),
+            pytest.param("CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc",
+                         ["Clear_Sky_Confidence"], id="CLDMSK"),
             pytest.param("AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc",
                          ["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate",
-                          "Angstrom_Exponent_Land_Ocean_Best_Estimate"],id="AERDB"),
+                          "Angstrom_Exponent_Land_Ocean_Best_Estimate"], id="AERDB"),
         ],
     )
-    def test_load_l2_files(self,filename,datasets):
+    def test_load_l2_files(self, filename, datasets):
         """Test L2 File Loading."""
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([filename])
