@@ -1238,22 +1238,12 @@ enhancements:
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
           palettes:
-          - {colors: [[255, 0, 0], [255, 0, 0]], min_value: 0, max_value: 800}
-          - {colors: [[170, 0, 0], [170, 0, 0]], min_value: 800.0001, max_value: 1600}
-          - {colors: [[110, 0, 0], [110, 0, 0]], min_value: 1600.0001, max_value: 2350}
-          - {colors: [[112, 1, 2], [112, 1, 2]], min_value: 2350.0001, max_value: 3150}
-          - {colors: [[124, 91, 5], [124, 91, 5]], min_value: 3150.0001, max_value: 4000}
-          - {colors: [[240, 190, 64], [240, 190, 64]], min_value: 4000.0001, max_value: 4800}
-          - {colors: [[255, 255, 0], [255, 255, 0]], min_value: 4800.0001, max_value: 5600}
-          - {colors: [[0, 220, 0], [0, 220, 0]], min_value: 5600.0001, max_value: 6400}
-          - {colors: [[0, 136, 0], [0, 136, 0]], min_value: 6400.0001, max_value: 7200}
-          - {colors: [[0, 80, 0], [0, 80, 0]], min_value: 7200.0001, max_value: 8000}
-          - {colors: [[0, 136, 238], [0, 136, 238]], min_value: 8000.0001, max_value: 8800}
-          - {colors: [[0, 0, 255], [0, 0, 255]], min_value: 8800.0001, max_value: 9600}
-          - {colors: [[0, 0, 170], [0, 0, 170]], min_value: 9600.0001, max_value: 10400}
-          - {colors: [[0, 0, 100], [0, 0, 100]], min_value: 10400.0001, max_value: 11200}
-          - {colors: [[183,15,141], [183, 15, 141]], min_value: 11200.0001, max_value: 12000}
-          - {colors: [[102, 0, 119], [102, 0, 119]], min_value: 12000.0001, max_value: 18000}
+          - {
+              colors: [[255, 0, 0], [170, 0, 0], [110, 0, 0], [112, 1, 2], [124, 91, 5], [240, 190, 64], [255, 255, 0],
+              [0, 220, 0], [0, 136, 0], [0, 80, 0], [0, 136, 238], [0, 0, 255], [0, 0, 170], [0, 0, 100], [183, 15, 141],
+              [102, 0, 119]],
+              values: [0, 800, 1600, 2350, 3150, 4000, 4800, 5600, 6400, 7200, 8000, 8800, 9600, 10400, 11200, 12000],
+            }
 
   Clear_Sky_Confidence:
     standard_name: cldmsk_clear_sky_confidence
@@ -1263,7 +1253,7 @@ enhancements:
         kwargs:
           palettes:
           - {
-             filename: clear_sky_confidence.txt
+             filename: clear_sky_confidence.csv
             }
 
   Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate:
@@ -1274,7 +1264,7 @@ enhancements:
         kwargs:
           palettes:
           - {
-              filename: aerosol_thickness.txt
+              filename: aerosol_thickness.csv
             }
 
   Angstrom_Exponent_Land_Ocean_Best_Estimate:
@@ -1285,5 +1275,5 @@ enhancements:
         kwargs:
           palettes:
           - {
-             filename: angstrom_exponent.txt
+             filename: angstrom_exponent.csv
             }
