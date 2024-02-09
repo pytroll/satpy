@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
+# Copyright (c) 2016-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -94,7 +94,7 @@ class TestOLCIReader(unittest.TestCase):
                 open_file.open.return_value == mocked_open_dataset.call_args[1].get("filename_or_obj"))
 
     @mock.patch("xarray.open_dataset")
-    def test_get_mask(self, mocked_dataset):
+    def test_get_l2_mask(self, mocked_dataset):
         """Test reading datasets."""
         import numpy as np
         import xarray as xr
@@ -118,7 +118,7 @@ class TestOLCIReader(unittest.TestCase):
         np.testing.assert_array_equal(res.values, expected)
 
     @mock.patch("xarray.open_dataset")
-    def test_get_mask_with_alternative_items(self, mocked_dataset):
+    def test_get_l2_mask_with_alternative_items(self, mocked_dataset):
         """Test reading datasets."""
         import numpy as np
         import xarray as xr
@@ -136,6 +136,61 @@ class TestOLCIReader(unittest.TestCase):
         assert res.dtype == np.dtype("bool")
         expected = np.array([True] + [False] * 29).reshape(5, 6)
         np.testing.assert_array_equal(res.values, expected)
+
+
+    @mock.patch("xarray.open_dataset")
+    def test_get_l1b_default_mask(self, mocked_dataset):
+        """Test reading mask datasets from L1B products."""
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI1B
+        from satpy.tests.utils import make_dataid
+        mocked_dataset.return_value = xr.Dataset({"quality_flags": (["rows", "columns"],
+                                                           np.array([1 << (x % 32) for x in range(35)]).reshape(5, 7))},
+                                                 coords={"rows": np.arange(5),
+                                                         "columns": np.arange(7)})
+        ds_id = make_dataid(name="mask")
+        filename_info = {"mission_id": "S3A", "dataset_name": "mask", "start_time": 0, "end_time": 0}
+        test = NCOLCI1B("somedir/somefile.nc", filename_info, "c")
+        res = test.get_dataset(ds_id, {"nc_key": "quality_flags"})
+        assert res.dtype == np.dtype("bool")
+
+        expected = np.array([[False, False, False, False, False, False, False],
+                             [False, False, False, False, False, False, False],
+                             [False, False, False, False, False, False, False],
+                             [True, True, True, True, True, True, True],
+                             [True, False, True, True, False, False, False]])
+
+        np.testing.assert_array_equal(res.values, expected)
+
+
+    @mock.patch("xarray.open_dataset")
+    def test_get_l1b_customized_mask(self, mocked_dataset):
+        """Test reading mask datasets from L1B products."""
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI1B
+        from satpy.tests.utils import make_dataid
+        mocked_dataset.return_value = xr.Dataset({"quality_flags": (["rows", "columns"],
+                                                           np.array([1 << (x % 32) for x in range(35)]).reshape(5, 7))},
+                                                 coords={"rows": np.arange(5),
+                                                         "columns": np.arange(7)})
+        ds_id = make_dataid(name="mask")
+        filename_info = {"mission_id": "S3A", "dataset_name": "mask", "start_time": 0, "end_time": 0}
+        test = NCOLCI1B("somedir/somefile.nc", filename_info, "c", mask_items=["bright", "invalid"])
+        res = test.get_dataset(ds_id, {"nc_key": "quality_flags"})
+        assert res.dtype == np.dtype("bool")
+
+        expected = np.array([[False, False, False, False, False, False, False],
+                             [False, False, False, False, False, False, False],
+                             [False, False, False, False, False, False, False],
+                             [False, False, False, False, True, False, True],
+                             [False, False, False, False, False, False, False]])
+
+        np.testing.assert_array_equal(res.values, expected)
+
 
     @mock.patch("xarray.open_dataset")
     def test_olci_angles(self, mocked_dataset):
@@ -241,36 +296,27 @@ class TestOLCIReader(unittest.TestCase):
         assert res.values[-1, -1] == 1e29
 
 
-class TestBitFlags(unittest.TestCase):
-    """Test the bitflag reading."""
+def test_bitflags():
+    """Test the BitFlags class."""
+    from functools import reduce
 
-    def test_bitflags(self):
-        """Test the BitFlags class."""
-        from functools import reduce
+    import numpy as np
 
-        import numpy as np
+    from satpy.readers.olci_nc import DEFAULT_L1B_MASK_ITEMS, L1B_QUALITY_FLAGS, BitFlags
 
-        from satpy.readers.olci_nc import BitFlags
-        flag_list = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
-                     "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT", "HISOLZEN",
-                     "SATURATED", "MEGLINT", "HIGHGLINT", "WHITECAPS",
-                     "ADJAC", "WV_FAIL", "PAR_FAIL", "AC_FAIL", "OC4ME_FAIL",
-                     "OCNN_FAIL", "Extra_1", "KDM_FAIL", "Extra_2",
-                     "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON",
-                     "WHITE_SCATT", "LOWRW", "HIGHRW"]
+    bits = np.array([1 << x for x in range(len(L1B_QUALITY_FLAGS))])
 
-        bits = np.array([1 << x for x in range(len(flag_list))])
+    bflags = BitFlags(bits, flag_list=L1B_QUALITY_FLAGS)
 
-        bflags = BitFlags(bits)
+    mask = reduce(np.logical_or, [bflags[item] for item in DEFAULT_L1B_MASK_ITEMS])
 
-        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-
-        mask = reduce(np.logical_or, [bflags[item] for item in items])
-        expected = np.array([True, False,  True,  True,  True,  True, False,
-                             False,  True, True, False, False, False, False,
-                             False, False, False,  True, False,  True, False,
-                             False, False,  True,  True, False, False, True,
-                             False])
-        assert all(mask == expected)
+    expected = np.array([False, False, False, False,
+                         False, False, False, False,
+                         False, False, False, False,
+                         False, False, False, False,
+                         False, False, False, False,
+                         False, True, True, True,
+                         True, True, True, True,
+                         True, False, True, True,
+                       ])
+    assert all(mask == expected)
