@@ -38,7 +38,7 @@ def combine_metadata(*metadata_objects):
     to the earliest value and similarly for 'end_time' to latest time.  All
     other keys containing the word 'time' are averaged.  Before these adjustments,
     `None` values resulting from data that don't have times associated to them
-    are removed. These rules are applied also to values in 'time_parameters'
+    are removed. These rules are applied also to values in the 'time_parameters'
     dictionary.
 
     In the interest of processing time, lazy arrays are compared by object
