@@ -52,7 +52,6 @@ def combine_metadata(*metadata_objects):
 
     """
     info_dicts = _get_valid_dicts(metadata_objects)
-
     if len(info_dicts) == 1:
         return info_dicts[0].copy()
 
@@ -91,9 +90,8 @@ def _combine_shared_info(shared_keys, info_dicts):
 def _combine_values(key, values, shared_info):
     if "time" in key:
         times = _combine_times(key, values)
-        if times is None:
-            return
-        shared_info[key] = times
+        if times is not None:
+            shared_info[key] = times
     elif _are_values_combinable(values):
         shared_info[key] = values[0]
 
