@@ -40,7 +40,7 @@ FAKE_BASIC_INFO: InfoDict = {
     "satellite": "Himawari-8",
     "observation_area": "FLDK",
     "observation_start_time": 58413.12523839,
-    "observation_end_time": 58413.12562439,
+    "observation_end_time": 58413.132182834444,
     "observation_timeline": "0300",
 }
 FAKE_DATA_INFO: InfoDict = {
@@ -343,7 +343,7 @@ class TestAHIHSDFileHandler:
                 "nominal_start_time": datetime(2018, 10, 22, 3, 0, 0, 0),
                 "nominal_end_time": datetime(2018, 10, 22, 3, 0, 0, 0),
                 "observation_start_time": datetime(2018, 10, 22, 3, 0, 20, 596896),
-                "observation_end_time": datetime(2018, 10, 22, 3, 0, 53, 947296),
+                "observation_end_time": datetime(2018, 10, 22, 3, 10, 20, 596896),
             }
             actual_time_params = im.attrs["time_parameters"]
             for key, value in time_params_exp.items():
@@ -419,7 +419,7 @@ class TestAHIHSDFileHandler:
             assert fh.start_time == datetime(2018, 10, 22, 3, 0)
             assert fh.end_time == datetime(2018, 10, 22, 3, 0)
             assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
-            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 0, 53, 947296)
+            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 10, 20, 596896)
             assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
             assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
 
