@@ -443,7 +443,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             return False
         return True
 
-    def _modify_observation_time_for_nominal(self, observation_time):
+    def _modify_observation_time_for_nominal(self, observation_time, start_or_end_time="start"):
         """Round observation time to a nominal time based on known observation frequency.
 
         AHI observations are split into different sectors including Full Disk
@@ -464,11 +464,18 @@ class AHIHSDFileHandler(BaseFileHandler):
             )
             return observation_time
 
+        observation_frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
         if self.observation_area == "FLDK":
-            dt = 0
+            dt_start = 0
+            dt_end = observation_frequencies["FLDK"]
         else:
-            observation_frequency_seconds = {"JP": 150, "R3": 150, "R4": 30, "R5": 30}[self.observation_area[:2]]
-            dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
+            observation_frequency_seconds = observation_frequencies[self.observation_area[:2]]
+            dt_start = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
+            dt_end = observation_frequencies[self.observation_area[:2]]
+
+        dt = dt_start
+        if start_or_end_time == "end":
+            dt += dt_end
 
         return observation_time.replace(
             hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
