@@ -414,7 +414,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get the nominal end time."""
-        return self.nominal_start_time
+        return self.nominal_end_time
 
     @property
     def observation_start_time(self):
@@ -429,12 +429,12 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        return self._modify_observation_time_for_nominal(self.observation_start_time)
+        return self._modify_observation_time_for_nominal(self.observation_start_time, "start")
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        return self._modify_observation_time_for_nominal(self.observation_end_time)
+        return self._modify_observation_time_for_nominal(self.observation_end_time, "end")
 
     @staticmethod
     def _is_valid_timeline(timeline):
@@ -471,7 +471,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             observation_frequency_seconds = observation_frequencies[self.observation_area[:2]]
             dt_start = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
-            dt_end = observation_frequencies[self.observation_area[:2]]
+            dt_end = observation_frequency_seconds
 
         dt = dt_start
         if start_or_end_time == "end":

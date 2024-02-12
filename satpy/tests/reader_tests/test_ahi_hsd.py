@@ -341,7 +341,7 @@ class TestAHIHSDFileHandler:
 
             time_params_exp = {
                 "nominal_start_time": datetime(2018, 10, 22, 3, 0, 0, 0),
-                "nominal_end_time": datetime(2018, 10, 22, 3, 0, 0, 0),
+                "nominal_end_time": datetime(2018, 10, 22, 3, 10, 0, 0),
                 "observation_start_time": datetime(2018, 10, 22, 3, 0, 20, 596896),
                 "observation_end_time": datetime(2018, 10, 22, 3, 10, 20, 596896),
             }
@@ -417,30 +417,63 @@ class TestAHIHSDFileHandler:
         """Test start/end/scheduled time properties."""
         with _fake_hsd_handler() as fh:
             assert fh.start_time == datetime(2018, 10, 22, 3, 0)
-            assert fh.end_time == datetime(2018, 10, 22, 3, 0)
+            assert fh.end_time == datetime(2018, 10, 22, 3, 10)
             assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
             assert fh.observation_end_time == datetime(2018, 10, 22, 3, 10, 20, 596896)
             assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 10, 0, 0)
 
-    def test_scanning_frequencies(self):
+    @pytest.mark.parametrize(
+        ("observation_area", "start_time", "end_time"),
+        [
+            (
+                "JP01",
+                datetime(2018, 10, 22, 3, 0, 0),
+                datetime(2018, 10, 22, 3, 2, 30)
+            ),
+            (
+                "JP04",
+                datetime(2018, 10, 22, 3, 7, 30, 0),
+                datetime(2018, 10, 22, 3, 10, 0, 0)
+            ),
+            (
+                "R301",
+                datetime(2018, 10, 22, 3, 0, 0),
+                datetime(2018, 10, 22, 3, 2, 30)
+            ),
+            (
+                "R304",
+                datetime(2018, 10, 22, 3, 7, 30, 0),
+                datetime(2018, 10, 22, 3, 10, 0, 0)
+            ),
+            (
+                "R401",
+                datetime(2018, 10, 22, 3, 0, 0),
+                datetime(2018, 10, 22, 3, 0, 30)
+            ),
+            (
+                "R420",
+                datetime(2018, 10, 22, 3, 9, 30, 0),
+                datetime(2018, 10, 22, 3, 10, 0, 0)
+            ),
+            (
+                "R501",
+                datetime(2018, 10, 22, 3, 0, 0),
+                datetime(2018, 10, 22, 3, 0, 30)
+            ),
+            (
+                "R520",
+                datetime(2018, 10, 22, 3, 9, 30, 0),
+                datetime(2018, 10, 22, 3, 10, 0, 0)
+            ),
+        ]
+    )
+    def test_scanning_frequencies(self, observation_area, start_time, end_time):
         """Test scanning frequencies."""
         with _fake_hsd_handler() as fh:
-            fh.observation_area = "JP04"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            fh.observation_area = "R304"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            fh.observation_area = "R420"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            fh.observation_area = "R520"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            fh.observation_area = "FLDK"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            fh.observation_area = observation_area
+            assert fh.nominal_start_time == start_time
+            assert fh.nominal_end_time == end_time
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
