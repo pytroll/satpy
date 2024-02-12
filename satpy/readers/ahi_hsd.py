@@ -429,12 +429,13 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        return self._modify_observation_time_for_nominal(self.observation_start_time, "start")
+        return self._modify_observation_time_for_nominal(self.observation_start_time)
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        return self._modify_observation_time_for_nominal(self.observation_end_time, "end")
+        freq = self._observation_frequency
+        return self.nominal_start_time + timedelta(minutes=freq // 60, seconds=freq % 60)
 
     @staticmethod
     def _is_valid_timeline(timeline):
@@ -443,7 +444,16 @@ class AHIHSDFileHandler(BaseFileHandler):
             return False
         return True
 
-    def _modify_observation_time_for_nominal(self, observation_time, start_or_end_time="start"):
+    @property
+    def _observation_frequency(self):
+        frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
+        area = self.observation_area
+        if area != "FLDK":
+            # e.g. JP01, JP02 etc
+            area = area[:2]
+        return frequencies[area]
+
+    def _modify_observation_time_for_nominal(self, observation_time):
         """Round observation time to a nominal time based on known observation frequency.
 
         AHI observations are split into different sectors including Full Disk
@@ -454,7 +464,6 @@ class AHIHSDFileHandler(BaseFileHandler):
         sector. So if the observation time is 13:32:48 for the "JP02" sector
         which is the second Japan observation where every Japan observation is
         2.5 minutes apart, then the result should be 13:32:30.
-
         """
         timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
         if not self._is_valid_timeline(timeline):
@@ -463,23 +472,16 @@ class AHIHSDFileHandler(BaseFileHandler):
                 stacklevel=3
             )
             return observation_time
-
-        observation_frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
-        if self.observation_area == "FLDK":
-            dt_start = 0
-            dt_end = observation_frequencies["FLDK"]
-        else:
-            observation_frequency_seconds = observation_frequencies[self.observation_area[:2]]
-            dt_start = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
-            dt_end = observation_frequency_seconds
-
-        dt = dt_start
-        if start_or_end_time == "end":
-            dt += dt_end
-
+        dt = self._get_offset_relative_to_timeline()
         return observation_time.replace(
             hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
             second=dt % 60, microsecond=0)
+
+    def _get_offset_relative_to_timeline(self):
+        if self.observation_area == "FLDK":
+            return 0
+        sector_repeat = int(self.observation_area[2:]) - 1
+        return self._observation_frequency * sector_repeat
 
     def get_dataset(self, key, info):
         """Get the dataset."""
