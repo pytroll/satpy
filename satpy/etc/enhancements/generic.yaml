@@ -1239,7 +1239,7 @@ enhancements:
         kwargs:
           palettes:
           - {
-              filename: cloud_top_height.csv
+              filename: colormaps/cloud_top_height.csv
             }
 
   Clear_Sky_Confidence:
@@ -1250,7 +1250,7 @@ enhancements:
         kwargs:
           palettes:
           - {
-             filename: clear_sky_confidence.csv
+             filename: colormaps/clear_sky_confidence.csv
             }
 
   Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate:
@@ -1261,7 +1261,7 @@ enhancements:
         kwargs:
           palettes:
           - {
-              filename: aerosol_thickness.csv
+              filename: colormaps/aerosol_thickness.csv
             }
 
   Angstrom_Exponent_Land_Ocean_Best_Estimate:
@@ -1272,5 +1272,5 @@ enhancements:
         kwargs:
           palettes:
           - {
-             filename: angstrom_exponent.csv
+             filename: colormaps/angstrom_exponent.csv
             }
