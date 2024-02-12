@@ -268,24 +268,14 @@ class _CLAVRxHelper:
         x, y = l1b["x"], l1b["y"]
         area_extent, ncols, nlines = _CLAVRxHelper._area_extent(x, y, h)
 
-        if sensor == "abi":
-            area = geometry.AreaDefinition(
-              "abi_geos",
-              "ABI L2 file area",
-              "abi_geos",
-              proj,
-              ncols,
-              nlines,
-              np.asarray(area_extent))
-        else:
-            area = geometry.AreaDefinition(
-               "ahi_geos",
-               "AHI L2 file area",
-               "ahi_geos",
-               proj,
-               ncols,
-               nlines,
-               np.asarray(area_extent))
+        area = geometry.AreaDefinition(
+          f"{sensor}_geos",
+          f"{sensor.upper()} L2 file area",
+          f"{sensor}_geos",
+          proj,
+          ncols,
+          nlines,
+          area_extent)
 
         return area
 
@@ -515,7 +505,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                 # reader knows something about this dataset (file type matches)
                 # add any information that this reader can add.
                 new_info = ds_info.copy()
-                new_info["resolution"] = self.resolution
+                if self.resolution is not None:
+                    new_info["resolution"] = self.resolution
                 handled_vars.add(ds_info["name"])
                 yield True, new_info
         yield from self._available_file_datasets(handled_vars)
