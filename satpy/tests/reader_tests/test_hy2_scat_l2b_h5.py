@@ -330,7 +330,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Platform_LongName": "Haiyang 2B Ocean Observing Satellite",
             "/attr/Platform_ShortName": "HY-2B",
             "/attr/Platform_Type": "spacecraft",
-            "/attr/Producer_Agency": "Ministry of Natural Resources of the People\'s Republic of China",
+            "/attr/Producer_Agency": "Ministry of Natural Resources of the People's Republic of China",
             "/attr/Producer_Institution": "NSOAS",
             "/attr/Production_Date_Time": "20200326T06:23:10",
             "/attr/Range_Beginning_Time": "20200326T01:11:07",

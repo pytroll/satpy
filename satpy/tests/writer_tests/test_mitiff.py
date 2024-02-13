@@ -879,6 +879,40 @@ class TestMITIFFWriter(unittest.TestCase):
             proj4_string = w._add_proj4_string(ds1, ds1)
             assert proj4_string == check["proj4"]
 
+    def test_correction_proj4_string(self):
+        """Test correction of proj4 lower left coordinate."""
+        import dask.array as da
+        import xarray as xr
+        from pyresample.geometry import AreaDefinition
+
+        from satpy.writers.mitiff import MITIFFWriter
+        area_def = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "+proj=merc",
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((10, 20), chunks=20),
+            dims=("y", "x"),
+            attrs={"area": area_def}
+        )
+        default_expected_correction = (20.0, 15.0)
+        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
+        mitiff_pixel_adjustment = True
+        correction = w._set_correction_size(ds1, mitiff_pixel_adjustment)
+        assert correction == default_expected_correction
+
+        mitiff_pixel_adjustment = False
+        new_expected_correction = (0, 0)
+        w = MITIFFWriter(filename="dummy.tif", base_dir=self.base_dir)
+        correction = w._set_correction_size(ds1, mitiff_pixel_adjustment)
+        assert correction == new_expected_correction
+
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
         from satpy.writers.mitiff import MITIFFWriter

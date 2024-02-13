@@ -43,7 +43,7 @@ dependencies:
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - pytest
+  - pytest<8.0.0
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
