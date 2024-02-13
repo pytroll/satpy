@@ -40,8 +40,11 @@ def combine_metadata(*metadata_objects):
     `None` values resulting from data that don't have times associated to them
     are removed. These rules are applied also to values in the 'time_parameters'
     dictionary.
-.. versionchanged:: 0.47
-   Before Satpy 0.47, all times, including `start_time` and `end_time`, were averaged.
+    
+    .. versionchanged:: 0.47
+
+       Before Satpy 0.47, all times, including `start_time` and `end_time`, were averaged.
+
     In the interest of processing time, lazy arrays are compared by object
     identity rather than by their contents.
 
