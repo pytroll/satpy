@@ -17,10 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products."""
 
+from __future__ import annotations
+
 import logging
 import os
 from glob import glob
-from typing import Optional, Union
+from typing import Optional
 
 import netCDF4
 import numpy as np
@@ -108,11 +110,11 @@ def _get_rows_per_scan(sensor: str) -> Optional[int]:
     return None
 
 
-def _scale_data(data_arr: Union[xr.DataArray, int], scale_factor: float, add_offset: float) -> xr.DataArray:
+def _scale_data(data_arr: xr.DataArray | int, scale_factor: float, add_offset: float) -> xr.DataArray:
     """Scale data, if needed."""
     scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
     if scaling_needed:
-        data_arr = data_arr * scale_factor + add_offset
+        data_arr = data_arr * np.float32(scale_factor) + np.float32(add_offset)
     return data_arr
 
 
@@ -120,16 +122,17 @@ class _CLAVRxHelper:
     """A base class for the CLAVRx File Handlers."""
 
     @staticmethod
-    def _get_nadir_resolution(sensor, resolution_from_filename_info):
+    def _get_nadir_resolution(sensor, filename_info_resolution):
         """Get nadir resolution."""
         for k, v in NADIR_RESOLUTION.items():
             if sensor.startswith(k):
                 return v
-        res = resolution_from_filename_info
-        if res.endswith("m"):
-            return int(res[:-1])
-        elif res is not None:
-            return int(res)
+        if filename_info_resolution is None:
+            return None
+        if isinstance(filename_info_resolution, str) and filename_info_resolution.startswith("m"):
+            return int(filename_info_resolution[:-1])
+        else:
+            return int(filename_info_resolution)
 
     @staticmethod
     def _remove_attributes(attrs: dict) -> dict:
