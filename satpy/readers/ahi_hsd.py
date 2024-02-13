@@ -755,8 +755,14 @@ class NominalTimeCalculator:
             timeline (str): Observation timeline (four characters HHMM)
             area (str): Observation area (four characters, e.g. FLDK)
         """
-        self.timeline = timeline
+        self.timeline = self._parse_timeline(timeline)
         self.area = area
+
+    def _parse_timeline(self, timeline):
+        try:
+            return datetime.strptime(timeline, "%H%M").time()
+        except ValueError:
+            return None
 
     def get_nominal_start_time(self, observation_start_time):
         """Get nominal start time of the scan."""
@@ -780,7 +786,7 @@ class NominalTimeCalculator:
         which is the second Japan observation where every Japan observation is
         2.5 minutes apart, then the result should be 13:32:30.
         """
-        if not self._is_valid_timeline(self.timeline):
+        if not self.timeline:
             warnings.warn(
                 "Observation timeline is fill value, not rounding observation time.",
                 stacklevel=3
@@ -788,15 +794,8 @@ class NominalTimeCalculator:
             return observation_time
         dt = self._get_offset_relative_to_timeline()
         return observation_time.replace(
-            hour=int(self.timeline[:2]), minute=int(self.timeline[2:4]) + dt//60,
+            hour=self.timeline.hour, minute=self.timeline.minute + dt//60,
             second=dt % 60, microsecond=0)
-
-    @staticmethod
-    def _is_valid_timeline(timeline):
-        """Check that the `observation_timeline` value is not a fill value."""
-        if int(timeline[:2]) > 23:
-            return False
-        return True
 
     def _get_offset_relative_to_timeline(self):
         if self.area == "FLDK":
