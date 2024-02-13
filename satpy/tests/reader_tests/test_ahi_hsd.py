@@ -29,7 +29,7 @@ import dask.array as da
 import numpy as np
 import pytest
 
-from satpy.readers.ahi_hsd import AHIHSDFileHandler
+from satpy.readers.ahi_hsd import AHIHSDFileHandler, NominalTimeCalculator
 from satpy.readers.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
@@ -495,22 +495,22 @@ class TestAHIHSDFileHandler:
 
     def test_is_valid_time(self):
         """Test that valid times are correctly identified."""
-        assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO["observation_timeline"])
-        assert not AHIHSDFileHandler._is_valid_timeline("65526")
+        assert NominalTimeCalculator._is_valid_timeline(FAKE_BASIC_INFO["observation_timeline"])
+        assert not NominalTimeCalculator._is_valid_timeline("65526")
 
     def test_time_rounding(self):
         """Test rounding of the nominal time."""
         mocker = mock.MagicMock()
         in_date = datetime(2020, 1, 1, 12, 0, 0)
 
-        with mock.patch("satpy.readers.ahi_hsd.AHIHSDFileHandler._is_valid_timeline", mocker):
-            with _fake_hsd_handler() as fh:
-                mocker.return_value = True
-                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
-                mocker.return_value = False
-                with pytest.warns(UserWarning,
-                                   match=r"Observation timeline is fill value, not rounding observation time"):
-                    assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
+        with mock.patch("satpy.readers.ahi_hsd.NominalTimeCalculator._is_valid_timeline", mocker):
+            calc = NominalTimeCalculator("0300", "FLDK")
+            mocker.return_value = True
+            assert calc._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
+            mocker.return_value = False
+            with pytest.warns(UserWarning,
+                               match=r"Observation timeline is fill value, not rounding observation time"):
+                assert calc._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):

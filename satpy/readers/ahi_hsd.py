@@ -429,59 +429,18 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        return self._modify_observation_time_for_nominal(self.observation_start_time)
+        timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
+        calc = NominalTimeCalculator(timeline,
+                                     self.observation_area)
+        return calc.get_nominal_start_time(self.observation_start_time)
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        freq = self._observation_frequency
-        return self.nominal_start_time + timedelta(minutes=freq // 60, seconds=freq % 60)
-
-    @staticmethod
-    def _is_valid_timeline(timeline):
-        """Check that the `observation_timeline` value is not a fill value."""
-        if int(timeline[:2]) > 23:
-            return False
-        return True
-
-    @property
-    def _observation_frequency(self):
-        frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
-        area = self.observation_area
-        if area != "FLDK":
-            # e.g. JP01, JP02 etc
-            area = area[:2]
-        return frequencies[area]
-
-    def _modify_observation_time_for_nominal(self, observation_time):
-        """Round observation time to a nominal time based on known observation frequency.
-
-        AHI observations are split into different sectors including Full Disk
-        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
-        sector is observed at different frequencies (ex. every 10 minutes,
-        every 2.5 minutes, and every 30 seconds). This method will take the
-        actual observation time and round it to the nearest interval for this
-        sector. So if the observation time is 13:32:48 for the "JP02" sector
-        which is the second Japan observation where every Japan observation is
-        2.5 minutes apart, then the result should be 13:32:30.
-        """
         timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
-        if not self._is_valid_timeline(timeline):
-            warnings.warn(
-                "Observation timeline is fill value, not rounding observation time.",
-                stacklevel=3
-            )
-            return observation_time
-        dt = self._get_offset_relative_to_timeline()
-        return observation_time.replace(
-            hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
-            second=dt % 60, microsecond=0)
-
-    def _get_offset_relative_to_timeline(self):
-        if self.observation_area == "FLDK":
-            return 0
-        sector_repeat = int(self.observation_area[2:]) - 1
-        return self._observation_frequency * sector_repeat
+        calc = NominalTimeCalculator(timeline,
+                                     self.observation_area)
+        return calc.get_nominal_end_time(self.nominal_start_time)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
@@ -784,3 +743,72 @@ class AHIHSDFileHandler(BaseFileHandler):
         c2_ = self._header["calibration"]["c2_rad2tb_conversion"][0]
 
         return (c0_ + c1_ * Te_ + c2_ * Te_ ** 2).clip(0)
+
+
+class NominalTimeCalculator:
+    """Get time when a scan was nominally to be recorded."""
+
+    def __init__(self, timeline, area):
+        """Initialize the nominal timestamp calculator.
+
+        Args:
+            timeline (str): Observation timeline (four characters HHMM)
+            area (str): Observation area (four characters, e.g. FLDK)
+        """
+        self.timeline = timeline
+        self.area = area
+
+    def get_nominal_start_time(self, observation_time):
+        """Get nominal start time of the scan."""
+        return self._modify_observation_time_for_nominal(observation_time)
+
+    def get_nominal_end_time(self, nominal_start_time):
+        """Get nominal end time of the scan."""
+        freq = self._observation_frequency
+        return nominal_start_time + timedelta(minutes=freq // 60,
+                                              seconds=freq % 60)
+
+    def _modify_observation_time_for_nominal(self, observation_time):
+        """Round observation time to a nominal time based on known observation frequency.
+
+        AHI observations are split into different sectors including Full Disk
+        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
+        sector is observed at different frequencies (ex. every 10 minutes,
+        every 2.5 minutes, and every 30 seconds). This method will take the
+        actual observation time and round it to the nearest interval for this
+        sector. So if the observation time is 13:32:48 for the "JP02" sector
+        which is the second Japan observation where every Japan observation is
+        2.5 minutes apart, then the result should be 13:32:30.
+        """
+        if not self._is_valid_timeline(self.timeline):
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=3
+            )
+            return observation_time
+        dt = self._get_offset_relative_to_timeline()
+        return observation_time.replace(
+            hour=int(self.timeline[:2]), minute=int(self.timeline[2:4]) + dt//60,
+            second=dt % 60, microsecond=0)
+
+    @staticmethod
+    def _is_valid_timeline(timeline):
+        """Check that the `observation_timeline` value is not a fill value."""
+        if int(timeline[:2]) > 23:
+            return False
+        return True
+
+    def _get_offset_relative_to_timeline(self):
+        if self.area == "FLDK":
+            return 0
+        sector_repeat = int(self.area[2:]) - 1
+        return self._observation_frequency * sector_repeat
+
+    @property
+    def _observation_frequency(self):
+        frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
+        area = self.area
+        if area != "FLDK":
+            # e.g. JP01, JP02 etc
+            area = area[:2]
+        return frequencies[area]
