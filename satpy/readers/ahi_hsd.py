@@ -427,19 +427,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
 
     @property
+    def _timeline(self):
+        return "{:04d}".format(self.basic_info["observation_timeline"][0])
+
+    @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
-        calc = NominalTimeCalculator(timeline,
-                                     self.observation_area)
+        calc = NominalTimeCalculator(self._timeline, self.observation_area)
         return calc.get_nominal_start_time(self.observation_start_time)
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
-        calc = NominalTimeCalculator(timeline,
-                                     self.observation_area)
+        calc = NominalTimeCalculator(self._timeline, self.observation_area)
         return calc.get_nominal_end_time(self.nominal_start_time)
 
     def get_dataset(self, key, info):
