@@ -758,9 +758,9 @@ class NominalTimeCalculator:
         self.timeline = timeline
         self.area = area
 
-    def get_nominal_start_time(self, observation_time):
+    def get_nominal_start_time(self, observation_start_time):
         """Get nominal start time of the scan."""
-        return self._modify_observation_time_for_nominal(observation_time)
+        return self._modify_observation_time_for_nominal(observation_start_time)
 
     def get_nominal_end_time(self, nominal_start_time):
         """Get nominal end time of the scan."""

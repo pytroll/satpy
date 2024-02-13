@@ -423,58 +423,6 @@ class TestAHIHSDFileHandler:
             assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
             assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 10, 0, 0)
 
-    @pytest.mark.parametrize(
-        ("observation_area", "start_time", "end_time"),
-        [
-            (
-                "JP01",
-                datetime(2018, 10, 22, 3, 0, 0),
-                datetime(2018, 10, 22, 3, 2, 30)
-            ),
-            (
-                "JP04",
-                datetime(2018, 10, 22, 3, 7, 30, 0),
-                datetime(2018, 10, 22, 3, 10, 0, 0)
-            ),
-            (
-                "R301",
-                datetime(2018, 10, 22, 3, 0, 0),
-                datetime(2018, 10, 22, 3, 2, 30)
-            ),
-            (
-                "R304",
-                datetime(2018, 10, 22, 3, 7, 30, 0),
-                datetime(2018, 10, 22, 3, 10, 0, 0)
-            ),
-            (
-                "R401",
-                datetime(2018, 10, 22, 3, 0, 0),
-                datetime(2018, 10, 22, 3, 0, 30)
-            ),
-            (
-                "R420",
-                datetime(2018, 10, 22, 3, 9, 30, 0),
-                datetime(2018, 10, 22, 3, 10, 0, 0)
-            ),
-            (
-                "R501",
-                datetime(2018, 10, 22, 3, 0, 0),
-                datetime(2018, 10, 22, 3, 0, 30)
-            ),
-            (
-                "R520",
-                datetime(2018, 10, 22, 3, 9, 30, 0),
-                datetime(2018, 10, 22, 3, 10, 0, 0)
-            ),
-        ]
-    )
-    def test_scanning_frequencies(self, observation_area, start_time, end_time):
-        """Test scanning frequencies."""
-        with _fake_hsd_handler() as fh:
-            fh.observation_area = observation_area
-            assert fh.nominal_start_time == start_time
-            assert fh.nominal_end_time == end_time
-
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
         open_name = "%s.open" % __name__
@@ -492,25 +440,6 @@ class TestAHIHSDFileHandler:
             fp_.tell.return_value = 100
             with pytest.warns(UserWarning, match=r"Actual .* header size does not match expected"):
                 fh._check_fpos(fp_, fpos, 0, "header 1")
-
-    def test_is_valid_time(self):
-        """Test that valid times are correctly identified."""
-        assert NominalTimeCalculator._is_valid_timeline(FAKE_BASIC_INFO["observation_timeline"])
-        assert not NominalTimeCalculator._is_valid_timeline("65526")
-
-    def test_time_rounding(self):
-        """Test rounding of the nominal time."""
-        mocker = mock.MagicMock()
-        in_date = datetime(2020, 1, 1, 12, 0, 0)
-
-        with mock.patch("satpy.readers.ahi_hsd.NominalTimeCalculator._is_valid_timeline", mocker):
-            calc = NominalTimeCalculator("0300", "FLDK")
-            mocker.return_value = True
-            assert calc._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
-            mocker.return_value = False
-            with pytest.warns(UserWarning,
-                               match=r"Observation timeline is fill value, not rounding observation time"):
-                assert calc._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):
@@ -702,3 +631,74 @@ def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, 
     assert in_fname != fh.filename
     assert str(filename_info["segment"]).zfill(2) == fh.filename[0:2]
     return fh
+
+
+class TestNominalTimeCalculator:
+    """Test case for nominal timestamp computation."""
+
+    @pytest.mark.parametrize(
+        ("timeline", "expected"),
+        [
+            ("0300", datetime(2020, 1, 1, 3, 0, 0)),
+            ("65526", datetime(2020, 1, 1, 12, 0, 0))
+        ]
+    )
+    def test_invalid_timeline(self, timeline, expected):
+        """Test handling of invalid timeline."""
+        calc = NominalTimeCalculator(timeline, "FLDK")
+        res = calc.get_nominal_start_time(datetime(2020, 1, 1, 12, 0, 0))
+        assert res == expected
+
+    @pytest.mark.parametrize(
+        ("area", "expected"),
+        [
+            (
+                "JP01",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+            ),
+            (
+                "JP04",
+                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R301",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+            ),
+            (
+                "R304",
+                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R401",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+            ),
+            (
+                "R420",
+                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R501",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+            ),
+            (
+                "R520",
+                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+        ]
+    )
+    def test_areas(self, area, expected):
+        """Test nominal timestamps for multiple areas."""
+        obs_start_time = datetime(2018, 10, 22, 3, 0, 20, 596896)
+        calc = NominalTimeCalculator("0300", area)
+        nom_start_time = calc.get_nominal_start_time(obs_start_time)
+        nom_end_time = calc.get_nominal_end_time(nom_start_time)
+        assert nom_start_time == expected["tstart"]
+        assert nom_end_time == expected["tend"]
