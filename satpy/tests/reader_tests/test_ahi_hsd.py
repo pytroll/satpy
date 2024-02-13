@@ -702,3 +702,40 @@ class TestNominalTimeCalculator:
         nom_end_time = calc.get_nominal_end_time(nom_start_time)
         assert nom_start_time == expected["tstart"]
         assert nom_end_time == expected["tend"]
+
+    @pytest.mark.parametrize(
+        ("timeline", "obs_start_time", "expected"),
+        [
+            (
+                "1200",
+                datetime(2023, 1, 1, 12, 0, 1),
+                {"tstart": datetime(2023, 1, 1, 12, 0, 0),
+                 "tend": datetime(2023, 1, 1, 12, 10, 0)}
+            ),
+            (
+                "1200",
+                datetime(2023, 1, 1, 11, 59, 59),
+                {"tstart": datetime(2023, 1, 1, 12, 0, 0),
+                 "tend": datetime(2023, 1, 1, 12, 10, 0)}
+            ),
+            (
+                "0000",
+                datetime(2023, 1, 1, 0, 0, 1),
+                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+            ),
+            (
+                "0000",
+                datetime(2022, 12, 31, 23, 59, 59),
+                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+            ),
+        ]
+    )
+    def test_timelines(self, timeline, obs_start_time, expected):
+        """Test nominal timestamps for multiple timelines."""
+        calc = NominalTimeCalculator(timeline, "FLDK")
+        nom_start_time = calc.get_nominal_start_time(obs_start_time)
+        nom_end_time = calc.get_nominal_end_time(nom_start_time)
+        assert nom_start_time == expected["tstart"]
+        assert nom_end_time == expected["tend"]
