@@ -1613,15 +1613,37 @@ def test_select_pattern(fake_gsyreader):
             "M9G-c-21000101100000-21000101100100-0001.nc")
 
 
-def test_preloaded_instances(tmp_path, fake_gsyreader):
-    """That that preloaded instances are generated."""
+@pytest.fixture()
+def fake_simple_nc_file(tmp_path):
+    """Create a small dummy NetCDF file for testing preloaded instances.
+
+    Returns the filename.
+    """
+    nm = tmp_path / "M9G-a-21000101053000-21000101053100-01.nc"
+    nm.parent.mkdir(exist_ok=True, parents=True)
+    ds = xr.Dataset()
+    ds["panarea"] = xr.DataArray(np.array([[0, 1, 2]]), dims=["y", "x"])
+    ds["strómboli"] = xr.DataArray(np.array([[1, 1, 2]]), dims=["y", "x"])
+    ds["salina"] = xr.DataArray(np.array([[2, 1, 2]]), dims=["y", "x"])
+    ds.to_netcdf(nm, group="/grp")
+
+    return nm
+
+
+@pytest.fixture()
+def dummy_preloadable_handler():
+    """Return a dummy preloadable netcdf4-based filehandler."""
     from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
-    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
     class DummyPreloadableHandler(Preloadable, NetCDF4FileHandler):
         pass
+    return DummyPreloadableHandler
 
+
+@pytest.fixture()
+def fake_filetype_info(dummy_preloadable_handler):
+    """Return a fake filetype info dict."""
     ft_info = {
-            "file_reader": DummyPreloadableHandler,
+            "file_reader": dummy_preloadable_handler,
             "file_patterns": [
                 "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
                 "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"],
@@ -1633,35 +1655,29 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
                 "grp/strómboli": ["rc"],
                 "grp/salina": []}}
 
-    ft_info_2 = {
-            "file_reader": DummyPreloadableHandler,
+    return ft_info
+
+
+def test_preloaded_instances_works(
+        tmp_path, fake_gsyreader, fake_simple_nc_file,
+        dummy_preloadable_handler, fake_filetype_info):
+    """That that preloaded instances are generated."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
+    ft_info_2 = {**fake_filetype_info,
             "file_patterns": [
                 "{platform}-c-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
-                "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"],
-            "expected_segments": 3,
-            "time_tags": ["start_time", "end_time"],
-            "segment_tag": "segment",
-            "required_netcdf_variables": {
-                "grp/panarea": ["segment"],
-                "grp/strómboli": ["rc"],
-                "grp/salina": []}}
+                "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"]}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
                 "name": "island-reader"},
              "file_types": {
-                 "m9g": ft_info,
+                 "m9g": fake_filetype_info,
                  "mag": ft_info_2}}, preload=True)
 
-    # create a dummy file
 
-    nm = tmp_path / "M9G-a-21000101053000-21000101053100-01.nc"
-    nm.parent.mkdir(exist_ok=True, parents=True)
-    ds = xr.Dataset()
-    ds["panarea"] = xr.DataArray(np.array([[0, 1, 2]]), dims=["y", "x"])
-    ds["strómboli"] = xr.DataArray(np.array([[1, 1, 2]]), dims=["y", "x"])
-    ds["salina"] = xr.DataArray(np.array([[2, 1, 2]]), dims=["y", "x"])
-    ds.to_netcdf(nm, group="/grp")
+    # filename info belonging to fake_simple_nc_file
 
     fn_info = {"platform": "M9a", "start_time": datetime(2100, 1, 1, 5, 30),
                "end_time": datetime(2100, 1, 1, 5, 31), "segment": 1}
@@ -1669,7 +1685,8 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
         # prepare cache files
-        dph = DummyPreloadableHandler(os.fspath(nm), fn_info, ft_info)
+        dph = dummy_preloadable_handler(os.fspath(fake_simple_nc_file),
+                                        fn_info, fake_filetype_info)
         for i in range(2, 4):  # disk cache except for nr. 1
             fn = (tmp_path / "cache" / "satpy" / "preloadable" /
                   "DummyPreloadableHandler" /
@@ -1677,19 +1694,27 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
             fn.parent.mkdir(exist_ok=True, parents=True)
             dph.store_cache(os.fspath(fn))
 
-        fhs = gsyr.create_filehandlers([os.fspath(nm)])
+        fhs = gsyr.create_filehandlers([os.fspath(fake_simple_nc_file)])
         assert len(fhs["m9g"]) == 3
 
-    ffi2 = ft_info.copy()
-    ffi2["requires"] = ["pergola"]
+
+def test_preloaded_instances_requirement(
+        tmp_path, fake_gsyreader, fake_simple_nc_file,
+        dummy_preloadable_handler, fake_filetype_info):
+    """Test that pre-loading instances fails if there is a required tag."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
+    ft_info = {**fake_filetype_info,
+               "requires": ["pergola"]}
+
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
                 "name": "alicudi"},
              "file_types": {
-                 "m9g": ffi2}}, preload=True)
+                 "m9g": ft_info}}, preload=True)
     g = gsyr._new_filehandler_instances(
-            ffi2,
-            [(os.fspath(nm),
+            ft_info,
+            [(os.fspath(fake_simple_nc_file),
               {"platform": "M9G",
                "start_time": datetime(2100, 1, 1, 5, 30, ),
                "end_time": datetime(2100, 1, 1, 5, 31, ),
@@ -1697,13 +1722,15 @@ def test_preloaded_instances(tmp_path, fake_gsyreader):
     with pytest.raises(ValueError, match="Unable to preload"):
         list(g)
 
-    g = fake_gsyreader._new_preloaded_filehandler_instances(
-            ffi2,
-            [("M9G-a-21000101053000-21000101053100-0001.nc",
-              {"platform": "M9G",
-               "start_time": datetime(2100, 1, 1, 5, 30, ),
-               "end_time": datetime(2100, 1, 1, 5, 31, ),
-               "segment": 1})])
+
+def test_preloaded_instances_not_implemented(tmp_path, fake_gsyreader,
+                                             fake_filetype_info):
+    """Test that pre-loading instances fails if it is not implemented."""
+    ft_info = {**fake_filetype_info, "requires": ["pergola"]}
+
+    # Second argument irrelevant, as this part of the method should not be
+    # reached
+    g = fake_gsyreader._new_preloaded_filehandler_instances(ft_info, None)
     with pytest.raises(NotImplementedError, match="Pre-loading not implemented"):
         list(g)
 
@@ -1770,7 +1797,3 @@ def test_get_cache_filename(tmp_path):
         cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
             "BaseFileHandler" / "a-99991231235959-235959-04-01.pkl")
-
-
-def test_preloaded_instances_files_absent(tmp_path):
-    """Test preloaded instances when subsequent files are absent."""
