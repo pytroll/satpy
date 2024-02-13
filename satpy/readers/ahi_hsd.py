@@ -792,10 +792,35 @@ class NominalTimeCalculator:
                 stacklevel=3
             )
             return observation_time
+        timeline = self._get_closest_timeline(observation_time)
         dt = self._get_offset_relative_to_timeline()
-        return observation_time.replace(
-            hour=self.timeline.hour, minute=self.timeline.minute + dt//60,
-            second=dt % 60, microsecond=0)
+        return timeline + timedelta(minutes=dt//60, seconds=dt % 60)
+
+    def _get_closest_timeline(self, observation_time):
+        """Find the closest timeline for the given observation time.
+
+        Needs to check surrounding days because the observation might start
+        a little bit before the planned time.
+
+        Observation start time: 2022-12-31 23:59
+        Timeline: 0000
+        => Nominal start time: 2023-01-01 00:00
+        """
+        delta_days = [-1, 0, 1]
+        surrounding_dates = [
+            (observation_time + timedelta(days=delta)).date()
+            for delta in delta_days
+        ]
+        timelines = [
+            datetime.combine(date, self.timeline)
+            for date in surrounding_dates
+        ]
+        diffs = [
+            abs((timeline - observation_time))
+            for timeline in timelines
+        ]
+        argmin = np.argmin(diffs)
+        return timelines[argmin]
 
     def _get_offset_relative_to_timeline(self):
         if self.area == "FLDK":

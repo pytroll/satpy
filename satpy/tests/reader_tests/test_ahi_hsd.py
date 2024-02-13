@@ -707,16 +707,16 @@ class TestNominalTimeCalculator:
         ("timeline", "obs_start_time", "expected"),
         [
             (
-                "1200",
-                datetime(2023, 1, 1, 12, 0, 1),
-                {"tstart": datetime(2023, 1, 1, 12, 0, 0),
-                 "tend": datetime(2023, 1, 1, 12, 10, 0)}
+                "2350",
+                datetime(2022, 12, 31, 23, 50, 1),
+                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
             ),
             (
-                "1200",
-                datetime(2023, 1, 1, 11, 59, 59),
-                {"tstart": datetime(2023, 1, 1, 12, 0, 0),
-                 "tend": datetime(2023, 1, 1, 12, 10, 0)}
+                "2350",
+                datetime(2022, 12, 31, 23, 49, 59),
+                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
             ),
             (
                 "0000",
