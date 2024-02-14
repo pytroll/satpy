@@ -32,7 +32,12 @@ try:
     from satpy.readers.core.netcdf import NetCDF4FileHandler, Preloadable
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = Preloadable = object  # type: ignore
+    NetCDF4FileHandler = object  # type: ignore
+    # setting Preloadable to object leads to an MRO error when defining
+    # FakePreloadableHandler, therefore define own class
+    class Preloadable:  # type: ignore
+        """Backup preloadable class if import fails."""
+        pass
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
