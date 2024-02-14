@@ -547,10 +547,30 @@ class Preloadable:
         """Return true if variable is rc-cachable."""
         # it's always safe to store variable attributes, shapes, dtype, dimensions
         # between repeat cycles
+        if self._is_safely_shareable_metadata(itm):
+            return True
+        # need an inverted mapping so I can tell which variables I can store
+        invmap = self._get_inv_name_map()
+
+#        listed_variables = self.filetype_info.get("required_netcdf_variables")
+#        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+#        invmap = {}
+#        for raw_name in listed_variables:
+#            for subst_name in self._get_required_variable_names([raw_name],
+#                                                                variable_name_replacements):
+#                invmap[subst_name] = raw_name
+        if "rc" in self.filetype_info["required_netcdf_variables"][invmap.get(itm, itm)]:
+            return True
+        return False
+
+    def _is_safely_shareable_metadata(self, itm):
+        """Check if item refers to safely shareable metadata."""
         for meta in ("/attr/", "/shape", "/dtype", "/dimension/", "/dimensions"):
             if meta in itm:
                 return True
-        # need an inverted mapping so I can tell which variables I can store
+
+    def _get_inv_name_map(self):
+        """Get inverted mapping for variable name replacements."""
         listed_variables = self.filetype_info.get("required_netcdf_variables")
         variable_name_replacements = self.filetype_info.get("variable_name_replacements")
         invmap = {}
@@ -558,9 +578,7 @@ class Preloadable:
             for subst_name in self._get_required_variable_names([raw_name],
                                                                 variable_name_replacements):
                 invmap[subst_name] = raw_name
-        if "rc" in self.filetype_info["required_netcdf_variables"][invmap.get(itm, itm)]:
-            return True
-        return False
+        return invmap
 
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
