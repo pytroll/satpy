@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for merging metadata from various sources."""
 
+import warnings
 from collections.abc import Collection
 from datetime import datetime
 from functools import partial, reduce
@@ -27,7 +28,7 @@ import numpy as np
 from satpy.writers.utils import flatten_dict
 
 
-def combine_metadata(*metadata_objects):
+def combine_metadata(*metadata_objects, average_times=None):
     """Combine the metadata of two or more Datasets.
 
     If the values corresponding to any keys are not equal or do not
@@ -40,7 +41,7 @@ def combine_metadata(*metadata_objects):
     `None` values resulting from data that don't have times associated to them
     are removed. These rules are applied also to values in the 'time_parameters'
     dictionary.
-    
+
     .. versionchanged:: 0.47
 
        Before Satpy 0.47, all times, including `start_time` and `end_time`, were averaged.
@@ -51,10 +52,19 @@ def combine_metadata(*metadata_objects):
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
 
+    Kwargs:
+        average_times (bool): Removed option to average all time attributes.
+
     Returns:
         dict: the combined metadata
 
     """
+    if average_times is not None:
+        warnings.warn(
+            "'average_time' option has been removed and start/end times are handled with min/max instead.",
+            UserWarning
+        )
+
     info_dicts = _get_valid_dicts(metadata_objects)
     if len(info_dicts) == 1:
         return info_dicts[0].copy()
