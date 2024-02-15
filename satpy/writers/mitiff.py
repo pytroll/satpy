@@ -220,7 +220,7 @@ class MITIFFWriter(ImageWriter):
 
         return _image_description
 
-    def _add_proj4_string(self, datasets, first_dataset):
+    def _add_proj4_string(self, datasets, first_dataset, **kwargs):
         import warnings
 
         proj4_string = " Proj string: "
@@ -245,6 +245,20 @@ class MITIFFWriter(ImageWriter):
         # FUTURE: Use pyproj 2.0+ to convert EPSG to PROJ4 if possible
         proj4_string, x_0 = self._convert_epsg_to_proj(proj4_string, x_0)
 
+        proj4_string = self._special_correction_of_proj_string(proj4_string)
+
+        if isinstance(datasets, list):
+            _dataset = first_dataset
+        else:
+            _dataset = datasets
+        mitiff_pixel_adjustment = kwargs.get("mitiff_pixel_adjustment", True)
+        proj4_string = self._append_projection_center(proj4_string, _dataset, x_0, y_0, mitiff_pixel_adjustment)
+        LOG.debug("proj4_string: %s", proj4_string)
+        proj4_string += "\n"
+
+        return proj4_string
+
+    def _special_correction_of_proj_string(self, proj4_string):
         if "geos" in proj4_string:
             proj4_string = proj4_string.replace("+sweep=x ", "")
             if "+a=6378137.0 +b=6356752.31414" in proj4_string:
@@ -258,33 +272,33 @@ class MITIFFWriter(ImageWriter):
 
         if "units" not in proj4_string:
             proj4_string += " +units=km"
-
-        proj4_string = self._append_projection_center(proj4_string, datasets, first_dataset, x_0, y_0)
-        LOG.debug("proj4_string: %s", proj4_string)
-        proj4_string += "\n"
-
         return proj4_string
 
-    def _append_projection_center(self, proj4_string, datasets, first_dataset, x_0, y_0):
-        if isinstance(datasets, list):
-            dataset = first_dataset
-        else:
-            dataset = datasets
+    def _append_projection_center(self, proj4_string, dataset, x_0, y_0, mitiff_pixel_adjustment):
+        corner_correction_x, corner_correction_y = self._set_correction_size(dataset, mitiff_pixel_adjustment)
         if "x_0" not in proj4_string:
             proj4_string += " +x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
-                     dataset.attrs["area"].pixel_size_x) + x_0)
+                     corner_correction_x) + x_0)
             proj4_string += " +y_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[1] +
-                     dataset.attrs["area"].pixel_size_y) + y_0)
+                     corner_correction_y) + y_0)
         elif "+x_0=0" in proj4_string and "+y_0=0" in proj4_string:
             proj4_string = proj4_string.replace("+x_0=0", "+x_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[0] +
-                     dataset.attrs["area"].pixel_size_x) + x_0))
+                     corner_correction_x) + x_0))
             proj4_string = proj4_string.replace("+y_0=0", "+y_0=%.6f" % (
                     (-dataset.attrs["area"].area_extent[1] +
-                     dataset.attrs["area"].pixel_size_y) + y_0))
+                     corner_correction_y) + y_0))
         return proj4_string
+
+    def _set_correction_size(self, dataset, mitiff_pixel_adjustment):
+        corner_correction_x = dataset.attrs["area"].pixel_size_x
+        corner_correction_y = dataset.attrs["area"].pixel_size_y
+        if not mitiff_pixel_adjustment:
+            corner_correction_x = 0
+            corner_correction_y = 0
+        return corner_correction_x,corner_correction_y
 
     def _convert_epsg_to_proj(self, proj4_string, x_0):
         if "EPSG:32631" in proj4_string:
@@ -563,7 +577,7 @@ class MITIFFWriter(ImageWriter):
 
         _image_description += " Map projection: Stereographic\n"
 
-        _image_description += self._add_proj4_string(datasets, first_dataset)
+        _image_description += self._add_proj4_string(datasets, first_dataset, **kwargs)
 
         _image_description += " TrueLat: 60N\n"
         _image_description += " GridRot: 0\n"

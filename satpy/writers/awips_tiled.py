@@ -1824,7 +1824,7 @@ def main():
     group_2.add_argument("--letters", dest="lettered_grid", action="store_true",
                          help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                         help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: 'row col'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                          help="output filenaming pattern")
     group_2.add_argument("--source-name", default="SSEC",
