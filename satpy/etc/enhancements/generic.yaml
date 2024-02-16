@@ -1104,7 +1104,7 @@ enhancements:
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+      kwargs: {stretch: linear, cutoffs: [[0.02, 0.02], [0.02, 0.02], [0.02, 0.02], [0.02, 0.02]]}
     - name: inverse
       method: !!python/name:satpy.enhancements.invert
       args:
