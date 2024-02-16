@@ -186,7 +186,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         assert new_ds_infos[1][0]
         assert new_ds_infos[1][1]["resolution"] == 742
 
-        # we have this, but don"t want to change the resolution
+        # we have this, but don't want to change the resolution
         # because a previous handler said it has it
         assert new_ds_infos[2][0]
         assert new_ds_infos[2][1]["resolution"] == 1
@@ -201,11 +201,11 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         assert new_ds_infos[4][0]
         assert new_ds_infos[4][1]["resolution"] == 742
 
-        # we don"t have this variable, don"t change it
+        # we don"t have this variable, don't change it
         assert not new_ds_infos[5][0]
         assert new_ds_infos[5][1].get("resolution") is None
 
-        # we have this, but it isn"t supposed to come from our file type
+        # we have this, but it isn't supposed to come from our file type
         assert new_ds_infos[6][0] is None
         assert new_ds_infos[6][1].get("resolution") is None
 
