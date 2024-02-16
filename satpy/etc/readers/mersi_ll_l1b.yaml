@@ -1,6 +1,10 @@
 reader:
-  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
   name: mersi_ll_l1b
+  short_name: MERSI Low Light FY3E L1B
+  long_name: FY-3E MERSI Low Light Level 1B
+  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
+  status: Beta
+  supports_fsspec: false
   sensors: [mersi-ll]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
