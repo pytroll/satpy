@@ -551,14 +551,6 @@ class Preloadable:
             return True
         # need an inverted mapping so I can tell which variables I can store
         invmap = self._get_inv_name_map()
-
-#        listed_variables = self.filetype_info.get("required_netcdf_variables")
-#        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
-#        invmap = {}
-#        for raw_name in listed_variables:
-#            for subst_name in self._get_required_variable_names([raw_name],
-#                                                                variable_name_replacements):
-#                invmap[subst_name] = raw_name
         if "rc" in self.filetype_info["required_netcdf_variables"][invmap.get(itm, itm)]:
             return True
         return False
