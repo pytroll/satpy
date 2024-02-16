@@ -29,7 +29,7 @@ import dask.array as da
 import numpy as np
 import pytest
 
-from satpy.readers.ahi_hsd import AHIHSDFileHandler, NominalTimeCalculator
+from satpy.readers.ahi_hsd import AHIHSDFileHandler, _NominalTimeCalculator
 from satpy.readers.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
@@ -645,7 +645,7 @@ class TestNominalTimeCalculator:
     )
     def test_invalid_timeline(self, timeline, expected):
         """Test handling of invalid timeline."""
-        calc = NominalTimeCalculator(timeline, "FLDK")
+        calc = _NominalTimeCalculator(timeline, "FLDK")
         res = calc.get_nominal_start_time(datetime(2020, 1, 1, 12, 0, 0))
         assert res == expected
 
@@ -697,7 +697,7 @@ class TestNominalTimeCalculator:
     def test_areas(self, area, expected):
         """Test nominal timestamps for multiple areas."""
         obs_start_time = datetime(2018, 10, 22, 3, 0, 20, 596896)
-        calc = NominalTimeCalculator("0300", area)
+        calc = _NominalTimeCalculator("0300", area)
         nom_start_time = calc.get_nominal_start_time(obs_start_time)
         nom_end_time = calc.get_nominal_end_time(nom_start_time)
         assert nom_start_time == expected["tstart"]
@@ -734,7 +734,7 @@ class TestNominalTimeCalculator:
     )
     def test_timelines(self, timeline, obs_start_time, expected):
         """Test nominal timestamps for multiple timelines."""
-        calc = NominalTimeCalculator(timeline, "FLDK")
+        calc = _NominalTimeCalculator(timeline, "FLDK")
         nom_start_time = calc.get_nominal_start_time(obs_start_time)
         nom_end_time = calc.get_nominal_end_time(nom_start_time)
         assert nom_start_time == expected["tstart"]

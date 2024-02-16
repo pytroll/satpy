@@ -433,13 +433,13 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        calc = NominalTimeCalculator(self._timeline, self.observation_area)
+        calc = _NominalTimeCalculator(self._timeline, self.observation_area)
         return calc.get_nominal_start_time(self.observation_start_time)
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        calc = NominalTimeCalculator(self._timeline, self.observation_area)
+        calc = _NominalTimeCalculator(self._timeline, self.observation_area)
         return calc.get_nominal_end_time(self.nominal_start_time)
 
     def get_dataset(self, key, info):
@@ -745,7 +745,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return (c0_ + c1_ * Te_ + c2_ * Te_ ** 2).clip(0)
 
 
-class NominalTimeCalculator:
+class _NominalTimeCalculator:
     """Get time when a scan was nominally to be recorded."""
 
     def __init__(self, timeline, area):
