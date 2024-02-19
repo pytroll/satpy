@@ -1,6 +1,6 @@
 reader:
     name: viirs_edr
-    short_name: VIIRS JPSS EDR nc
+    short_name: VIIRS EDR
     long_name: JPSS VIIRS EDR NetCDF format
     description: VIIRS NOAA Enterprise EDR product reader
     status: Beta
