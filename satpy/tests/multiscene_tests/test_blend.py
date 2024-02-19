@@ -245,10 +245,9 @@ class TestBlendFuncs:
             ("select_with_weights", _get_expected_stack_select),
             ("blend_with_weights", _get_expected_stack_blend),
         ])
-    @pytest.mark.parametrize("combine_times", [False, True])
     def test_blend_two_scenes_using_stack_weighted(self, multi_scene_and_weights, groups,
                                                    scene1_with_weights, scene2_with_weights,
-                                                   combine_times, blend_func, exp_result_func):
+                                                   blend_func, exp_result_func):
         """Test stacking two scenes using weights.
 
         Here we test that the start and end times can be combined so that they
@@ -266,7 +265,7 @@ class TestBlendFuncs:
         multi_scene.group(simple_groups)
 
         weights = [weights[0][0], weights[1][0]]
-        stack_func = partial(stack, weights=weights, blend_type=blend_func, combine_times=combine_times)
+        stack_func = partial(stack, weights=weights, blend_type=blend_func)
         weighted_blend = multi_scene.blend(blend_function=stack_func)
 
         expected = exp_result_func(scene1, scene2)
@@ -275,12 +274,8 @@ class TestBlendFuncs:
         np.testing.assert_allclose(result.data, expected.data)
 
         _check_stacked_metadata(result, "CloudType")
-        if combine_times:
-            assert result.attrs["start_time"] == datetime(2023, 1, 16, 11, 9, 17)
-            assert result.attrs["end_time"] == datetime(2023, 1, 16, 11, 28, 1, 900000)
-        else:
-            assert result.attrs["start_time"] == datetime(2023, 1, 16, 11, 11, 7, 250000)
-            assert result.attrs["end_time"] == datetime(2023, 1, 16, 11, 20, 11, 950000)
+        assert result.attrs["start_time"] == datetime(2023, 1, 16, 11, 9, 17)
+        assert result.attrs["end_time"] == datetime(2023, 1, 16, 11, 28, 1, 900000)
 
     @pytest.fixture()
     def datasets_and_weights(self):
@@ -329,7 +324,7 @@ class TestBlendFuncs:
         input_data["weights"][1][line, :] = 2
         input_data["weights"][2][:, column] = 2
 
-        stack_with_weights = partial(stack, weights=input_data["weights"], combine_times=False)
+        stack_with_weights = partial(stack, weights=input_data["weights"])
         blend_result = stack_with_weights(input_data["datasets"][0:3])
 
         ds1 = input_data["datasets"][0]
