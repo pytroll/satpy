@@ -1231,8 +1231,9 @@ enhancements:
          min_stretch: [0,0,0]
          max_stretch: [1,1,1]
 
-  Cloud_Top_Height:
-    standard_name: cldprop_cloud_top_height
+  cloud_top_height:
+    name: Cloud_Top_Height
+    reader: viirs_l2
     operations:
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
@@ -1242,8 +1243,9 @@ enhancements:
               filename: colormaps/cloud_top_height.csv
             }
 
-  Clear_Sky_Confidence:
-    standard_name: cldmsk_clear_sky_confidence
+  clear_sky_confidence:
+    name: Clear_Sky_Confidence
+    reader: viirs_l2
     operations:
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
@@ -1253,8 +1255,9 @@ enhancements:
              filename: colormaps/clear_sky_confidence.csv
             }
 
-  Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate:
-    standard_name: aerdb_aerosol_optical_thickness_500_land_ocean
+  aerosol_optical_thickness_550_land_ocean_best_estimate:
+    name: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
+    reader: viirs_l2
     operations:
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
@@ -1264,8 +1267,9 @@ enhancements:
               filename: colormaps/aerosol_thickness.csv
             }
 
-  Angstrom_Exponent_Land_Ocean_Best_Estimate:
-    standard_name: aerdb_angstrom_exponent_land_ocean_best_estimate
+  angstrom_exponent_land_ocean_best_estimate:
+    name: Angstrom_Exponent_Land_Ocean_Best_Estimate
+    reader: viirs_l2
     operations:
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize

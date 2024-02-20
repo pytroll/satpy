@@ -89,7 +89,7 @@ datasets:
     coordinates: [cld_lon, cld_lat]
     file_key: geophysical_data/Clear_Sky_Confidence
     file_type: cldmsk_l2_viirs
-    standard_name: cldmsk_clear_sky_confidence
+    standard_name: clear_sky_confidence
 
 ###################################
 # Datasets in file cldprop_l2_viirs
@@ -101,7 +101,7 @@ datasets:
     coordinates: [cld_lon,cld_lat]
     file_key: geophysical_data/Cloud_Top_Height
     file_type: cldprop_l2_viirs
-    standard_name: cldprop_cloud_top_height
+    standard_name: cloud_top_height
 
 ##########################################
 # Datasets in files aerdb_l2_viirs
@@ -113,7 +113,7 @@ datasets:
     coordinates: [aerdb_lon,aerdb_lat]
     file_key: Angstrom_Exponent_Land_Ocean_Best_Estimate
     file_type: [aerdb_l2_viirs]
-    standard_name: aerdb_angstrom_exponent_land_ocean_best_estimate
+    standard_name: angstrom_exponent_land_ocean_best_estimate
 
   Aerosol_Optical_Thickness_550_Land_Ocean:
     name: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
@@ -122,4 +122,4 @@ datasets:
     coordinates: [aerdb_lon,aerdb_lat]
     file_key: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
     file_type: [aerdb_l2_viirs]
-    standard_name: aerdb_aerosol_optical_thickness_500_land_ocean
+    standard_name: aerosol_optical_thickness_550_land_ocean
