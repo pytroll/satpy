@@ -807,13 +807,8 @@ class TestMERSIRML1B(MERSIL1BTester):
 
     def test_500m_resolution(self):
         """Test loading data when all resolutions are available."""
-        from satpy.dataset.data_dict import get_key
         from satpy.readers import load_reader
-        from satpy.utils import debug_on
-        debug_on()
-        from satpy.tests.utils import make_dataid
         filenames = self.filenames_500m
-        print(filenames)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
         assert 2 == len(files)
