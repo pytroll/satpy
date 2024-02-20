@@ -475,8 +475,10 @@ def get_cds_time(days, msecs):
         days = np.array([days], dtype="int64")
         msecs = np.array([msecs], dtype="int64")
 
+    # use nanosecond precision to silence warning from XArray
+    nsecs = 1000000 * msecs.astype("timedelta64[ns]")
     time = np.datetime64("1958-01-01").astype("datetime64[ms]") + \
-        days.astype("timedelta64[D]") + msecs.astype("timedelta64[ms]")
+        days.astype("timedelta64[D]") + nsecs
     time[time == np.datetime64("1958-01-01 00:00")] = np.datetime64("NaT")
 
     if len(time) == 1:

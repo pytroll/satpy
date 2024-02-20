@@ -70,7 +70,7 @@ MOCK_MODULES = ["h5py"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()  # type: ignore
 
-autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "imageio", "mipp", "netCDF4",
+autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
                         "pyorbital", "pyspectral", "rasterio", "trollimage",
                         "zarr"]
@@ -278,7 +278,7 @@ latex_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/latest", None),
-    "geoviews": ("http://geoviews.org", None),
+    "geoviews": ("https://geoviews.org", None),
     "jobqueue": ("https://jobqueue.dask.org/en/latest", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pydecorate": ("https://pydecorate.readthedocs.io/en/stable", None),
@@ -287,7 +287,7 @@ intersphinx_mapping = {
     "pyresample": ("https://pyresample.readthedocs.io/en/stable", None),
     "pytest": ("https://docs.pytest.org/en/stable/", None),
     "python": ("https://docs.python.org/3", None),
-    "scipy": ("http://scipy.github.io/devdocs", None),
+    "scipy": ("https://scipy.github.io/devdocs", None),
     "trollimage": ("https://trollimage.readthedocs.io/en/stable", None),
     "trollsift": ("https://trollsift.readthedocs.io/en/stable", None),
     "xarray": ("https://xarray.pydata.org/en/stable", None),

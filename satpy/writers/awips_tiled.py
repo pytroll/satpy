@@ -630,7 +630,13 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    # NOTE: AWIPS is buggy and does not properly handle both
+    #   halves an integers data space. The below code limits
+    #   unsigned integers to the positive half and this seems
+    #   to work better with current AWIPS.
+    mx = (vmax - vmin) / (2 ** (bit_depth - 1) - 1 - num_fills)
+    # NOTE: This is what the line should look like if AWIPS wasn't buggy:
+    # mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
@@ -1818,7 +1824,7 @@ def main():
     group_2.add_argument("--letters", dest="lettered_grid", action="store_true",
                          help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                         help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: 'row col'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                          help="output filenaming pattern")
     group_2.add_argument("--source-name", default="SSEC",

@@ -152,7 +152,8 @@ class TestCFWriter:
         scn = Scene()
         scn["1"] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
+            with pytest.warns(UserWarning, match=r"Invalid NetCDF dataset name"):
+                scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f["1"][:], [1, 2, 3])
                 assert "original_name" not in f["1"].attrs
@@ -208,8 +209,10 @@ class TestCFWriter:
                                   attrs={"name": "HRV", "start_time": tstart, "end_time": tend})
 
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
-                              pretty=True)
+            with pytest.warns(UserWarning, match=r"Cannot pretty-format"):
+                scn.save_datasets(filename=filename, writer="cf",
+                                  groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
+                                  pretty=True)
 
             nc_root = xr.open_dataset(filename)
             assert "history" in nc_root.attrs
@@ -240,11 +243,11 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf", encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -255,13 +258,14 @@ class TestCFWriter:
         scn = Scene()
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
         times = np.array(["2018-05-30T10:05:00", "2018-05-30T10:05:01",
-                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype=np.datetime64)
+                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype="datetime64[ns]")
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["y", "x"],
                                          coords={"time": ("y", times)},
                                          attrs=dict(start_time=times[0], end_time=times[-1]))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", pretty=True)
+            scn.save_datasets(filename=filename, writer="cf", pretty=True,
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
 
@@ -273,11 +277,15 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y", "time"],
-                                         coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                         coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            with warnings.catch_warnings():
+                # The purpose is to use the default time encoding, silence the warning
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message=r"Times can't be serialized faithfully to int64 with requested units")
+                scn.save_datasets(filename=filename, writer="cf")
             # Check decoded time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -307,16 +315,17 @@ class TestCFWriter:
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeB]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -330,14 +339,15 @@ class TestCFWriter:
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]})
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]})
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -350,11 +360,12 @@ class TestCFWriter:
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"])
+            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"],
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename) as f:
                 assert set(f.encoding["unlimited_dims"]) == {"time"}
 
@@ -570,5 +581,5 @@ def _should_use_compression_keyword():
     versions = _get_backend_versions()
     return (
         versions["libnetcdf"] >= Version("4.9.0") and
-        versions["xarray"] >= Version("2023.12")
+        versions["xarray"] >= Version("2024.1")
     )

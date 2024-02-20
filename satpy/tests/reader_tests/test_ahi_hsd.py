@@ -48,8 +48,8 @@ FAKE_DATA_INFO: InfoDict = {
     "compression_flag_for_data": 0,
     "hblock_number": 2,
     "number_of_bits_per_pixel": 16,
-    "number_of_columns": 11000,
-    "number_of_lines": 1100,
+    "number_of_columns": np.array([11000]),
+    "number_of_lines": np.array([1100]),
     "spare": "",
 }
 FAKE_PROJ_INFO: InfoDict = {
@@ -105,7 +105,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch("satpy.readers.ahi_hsd.np.fromfile")
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
+
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch("satpy.readers.ahi_hsd.open", m, create=True):
@@ -135,19 +136,14 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "compression_flag_for_data": 0,
                             "hblock_number": 2,
                             "number_of_bits_per_pixel": 16,
-                            "number_of_columns": 1000,
-                            "number_of_lines": 1000,
+                            "number_of_columns": np.array([1000]),
+                            "number_of_lines": np.array([1000]),
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
-            a, b = proj4_radius_parameters(proj_dict)
-            assert a == 6378137.0
-            assert b == 6356752.3
-            assert proj_dict["h"] == 35785863.0
-            assert proj_dict["lon_0"] == 140.7
-            assert proj_dict["proj"] == "geos"
-            assert proj_dict["units"] == "m"
+            expected_crs = CRS.from_dict(dict(a=6378137.0, b=6356752.3, h= 35785863.0,
+                                              lon_0=140.7, proj="geos", units="m"))
+            assert area_def.crs == expected_crs
             np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
                                                               1592000.0102878273, 5132000.033164027))
 
@@ -155,7 +151,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch("satpy.readers.ahi_hsd.np.fromfile")
     def test_segment(self, fromfile, np2str):
         """Test segment navigation."""
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
+
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch("satpy.readers.ahi_hsd.open", m, create=True):
@@ -183,19 +180,14 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "compression_flag_for_data": 0,
                             "hblock_number": 2,
                             "number_of_bits_per_pixel": 16,
-                            "number_of_columns": 11000,
-                            "number_of_lines": 1100,
+                            "number_of_columns": np.array([11000]),
+                            "number_of_lines": np.array([1100]),
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
-            a, b = proj4_radius_parameters(proj_dict)
-            assert a == 6378137.0
-            assert b == 6356752.3
-            assert proj_dict["h"] == 35785863.0
-            assert proj_dict["lon_0"] == 140.7
-            assert proj_dict["proj"] == "geos"
-            assert proj_dict["units"] == "m"
+            expected_crs = CRS.from_dict(dict(a=6378137.0, b=6356752.3, h= 35785863.0,
+                                              lon_0=140.7, proj="geos", units="m"))
+            assert area_def.crs == expected_crs
             np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
                                                               5500000.035542117, -2200000.0142168473))
 
@@ -323,7 +315,10 @@ class TestAHIHSDFileHandler:
         with _fake_hsd_handler() as fh:
             fh.data_info["number_of_columns"] = ncols
             fh.data_info["number_of_lines"] = nrows
-            im = fh.read_band(mock.MagicMock(), mock.MagicMock())
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                im = fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
@@ -358,7 +353,10 @@ class TestAHIHSDFileHandler:
             # Test if masking space pixels disables with appropriate flag
             fh.mask_space = False
             with mock.patch("satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space") as mask_space:
-                fh.read_band(mock.MagicMock(), mock.MagicMock())
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
     def test_read_band_from_actual_file(self, hsd_file_jp01):
@@ -369,14 +367,17 @@ class TestAHIHSDFileHandler:
         key = {"name": "B01", "calibration": "counts", "resolution": 1000}
         import dask
         with dask.config.set({"array.chunk-size": "32MiB"}):
-            data = fh.read_band(
-                key,
-                {
-                    "units": "%",
-                    "standard_name": "toa_bidirectional_reflectance",
-                    "wavelength": 2,
-                    "resolution": 1000,
-                })
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                data = fh.read_band(
+                    key,
+                    {
+                        "units": "%",
+                        "standard_name": "toa_bidirectional_reflectance",
+                        "wavelength": 2,
+                        "resolution": 1000,
+                    })
             assert data.chunks == ((1100,) * 10, (1100,) * 10)
             assert data.dtype == data.compute().dtype
             assert data.dtype == np.float32
@@ -398,7 +399,10 @@ class TestAHIHSDFileHandler:
                 fh.data_info["number_of_columns"] = ncols
                 fh.data_info["number_of_lines"] = nrows
                 scn = Scene(reader="ahi_hsd", filenames=["HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT"])
-                scn.load(["B07"])
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    scn.load(["B07"])
                 im = scn["B07"]
 
                 # Make sure space masking worked
@@ -453,9 +457,8 @@ class TestAHIHSDFileHandler:
 
             # Expected and actual blocklength do not match
             fp_.tell.return_value = 100
-            with warnings.catch_warnings(record=True) as w:
+            with pytest.warns(UserWarning, match=r"Actual .* header size does not match expected"):
                 fh._check_fpos(fp_, fpos, 0, "header 1")
-                assert len(w) > 0
 
     def test_is_valid_time(self):
         """Test that valid times are correctly identified."""
@@ -472,7 +475,9 @@ class TestAHIHSDFileHandler:
                 mocker.return_value = True
                 assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
                 mocker.return_value = False
-                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
+                with pytest.warns(UserWarning,
+                                   match=r"Observation timeline is fill value, not rounding observation time"):
+                    assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):

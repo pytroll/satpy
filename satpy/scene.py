@@ -1012,10 +1012,12 @@ class Scene:
             img.show()
         return img
 
-    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
+    def to_geoviews(self, gvtype=None, datasets=None,
+                    kdims=None, vdims=None, dynamic=False):
         """Convert satpy Scene to geoviews.
 
         Args:
+            scn (satpy.Scene): Satpy Scene.
             gvtype (gv plot type):
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
                 Default to :class:`geoviews.Image`.
@@ -1040,31 +1042,39 @@ class Scene:
               to be passed to geoviews
 
         """
-        import geoviews as gv
-        from cartopy import crs  # noqa
-        if gvtype is None:
-            gvtype = gv.Image
+        from satpy._scene_converters import to_geoviews
+        return to_geoviews(self, gvtype=None, datasets=None,
+                           kdims=None, vdims=None, dynamic=False)
 
-        ds = self.to_xarray_dataset(datasets)
 
-        if vdims is None:
-            # by default select first data variable as display variable
-            vdims = ds.data_vars[list(ds.data_vars.keys())[0]].name
+    def to_hvplot(self, datasets=None, *args, **kwargs):
+        """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
-        if hasattr(ds, "area") and hasattr(ds.area, "to_cartopy_crs"):
-            dscrs = ds.area.to_cartopy_crs()
-            gvds = gv.Dataset(ds, crs=dscrs)
-        else:
-            gvds = gv.Dataset(ds)
+        Args:
+            scn (satpy.Scene): Satpy Scene.
+            datasets (list): Limit included products to these datasets.
+            args: Arguments coming from hvplot
+            kwargs: hvplot options dictionary.
 
-        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
-        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
-        if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
-        else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
+        Returns:
+            hvplot object that contains within it the plots of datasets list.
+            As default it contains all Scene datasets plots and a plot title
+            is shown.
 
-        return gview
+        Example usage::
+
+           scene_list = ['ash','IR_108']
+           scn = Scene()
+           scn.load(scene_list)
+           scn = scn.resample('eurol')
+           plot = scn.to_hvplot(datasets=scene_list)
+           plot.ash+plot.IR_108
+        """
+        from satpy._scene_converters import to_hvplot
+
+        return to_hvplot(self, datasets=None, *args, **kwargs)
+
+
 
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.

@@ -18,6 +18,7 @@
 """Interface to MiRS product."""
 
 import datetime
+import importlib
 import logging
 import os
 from collections import Counter
@@ -34,13 +35,12 @@ CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-try:
-    # try getting setuptools/distribute's version of resource retrieval first
-    from pkg_resources import resource_string as get_resource_string
-except ImportError:
-    from pkgutil import get_data as get_resource_string  # type: ignore
 
-#
+def get_resource_string(mod_part, file_part):
+    """Read resource string."""
+    ref = importlib.resources.files(mod_part).joinpath(file_part)
+    return ref.read_bytes()
+
 
 # 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2
@@ -50,6 +50,10 @@ amsu = "amsu-mhs"
 PLATFORMS = {"n18": "NOAA-18",
              "n19": "NOAA-19",
              "np": "NOAA-19",
+             "n20": "NOAA-20",
+             "n21": "NOAA-21",
+             "n22": "NOAA-22",
+             "n23": "NOAA-23",
              "m2": "MetOp-A",
              "m1": "MetOp-B",
              "m3": "MetOp-C",
@@ -60,11 +64,14 @@ PLATFORMS = {"n18": "NOAA-18",
              "f17": "DMSP-F17",
              "f18": "DMSP-F18",
              "gpm": "GPM",
-             "n20": "NOAA-20",
              }
 SENSOR = {"n18": amsu,
           "n19": amsu,
           "n20": "atms",
+          "n21": "atms",
+          "n22": "atms",
+          "n23": "atms",
+          "n24": "atms",
           "np": amsu,
           "m1": amsu,
           "m2": amsu,
@@ -297,9 +304,10 @@ class MiRSL2ncHandler(BaseFileHandler):
     def _get_coeff_filenames(self):
         """Retrieve necessary files for coefficients if needed."""
         coeff_fn = {"sea": None, "land": None}
-        if self.platform_name == "noaa-20":
-            coeff_fn["land"] = retrieve("readers/limbcoef_atmsland_noaa20.txt")
-            coeff_fn["sea"] = retrieve("readers/limbcoef_atmssea_noaa20.txt")
+        if self.platform_name.startswith("noaa"):
+            suffix = self.platform_name[-2:]
+            coeff_fn["land"] = retrieve(f"readers/limbcoef_atmsland_noaa{suffix}.txt")
+            coeff_fn["sea"] = retrieve(f"readers/limbcoef_atmssea_noaa{suffix}.txt")
         if self.platform_name == "npp":
             coeff_fn["land"] = retrieve("readers/limbcoef_atmsland_snpp.txt")
             coeff_fn["sea"] = retrieve("readers/limbcoef_atmssea_snpp.txt")
@@ -328,19 +336,21 @@ class MiRSL2ncHandler(BaseFileHandler):
             return np.timedelta64("NaT")
         if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64("NaT")
-        return np.nan
+        return np.float32(np.nan)
 
     @staticmethod
     def _scale_data(data_arr, scale_factor, add_offset):
         """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
+            data_arr = data_arr * np.float32(scale_factor) + np.float32(add_offset)
         return data_arr
 
     def _fill_data(self, data_arr, fill_value, scale_factor, add_offset):
         """Fill missing data with NaN."""
         if fill_value is not None:
+            # NOTE: Sfc_type and other category products are not detected or handled properly
+            #   and will be converted from integers to 32-bit floats in this step
             fill_value = self._scale_data(fill_value, scale_factor, add_offset)
             fill_out = self._nan_for_dtype(data_arr.dtype)
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
@@ -365,7 +375,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         try:
-            global_attr_fill = self.nc.missing_value
+            global_attr_fill = self.nc.attrs["missing_value"]
         except AttributeError:
             global_attr_fill = 1.0
 
