@@ -27,9 +27,9 @@ import xarray as xr
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
-def _get_calibration(num_scans):
+def _get_calibration(num_scans, ftype):
     calibration = {
-        "Calibration/VIS_Cal_Coeff":
+        f"Calibration/{ftype}_Cal_Coeff":
             xr.DataArray(
                 da.ones((19, 3), chunks=1024),
                 attrs={"Slope": np.array([1.] * 19), "Intercept": np.array([0.] * 19)},
@@ -83,6 +83,37 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=radunits_attrs,
                 dims=("_rows", "_cols")),
+    }
+    return data
+
+
+def _get_500m_data(num_scans, rows_per_scan, num_cols):
+    data = {
+        "Data/EV_Reflectance":
+            xr.DataArray(
+                da.ones((5, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    "Slope": np.array([1.] * 5), "Intercept": np.array([0.] * 5),
+                    "FillValue": 65535,
+                    "units": "NO",
+                    "valid_range": [0, 4095],
+                    "long_name": b"500m Earth View Science Data",
+                },
+                dims=("_ref_bands", "_rows", "_cols")),
+        "Data/EV_Emissive":
+            xr.DataArray(
+                da.ones((3, num_scans * rows_per_scan, num_cols), chunks=1024,
+                        dtype=np.uint16),
+                attrs={
+                    "Slope": np.array([1.] * 3), "Intercept": np.array([0.] * 3),
+                    "FillValue": 65535,
+                    "units": "mW/ (m2 cm-1 sr)",
+                    "valid_range": [0, 25000],
+                    "long_name": b"500m Emissive Bands Earth View "
+                                 b"Science Data",
+                },
+                dims=("_ir_bands", "_rows", "_cols")),
     }
     return data
 
@@ -236,24 +267,30 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Observing Ending Time": "18:38:36.728",
         }
 
-        global_attrs = self._set_sensor_attrs(global_attrs)
+        global_attrs, ftype = self._set_sensor_attrs(global_attrs)
         self._add_tbb_coefficients(global_attrs)
         data = self._get_data_file_content()
 
         test_content = {}
         test_content.update(global_attrs)
         test_content.update(data)
-        test_content.update(_get_calibration(self.num_scans))
+        test_content.update(_get_calibration(self.num_scans, ftype))
         return test_content
 
     def _set_sensor_attrs(self, global_attrs):
         if "mersi2_l1b" in self.filetype_info["file_type"]:
             global_attrs["/attr/Satellite Name"] = "FY-3D"
             global_attrs["/attr/Sensor Identification Code"] = "MERSI"
+            ftype = "VIS"
         elif "mersi_ll" in self.filetype_info["file_type"]:
             global_attrs["/attr/Satellite Name"] = "FY-3E"
             global_attrs["/attr/Sensor Identification Code"] = "MERSI LL"
-        return global_attrs
+            ftype = "VIS"
+        elif "mersi_rm" in self.filetype_info["file_type"]:
+            global_attrs["/attr/Satellite Name"] = "FY-3G"
+            global_attrs["/attr/Sensor Identification Code"] = "MERSI RM"
+            ftype = "RSB"
+        return global_attrs, ftype
 
     def _get_data_file_content(self):
         if "_geo" in self.filetype_info["file_type"]:
@@ -272,8 +309,16 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
+        is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
         is_1km = "_1000" in self.filetype_info["file_type"]
-        data_func = _get_1km_data if is_1km else (_get_250m_data if is_mersi2 else _get_250m_ll_data)
+        if is_1km:
+            data_func = _get_1km_data
+        elif is_mersi2:
+            data_func = _get_250m_data
+        elif is_mersill:
+            data_func = _get_250m_ll_data
+        else:
+            data_func = _get_500m_data
         return data_func(num_scans, rows_per_scan, num_cols)
 
     def _add_tbb_coefficients(self, global_attrs):
@@ -293,7 +338,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     @property
     def _geo_prefix_for_file_type(self):
-        return "Geolocation/" if "1000" in self.filetype_info["file_type"] else ""
+        if "1000" in self.filetype_info["file_type"]:
+            return "Geolocation/"
+        elif "500" in self.filetype_info["file_type"]:
+            return "Geolocation/"
+        else:
+            return ""
 
 
 def _test_helper(res):
@@ -745,3 +795,73 @@ class TestMERSILLL1B(MERSIL1BTester):
         assert (2 * 40, 2048 * 2) == res["7"].shape
         assert "brightness_temperature" == res["7"].attrs["calibration"]
         assert "K" == res["7"].attrs["units"]
+
+
+class TestMERSIRML1B(MERSIL1BTester):
+    """Test the FY3E MERSI-RM L1B reader."""
+
+    yaml_file = "mersi_rm_l1b.yaml"
+    filenames_500m = ["FY3G_MERSI_GRAN_L1_20230410_1910_0500M_V1.HDF",
+                      "FY3G_MERSI_GRAN_L1_20230410_1910_GEOHK_V1.HDF",
+                      ]
+
+    def test_500m_resolution(self):
+        """Test loading data when all resolutions are available."""
+        from satpy.dataset.data_dict import get_key
+        from satpy.readers import load_reader
+        from satpy.utils import debug_on
+        debug_on()
+        from satpy.tests.utils import make_dataid
+        filenames = self.filenames_500m
+        print(filenames)
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        assert 2 == len(files)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        assert reader.file_handlers
+
+        res = reader.load(["1", "2", "4", "7"])
+        assert len(res) == 4
+        assert res["4"].shape == (2 * 10, 4096)
+        assert res["1"].attrs["calibration"] == "reflectance"
+        assert res["1"].attrs["units"] == "%"
+        assert res["2"].shape == (2 * 10, 4096)
+        assert res["2"].attrs["calibration"] == "reflectance"
+        assert res["2"].attrs["units"] == "%"
+        assert res["7"].shape == (20, 2048 * 2)
+        assert res["7"].attrs["calibration"] == "brightness_temperature"
+        assert res["7"].attrs["units"] == "K"
+
+    def test_rad_calib(self):
+        """Test loading data at radiance calibration."""
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
+        filenames = self.filenames_500m
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        assert 2 == len(files)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        assert reader.file_handlers
+
+        ds_ids = []
+        for band_name in ["1", "3", "4", "6", "7"]:
+            ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
+        res = reader.load(ds_ids)
+        assert len(res) == 5
+        assert res["1"].shape == (20, 4096)
+        assert res["1"].attrs["calibration"] == "radiance"
+        assert res["1"].attrs["units"] == "mW/ (m2 cm-1 sr)"
+        assert res["3"].shape == (20, 4096)
+        assert res["3"].attrs["calibration"] == "radiance"
+        assert res["3"].attrs["units"] == "mW/ (m2 cm-1 sr)"
+        assert res["4"].shape == (20, 4096)
+        assert res["4"].attrs["calibration"] == "radiance"
+        assert res["4"].attrs["units"] == "mW/ (m2 cm-1 sr)"
+        assert res["6"].shape == (20, 4096)
+        assert res["6"].attrs["calibration"] == "radiance"
+        assert res["6"].attrs["units"] == "mW/ (m2 cm-1 sr)"
+        assert res["7"].shape == (20, 4096)
+        assert res["7"].attrs["calibration"] == "radiance"
+        assert res["7"].attrs["units"] == "mW/ (m2 cm-1 sr)"
