@@ -58,7 +58,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
              "lon": xr.DataArray(data=self.dummy2d, dims=("yc", "xc")),
              "lat": xr.DataArray(data=self.dummy2d, dims=("yc", "xc")),
              "time": xr.DataArray(data=np.array([self.time],
-                                                dtype="datetime64[ms]"),
+                                                dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([self.band]))},
             attrs={"Satellite Sensor": "G-15"})
@@ -238,7 +238,7 @@ class TestMetadata:
             dims=("time", "yc", "xc")
         )
         time = xr.DataArray(
-            [np.datetime64("2018-01-01 12:00:00")],
+            [np.datetime64("2018-01-01 12:00:00").astype("datetime64[ns]")],
             dims="time"
         )
         bands = xr.DataArray([channel_id], dims="bands")
@@ -369,7 +369,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             {"data": xr.DataArray(data=self.counts, dims=("time", "yc", "xc")),
              "lon": xr.DataArray(data=self.lon, dims=("yc", "xc")),
              "lat": xr.DataArray(data=self.lat, dims=("yc", "xc")),
-             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ms]"),
+             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([1]))},
             attrs={"Satellite Sensor": "G-15"})
@@ -444,13 +444,15 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         args = dict(key=make_dataid(name="00_7",
                                     calibration="brightness_temperature"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate VIS channel to 2"):
+            self.reader.get_dataset(**args)
 
         # IR -> Reflectance
         args = dict(key=make_dataid(name="10_7",
                                     calibration="reflectance"),
                     info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError, match="Cannot calibrate IR channel to 1"):
+            self.reader.get_dataset(**args)
 
         # Unsupported calibration
         with pytest.raises(ValueError, match="invalid invalid value for <enum 'calibration'>"):

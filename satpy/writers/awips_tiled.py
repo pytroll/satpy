@@ -422,7 +422,7 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents, sector_crs,
+    def __init__(self, area_definition, extents, sector_crs,  # noqa: D417
                  cell_size=(2000000, 2000000),
                  num_subtiles=None, use_sector_reference=False):
         """Initialize tile information for later generation.
@@ -620,14 +620,23 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # file data type to allow for extra fill values
         num_fills = 0
 
-    if is_unsigned or unsigned_in_signed:
+    if is_unsigned:
         # max value
         fills = [2 ** file_bit_depth - 1]
+    elif unsigned_in_signed:
+        # max unsigned value is -1 as a signed int
+        fills = [-1]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    # NOTE: AWIPS is buggy and does not properly handle both
+    #   halves an integers data space. The below code limits
+    #   unsigned integers to the positive half and this seems
+    #   to work better with current AWIPS.
+    mx = (vmax - vmin) / (2 ** (bit_depth - 1) - 1 - num_fills)
+    # NOTE: This is what the line should look like if AWIPS wasn't buggy:
+    # mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
@@ -1498,7 +1507,7 @@ class AWIPSTiledWriter(Writer):
         return ds_info
 
     # TODO: Add additional untiled variable support
-    def save_datasets(self, datasets, sector_id=None,
+    def save_datasets(self, datasets, sector_id=None,  # noqa: D417
                       source_name=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
@@ -1815,7 +1824,7 @@ def main():
     group_2.add_argument("--letters", dest="lettered_grid", action="store_true",
                          help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                         help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: 'row col'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                          help="output filenaming pattern")
     group_2.add_argument("--source-name", default="SSEC",

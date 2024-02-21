@@ -18,6 +18,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 import dask.array as da
@@ -407,3 +408,55 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
                 )
             except TypeError:
                 assert attrs[key] == attrs_exp[key], err_msg
+
+
+def assert_dict_array_equality(d1, d2):
+    """Check that dicts containing arrays are equal."""
+    assert set(d1.keys()) == set(d2.keys())
+    for key, val1 in d1.items():
+        val2 = d2[key]
+        compare_func = _compare_numpy_array if isinstance(val1, np.ndarray) else _compare_nonarray
+        compare_func(val1, val2)
+
+
+def _compare_numpy_array(val1: np.ndarray, val2: np.ndarray) -> None:
+    np.testing.assert_array_equal(val1, val2)
+    assert val1.dtype == val2.dtype
+
+
+def _compare_nonarray(val1: Any, val2: Any) -> None:
+    assert val1 == val2
+    if isinstance(val1, (np.floating, np.integer, np.bool_)):
+        assert isinstance(val2, np.generic)
+        assert val1.dtype == val2.dtype
+
+
+def xfail_skyfield_unstable_numpy2():
+    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
+    try:
+        import skyfield
+
+        # known numpy incompatibility:
+        from skyfield import timelib  # noqa
+    except ImportError:
+        skyfield = None
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return skyfield is None and is_np2 and is_unstable_ci
+
+
+def xfail_h5py_unstable_numpy2():
+    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
+    from packaging import version
+    try:
+        import h5py
+        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
+    except ImportError:
+        is_broken_h5py = True
+
+    import os
+    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
+    is_np2 = np.__version__.startswith("2.")
+    return is_broken_h5py and is_np2 and is_unstable_ci

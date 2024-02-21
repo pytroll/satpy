@@ -81,10 +81,10 @@ def read_records(filename):
             grh = np.fromfile(fdes, grh_dtype, 1)
             if grh.size == 0:
                 break
-            rec_class = record_class[int(grh["record_class"])]
+            rec_class = record_class[int(grh["record_class"].squeeze())]
             sub_class = grh["RECORD_SUBCLASS"][0]
 
-            expected_size = int(grh["RECORD_SIZE"])
+            expected_size = int(grh["RECORD_SIZE"].squeeze())
             bare_size = expected_size - grh_dtype.itemsize
             try:
                 the_type = form.dtype((rec_class, sub_class))
@@ -144,7 +144,8 @@ class EPSAVHRRFile(BaseFileHandler):
     sensors = {"AVHR": "avhrr-3"}
 
     units = {"reflectance": "%",
-             "brightness_temperature": "K"}
+             "brightness_temperature": "K",
+             "radiance":  "W m^-2 sr^-1"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
@@ -211,7 +212,7 @@ class EPSAVHRRFile(BaseFileHandler):
     def _interpolate(self, lons_like, lats_like):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         if nav_sample_rate == 20 and self.pixels == 2048:
-            lons_like_1km, lats_like_1km = self._interpolate_20km_to_1km(lons_like, lats_like)
+            lons_like_1km, lats_like_1km = _interpolate_20km_to_1km(lons_like, lats_like)
             lons_like_1km = da.from_delayed(lons_like_1km, dtype=lons_like.dtype,
                                             shape=(self.scanlines, self.pixels))
             lats_like_1km = da.from_delayed(lats_like_1km, dtype=lats_like.dtype,
@@ -222,12 +223,6 @@ class EPSAVHRRFile(BaseFileHandler):
                                   "sample rate = " + str(nav_sample_rate) +
                                   " and earth views = " +
                                   str(self.pixels))
-
-    @delayed(nout=2, pure=True)
-    def _interpolate_20km_to_1km(self, lons, lats):
-        # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
-        from geotiepoints import metop20kmto1km
-        return metop20kmto1km(lons, lats)
 
     def _get_full_angles(self, solar_zenith, sat_zenith, solar_azimuth, sat_azimuth):
 
@@ -287,19 +282,9 @@ class EPSAVHRRFile(BaseFileHandler):
         if self.sections is None:
             self._read_all()
 
-        if key["name"] in ["longitude", "latitude"]:
-            lons, lats = self.get_full_lonlats()
-            if key["name"] == "longitude":
-                dataset = create_xarray(lons)
-            else:
-                dataset = create_xarray(lats)
-
-        elif key["name"] in ["solar_zenith_angle", "solar_azimuth_angle",
-                             "satellite_zenith_angle", "satellite_azimuth_angle"]:
-            dataset = self._get_angle_dataarray(key)
-        elif key["name"] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-            dataset = self._get_calibrated_dataarray(key)
-        else:
+        try:
+            dataset = self._get_data_array(key)
+        except KeyError:
             logger.info("Can't load channel in eps_l1b: " + str(key["name"]))
             return
 
@@ -311,18 +296,32 @@ class EPSAVHRRFile(BaseFileHandler):
         dataset.attrs.update(key.to_dict())
         return dataset
 
+    def _get_data_array(self, key):
+        name = key["name"]
+        if name in ["longitude", "latitude"]:
+            data = self.get_full_lonlats()[int(name == "latitude")]
+            dataset = create_xarray(data)
+        elif name in ["solar_zenith_angle", "solar_azimuth_angle", "satellite_zenith_angle", "satellite_azimuth_angle"]:
+            dataset = self._get_angle_dataarray(key)
+        elif name in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
+            dataset = self._get_calibrated_dataarray(key)
+        elif name == "cloud_flags":
+            array = self["CLOUD_INFORMATION"]
+            dataset = create_xarray(array)
+        else:
+            raise KeyError(f"Unknown channel: {name}")
+        return dataset
+
     def _get_angle_dataarray(self, key):
         """Get an angle dataarray."""
-        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-        if key["name"] == "solar_zenith_angle":
-            dataset = create_xarray(sun_zen)
-        elif key["name"] == "solar_azimuth_angle":
-            dataset = create_xarray(sun_azi)
-        if key["name"] == "satellite_zenith_angle":
-            dataset = create_xarray(sat_zen)
-        elif key["name"] == "satellite_azimuth_angle":
-            dataset = create_xarray(sat_azi)
-        return dataset
+        arr_index = {
+            "solar_azimuth_angle": 0,
+            "solar_zenith_angle": 1,
+            "satellite_azimuth_angle": 2,
+            "satellite_zenith_angle": 3,
+        }[key["name"]]
+        data = self.get_full_angles()[arr_index]
+        return create_xarray(data)
 
     @cached_property
     def three_a_mask(self):
@@ -398,3 +397,10 @@ class EPSAVHRRFile(BaseFileHandler):
         """Get end time."""
         # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
         return self._end_time
+
+
+@delayed(nout=2, pure=True)
+def _interpolate_20km_to_1km(lons, lats):
+    # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
+    from geotiepoints import metop20kmto1km
+    return metop20kmto1km(lons, lats)

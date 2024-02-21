@@ -48,7 +48,6 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
     """
     import dask.array as da
     from pyresample.geometry import AreaDefinition, SwathDefinition
-    from pyresample.utils import proj4_str_to_dict
     from xarray import DataArray
     ds1 = DataArray(da.zeros(input_shape, chunks=85),
                     dims=input_dims,
@@ -62,16 +61,16 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
 
     input_proj_str = ("+proj=geos +lon_0=-95.0 +h=35786023.0 +a=6378137.0 "
                       "+b=6356752.31414 +sweep=x +units=m +no_defs")
+    crs = CRS(input_proj_str)
     source = AreaDefinition(
         "test_target",
         "test_target",
         "test_target",
-        proj4_str_to_dict(input_proj_str),
+        crs,
         input_shape[1],  # width
         input_shape[0],  # height
         (-1000., -1500., 1000., 1500.))
     ds1.attrs["area"] = source
-    crs = CRS.from_string(input_proj_str)
     ds1 = ds1.assign_coords(crs=crs)
 
     ds2 = ds1.copy()
@@ -95,7 +94,7 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
         "test_target",
         "test_target",
         "test_target",
-        proj4_str_to_dict(output_proj_str),
+        CRS(output_proj_str),
         output_shape[1],  # width
         output_shape[0],  # height
         (-1000., -1500., 1000., 1500.),
@@ -248,8 +247,12 @@ class TestNativeResampler:
         into that chunk size.
 
         """
+        from satpy.utils import PerformanceWarning
+
         d_arr = da.zeros((6, 20), chunks=3)
-        new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
+        with pytest.warns(PerformanceWarning, match=text):
+            new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
         assert new_data.shape == (3, 10)
 
     def test_expand_reduce_numpy(self):
@@ -582,16 +585,9 @@ class TestBucketAvg(unittest.TestCase):
         res = self._compute_mocked_bucket_avg(data, return_data=data[0, :, :], fill_value=2)
         assert res.shape == (3, 5, 5)
 
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
         data = da.ones((5,))
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            skipna=True)
 
         self._compute_mocked_bucket_avg(data, fill_value=2, skipna=False)
         self.bucket.resampler.get_average.assert_called_once_with(
@@ -604,35 +600,6 @@ class TestBucketAvg(unittest.TestCase):
             data,
             fill_value=2,
             skipna=True)
-
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", False)
-    def test_compute_and_not_use_skipna_handling(self):
-        """Test bucket resampler computation and not use skipna handling."""
-        data = da.ones((5,))
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=True)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=False)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_avg(data, fill_value=2, skipna=True)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
 
     @mock.patch("pyresample.bucket.BucketResampler")
     def test_resample(self, pyresample_bucket):
@@ -713,15 +680,9 @@ class TestBucketSum(unittest.TestCase):
         res = self._compute_mocked_bucket_sum(data, return_data=data[0, :, :])
         assert res.shape == (3, 5, 5)
 
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", True)
     def test_compute_and_use_skipna_handling(self):
         """Test bucket resampler computation and use skipna handling."""
         data = da.ones((5,))
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            skipna=True)
 
         self._compute_mocked_bucket_sum(data, skipna=False)
         self.bucket.resampler.get_sum.assert_called_once_with(
@@ -732,32 +693,6 @@ class TestBucketSum(unittest.TestCase):
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
             skipna=True)
-
-    @mock.patch("satpy.resample.PR_USE_SKIPNA", False)
-    def test_compute_and_not_use_skipna_handling(self):
-        """Test bucket resampler computation and not use skipna handling."""
-        data = da.ones((5,))
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=True)
-
-        self._compute_mocked_bucket_sum(data, mask_all_nan=False)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_sum(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            mask_all_nan=False)
-
-        self._compute_mocked_bucket_sum(data, fill_value=2, skipna=True)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            fill_value=2,
-            mask_all_nan=False)
 
 
 class TestBucketCount(unittest.TestCase):
@@ -834,7 +769,7 @@ class TestBucketFraction(unittest.TestCase):
 
         # Too many dimensions
         data = da.ones((3, 5, 5))
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="BucketFraction not implemented for 3D datasets"):
             _ = self.bucket.compute(data)
 
     @mock.patch("pyresample.bucket.BucketResampler")

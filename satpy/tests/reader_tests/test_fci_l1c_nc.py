@@ -103,18 +103,21 @@ def _get_test_calib_for_channel_ir(data, meas_path):
     from pyspectral.blackbody import C_SPEED as c
     from pyspectral.blackbody import H_PLANCK as h
     from pyspectral.blackbody import K_BOLTZMANN as k
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(da.array(955))
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(da.array(1))
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(da.array(0.4))
-    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(da.array(1e11 * 2 * h * c ** 2))
-    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(da.array(1e2 * h * c / k))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(
+        da.array(955.0, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(da.array(1.0, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(da.array(0.4, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(
+        da.array(1e11 * 2 * h * c ** 2, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(
+        da.array(1e2 * h * c / k, dtype=np.float32))
     return data
 
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
         da.repeat(da.array([149597870.7]), 6000), dims=("x"))
-    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50))
+    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array((50.0), dtype=np.float32))
     return data
 
 
@@ -124,7 +127,7 @@ def _get_test_calib_data_for_channel(data, ch_str):
         _get_test_calib_for_channel_ir(data, meas_path)
     elif ch_str.startswith("vis") or ch_str.startswith("nir"):
         _get_test_calib_for_channel_vis(data, meas_path)
-    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(da.array(1234.56))
+    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(da.array(1234.56, dtype=np.float32))
 
 
 def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
@@ -145,8 +148,8 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
             dims=("y", "x"),
             attrs={
                 "valid_range": [0, 8191],
-                "warm_scale_factor": 2,
-                "warm_add_offset": -300,
+                "warm_scale_factor": np.float32(2.0),
+                "warm_add_offset": np.float32(-300.0),
                 **common_attrs
             }
         )
@@ -156,8 +159,8 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
             dims=("y", "x"),
             attrs={
                 "valid_range": [0, 4095],
-                "warm_scale_factor": 1,
-                "warm_add_offset": 0,
+                "warm_scale_factor": np.float32(1.0),
+                "warm_add_offset": np.float32(0.0),
                 **common_attrs
             }
         )
@@ -521,10 +524,10 @@ class TestFCIL1cNCReader:
                                  fh_param["channels"]["terran_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            assert res[ch].dtype == np.float64
+            assert res[ch].dtype == np.float32
             assert res[ch].attrs["calibration"] == "radiance"
             assert res[ch].attrs["units"] == "mW m-2 sr-1 (cm-1)-1"
-            assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
+            assert res[ch].attrs["radiance_unit_conversion_coefficient"].values == np.float32(1234.56)
             if ch == "ir_38":
                 numpy.testing.assert_array_equal(res[ch][-1], 15)
                 numpy.testing.assert_array_equal(res[ch][0], 9700)
@@ -544,7 +547,7 @@ class TestFCIL1cNCReader:
         for ch, grid_type in zip(fh_param["channels"]["solar"], fh_param["channels"]["solar_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            assert res[ch].dtype == np.float64
+            assert res[ch].dtype == np.float32
             assert res[ch].attrs["calibration"] == "reflectance"
             assert res[ch].attrs["units"] == "%"
             numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
@@ -564,15 +567,15 @@ class TestFCIL1cNCReader:
         for ch, grid_type in zip(fh_param["channels"]["terran"], fh_param["channels"]["terran_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            assert res[ch].dtype == np.float64
+            assert res[ch].dtype == np.float32
             assert res[ch].attrs["calibration"] == "brightness_temperature"
             assert res[ch].attrs["units"] == "K"
 
             if ch == "ir_38":
-                numpy.testing.assert_array_almost_equal(res[ch][-1], 209.68274099)
-                numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
+                numpy.testing.assert_array_almost_equal(res[ch][-1], np.float32(209.68275))
+                numpy.testing.assert_array_almost_equal(res[ch][0], np.float32(1888.8513))
             else:
-                numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
+                numpy.testing.assert_array_almost_equal(res[ch], np.float32(209.68275))
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])

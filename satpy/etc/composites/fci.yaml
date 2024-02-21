@@ -33,6 +33,20 @@ composites:
       - name: vis_08
     standard_name: toa_bidirectional_reflectance
 
+  ndvi_hybrid_green_fully_sunzencorrected:
+    description: Same as ndvi_hybrid_green, but without Sun-zenith reduction
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [ 0.15, 0.05 ]
+    strength: 3.0
+    prerequisites:
+      - name: vis_05
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: vis_06
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: vis_08
+        modifiers: [ sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
   binary_cloud_mask:
     # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
     # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
@@ -54,6 +68,19 @@ composites:
       - name: ndvi_hybrid_green
       - name: vis_04
         modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    standard_name: true_color
+
+  true_color_fully_sunzencorrected:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      Same as true_color, but without Sun-zenith reduction. For users that want to maintain as much data as possible
+      close to the terminator, at cost of some artefacts (bright limb and reddish clouds) (see issue #2643).
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: ndvi_hybrid_green_fully_sunzencorrected
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_raw_with_corrected_green:
@@ -97,3 +124,59 @@ composites:
       - name: ndvi_hybrid_green_raw
       - name: vis_04
     standard_name: true_color_reproduction_color_stretch
+
+  # GeoColor
+  geo_color:
+   compositor: !!python/name:satpy.composites.DayNightCompositor
+   description: >
+     GeoColor is a multi-layer blended RGB composite where the day-time part of the image is represented by true
+     color imagery and the nighttime part of the image by a three layer vertically blended stack composed of a
+     high-level cloud layer (single IR window channel), a low-level cloud layer (IR split window) and a static
+     surface terrain layer with city lights (NASA Black Marble).
+   references:
+     Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
+   lim_low: 78
+   lim_high: 88
+   standard_name: geo_color_day_night_blend
+   prerequisites:
+     - true_color
+     - geo_color_night
+
+  # GeoColor Night-time
+  geo_color_high_clouds:
+   standard_name: geo_color_high_clouds
+   compositor: !!python/name:satpy.composites.HighCloudCompositor
+   prerequisites:
+     - name: ir_105
+
+  geo_color_low_clouds:
+   standard_name: geo_color_low_clouds
+   compositor: !!python/name:satpy.composites.LowCloudCompositor
+   values_water: 0
+   values_land: 100
+   range_water: [1.35, 5.0]
+   range_land: [4.35, 6.75]
+   prerequisites:
+     - compositor: !!python/name:satpy.composites.DifferenceCompositor
+       prerequisites:
+         - name: ir_105
+         - name: ir_38
+     - name: ir_105
+     - compositor: !!python/name:satpy.composites.StaticImageCompositor
+       standard_name: land_water_mask
+       url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+       known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+
+  geo_color_background_with_low_clouds:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_low_clouds
+     - _night_background_hires
+
+  geo_color_night:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_high_clouds
+     - geo_color_background_with_low_clouds

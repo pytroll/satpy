@@ -25,6 +25,7 @@ import uuid
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
@@ -218,10 +219,10 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
     @mock.patch("satpy.readers.vii_base_nc.tie_points_geo_interpolation")
     def test_functions(self, tpgi_, tpi_):
         """Test the functions."""
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.reader._perform_orthorectification(mock.Mock(), mock.Mock())
 
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.reader._perform_calibration(mock.Mock(), mock.Mock())
 
         # Checks that the _perform_interpolation function is correctly executed

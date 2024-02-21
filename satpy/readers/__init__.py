@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import pathlib
 import pickle  # nosec B403
 import warnings
 from datetime import datetime, timedelta
@@ -38,7 +39,9 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {"fci_l1c_fdhsi": "fci_l1c_nc", "viirs_l2_cloud_mask_nc": "viirs_edr"}
-OLD_READER_NAMES: dict[str, str] = {}
+OLD_READER_NAMES: dict[str, str] = {
+    "slstr_l2": "ghrsst_l2",
+}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
@@ -111,7 +114,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     return list(_filter_groups(groups, missing=missing))
 
 
-def _assign_files_to_readers(files_to_sort, reader_names,
+def _assign_files_to_readers(files_to_sort, reader_names,  # noqa: D417
                              reader_kwargs):
     """Assign files to readers.
 
@@ -190,7 +193,7 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     return file_keys
 
 
-def _get_sorted_file_groups(all_file_keys, time_threshold):
+def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     """Get sorted file groups.
 
     Get a list of dictionaries, where each list item consists of a dictionary
@@ -673,7 +676,7 @@ class FSFile(os.PathLike):
 
     """
 
-    def __init__(self, file, fs=None):
+    def __init__(self, file, fs=None):  # noqa: D417
         """Initialise the FSFile instance.
 
         Args:
@@ -705,7 +708,7 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
-    def open(self, *args, **kwargs):
+    def open(self, *args, **kwargs):  # noqa: A003
         """Open the file.
 
         This is read-only.
@@ -778,9 +781,20 @@ def _get_compression(file):
 
 
 def open_file_or_filename(unknown_file_thing):
-    """Try to open the *unknown_file_thing*, otherwise return the filename."""
-    try:
-        f_obj = unknown_file_thing.open()
-    except AttributeError:
+    """Try to open the provided file "thing" if needed, otherwise return the filename or Path.
+
+    This wraps the logic of getting something like an fsspec OpenFile object
+    that is not directly supported by most reading libraries and making it
+    usable. If a :class:`pathlib.Path` object or something that is not
+    open-able is provided then that object is passed along. In the case of
+    fsspec OpenFiles their ``.open()`` method is called and the result returned.
+
+    """
+    if isinstance(unknown_file_thing, pathlib.Path):
         f_obj = unknown_file_thing
+    else:
+        try:
+            f_obj = unknown_file_thing.open()
+        except AttributeError:
+            f_obj = unknown_file_thing
     return f_obj

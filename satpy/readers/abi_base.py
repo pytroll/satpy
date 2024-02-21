@@ -94,10 +94,10 @@ class NC_ABI_BASE(BaseFileHandler):
         # this is true for all CSPP Geo GRB output (226 for all sectors) and full disk from other sources
         # 250 has been seen for AWS/CLASS CONUS, Mesoscale 1, and Mesoscale 2 files
         # we align this with 4 on-disk chunks at 500m, so it will be 2 on-disk chunks for 1km, and 1 for 2km
-        high_res_elems_disk_aligned = np.round(max(num_high_res_elems_per_dim / (4 * 226), 1)) * (4 * 226)
+        high_res_elems_disk_aligned = round(max(num_high_res_elems_per_dim / (4 * 226), 1)) * (4 * 226)
         low_res_factor = int(self.filetype_info.get("resolution", 2000) // 500)
         res_elems_per_dim = int(high_res_elems_disk_aligned / low_res_factor)
-        return (res_elems_per_dim ** 2) * 4
+        return (res_elems_per_dim ** 2) * 2  # 16-bit integers on disk
 
     @staticmethod
     def _rename_dims(nc):

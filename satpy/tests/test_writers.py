@@ -40,7 +40,8 @@ class TestWritersModule(unittest.TestCase):
         # 1D
         from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=["y"])
-        self.assertRaises(ValueError, to_image, p)
+        with pytest.raises(ValueError, match="Need at least a 2D array to make an image."):
+            to_image(p)
 
     @mock.patch("satpy.writers.XRImage")
     def test_to_image_2d(self, mock_geoimage):
@@ -113,8 +114,8 @@ class TestEnhancer(unittest.TestCase):
     def test_init_nonexistent_enh_file(self):
         """Test Enhancer init with a nonexistent enhancement configuration file."""
         from satpy.writers import Enhancer
-        self.assertRaises(
-            ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
+        with pytest.raises(ValueError, match="YAML file doesn't exist or string is not YAML dict:.*"):
+            Enhancer(enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
 class _BaseCustomEnhancementConfigTests:
@@ -547,13 +548,20 @@ class TestComputeWriterResults(unittest.TestCase):
         import tempfile
         from datetime import datetime
 
+        from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
+        adef = AreaDefinition(
+            "test", "test", "test", "EPSG:4326",
+            100, 200, (-180., -90., 180., 90.),
+        )
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": datetime(2018, 1, 1, 0, 0, 0),
+                   "area": adef}
         )
         self.scn = Scene()
         self.scn["test"] = ds1
@@ -593,26 +601,6 @@ class TestComputeWriterResults(unittest.TestCase):
                                      writer="geotiff", compute=False)
         compute_writer_results([res])
         assert os.path.isfile(fname)
-
-# FIXME: This reader needs more information than exist at the moment
-#    def test_mitiff(self):
-#        """Test writing to mitiff file"""
-#        fname = os.path.join(self.base_dir, 'mitiff.tif')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='mitiff')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
-
-# FIXME: This reader needs more information than exist at the moment
-#    def test_cf(self):
-#        """Test writing to NetCDF4 file"""
-#        fname = os.path.join(self.base_dir, 'cf.nc')
-#        res = self.scn.save_datasets(filename=fname,
-#                                     datasets=['test'],
-#                                     writer='cf')
-#        compute_writer_results([res])
-#        self.assertTrue(os.path.isfile(fname))
 
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
@@ -669,8 +657,14 @@ class TestBaseWriter:
         import tempfile
         from datetime import datetime
 
+        from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
+        adef = AreaDefinition(
+            "test", "test", "test", "EPSG:4326",
+            100, 200, (-180., -90., 180., 90.),
+        )
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
@@ -678,6 +672,7 @@ class TestBaseWriter:
                 "name": "test",
                 "start_time": datetime(2018, 1, 1, 0, 0, 0),
                 "sensor": "fake_sensor",
+                "area": adef,
             }
         )
         ds2 = ds1.copy()
@@ -874,9 +869,8 @@ def test_group_results_by_output_file(tmp_path):
     """
     from pyresample import create_area_def
 
+    from satpy.tests.utils import make_fake_scene
     from satpy.writers import group_results_by_output_file
-
-    from .utils import make_fake_scene
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(

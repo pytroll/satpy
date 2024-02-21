@@ -44,6 +44,7 @@ dimensions = {"nx": 1530,
               "pal_rgb": 3}
 
 NOMINAL_LONGITUDE = 0.0
+NOMINAL_TIME = "2023-01-18T10:30:00Z"
 START_TIME = "2023-01-18T10:39:17Z"
 END_TIME = "2023-01-18T10:42:22Z"
 START_TIME_PPS = "20230118T103917000Z"
@@ -56,6 +57,9 @@ global_attrs = {"source": "NWC/GEO version v2021.1",
                 "time_coverage_end": END_TIME}
 
 global_attrs.update(PROJ)
+
+global_attrs_geo = global_attrs.copy()
+global_attrs_geo["nominal_product_time"] = NOMINAL_TIME
 
 CTTH_PALETTE_MEANINGS = ("0 500 1000 1500")
 
@@ -90,7 +94,7 @@ def nwcsaf_geo_ct_filename(tmp_path_factory):
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data"))
 
 
-def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs):
+def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
     """Create a CT file."""
     filename = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
     with h5netcdf.File(filename, mode="w") as nc_file:
@@ -227,7 +231,7 @@ def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
 @pytest.fixture(scope="session")
 def nwcsaf_old_geo_ct_filename(tmp_path_factory):
     """Create a CT file and return the filename."""
-    attrs = global_attrs.copy()
+    attrs = global_attrs_geo.copy()
     attrs.update(PROJ_KM)
     attrs["time_coverage_start"] = np.array(["2023-01-18T10:39:17Z"], dtype="S20")
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data-old"), attrs=attrs)
@@ -264,13 +268,12 @@ class TestNcNWCSAFGeo:
     def test_get_area_def(self, nwcsaf_geo_ct_filehandler):
         """Test that get_area_def() returns proper area."""
         dsid = {"name": "ct"}
-
-        _check_area_def(nwcsaf_geo_ct_filehandler.get_area_def(dsid))
+        _check_filehandler_area_def(nwcsaf_geo_ct_filehandler, dsid)
 
     def test_get_area_def_km(self, nwcsaf_old_geo_ct_filehandler):
         """Test that get_area_def() returns proper area when the projection is in km."""
         dsid = {"name": "ct"}
-        _check_area_def(nwcsaf_old_geo_ct_filehandler.get_area_def(dsid))
+        _check_filehandler_area_def(nwcsaf_old_geo_ct_filehandler, dsid)
 
     def test_scale_dataset_attr_removal(self, nwcsaf_geo_ct_filehandler):
         """Test the scaling of the dataset and removal of obsolete attributes."""
@@ -343,7 +346,7 @@ class TestNcNWCSAFGeo:
 
     def test_start_time(self, nwcsaf_geo_ct_filehandler):
         """Test the start time property."""
-        assert nwcsaf_geo_ct_filehandler.start_time == read_nwcsaf_time(START_TIME)
+        assert nwcsaf_geo_ct_filehandler.start_time == read_nwcsaf_time(NOMINAL_TIME)
 
     def test_end_time(self, nwcsaf_geo_ct_filehandler):
         """Test the end time property."""
@@ -502,12 +505,14 @@ class TestNcNWCSAFFileKeyPrefix:
         np.testing.assert_allclose(res.attrs["palette_meanings"], palette_meanings * COT_SCALE + COT_OFFSET)
 
 
-def _check_area_def(area_definition):
-    correct_h = float(PROJ["gdal_projection"].split("+h=")[-1])
-    correct_a = float(PROJ["gdal_projection"].split("+a=")[-1].split()[0])
-    assert area_definition.proj_dict["h"] == correct_h
-    assert area_definition.proj_dict["a"] == correct_a
-    assert area_definition.proj_dict["units"] == "m"
+def _check_filehandler_area_def(file_handler, dsid):
+    from pyproj import CRS
+
+    area_definition = file_handler.get_area_def(dsid)
+
+    expected_crs = CRS(PROJ["gdal_projection"])
+    assert area_definition.crs == expected_crs
+
     correct_extent = (PROJ["gdal_xgeo_up_left"],
                       PROJ["gdal_ygeo_low_right"],
                       PROJ["gdal_xgeo_low_right"],

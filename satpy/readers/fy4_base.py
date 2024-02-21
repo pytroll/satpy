@@ -28,6 +28,7 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 
 from satpy._compat import cached_property
@@ -86,7 +87,7 @@ class FY4Base(HDF5FileHandler):
 
         return ref
 
-    def apply_lut(self, data, lut):
+    def _apply_lut(self, data: xr.DataArray, lut: npt.NDArray[np.float32]) -> xr.DataArray:
         """Calibrate digital number (DN) by applying a LUT.
 
         Args:
@@ -96,8 +97,16 @@ class FY4Base(HDF5FileHandler):
             Calibrated quantity
         """
         # append nan to the end of lut for fillvalue
+        fill_value = data.attrs.get("FillValue")
+        if fill_value is not None and fill_value.item() <= lut.shape[0] - 1:
+            # If LUT includes the fill_value, remove that entry and everything
+            # after it.
+            # Ex. C07 has a LUT of 65536 elements, but fill value is 65535
+            # This is considered a bug in the input file format
+            lut = lut[:fill_value.item()]
+
         lut = np.append(lut, np.nan)
-        data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
+        data.data = da.where(data.data >= lut.shape[0], lut.shape[0] - 1, data.data)
         res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
@@ -138,8 +147,8 @@ class FY4Base(HDF5FileHandler):
             raise NotImplementedError("Calibration to radiance is not supported.")
         # Apply range limits, but not for counts or we convert to float!
         if calibration != "counts":
-            data = data.where((data >= min(data.attrs["valid_range"])) &
-                              (data <= max(data.attrs["valid_range"])))
+            data = data.where((data >= min(ds_info["valid_range"])) &
+                              (data <= max(ds_info["valid_range"])))
         else:
             data.attrs["_FillValue"] = data.attrs["FillValue"].item()
         return data
@@ -182,7 +191,7 @@ class FY4Base(HDF5FileHandler):
             lut = self[lut_key]
 
         # the value of dn is the index of brightness_temperature
-        data = self.apply_lut(data, lut)
+        data = self._apply_lut(data, lut.compute().data)
         ds_info["valid_range"] = lut.attrs["valid_range"]
         return data
 

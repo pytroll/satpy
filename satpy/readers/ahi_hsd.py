@@ -414,65 +414,33 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get the nominal end time."""
-        return self.nominal_start_time
+        return self.nominal_end_time
 
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"].item()))
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"]))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
+
+    @property
+    def _timeline(self):
+        return "{:04d}".format(self.basic_info["observation_timeline"][0])
 
     @property
     def nominal_start_time(self):
         """Time this band was nominally to be recorded."""
-        return self._modify_observation_time_for_nominal(self.observation_start_time)
+        calc = _NominalTimeCalculator(self._timeline, self.observation_area)
+        return calc.get_nominal_start_time(self.observation_start_time)
 
     @property
     def nominal_end_time(self):
         """Get the nominal end time."""
-        return self._modify_observation_time_for_nominal(self.observation_end_time)
-
-    @staticmethod
-    def _is_valid_timeline(timeline):
-        """Check that the `observation_timeline` value is not a fill value."""
-        if int(timeline[:2]) > 23:
-            return False
-        return True
-
-    def _modify_observation_time_for_nominal(self, observation_time):
-        """Round observation time to a nominal time based on known observation frequency.
-
-        AHI observations are split into different sectors including Full Disk
-        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
-        sector is observed at different frequencies (ex. every 10 minutes,
-        every 2.5 minutes, and every 30 seconds). This method will take the
-        actual observation time and round it to the nearest interval for this
-        sector. So if the observation time is 13:32:48 for the "JP02" sector
-        which is the second Japan observation where every Japan observation is
-        2.5 minutes apart, then the result should be 13:32:30.
-
-        """
-        timeline = "{:04d}".format(self.basic_info["observation_timeline"][0])
-        if not self._is_valid_timeline(timeline):
-            warnings.warn(
-                "Observation timeline is fill value, not rounding observation time.",
-                stacklevel=3
-            )
-            return observation_time
-
-        if self.observation_area == "FLDK":
-            dt = 0
-        else:
-            observation_frequency_seconds = {"JP": 150, "R3": 150, "R4": 30, "R5": 30}[self.observation_area[:2]]
-            dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
-
-        return observation_time.replace(
-            hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
-            second=dt % 60, microsecond=0)
+        calc = _NominalTimeCalculator(self._timeline, self.observation_area)
+        return calc.get_nominal_end_time(self.nominal_start_time)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
@@ -498,8 +466,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict["h"] = float(self.proj_info["distance_from_earth_center"] * 1000 - pdict["a"])
         pdict["b"] = float(self.proj_info["earth_polar_radius"] * 1000)
         pdict["ssp_lon"] = float(self.proj_info["sub_lon"])
-        pdict["nlines"] = int(self.data_info["number_of_lines"])
-        pdict["ncols"] = int(self.data_info["number_of_columns"])
+        pdict["nlines"] = int(self.data_info["number_of_lines"].item())
+        pdict["ncols"] = int(self.data_info["number_of_columns"].item())
         pdict["scandir"] = "N2S"
 
         pdict["loff"] = pdict["loff"] + (self.segment_number * pdict["nlines"])
@@ -528,19 +496,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         fpos = 0
         header["block1"] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block1"]["blocklength"])
+        fpos = fpos + int(header["block1"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block1")
         fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block2"]["blocklength"])
+        fpos = fpos + int(header["block2"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block2")
         fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block3"]["blocklength"])
+        fpos = fpos + int(header["block3"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block3")
         fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block4"]["blocklength"])
+        fpos = fpos + int(header["block4"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block4")
         fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
@@ -553,7 +521,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block5"]["blocklength"])
+        fpos = fpos + int(header["block5"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block5")
         fp_.seek(fpos, 0)
 
@@ -561,12 +529,12 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block6"]["blocklength"])
+        fpos = fpos + int(header["block6"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block6")
         fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
-        fpos = fpos + int(header["block7"]["blocklength"])
+        fpos = fpos + int(header["block7"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block7")
         fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
@@ -576,7 +544,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         corrections = []
         for _i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=_NAVIGATION_CORRECTION_SUBINFO_TYPE, count=1))
-        fpos = fpos + int(header["block8"]["blocklength"])
+        fpos = fpos + int(header["block8"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block8")
         fp_.seek(fpos, 0)
         header["navigation_corrections"] = corrections
@@ -591,7 +559,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                dtype=_OBSERVATION_LINE_TIME_INFO_TYPE,
                                                count=1))
         header["observation_time_information"] = lines_and_times
-        fpos = fpos + int(header["block9"]["blocklength"])
+        fpos = fpos + int(header["block9"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block9")
         fp_.seek(fpos, 0)
 
@@ -604,12 +572,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         for _i in range(num_err_info_data):
             err_info_data.append(np.fromfile(fp_, dtype=_ERROR_LINE_INFO_TYPE, count=1))
         header["error_information_data"] = err_info_data
-        fpos = fpos + int(header["block10"]["blocklength"])
+        fpos = fpos + int(header["block10"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 40, "block10")
         fp_.seek(fpos, 0)
 
         header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
-        fpos = fpos + int(header["block11"]["blocklength"])
+        fpos = fpos + int(header["block11"]["blocklength"].item())
         self._check_fpos(fp_, fpos, 0, "block11")
         fp_.seek(fpos, 0)
 
@@ -617,8 +585,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _read_data(self, fp_, header, resolution):
         """Read data block."""
-        nlines = int(header["block2"]["number_of_lines"][0])
-        ncols = int(header["block2"]["number_of_columns"][0])
+        nlines = int(header["block2"]["number_of_lines"].item())
+        ncols = int(header["block2"]["number_of_columns"].item())
         chunks = normalize_low_res_chunks(
             ("auto", "auto"),
             (nlines, ncols),
@@ -775,3 +743,96 @@ class AHIHSDFileHandler(BaseFileHandler):
         c2_ = self._header["calibration"]["c2_rad2tb_conversion"][0]
 
         return (c0_ + c1_ * Te_ + c2_ * Te_ ** 2).clip(0)
+
+
+class _NominalTimeCalculator:
+    """Get time when a scan was nominally to be recorded."""
+
+    def __init__(self, timeline, area):
+        """Initialize the nominal timestamp calculator.
+
+        Args:
+            timeline (str): Observation timeline (four characters HHMM)
+            area (str): Observation area (four characters, e.g. FLDK)
+        """
+        self.timeline = self._parse_timeline(timeline)
+        self.area = area
+
+    def _parse_timeline(self, timeline):
+        try:
+            return datetime.strptime(timeline, "%H%M").time()
+        except ValueError:
+            return None
+
+    def get_nominal_start_time(self, observation_start_time):
+        """Get nominal start time of the scan."""
+        return self._modify_observation_time_for_nominal(observation_start_time)
+
+    def get_nominal_end_time(self, nominal_start_time):
+        """Get nominal end time of the scan."""
+        freq = self._observation_frequency
+        return nominal_start_time + timedelta(minutes=freq // 60,
+                                              seconds=freq % 60)
+
+    def _modify_observation_time_for_nominal(self, observation_time):
+        """Round observation time to a nominal time based on known observation frequency.
+
+        AHI observations are split into different sectors including Full Disk
+        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
+        sector is observed at different frequencies (ex. every 10 minutes,
+        every 2.5 minutes, and every 30 seconds). This method will take the
+        actual observation time and round it to the nearest interval for this
+        sector. So if the observation time is 13:32:48 for the "JP02" sector
+        which is the second Japan observation where every Japan observation is
+        2.5 minutes apart, then the result should be 13:32:30.
+        """
+        if not self.timeline:
+            warnings.warn(
+                "Observation timeline is fill value, not rounding observation time.",
+                stacklevel=3
+            )
+            return observation_time
+        timeline = self._get_closest_timeline(observation_time)
+        dt = self._get_offset_relative_to_timeline()
+        return timeline + timedelta(minutes=dt//60, seconds=dt % 60)
+
+    def _get_closest_timeline(self, observation_time):
+        """Find the closest timeline for the given observation time.
+
+        Needs to check surrounding days because the observation might start
+        a little bit before the planned time.
+
+        Observation start time: 2022-12-31 23:59
+        Timeline: 0000
+        => Nominal start time: 2023-01-01 00:00
+        """
+        delta_days = [-1, 0, 1]
+        surrounding_dates = [
+            (observation_time + timedelta(days=delta)).date()
+            for delta in delta_days
+        ]
+        timelines = [
+            datetime.combine(date, self.timeline)
+            for date in surrounding_dates
+        ]
+        diffs = [
+            abs((timeline - observation_time))
+            for timeline in timelines
+        ]
+        argmin = np.argmin(diffs)
+        return timelines[argmin]
+
+    def _get_offset_relative_to_timeline(self):
+        if self.area == "FLDK":
+            return 0
+        sector_repeat = int(self.area[2:]) - 1
+        return self._observation_frequency * sector_repeat
+
+    @property
+    def _observation_frequency(self):
+        frequencies = {"FLDK": 600, "JP": 150, "R3": 150, "R4": 30, "R5": 30}
+        area = self.area
+        if area != "FLDK":
+            # e.g. JP01, JP02 etc
+            area = area[:2]
+        return frequencies[area]

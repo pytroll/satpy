@@ -198,7 +198,7 @@ class TestAWIPSTiledWriter:
             check_required_properties(unmasked_ds, output_ds)
             scale_factor = output_ds["data"].encoding["scale_factor"]
             np.testing.assert_allclose(input_data_arr.values, output_ds["data"].data,
-                                       atol=scale_factor / 2)
+                                       atol=scale_factor * 0.75)
 
     def test_units_length_warning(self, tmp_path):
         """Test long 'units' warnings are raised."""
@@ -495,9 +495,10 @@ class TestAWIPSTiledWriter:
             "_FillValue": 1,
         })
 
-        w.save_datasets([ds1, ds2, ds3, dqf], sector_id="TEST", source_name="TESTS",
-                        tile_count=(3, 3), template="glm_l2_rad{}".format(sector.lower()),
-                        **extra_kwargs)
+        with pytest.warns(UserWarning, match="Production location attribute "):
+            w.save_datasets([ds1, ds2, ds3, dqf], sector_id="TEST", source_name="TESTS",
+                            tile_count=(3, 3), template="glm_l2_rad{}".format(sector.lower()),
+                            **extra_kwargs)
         fn_glob = self._get_glm_glob_filename(extra_kwargs)
         all_files = glob(os.path.join(str(tmp_path), fn_glob))
         assert len(all_files) == 9

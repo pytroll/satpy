@@ -327,7 +327,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_deprecated_passing_config_files(self):
         """Test that we get an exception when config files are passed to inti."""
-        self.assertRaises(ValueError, yr.FileYAMLReader, "/path/to/some/file.yaml")
+        with pytest.raises(ValueError,
+                           match="Passing config files to create a Reader is deprecated.*"):
+            yr.FileYAMLReader("/path/to/some/file.yaml")
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
@@ -409,15 +411,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Check start and end time behaviours."""
         self.reader.file_handlers = {}
 
-        def get_start_time():
-            return self.reader.start_time
+        with pytest.raises(RuntimeError):
+            self.reader.start_time
 
-        self.assertRaises(RuntimeError, get_start_time)
-
-        def get_end_time():
-            return self.reader.end_time
-
-        self.assertRaises(RuntimeError, get_end_time)
+        with pytest.raises(RuntimeError):
+            self.reader.end_time
 
         fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
                      datetime(1999, 12, 31, 0, 0))
@@ -780,7 +778,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check wrong input
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="Target orientation for Dataset unknown_name not recognized.*"):
             _ = reader._load_dataset_with_area(dsid, coords, "wronginput")
 
         # check native orientation, nothing should change
@@ -973,10 +971,11 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
     get_segment_position_info = MagicMock()
     get_segment_position_info.return_value = chk_pos_info
 
-    fh = MagicMock()
     filetype_info = {"expected_segments": expected_segments,
                      "file_type": "filetype1"}
     filename_info = {"segment": segment}
+
+    fh = _create_mocked_basic_fh()
     fh.filetype_info = filetype_info
     fh.filename_info = filename_info
     fh.get_area_def = get_area_def
@@ -984,6 +983,12 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
 
     return fh, seg_area
 
+
+def _create_mocked_basic_fh():
+    fake_fh = MagicMock()
+    fake_fh.filename_info = {}
+    fake_fh.filetype_info = {}
+    return fake_fh
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
@@ -995,9 +1000,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        fake_fh = MagicMock()
-        fake_fh.filename_info = {}
-        fake_fh.filetype_info = {}
+        fake_fh = _create_mocked_basic_fh()
         cfh.return_value = {"ft1": [fake_fh]}
 
         # default (1)
@@ -1033,6 +1036,28 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         assert es == 5
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_segments_sorting(self, cfh):
+        """Test that segment filehandlers are sorted by segment number."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
+        # create filehandlers with different segment numbers
+        fake_fh_1 = _create_mocked_basic_fh()
+        fake_fh_1.filename_info["segment"] = 1
+        fake_fh_2 = _create_mocked_basic_fh()
+        fake_fh_2.filename_info["segment"] = 2
+        fake_fh_3 = _create_mocked_basic_fh()
+        fake_fh_3.filename_info["segment"] = 3
+
+        # put the filehandlers in an unsorted order
+        reader.file_handlers = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
+
+        # check that the created filehandlers are sorted by segment number
+        reader.create_filehandlers(["fake.nc"])
+        assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
     @patch("satpy.readers.yaml_reader.xr")
     @patch("satpy.readers.yaml_reader._find_missing_segments")
@@ -1043,11 +1068,11 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
         # Failure is True
         mss.return_value = [0, 0, 0, True, 0]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
 
         # Setup input, and output of mocked functions

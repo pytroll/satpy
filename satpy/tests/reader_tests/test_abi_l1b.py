@@ -131,29 +131,29 @@ def _create_fake_rad_dataset(rad: xr.DataArray, resolution: int) -> xr.Dataset:
 
 
 def generate_l1b_filename(chan_name: str) -> str:
+    """Generate a l1b filename."""
     return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
 @pytest.fixture()
 def c01_refl(tmp_path) -> xr.DataArray:
-    # 4 bytes for 32-bit floats
-    # 4 on-disk chunks for 500 meter data
-    # 226 on-disk chunk size
-    # Square (**2) for 2D size
-    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+    """Load c01 reflectances."""
+    with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
         return reader.load(["C01"])["C01"]
 
 
 @pytest.fixture()
 def c01_rad(tmp_path) -> xr.DataArray:
-    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+    """Load c01 radiances."""
+    with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
 @pytest.fixture()
 def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
+    """Load c01 radiances through h5netcdf."""
     shape = RAD_SHAPE[1000]
     rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
     rad_data = (rad_data + 1.0) / 0.5
@@ -169,25 +169,27 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
             "valid_range": (0, 4095),
         },
     )
-    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+    with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", rad, 1000)
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
 @pytest.fixture()
 def c01_counts(tmp_path) -> xr.DataArray:
-    with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+    """Load c01 counts."""
+    with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
         return reader.load([DataQuery(name="C01", calibration="counts")])["C01"]
 
 
 @pytest.fixture()
 def c07_bt_creator(tmp_path) -> Callable:
+    """Create a loader for c07 brightness temperatures."""
     def _load_data_array(
         clip_negative_radiances: bool = False,
     ):
         rad = _fake_c07_data()
-        with dask.config.set({"array.chunk-size": ((226 * 4) ** 2) * 4}):
+        with _apply_dask_chunk_size():
             reader = _create_reader_for_data(
                 tmp_path,
                 "C07",
@@ -241,14 +243,22 @@ def _create_reader_for_data(
     return load_readers([str(data_path)], "abi_l1b", reader_kwargs=reader_kwargs)["abi_l1b"]
 
 
+def _apply_dask_chunk_size():
+    # 226 on-disk chunk size
+    # 8 on-disk chunks for 500 meter data
+    # Square (**2) for 2D size
+    # 4 bytes for 32-bit floats
+    return dask.config.set({"array.chunk-size": ((226 * 8) ** 2) * 4})
+
+
 def _get_and_check_array(data_arr: xr.DataArray, exp_dtype: npt.DTypeLike) -> npt.NDArray:
     data_np = data_arr.data.compute()
     assert isinstance(data_arr, xr.DataArray)
     assert isinstance(data_arr.data, da.Array)
     assert isinstance(data_np, np.ndarray)
     res = 1000 if RAD_SHAPE[1000][0] == data_np.shape[0] else 2000
-    assert data_arr.chunks[0][0] == 226 * (4 / (res / 500))
-    assert data_arr.chunks[1][0] == 226 * (4 / (res / 500))
+    assert data_arr.chunks[0][0] == 226 * (8 / (res / 500))
+    assert data_arr.chunks[1][0] == 226 * (8 / (res / 500))
 
     assert data_np.dtype == data_arr.dtype
     assert data_np.dtype == exp_dtype

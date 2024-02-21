@@ -34,8 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 def gerb_get_dataset(ds, ds_info):
-    """
-    Load a GERB dataset in memory from a HDF5 file or HDF5FileHandler.
+    """Load a GERB dataset in memory from a HDF5 file or HDF5FileHandler.
 
     The routine takes into account the quantisation factor and fill values.
     """

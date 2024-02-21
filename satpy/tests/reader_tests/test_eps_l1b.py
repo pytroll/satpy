@@ -134,6 +134,17 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
 
+    def test_get_dataset_radiance(self):
+        """Test loading a data array with radiance calibration."""
+        did = make_dataid(name="1", calibration="radiance")
+        res = self.fh.get_dataset(did, {})
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs["platform_name"] == "Metop-C"
+        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["name"] == "1"
+        assert res.attrs["calibration"] == "radiance"
+        assert res.attrs["units"] == "W m^-2 sr^-1"
+
     def test_navigation(self):
         """Test the navigation."""
         did = make_dataid(name="longitude")
@@ -151,6 +162,15 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "solar_zenith_angle"
+
+    def test_clould_flags(self):
+        """Test getting the cloud flags."""
+        did = make_dataid(name="cloud_flags")
+        res = self.fh.get_dataset(did, {})
+        assert isinstance(res, xr.DataArray)
+        assert res.attrs["platform_name"] == "Metop-C"
+        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["name"] == "cloud_flags"
 
     @mock.patch("satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__")
     def test_get_full_angles_twice(self, mock__getitem__):

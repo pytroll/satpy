@@ -15,46 +15,6 @@ modifiers:
     - solar_zenith_angle
 
 composites:
-  green:
-    deprecation_warning: "'green' is a deprecated composite. Use the equivalent 'hybrid_green' instead."
-    compositor: !!python/name:satpy.composites.spectral.HybridGreen
-    # FUTURE: Set a wavelength...see what happens. Dependency finding
-    #         probably wouldn't work.
-    prerequisites:
-      # should we be using the most corrected or least corrected inputs?
-      # what happens if something requests more modifiers on top of this?
-      - wavelength: 0.51
-        modifiers: [sunz_corrected, rayleigh_corrected]
-      - wavelength: 0.85
-        modifiers:  [sunz_corrected]
-    standard_name: toa_bidirectional_reflectance
-
-  green_true_color_reproduction:
-    # JMA True Color Reproduction green band
-    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
-    deprecation_warning: "'green_true_color_reproduction' is a deprecated composite. Use the equivalent 'reproduced_green' instead."
-    compositor: !!python/name:satpy.composites.spectral.SpectralBlender
-    fractions: [0.6321, 0.2928, 0.0751]
-    prerequisites:
-      - name: B02
-        modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: B03
-        modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: B04
-        modifiers: [sunz_corrected]
-    standard_name: none
-
-  green_nocorr:
-    deprecation_warning: "'green_nocorr' is a deprecated composite. Use the equivalent 'hybrid_green_nocorr' instead."
-    compositor: !!python/name:satpy.composites.spectral.HybridGreen
-    # FUTURE: Set a wavelength...see what happens. Dependency finding
-    #         probably wouldn't work.
-    prerequisites:
-      # should we be using the most corrected or least corrected inputs?
-      # what happens if something requests more modifiers on top of this?
-      - wavelength: 0.51
-      - wavelength: 0.85
-    standard_name: toa_reflectance
 
   hybrid_green:
     compositor: !!python/name:satpy.composites.spectral.HybridGreen
@@ -501,3 +461,57 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  # GeoColor
+  geo_color:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    description: >
+      GeoColor is a multi-layer blended RGB composite where the day-time part of the image is represented by true
+      color imagery and the nighttime part of the image by a three layer vertically blended stack composed of a
+      high-level cloud layer (single IR window channel), a low-level cloud layer (IR split window) and a static
+      surface terrain layer with city lights (NASA Black Marble).
+    references:
+      Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
+    lim_low: 78
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night
+
+  # GeoColor Night-time
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    compositor: !!python/name:satpy.composites.HighCloudCompositor
+    prerequisites:
+      - name: B13
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    compositor: !!python/name:satpy.composites.LowCloudCompositor
+    values_water: 0
+    values_land: 100
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B13
+          - name: B07
+      - name: B13
+      - compositor: !!python/name:satpy.composites.StaticImageCompositor
+        standard_name: land_water_mask
+        url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+        known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+
+  geo_color_background_with_low_clouds:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - _night_background_hires
+
+  geo_color_night:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_background_with_low_clouds

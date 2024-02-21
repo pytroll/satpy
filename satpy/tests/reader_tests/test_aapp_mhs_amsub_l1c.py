@@ -24,6 +24,7 @@ import tempfile
 import unittest
 
 import numpy as np
+import pytest
 
 from satpy.readers.aapp_mhs_amsub_l1c import _HEADERTYPE, _SCANTYPE, HEADER_LENGTH, MHS_AMSUB_AAPPL1CFile
 from satpy.tests.utils import make_dataid
@@ -396,7 +397,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            with self.assertRaises(IOError):
+            with pytest.raises(IOError, match="Sensor neither MHS nor AMSU-B!"):
                 fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
     def test_read(self):
