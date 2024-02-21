@@ -840,23 +840,13 @@ class TestMERSIRML1B(MERSIL1BTester):
         # Make sure we have some files
         assert reader.file_handlers
 
+        band_names = ["1", "3", "4", "6", "7"]
         ds_ids = []
-        for band_name in ["1", "3", "4", "6", "7"]:
+        for band_name in band_names:
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == 5
-        assert res["1"].shape == (20, 4096)
-        assert res["1"].attrs["calibration"] == "radiance"
-        assert res["1"].attrs["units"] == "mW/ (m2 cm-1 sr)"
-        assert res["3"].shape == (20, 4096)
-        assert res["3"].attrs["calibration"] == "radiance"
-        assert res["3"].attrs["units"] == "mW/ (m2 cm-1 sr)"
-        assert res["4"].shape == (20, 4096)
-        assert res["4"].attrs["calibration"] == "radiance"
-        assert res["4"].attrs["units"] == "mW/ (m2 cm-1 sr)"
-        assert res["6"].shape == (20, 4096)
-        assert res["6"].attrs["calibration"] == "radiance"
-        assert res["6"].attrs["units"] == "mW/ (m2 cm-1 sr)"
-        assert res["7"].shape == (20, 4096)
-        assert res["7"].attrs["calibration"] == "radiance"
-        assert res["7"].attrs["units"] == "mW/ (m2 cm-1 sr)"
+        for band name in band_names:
+          assert res[band_name].shape == (20, 4096)
+          assert res[band_name].attrs["calibration"] == "radiance"
+          assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"
