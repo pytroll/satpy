@@ -33,6 +33,7 @@ file_types:
   fsnrad_l2_viirs:
     file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
     file_patterns:
+      - 'FSNRAD_L2_VIIRS_CRIS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
       - 'FSNRAD_L2_VIIRS_CRIS_SS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
 
 datasets:
