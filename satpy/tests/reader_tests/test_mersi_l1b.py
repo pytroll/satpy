@@ -846,7 +846,7 @@ class TestMERSIRML1B(MERSIL1BTester):
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == 5
-        for band name in band_names:
+        for band_name in band_names:
           assert res[band_name].shape == (20, 4096)
           assert res[band_name].attrs["calibration"] == "radiance"
           assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"
