@@ -1,6 +1,10 @@
 reader:
-    description: VIIRS NOAA Enterprise EDR product reader
     name: viirs_edr
+    short_name: VIIRS EDR
+    long_name: JPSS VIIRS EDR NetCDF format
+    description: VIIRS NOAA Enterprise EDR product reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
     group_keys: ['platform_shortname']

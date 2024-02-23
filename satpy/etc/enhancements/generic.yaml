@@ -271,6 +271,29 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
 
+  four_level_cloud_mask:
+    standard_name: cloud_mask
+    reader: clavrx
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [-127,# Fill Value
+                             0, # Clear
+                             1, # Probably Clear
+                             2, # Probably Cloudy
+                             3, # Cloudy
+                         ],
+               'colors': [[0, 0, 0], # black,-127 = Fill Value
+                          [94, 79, 162], # blue,    0 = Clear
+                          [73, 228, 242], # cyan,    1 = Probably Clear
+                          [158, 1, 66], # red,     2 = Probably Cloudy
+                          [255, 255, 255], # white,   3 = Cloudy
+                         ],
+               'color_scale': 255,
+              }
+
   sar-ice:
     standard_name: sar-ice
     operations:
@@ -1104,7 +1127,7 @@ enhancements:
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+      kwargs: {stretch: linear, cutoffs: [[0.02, 0.02], [0.02, 0.02], [0.02, 0.02], [0.02, 0.02]]}
     - name: inverse
       method: !!python/name:satpy.enhancements.invert
       args:
