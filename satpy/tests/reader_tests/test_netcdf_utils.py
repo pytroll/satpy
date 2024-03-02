@@ -17,17 +17,27 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.netcdf_utils module."""
 
+import concurrent.futures
 import os
+import pickle
+import time
 import unittest
 
+import dask.array as da
 import numpy as np
 import pytest
+import xarray as xr
 
 try:
-    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object  # type: ignore
+    # setting Preloadable to object leads to an MRO error when defining
+    # FakePreloadableHandler, therefore define own class
+    class Preloadable:  # type: ignore
+        """Backup preloadable class if import fails."""
+        pass
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -293,3 +303,236 @@ class TestNetCDF4FsspecFileHandler:
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
                 h5_file.assert_called_once()
                 assert fh._use_h5netcdf
+
+
+class FakePreloadableHandler(Preloadable, FakeNetCDF4FileHandler):
+    """Fake preloadable handler."""
+
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Initialise the fake preloadable handler."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        if self.preload:
+            self._collect_listed_variables(None,
+                filetype_info.get("required_netcdf_variables"))
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Get fake test content."""
+        return {}
+
+
+class TestPreloadableHandler:
+    """Test functionality related to preloading."""
+
+    @staticmethod
+    def test_wait_for_file_already_exists(tmp_path):
+        """Test case where file already exists."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file1"
+        fn.parent.mkdir(exist_ok=True, parents=True)
+        fn.touch()
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        assert waiter.compute() == os.fspath(fn)
+
+    @staticmethod
+    def test_wait_for_file_appears(tmp_path):
+        """Test case where file appears after a bit."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        def _wait_and_create(path):
+            time.sleep(0.08)
+            path.touch()
+        fn = tmp_path / "file2"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=8, wait=0.07)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(_wait_and_create, fn)
+            t1 = time.time()
+            res = waiter.compute()
+            t2 = time.time()
+            assert res == os.fspath(fn)
+            assert t2 - t1 > 0.05
+
+    @staticmethod
+    def test_wait_for_file_not_appears(tmp_path):
+        """Test case where file fails to appear."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file3"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        with pytest.raises(TimeoutError):
+            waiter.compute()
+
+    @staticmethod
+    def test_wait_for_file_multiple_appear(tmp_path):
+        """Test case where file fails to appear."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        fn = tmp_path / "file?"
+        waiter = _wait_for_file(os.fspath(fn), max_tries=1, wait=0)
+        with pytest.raises(TimeoutError):
+            waiter.compute()
+
+    @staticmethod
+    def test_wait_for_file_multiple_appears(tmp_path):
+        """Test case where file appears after a bit."""
+        from satpy.readers.netcdf_utils import _wait_for_file
+        def _wait_and_create(path1, path2):
+            path1.touch()
+            path2.touch()
+        fn4 = tmp_path / "file4"
+        fn5 = tmp_path / "file5"
+        pat = os.fspath(tmp_path / "file?")
+        waiter = _wait_for_file(pat, max_tries=2, wait=0.1)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.submit(_wait_and_create, fn4, fn5)
+        with pytest.raises(ValueError,
+                           match="Expected one matching file, found 2"):
+            waiter.compute()
+
+    def test_get_delayed_from_file(self, tmp_path):
+        """Get getting a value from a file (delayed)."""
+        from satpy.readers.netcdf_utils import _get_delayed_value_from_nc
+        ncname = tmp_path / "croatia.nc"
+        ds = xr.Dataset({"rijeka": (("y", "x"), np.zeros((3, 3)))})
+        ds.to_netcdf(ncname)
+        var_del = _get_delayed_value_from_nc(ncname, "rijeka")
+        np.testing.assert_array_equal(var_del.compute(), np.zeros((3, 3)))
+
+        ncname = tmp_path / "liechtenstein.nc"
+        ds = xr.Dataset({"vaduz": (("y", "x"), np.ones((2, 2)))})
+        ds.to_netcdf(ncname, group="/earth/europe")
+        var_del = _get_delayed_value_from_nc(ncname, "earth/europe/vaduz")
+        np.testing.assert_array_equal(var_del.compute(), np.ones((2, 2)))
+
+    @pytest.fixture()
+    def fake_config(self):
+        """Get a fake required net vars configuration."""
+        return {"required_netcdf_variables": {
+                    "/iceland/reykjavík": ["rc"],
+                    "/iceland/bolungarvík": ["segment"],
+                    "/iceland/{volcano}/lava": ["rc"],
+                    "/iceland/{volcano}/crater": ["segment"],
+                    "/iceland/{volcano}/magma": [],
+                    },
+                 "variable_name_replacements": {
+                     "volcano": ["eyjafjallajökull", "sýlingarfell"]
+                 }}
+
+    @pytest.fixture()
+    def preloadable_false(self, fake_config, tmp_path):
+        """Return a preloadable filehandler with preload=False."""
+        ds = xr.Dataset()
+        ds.to_netcdf(tmp_path / "grimsvötn.nc")
+        handler = FakePreloadableHandler(
+                os.fspath(tmp_path / "grimsvötn.nc"),
+                {},
+                fake_config,
+                preload=False)
+        handler.file_content["/iceland/reykjavík"] = xr.DataArray(
+                da.from_array([[0, 1, 2]]))
+        handler.file_content["/iceland/bolungarvík"] = "012"
+        handler.file_content["/iceland/eyjafjallajökull/lava"] = xr.DataArray(
+                da.from_array([[1, 2, 3]]))
+        handler.file_content["/iceland/eyjafjallajökull/crater"] = xr.DataArray(
+                da.from_array([[2, 2, 3]]))
+        handler.file_content["/iceland/eyjafjallajökull/magma"] = xr.DataArray(
+                da.from_array([[3, 2, 3]]))
+        handler.file_content["/iceland/eyjafjallajökull/magma/shape"] = (1, 3)
+        handler.file_content["/iceland/sýlingarfell/lava"] = xr.DataArray(
+                da.from_array([[4, 2, 3]]))
+        handler.file_content["/iceland/sýlingarfell/crater"] = xr.DataArray(
+                da.from_array([[5, 2, 3]]))
+        handler.file_content["/iceland/sýlingarfell/magma"] = xr.DataArray(
+                da.from_array([[6, 2, 3]]))
+        handler.file_content["/iceland/sýlingarfell/magma/shape"] = (1, 3)
+        return handler
+
+    @pytest.fixture()
+    def cache_file(self, preloadable_false, tmp_path):
+        """Define a cache file."""
+        cf = os.fspath(tmp_path / "test.pkl")
+        preloadable_false.store_cache(cf)
+        return cf
+
+    @pytest.fixture()
+    def preloadable_true(self, preloadable_false, tmp_path, cache_file,
+                         fake_config):
+        """Return a preloadable filehandler with preload=True."""
+        handler = FakePreloadableHandler(
+                "dummy",
+                {},
+                fake_config,
+                preload=True,
+                ref_fh=preloadable_false,
+                rc_cache=cache_file)
+        return handler
+
+    def test_store_and_load_cache(self, tmp_path, preloadable_false,
+                                  cache_file, fake_config):
+        """Test that cache is stored as expected."""
+        dt = pickle.load(open(cache_file, mode="rb"))
+        assert isinstance(dt["/iceland/reykjavík"].data, np.ndarray)  # calculated
+        np.testing.assert_array_equal(dt["/iceland/reykjavík"],
+                                      np.array([[0, 1, 2]]))
+        # segment-only should not be stored
+        assert "/iceland/bolungarvík" not in dt
+        # and test loading
+        handler = FakePreloadableHandler(
+                "dummy",
+                {},
+                fake_config,
+                preload=True,
+                ref_fh=preloadable_false,
+                rc_cache=cache_file)
+        np.testing.assert_array_equal(handler["/iceland/reykjavík"],
+                                      np.array([[0, 1, 2]]))
+
+    def test_can_get_from_other_segment(self, preloadable_true):
+        """Test if segment-cachable check works correctly."""
+        assert preloadable_true._can_get_from_other_segment("/iceland/bolungarvík")
+        assert not preloadable_true._can_get_from_other_segment("/iceland/reykjavík")
+
+    def test_can_get_from_other_rc(self, preloadable_true):
+        """Test if rc-cachable check works correctly."""
+        assert not preloadable_true._can_get_from_other_rc("/iceland/bolungarvík")
+        assert preloadable_true._can_get_from_other_rc("/iceland/reykjavík")
+        assert preloadable_true._can_get_from_other_rc("/iceland/bolungarvík/shape")
+        assert not preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/magma")
+        assert preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/lava")
+        assert preloadable_true._can_get_from_other_rc("/iceland/sýlingarfell/lava")
+        assert preloadable_true._can_get_from_other_rc("/iceland/eyjafjallajökull/magma/dtype")
+
+    def test_get_from_other_segment(self, preloadable_true):
+        """Test that loading from a cached segment works."""
+        assert preloadable_true["/iceland/bolungarvík"] == "012"
+
+    def test_get_from_other_rc(self, preloadable_true):
+        """Test that loading from a cached repeat cycle works."""
+        assert preloadable_true["/iceland/bolungarvík"] == "012"
+
+    def test_incorrect_usage(self, fake_config, preloadable_false, cache_file,
+                             tmp_path):
+        """Test exceptions raised when usage is incorrect."""
+        with pytest.raises(TypeError, match="Expect reference filehandler"):
+            FakePreloadableHandler("dummy", {}, fake_config, preload=True,
+                                   rc_cache=cache_file)
+        with pytest.raises(TypeError, match="Expect cache file"):
+            FakePreloadableHandler("dummy", {}, fake_config, preload=True,
+                                   ref_fh=preloadable_false)
+        fph = FakePreloadableHandler("dummy", {}, fake_config, preload=True,
+                               rc_cache=cache_file, ref_fh=preloadable_false)
+        with pytest.raises(ValueError, match="Cannot store cache with pre-loaded handler"):
+            fph.store_cache(tmp_path / "nowhere-special.pkl")
+        fc2 = fake_config.copy()
+        del fc2["required_netcdf_variables"]
+        with pytest.raises(ValueError,
+                           match="For preloadable filehandlers, "
+                                 "required_netcdf_variables is mandatory"):
+            fph = FakePreloadableHandler("dummy", {}, fc2, preload=False,
+                                         rc_cache=cache_file)
+
+    def test_get_file_handle(self, preloadable_true, preloadable_false,
+                             tmp_path):
+        """Test getting the file handle."""
+        preloadable_true._get_file_handle()
+        preloadable_false._get_file_handle()
+
+    def test_collect_vars(self, tmp_path, fake_config, preloadable_false):
+        """Test collecting variables is delegated."""
+        preloadable_false._collect_listed_variables(None, {})

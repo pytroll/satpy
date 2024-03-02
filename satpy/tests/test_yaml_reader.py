@@ -20,7 +20,7 @@
 import os
 import random
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, call, patch
 
@@ -1527,3 +1527,278 @@ class TestGEOVariableSegmentYAMLReader:
         new_height = 140
         new_empty_segment = geswh(empty_segment, new_height, dim)
         assert new_empty_segment is empty_segment
+
+
+_fake_filetype_info = {
+        "file_reader": DummyReader,
+        "file_patterns": [
+            "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc",
+            "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc"],
+        "expected_segments": 5,
+        "time_tags": ["start_time", "end_time"],
+        "segment_tag": "segment"}
+
+
+def _get_fake_handler(parent, filename):
+    fake_filename = os.fspath(parent / filename)
+    fake_filename_info = {
+            "platform": "M9G",
+            "start_time": datetime(2100, 1, 1, 10, 0, 0),
+            "end_time": datetime(2100, 1, 1, 10, 1, 0),
+            "segment": 1}
+    fakehandler = BaseFileHandler(
+            fake_filename,
+            fake_filename_info,
+            _fake_filetype_info)
+    return fakehandler
+
+
+def test_predict_filename_info(tmp_path):
+    """Test prediction of filename info."""
+    from satpy.readers.yaml_reader import _predict_filename_info
+
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-a-21000101100000-21000101100100-0001.nc")
+    info = _predict_filename_info(fh, 3)
+    assert info == {
+            "platform": "M9G",
+            "start_time": datetime(2100, 1, 1, 23, 59, 59),
+            "end_time": datetime(2100, 1, 1, 23, 59, 59),
+            "segment": 3}
+
+
+@pytest.fixture()
+def fake_gsyreader():
+    """Create a fake GeoSegmentYAMLReader."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+    return GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "alicudi"},
+             "file_types": {
+                 "m9g": _fake_filetype_info}}, preload=True)
+
+
+def test_predict_filename(tmp_path, fake_gsyreader):
+    """Test predicting a filename."""
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-a-21000101100000-21000101100100-0001.nc")
+    newname = fake_gsyreader._predict_filename(fh, 4)
+    assert newname[0] == os.fspath(tmp_path / "M9G-a-21000101??????-21000101??????-0004.nc")
+    fh = _get_fake_handler(
+            tmp_path,
+            "M9G-b-21000101100000-21000101100100-0001.nc")
+    newname = fake_gsyreader._predict_filename(fh, 4)
+    assert newname[0] == os.fspath(tmp_path / "M9G-b-21000101??????-21000101??????-0004.nc")
+
+    st = datetime(2023, 12, 20, 15, 8, 49)
+    et = st + timedelta(minutes=5)
+    fn = f"M9G-b-{st:%Y%m%d%H%M%S}-{et:%Y%m%d%H%M%S}-0001.nc"
+    pt = "M9G-b-20231220??????-20231220??????-0004.nc"
+    fake_filename_info = {"platform": "M9G", "start_time": st, "end_time": et, "segment": 1}
+    fakehandler = BaseFileHandler(
+            os.fspath(tmp_path / fn),
+            fake_filename_info,
+            _fake_filetype_info)
+    newname = fake_gsyreader._predict_filename(fakehandler, 4)
+    assert newname[0] == os.fspath(tmp_path / pt)
+
+
+def test_select_pattern(fake_gsyreader):
+    """Test selecting the appropriate pattern."""
+    assert fake_gsyreader._select_pattern(
+            "M9G-a-21000101100000-21000101100100-0001.nc") == (
+            "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc")
+    assert fake_gsyreader._select_pattern(
+            "M9G-b-21000101100000-21000101100100-0001.nc") == (
+            "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>04d}.nc")
+    with pytest.raises(ValueError, match="Cannot predict filenames"):
+        fake_gsyreader._select_pattern(
+            "M9G-c-21000101100000-21000101100100-0001.nc")
+
+
+@pytest.fixture()
+def fake_simple_nc_file(tmp_path):
+    """Create a small dummy NetCDF file for testing preloaded instances.
+
+    Returns the filename.
+    """
+    nm = tmp_path / "M9G-a-21000101053000-21000101053100-01.nc"
+    nm.parent.mkdir(exist_ok=True, parents=True)
+    ds = xr.Dataset()
+    ds["panarea"] = xr.DataArray(np.array([[0, 1, 2]]), dims=["y", "x"])
+    ds["strómboli"] = xr.DataArray(np.array([[1, 1, 2]]), dims=["y", "x"])
+    ds["salina"] = xr.DataArray(np.array([[2, 1, 2]]), dims=["y", "x"])
+    ds.to_netcdf(nm, group="/grp")
+
+    return nm
+
+
+@pytest.fixture()
+def dummy_preloadable_handler():
+    """Return a dummy preloadable netcdf4-based filehandler."""
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
+    class DummyPreloadableHandler(Preloadable, NetCDF4FileHandler):
+        pass
+    return DummyPreloadableHandler
+
+
+@pytest.fixture()
+def fake_filetype_info(dummy_preloadable_handler):
+    """Return a fake filetype info dict."""
+    ft_info = {
+            "file_reader": dummy_preloadable_handler,
+            "file_patterns": [
+                "{platform}-a-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
+                "{platform}-b-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"],
+            "expected_segments": 3,
+            "time_tags": ["start_time", "end_time"],
+            "segment_tag": "segment",
+            "required_netcdf_variables": {
+                "grp/panarea": ["segment"],  # put in group to avoid https://github.com/pytroll/satpy/issues/2704
+                "grp/strómboli": ["rc"],
+                "grp/salina": []}}
+
+    return ft_info
+
+
+def test_preloaded_instances_works(
+        tmp_path, fake_gsyreader, fake_simple_nc_file,
+        dummy_preloadable_handler, fake_filetype_info):
+    """That that preloaded instances are generated."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
+    ft_info_2 = {**fake_filetype_info,
+            "file_patterns": [
+                "{platform}-c-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
+                "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"]}
+
+    gsyr = GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "island-reader"},
+             "file_types": {
+                 "m9g": fake_filetype_info,
+                 "mag": ft_info_2}}, preload=True)
+
+
+    # filename info belonging to fake_simple_nc_file
+
+    fn_info = {"platform": "M9a", "start_time": datetime(2100, 1, 1, 5, 30),
+               "end_time": datetime(2100, 1, 1, 5, 31), "segment": 1}
+
+    with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        au.return_value = os.fspath(tmp_path / "cache")
+        # prepare cache files
+        dph = dummy_preloadable_handler(os.fspath(fake_simple_nc_file),
+                                        fn_info, fake_filetype_info)
+        for i in range(2, 4):  # disk cache except for nr. 1
+            fn = (tmp_path / "cache" / "satpy" / "preloadable" /
+                  "DummyPreloadableHandler" /
+                  f"M9G-a-99991231235959-99991231235959-{i:>02d}.pkl")
+            fn.parent.mkdir(exist_ok=True, parents=True)
+            dph.store_cache(os.fspath(fn))
+
+        fhs = gsyr.create_filehandlers([os.fspath(fake_simple_nc_file)])
+        assert len(fhs["m9g"]) == 3
+
+
+def test_preloaded_instances_requirement(
+        tmp_path, fake_gsyreader, fake_simple_nc_file,
+        dummy_preloadable_handler, fake_filetype_info):
+    """Test that pre-loading instances fails if there is a required tag."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
+    ft_info = {**fake_filetype_info,
+               "requires": ["pergola"]}
+
+    gsyr = GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "alicudi"},
+             "file_types": {
+                 "m9g": ft_info}}, preload=True)
+    g = gsyr._new_filehandler_instances(
+            ft_info,
+            [(os.fspath(fake_simple_nc_file),
+              {"platform": "M9G",
+               "start_time": datetime(2100, 1, 1, 5, 30, ),
+               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "segment": 1})])
+    with pytest.raises(ValueError, match="Unable to preload"):
+        list(g)
+
+
+def test_preloaded_instances_not_implemented(tmp_path, fake_gsyreader,
+                                             fake_filetype_info):
+    """Test that pre-loading instances fails if it is not implemented."""
+    ft_info = {**fake_filetype_info, "requires": ["pergola"]}
+
+    # Second argument irrelevant, as this part of the method should not be
+    # reached
+    g = fake_gsyreader._new_preloaded_filehandler_instances(ft_info, None)
+    with pytest.raises(NotImplementedError, match="Pre-loading not implemented"):
+        list(g)
+
+
+def test_get_cache_filename(tmp_path):
+    """Test getting cache filename."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
+    fn = tmp_path / "a-01.nc"
+    fn_info = {"segment": 1}
+    ft_info_simple = {
+            "file_reader": BaseFileHandler,
+            "file_patterns": ["a-{segment:>02d}.nc"],
+            "segment_tag": "segment",
+            "expected_segments": 5}
+
+    gsyr = GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "filicudi"},
+             "file_types": {
+                 "m9g": ft_info_simple}}, preload=True)
+    fh = BaseFileHandler(fn, fn_info, ft_info_simple)
+
+    with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        au.return_value = os.fspath(tmp_path / "cache")
+        cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
+        assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
+            "BaseFileHandler" / "a-01.pkl")
+
+    fn = tmp_path / "a-04-01.nc"
+    fn_info = {"rc": 4, "segment": 1}
+    ft_info = ft_info_simple.copy()
+    ft_info["file_patterns"] = ["a-{rc:>02d}-{segment:>02d}.nc"]
+
+    gsyr = GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "salina"},
+             "file_types": {
+                 "m9g": ft_info}}, preload=True)
+    fh = BaseFileHandler(fn, fn_info, ft_info)
+
+    with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        au.return_value = os.fspath(tmp_path / "cache")
+        cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
+        assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
+            "BaseFileHandler" / "a-04-01.pkl")
+
+    fn = tmp_path / "a-20421015234500-234600-04-01.nc"
+    fn_info = {"start_time": datetime(2042, 10, 15, 23, 45),
+               "end_time": datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
+    ft_info = ft_info_simple.copy()
+    ft_info["file_patterns"] = ["a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-{rc:>02d}-{segment:>02d}.nc"]
+    ft_info["time_tags"] = ["start_time", "end_time"]
+
+    gsyr = GEOSegmentYAMLReader(
+            {"reader": {
+                "name": "salina"},
+             "file_types": {
+                 "m9g": ft_info}}, preload=True)
+    fh = BaseFileHandler(fn, fn_info, ft_info)
+
+    with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        au.return_value = os.fspath(tmp_path / "cache")
+        cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
+        assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
+            "BaseFileHandler" / "a-99991231235959-235959-04-01.pkl")
