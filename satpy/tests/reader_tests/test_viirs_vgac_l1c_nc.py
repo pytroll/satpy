@@ -95,13 +95,11 @@ class TestVGACREader:
             reader="viirs_vgac_l1c_nc",
             filenames=[nc_filename])
         scn_.load(["M05", "M15", "scanline_timestamps"])
-        assert ((scn_["scanline_timestamps"][0] -
-                 np.datetime64("2023-03-28T09:08:07") - np.timedelta64(123, "ms")) < np.timedelta64(5, "us"))
-        assert ((scn_["scanline_timestamps"][-1] - np.datetime64("2023-03-28T10:11:12")) < np.timedelta64(5, "us"))
-        assert ((np.datetime64("2023-03-28T09:08:07") + np.timedelta64(123, "ms") -
-                 scn_["scanline_timestamps"][0]) < np.timedelta64(5, "us"))
-        assert ((np.datetime64("2023-03-28T10:11:12") - scn_["scanline_timestamps"][-1]) < np.timedelta64(5, "us"))
-
+        diff_s = (scn_["scanline_timestamps"][0] - np.datetime64("2023-03-28T09:08:07")
+                  - np.timedelta64(123, "ms"))
+        diff_e = np.datetime64("2023-03-28T10:11:12") - scn_["scanline_timestamps"][-1]
+        assert (np.abs(diff_e) < np.timedelta64(5000, "ns"))
+        assert (np.abs(diff_s) < np.timedelta64(5000, "ns"))
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)
         assert scn_.start_time == datetime.datetime(year=2023, month=3, day=28,
