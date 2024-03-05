@@ -85,8 +85,8 @@ class VGACFileHandler(BaseFileHandler):
                                                          "days since %d/%m/%YT%H:%M:%S"))
         delta_part_of_day, delta_full_days = np.modf(nc["proj_time0"].values)
         delta_full_days = np.timedelta64(int(delta_full_days), "D")
-        delta_part_of_day = delta_part_of_day * np.timedelta64(1, "D").astype("timedelta64[us]")
-        delta_hours = data.values * np.timedelta64(1, "h").astype("timedelta64[us]")
+        delta_part_of_day = delta_part_of_day * np.timedelta64(1, "D").astype("timedelta64[ns]")
+        delta_hours = data.values * np.timedelta64(1, "h").astype("timedelta64[ns]")
         time_data = xr.DataArray(reference_time + delta_full_days + delta_part_of_day + delta_hours,
                                  coords=data.coords, attrs={"long_name": "Scanline time"})
         self._start_time = self.dt64_to_datetime(time_data[0].values)

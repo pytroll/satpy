@@ -98,8 +98,10 @@ class TestVGACREader:
         diff_s = (scn_["scanline_timestamps"][0] - np.datetime64("2023-03-28T09:08:07")
                   - np.timedelta64(123, "ms"))
         diff_e = np.datetime64("2023-03-28T10:11:12") - scn_["scanline_timestamps"][-1]
-        assert (np.abs(diff_e) < np.timedelta64(5000, "ns"))
-        assert (np.abs(diff_s) < np.timedelta64(5000, "ns"))
+        assert (diff_e < np.timedelta64(5000, "ns"))
+        assert (diff_s < np.timedelta64(5000, "ns"))
+        assert (diff_e > np.timedelta64(-5000, "ns"))
+        assert (diff_s > np.timedelta64(-5000, "ns"))
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)
         assert scn_.start_time == datetime.datetime(year=2023, month=3, day=28,
