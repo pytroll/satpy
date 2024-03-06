@@ -22,7 +22,7 @@ This version tests the readers for VIIIRS VGAC data preliminary version.
 """
 
 
-import datetime
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -33,7 +33,7 @@ from netCDF4 import Dataset
 @pytest.fixture()
 def nc_filename(tmp_path):
     """Create an nc test data file and return its filename."""
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
     # Create test data
@@ -65,7 +65,7 @@ def nc_filename(tmp_path):
             tb_lut[:] = np.array(range(0, n_lut)) * 0.5
             tb_lut.units = "Kelvin"
         reference_time = np.datetime64("2010-01-01T00:00:00")
-        start_time = np.datetime64("2023-03-28T09:08:07") + np.timedelta64(123, "ms")
+        start_time = np.datetime64("2023-03-28T09:08:07") + np.timedelta64(123000, "us")
         delta_days = start_time - reference_time
         delta_full_days = delta_days.astype("timedelta64[D]")
         hidden_reference_time = reference_time + delta_full_days
@@ -95,19 +95,20 @@ class TestVGACREader:
             reader="viirs_vgac_l1c_nc",
             filenames=[nc_filename])
         scn_.load(["M05", "M15", "scanline_timestamps"])
-        diff_s = (scn_["scanline_timestamps"][0] - np.datetime64("2023-03-28T09:08:07")
-                  - np.timedelta64(123, "ms"))
-        diff_e = np.datetime64("2023-03-28T10:11:12") - scn_["scanline_timestamps"][-1]
-        assert (diff_e < np.timedelta64(5000, "ns"))
-        assert (diff_s < np.timedelta64(5000, "ns"))
-        assert (diff_e > np.timedelta64(-5000, "ns"))
-        assert (diff_s > np.timedelta64(-5000, "ns"))
+        diff_s = (scn_["scanline_timestamps"][0].values.astype('datetime64[us]') -
+                  np.datetime64('2023-03-28T09:08:07.123000').astype('datetime64[us]'))
+        diff_e = (np.datetime64("2023-03-28T10:11:12.000000").astype('datetime64[us]') -
+                  scn_["scanline_timestamps"][-1].values.astype('datetime64[us]'))
+        assert (diff_s < np.timedelta64(5, "us"))
+        assert (diff_e < np.timedelta64(5, "us"))
+        assert (diff_s > np.timedelta64(-5, "us"))
+        assert (diff_e > np.timedelta64(-5, "us"))
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)
-        assert scn_.start_time == datetime.datetime(year=2023, month=3, day=28,
-                                                    hour=9, minute=8, second=7)
-        assert scn_.end_time == datetime.datetime(year=2023, month=3, day=28,
-                                                  hour=10, minute=11, second=12)
+        assert scn_.start_time == datetime(year=2023, month=3, day=28,
+                                           hour=9, minute=8, second=7)
+        assert scn_.end_time == datetime(year=2023, month=3, day=28,
+                                         hour=10, minute=11, second=12)
 
     def test_dt64_to_datetime(self):
         """Test datetime conversion branch."""
@@ -115,8 +116,8 @@ class TestVGACREader:
         fh = VGACFileHandler(filename="",
                              filename_info={"start_time": "2023-03-28T09:08:07"},
                              filetype_info="")
-        in_dt = datetime.datetime(year=2023, month=3, day=28,
-                                  hour=9, minute=8, second=7)
+        in_dt = datetime(year=2023, month=3, day=28,
+                         hour=9, minute=8, second=7)
         out_dt = fh.dt64_to_datetime(in_dt)
         assert out_dt == in_dt
 
