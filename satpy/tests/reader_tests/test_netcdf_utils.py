@@ -300,10 +300,8 @@ NC_ATTRS = {
     "scale_factor": 0.01,
     "add_offset": 0}
 
-def test_get_data_as_xarray_netcdf4():
+def test_get_data_as_xarray_netcdf4(tmp_path):
     """Test getting xr.DataArray from netcdf4 variable."""
-    import tempfile
-
     import netCDF4 as nc
     import numpy as np
 
@@ -311,26 +309,22 @@ def test_get_data_as_xarray_netcdf4():
 
     data = np.array([1, 2, 3])
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Create an empty HDF5
-        fname = os.path.join(tmpdir, "test.nc")
-        dset = nc.Dataset(fname, "w")
-        dset.createDimension("y", None)
-        var = dset.createVariable("test_data", "uint8", ("y",))
-        var[:] = data
-        var.setncatts(NC_ATTRS)
-        # Turn off automatic scale factor and offset handling
-        dset.set_auto_maskandscale(False)
-        res = get_data_as_xarray(var)
-        np.testing.assert_equal(res.data, data)
-        assert res.attrs == NC_ATTRS
-        dset.close()
+    fname = tmp_path / "test.nc"
+    dset = nc.Dataset(fname, "w")
+    dset.createDimension("y", None)
+    var = dset.createVariable("test_data", "uint8", ("y",))
+    var[:] = data
+    var.setncatts(NC_ATTRS)
+    # Turn off automatic scale factor and offset handling
+    dset.set_auto_maskandscale(False)
+    res = get_data_as_xarray(var)
+    np.testing.assert_equal(res.data, data)
+    assert res.attrs == NC_ATTRS
+    dset.close()
 
 
-def test_get_data_as_xarray_h5netcdf():
+def test_get_data_as_xarray_h5netcdf(tmp_path):
     """Test getting xr.DataArray from h5netcdf variable."""
-    import tempfile
-
     import h5netcdf
     import numpy as np
 
@@ -338,15 +332,13 @@ def test_get_data_as_xarray_h5netcdf():
 
     data = np.array([1, 2, 3])
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Create an empty HDF5
-        fname = os.path.join(tmpdir, "test.nc")
-        with h5netcdf.File(fname, "w") as fid:
-            fid.dimensions = {"y": data.size}
-            var = fid.create_variable("test_data", ("y",), "uint8")
-            var[:] = data
-            for key in NC_ATTRS:
-                var.attrs[key] = NC_ATTRS[key]
-            res = get_data_as_xarray(var)
-            np.testing.assert_equal(res.data, data)
-            assert res.attrs == NC_ATTRS
+    fname = tmp_path / "test.nc"
+    with h5netcdf.File(fname, "w") as fid:
+        fid.dimensions = {"y": data.size}
+        var = fid.create_variable("test_data", ("y",), "uint8")
+        var[:] = data
+        for key in NC_ATTRS:
+            var.attrs[key] = NC_ATTRS[key]
+        res = get_data_as_xarray(var)
+        np.testing.assert_equal(res.data, data)
+        assert res.attrs == NC_ATTRS
