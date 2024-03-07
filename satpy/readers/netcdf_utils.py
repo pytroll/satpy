@@ -383,7 +383,7 @@ def get_data_as_xarray(variable):
     try:
         arr = xr.DataArray(
             variable[:], dims=variable.dimensions, attrs=attrs, name=variable.name)
-    except (ValueError, IndexError):
+    except ValueError:
         # Handle scalars for h5netcdf backend
         arr = xr.DataArray(
             variable.__array__(), dims=variable.dimensions, attrs=attrs, name=variable.name)
