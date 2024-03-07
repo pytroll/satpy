@@ -780,10 +780,10 @@ def _get_compression(file):
         return None
 
 
-def open_file_or_filename(unknown_file_thing):
+def open_file_or_filename(unknown_file_thing, mode="r"):
     """Try to open the *unknown_file_thing*, otherwise return the filename."""
     try:
-        f_obj = unknown_file_thing.open()
+        f_obj = unknown_file_thing.open(mode=mode)
     except AttributeError:
         f_obj = unknown_file_thing
     return f_obj
