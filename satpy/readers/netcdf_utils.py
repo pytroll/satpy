@@ -259,12 +259,16 @@ class NetCDF4FileHandler(BaseFileHandler):
         for var_name in cache_vars:
             v = self.file_content[var_name]
             try:
+                attrs = v.attrs
+            except AttributeError:
+                attrs = v.__dict__
+            try:
                 arr = xr.DataArray(
-                    v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
-            except ValueError:
+                    v[:], dims=v.dimensions, attrs=attrs, name=v.name)
+            except (ValueError, IndexError):
                 # Handle scalars for h5netcdf backend
                 arr = xr.DataArray(
-                    v.__array__(), dims=v.dimensions, attrs=v.__dict__, name=v.name)
+                    v.__array__(), dims=v.dimensions, attrs=attrs, name=v.name)
             self.cached_file_content[var_name] = arr
 
     def _collect_cache_var_names(self, cache_var_size):
