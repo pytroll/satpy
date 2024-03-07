@@ -302,14 +302,22 @@ NC_ATTRS = {
 
 def test_get_data_as_xarray_netcdf4(tmp_path):
     """Test getting xr.DataArray from netcdf4 variable."""
-    import netCDF4 as nc
     import numpy as np
 
     from satpy.readers.netcdf_utils import get_data_as_xarray
 
     data = np.array([1, 2, 3])
-
     fname = tmp_path / "test.nc"
+    dset = _write_test_netcdf4(fname, data)
+
+    res = get_data_as_xarray(dset["test_data"])
+    np.testing.assert_equal(res.data, data)
+    assert res.attrs == NC_ATTRS
+
+
+def _write_test_netcdf4(fname, data):
+    import netCDF4 as nc
+
     dset = nc.Dataset(fname, "w")
     dset.createDimension("y", None)
     var = dset.createVariable("test_data", "uint8", ("y",))
@@ -317,28 +325,33 @@ def test_get_data_as_xarray_netcdf4(tmp_path):
     var.setncatts(NC_ATTRS)
     # Turn off automatic scale factor and offset handling
     dset.set_auto_maskandscale(False)
-    res = get_data_as_xarray(var)
-    np.testing.assert_equal(res.data, data)
-    assert res.attrs == NC_ATTRS
-    dset.close()
+
+    return dset
 
 
 def test_get_data_as_xarray_h5netcdf(tmp_path):
     """Test getting xr.DataArray from h5netcdf variable."""
-    import h5netcdf
     import numpy as np
 
     from satpy.readers.netcdf_utils import get_data_as_xarray
 
     data = np.array([1, 2, 3])
-
     fname = tmp_path / "test.nc"
-    with h5netcdf.File(fname, "w") as fid:
-        fid.dimensions = {"y": data.size}
-        var = fid.create_variable("test_data", ("y",), "uint8")
-        var[:] = data
-        for key in NC_ATTRS:
-            var.attrs[key] = NC_ATTRS[key]
-        res = get_data_as_xarray(var)
-        np.testing.assert_equal(res.data, data)
-        assert res.attrs == NC_ATTRS
+    fid = _write_test_h5netcdf(fname, data)
+
+    res = get_data_as_xarray(fid["test_data"])
+    np.testing.assert_equal(res.data, data)
+    assert res.attrs == NC_ATTRS
+
+
+def _write_test_h5netcdf(fname, data):
+    import h5netcdf
+
+    fid = h5netcdf.File(fname, "w")
+    fid.dimensions = {"y": data.size}
+    var = fid.create_variable("test_data", ("y",), "uint8")
+    var[:] = data
+    for key in NC_ATTRS:
+        var.attrs[key] = NC_ATTRS[key]
+
+    return fid
