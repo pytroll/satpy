@@ -38,6 +38,8 @@ rasterio = pytest.importorskip("rasterio")
 dirname_suffix = "20190201T024655_20190201T024720_025730_02DC2A_AE07"
 filename_suffix = "20190201t024655-20190201t024720-025730-02dc2a"
 
+START_TIME = datetime(2019, 2, 1, 2, 46, 55)
+END_TIME = datetime(2019, 2, 1, 2, 47, 20)
 
 @pytest.fixture(scope="module")
 def granule_directory(tmp_path_factory):
@@ -62,7 +64,7 @@ def annotation_file(granule_directory):
 @pytest.fixture(scope="module")
 def annotation_filehandler(annotation_file):
   """Create an annotation filehandler."""
-  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
   return SAFEXMLAnnotation(annotation_file, filename_info, None)
 
 
@@ -74,16 +76,16 @@ def calibration_file(granule_directory):
   calibration_file = cal_dir / f"calibration-s1a-iw-grd-vv-{filename_suffix}-001.xml"
   with open(calibration_file, "wb") as fd:
       fd.write(calibration_xml)
-  return calibration_file
+  return Path(calibration_file)
 
 @pytest.fixture(scope="module")
 def calibration_filehandler(calibration_file, annotation_filehandler):
   """Create a calibration filehandler."""
-  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
   return Calibrator(calibration_file,
-                            filename_info,
-                            None,
-                            image_shape=annotation_filehandler.image_shape)
+                    filename_info,
+                    None,
+                    image_shape=annotation_filehandler.image_shape)
 
 @pytest.fixture(scope="module")
 def noise_file(granule_directory):
@@ -99,14 +101,14 @@ def noise_file(granule_directory):
 @pytest.fixture(scope="module")
 def noise_filehandler(noise_file, annotation_filehandler):
   """Create a noise filehandler."""
-  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
   return Denoiser(noise_file, filename_info, None, image_shape=annotation_filehandler.image_shape)
 
 
 @pytest.fixture(scope="module")
 def noise_with_holes_filehandler(annotation_filehandler):
   """Create a noise filehandler from data with holes."""
-  filename_info = dict(start_time=None, end_time=None, polarization="vv")
+  filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
   noise_filehandler = Denoiser(BytesIO(noise_xml_with_holes),
                                    filename_info, None,
                                    image_shape=annotation_filehandler.image_shape)
@@ -151,13 +153,13 @@ def measurement_file(granule_directory):
     crs="+proj=latlong",
     gcps=gcps) as dst:
       dst.write(Z, 1)
-  return filename
+  return Path(filename)
 
 
 @pytest.fixture(scope="module")
 def measurement_filehandler(measurement_file, noise_filehandler, calibration_filehandler):
   """Create a measurement filehandler."""
-  filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": 0, "end_time": 0,
+  filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": START_TIME, "end_time": END_TIME,
                    "polarization": "vv"}
   filetype_info = None
   from satpy.readers.sar_c_safe import SAFEGRD

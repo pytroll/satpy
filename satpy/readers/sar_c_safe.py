@@ -36,8 +36,9 @@ References:
 
 import functools
 import logging
-import os
 from collections import defaultdict
+from datetime import timezone as tz
+from functools import cached_property
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -50,6 +51,7 @@ from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
 from satpy.dataset.dataid import DataID
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.yaml_reader import GenericYAMLReader
 from satpy.utils import get_legacy_chunk_size
@@ -101,10 +103,10 @@ class SAFEXML(BaseFileHandler):
         """Init the xml filehandler."""
         super().__init__(filename, filename_info, filetype_info)
 
-        self._start_time = filename_info["start_time"]
-        self._end_time = filename_info["end_time"]
+        self._start_time = filename_info["start_time"].replace(tzinfo=tz.utc)
+        self._end_time = filename_info["end_time"].replace(tzinfo=tz.utc)
         self._polarization = filename_info["polarization"]
-        self.root = ET.parse(self.filename)
+        self.root = ET.parse(open_file_or_filename(self.filename))
         self._image_shape = image_shape
 
     def get_metadata(self):
@@ -507,8 +509,13 @@ def interpolate_xarray(xpoints, ypoints, values, shape,
     """Interpolate, generating a dask array."""
     from scipy.interpolate import RectBivariateSpline
 
-    vchunks = range(0, shape[0], blocksize)
-    hchunks = range(0, shape[1], blocksize)
+    try:
+        blocksize_row, blocksize_col = blocksize
+    except ValueError:
+        blocksize_row = blocksize_col = blocksize
+
+    vchunks = range(0, shape[0], blocksize_row)
+    hchunks = range(0, shape[1], blocksize_col)
 
     token = tokenize(blocksize, xpoints, ypoints, values, shape)
     name = "interpolate-" + token
@@ -520,15 +527,15 @@ def interpolate_xarray(xpoints, ypoints, values, shape,
         return spline(xnew, ynew).T
 
     dskx = {(name, i, j): (interpolate_slice,
-                           slice(vcs, min(vcs + blocksize, shape[0])),
-                           slice(hcs, min(hcs + blocksize, shape[1])),
+                           slice(vcs, min(vcs + blocksize_row, shape[0])),
+                           slice(hcs, min(hcs + blocksize_col, shape[1])),
                            interpolator)
             for i, vcs in enumerate(vchunks)
             for j, hcs in enumerate(hchunks)
             }
 
     res = da.Array(dskx, name, shape=list(shape),
-                   chunks=(blocksize, blocksize),
+                   chunks=(blocksize_row, blocksize_col),
                    dtype=values.dtype)
     return DataArray(res, dims=("y", "x"))
 
@@ -573,9 +580,8 @@ class SAFEGRD(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, calibrator, denoiser):
         """Init the grd filehandler."""
         super().__init__(filename, filename_info, filetype_info)
-
-        self._start_time = filename_info["start_time"]
-        self._end_time = filename_info["end_time"]
+        self._start_time = filename_info["start_time"].replace(tzinfo=tz.utc)
+        self._end_time = filename_info["end_time"].replace(tzinfo=tz.utc)
 
         self._polarization = filename_info["polarization"]
 
@@ -585,7 +591,6 @@ class SAFEGRD(BaseFileHandler):
         self.denoiser = denoiser
         self.read_lock = Lock()
 
-        self.filehandle = rasterio.open(self.filename, "r", sharing=False)
         self.get_lonlatalts = functools.lru_cache(maxsize=2)(
             self._get_lonlatalts_uncached
         )
@@ -606,15 +611,22 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = xr.open_dataarray(self.filename, engine="rasterio",
-                                     chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}).squeeze()
-            data = data.assign_coords(x=np.arange(len(data.coords["x"])),
-                                      y=np.arange(len(data.coords["y"])))
-            data = self._calibrate_and_denoise(data, key)
+            data = self._calibrate_and_denoise(self._data, key)
             data.attrs.update(info)
             data.attrs.update({"platform_name": self._mission_id})
 
             data = self._change_quantity(data, key["quantity"])
+
+        return data
+
+    @cached_property
+    def _data(self):
+        data = xr.open_dataarray(self.filename, engine="rasterio",
+                                     chunks="auto"
+                                     ).squeeze()
+        self.chunks = data.data.chunksize
+        data = data.assign_coords(x=np.arange(len(data.coords["x"])),
+                                      y=np.arange(len(data.coords["y"])))
 
         return data
 
@@ -631,11 +643,9 @@ class SAFEGRD(BaseFileHandler):
 
     def _calibrate_and_denoise(self, data, key):
         """Calibrate and denoise the data."""
-        chunks = CHUNK_SIZE
-
         dn = self._get_digital_number(data)
-        dn = self.denoiser(dn, chunks)
-        data = self.calibrator(dn, key["calibration"], chunks)
+        dn = self.denoiser(dn, self.chunks)
+        data = self.calibrator(dn, key["calibration"], self.chunks)
 
         return data
 
@@ -644,13 +654,6 @@ class SAFEGRD(BaseFileHandler):
         data = data.where(data > 0)
         data = data.astype(np.float64)
         dn = data * data
-        return dn
-
-    def _denoise(self, dn, chunks):
-        """Denoise the data."""
-        logger.debug("Reading noise data.")
-        noise = self.noise.get_noise_correction(chunks=chunks).fillna(0)
-        dn = dn - noise
         return dn
 
     def _get_lonlatalts_uncached(self):
@@ -662,16 +665,16 @@ class SAFEGRD(BaseFileHandler):
         Returns:
            coordinates (tuple): A tuple with longitude and latitude arrays
         """
-        band = self.filehandle
+        shape = self._data.shape
 
         (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (gcps, crs) = self.get_gcps()
 
         # FIXME: do interpolation on cartesian coordinates if the area is
         # problematic.
 
-        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, band.shape)
-        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, band.shape)
-        altitudes = interpolate_xarray(xpoints, ypoints, gcp_alts, band.shape)
+        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, shape, self.chunks)
+        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, shape, self.chunks)
+        altitudes = interpolate_xarray(xpoints, ypoints, gcp_alts, shape, self.chunks)
 
         longitudes.attrs["gcps"] = gcps
         longitudes.attrs["crs"] = crs
@@ -694,9 +697,12 @@ class SAFEGRD(BaseFileHandler):
            gcp_coords (tuple): longitude and latitude 1d arrays
 
         """
-        gcps = self.filehandle.gcps
+        gcps = self._data.coords["spatial_ref"].attrs["gcps"]
+        crs = self._data.rio.crs
 
-        gcp_array = np.array([(p.row, p.col, p.x, p.y, p.z) for p in gcps[0]])
+        gcp_list = [(feature["properties"]["row"], feature["properties"]["col"], *feature["geometry"]["coordinates"])
+                    for feature in gcps["features"]]
+        gcp_array = np.array(gcp_list)
 
         ypoints = np.unique(gcp_array[:, 0])
         xpoints = np.unique(gcp_array[:, 1])
@@ -705,7 +711,10 @@ class SAFEGRD(BaseFileHandler):
         gcp_lats = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
         gcp_alts = gcp_array[:, 4].reshape(ypoints.shape[0], xpoints.shape[0])
 
-        return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), gcps
+        rio_gcps = [rasterio.control.GroundControlPoint(*gcp) for gcp in gcp_list]
+
+
+        return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs)
 
     @property
     def start_time(self):
@@ -731,12 +740,12 @@ class SAFESARReader(GenericYAMLReader):
     @property
     def start_time(self):
         """Get the start time."""
-        return self.storage_items.values()[0].filename_info["start_time"]
+        return self.storage_items.values()[0].filename_info["start_time"].replace(tzinfo=tz.utc)
 
     @property
     def end_time(self):
         """Get the end time."""
-        return self.storage_items.values()[0].filename_info["end_time"]
+        return self.storage_items.values()[0].filename_info["end_time"].replace(tzinfo=tz.utc)
 
     def load(self, dataset_keys, **kwargs):
         """Load some data."""
@@ -752,20 +761,20 @@ class SAFESARReader(GenericYAMLReader):
                     if key["name"] not in ["longitude", "latitude"]:
                         lonlats = self.load([DataID(self._id_keys, name="longitude", polarization=key["polarization"]),
                                              DataID(self._id_keys, name="latitude", polarization=key["polarization"])])
+                        gcps = val.coords["spatial_ref"].attrs["gcps"]
                         from pyresample.future.geometry import SwathDefinition
                         val.attrs["area"] = SwathDefinition(lonlats["longitude"], lonlats["latitude"],
-                                                            attrs=dict(gcps=None))
+                                                            attrs=dict(gcps=gcps))
                     datasets[key] = val
                     continue
         return datasets
 
     def create_storage_items(self, files, **kwargs):
         """Create the storage items."""
-        filenames = [os.fspath(filename) for filename in files]
+        filenames = files
         files_by_type = defaultdict(list)
         for file_type, type_info in self.config["file_types"].items():
             files_by_type[file_type].extend(self.filename_items_for_filetype(filenames, type_info))
-
         image_shapes = dict()
         for annotation_file, annotation_info in files_by_type["safe_annotation"]:
             annotation_fh = SAFEXMLAnnotation(annotation_file,
