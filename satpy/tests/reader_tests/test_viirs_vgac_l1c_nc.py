@@ -41,12 +41,14 @@ def nc_filename(tmp_path):
         nscn = 7
         npix = 800
         n_lut = 12000
+        start_time_srting = "2023-03-28T09:08:07"
+        end_time_string = "2023-03-28T10:11:12"
         nc.createDimension("npix", npix)
         nc.createDimension("nscn", nscn)
         nc.createDimension("n_lut", n_lut)
         nc.createDimension("one", 1)
-        nc.StartTime = "2023-03-28T09:08:07"
-        nc.EndTime = "2023-03-28T10:11:12"
+        nc.StartTime = start_time_srting
+        nc.EndTime = end_time_string
         for ind in range(1, 11, 1):
             ch_name = "M{:02d}".format(ind)
             r_a = nc.createVariable(ch_name, np.int16, dimensions=("nscn", "npix"))
@@ -71,13 +73,13 @@ def nc_filename(tmp_path):
         hidden_reference_time = reference_time + delta_full_days
         delta_part_of_days = start_time - hidden_reference_time
         proj_time0 = nc.createVariable("proj_time0", np.float64, ("one",))
-        proj_time0[:] = (delta_full_days.astype(int) +
+        proj_time0[:] = (delta_full_days.astype(np.int64) +
                          0.000001 * delta_part_of_days.astype("timedelta64[us]").astype(np.int64) / (60 * 60 * 24))
         proj_time0.units = "days since 01/01/2010T00:00:00"
         time_v = nc.createVariable("time", np.float64, ("nscn",))
-        delta_h = np.datetime64(nc.EndTime) - start_time
-        delta_hours = 0.000001 * delta_h.astype("timedelta64[us]").astype(int) / (60 * 60)
-        time_v[:] = np.linspace(0, delta_hours, num=nscn)
+        delta_h = np.datetime64(end_time_string) - start_time
+        delta_hours = 0.000001 * delta_h.astype("timedelta64[us]").astype(np.int64) / (60 * 60)
+        time_v[:] = np.linspace(0, delta_hours, num=nscn).astype(np.float64)
         time_v.units = "hours since proj_time0"
 
     return filename_str
@@ -95,13 +97,13 @@ class TestVGACREader:
             reader="viirs_vgac_l1c_nc",
             filenames=[nc_filename])
         scn_.load(["M05", "M15", "scanline_timestamps"])
-        diff_s = (scn_["scanline_timestamps"][0].values.astype('datetime64[us]') -
-                  np.datetime64('2023-03-28T09:08:07.123000').astype('datetime64[us]'))
-        diff_e = (np.datetime64("2023-03-28T10:11:12.000000").astype('datetime64[us]') -
-                  scn_["scanline_timestamps"][-1].values.astype('datetime64[us]'))
+        diff_s = (scn_["scanline_timestamps"][0].values.astype("datetime64[us]") -
+                  np.datetime64("2023-03-28T09:08:07.123000").astype("datetime64[us]"))
+        diff_e = (np.datetime64("2023-03-28T10:11:12.000000").astype("datetime64[us]") -
+                  scn_["scanline_timestamps"][-1].values.astype("datetime64[us]"))
         assert (diff_s < np.timedelta64(5, "us"))
-        assert (diff_e < np.timedelta64(5, "us"))
         assert (diff_s > np.timedelta64(-5, "us"))
+        assert (diff_e < np.timedelta64(5, "us"))
         assert (diff_e > np.timedelta64(-5, "us"))
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)
