@@ -783,7 +783,7 @@ def _get_compression(file):
         return None
 
 
-def open_file_or_filename(unknown_file_thing, mode="r"):
+def open_file_or_filename(unknown_file_thing, mode=None):
     """Try to open the provided file "thing" if needed, otherwise return the filename or Path.
 
     This wraps the logic of getting something like an fsspec OpenFile object
@@ -797,7 +797,10 @@ def open_file_or_filename(unknown_file_thing, mode="r"):
         f_obj = unknown_file_thing
     else:
         try:
-            f_obj = unknown_file_thing.open(mode=mode)
+            if mode is None:
+                f_obj = unknown_file_thing.open()
+            else:
+                f_obj = unknown_file_thing.open(mode=mode)
         except AttributeError:
             f_obj = unknown_file_thing
     return f_obj
