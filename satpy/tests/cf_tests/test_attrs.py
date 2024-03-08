@@ -24,14 +24,14 @@ class TestCFAttributeEncoding:
 
     def test__encode_nc_attrs(self):
         """Test attributes encoding."""
-        from satpy.cf.attrs import _encode_nc_attrs
+        from satpy.cf.attrs import encode_attrs_to_cf
         from satpy.tests.cf_tests._test_data import get_test_attrs
         from satpy.tests.utils import assert_dict_array_equality
 
         attrs, expected, _ = get_test_attrs()
 
         # Test encoding
-        encoded = _encode_nc_attrs(attrs)
+        encoded = encode_attrs_to_cf(attrs)
         assert_dict_array_equality(expected, encoded)
 
         # Test decoding of json-encoded attributes

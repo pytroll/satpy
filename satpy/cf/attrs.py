@@ -128,8 +128,8 @@ def _encode_to_cf(obj):
         return _encode_python_objects(obj)
 
 
-def _encode_nc_attrs(attrs):
-    """Encode dataset attributes in a netcdf compatible datatype.
+def encode_attrs_to_cf(attrs):
+    """Encode dataset attributes as a netcdf compatible datatype.
 
     Args:
         attrs (dict):
@@ -161,7 +161,7 @@ def preprocess_attrs(
     if flatten_attrs:
         data_arr.attrs = flatten_dict(data_arr.attrs)
 
-    data_arr.attrs = _encode_nc_attrs(data_arr.attrs)
+    data_arr.attrs = encode_attrs_to_cf(data_arr.attrs)
 
     return data_arr
 
@@ -224,7 +224,7 @@ def preprocess_header_attrs(header_attrs, flatten_attrs=False):
     if header_attrs is not None:
         if flatten_attrs:
             header_attrs = flatten_dict(header_attrs)
-        header_attrs = _encode_nc_attrs(header_attrs)  # OrderedDict
+        header_attrs = encode_attrs_to_cf(header_attrs)  # OrderedDict
     else:
         header_attrs = {}
     header_attrs = _add_history(header_attrs)

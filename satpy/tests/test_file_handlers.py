@@ -49,25 +49,27 @@ class TestBaseFileHandler(unittest.TestCase):
         """Set up the test."""
         self.fh = BaseFileHandler(
             "filename", {"filename_info": "bla"}, "filetype_info")
+        self.early_time = datetime(2024, 2, 12, 11, 00)
+        self.late_time = datetime(2024, 2, 12, 12, 00)
 
     def test_combine_times(self):
         """Combine times."""
-        info1 = {"start_time": 1}
-        info2 = {"start_time": 2}
+        info1 = {"start_time": self.early_time}
+        info2 = {"start_time": self.late_time}
         res = self.fh.combine_info([info1, info2])
-        exp = {"start_time": 1}
+        exp = {"start_time": self.early_time}
         assert res == exp
         res = self.fh.combine_info([info2, info1])
-        exp = {"start_time": 1}
+        exp = {"start_time": self.early_time}
         assert res == exp
 
-        info1 = {"end_time": 1}
-        info2 = {"end_time": 2}
+        info1 = {"end_time": self.early_time}
+        info2 = {"end_time": self.late_time}
         res = self.fh.combine_info([info1, info2])
-        exp = {"end_time": 2}
+        exp = {"end_time": self.late_time}
         assert res == exp
         res = self.fh.combine_info([info2, info1])
-        exp = {"end_time": 2}
+        exp = {"end_time": self.late_time}
         assert res == exp
 
     def test_combine_orbits(self):

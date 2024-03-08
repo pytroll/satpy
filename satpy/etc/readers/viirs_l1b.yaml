@@ -1,7 +1,7 @@
 reader:
   name: viirs_l1b
   short_name: VIIRS l1b
-  long_name: SNPP VIIRS Level 1b data in netCDF4 format
+  long_name: JPSS VIIRS Level 1b data in netCDF4 format
   description: Generic NASA VIIRS L1B Reader
   status: Nominal
   supports_fsspec: false

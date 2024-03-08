@@ -238,8 +238,8 @@ def get_attrs_exp(projection_longitude=0.0):
                                "satellite_actual_latitude": -0.5711243456528018,
                                "satellite_actual_altitude": 35783296.150123544},
         "georef_offset_corrected": True,
-        "nominal_start_time": (datetime(2006, 1, 1, 12, 15),),
-        "nominal_end_time": (datetime(2006, 1, 1, 12, 30),),
+        "nominal_start_time": datetime(2006, 1, 1, 12, 15),
+        "nominal_end_time": datetime(2006, 1, 1, 12, 30),
         "time_parameters": {
             "nominal_start_time": datetime(2006, 1, 1, 12, 15),
             "nominal_end_time": datetime(2006, 1, 1, 12, 30),
