@@ -379,14 +379,15 @@ def get_data_as_xarray(variable):
     try:
         attrs = variable.attrs
     except AttributeError:
+        # netCDF4 backend requires usage of __dict__ to get the attributes
         attrs = variable.__dict__
     try:
-        arr = xr.DataArray(
-            variable[:], dims=variable.dimensions, attrs=attrs, name=variable.name)
-    except ValueError:
+        data = variable[:]
+    except (ValueError, IndexError):
         # Handle scalars for h5netcdf backend
-        arr = xr.DataArray(
-            variable.__array__(), dims=variable.dimensions, attrs=attrs, name=variable.name)
+        data = variable.__array__()
+
+    arr = xr.DataArray(data, dims=variable.dimensions, attrs=attrs, name=variable.name)
 
     return arr
 
