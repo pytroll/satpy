@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Pygac interface."""
 
+import io
 from datetime import datetime
 from unittest import TestCase, mock
 
@@ -160,6 +161,36 @@ class TestGACLACFile(GACLACFilePatcher):
                 fh = self._get_fh(filename, **kwargs)
                 assert fh.start_time < fh.end_time
                 assert fh.reader_class is reader_cls
+
+    def test_fsfile(self):
+        """Test the use of FSFile filename"""
+        import satpy
+        from satpy.readers import FSFile
+
+        coords = np.arange(4).reshape((2, 2))
+        channels = np.arange(4*6).reshape((2, 2, 6))
+        utcs = np.array(['2000-01-01', '2020-01-01'], dtype='datetime64')
+        reader_mock = mock.MagicMock()
+        reader_mock.get_lonlat.return_value = coords, coords
+        reader_mock.get_calibrated_channels.return_value = channels
+        reader_mock.mask = [True]
+        reader_mock.get_times.return_value = utcs
+        self.pygac.gac_klm.GACKLMReader.return_value = reader_mock
+
+        filepath = '/path/to/NSS.GHRR.NN.D16160.S0504.E0659.B5694748.WI'
+        fileobj = io.BytesIO()
+        filesystem = mock.MagicMock()
+        filesystem.open.return_value = fileobj
+        filename = FSFile(filepath, fs=filesystem)
+        reader = 'avhrr_l1b_gaclac'
+        reader_kwargs = {'tle_dir': './TLE/',
+                         'tle_name': 'TLE_%(satname)s.txt',
+                         'tle_thresh': 7}
+
+        scene = satpy.Scene(filenames=[filename], reader=reader,
+                            reader_kwargs=reader_kwargs)
+        scene.load(['1', '2'])
+        reader_mock.read.assert_called_once_with(filepath, fileobj)
 
     def test_read_raw_data(self):
         """Test raw data reading."""

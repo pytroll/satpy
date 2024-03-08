@@ -129,7 +129,11 @@ class GACLACFile(BaseFileHandler):
                 interpolate_coords=self.interpolate_coords,
                 creation_site=self.creation_site,
                 **self.reader_kwargs)
-            self.reader.read(self.filename)
+            if hasattr(self.filename, 'open'):
+                with self.filename.open() as fileobj:
+                    self.reader.read(str(self.filename), fileobj)
+            else:
+                self.reader.read(self.filename)
             if np.all(self.reader.mask):
                 raise ValueError("All data is masked out")
 
