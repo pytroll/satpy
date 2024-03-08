@@ -39,6 +39,7 @@ import logging
 from collections import defaultdict
 from datetime import timezone as tz
 from functools import cached_property
+from pathlib import Path
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -107,7 +108,10 @@ class SAFEXML(BaseFileHandler):
         self._start_time = filename_info["start_time"].replace(tzinfo=tz.utc)
         self._end_time = filename_info["end_time"].replace(tzinfo=tz.utc)
         self._polarization = filename_info["polarization"]
-        self.root = ET.parse(open_file_or_filename(self.filename))
+        if isinstance(self.filename, str):
+            self.filename = Path(self.filename)
+        with self.filename.open() as fd:
+            self.root = ET.parse(fd)
         self._image_shape = image_shape
 
     def get_metadata(self):
@@ -579,7 +583,7 @@ class SAFEGRD(BaseFileHandler):
 
     @cached_property
     def _data(self):
-        data = xr.open_dataarray(self.filename, engine="rasterio",
+        data = xr.open_dataarray(open_file_or_filename(self.filename), engine="rasterio",
                                  chunks="auto"
                                 ).squeeze()
         self.chunks = data.data.chunksize
@@ -629,7 +633,7 @@ class SAFEGRD(BaseFileHandler):
 
         fine_points = [np.arange(size) for size in shape]
         x, y, z = lonlat2xyz(gcp_lons, gcp_lats)
-        interpolator = MultipleGridInterpolator((xpoints, ypoints), x, y, z, gcp_alts)
+        interpolator = MultipleGridInterpolator((ypoints, xpoints), x, y, z, gcp_alts)
         hx, hy, hz, altitudes = interpolator.interpolate(fine_points, method="cubic", chunks=self.chunks)
         longitudes, latitudes = xyz2lonlat(hx, hy, hz)
 
