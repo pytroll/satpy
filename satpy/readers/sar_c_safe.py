@@ -583,7 +583,7 @@ class SAFEGRD(BaseFileHandler):
 
     @cached_property
     def _data(self):
-        data = xr.open_dataarray(open_file_or_filename(self.filename), engine="rasterio",
+        data = xr.open_dataarray(open_file_or_filename(self.filename, mode="rb"), engine="rasterio",
                                  chunks="auto"
                                 ).squeeze()
         self.chunks = data.data.chunksize

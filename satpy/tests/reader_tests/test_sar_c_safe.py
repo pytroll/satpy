@@ -20,7 +20,6 @@
 import os
 from datetime import datetime
 from enum import Enum
-from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -106,12 +105,15 @@ def noise_filehandler(noise_file, annotation_filehandler):
 
 
 @pytest.fixture(scope="module")
-def noise_with_holes_filehandler(annotation_filehandler):
+def noise_with_holes_filehandler(annotation_filehandler, tmpdir_factory):
   """Create a noise filehandler from data with holes."""
   filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
-  noise_filehandler = Denoiser(BytesIO(noise_xml_with_holes),
-                                   filename_info, None,
-                                   image_shape=annotation_filehandler.image_shape)
+  noise_xml_file = tmpdir_factory.mktemp("data").join("noise_with_holes.xml")
+  with open(noise_xml_file, "wb") as fd:
+    fd.write(noise_xml_with_holes)
+  noise_filehandler = Denoiser(noise_xml_file,
+                               filename_info, None,
+                               image_shape=annotation_filehandler.image_shape)
   return noise_filehandler
 
 
