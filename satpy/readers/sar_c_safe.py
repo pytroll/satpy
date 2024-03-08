@@ -735,39 +735,64 @@ class SAFESARReader(GenericYAMLReader):
 
     def create_storage_items(self, files, **kwargs):
         """Create the storage items."""
-        filenames = files
+        self.files_by_type = self._get_files_by_type(files)
+        image_shapes = self._get_image_shapes()
+        calibrators = self._create_calibrators(image_shapes)
+        denoisers = self._create_denoisers(image_shapes)
+        measurement_handlers = self._create_measurement_handlers(calibrators, denoisers)
+
+        self.storage_items = measurement_handlers
+
+
+    def _get_files_by_type(self, files):
         files_by_type = defaultdict(list)
         for file_type, type_info in self.config["file_types"].items():
-            files_by_type[file_type].extend(self.filename_items_for_filetype(filenames, type_info))
+            files_by_type[file_type].extend(self.filename_items_for_filetype(files, type_info))
+        return files_by_type
+
+
+    def _get_image_shapes(self):
         image_shapes = dict()
-        for annotation_file, annotation_info in files_by_type["safe_annotation"]:
+        for annotation_file, annotation_info in self.files_by_type["safe_annotation"]:
             annotation_fh = SAFEXMLAnnotation(annotation_file,
                                               filename_info=annotation_info,
                                               filetype_info=None)
             image_shapes[annotation_info["polarization"]] = annotation_fh.image_shape
+        return image_shapes
 
-        calibration_handlers = dict()
-        for calibration_file, calibration_info in files_by_type["safe_calibration"]:
+
+    def _create_calibrators(self, image_shapes):
+        calibrators = dict()
+        for calibration_file, calibration_info in self.files_by_type["safe_calibration"]:
             polarization = calibration_info["polarization"]
-            calibration_handlers[polarization] = Calibrator(calibration_file,
-                                                            filename_info=calibration_info,
-                                                            filetype_info=None,
-                                                            image_shape=image_shapes[polarization])
+            calibrators[polarization] = Calibrator(calibration_file,
+                                                   filename_info=calibration_info,
+                                                   filetype_info=None,
+                                                   image_shape=image_shapes[polarization])
 
-        noise_handlers = dict()
-        for noise_file, noise_info in files_by_type["safe_noise"]:
+        return calibrators
+
+
+    def _create_denoisers(self, image_shapes):
+        denoisers = dict()
+        for noise_file, noise_info in self.files_by_type["safe_noise"]:
             polarization = noise_info["polarization"]
-            noise_handlers[polarization] = Denoiser(noise_file,
-                                                    filename_info=noise_info,
-                                                    filetype_info=None,
-                                                    image_shape=image_shapes[polarization])
+            denoisers[polarization] = Denoiser(noise_file,
+                                               filename_info=noise_info,
+                                               filetype_info=None,
+                                               image_shape=image_shapes[polarization])
 
+        return denoisers
+
+
+    def _create_measurement_handlers(self, calibrators, denoisers):
         measurement_handlers = dict()
-        for measurement_file, measurement_info in files_by_type["safe_measurement"]:
+        for measurement_file, measurement_info in self.files_by_type["safe_measurement"]:
             polarization = measurement_info["polarization"]
             measurement_handlers[polarization] = SAFEGRD(measurement_file,
                                                          filename_info=measurement_info,
-                                                         calibrator=calibration_handlers[polarization],
-                                                         denoiser=noise_handlers[polarization],
+                                                         calibrator=calibrators[polarization],
+                                                         denoiser=denoisers[polarization],
                                                          filetype_info=None)
-        self.storage_items = measurement_handlers
+
+        return measurement_handlers
