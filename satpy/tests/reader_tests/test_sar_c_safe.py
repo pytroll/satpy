@@ -303,7 +303,7 @@ class TestSAFEGRD:
         query = DataQuery(name="longitude", polarization="vv")
         xarr = measurement_filehandler.get_dataset(query, info=dict())
         expected = expected_longitudes
-        np.testing.assert_allclose(xarr.values, expected[:10, :10])
+        np.testing.assert_allclose(xarr.values, expected[:10, :10], atol=1e-3)
 
 
 annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -858,7 +858,7 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   query = DataID(reader._id_keys, **query.to_dict())
   dataset_dict = reader.load([query])
   array = dataset_dict["measurement"]
-  np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10])
+  np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10], atol=1e-3)
   expected_db = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
   np.testing.assert_allclose(array.values[:2, :2], expected_db)
 

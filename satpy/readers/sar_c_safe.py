@@ -46,7 +46,8 @@ import numpy as np
 import rasterio
 import xarray as xr
 from dask import array as da
-from dask.base import tokenize
+from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
+from geotiepoints.interpolator import MultipleGridInterpolator
 from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
@@ -385,13 +386,6 @@ class AzimuthNoiseReader:
             dask_pieces.append(new_piece)
 
 
-def interpolate_slice(slice_rows, slice_cols, interpolator):
-    """Interpolate the given slice of the larger array."""
-    fine_rows = np.arange(slice_rows.start, slice_rows.stop, slice_rows.step)
-    fine_cols = np.arange(slice_cols.start, slice_cols.stop, slice_cols.step)
-    return interpolator(fine_cols, fine_rows)
-
-
 class _AzimuthBlock:
     """Implementation of an single azimuth-noise block."""
 
@@ -504,42 +498,6 @@ class XMLArray:
         return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
-def interpolate_xarray(xpoints, ypoints, values, shape,
-                       blocksize=CHUNK_SIZE):
-    """Interpolate, generating a dask array."""
-    from scipy.interpolate import RectBivariateSpline
-
-    try:
-        blocksize_row, blocksize_col = blocksize
-    except ValueError:
-        blocksize_row = blocksize_col = blocksize
-
-    vchunks = range(0, shape[0], blocksize_row)
-    hchunks = range(0, shape[1], blocksize_col)
-
-    token = tokenize(blocksize, xpoints, ypoints, values, shape)
-    name = "interpolate-" + token
-
-    spline = RectBivariateSpline(xpoints, ypoints, values.T)
-
-    def interpolator(xnew, ynew):
-        """Interpolator function."""
-        return spline(xnew, ynew).T
-
-    dskx = {(name, i, j): (interpolate_slice,
-                           slice(vcs, min(vcs + blocksize_row, shape[0])),
-                           slice(hcs, min(hcs + blocksize_col, shape[1])),
-                           interpolator)
-            for i, vcs in enumerate(vchunks)
-            for j, hcs in enumerate(hchunks)
-            }
-
-    res = da.Array(dskx, name, shape=list(shape),
-                   chunks=(blocksize_row, blocksize_col),
-                   dtype=values.dtype)
-    return DataArray(res, dims=("y", "x"))
-
-
 def intp(grid_x, grid_y, interpolator):
     """Interpolate."""
     return interpolator((grid_y, grid_x))
@@ -622,8 +580,8 @@ class SAFEGRD(BaseFileHandler):
     @cached_property
     def _data(self):
         data = xr.open_dataarray(self.filename, engine="rasterio",
-                                     chunks="auto"
-                                     ).squeeze()
+                                 chunks="auto"
+                                ).squeeze()
         self.chunks = data.data.chunksize
         data = data.assign_coords(x=np.arange(len(data.coords["x"])),
                                       y=np.arange(len(data.coords["y"])))
@@ -669,12 +627,15 @@ class SAFEGRD(BaseFileHandler):
 
         (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (gcps, crs) = self.get_gcps()
 
-        # FIXME: do interpolation on cartesian coordinates if the area is
-        # problematic.
+        fine_points = [np.arange(size) for size in shape]
+        x, y, z = lonlat2xyz(gcp_lons, gcp_lats)
+        interpolator = MultipleGridInterpolator((xpoints, ypoints), x, y, z, gcp_alts)
+        hx, hy, hz, altitudes = interpolator.interpolate(fine_points, method="cubic", chunks=self.chunks)
+        longitudes, latitudes = xyz2lonlat(hx, hy, hz)
 
-        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, shape, self.chunks)
-        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, shape, self.chunks)
-        altitudes = interpolate_xarray(xpoints, ypoints, gcp_alts, shape, self.chunks)
+        altitudes = xr.DataArray(altitudes, dims=["y", "x"])
+        longitudes = xr.DataArray(longitudes, dims=["y", "x"])
+        latitudes = xr.DataArray(latitudes, dims=["y", "x"])
 
         longitudes.attrs["gcps"] = gcps
         longitudes.attrs["crs"] = crs
@@ -712,7 +673,6 @@ class SAFEGRD(BaseFileHandler):
         gcp_alts = gcp_array[:, 4].reshape(ypoints.shape[0], xpoints.shape[0])
 
         rio_gcps = [rasterio.control.GroundControlPoint(*gcp) for gcp in gcp_list]
-
 
         return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs)
 
