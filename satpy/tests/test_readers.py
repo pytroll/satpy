@@ -1122,7 +1122,7 @@ def test_open_file_or_filename_uses_mode(tmp_path):
     res = open_file_or_filename(tmp_path / "hej", mode="rb").read()
     assert isinstance(res, bytes)
 
-    
+
 @pytest.fixture(scope="module")
 def local_netcdf_filename(tmp_path_factory):
     """Create a simple local NetCDF file."""
