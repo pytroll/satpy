@@ -83,7 +83,7 @@ class VGACFileHandler(BaseFileHandler):
         """Decode time data."""
         reference_time = np.datetime64(datetime.strptime(nc["proj_time0"].attrs["units"],
                                                          "days since %d/%m/%YT%H:%M:%S"))
-        delta_part_of_day, delta_full_days = np.modf(nc["proj_time0"].values[0])
+        delta_part_of_day, delta_full_days = np.modf(nc["proj_time0"].values)
         delta_full_days = np.timedelta64(delta_full_days.astype(np.int64), "D").astype("timedelta64[us]")
         delta_part_of_day = delta_part_of_day * np.timedelta64(1, "D").astype("timedelta64[us]")
         delta_hours = data.values * np.timedelta64(1, "h").astype("timedelta64[us]")

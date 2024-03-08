@@ -72,7 +72,7 @@ def nc_filename(tmp_path):
         delta_full_days = delta_days.astype("timedelta64[D]")
         hidden_reference_time = reference_time + delta_full_days
         delta_part_of_days = start_time - hidden_reference_time
-        proj_time0 = nc.createVariable("proj_time0", np.float64, ("one",))
+        proj_time0 = nc.createVariable("proj_time0", np.float64)
         proj_time0[:] = (delta_full_days.astype(np.int64) +
                          0.000001 * delta_part_of_days.astype("timedelta64[us]").astype(np.int64) / (60 * 60 * 24))
         proj_time0.units = "days since 01/01/2010T00:00:00"
