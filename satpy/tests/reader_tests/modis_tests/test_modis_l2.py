@@ -38,6 +38,7 @@ from ._modis_fixtures import _shape_for_resolution
 # - modis_l2_imapp_snowmask_geo_files
 # - modis_l2_nasa_mod06_file
 # - modis_l2_nasa_mod35_file
+# - modis_l2_nasa_mod99_file
 # - modis_l2_nasa_mod35_mod03_files
 
 
@@ -162,7 +163,9 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ("input_files", "loadables", "exp_resolution", "exp_area", "exp_value"),
         [
-            (lazy_fixture("modis_l2_nasa_mod06_file"), ["surface_pressure"], 5000, True, 4.0),
+            (lazy_fixture("modis_l2_nasa_mod06_file"), ["surface_pressure", "non_yaml_configured_2D_var"],
+             5000, True, 4.0),
+            (lazy_fixture("modis_l2_nasa_mod99_file"), ["non_yaml_configured_2D_var"], 1000, True, 4.0),
             # snow mask is considered a category product, factor/offset ignored
             (lazy_fixture("modis_l2_imapp_snowmask_file"), ["snow_mask"], 1000, False, 1.0),
             (lazy_fixture("modis_l2_imapp_snowmask_geo_files"), ["snow_mask"], 1000, True, 1.0),
@@ -181,3 +184,17 @@ class TestModisL2:
             assert data_arr.shape == _shape_for_resolution(exp_resolution)
             assert data_arr.attrs.get("resolution") == exp_resolution
             _check_shared_metadata(data_arr, expect_area=exp_area)
+
+    def test_scene_dynamic_available_datasets(self, modis_l2_nasa_mod06_file):
+        """Test available datasets method to dynmically add non configured datasets."""
+        import xarray as xr
+        scene = Scene(reader="modis_l2", filenames=modis_l2_nasa_mod06_file)
+        available_datasets = scene.all_dataset_names()
+        assert len(available_datasets) > 0
+        assert "surface_pressure" in available_datasets
+        # make sure configured datasets are added again
+        assert available_datasets.count("surface_pressure") == 1
+        assert "non_yaml_configured_2D_var" in available_datasets
+        file_ds = xr.open_dataset(modis_l2_nasa_mod06_file[0], engine="netcdf4")
+        assert "non_yaml_configured_3D_var" not in available_datasets and "non_yaml_configured_3D_var" in file_ds # noqa PT018
+        assert "non_yaml_configured_3D_var" in file_ds

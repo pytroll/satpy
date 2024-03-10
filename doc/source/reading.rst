@@ -98,6 +98,9 @@ load the datasets using e.g.::
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
     property for any ``DataID`` that could not be loaded.
 
+Available datasets
+------------------
+
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
 :meth:`~satpy.scene.Scene.available_dataset_ids`::
