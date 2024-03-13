@@ -70,7 +70,13 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Get sensor name."""
-        return self["/attr/instrument"].lower()
+        try:
+            # Until v3r0 (or v3r1)
+            instrument = self["/attr/instrument_name"].lower()
+        except KeyError:
+            # Changed in ASCI v3r1 or v3r2
+            instrument = self["/attr/instrument"].lower()
+        return instrument
 
     def _get_dataset_file_units(self, ds_info, var_path):
         file_units = ds_info.get("units")
