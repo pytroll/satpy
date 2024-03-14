@@ -26,6 +26,7 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
+- [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
 - [Gionata Ghiggi (ghiggi)](https://github.com/ghiggi)
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
