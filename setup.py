@@ -47,7 +47,7 @@ extras_require = {
     "amsr2_l1b": ["h5py >= 2.7.0"],
     "hrpt": ["pyorbital >= 1.3.1", "pygac", "python-geotiepoints >= 1.1.7"],
     "hrit_msg": ["pytroll-schedule"],
-    "msi_safe": ["rioxarray", "bottleneck", "python-geotiepoints"],
+    "msi_safe": ["rioxarray", "bottleneck", "python-geotiepoints", "defusedxml"],
     "nc_nwcsaf_msg": ["netCDF4 >= 1.1.8"],
     "sar_c": ["python-geotiepoints >= 1.1.7", "rasterio", "rioxarray", "defusedxml"],
     "abi_l1b": ["h5netcdf"],
