@@ -35,6 +35,7 @@ test_requires = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
 
 extras_require = {
     # Readers:
+    "avhrr_l1b_eps": ["defusedxml"],
     "avhrr_l1b_gaclac": ["pygac >= 1.3.0"],
     "modis_l1b": ["pyhdf", "python-geotiepoints >= 1.1.7"],
     "geocat": ["pyhdf"],
