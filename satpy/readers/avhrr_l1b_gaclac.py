@@ -98,9 +98,14 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
         self.platform_id = filename_info["platform_id"]
+
+        if len(self.platform_id) == 3:
+            self.reader_kwargs["eosip_header"] = True
+
         if self.platform_id in ["NK", "NL", "NM", "NN", "NP",
+                                "N15", "N16", "N17", "N18", "N19",
                                 "M1", "M2", "M3",
-                                "N15", "N16", "N17", "N18", "N19"]:
+                                "MOB", "MOA", "MOC"]:
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACKLMReader
             else:
