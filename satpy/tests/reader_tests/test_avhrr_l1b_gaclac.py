@@ -190,7 +190,7 @@ class TestGACLACFile(GACLACFilePatcher):
                 fh = self._get_eosip_fh(filename, **kwargs)
                 assert fh.start_time < fh.end_time
                 assert fh.reader_class is reader_cls
-                assert fh.reader_kwargs["header_datetime"] > datetime.date(1994, 11, 15)
+                assert fh.reader_kwargs["header_date"] > datetime.date(1994, 11, 15)
 
     def test_read_raw_data(self):
         """Test raw data reading."""

@@ -30,7 +30,7 @@ formats as well as calibration and navigation methods.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -100,7 +100,7 @@ class GACLACFile(BaseFileHandler):
         self.platform_id = filename_info["platform_id"]
 
         if len(self.platform_id) == 3:
-            self.reader_kwargs["header_datetime"] = datetime(2000, 1, 1)
+            self.reader_kwargs["header_date"] = date(2000, 1, 1)
 
         if self._is_avhrr3():
             if filename_info.get("transfer_mode") == "GHRR":
