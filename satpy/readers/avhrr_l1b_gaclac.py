@@ -98,15 +98,17 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
         self.platform_id = filename_info["platform_id"]
-        if self.platform_id in ["NK", "NL", "NM", "NN", "NP", "M1", "M2",
-                                "M3"]:
+        if self.platform_id in ["NK", "NL", "NM", "NN", "NP",
+                                "M1", "M2", "M3",
+                                "N15", "N16", "N17", "N18", "N19"]:
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACKLMReader
             else:
                 self.reader_class = LACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
             self.sensor = "avhrr-3"
-        elif self.platform_id in ["NC", "ND", "NF", "NH", "NJ"]:
+        elif self.platform_id in ["NC", "NE", "NF", "NG", "NH", "ND", "NJ",
+                                  "N07", "N08", "N09", "N10", "N11", "N12", "N14"]:
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
