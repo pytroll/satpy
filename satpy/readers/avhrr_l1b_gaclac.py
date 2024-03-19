@@ -30,7 +30,7 @@ formats as well as calibration and navigation methods.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -98,15 +98,18 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
         self.platform_id = filename_info["platform_id"]
-        if self.platform_id in ["NK", "NL", "NM", "NN", "NP", "M1", "M2",
-                                "M3"]:
+
+        if len(self.platform_id) == 3:
+            self.reader_kwargs["header_date"] = date(2000, 1, 1)
+
+        if self._is_avhrr3():
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACKLMReader
             else:
                 self.reader_class = LACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
             self.sensor = "avhrr-3"
-        elif self.platform_id in ["NC", "ND", "NF", "NH", "NJ"]:
+        elif self._is_avhrr2():
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
@@ -121,6 +124,16 @@ class GACLACFile(BaseFileHandler):
             self.chn_dict = AVHRR_CHANNEL_NAMES
             self.sensor = "avhrr"
         self.filename_info = filename_info
+
+    def _is_avhrr2(self):
+        return self.platform_id in ["NC", "NE", "NF", "NG", "NH", "ND", "NJ",
+                                    "N07", "N08", "N09", "N10", "N11", "N12", "N14"]
+
+    def _is_avhrr3(self):
+        return self.platform_id in ["NK", "NL", "NM", "NN", "NP",
+                                    "N15", "N16", "N17", "N18", "N19",
+                                    "M1", "M2", "M3",
+                                    "MOB", "MOA", "MOC"]
 
     def read_raw_data(self):
         """Create a pygac reader and read raw data from the file."""
