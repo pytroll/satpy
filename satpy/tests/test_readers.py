@@ -34,7 +34,7 @@ from pytest_lazyfixture import lazy_fixture
 
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-from satpy.readers import find_files_and_readers
+from satpy.readers import FSFile, find_files_and_readers, open_file_or_filename
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -1113,6 +1113,16 @@ class TestFSFile:
         assert len({hash(FSFile(fn, fs))
                     for fn in {local_filename, local_filename2}
                     for fs in [None, lfs, zfs, cfs]}) == 2 * 4
+
+
+def test_open_file_or_filename_uses_mode(tmp_path):
+    """Test that open_file_or_filename uses provided mode."""
+    filename = tmp_path / "hej"
+    with open(filename, mode="wb") as fd:
+        fd.write(b"hej")
+    fileobj = FSFile(os.fspath(filename))
+    res = open_file_or_filename(fileobj, mode="rb").read()
+    assert isinstance(res, bytes)
 
 
 @pytest.fixture(scope="module")
