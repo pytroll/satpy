@@ -191,12 +191,12 @@ import numpy as np
 import xarray as xr
 from pyproj import Proj
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class LINCFileHandler(NetCDF4FileHandler):
+class LINCFileHandler(NetCDF4FsspecFileHandler):
     """Base class used as parent for the concrete LI reader classes."""
 
     def __init__(self, filename, filename_info, filetype_info, cache_handle=True):
