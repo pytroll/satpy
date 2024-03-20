@@ -75,3 +75,9 @@ doc/source/_build/*
 satpy/version.py
 doc/source/api/*.rst
 doc/source/reader_table.rst
+
+# lock files
+*.lock
+
+# rye files
+.python-version
