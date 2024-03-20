@@ -1675,9 +1675,12 @@ class BackgroundCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
+
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
+        before_bg_mode = background.attrs["mode"]
+
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA
@@ -1685,10 +1688,20 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
 
+        # It's important to judge whether the alpha band of background is initially generated, e.g. by CloudCompositor
+        # The result will be used to decide the output image mode
+        initial_bg_alpha = "A" in before_bg_mode
+
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background)
+        if "A" not in foreground.attrs["mode"] and "A" not in background.attrs["mode"]:
+            data = self._simple_overlay(foreground, background)
+        else:
+            data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
+        for data_arr in data:
+            data_arr.attrs = attrs
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
+        attrs.update(res.attrs)
+        res.attrs = attrs
         return res
 
     def _combine_metadata_with_mode_and_sensor(self,
@@ -1707,24 +1720,68 @@ class BackgroundCompositor(GenericCompositor):
 
     @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
-                               background: xr.DataArray
+                               background: xr.DataArray,
+                               initial_bg_alpha: bool,
                                ) -> list[xr.DataArray]:
-        if "A" in foreground.attrs["mode"]:
-            # Use alpha channel as weight and blend the two composites
-            alpha = foreground.sel(bands="A")
-            data = []
-            # NOTE: there's no alpha band in the output image, it will
-            # be added by the data writer
-            for band in foreground.mode[:-1]:
-                fg_band = foreground.sel(bands=band)
-                bg_band = background.sel(bands=band)
-                chan = (fg_band * alpha + bg_band * (1 - alpha))
-                chan = xr.where(chan.isnull(), bg_band, chan)
-                data.append(chan)
-        else:
-            data_arr = xr.where(foreground.isnull(), background, foreground)
-            # Split to separate bands so the mode is correct
-            data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
+        def _get_alpha(dataset: xr.DataArray):
+            # If the dataset contains an alpha channel, just use it
+            # If not, we still need one. So build it and fill it with 1
+            if "A" in dataset.attrs["mode"]:
+                alpha = dataset.sel(bands="A")
+            else:
+                first_band = dataset.isel(bands=0)
+                alpha = xr.full_like(first_band, 1)
+                alpha["bands"] = "A"
+
+            # There could be Nans in the alpha
+            # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
+            alpha = xr.where(alpha.isnull(), 0, alpha)
+
+            return alpha
+
+        alpha_fore = _get_alpha(foreground)
+        alpha_back = _get_alpha(background)
+        new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+
+        data = []
+
+        # Pass the image data (alpha band will be dropped temporally) to the writer
+        output_mode = background.attrs["mode"].replace("A", "")
+
+        # For more info about alpha compositing please review https://en.wikipedia.org/wiki/Alpha_compositing
+        # Whether there's no initial alpha band, or it has been dropped, we're actually asking the writer for decision
+        # So first, we must fill the transparent areas in the image with np.nan
+        # The best way is through a modified version of new alpha
+        new_alpha_nan = xr.where(alpha_fore + alpha_back == 0, np.nan, new_alpha) if "A" not in output_mode \
+            else new_alpha
+
+        for band in output_mode:
+            fg_band = foreground.sel(bands=band)
+            bg_band = background.sel(bands=band)
+
+            chan = (fg_band * alpha_fore +
+                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan
+
+            chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+            chan["bands"] = band
+
+            data.append(chan)
+
+        # If background has an initial alpha band, it will also be passed to the writer
+        if initial_bg_alpha:
+            new_alpha["bands"] = "A"
+            data.append(new_alpha)
+
+        return data
+
+    @staticmethod
+    def _simple_overlay(foreground: xr.DataArray,
+                        background: xr.DataArray,) -> list[xr.DataArray]:
+        # This is for the case when no alpha bands are involved
+        # Just simply lay the foreground upon background
+        data_arr = xr.where(foreground.isnull(), background, foreground)
+        # Split to separate bands so the mode is correct
+        data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
 
         return data
 
