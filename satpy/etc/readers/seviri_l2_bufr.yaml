@@ -1251,7 +1251,7 @@ datasets:
     long_name: Wind Speed
     standard_name: wind_speed
     key: '#1#windSpeed'
-    resolution: 72009.675979608
+    resolution: none
     file_type: seviri_l2_bufr_amv
     units: m s-1
     fill_value: -1.e+100
@@ -1264,7 +1264,7 @@ datasets:
     long_name: Wind Direction
     standard_name: wind_to_direction
     key: '#1#windDirection'
-    resolution: 72009.675979608
+    resolution: none
     file_type: seviri_l2_bufr_amv
     units: deg
     fill_value: -1.e+100
@@ -1277,10 +1277,49 @@ datasets:
     long_name: Air Pressure at Wind Level
     standard_name: air_pressure
     key: '#1#pressure'
-    resolution: 72009.675979608
+    resolution: none
     file_type: seviri_l2_bufr_amv
     units: Pa
     fill_value: -1.e+100
     coordinates:
        - longitude
        - latitude
+
+  temperature:
+    name: temperature
+    long_name: Temperature of AMV feature
+    standard_name: temperature_at_wind_level
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#airTemperature'
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  u:
+    name: u
+    long_name: Speed U component of AMV
+    standard_name: wind_speed_horizontal_component
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#u'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  v:
+    name: v
+    long_name: Speed V component of AMV
+    standard_name: wind_speed_vertival_component
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#v'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
