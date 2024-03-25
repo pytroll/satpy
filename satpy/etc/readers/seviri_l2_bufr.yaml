@@ -1246,39 +1246,13 @@ datasets:
     flag_meanings: ['not processed', 'first guess', 'high cloud (not processed)', 'successful retrieval', 'bad retrieval']
 
   # ---- AMV products ------------
-  speed:
-    name: speed
-    long_name: Wind Speed
-    standard_name: wind_speed
-    key: '#1#windSpeed'
-    resolution: none
-    file_type: seviri_l2_bufr_amv
-    units: m s-1
-    fill_value: -1.e+100
-    coordinates:
-       - longitude
-       - latitude
-
-  direction:
-    name: direction
-    long_name: Wind Direction
-    standard_name: wind_to_direction
-    key: '#1#windDirection'
-    resolution: none
-    file_type: seviri_l2_bufr_amv
-    units: deg
-    fill_value: -1.e+100
-    coordinates:
-       - longitude
-       - latitude
-
   pressure:
     name: pressure
     long_name: Air Pressure at Wind Level
     standard_name: air_pressure
-    key: '#1#pressure'
     resolution: none
     file_type: seviri_l2_bufr_amv
+    key: '#1#pressure'
     units: Pa
     fill_value: -1.e+100
     coordinates:
@@ -1297,6 +1271,45 @@ datasets:
     coordinates:
       - longitude
       - latitude
+
+  height:
+    name: height
+    file_type: seviri_l2_bufr_amv
+    key: '#1#heightOfTopOfCloud'
+    resolution: none
+    long_name: Height of AMV feature
+    standard_name: height_at_wind_level
+    units: m
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  direction:
+    name: direction
+    long_name: Wind Direction
+    standard_name: wind_to_direction
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#windDirection'
+    units: deg
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
+
+  speed:
+    name: speed
+    long_name: Wind Speed
+    standard_name: wind_speed
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#windSpeed'
+    units: m s-1
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
 
   u:
     name: u
@@ -1323,3 +1336,68 @@ datasets:
     coordinates:
       - longitude
       - latitude
+
+  target_type:
+    name: target_type
+    long_name: Target type (cloud or clearsky)
+    standard_name: wind_target_type
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#extendedHeightAssignmentMethod'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  wind_method:
+    name: wind_method
+    long_name: Wind derivation method
+    standard_name: wind_wind_method
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: 'satelliteDerivedWindComputationMethod'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi:
+    name: qi
+    long_name: Overall Reliability of AMV
+    standard_name: wind_overall_reliability
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#percentConfidence'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst:
+    name: qi_excl_fcst
+    long_name: Overall Reliability (excluding forecast) of AMV
+    standard_name: wind_overall_reliability_exc_forecast
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#2#percentConfidence'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst_oca:
+    name: qi_excl_fcst_oca
+    long_name: Overall Reliability (excluding forecast and OCA) of AMV
+    standard_name: wind_overall_reliability_exc_forecast_and_oca
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#4#percentConfidence'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+    - longitude
+    - latitude
