@@ -81,7 +81,6 @@ datasets:
 
   direction:
     name: direction
-
     long_name: Direction of AMV
     standard_name: wind_to_direction
     resolution: none
