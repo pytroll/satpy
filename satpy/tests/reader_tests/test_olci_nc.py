@@ -274,3 +274,70 @@ class TestBitFlags(unittest.TestCase):
                              False, False,  True,  True, False, False, True,
                              False])
         assert all(mask == expected)
+
+    def test_bitflags_with_non_linear_meanings(self):
+        """Test reading bitflags from DataArray attributes."""
+        from functools import reduce
+
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import BitFlags
+
+        flag_masks = [1, 2, 4, 8, 4194304, 8388608, 16777216, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
+                      32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 33554432, 67108864, 134217728, 268435456,
+                      536870912, 4294967296, 8589934592, 17179869184, 34359738368, 68719476736, 137438953472,
+                      274877906944, 549755813888, 1099511627776, 2199023255552, 4398046511104, 8796093022208,
+                      17592186044416, 35184372088832, 70368744177664, 140737488355328, 281474976710656, 562949953421312,
+                      1125899906842624, 2251799813685248, 4503599627370496, 9007199254740992, 18014398509481984,
+                      36028797018963968]
+        flag_meanings = ("INVALID WATER LAND CLOUD TURBID_ATM CLOUD_AMBIGUOUS CLOUD_MARGIN SNOW_ICE INLAND_WATER "
+                         "COASTLINE TIDAL COSMETIC SUSPECT HISOLZEN SATURATED MEGLINT HIGHGLINT WHITECAPS ADJAC "
+                         "WV_FAIL PAR_FAIL AC_FAIL OC4ME_FAIL OCNN_FAIL KDM_FAIL BPAC_ON WHITE_SCATT LOWRW HIGHRW "
+                         "IOP_LSD_FAIL ANNOT_ANGSTROM ANNOT_AERO_B ANNOT_ABSO_D ANNOT_ACLIM ANNOT_ABSOA ANNOT_MIXR1 "
+                         "ANNOT_DROUT ANNOT_TAU06 RWNEG_O1 RWNEG_O2 RWNEG_O3 RWNEG_O4 RWNEG_O5 RWNEG_O6 RWNEG_O7 "
+                         "RWNEG_O8 RWNEG_O9 RWNEG_O10 RWNEG_O11 RWNEG_O12 RWNEG_O16 RWNEG_O17 RWNEG_O18 RWNEG_O21")
+
+        bits = np.array([1 << x for x in range(int(np.log2(max(flag_masks))) + 1)])
+        bits_array = xr.DataArray(bits, attrs=dict(flag_masks=flag_masks, flag_meanings=flag_meanings))
+        bflags = BitFlags(bits_array)
+
+        items = ["INVALID", "TURBID_ATM"]
+        mask = reduce(np.logical_or, [bflags[item] for item in items])
+
+        assert mask[0].item() is True
+        assert any(mask[1:22]) is False
+        assert mask[22].item() is True
+        assert any(mask[23:]) is False
+
+
+    def test_bitflags_with_custom_flag_list(self):
+        """Test the BitFlags class providing a flag list."""
+        from functools import reduce
+
+        import numpy as np
+
+        from satpy.readers.olci_nc import BitFlags
+        flag_list = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
+                     "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT", "HISOLZEN",
+                     "SATURATED", "MEGLINT", "HIGHGLINT", "WHITECAPS",
+                     "ADJAC", "WV_FAIL", "PAR_FAIL", "AC_FAIL", "OC4ME_FAIL",
+                     "OCNN_FAIL", "Extra_1", "KDM_FAIL", "Extra_2",
+                     "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON",
+                     "WHITE_SCATT", "LOWRW", "HIGHRW"]
+
+        bits = np.array([1 << x for x in range(len(flag_list))])
+
+        bflags = BitFlags(bits, flag_list)
+
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
+        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        expected = np.array([True, False,  True,  True,  True,  True, False,
+                             False,  True, True, False, False, False, False,
+                             False, False, False,  True, False,  True, False,
+                             False, False,  True,  True, False, False, True,
+                             False])
+        assert all(mask == expected)
