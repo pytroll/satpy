@@ -75,7 +75,7 @@ class BitFlags:
             try:
                 meanings = value.attrs["flag_meanings"].split()
                 masks = value.attrs["flag_masks"]
-            except AttributeError:
+            except (AttributeError, KeyError):
                 meanings = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
                             "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT",
                             "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT",

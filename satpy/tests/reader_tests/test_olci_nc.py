@@ -275,7 +275,7 @@ class TestBitFlags(unittest.TestCase):
                              False])
         assert all(mask == expected)
 
-    def test_bitflags_with_non_linear_meanings(self):
+    def test_bitflags_with_flags_from_array(self):
         """Test reading bitflags from DataArray attributes."""
         from functools import reduce
 
@@ -309,6 +309,38 @@ class TestBitFlags(unittest.TestCase):
         assert any(mask[1:22]) is False
         assert mask[22].item() is True
         assert any(mask[23:]) is False
+
+    def test_bitflags_with_dataarray_without_flags(self):
+        """Test the BitFlags class."""
+        from functools import reduce
+
+        import numpy as np
+        import xarray as xr
+
+        from satpy.readers.olci_nc import BitFlags
+        flag_list = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
+                     "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT", "HISOLZEN",
+                     "SATURATED", "MEGLINT", "HIGHGLINT", "WHITECAPS",
+                     "ADJAC", "WV_FAIL", "PAR_FAIL", "AC_FAIL", "OC4ME_FAIL",
+                     "OCNN_FAIL", "Extra_1", "KDM_FAIL", "Extra_2",
+                     "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON",
+                     "WHITE_SCATT", "LOWRW", "HIGHRW"]
+
+        bits = np.array([1 << x for x in range(len(flag_list))])
+
+        bflags = BitFlags(xr.DataArray(bits))
+
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
+        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        expected = np.array([True, False,  True,  True,  True,  True, False,
+                             False,  True, True, False, False, False, False,
+                             False, False, False,  True, False,  True, False,
+                             False, False,  True,  True, False, False, True,
+                             False])
+        assert all(mask == expected)
 
 
     def test_bitflags_with_custom_flag_list(self):
