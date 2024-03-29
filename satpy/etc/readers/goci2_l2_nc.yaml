@@ -1,0 +1,319 @@
+reader:
+  name: goci2_l2_nc
+  short_name: GOCI-II L2 NetCDF4
+  long_name: GK-2B GOCI-II Level 2 products in netCDF4 format from NOSC
+  status: Beta
+  supports_fsspec: true
+  sensors: ['goci2']
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  group_keys: ['start_time', 'platform_shortname', "area"]
+
+file_types:
+    goci_l2_kd:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Kd.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Kd.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Kd.nc'
+
+    goci_l2_zsd:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Zsd.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Zsd.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Zsd.nc'
+
+    goci_l2_chl:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Chl.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Chl.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Chl.nc'
+
+    goci_l2_cdom:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_CDOM.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_CDOM.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_CDOM.nc'
+
+    goci_l2_tss:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_TSS.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_TSS.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_TSS.nc'
+    
+    goci_l2_ac:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_AC.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_AC.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_AC.nc'
+
+datasets:
+# --- Navigation Data ---
+  latitude:
+    name: latitude
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac]
+    file_key: latitude
+    standard_name: latitude
+    units: degrees_north
+
+  longitude:
+    name: longitude
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac]
+    file_key: longitude
+    standard_name: longitude
+    units: degrees_east
+
+# --- Ocean Color Products ---
+  diffuse_attenuation_coefficient:
+    name: Kd
+    file_type: goci_l2_kd
+    file_key: Kd
+    coordinates: [longitude, latitude]
+  
+  Secchi_disk_depth:
+    name: Zsd
+    file_type: goci_l2_zsd
+    file_key: Zsd
+    coordinates: [longitude, latitude]
+
+  Chlorophyll-a_concentration:
+    name: Chl
+    file_type: goci_l2_chl
+    file_key: Chl
+    coordinates: [longitude, latitude]
+
+  Colored_Dissolved_Organic_Matter:
+    name: CDOM
+    file_type: goci_l2_cdom
+    file_key: CDOM
+    coordinates: [longitude, latitude]
+
+  Total_Suspended_Sediments_concentration:
+    name: TSS
+    file_type: goci_l2_tss
+    file_key: TSS
+    coordinates: [longitude, latitude]
+
+# --- Atomspheric Correction Products ---
+  # --- Rayleigh-corrected reflectance ---
+  RhoC_380:
+    name: RhoC_380
+    sensor: goci2
+    wavelength: [0.37, 0.38, 0.39]
+    long_name: Rayleigh-corrected reflectance at 380 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_380
+    coordinates: [longitude, latitude]
+
+  RhoC_412:
+    name: RhoC_412
+    sensor: goci2
+    wavelength: [0.402, 0.412, 0.422]
+    long_name: Rayleigh-corrected reflectance at 412 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_412
+    coordinates: [longitude, latitude]
+
+  RhoC_443:
+    name: RhoC_443
+    sensor: goci2
+    wavelength: [0.433, 0.443, 0.453]
+    long_name: Rayleigh-corrected reflectance at 443 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_443
+    coordinates: [longitude, latitude]
+
+  RhoC_490:
+    name: RhoC_490
+    sensor: goci2
+    wavelength: [0.48, 0.49, 0.50]
+    long_name: Rayleigh-corrected reflectance at 490 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_490
+    coordinates: [longitude, latitude]
+
+  RhoC_510:
+    name: RhoC_510
+    sensor: goci2
+    wavelength: [0.50, 0.51, 0.52]
+    long_name: Rayleigh-corrected reflectance at 510 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_510
+    coordinates: [longitude, latitude]
+
+  RhoC_555:
+    name: RhoC_555
+    sensor: goci2
+    wavelength: [0.545, 0.555, 0.565]
+    long_name: Rayleigh-corrected reflectance at 555 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_555
+    coordinates: [longitude, latitude]
+  
+  RhoC_620:
+    name: RhoC_620
+    sensor: goci2
+    wavelength: [0.61, 0.62, 0.63]
+    long_name: Rayleigh-corrected reflectance at 620 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_620
+    coordinates: [longitude, latitude]
+  
+  RhoC_660:
+    name: RhoC_660
+    sensor: goci2
+    wavelength: [0.65, 0.66, 0.67]
+    long_name: Rayleigh-corrected reflectance at 660 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_660
+    coordinates: [longitude, latitude]
+  
+  RhoC_680:
+    name: RhoC_680
+    sensor: goci2
+    wavelength: [0.675, 0.680, 0.685]
+    long_name: Rayleigh-corrected reflectance at 680 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_680
+    coordinates: [longitude, latitude]
+  
+  RhoC_709:
+    name: RhoC_709
+    sensor: goci2
+    wavelength: [0.704, 0.709, 0.714]
+    long_name: Rayleigh-corrected reflectance at 709 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_709
+    coordinates: [longitude, latitude]
+  
+  RhoC_745:
+    name: RhoC_745
+    sensor: goci2
+    wavelength: [0.735, 0.745, 0.755]
+    long_name: Rayleigh-corrected reflectance at 745 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_745
+    coordinates: [longitude, latitude]
+
+  RhoC_865:
+    name: RhoC_865
+    sensor: goci2
+    wavelength: [0.845, 0.865, 0.885]
+    long_name: Rayleigh-corrected reflectance at 865 nm
+    file_type: goci_l2_ac
+    file_key: RhoC_865
+    coordinates: [longitude, latitude]
+  
+  # --- Remote sensing reflectance ---
+  Rrs_380:
+    name: Rrs_380
+    sensor: goci2
+    wavelength: [0.37, 0.38, 0.39]
+    long_name: Remote sensing reflectance at 380 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_380
+    coordinates: [longitude, latitude]
+
+  Rrs_412:
+    name: Rrs_412
+    sensor: goci2
+    wavelength: [0.402, 0.412, 0.422]
+    long_name: Remote sensing reflectance at 412 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_412
+    coordinates: [longitude, latitude]
+  
+  Rrs_443:
+    name: Rrs_443
+    sensor: goci2
+    wavelength: [0.433, 0.443, 0.453]
+    long_name: Remote sensing reflectance at 443 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_443
+    coordinates: [longitude, latitude]
+  
+  Rrs_490:
+    name: Rrs_490
+    sensor: goci2
+    wavelength: [0.48, 0.49, 0.50]
+    long_name: Remote sensing reflectance at 490 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_490
+    coordinates: [longitude, latitude]
+  
+  Rrs_510:
+    name: Rrs_510
+    sensor: goci2
+    wavelength: [0.50, 0.51, 0.52]
+    long_name: Remote sensing reflectance at 510 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_510
+    coordinates: [longitude, latitude]
+  
+  Rrs_555:
+    name: Rrs_555
+    sensor: goci2
+    wavelength: [0.545, 0.555, 0.565]
+    long_name: Remote sensing reflectance at 555 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_555
+    coordinates: [longitude, latitude]
+  
+  Rrs_620:
+    name: Rrs_620
+    sensor: goci2
+    wavelength: [0.61, 0.62, 0.63]
+    long_name: Remote sensing reflectance at 620 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_620
+    coordinates: [longitude, latitude]
+  
+  Rrs_660:
+    name: Rrs_660
+    sensor: goci2
+    wavelength: [0.65, 0.66, 0.67]
+    long_name: Remote sensing reflectance at 660 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_660
+    coordinates: [longitude, latitude]
+  
+  Rrs_680:
+    name: Rrs_680
+    sensor: goci2
+    wavelength: [0.675, 0.680, 0.685]
+    long_name: Remote sensing reflectance at 680 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_680
+    coordinates: [longitude, latitude]
+  
+  Rrs_709:
+    name: Rrs_709
+    sensor: goci2
+    wavelength: [0.704, 0.709, 0.714]
+    long_name: Remote sensing reflectance at 709 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_709
+    coordinates: [longitude, latitude]
+  
+  Rrs_745:
+    name: Rrs_745
+    sensor: goci2
+    wavelength: [0.735, 0.745, 0.755]
+    long_name: Remote sensing reflectance at 745 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_745
+    coordinates: [longitude, latitude]
+  
+  Rrs_865:
+    name: Rrs_865
+    sensor: goci2
+    wavelength: [0.845, 0.865, 0.885]
+    long_name: Remote sensing reflectance at 865 nm, KOSC standard algorithm
+    file_type: goci_l2_ac
+    file_key: Rrs_865
+    coordinates: [longitude, latitude]
+
