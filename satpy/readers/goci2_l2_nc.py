@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """
 Reader for GK-2B GOCI-II L2 products from NOSC.
+
+For more information about the data, see: <https://www.nosc.go.kr/eng/boardContents/actionBoardContentsCons0028.do>
 """
 
 import logging
