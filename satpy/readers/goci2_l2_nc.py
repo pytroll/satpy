@@ -38,29 +38,24 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
         self.slot = filename_info.get("slot", None)
 
         self.attrs = self["/attrs"]
-        navigation = self["navigation_data"]
-        if filetype_info["file_type"] == "goci_l2_ac":
-            Rhoc = self["geophysical_data/RhoC"]
-            Rrs = self["geophysical_data/Rrs"]
-            self.nc = xr.merge([Rhoc, Rrs, navigation])
-        else:
-            self.nc = xr.merge([self["geophysical_data"], navigation])
+        self.nc = self._merge_navigation_data(filetype_info)
 
         self.sensor = self.attrs["instrument"].lower()
         self.nlines = self.nc.sizes["number_of_lines"]
         self.ncols = self.nc.sizes["pixels_per_line"]
-        if self.nlines != self.attrs["number_of_lines"]:
-            logger.warning(
-                "number_of_lines mismatched between metadata and data: "
-                f"{self.nlines} != {self.attrs['number_of_lines']}"
-            )
-        if self.ncols != self.attrs["number_of_columns"]:
-            logger.warning(
-                "number_of_columns mismatched between metadata and data: "
-                f"{self.ncols} != {self.attrs['number_of_columns']}"
-            )
         self.platform_shortname = filename_info["platform"]
-        self.observation_area = filename_info["coverage"]
+        self.coverage = filename_info["coverage"]
+
+    def _merge_navigation_data(self, filetype_info):
+        """Merge navigation data and geophysical data."""
+        navigation = self["navigation_data"]
+        if filetype_info["file_type"] == "goci_l2_ac":
+            Rhoc = self["geophysical_data/RhoC"]
+            Rrs = self["geophysical_data/Rrs"]
+            data = xr.merge([Rhoc, Rrs, navigation])
+        else:
+            data = xr.merge([self["geophysical_data"], navigation])
+        return data
 
     @property
     def start_time(self):
