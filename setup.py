@@ -24,7 +24,7 @@ from setuptools import find_packages, setup
 
 requires = ["numpy >=1.21", "pillow", "pyresample >=1.24.0", "trollsift",
             "trollimage >=1.23", "pykdtree", "pyyaml >=5.1", "xarray >=0.14.1",
-            "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "appdirs",
+            "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "platformdirs",
             "packaging", "pooch", "pyorbital"]
 
 test_requires = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",

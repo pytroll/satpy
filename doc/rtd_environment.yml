@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.10
   - pip
-  - appdirs
+  - platformdirs
   - dask
   - dask-image
   - defusedxml
