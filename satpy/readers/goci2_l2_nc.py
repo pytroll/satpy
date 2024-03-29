@@ -44,20 +44,20 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
             Rrs = self["geophysical_data/Rrs"]
             self.nc = xr.merge([Rhoc, Rrs, navigation])
         else:
-            self.nc = xr.merge(self["geophysical_data"], navigation)
+            self.nc = xr.merge([self["geophysical_data"], navigation])
 
         self.sensor = self.attrs["instrument"].lower()
         self.nlines = self.nc.sizes["number_of_lines"]
-        self.ncols = self.nc.sizes["number_of_columns"]
+        self.ncols = self.nc.sizes["pixels_per_line"]
         if self.nlines != self.attrs["number_of_lines"]:
             logger.warning(
                 "number_of_lines mismatched between metadata and data: "
-                f"{self.nlines} != {self.nc.sizes['number_of_lines']}"
+                f"{self.nlines} != {self.attrs['number_of_lines']}"
             )
-        if self.ncols != self.attrs["pixels_per_line"]:
+        if self.ncols != self.attrs["number_of_columns"]:
             logger.warning(
                 "number_of_columns mismatched between metadata and data: "
-                f"{self.ncols} != {self.nc.sizes['pixels_per_line']}"
+                f"{self.ncols} != {self.attrs['number_of_columns']}"
             )
         self.platform_shortname = filename_info["platform"]
         self.observation_area = filename_info["coverage"]
