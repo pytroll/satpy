@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Reader for GK-2B GOCI-II L2 products from NOSC.
+"""Reader for GK-2B GOCI-II L2 products from NOSC.
 
 For more information about the data, see: <https://www.nosc.go.kr/eng/boardContents/actionBoardContentsCons0028.do>
 """
