@@ -5,8 +5,9 @@ reader:
   status: Beta
   supports_fsspec: true
   sensors: ['goci2']
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  group_keys: ['start_time', 'platform_shortname', "area"]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', "slot"]
 
 file_types:
     goci_l2_kd:
@@ -73,30 +74,35 @@ datasets:
     file_type: goci_l2_kd
     file_key: Kd
     coordinates: [longitude, latitude]
+    units: m-1
   
   Secchi_disk_depth:
     name: Zsd
     file_type: goci_l2_zsd
     file_key: Zsd
     coordinates: [longitude, latitude]
+    units: m
 
   Chlorophyll-a_concentration:
     name: Chl
     file_type: goci_l2_chl
     file_key: Chl
     coordinates: [longitude, latitude]
+    units: mg m-3
 
   Colored_Dissolved_Organic_Matter:
     name: CDOM
     file_type: goci_l2_cdom
     file_key: CDOM
     coordinates: [longitude, latitude]
+    units: m-1
 
   Total_Suspended_Sediments_concentration:
     name: TSS
     file_type: goci_l2_tss
     file_key: TSS
     coordinates: [longitude, latitude]
+    units: g m-3
 
 # --- Atomspheric Correction Products ---
   # --- Rayleigh-corrected reflectance ---
@@ -217,6 +223,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_380
     coordinates: [longitude, latitude]
+    units: sr-1
 
   Rrs_412:
     name: Rrs_412
@@ -226,6 +233,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_412
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_443:
     name: Rrs_443
@@ -235,6 +243,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_443
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_490:
     name: Rrs_490
@@ -244,6 +253,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_490
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_510:
     name: Rrs_510
@@ -253,6 +263,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_510
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_555:
     name: Rrs_555
@@ -262,6 +273,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_555
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_620:
     name: Rrs_620
@@ -271,6 +283,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_620
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_660:
     name: Rrs_660
@@ -280,6 +293,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_660
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_680:
     name: Rrs_680
@@ -289,6 +303,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_680
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_709:
     name: Rrs_709
@@ -298,6 +313,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_709
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_745:
     name: Rrs_745
@@ -307,6 +323,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_745
     coordinates: [longitude, latitude]
+    units: sr-1
   
   Rrs_865:
     name: Rrs_865
@@ -316,4 +333,5 @@ datasets:
     file_type: goci_l2_ac
     file_key: Rrs_865
     coordinates: [longitude, latitude]
+    units: sr-1
 
