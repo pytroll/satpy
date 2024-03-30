@@ -450,7 +450,7 @@ datasets:
     file_key: a_total_412
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_443:
     name: a_total_443
     long_name: Spectral absorption coefficient at 443 nm, QAA version 6
@@ -458,7 +458,7 @@ datasets:
     file_key: a_total_443
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_490:
     name: a_total_490
     long_name: Spectral absorption coefficient at 490 nm, QAA version 6
@@ -482,7 +482,7 @@ datasets:
     file_key: a_total_555
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_620:
     name: a_total_620
     long_name: Spectral absorption coefficient at 620 nm, QAA version 6
@@ -490,7 +490,7 @@ datasets:
     file_key: a_total_620
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_660:
     name: a_total_660
     long_name: Spectral absorption coefficient at 660 nm, QAA version 6
@@ -498,7 +498,7 @@ datasets:
     file_key: a_total_660
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_680:
     name: a_total_680
     long_name: Spectral absorption coefficient at 680 nm, QAA version 6
@@ -506,7 +506,7 @@ datasets:
     file_key: a_total_680
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_709:
     name: a_total_709
     long_name: Spectral absorption coefficient at 709 nm, QAA version 6
@@ -514,7 +514,7 @@ datasets:
     file_key: a_total_709
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_745:
     name: a_total_745
     long_name: Spectral absorption coefficient at 745 nm, QAA version 6
@@ -522,7 +522,7 @@ datasets:
     file_key: a_total_745
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_total_865:
     name: a_total_865
     long_name: Spectral absorption coefficient at 865 nm, QAA version 6
@@ -530,7 +530,7 @@ datasets:
     file_key: a_total_865
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   # --- Backscattering coefficient ---
   bb_total_380:
     name: bb_total_380
@@ -539,7 +539,7 @@ datasets:
     file_key: bb_total_380
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_412:
     name: bb_total_412
     long_name: Spectral backscattering coefficient at 412 nm, QAA version 6
@@ -547,7 +547,7 @@ datasets:
     file_key: bb_total_412
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_443:
     name: bb_total_443
     long_name: Spectral backscattering coefficient at 443 nm, QAA version 6
@@ -563,7 +563,7 @@ datasets:
     file_key: bb_total_490
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_510:
     name: bb_total_510
     long_name: Spectral backscattering coefficient at 510 nm, QAA version 6
@@ -571,7 +571,7 @@ datasets:
     file_key: bb_total_510
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_555:
     name: bb_total_555
     long_name: Spectral backscattering coefficient at 555 nm, QAA version 6
@@ -579,7 +579,7 @@ datasets:
     file_key: bb_total_555
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_620:
     name: bb_total_620
     long_name: Spectral backscattering coefficient at 620 nm, QAA version 6
@@ -587,7 +587,7 @@ datasets:
     file_key: bb_total_620
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_660:
     name: bb_total_660
     long_name: Spectral backscattering coefficient at 660 nm, QAA version 6
@@ -595,7 +595,7 @@ datasets:
     file_key: bb_total_660
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_680:
     name: bb_total_680
     long_name: Spectral backscattering coefficient at 680 nm, QAA version 6
@@ -603,7 +603,7 @@ datasets:
     file_key: bb_total_680
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_709:
     name: bb_total_709
     long_name: Spectral backscattering coefficient at 709 nm, QAA version 6
@@ -611,7 +611,7 @@ datasets:
     file_key: bb_total_709
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_745:
     name: bb_total_745
     long_name: Spectral backscattering coefficient at 745 nm, QAA version 6
@@ -619,7 +619,7 @@ datasets:
     file_key: bb_total_745
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_total_865:
     name: bb_total_865
     long_name: Spectral backscattering coefficient at 865 nm, QAA version 6
@@ -627,7 +627,7 @@ datasets:
     file_key: bb_total_865
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   # --- Other IOP output ---
   a_dg_443:
     name: a_dg_443
@@ -636,7 +636,7 @@ datasets:
     file_key: a_dg_443
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   a_chl_443:
     name: a_chl_443
     long_name: Spectral absorption coefficient of chlorophyll-a at 443 nm, QAA version 6
@@ -644,7 +644,7 @@ datasets:
     file_key: a_chl_443
     coordinates: [longitude, latitude]
     units: m-1
-  
+
   bb_p_555:
     name: bb_p_555
     long_name: Spectral backscattering coefficient of particle at 555 nm, QAA version 6
