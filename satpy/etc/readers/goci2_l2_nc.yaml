@@ -44,7 +44,7 @@ file_types:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_TSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_TSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_TSS.nc'
-    
+
     goci_l2_ac:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
@@ -69,13 +69,104 @@ datasets:
     units: degrees_east
 
 # --- Ocean Color Products ---
-  diffuse_attenuation_coefficient:
-    name: Kd
+  # --- Diffuse attenuation coefficient ---
+  Kd_380:
+    name: Kd_380
+    long_name: Diffuse attenuation coefficient at 380 nm
     file_type: goci_l2_kd
-    file_key: Kd
+    file_key: Kd_380
     coordinates: [longitude, latitude]
     units: m-1
-  
+
+  Kd_412:
+    name: Kd_412
+    long_name: Diffuse attenuation coefficient at 412 nm
+    file_type: goci_l2_kd
+    file_key: Kd_412
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_443:
+    name: Kd_443
+    long_name: Diffuse attenuation coefficient at 443 nm
+    file_type: goci_l2_kd
+    file_key: Kd_443
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_490:
+    name: Kd_490
+    long_name: Diffuse attenuation coefficient at 490 nm
+    file_type: goci_l2_kd
+    file_key: Kd_490
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_510:
+    name: Kd_510
+    long_name: Diffuse attenuation coefficient at 510 nm
+    file_type: goci_l2_kd
+    file_key: Kd_510
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_555:
+    name: Kd_555
+    long_name: Diffuse attenuation coefficient at 555 nm
+    file_type: goci_l2_kd
+    file_key: Kd_555
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_620:
+    name: Kd_620
+    long_name: Diffuse attenuation coefficient at 620 nm
+    file_type: goci_l2_kd
+    file_key: Kd_620
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_660:
+    name: Kd_660
+    long_name: Diffuse attenuation coefficient at 660 nm
+    file_type: goci_l2_kd
+    file_key: Kd_660
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_680:
+    name: Kd_680
+    long_name: Diffuse attenuation coefficient at 680 nm
+    file_type: goci_l2_kd
+    file_key: Kd_680
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_709:
+    name: Kd_709
+    long_name: Diffuse attenuation coefficient at 709 nm
+    file_type: goci_l2_kd
+    file_key: Kd_709
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_745:
+    name: Kd_745
+    long_name: Diffuse attenuation coefficient at 745 nm
+    file_type: goci_l2_kd
+    file_key: Kd_745
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  Kd_865:
+    name: Kd_865
+    long_name: Diffuse attenuation coefficient at 865 nm
+    file_type: goci_l2_kd
+    file_key: Kd_865
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  # --- Other OC products ---
   Secchi_disk_depth:
     name: Zsd
     file_type: goci_l2_zsd
@@ -159,7 +250,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_555
     coordinates: [longitude, latitude]
-  
+
   RhoC_620:
     name: RhoC_620
     sensor: goci2
@@ -168,7 +259,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_620
     coordinates: [longitude, latitude]
-  
+
   RhoC_660:
     name: RhoC_660
     sensor: goci2
@@ -177,7 +268,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_660
     coordinates: [longitude, latitude]
-  
+
   RhoC_680:
     name: RhoC_680
     sensor: goci2
@@ -186,7 +277,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_680
     coordinates: [longitude, latitude]
-  
+
   RhoC_709:
     name: RhoC_709
     sensor: goci2
@@ -195,7 +286,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_709
     coordinates: [longitude, latitude]
-  
+
   RhoC_745:
     name: RhoC_745
     sensor: goci2
@@ -213,7 +304,7 @@ datasets:
     file_type: goci_l2_ac
     file_key: RhoC_865
     coordinates: [longitude, latitude]
-  
+
   # --- Remote sensing reflectance ---
   Rrs_380:
     name: Rrs_380
@@ -234,7 +325,7 @@ datasets:
     file_key: Rrs_412
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_443:
     name: Rrs_443
     sensor: goci2
@@ -244,7 +335,7 @@ datasets:
     file_key: Rrs_443
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_490:
     name: Rrs_490
     sensor: goci2
@@ -254,7 +345,7 @@ datasets:
     file_key: Rrs_490
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_510:
     name: Rrs_510
     sensor: goci2
@@ -264,7 +355,7 @@ datasets:
     file_key: Rrs_510
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_555:
     name: Rrs_555
     sensor: goci2
@@ -274,7 +365,7 @@ datasets:
     file_key: Rrs_555
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_620:
     name: Rrs_620
     sensor: goci2
@@ -284,7 +375,7 @@ datasets:
     file_key: Rrs_620
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_660:
     name: Rrs_660
     sensor: goci2
@@ -294,7 +385,7 @@ datasets:
     file_key: Rrs_660
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_680:
     name: Rrs_680
     sensor: goci2
@@ -304,7 +395,7 @@ datasets:
     file_key: Rrs_680
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_709:
     name: Rrs_709
     sensor: goci2
@@ -314,7 +405,7 @@ datasets:
     file_key: Rrs_709
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_745:
     name: Rrs_745
     sensor: goci2
@@ -324,7 +415,7 @@ datasets:
     file_key: Rrs_745
     coordinates: [longitude, latitude]
     units: sr-1
-  
+
   Rrs_865:
     name: Rrs_865
     sensor: goci2
@@ -334,4 +425,3 @@ datasets:
     file_key: Rrs_865
     coordinates: [longitude, latitude]
     units: sr-1
-
