@@ -29,8 +29,8 @@ from importlib.metadata import EntryPoint, entry_points
 from importlib.resources import files as impr_files
 from typing import Iterable
 
-from platformdirs import AppDirs
 from donfig import Config
+from platformdirs import AppDirs
 
 from satpy._compat import cache
 
