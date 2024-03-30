@@ -54,8 +54,13 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
             Rhoc = self["geophysical_data/RhoC"]
             Rrs = self["geophysical_data/Rrs"]
             data = xr.merge([Rhoc, Rrs, navigation])
+        elif filetype_info["file_type"] == "goci_l2_iop":
+            a = self["geophysical_data/a_total"]
+            bb = self["geophysical_data/bb_total"]
+            data = xr.merge([a, bb, navigation])
         else:
-            data = xr.merge([self["geophysical_data"], navigation])
+            data = self["geophysical_data"]
+            data = xr.merge([data, navigation])
         return data
 
     @property

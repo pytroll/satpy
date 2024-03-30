@@ -70,14 +70,14 @@ datasets:
 # --- Navigation Data ---
   latitude:
     name: latitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop]
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop, goci_l2_aod]
     file_key: latitude
     standard_name: latitude
     units: degrees_north
 
   longitude:
     name: longitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop]
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop, goci_l2_aod]
     file_key: longitude
     standard_name: longitude
     units: degrees_east
