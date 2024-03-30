@@ -52,18 +52,25 @@ file_types:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_AC.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_AC.nc'
 
+    goci_l2_iop:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_IOP.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_IOP.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_IOP.nc'
+
 datasets:
 # --- Navigation Data ---
   latitude:
     name: latitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac]
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop]
     file_key: latitude
     standard_name: latitude
     units: degrees_north
 
   longitude:
     name: longitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac]
+    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop]
     file_key: longitude
     standard_name: longitude
     units: degrees_east
@@ -425,3 +432,223 @@ datasets:
     file_key: Rrs_865
     coordinates: [longitude, latitude]
     units: sr-1
+
+# --- Inherent Optical Properties products ---
+  # --- Absorption coefficient ---
+  a_total_380:
+    name: a_total_380
+    long_name: Spectral absorption coefficient at 380 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_380
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  a_total_412:
+    name: a_total_412
+    long_name: Spectral absorption coefficient at 412 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_412
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_443:
+    name: a_total_443
+    long_name: Spectral absorption coefficient at 443 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_443
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_490:
+    name: a_total_490
+    long_name: Spectral absorption coefficient at 490 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_490
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  a_total_510:
+    name: a_total_510
+    long_name: Spectral absorption coefficient at 510 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_510
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  a_total_555:
+    name: a_total_555
+    long_name: Spectral absorption coefficient at 555 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_555
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_620:
+    name: a_total_620
+    long_name: Spectral absorption coefficient at 620 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_620
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_660:
+    name: a_total_660
+    long_name: Spectral absorption coefficient at 660 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_660
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_680:
+    name: a_total_680
+    long_name: Spectral absorption coefficient at 680 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_680
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_709:
+    name: a_total_709
+    long_name: Spectral absorption coefficient at 709 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_709
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_745:
+    name: a_total_745
+    long_name: Spectral absorption coefficient at 745 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_745
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_total_865:
+    name: a_total_865
+    long_name: Spectral absorption coefficient at 865 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_total_865
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  # --- Backscattering coefficient ---
+  bb_total_380:
+    name: bb_total_380
+    long_name: Spectral backscattering coefficient at 380 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_380
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_412:
+    name: bb_total_412
+    long_name: Spectral backscattering coefficient at 412 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_412
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_443:
+    name: bb_total_443
+    long_name: Spectral backscattering coefficient at 443 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_443
+    coordinates: [longitude, latitude]
+    units: m-1
+
+  bb_total_490:
+    name: bb_total_490
+    long_name: Spectral backscattering coefficient at 490 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_490
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_510:
+    name: bb_total_510
+    long_name: Spectral backscattering coefficient at 510 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_510
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_555:
+    name: bb_total_555
+    long_name: Spectral backscattering coefficient at 555 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_555
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_620:
+    name: bb_total_620
+    long_name: Spectral backscattering coefficient at 620 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_620
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_660:
+    name: bb_total_660
+    long_name: Spectral backscattering coefficient at 660 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_660
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_680:
+    name: bb_total_680
+    long_name: Spectral backscattering coefficient at 680 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_680
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_709:
+    name: bb_total_709
+    long_name: Spectral backscattering coefficient at 709 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_709
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_745:
+    name: bb_total_745
+    long_name: Spectral backscattering coefficient at 745 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_745
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_total_865:
+    name: bb_total_865
+    long_name: Spectral backscattering coefficient at 865 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_total_865
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  # --- Other IOP output ---
+  a_dg_443:
+    name: a_dg_443
+    long_name: Spectral absorption coefficient of detritus and gelbstoff at 443 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_dg_443
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  a_chl_443:
+    name: a_chl_443
+    long_name: Spectral absorption coefficient of chlorophyll-a at 443 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: a_chl_443
+    coordinates: [longitude, latitude]
+    units: m-1
+  
+  bb_p_555:
+    name: bb_p_555
+    long_name: Spectral backscattering coefficient of particle at 555 nm, QAA version 6
+    file_type: goci_l2_iop
+    file_key: bb_p_555
+    coordinates: [longitude, latitude]
+    units: m-1
