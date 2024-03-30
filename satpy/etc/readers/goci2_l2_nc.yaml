@@ -59,6 +59,13 @@ file_types:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_IOP.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_IOP.nc'
 
+    goci_l2_aod:
+        file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
+        file_patterns:
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_AOD.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_AOD.nc'
+         - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_AOD.nc'
+
 datasets:
 # --- Navigation Data ---
   latitude:
@@ -652,3 +659,39 @@ datasets:
     file_key: bb_p_555
     coordinates: [longitude, latitude]
     units: m-1
+
+# --- Aerosol products ---
+  AOD_550:
+    name: AOD_550
+    long_name: Aerosol Optical Depth at 550 nm
+    file_type: goci_l2_aod
+    file_key: Aerosol_Optical_Depth
+    coordinates: [longitude, latitude]
+
+  Aerosol_Type:
+    name: Aerosol_Type
+    long_name: Aerosol type; 1 = Dust, 2 = Non-absorbing Coarse, 3 = Mixture, 4 = High-absorbing Fine, 5 = Moderate-absorbing Fine, 6 = Non-absorbing Fine
+    file_type: goci_l2_aod
+    file_key: Aerosol_Type
+    coordinates: [longitude, latitude]
+
+  Angstrom_Exponent:
+    name: Angstrom_Exponent
+    long_name: Calculated Angstrom Exponent between 440 and 870 nm
+    file_type: goci_l2_aod
+    file_key: Angstrom_Exponent
+    coordinates: [longitude, latitude]
+
+  Fine_Mode_Fraction:
+    name: Fine_Mode_Fraction
+    long_name: Fine Mode Fraction at 550 nm
+    file_type: goci_l2_aod
+    file_key: Fine_Mode_Fraction
+    coordinates: [longitude, latitude]
+
+  Single_Scattering_Albedo:
+    name: Single_Scattering_Albedo
+    long_name: Single Scattering Albedo at 440 nm
+    file_type: goci_l2_aod
+    file_key: Single_Scattering_Albedo
+    coordinates: [longitude, latitude]
