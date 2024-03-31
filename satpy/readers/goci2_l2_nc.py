@@ -50,14 +50,15 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
     def _merge_navigation_data(self, filetype_info):
         """Merge navigation data and geophysical data."""
         navigation = self["navigation_data"]
-        if filetype_info["file_type"] == "goci_l2_ac":
+        if filetype_info["file_type"] == "goci2_l2_ac":
             Rhoc = self["geophysical_data/RhoC"]
             Rrs = self["geophysical_data/Rrs"]
             data = xr.merge([Rhoc, Rrs, navigation])
-        elif filetype_info["file_type"] == "goci_l2_iop":
+        elif filetype_info["file_type"] == "goci2_l2_iop":
             a = self["geophysical_data/a_total"]
             bb = self["geophysical_data/bb_total"]
-            data = xr.merge([a, bb, navigation])
+            data = self["geophysical_data"]
+            data = xr.merge([a, bb, data, navigation])
         else:
             data = self["geophysical_data"]
             data = xr.merge([data, navigation])
@@ -81,7 +82,6 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
         logger.debug("Reading in get_dataset %s.", var)
         variable = self.nc[var]
 
-        # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
         variable = variable.rename({"number_of_lines": "y", "pixels_per_line": "x"})
 
         variable.attrs.update(key.to_dict())

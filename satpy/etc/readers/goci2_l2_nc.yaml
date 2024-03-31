@@ -10,112 +10,112 @@ reader:
   group_keys: ['start_time', 'platform_shortname', "slot"]
 
 file_types:
-    goci_l2_kd:
+    goci2_l2_kd:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Kd.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Kd.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Kd.nc'
 
-    goci_l2_zsd:
+    goci2_l2_zsd:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Zsd.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Zsd.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Zsd.nc'
 
-    goci_l2_chl:
+    goci2_l2_chl:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_Chl.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_Chl.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_Chl.nc'
 
-    goci_l2_cdom:
+    goci2_l2_cdom:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_CDOM.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_CDOM.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_CDOM.nc'
 
-    goci_l2_tss:
+    goci2_l2_tss:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_TSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_TSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_TSS.nc'
 
-    goci_l2_ac:
+    goci2_l2_ac:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_AC.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_AC.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_AC.nc'
 
-    goci_l2_iop:
+    goci2_l2_iop:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_IOP.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_IOP.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_IOP.nc'
 
-    goci_l2_aod:
+    goci2_l2_aod:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_AOD.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_AOD.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_AOD.nc'
 
-    goci_l2_mf:
+    goci2_l2_mf:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_MF.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_MF.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_MF.nc'
 
-    goci_l2_cf:
+    goci2_l2_cf:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_CF.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_CF.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_CF.nc'
 
-    goci_l2_fa:
+    goci2_l2_fa:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_FA.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_FA.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_FA.nc'
 
-    goci_l2_fgi:
+    goci2_l2_fgi:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_FGI.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_FGI.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_FGI.nc'
 
-    goci_l2_lsss:
+    goci2_l2_lsss:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_LSSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_LSSS.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_LSSS.nc'
 
-    goci_l2_pp:
+    goci2_l2_pp:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_PP.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_PP.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_PP.nc'
 
-    goci_l2_ri:
+    goci2_l2_ri:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_RI.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_RI.nc'
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_RI.nc'
 
-    goci_l2_ssc:
+    goci2_l2_ssc:
         file_reader: !!python/name:satpy.readers.goci2_l2_nc.GOCI2L2NCFileHandler
         file_patterns:
          - '{platform:4s}_{sensor:5s}_{processing_level:2s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}_SSC.nc'
@@ -126,14 +126,14 @@ datasets:
 # --- Navigation Data ---
   latitude:
     name: latitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop, goci_l2_aod]
+    file_type: [goci2_l2_kd, goci2_l2_zsd, goci2_l2_chl, goci2_l2_cdom, goci2_l2_tss, goci2_l2_ac, goci2_l2_iop, goci2_l2_aod, goci2_l2_mf, goci2_l2_cf, goci2_l2_fa, goci2_l2_fgi, goci2_l2_lsss, goci2_l2_pp, goci2_l2_ri, goci2_l2_ssc]
     file_key: latitude
     standard_name: latitude
     units: degrees_north
 
   longitude:
     name: longitude
-    file_type: [goci_l2_kd, goci_l2_zsd, goci_l2_chl, goci_l2_cdom, goci_l2_tss, goci_l2_ac, goci_l2_iop, goci_l2_aod]
+    file_type: [goci2_l2_kd, goci2_l2_zsd, goci2_l2_chl, goci2_l2_cdom, goci2_l2_tss, goci2_l2_ac, goci2_l2_iop, goci2_l2_aod, goci2_l2_mf, goci2_l2_cf, goci2_l2_fa, goci2_l2_fgi, goci2_l2_lsss, goci2_l2_pp, goci2_l2_ri, goci2_l2_ssc]
     file_key: longitude
     standard_name: longitude
     units: degrees_east
@@ -143,7 +143,7 @@ datasets:
   Kd_380:
     name: Kd_380
     long_name: Diffuse attenuation coefficient at 380 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_380
     coordinates: [longitude, latitude]
     units: m-1
@@ -151,7 +151,7 @@ datasets:
   Kd_412:
     name: Kd_412
     long_name: Diffuse attenuation coefficient at 412 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_412
     coordinates: [longitude, latitude]
     units: m-1
@@ -159,7 +159,7 @@ datasets:
   Kd_443:
     name: Kd_443
     long_name: Diffuse attenuation coefficient at 443 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_443
     coordinates: [longitude, latitude]
     units: m-1
@@ -167,7 +167,7 @@ datasets:
   Kd_490:
     name: Kd_490
     long_name: Diffuse attenuation coefficient at 490 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_490
     coordinates: [longitude, latitude]
     units: m-1
@@ -175,7 +175,7 @@ datasets:
   Kd_510:
     name: Kd_510
     long_name: Diffuse attenuation coefficient at 510 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_510
     coordinates: [longitude, latitude]
     units: m-1
@@ -183,7 +183,7 @@ datasets:
   Kd_555:
     name: Kd_555
     long_name: Diffuse attenuation coefficient at 555 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_555
     coordinates: [longitude, latitude]
     units: m-1
@@ -191,7 +191,7 @@ datasets:
   Kd_620:
     name: Kd_620
     long_name: Diffuse attenuation coefficient at 620 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_620
     coordinates: [longitude, latitude]
     units: m-1
@@ -199,7 +199,7 @@ datasets:
   Kd_660:
     name: Kd_660
     long_name: Diffuse attenuation coefficient at 660 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_660
     coordinates: [longitude, latitude]
     units: m-1
@@ -207,7 +207,7 @@ datasets:
   Kd_680:
     name: Kd_680
     long_name: Diffuse attenuation coefficient at 680 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_680
     coordinates: [longitude, latitude]
     units: m-1
@@ -215,7 +215,7 @@ datasets:
   Kd_709:
     name: Kd_709
     long_name: Diffuse attenuation coefficient at 709 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_709
     coordinates: [longitude, latitude]
     units: m-1
@@ -223,7 +223,7 @@ datasets:
   Kd_745:
     name: Kd_745
     long_name: Diffuse attenuation coefficient at 745 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_745
     coordinates: [longitude, latitude]
     units: m-1
@@ -231,7 +231,7 @@ datasets:
   Kd_865:
     name: Kd_865
     long_name: Diffuse attenuation coefficient at 865 nm
-    file_type: goci_l2_kd
+    file_type: goci2_l2_kd
     file_key: Kd_865
     coordinates: [longitude, latitude]
     units: m-1
@@ -239,28 +239,28 @@ datasets:
   # --- Other OC products ---
   Secchi_disk_depth:
     name: Zsd
-    file_type: goci_l2_zsd
+    file_type: goci2_l2_zsd
     file_key: Zsd
     coordinates: [longitude, latitude]
     units: m
 
   Chlorophyll-a_concentration:
     name: Chl
-    file_type: goci_l2_chl
+    file_type: goci2_l2_chl
     file_key: Chl
     coordinates: [longitude, latitude]
     units: mg m-3
 
   Colored_Dissolved_Organic_Matter:
     name: CDOM
-    file_type: goci_l2_cdom
+    file_type: goci2_l2_cdom
     file_key: CDOM
     coordinates: [longitude, latitude]
     units: m-1
 
   Total_Suspended_Sediments_concentration:
     name: TSS
-    file_type: goci_l2_tss
+    file_type: goci2_l2_tss
     file_key: TSS
     coordinates: [longitude, latitude]
     units: g m-3
@@ -272,7 +272,7 @@ datasets:
     sensor: goci2
     wavelength: [0.37, 0.38, 0.39]
     long_name: Rayleigh-corrected reflectance at 380 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_380
     coordinates: [longitude, latitude]
 
@@ -281,7 +281,7 @@ datasets:
     sensor: goci2
     wavelength: [0.402, 0.412, 0.422]
     long_name: Rayleigh-corrected reflectance at 412 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_412
     coordinates: [longitude, latitude]
 
@@ -290,7 +290,7 @@ datasets:
     sensor: goci2
     wavelength: [0.433, 0.443, 0.453]
     long_name: Rayleigh-corrected reflectance at 443 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_443
     coordinates: [longitude, latitude]
 
@@ -299,7 +299,7 @@ datasets:
     sensor: goci2
     wavelength: [0.48, 0.49, 0.50]
     long_name: Rayleigh-corrected reflectance at 490 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_490
     coordinates: [longitude, latitude]
 
@@ -308,7 +308,7 @@ datasets:
     sensor: goci2
     wavelength: [0.50, 0.51, 0.52]
     long_name: Rayleigh-corrected reflectance at 510 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_510
     coordinates: [longitude, latitude]
 
@@ -317,7 +317,7 @@ datasets:
     sensor: goci2
     wavelength: [0.545, 0.555, 0.565]
     long_name: Rayleigh-corrected reflectance at 555 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_555
     coordinates: [longitude, latitude]
 
@@ -326,7 +326,7 @@ datasets:
     sensor: goci2
     wavelength: [0.61, 0.62, 0.63]
     long_name: Rayleigh-corrected reflectance at 620 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_620
     coordinates: [longitude, latitude]
 
@@ -335,7 +335,7 @@ datasets:
     sensor: goci2
     wavelength: [0.65, 0.66, 0.67]
     long_name: Rayleigh-corrected reflectance at 660 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_660
     coordinates: [longitude, latitude]
 
@@ -344,7 +344,7 @@ datasets:
     sensor: goci2
     wavelength: [0.675, 0.680, 0.685]
     long_name: Rayleigh-corrected reflectance at 680 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_680
     coordinates: [longitude, latitude]
 
@@ -353,7 +353,7 @@ datasets:
     sensor: goci2
     wavelength: [0.704, 0.709, 0.714]
     long_name: Rayleigh-corrected reflectance at 709 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_709
     coordinates: [longitude, latitude]
 
@@ -362,7 +362,7 @@ datasets:
     sensor: goci2
     wavelength: [0.735, 0.745, 0.755]
     long_name: Rayleigh-corrected reflectance at 745 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_745
     coordinates: [longitude, latitude]
 
@@ -371,7 +371,7 @@ datasets:
     sensor: goci2
     wavelength: [0.845, 0.865, 0.885]
     long_name: Rayleigh-corrected reflectance at 865 nm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: RhoC_865
     coordinates: [longitude, latitude]
 
@@ -381,7 +381,7 @@ datasets:
     sensor: goci2
     wavelength: [0.37, 0.38, 0.39]
     long_name: Remote sensing reflectance at 380 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_380
     coordinates: [longitude, latitude]
     units: sr-1
@@ -391,7 +391,7 @@ datasets:
     sensor: goci2
     wavelength: [0.402, 0.412, 0.422]
     long_name: Remote sensing reflectance at 412 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_412
     coordinates: [longitude, latitude]
     units: sr-1
@@ -401,7 +401,7 @@ datasets:
     sensor: goci2
     wavelength: [0.433, 0.443, 0.453]
     long_name: Remote sensing reflectance at 443 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_443
     coordinates: [longitude, latitude]
     units: sr-1
@@ -411,7 +411,7 @@ datasets:
     sensor: goci2
     wavelength: [0.48, 0.49, 0.50]
     long_name: Remote sensing reflectance at 490 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_490
     coordinates: [longitude, latitude]
     units: sr-1
@@ -421,7 +421,7 @@ datasets:
     sensor: goci2
     wavelength: [0.50, 0.51, 0.52]
     long_name: Remote sensing reflectance at 510 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_510
     coordinates: [longitude, latitude]
     units: sr-1
@@ -431,7 +431,7 @@ datasets:
     sensor: goci2
     wavelength: [0.545, 0.555, 0.565]
     long_name: Remote sensing reflectance at 555 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_555
     coordinates: [longitude, latitude]
     units: sr-1
@@ -441,7 +441,7 @@ datasets:
     sensor: goci2
     wavelength: [0.61, 0.62, 0.63]
     long_name: Remote sensing reflectance at 620 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_620
     coordinates: [longitude, latitude]
     units: sr-1
@@ -451,7 +451,7 @@ datasets:
     sensor: goci2
     wavelength: [0.65, 0.66, 0.67]
     long_name: Remote sensing reflectance at 660 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_660
     coordinates: [longitude, latitude]
     units: sr-1
@@ -461,7 +461,7 @@ datasets:
     sensor: goci2
     wavelength: [0.675, 0.680, 0.685]
     long_name: Remote sensing reflectance at 680 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_680
     coordinates: [longitude, latitude]
     units: sr-1
@@ -471,7 +471,7 @@ datasets:
     sensor: goci2
     wavelength: [0.704, 0.709, 0.714]
     long_name: Remote sensing reflectance at 709 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_709
     coordinates: [longitude, latitude]
     units: sr-1
@@ -481,7 +481,7 @@ datasets:
     sensor: goci2
     wavelength: [0.735, 0.745, 0.755]
     long_name: Remote sensing reflectance at 745 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_745
     coordinates: [longitude, latitude]
     units: sr-1
@@ -491,7 +491,7 @@ datasets:
     sensor: goci2
     wavelength: [0.845, 0.865, 0.885]
     long_name: Remote sensing reflectance at 865 nm, KOSC standard algorithm
-    file_type: goci_l2_ac
+    file_type: goci2_l2_ac
     file_key: Rrs_865
     coordinates: [longitude, latitude]
     units: sr-1
@@ -501,7 +501,7 @@ datasets:
   a_total_380:
     name: a_total_380
     long_name: Spectral absorption coefficient at 380 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_380
     coordinates: [longitude, latitude]
     units: m-1
@@ -509,7 +509,7 @@ datasets:
   a_total_412:
     name: a_total_412
     long_name: Spectral absorption coefficient at 412 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_412
     coordinates: [longitude, latitude]
     units: m-1
@@ -517,7 +517,7 @@ datasets:
   a_total_443:
     name: a_total_443
     long_name: Spectral absorption coefficient at 443 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_443
     coordinates: [longitude, latitude]
     units: m-1
@@ -525,7 +525,7 @@ datasets:
   a_total_490:
     name: a_total_490
     long_name: Spectral absorption coefficient at 490 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_490
     coordinates: [longitude, latitude]
     units: m-1
@@ -533,7 +533,7 @@ datasets:
   a_total_510:
     name: a_total_510
     long_name: Spectral absorption coefficient at 510 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_510
     coordinates: [longitude, latitude]
     units: m-1
@@ -541,7 +541,7 @@ datasets:
   a_total_555:
     name: a_total_555
     long_name: Spectral absorption coefficient at 555 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_555
     coordinates: [longitude, latitude]
     units: m-1
@@ -549,7 +549,7 @@ datasets:
   a_total_620:
     name: a_total_620
     long_name: Spectral absorption coefficient at 620 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_620
     coordinates: [longitude, latitude]
     units: m-1
@@ -557,7 +557,7 @@ datasets:
   a_total_660:
     name: a_total_660
     long_name: Spectral absorption coefficient at 660 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_660
     coordinates: [longitude, latitude]
     units: m-1
@@ -565,7 +565,7 @@ datasets:
   a_total_680:
     name: a_total_680
     long_name: Spectral absorption coefficient at 680 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_680
     coordinates: [longitude, latitude]
     units: m-1
@@ -573,7 +573,7 @@ datasets:
   a_total_709:
     name: a_total_709
     long_name: Spectral absorption coefficient at 709 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_709
     coordinates: [longitude, latitude]
     units: m-1
@@ -581,7 +581,7 @@ datasets:
   a_total_745:
     name: a_total_745
     long_name: Spectral absorption coefficient at 745 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_745
     coordinates: [longitude, latitude]
     units: m-1
@@ -589,7 +589,7 @@ datasets:
   a_total_865:
     name: a_total_865
     long_name: Spectral absorption coefficient at 865 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_total_865
     coordinates: [longitude, latitude]
     units: m-1
@@ -598,7 +598,7 @@ datasets:
   bb_total_380:
     name: bb_total_380
     long_name: Spectral backscattering coefficient at 380 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_380
     coordinates: [longitude, latitude]
     units: m-1
@@ -606,7 +606,7 @@ datasets:
   bb_total_412:
     name: bb_total_412
     long_name: Spectral backscattering coefficient at 412 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_412
     coordinates: [longitude, latitude]
     units: m-1
@@ -614,7 +614,7 @@ datasets:
   bb_total_443:
     name: bb_total_443
     long_name: Spectral backscattering coefficient at 443 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_443
     coordinates: [longitude, latitude]
     units: m-1
@@ -622,7 +622,7 @@ datasets:
   bb_total_490:
     name: bb_total_490
     long_name: Spectral backscattering coefficient at 490 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_490
     coordinates: [longitude, latitude]
     units: m-1
@@ -630,7 +630,7 @@ datasets:
   bb_total_510:
     name: bb_total_510
     long_name: Spectral backscattering coefficient at 510 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_510
     coordinates: [longitude, latitude]
     units: m-1
@@ -638,7 +638,7 @@ datasets:
   bb_total_555:
     name: bb_total_555
     long_name: Spectral backscattering coefficient at 555 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_555
     coordinates: [longitude, latitude]
     units: m-1
@@ -646,7 +646,7 @@ datasets:
   bb_total_620:
     name: bb_total_620
     long_name: Spectral backscattering coefficient at 620 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_620
     coordinates: [longitude, latitude]
     units: m-1
@@ -654,7 +654,7 @@ datasets:
   bb_total_660:
     name: bb_total_660
     long_name: Spectral backscattering coefficient at 660 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_660
     coordinates: [longitude, latitude]
     units: m-1
@@ -662,7 +662,7 @@ datasets:
   bb_total_680:
     name: bb_total_680
     long_name: Spectral backscattering coefficient at 680 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_680
     coordinates: [longitude, latitude]
     units: m-1
@@ -670,7 +670,7 @@ datasets:
   bb_total_709:
     name: bb_total_709
     long_name: Spectral backscattering coefficient at 709 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_709
     coordinates: [longitude, latitude]
     units: m-1
@@ -678,7 +678,7 @@ datasets:
   bb_total_745:
     name: bb_total_745
     long_name: Spectral backscattering coefficient at 745 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_745
     coordinates: [longitude, latitude]
     units: m-1
@@ -686,7 +686,7 @@ datasets:
   bb_total_865:
     name: bb_total_865
     long_name: Spectral backscattering coefficient at 865 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_total_865
     coordinates: [longitude, latitude]
     units: m-1
@@ -695,7 +695,7 @@ datasets:
   a_dg_443:
     name: a_dg_443
     long_name: Spectral absorption coefficient of detritus and gelbstoff at 443 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_dg_443
     coordinates: [longitude, latitude]
     units: m-1
@@ -703,7 +703,7 @@ datasets:
   a_chl_443:
     name: a_chl_443
     long_name: Spectral absorption coefficient of chlorophyll-a at 443 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: a_chl_443
     coordinates: [longitude, latitude]
     units: m-1
@@ -711,7 +711,7 @@ datasets:
   bb_p_555:
     name: bb_p_555
     long_name: Spectral backscattering coefficient of particle at 555 nm, QAA version 6
-    file_type: goci_l2_iop
+    file_type: goci2_l2_iop
     file_key: bb_p_555
     coordinates: [longitude, latitude]
     units: m-1
@@ -720,35 +720,35 @@ datasets:
   AOD_550:
     name: AOD_550
     long_name: Aerosol Optical Depth at 550 nm
-    file_type: goci_l2_aod
+    file_type: goci2_l2_aod
     file_key: Aerosol_Optical_Depth
     coordinates: [longitude, latitude]
 
   Aerosol_Type:
     name: Aerosol_Type
     long_name: Aerosol type; 1 = Dust, 2 = Non-absorbing Coarse, 3 = Mixture, 4 = High-absorbing Fine, 5 = Moderate-absorbing Fine, 6 = Non-absorbing Fine
-    file_type: goci_l2_aod
+    file_type: goci2_l2_aod
     file_key: Aerosol_Type
     coordinates: [longitude, latitude]
 
   Angstrom_Exponent:
     name: Angstrom_Exponent
     long_name: Calculated Angstrom Exponent between 440 and 870 nm
-    file_type: goci_l2_aod
+    file_type: goci2_l2_aod
     file_key: Angstrom_Exponent
     coordinates: [longitude, latitude]
 
   Fine_Mode_Fraction:
     name: Fine_Mode_Fraction
     long_name: Fine Mode Fraction at 550 nm
-    file_type: goci_l2_aod
+    file_type: goci2_l2_aod
     file_key: Fine_Mode_Fraction
     coordinates: [longitude, latitude]
 
   Single_Scattering_Albedo:
     name: Single_Scattering_Albedo
     long_name: Single Scattering Albedo at 440 nm
-    file_type: goci_l2_aod
+    file_type: goci2_l2_aod
     file_key: Single_Scattering_Albedo
     coordinates: [longitude, latitude]
 
@@ -756,14 +756,14 @@ datasets:
   MF:
     name: MF
     long_name: Marine fog existence(Yes/No/Possible), Machine learning based KOSC Algorithm
-    file_type: goci_l2_mf
+    file_type: goci2_l2_mf
     file_key: MF
     coordinates: [longitude, latitude]
 
   CF:
     name: CF
     long_name: Chlorophyll(-a) Front, CF
-    file_type: goci_l2_cf
+    file_type: goci2_l2_cf
     file_key: CF
     coordinates: [longitude, latitude]
     units : mg m-3 km-1
@@ -771,21 +771,21 @@ datasets:
   FA:
     name: FA
     long_name: Subpixel area fraction covered by floating brown algae or green algae
-    file_type: goci_l2_fa
+    file_type: goci2_l2_fa
     file_key: FA
     coordinates: [longitude, latitude]
 
   FGI:
     name: FGI
     long_name: Fishing ground index for chub mackerel
-    file_type: goci_l2_fgi
+    file_type: goci2_l2_fgi
     file_key: FGI
     coordinates: [longitude, latitude]
 
   SSS:
     name: SSS
     long_name: Sea Surface Salinity, Neural network algorithm
-    file_type: goci_l2_lsss
+    file_type: goci2_l2_lsss
     file_key: sss
     coordinates: [longitude, latitude]
     units: psu
@@ -793,7 +793,7 @@ datasets:
   PP:
     name: PP
     long_name: Primary Production
-    file_type: goci_l2_pp
+    file_type: goci2_l2_pp
     file_key: PP
     coordinates: [longitude, latitude]
     units: PP unit
@@ -801,14 +801,14 @@ datasets:
   RI:
     name: RI
     long_name: Red Tide Index
-    file_type: goci_l2_ri
+    file_type: goci2_l2_ri
     file_key: RI
     coordinates: [longitude, latitude]
 
   SSC_direction:
     name: SSC_direction
     long_name: Sea Surface Current direction
-    file_type: goci_l2_ssc
+    file_type: goci2_l2_ssc
     file_key: SSC_direction
     coordinates: [longitude, latitude]
     units: degree
@@ -816,7 +816,7 @@ datasets:
   SSC_speed:
     name: SSC_speed
     long_name: Sea Surface Current speed
-    file_type: goci_l2_ssc
+    file_type: goci2_l2_ssc
     file_key: SSC_speed
     coordinates: [longitude, latitude]
     units: m s-1
@@ -824,7 +824,7 @@ datasets:
   SSC_u:
     name: SSC_u
     long_name: Sea Surface Current u-component
-    file_type: goci_l2_ssc
+    file_type: goci2_l2_ssc
     file_key: SSC_u
     coordinates: [longitude, latitude]
     units: m s-1
@@ -832,7 +832,7 @@ datasets:
   SSC_v:
     name: SSC_v
     long_name: Sea Surface Current v-component
-    file_type: goci_l2_ssc
+    file_type: goci2_l2_ssc
     file_key: SSC_v
     coordinates: [longitude, latitude]
     units: m s-1
