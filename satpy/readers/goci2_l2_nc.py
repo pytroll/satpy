@@ -84,5 +84,9 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
 
         variable = variable.rename({"number_of_lines": "y", "pixels_per_line": "x"})
 
+        # Some products may miss lon/lat standard_name, use name as base name if it is not already present
+        if variable.attrs.get("standard_name", None) is None:
+            variable.attrs.update({"standard_name": variable.name})
+
         variable.attrs.update(key.to_dict())
         return variable
