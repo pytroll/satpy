@@ -29,6 +29,15 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
+GROUPS_MAP = {
+    "goci2_l2_ac": ["geophysical_data/RhoC", "geophysical_data/Rrs", "navigation_data"],
+    "goci2_l2_iop": [
+        "geophysical_data/a_total",
+        "geophysical_data/bb_total",
+        "navigation_data",
+    ],
+}
+
 
 class GOCI2L2NCFileHandler(NetCDF4FileHandler):
     """File handler for GOCI-II L2 official data in netCDF format."""
@@ -39,7 +48,8 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
         self.slot = filename_info.get("slot", None)
 
         self.attrs = self["/attrs"]
-        self.nc = self._merge_navigation_data(filetype_info)
+        self.filetype = filetype_info["file_type"]
+        self.nc = self._merge_navigation_data(self.filetype)
 
         self.sensor = self.attrs["instrument"].lower()
         self.nlines = self.nc.sizes["number_of_lines"]
@@ -47,22 +57,13 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
         self.platform_shortname = filename_info["platform"]
         self.coverage = filename_info["coverage"]
 
-    def _merge_navigation_data(self, filetype_info):
+    def _merge_navigation_data(self, filetype):
         """Merge navigation data and geophysical data."""
-        navigation = self["navigation_data"]
-        if filetype_info["file_type"] == "goci2_l2_ac":
-            Rhoc = self["geophysical_data/RhoC"]
-            Rrs = self["geophysical_data/Rrs"]
-            data = xr.merge([Rhoc, Rrs, navigation])
-        elif filetype_info["file_type"] == "goci2_l2_iop":
-            a = self["geophysical_data/a_total"]
-            bb = self["geophysical_data/bb_total"]
-            data = self["geophysical_data"]
-            data = xr.merge([a, bb, data, navigation])
+        if filetype in GROUPS_MAP.keys():
+            groups = GROUPS_MAP[filetype]
         else:
-            data = self["geophysical_data"]
-            data = xr.merge([data, navigation])
-        return data
+            groups = ["geophysical_data", "navigation_data"]
+        return xr.merge([self[group] for group in groups])
 
     @property
     def start_time(self):
