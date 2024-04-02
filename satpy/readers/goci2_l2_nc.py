@@ -45,16 +45,13 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
         super().__init__(filename, filename_info, filetype_info)
-        self.slot = filename_info.get("slot", None)
 
         self.attrs = self["/attrs"]
-        self.filetype = filetype_info["file_type"]
-        self.nc = self._merge_navigation_data(self.filetype)
+        self.nc = self._merge_navigation_data(filetype_info["file_type"])
 
-        self.sensor = self.attrs["instrument"].lower()
+        # Read metadata which are common to all datasets
         self.nlines = self.nc.sizes["number_of_lines"]
         self.ncols = self.nc.sizes["pixels_per_line"]
-        self.platform_shortname = filename_info["platform"]
         self.coverage = filename_info["coverage"]
 
     def _merge_navigation_data(self, filetype):
